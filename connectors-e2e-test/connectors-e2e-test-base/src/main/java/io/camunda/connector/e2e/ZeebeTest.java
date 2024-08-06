@@ -24,7 +24,7 @@ import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.spring.test.ZeebeTestThreadSupport;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import org.junit.jupiter.api.Assertions;
+import java.util.Objects;
 
 public class ZeebeTest {
 
@@ -53,7 +53,7 @@ public class ZeebeTest {
   }
 
   public ZeebeTest createInstance() {
-    Assertions.assertNotNull(deploymentEvent, "Process needs to be deployed first.");
+    Objects.requireNonNull(deploymentEvent, "Process needs to be deployed first.");
     var bpmnProcessId = deploymentEvent.getProcesses().get(0).getBpmnProcessId();
     processInstanceEvent =
         zeebeClient
