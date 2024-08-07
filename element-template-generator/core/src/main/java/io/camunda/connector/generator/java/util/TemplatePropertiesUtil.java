@@ -172,7 +172,7 @@ public class TemplatePropertiesUtil {
 
   private static PropertyBuilder buildProperty(Field field, TemplateGenerationContext context) {
     var annotation = field.getAnnotation(TemplateProperty.class);
-    String name, label, tooltip = null;
+    String name, label, tooltip = null, exampleValue = null;
     String bindingName = field.getName();
     if (annotation != null) {
       if (annotation.ignore()) {
@@ -194,6 +194,9 @@ public class TemplatePropertiesUtil {
       if (!annotation.tooltip().isBlank()) {
         tooltip = annotation.tooltip();
       }
+      if (!annotation.exampleValue().isBlank()) {
+        exampleValue = annotation.exampleValue();
+      }
     } else {
       name = field.getName();
       label = transformIdIntoLabel(name);
@@ -204,6 +207,7 @@ public class TemplatePropertiesUtil {
             .id(name)
             .label(label)
             .tooltip(tooltip)
+            .exampleValue(exampleValue)
             .binding(createBinding(bindingName, context));
 
     for (FieldProcessor processor : fieldProcessors) {
@@ -295,14 +299,16 @@ public class TemplatePropertiesUtil {
     var builder =
         switch (type) {
           case Boolean -> BooleanProperty.builder();
-          case Dropdown -> DropdownProperty.builder()
-              .choices(
-                  dropdownChoices.entrySet().stream()
-                      .map(
-                          entry ->
-                              new DropdownProperty.DropdownChoice(entry.getValue(), entry.getKey()))
-                      .toList())
-              .feel(FeelMode.disabled);
+          case Dropdown ->
+              DropdownProperty.builder()
+                  .choices(
+                      dropdownChoices.entrySet().stream()
+                          .map(
+                              entry ->
+                                  new DropdownProperty.DropdownChoice(
+                                      entry.getValue(), entry.getKey()))
+                          .toList())
+                  .feel(FeelMode.disabled);
           case Hidden -> HiddenProperty.builder();
           case String -> StringProperty.builder();
           case Text -> TextProperty.builder();

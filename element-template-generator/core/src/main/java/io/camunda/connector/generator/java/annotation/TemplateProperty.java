@@ -82,6 +82,8 @@ public @interface TemplateProperty {
   /** Resulting JSON type for the default value */
   DefaultValueType defaultValueType() default DefaultValueType.String;
 
+  String exampleValue() default "";
+
   /**
    * Group ID for the property.
    *

@@ -37,7 +37,7 @@ public abstract sealed class Property
   protected final PropertyBinding binding;
   protected final PropertyCondition condition;
   protected final String tooltip;
-
+  protected final Object exampleValue;
   protected final String type;
 
   public enum FeelMode {
@@ -64,6 +64,7 @@ public abstract sealed class Property
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
+      Object exampleValue,
       String type) {
     this.id = id;
     this.label = label;
@@ -78,6 +79,7 @@ public abstract sealed class Property
     this.condition = condition;
     this.tooltip = tooltip;
     this.type = type;
+    this.exampleValue = exampleValue;
   }
 
   public String getId() {
@@ -133,6 +135,14 @@ public abstract sealed class Property
 
   public String getTooltip() {
     return tooltip;
+  }
+
+  public Boolean getOptional() {
+    return optional;
+  }
+
+  public Object getExampleValue() {
+    return exampleValue;
   }
 
   @Override
