@@ -16,20 +16,4 @@
  */
 package io.camunda.connector.runtime.core.document;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentOperation;
-
-public class AggregatingOperationExecutor implements DocumentOperationExecutor {
-
-  public AggregatingOperationExecutor() {}
-
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return true;
-  }
-
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
-  }
-}
+public class DocumentDeserializerTest {}

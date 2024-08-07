@@ -20,18 +20,22 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.api.document.BasicDocument;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentSource.ByteArrayDocumentSource;
 import io.camunda.connector.api.document.DocumentSource.ReferenceDocumentSource;
+import io.camunda.connector.runtime.core.document.DocumentFactory;
 import java.io.IOException;
 import java.util.Base64;
 
-/**
- * A Jackson deserializer to handle {@link Document} objects.
- */
+/** A Jackson deserializer to handle {@link Document} objects. */
 public class SimpleDocumentDeserializer extends JsonDeserializer<Document> {
+
+  public SimpleDocumentDeserializer(DocumentFactory documentFactory) {
+    this.documentFactory = documentFactory;
+  }
+
+  private final DocumentFactory documentFactory;
 
   @Override
   public Document deserialize(JsonParser jsonParser, DeserializationContext ctx)
@@ -57,7 +61,7 @@ public class SimpleDocumentDeserializer extends JsonDeserializer<Document> {
       throws IOException {
     var reference = ctx.readTreeAsValue(node, DocumentReference.class);
     var source = new ReferenceDocumentSource(reference);
-    return BasicDocument.builder().source(source).build();
+    return documentFactory.from(source).build();
   }
 
   private Document deserializeBase64(JsonNode node) {
@@ -65,7 +69,7 @@ public class SimpleDocumentDeserializer extends JsonDeserializer<Document> {
     try {
       var bytes = Base64.getDecoder().decode(content);
       var source = new ByteArrayDocumentSource(bytes);
-      return BasicDocument.builder().source(source).build();
+      return documentFactory.from(source).build();
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("Invalid base64 encoded document: " + content, e);
     }

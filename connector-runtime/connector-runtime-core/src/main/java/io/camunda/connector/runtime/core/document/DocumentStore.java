@@ -16,20 +16,19 @@
  */
 package io.camunda.connector.runtime.core.document;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentOperation;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference;
+import java.io.InputStream;
 
-public class AggregatingOperationExecutor implements DocumentOperationExecutor {
+public interface DocumentStore {
 
-  public AggregatingOperationExecutor() {}
+  DocumentReference createDocument(DocumentMetadata metadata, byte[] content);
 
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return true;
-  }
+  DocumentReference createDocument(DocumentMetadata metadata, InputStream content);
 
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
-  }
+  byte[] getDocumentContent(DocumentReference reference);
+
+  InputStream getDocumentContentStream(DocumentReference reference);
+
+  void deleteDocument(DocumentReference reference);
 }
