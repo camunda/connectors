@@ -14,33 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.connector.runtime.core.document.jackson;
 
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JacksonAnnotationsInside;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public record BasicDocument(DocumentMetadata metadata, DocumentSource source) implements Document {
-
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  public static class Builder {
-    private Map<String, Object> metadata;
-    private DocumentSource source;
-
-    public Builder metadata(Map<String, Object> metadata) {
-      this.metadata = metadata;
-      return this;
-    }
-
-    public Builder source(DocumentSource source) {
-      this.source = null;
-      return this;
-    }
-
-    public BasicDocument build() {
-
-      return new BasicDocument(metadata, source);
-    }
-  }
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.PARAMETER, ElementType.FIELD})
+@JacksonAnnotationsInside
+@JsonDeserialize
+public @interface DocumentAware {
+  boolean lazy() default true;
 }

@@ -19,8 +19,19 @@ package io.camunda.connector.runtime.core.document.jackson;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.runtime.core.document.AggregatingOperationExecutor;
+import io.camunda.connector.runtime.core.document.DocumentFactory;
+import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
+import io.camunda.connector.runtime.core.document.InMemoryDocumentStore;
 
 public class JacksonModuleDocument extends SimpleModule {
+
+  private DocumentFactory documentFactory = new DocumentFactory(new InMemoryDocumentStore());
+  private final DocumentOperationExecutor operationExecutor = new AggregatingOperationExecutor();
+
+  public JacksonModuleDocument(DocumentFactory documentFactory) {
+    this.documentFactory = documentFactory;
+  }
 
   @Override
   public String getModuleName() {
@@ -35,8 +46,10 @@ public class JacksonModuleDocument extends SimpleModule {
 
   @Override
   public void setupModule(SetupContext context) {
-    addDeserializer(Document.class, new SimpleDocumentDeserializer());
-    addSerializer(Document.class, new DocumentSerializer());
+    addDeserializer(Document.class, new SimpleDocumentDeserializer(documentFactory));
+    addSerializer(Document.class, new DocumentSerializer(operationExecutor));
+    context.insertAnnotationIntrospector(
+        new DocumentAnnotationIntrospector(documentFactory, operationExecutor));
     super.setupModule(context);
   }
 }

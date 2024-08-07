@@ -20,14 +20,36 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
 import java.io.IOException;
 
 public class DocumentSerializer extends JsonSerializer<Document> {
+
+  private final DocumentOperationExecutor operationExecutor;
+
+  public DocumentSerializer(DocumentOperationExecutor operationExecutor) {
+    this.operationExecutor = operationExecutor;
+  }
 
   @Override
   public void serialize(
       Document document, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
       throws IOException {
-    jsonGenerator.writeString(document.getContent().asBase64());
+
+    var reference = document.reference();
+    if (reference.operation().isPresent()) {
+      var result = operationExecutor.execute(reference.operation().get(), document);
+      jsonGenerator.writeStartObject();
+      switch (result) {
+        case String str -> jsonGenerator.writeString(str);
+        case Number number -> jsonGenerator.writeNumber(number.toString());
+        case Boolean bool -> jsonGenerator.writeBoolean(bool);
+        case byte[] bytes -> jsonGenerator.writeBinary(bytes);
+        default -> jsonGenerator.writeObject(result);
+      }
+      jsonGenerator.writeObject(result);
+    } else {
+      jsonGenerator.writeObject(document);
+    }
   }
 }
