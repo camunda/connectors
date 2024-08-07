@@ -16,9 +16,37 @@
  */
 package io.camunda.connector.api.document;
 
-public sealed interface DocumentSource {
+import java.util.Map;
 
-  record ByteArrayDocumentSource(byte[] content) implements DocumentSource {}
+public class DocumentMetadata {
 
-  record ReferenceDocumentSource(DocumentReference reference) implements DocumentSource {}
+  public static final String CONTENT_TYPE = "contentType";
+  public static final String FILE_NAME = "fileName";
+  public static final String DESCRIPTION = "description";
+
+  private final Map<String, Object> keys;
+
+  public DocumentMetadata(Map<String, Object> keys) {
+    this.keys = keys;
+  }
+
+  public Map<String, Object> getKeys() {
+    return keys;
+  }
+
+  public Object getKey(String key) {
+    return keys.get(key);
+  }
+
+  public String getContentType() {
+    return (String) keys.get(CONTENT_TYPE);
+  }
+
+  public String getFileName() {
+    return (String) keys.get(FILE_NAME);
+  }
+
+  public String getDescription() {
+    return (String) keys.get(DESCRIPTION);
+  }
 }

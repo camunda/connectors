@@ -14,11 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.connector.runtime.core.document.operation;
 
-public sealed interface DocumentSource {
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentOperation;
+import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
 
-  record ByteArrayDocumentSource(byte[] content) implements DocumentSource {}
+public class Base64Operation implements DocumentOperationExecutor {
 
-  record ReferenceDocumentSource(DocumentReference reference) implements DocumentSource {}
+  @Override
+  public boolean matches(DocumentOperation operationReference) {
+    return false;
+  }
+
+  @Override
+  public Object execute(DocumentOperation operationReference, Document document) {
+    return null;
+  }
 }

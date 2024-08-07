@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.api.document;
 
+import java.io.InputStream;
+
 /**
  * Represents a uniform document (file) object that can be passed between connectors and used in the
  * FEEL engine.
@@ -26,8 +28,13 @@ public interface Document {
    * Domain-specific metadata that can be attached to the document. When a file is consumed by a
    * connector as input, the metadata originates from the
    */
-  Object getMetadata();
+  DocumentMetadata metadata();
 
-  /** Document content */
-  DocumentContent getContent();
+  String asBase64();
+
+  InputStream asInputStream();
+
+  byte[] asByteArray();
+
+  DocumentReference reference();
 }

@@ -16,9 +16,8 @@
  */
 package io.camunda.connector.api.document;
 
-public sealed interface DocumentSource {
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 
-  record ByteArrayDocumentSource(byte[] content) implements DocumentSource {}
-
-  record ReferenceDocumentSource(DocumentReference reference) implements DocumentSource {}
-}
+public record DocumentOperation(
+    @JsonProperty("$name") String name, @JsonProperty("$params") Map<String, Object> params) {}
