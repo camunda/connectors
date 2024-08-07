@@ -16,4 +16,6 @@
  */
 package io.camunda.connector.generator.api;
 
-public record DocsGeneratorConfiguration(String templatePath, String outputPath) {}
+public record DocsGeneratorConfiguration(
+        String templatePath,
+        String outputPath) {}

@@ -22,6 +22,9 @@ import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+
 public class OutboundClassBasedDocsGeneratorTest extends BaseTest {
 
   private final ClassBasedDocsGenerator generator = new ClassBasedDocsGenerator();
@@ -32,9 +35,17 @@ public class OutboundClassBasedDocsGeneratorTest extends BaseTest {
     @Test
     void elementType_default_isServiceTask() {
       DocsGeneratorConfiguration config =
-          new DocsGeneratorConfiguration("src/test/templates/connector-doc.md.peb", "test.md");
-      var result = generator.generate(MyConnectorFunction.FullyAnnotated.class, config).content();
+          new DocsGeneratorConfiguration(
+                  "templates/connector-doc.md.peb", "test.md");
+      var result =
+          generator.generate(MyConnectorFunction.FullyAnnotated.class, config).getFirst().content();
       System.out.println(result);
+
+//      try (PrintWriter out = new PrintWriter(config.outputPath())) {
+//        out.println(result);
+//      } catch (FileNotFoundException e) {
+//          throw new RuntimeException(e);
+//      }
     }
   }
 }
