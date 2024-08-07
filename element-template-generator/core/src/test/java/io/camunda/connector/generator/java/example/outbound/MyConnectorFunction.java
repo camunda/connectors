@@ -27,9 +27,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 public abstract class MyConnectorFunction implements OutboundConnectorFunction {
 
   public static final String ID = "my-connector-template";
-  public static final String NAME = "My Connector Template";
+  public static final String NAME = "My Connector";
   public static final int VERSION = 1;
-  public static final String DESCRIPTION = "My Connector Template Description";
+  public static final String DESCRIPTION = "My Connector Description";
   public static final String DOCUMENTATION_REF =
       "https://docs.camunda.org/manual/latest/reference/connect/";
 
@@ -50,8 +50,10 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       name = MyConnectorFunction.NAME,
       version = MyConnectorFunction.VERSION,
       description = MyConnectorFunction.DESCRIPTION,
+      icon = "my-connector-icon.svg",
       documentationRef = MyConnectorFunction.DOCUMENTATION_REF,
       inputDataClass = MyConnectorInput.class,
+      outputDataClass = MyConnectorOutput.class,
       propertyGroups = {
         @PropertyGroup(id = "group2", label = "Group Two"),
         @PropertyGroup(

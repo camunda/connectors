@@ -1,0 +1,15 @@
+{% extends "./base-doc.md.peb" %}
+
+{% block content %}
+## Properties
+{{ props([properties["annotatedStringProperty"], properties["objectProperty"]]) }}
+
+## Result
+The following json structure will be returned by the Connector and can be
+used in the result expression.
+
+```json
+{{outputJson}}
+
+```
+{% endblock %}
