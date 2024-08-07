@@ -17,6 +17,8 @@
 package io.camunda.connector.api.document;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -43,6 +45,7 @@ public sealed interface DocumentReference {
    * document should not be used as is, but should be transformed or processed in some way. This
    * processing must take place in the context of the connector.
    */
+  @JsonInclude(Include.NON_EMPTY)
   Optional<DocumentOperation> operation();
 
   record CamundaDocumentReference(

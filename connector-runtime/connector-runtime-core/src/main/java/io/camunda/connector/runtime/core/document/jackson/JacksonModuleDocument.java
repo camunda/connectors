@@ -19,18 +19,74 @@ package io.camunda.connector.runtime.core.document.jackson;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentOperationResult;
 import io.camunda.connector.runtime.core.document.AggregatingOperationExecutor;
 import io.camunda.connector.runtime.core.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
-import io.camunda.connector.runtime.core.document.InMemoryDocumentStore;
+import java.io.InputStream;
 
 public class JacksonModuleDocument extends SimpleModule {
 
-  private DocumentFactory documentFactory = new DocumentFactory(new InMemoryDocumentStore());
-  private final DocumentOperationExecutor operationExecutor = new AggregatingOperationExecutor();
+  public static class DocumentModuleSettings {
+
+    private boolean lazy = true;
+    private boolean enableObject = true;
+    private boolean enableString = true;
+
+    private DocumentModuleSettings() {}
+
+    /**
+     * Enable lazy operations for document deserialization.
+     *
+     * <p>When enabled, given that the connector consumes a document as a generic {@link Object}
+     * type, and an operation is present in the document reference, the operation is not executed in
+     * the deserialization phase. Instead, the operation is executed during serialization using the
+     * {@link DocumentSerializer}.
+     *
+     * <p>Disable lazy operations if your connector doesn't use the document module for
+     * serialization (or doesn't use Jackson at all).
+     *
+     * <p>This takes no effect if {@link #enableObject(boolean)} is disabled.
+     */
+    public void lazyOperations(boolean lazy) {
+      this.lazy = lazy;
+    }
+
+    /** Enable deserialization of document references into objects. */
+    public void enableObject(boolean enable) {
+      this.enableObject = enable;
+    }
+
+    /** Enable deserialization of document references into strings. */
+    public void enableString(boolean enable) {
+      this.enableString = enable;
+    }
+
+    public static DocumentModuleSettings create() {
+      return new DocumentModuleSettings();
+    }
+  }
+
+  private final DocumentFactory documentFactory;
+  private final DocumentOperationExecutor operationExecutor;
+  private final DocumentModuleSettings settings;
+
+  public JacksonModuleDocument(
+      DocumentFactory documentFactory,
+      DocumentOperationExecutor operationExecutor,
+      DocumentModuleSettings settings) {
+    this.documentFactory = documentFactory;
+    this.operationExecutor = operationExecutor;
+    this.settings = settings;
+  }
+
+  public JacksonModuleDocument(
+      DocumentFactory documentFactory, DocumentOperationExecutor operationExecutor) {
+    this(documentFactory, operationExecutor, DocumentModuleSettings.create());
+  }
 
   public JacksonModuleDocument(DocumentFactory documentFactory) {
-    this.documentFactory = documentFactory;
+    this(documentFactory, new AggregatingOperationExecutor());
   }
 
   @Override
@@ -46,10 +102,24 @@ public class JacksonModuleDocument extends SimpleModule {
 
   @Override
   public void setupModule(SetupContext context) {
-    addDeserializer(Document.class, new SimpleDocumentDeserializer(documentFactory));
+    addDeserializer(Document.class, new DocumentDeserializer(operationExecutor, documentFactory));
+    addDeserializer(
+        DocumentOperationResult.class,
+        new DocumentOperationResultDeserializer(operationExecutor, documentFactory));
+    addDeserializer(
+        byte[].class, new ByteArrayDocumentDeserializer(operationExecutor, documentFactory));
+    addDeserializer(
+        InputStream.class, new InputStreamDocumentDeserializer(operationExecutor, documentFactory));
+    if (settings.enableObject) {
+      addDeserializer(
+          Object.class,
+          new ObjectDocumentDeserializer(operationExecutor, documentFactory, settings.lazy));
+    }
+    if (settings.enableString) {
+      addDeserializer(
+          String.class, new StringDocumentDeserializer(operationExecutor, documentFactory));
+    }
     addSerializer(Document.class, new DocumentSerializer(operationExecutor));
-    context.insertAnnotationIntrospector(
-        new DocumentAnnotationIntrospector(documentFactory, operationExecutor));
     super.setupModule(context);
   }
 }
