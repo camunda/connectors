@@ -16,28 +16,31 @@
  */
 package io.camunda.connector.runtime.core.document.jackson;
 
-import com.fasterxml.jackson.databind.introspect.Annotated;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.runtime.core.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
+import java.io.IOException;
 
-public class DocumentAnnotationIntrospector extends JacksonAnnotationIntrospector {
+public class ByteArrayDocumentDeserializer extends DocumentDeserializerBase<byte[]> {
 
-  private final DocumentFactory documentFactory;
-  private final DocumentOperationExecutor operationExecutor;
-
-  public DocumentAnnotationIntrospector(
-      DocumentFactory factory, DocumentOperationExecutor operationExecutor) {
-    this.documentFactory = factory;
-    this.operationExecutor = operationExecutor;
+  public ByteArrayDocumentDeserializer(
+      DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory) {
+    super(operationExecutor, documentFactory);
   }
 
   @Override
-  public Object findDeserializer(Annotated a) {
-    DocumentAware ann = _findAnnotation(a, DocumentAware.class);
-    if (ann != null) {
-      return new DocumentAwareObjectDeserializer(ann.lazy(), documentFactory, operationExecutor);
-    }
-    return super.findDeserializer(a);
+  public byte[] deserializeDocumentReference(
+      DocumentReference reference, DeserializationContext ctx) throws IOException {
+
+    ensureNoOperation(reference);
+    var document = createDocument(reference);
+    return document.asByteArray();
+  }
+
+  @Override
+  public byte[] fallback(JsonNode node, DeserializationContext ctx) throws IOException {
+    return ctx.readTreeAsValue(node, byte[].class);
   }
 }

@@ -19,24 +19,23 @@ package io.camunda.connector.runtime.core.document.jackson;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
+import io.camunda.connector.api.document.DocumentOperationResult;
 import java.io.IOException;
 
-public class DocumentSerializer extends JsonSerializer<Document> {
-
-  private final DocumentOperationExecutor operationExecutor;
-
-  public DocumentSerializer(DocumentOperationExecutor operationExecutor) {
-    this.operationExecutor = operationExecutor;
-  }
+public class DocumentOperationResultSerializer extends JsonSerializer<DocumentOperationResult<?>> {
 
   @Override
   public void serialize(
-      Document document, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
+      DocumentOperationResult<?> value, JsonGenerator gen, SerializerProvider serializers)
       throws IOException {
-
-    var reference = document.reference();
-    jsonGenerator.writeObject(reference);
+    var result = value.get();
+    switch (result) {
+      case null -> gen.writeNull();
+      case String s -> gen.writeString(s);
+      case byte[] bytes -> gen.writeBinary(bytes);
+      case Boolean b -> gen.writeBoolean(b);
+      case Number number -> gen.writeNumber(number.toString());
+      default -> gen.writeObject(result);
+    }
   }
 }

@@ -16,27 +16,35 @@
  */
 package io.camunda.connector.runtime.core.document.jackson;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.runtime.core.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
 import java.io.IOException;
 
-public class DocumentSerializer extends JsonSerializer<Document> {
+public class DocumentDeserializer extends DocumentDeserializerBase<Document> {
 
-  private final DocumentOperationExecutor operationExecutor;
-
-  public DocumentSerializer(DocumentOperationExecutor operationExecutor) {
-    this.operationExecutor = operationExecutor;
+  public DocumentDeserializer(
+      DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory) {
+    super(operationExecutor, documentFactory);
   }
 
   @Override
-  public void serialize(
-      Document document, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
-      throws IOException {
+  public Document deserializeDocumentReference(
+      DocumentReference reference, DeserializationContext ctx) {
 
-    var reference = document.reference();
-    jsonGenerator.writeObject(reference);
+    ensureNoOperation(reference);
+    return createDocument(reference);
+  }
+
+  @Override
+  public Document fallback(JsonNode node, DeserializationContext ctx) throws IOException {
+    var fieldName = ctx.getParser().currentName();
+    throw new IllegalArgumentException(
+        fieldName
+            + ": unsupported document format. Expected a document reference, got: "
+            + fieldName);
   }
 }

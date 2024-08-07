@@ -22,6 +22,7 @@ import java.io.InputStream;
 
 public interface DocumentStore {
 
+  // TODO: support document ID, store ID
   DocumentReference createDocument(DocumentMetadata metadata, byte[] content);
 
   DocumentReference createDocument(DocumentMetadata metadata, InputStream content);

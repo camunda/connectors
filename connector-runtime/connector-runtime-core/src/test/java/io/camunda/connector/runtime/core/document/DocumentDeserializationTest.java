@@ -17,20 +17,22 @@
 package io.camunda.connector.runtime.core.document;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentOperation;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.runtime.core.document.jackson.DocumentAware;
 import io.camunda.connector.runtime.core.document.jackson.JacksonModuleDocument;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-public class DocumentAwareAwareObjectDeserializerTest {
+public class DocumentDeserializationTest {
 
   private final DocumentStore store = new InMemoryDocumentStore();
   private final DocumentFactory factory = new DocumentFactory(store);
@@ -43,17 +45,17 @@ public class DocumentAwareAwareObjectDeserializerTest {
   public record TargetTypeDocument(Document document) {}
 
   @Test
-  void noOperation_targetTypeDocument() {
+  void targetTypeDocument() {
     var ref = new CamundaDocumentReference("test", "test", Map.of(), Optional.empty());
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeDocument.class);
     assertEquals(ref, result.document.reference());
   }
 
-  public record TargetTypeByteArray(@DocumentAware byte[] document) {}
+  public record TargetTypeByteArray(byte[] document) {}
 
   @Test
-  void noOperation_targetTypeByteArray() {
+  void targetTypeByteArray() {
     var contentString = "Hello World";
     var ref =
         store.createDocument(
@@ -63,15 +65,51 @@ public class DocumentAwareAwareObjectDeserializerTest {
     assertEquals(contentString, new String(result.document));
   }
 
-  public record TargetTypeObject(@DocumentAware Object document) {}
+  public record TargetTypeInputStream(InputStream document) {}
 
   @Test
-  void withOperation_targetTypeObject_operationPreserved() {
+  void targetTypeInputStream() throws IOException {
+    var contentString = "Hello World";
     var ref =
-        new CamundaDocumentReference(
-            "test", "test", Map.of(), Optional.of(new DocumentOperation("base64", Map.of())));
+        store.createDocument(
+            new DocumentMetadata(Map.of("Hello", "World")), contentString.getBytes());
+    var payload = Map.of("document", ref);
+    var result = objectMapper.convertValue(payload, TargetTypeInputStream.class);
+    assertEquals(contentString, new String(result.document.readAllBytes()));
+  }
+
+  public record TargetTypeObject(Object document) {}
+
+  @Test
+  void targetTypeObject() {
+    var ref = new CamundaDocumentReference("test", "test", Map.of(), Optional.empty());
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
-    assertEquals(ref, result.document);
+    assertInstanceOf(Document.class, result.document);
+    assertEquals(ref, ((Document) result.document).reference());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void targetTypeObject_NestedObject() {
+    var ref = new CamundaDocumentReference("test", "test", Map.of(), Optional.empty());
+    var payload = Map.of("document", Map.of("document", ref));
+    var result = objectMapper.convertValue(payload, TargetTypeObject.class);
+    assertInstanceOf(Map.class, result.document);
+    var nested = (Map<String, Object>) result.document;
+    assertInstanceOf(Document.class, nested.get("document"));
+    assertEquals(ref, ((Document) nested.get("document")).reference());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void targetTypeObject_Array() {
+    var ref = new CamundaDocumentReference("test", "test", Map.of(), Optional.empty());
+    var payload = Map.of("document", List.of(ref));
+    var result = objectMapper.convertValue(payload, TargetTypeObject.class);
+    assertInstanceOf(List.class, result.document);
+    var list = (List<Object>) result.document;
+    assertInstanceOf(Document.class, list.getFirst());
+    assertEquals(ref, ((Document) list.getFirst()).reference());
   }
 }
