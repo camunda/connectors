@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 class InboundConnectorContextImplTest {
@@ -108,7 +107,6 @@ class InboundConnectorContextImplTest {
         .isInstanceOf(String.class);
   }
 
-  @NotNull
   private static ValidInboundConnectorDetails getInboundConnectorDefinition(
       Map<String, String> properties) {
     properties = new HashMap<>(properties);
