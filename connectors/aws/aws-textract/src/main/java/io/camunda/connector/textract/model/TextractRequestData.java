@@ -8,8 +8,10 @@ package io.camunda.connector.textract.model;
 
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.apache.commons.lang3.StringUtils;
 
 public record TextractRequestData(
     @TemplateProperty(
@@ -148,4 +150,35 @@ public record TextractRequestData(
                 @TemplateProperty.PropertyCondition(
                     property = "input.executionType",
                     equals = "ASYNC"))
-        String outputConfigS3Prefix) {}
+        String outputConfigS3Prefix) {
+  public static final String WRONG_OUTPUT_VALUES_MSG =
+      "Output S3 bucket must be filled in if output S3 prefix is filled in";
+
+  public static final String WRONG_NOTIFICATION_VALUES_MSG =
+      "either both notification values role ARN and topic ARN must be filled in or none of them";
+
+  @AssertTrue(message = WRONG_NOTIFICATION_VALUES_MSG)
+  public boolean isValidNotificationProperties() {
+    if (executionType != TextractExecutionType.ASYNC) {
+      return true;
+    }
+    return StringUtils.isNoneBlank(notificationChannelRoleArn, notificationChannelSnsTopicArn)
+        || StringUtils.isAllBlank(notificationChannelRoleArn, notificationChannelSnsTopicArn);
+  }
+
+  @AssertTrue(message = WRONG_OUTPUT_VALUES_MSG)
+  public boolean isValidOutputConfigProperties() {
+    if (executionType != TextractExecutionType.ASYNC) {
+      return true;
+    }
+
+    if (StringUtils.isAllBlank(outputConfigS3Bucket, outputConfigS3Prefix)) {
+      return true;
+    }
+
+    if (StringUtils.isNoneBlank(outputConfigS3Bucket, outputConfigS3Prefix)) {
+      return true;
+    }
+    return !StringUtils.isBlank(outputConfigS3Bucket);
+  }
+}
