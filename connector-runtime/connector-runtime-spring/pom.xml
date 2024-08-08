@@ -49,7 +49,7 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.spring</groupId>
-      <artifactId>camunda-sdk-java</artifactId>
+      <artifactId>java-common</artifactId>
       <version>${version.spring-zeebe}</version>
     </dependency>
     <dependency>
