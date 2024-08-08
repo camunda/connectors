@@ -35,7 +35,7 @@ jobs:
       connectors-version: ${{ steps.determine-connectors-version.outputs.connectors-version }}
       helm-dir: ${{ steps.determine-helm-dir.outputs.helm-dir }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install jq
         run: sudo apt-get install jq
