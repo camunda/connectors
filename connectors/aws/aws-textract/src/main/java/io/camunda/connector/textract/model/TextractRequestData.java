@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.textract.model;
 
+import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;

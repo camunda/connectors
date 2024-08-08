@@ -6,11 +6,21 @@
  */
 package io.camunda.connector.textract;
 
+import com.amazonaws.services.textract.AmazonTextract;
+import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
+import com.amazonaws.services.textract.model.Block;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.textract.caller.AmazonAsyncTextractCaller;
+import io.camunda.connector.textract.caller.AmazonS3Caller;
+import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequest;
+import io.camunda.connector.textract.suppliers.util.AmazonS3ClientUtil;
+import io.camunda.connector.textract.suppliers.util.AmazonTextractClientUtil;
+
+import java.util.stream.Collectors;
 
 @OutboundConnector(
     name = "AWS Textract",
@@ -33,8 +43,27 @@ import io.camunda.connector.textract.model.TextractRequest;
     icon = "icon.svg")
 public class TextractConnectorFunction implements OutboundConnectorFunction {
 
-  @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
-    return null;
-  }
+
+    @Override
+    public Object execute(OutboundConnectorContext context) throws Exception {
+        final var request = context.bindVariables(TextractRequest.class);
+        final var reqData = request.getInput();
+
+        final AmazonS3Caller amazonS3Caller = new AmazonS3Caller(AmazonS3ClientUtil.getAmazonS3Client(request));
+
+        if (reqData.executionType().equals(TextractExecutionType.SYNC)) {
+            final AmazonTextract amazonTextractClient = AmazonTextractClientUtil
+                    .getSyncTextractClient(request);
+
+            var amazonAsyncTextractCaller = new AmazonAsyncTextractCaller(amazonS3Caller, amazonTextractClient);
+            final AnalyzeDocumentResult docResult = amazonAsyncTextractCaller.callTextract(reqData);
+            return docResult.getBlocks()
+                    .stream()
+                    .map(Block::getText)
+                    .collect(Collectors.toSet());
+
+        }
+        // toDo
+        return null;
+    }
 }
