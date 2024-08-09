@@ -32,7 +32,8 @@ public final class BooleanProperty extends Property {
       String group,
       PropertyBinding binding,
       PropertyCondition condition,
-      String tooltip, Object exampleValue) {
+      String tooltip,
+      Object exampleValue) {
     super(
         name,
         label,
@@ -75,7 +76,7 @@ public final class BooleanProperty extends Property {
           binding,
           condition,
           tooltip,
-              exampleValue);
+          exampleValue);
     }
   }
 }

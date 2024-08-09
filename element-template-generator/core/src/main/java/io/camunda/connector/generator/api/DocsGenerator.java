@@ -17,15 +17,14 @@
 package io.camunda.connector.generator.api;
 
 import io.camunda.connector.generator.dsl.Doc;
-import java.util.List;
 
 /**
- * Base interface for any element template generator
+ * Base interface for any doc generator
  *
- * @param <IN> Data source for template generation
+ * @param <IN> Data source for doc generation
  */
 public interface DocsGenerator<IN> {
 
-  /** Generate an element template from source using the provided configuration */
-  List<Doc> generate(IN connectorDefinition, DocsGeneratorConfiguration configuration);
+  /** Generate a documentation based on a template from source using the provided configuration */
+  Doc generate(IN connectorDefinition, DocsGeneratorConfiguration configuration);
 }

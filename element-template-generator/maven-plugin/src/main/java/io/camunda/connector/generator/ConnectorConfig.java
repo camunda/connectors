@@ -32,6 +32,8 @@ public class ConnectorConfig {
   public static class FileNameById {
     private String templateId;
     private String templateFileName;
+    private String docTemplatePath;
+    private String docOutputPath;
 
     public FileNameById() {}
 
@@ -49,6 +51,22 @@ public class ConnectorConfig {
 
     public void setTemplateFileName(String templateFileName) {
       this.templateFileName = templateFileName;
+    }
+
+    public String getDocTemplatePath() {
+      return docTemplatePath;
+    }
+
+    public void setDocTemplatePath(String docTemplatePath) {
+      this.docTemplatePath = docTemplatePath;
+    }
+
+    public String getDocOutputPath() {
+      return docOutputPath;
+    }
+
+    public void setDocOutputPath(String docOutputPath) {
+      this.docOutputPath = docOutputPath;
     }
   }
 
