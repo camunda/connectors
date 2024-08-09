@@ -13,6 +13,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.jdbc.model.client.JdbcClient;
 import io.camunda.connector.jdbc.model.client.JdbiJdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
+import io.camunda.connector.jdbc.model.response.JdbcResponse;
 
 @OutboundConnector(
     name = "SQL Database Connector",
@@ -32,7 +33,8 @@ import io.camunda.connector.jdbc.model.request.JdbcRequest;
       @ElementTemplate.PropertyGroup(id = JdbcFunction.CONNECTION_GROUP_ID, label = "Connection"),
       @ElementTemplate.PropertyGroup(id = JdbcFunction.QUERY_GROUP_ID, label = "Query"),
     },
-    inputDataClass = JdbcRequest.class)
+    inputDataClass = JdbcRequest.class,
+    outputDataClass = JdbcResponse.class)
 public class JdbcFunction implements OutboundConnectorFunction {
   static final String DATABASE_GROUP_ID = "database";
   static final String CONNECTION_GROUP_ID = "connection";

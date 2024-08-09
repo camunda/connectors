@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.java;
 
+import static java.lang.Boolean.TRUE;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.generator.api.DocsGenerator;
@@ -34,22 +36,20 @@ import io.camunda.connector.generator.java.util.TemplateGenerationContext;
 import io.camunda.connector.generator.java.util.TemplateGenerationContextUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import io.pebbletemplates.pebble.PebbleEngine;
+import io.pebbletemplates.pebble.loader.FileLoader;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import uk.co.jemos.podam.api.DataProviderStrategy;
 import uk.co.jemos.podam.api.PodamFactory;
 import uk.co.jemos.podam.api.PodamFactoryImpl;
-
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
@@ -64,8 +64,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
   }
 
   @Override
-  public List<Doc> generate(
-      Class<?> connectorDefinition, DocsGeneratorConfiguration configuration) {
+  public Doc generate(Class<?> connectorDefinition, DocsGeneratorConfiguration configuration) {
 
     ElementTemplate template =
         ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
@@ -75,11 +74,18 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
     var model = buildTemplateModel(template, templateGenerationContext);
 
-    PebbleEngine engine = new PebbleEngine.Builder().autoEscaping(false).extension(new DocsPebbleExtension()).build();
-    PebbleTemplate compiledTemplate = engine.getTemplate(configuration.templatePath());
+    PebbleEngine engine =
+        new PebbleEngine.Builder()
+            .loader(new FileLoader())
+            .autoEscaping(false)
+            .extension(new DocsPebbleExtension())
+            .build();
+
+    var absolute = new File(configuration.templatePath()).getAbsolutePath();
+    PebbleTemplate compiledTemplate = engine.getTemplate(absolute);
     var output = renderTemplate(model, compiledTemplate);
 
-    return List.of(new Doc(configuration.outputPath(), output));
+    return new Doc(configuration.outputPath(), output);
   }
 
   private Map<String, Object> buildTemplateModel(
@@ -96,7 +102,10 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
             .map(et -> et.elementType().getName())
             .toList());
 
-    ElementTemplateIcon icon = !elementTemplate.icon().isBlank()? ElementTemplateIcon.from(elementTemplate.icon(), classLoader) : null;
+    ElementTemplateIcon icon =
+        !elementTemplate.icon().isBlank()
+            ? ElementTemplateIcon.from(elementTemplate.icon(), classLoader)
+            : null;
     if (icon != null) {
       model.put("icon", icon.contents());
     }
@@ -112,26 +121,31 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
                 connectorInput, templateGenerationContext)
             .stream()
             .map(PropertyBuilder::build)
-            .collect(Collectors.toMap(Property::getId, p -> {
-              var type =
-                      switch (p.getType()) {
-                        case "String", "Text" -> String.class;
-                        default -> Object.class;
-                      };
-              var exampleValue =
-                      p.getExampleValue() != null
+            .collect(
+                Collectors.toMap(
+                    Property::getId,
+                    p -> {
+                      var type =
+                          switch (p.getType()) {
+                            case "String", "Text" -> String.class;
+                            default -> Object.class;
+                          };
+                      var exampleValue =
+                          p.getExampleValue() != null
                               ? p.getExampleValue().toString()
                               : generateExampleData(type);
 
-              return new DocsProperty(
-                  p.getLabel(),
-                  p.getType(),
-                      StringUtils.isNotEmpty(p.getDescription()) ? p.getDescription() : "",
-                  exampleValue,
-          p.getConstraints() != null && Boolean.TRUE == p.getConstraints().notEmpty(),
-                  p
-              );
-            }));
+                      var required =
+                          p.getConstraints() != null && TRUE == p.getConstraints().notEmpty();
+
+                      return new DocsProperty(
+                          p.getLabel(),
+                          p.getType(),
+                          StringUtils.isNotEmpty(p.getDescription()) ? p.getDescription() : "",
+                          exampleValue,
+                          required,
+                          p);
+                    }));
 
     model.put("properties", properties);
 

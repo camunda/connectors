@@ -21,12 +21,17 @@ import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.generator.ConnectorConfig.FileNameById;
+import io.camunda.connector.generator.api.DocsGenerator;
+import io.camunda.connector.generator.api.DocsGeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
 import io.camunda.connector.generator.dsl.ElementTemplate;
+import io.camunda.connector.generator.java.ClassBasedDocsGenerator;
 import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -123,6 +128,13 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
           }
         }
         generateElementTemplates(connector, classLoader);
+
+        if (!connector.getFiles().stream()
+            .filter(fileNameById -> fileNameById.getDocTemplatePath() != null)
+            .toList()
+            .isEmpty()) {
+          generateDocs(connector, classLoader);
+        }
       }
 
     } catch (ClassNotFoundException e) {
@@ -135,6 +147,28 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     } catch (Exception e) {
       throw new MojoFailureException("Failed to generate element templates: " + e.getMessage(), e);
     }
+  }
+
+  private void generateDocs(ConnectorConfig connectorConfig, ClassLoader classLoader)
+      throws ClassNotFoundException {
+    DocsGenerator generator = new ClassBasedDocsGenerator(classLoader);
+    var clazz = classLoader.loadClass(connectorConfig.getConnectorClass());
+    connectorConfig
+        .getFiles()
+        .forEach(
+            fileNameById -> {
+              var config =
+                  new DocsGeneratorConfiguration(
+                      fileNameById.getDocTemplatePath(), fileNameById.getDocOutputPath());
+
+              var doc = generator.generate(clazz, config);
+
+              try (PrintWriter out = new PrintWriter(config.outputPath())) {
+                out.println(doc.content());
+              } catch (FileNotFoundException e) {
+                throw new RuntimeException(e);
+              }
+            });
   }
 
   private void generateElementTemplates(ConnectorConfig config, ClassLoader classLoader)

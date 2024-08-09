@@ -1,0 +1,15 @@
+{% extends "../../CONNECTOR_README_LAYOUT.peb" %}
+
+{% block content %}
+## Properties
+{{  props([properties["method"],properties["url"]]) }}
+
+## Result
+The following json structure will be returned by the Connector and can be
+used in the result expression.
+
+```json
+{{outputJson}}
+
+```
+{% endblock %}
