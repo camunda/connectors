@@ -50,6 +50,7 @@ public record MyConnectorInput(
             group = "group1",
             description = "description",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            exampleValue = "My example value",
             tooltip = "tooltip")
         String annotatedStringProperty,
     String notAnnotatedStringProperty,

@@ -22,6 +22,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.http.base.HttpService;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 
 @OutboundConnector(
@@ -43,6 +44,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     name = "REST Outbound Connector",
     description = "Invoke REST API",
     inputDataClass = HttpJsonRequest.class,
+    outputDataClass = HttpCommonResult.class,
     version = 8,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),

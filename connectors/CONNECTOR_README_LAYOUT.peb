@@ -1,0 +1,14 @@
+![{{name}} connector icon]({{icon}})
+# {{name}}
+
+{{ description }}
+
+{% block content %}Connector docs content{% endblock %}
+
+{% block footer %}
+| Connector Info            |                                                                       |
+| ---                       | ---                                                                   |
+| Type                      | {{ type }}                                                            |
+| Version                   | {{ version }}                                                         |
+| Supported element types   | {% for elementType in elementTypes %}{{ elementType }}{% endfor %}    |
+{% endblock %}
