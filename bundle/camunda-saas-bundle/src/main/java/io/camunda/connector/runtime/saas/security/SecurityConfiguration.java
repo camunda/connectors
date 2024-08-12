@@ -58,6 +58,7 @@ public class SecurityConfiguration {
         .securityMatchers(
             requestMatcherConfigurer ->
                 requestMatcherConfigurer
+                    .requestMatchers(HttpMethod.POST, "/connector-test")
                     .requestMatchers(HttpMethod.GET, "/inbound/*")
                     .requestMatchers(HttpMethod.POST, "/inbound/*")
                     .requestMatchers(HttpMethod.PUT, "/inbound/*")

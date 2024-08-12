@@ -24,14 +24,19 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
+import io.camunda.connector.runtime.test.ConnectorTestImpl;
+import io.camunda.connector.runtime.test.ConnectorTestRestController;
+import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Configuration
+@Import({ConnectorTestRestController.class})
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
@@ -63,5 +68,13 @@ public class OutboundConnectorRuntimeConfiguration {
   public OutboundConnectorAnnotationProcessor annotationProcessor(
       OutboundConnectorManager manager, OutboundConnectorFactory factory) {
     return new OutboundConnectorAnnotationProcessor(manager, factory);
+  }
+
+  @Bean
+  public ConnectorTestImpl connectorTest(
+      ZeebeClient zeebeClient,
+      ObjectMapper objectMapper,
+      SecretProviderAggregator secretProviderAggregator) {
+    return new ConnectorTestImpl(zeebeClient, objectMapper, secretProviderAggregator);
   }
 }
