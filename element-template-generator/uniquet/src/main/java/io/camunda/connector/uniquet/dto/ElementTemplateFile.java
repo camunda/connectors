@@ -14,17 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector;
+package io.camunda.connector.uniquet.dto;
 
-import io.camunda.connector.command.UniquetCommand;
-import picocli.CommandLine;
-
-public class Main {
-  public static void main(String[] args) {
-    int exitCode =
-        new CommandLine(new UniquetCommand())
-            .setUnmatchedOptionsArePositionalParams(true)
-            .execute(args);
-    System.exit(exitCode);
-  }
-}
+public record ElementTemplateFile(ElementTemplate elementTemplate, String path) {}

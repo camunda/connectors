@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.core;
+package io.camunda.connector.uniquet.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.dto.OutputElementTemplate;
+import io.camunda.connector.uniquet.dto.OutputElementTemplate;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;

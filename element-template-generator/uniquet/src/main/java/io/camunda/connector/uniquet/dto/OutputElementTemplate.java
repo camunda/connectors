@@ -14,6 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.dto;
+package io.camunda.connector.uniquet.dto;
 
 public record OutputElementTemplate(Integer version, String ref) {}

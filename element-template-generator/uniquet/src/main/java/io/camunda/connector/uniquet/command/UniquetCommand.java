@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.command;
+package io.camunda.connector.uniquet.command;
 
-import io.camunda.connector.core.GitCrawler;
+import io.camunda.connector.uniquet.core.GitCrawler;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 

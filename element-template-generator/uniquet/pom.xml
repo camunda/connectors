@@ -93,7 +93,7 @@
                 <configuration>
                     <programs>
                         <program>
-                            <mainClass>io.camunda.connector.Main</mainClass>
+                            <mainClass>io.camunda.connector.uniquet.Main</mainClass>
                             <id>uniquet</id>
                         </program>
                     </programs>

@@ -14,6 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.dto;
+package io.camunda.connector.uniquet.dto;
 
-public record ElementTemplateFile(ElementTemplate elementTemplate, String path) {}
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record ElementTemplate(
+    @JsonProperty(required = true) String id, @JsonProperty(required = true) Integer version) {}

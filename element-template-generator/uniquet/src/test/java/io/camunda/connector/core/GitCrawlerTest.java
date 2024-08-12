@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.core;
 
+import io.camunda.connector.uniquet.core.GitCrawler;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
