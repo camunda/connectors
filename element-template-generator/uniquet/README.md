@@ -1,6 +1,6 @@
 # Uniquet
 
-`uniquet` that goes through a github repository checking for all different versions of all elements-template and provide a single file containing all references of
+`uniquet` goes through a github repository checking for all different versions of all elements-template and provides a single file containing references to all versions
 
 ## Installation
 
