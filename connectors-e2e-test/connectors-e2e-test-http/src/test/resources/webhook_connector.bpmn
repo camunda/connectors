@@ -20,7 +20,7 @@
           <zeebe:property name="inbound.auth.apiKey" value="123" />
           <zeebe:property name="inbound.auth.apiKeyLocator" value="=split(request.headers.authorization, &#34; &#34;)[2]" />
           <zeebe:property name="correlationKeyExpression" value="=request.body.correlationKey" />
-          <zeebe:property name="resultExpression" value="={correlationKey: request.body.correlationKey, webhookExecuted: request.body.webhookExecuted}" />
+          <zeebe:property name="resultExpression" value="={correlationKey: request.body.correlationKey, webhookExecuted: request.body.webhookExecuted, queryParam: request.params.value}" />
           <zeebe:property name="inbound.responseBodyExpression" value="={correlationKey: request.body.correlationKey}" />
         </zeebe:properties>
       </bpmn:extensionElements>
