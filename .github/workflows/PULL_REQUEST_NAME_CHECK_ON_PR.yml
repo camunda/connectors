@@ -3,6 +3,7 @@ on:
     branches:
       - main
       - master
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   check-pull-request-name:
