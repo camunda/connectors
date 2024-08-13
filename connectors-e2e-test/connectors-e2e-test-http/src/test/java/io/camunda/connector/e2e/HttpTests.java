@@ -377,19 +377,19 @@ public class HttpTests {
     when(processDef.getKey()).thenReturn(1L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
     when(processDef.getBpmnProcessId())
-            .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
     // Deploy the webhook
     stateStore.update(
-            new ProcessImportResult(
-                    Map.of(
-                            new ProcessDefinitionIdentifier(
-                                    processDef.getBpmnProcessId(), processDef.getTenantId()),
-                            new ProcessDefinitionVersion(
-                                    processDef.getKey(), processDef.getVersion().intValue()))));
+        new ProcessImportResult(
+            Map.of(
+                new ProcessDefinitionIdentifier(
+                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                new ProcessDefinitionVersion(
+                    processDef.getKey(), processDef.getVersion().intValue()))));
 
     var bpmnTest =
-            ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
+        ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("webhookExecuted", true);
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("queryParam", "test");
