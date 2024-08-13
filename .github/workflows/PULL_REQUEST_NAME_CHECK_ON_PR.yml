@@ -5,16 +5,16 @@ on:
       - master
 
 jobs:
-  check-branch-name:
+  check-pull-request-name:
     runs-on: ubuntu-latest
     steps:
-      - name: Extract branch name
-        id: extract_branch
+      - name: Extract pull request name
+        id: extract_pr
         run: echo "${{ github.event.pull_request.title }}"
-      - name: Check if branch name follows conventional commit regex
+      - name: Check if pull request name follows conventional commit regex
         run: |
-          BRANCH_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore)\(?.+\)?: .+$'
-          if [[ "${{ github.event.pull_request.title }}" =~ $BRANCH_REGEX ]]; then
+          PR_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore)\(?.+\)?: .+$'
+          if [[ "${{ github.event.pull_request.title }}" =~ $PR_REGEX ]]; then
             echo "Pull request name follows the conventional commit format."
           else
             echo "Pull request does not follow the conventional commit format."
