@@ -10,14 +10,13 @@ jobs:
     steps:
       - name: Extract branch name
         id: extract_branch
-        run: echo "::set-output name=branch::${GITHUB_HEAD_REF}"
+        run: echo "${{ github.event.pull_request.title }}"
       - name: Check if branch name follows conventional commit regex
         run: |
           BRANCH_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore)\(?.+\)?: .+$'
-          echo ${{steps.extract_branch.outputs.branch}}
-          if [[ "${{ steps.extract_branch.outputs.branch }}" =~ $BRANCH_REGEX ]]; then
-            echo "Branch name follows the conventional commit format."
+          if [[ "${{ github.event.pull_request.title }}" =~ $BRANCH_REGEX ]]; then
+            echo "Pull request name follows the conventional commit format."
           else
-            echo "Branch name does not follow the conventional commit format."
+            echo "Pull request does not follow the conventional commit format."
             exit 1
           fi
