@@ -68,12 +68,10 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 @ExtendWith(MockitoExtension.class)
 public class HttpTests {
 
-  @TempDir File tempDir;
-
   @RegisterExtension
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
-
+  @TempDir File tempDir;
   @Autowired ZeebeClient zeebeClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
@@ -266,5 +264,191 @@ public class HttpTests {
         ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("webhookExecuted", true);
+  }
+
+  @Test
+  void successfulWebhookModelWithQueryParamsRun() throws Exception {
+    var mockUrl = "http://localhost:" + serverPort + "/inbound/test-webhook?value=test";
+
+    var model = replace("webhook_connector.bpmn", replace("http://webhook", mockUrl));
+
+    // Prepare a mocked process connectorData backed by our test model
+    when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
+    var processDef = mock(ProcessDefinition.class);
+    when(processDef.getKey()).thenReturn(1L);
+    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getBpmnProcessId())
+        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+
+    // Deploy the webhook
+    stateStore.update(
+        new ProcessImportResult(
+            Map.of(
+                new ProcessDefinitionIdentifier(
+                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                new ProcessDefinitionVersion(
+                    processDef.getKey(), processDef.getVersion().intValue()))));
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("webhookExecuted", true);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("queryParam", "test");
+  }
+
+  @Test
+  void graphQL() {
+    // Prepare an HTTP mock server
+    wm.stubFor(
+        post(urlPathMatching("/mock"))
+            .withHeader("testHeader", matching("testHeaderValue"))
+            .withBasicAuth("username", "password")
+            .withRequestBody(matchingJsonPath("$..query", equalTo("{hero { name } }")))
+            .withRequestBody(matchingJsonPath("$..variables.hello", equalTo("world")))
+            .willReturn(
+                ResponseDefinitionBuilder.okForJson(
+                    Map.of("order", Map.of("status", "processing")))));
+
+    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("graphqlTask").endEvent().done();
+
+    var elementTemplatePath =
+        "../../connectors/http/graphql/element-templates/graphql-outbound-connector.json";
+    var elementTemplate =
+        ElementTemplate.from(elementTemplatePath)
+            .property("graphql.url", mockUrl)
+            .property("graphql.method", "post")
+            .property("graphql.headers", "={testHeader: \"testHeaderValue\"}")
+            .property("graphql.query", "{hero { name } }")
+            .property("graphql.variables", "={hello:\"world\"}")
+            .property("authentication.type", BasicAuthentication.TYPE)
+            .property("authentication.username", "username")
+            .property("authentication.password", "password")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedElementTemplateFile = new File(tempDir, "result.bpmn");
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "graphqlTask", updatedElementTemplateFile);
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("orderStatus", "processing");
+  }
+
+  @Test
+  void graphQLViaGet() {
+    // Prepare an HTTP mock server
+    wm.stubFor(
+        get(urlPathMatching("/mock"))
+            .withHeader("testHeader", matching("testHeaderValue"))
+            .withBasicAuth("username", "password")
+            .withQueryParams(
+                Map.of(
+                    "query",
+                    equalTo("{hero { name } }"),
+                    "variables",
+                    equalTo("{\"hello\":\"world\"}")))
+            .willReturn(
+                ResponseDefinitionBuilder.okForJson(
+                    Map.of("order", Map.of("status", "processing")))));
+
+    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("graphqlTask").endEvent().done();
+
+    var elementTemplatePath =
+        "../../connectors/http/graphql/element-templates/graphql-outbound-connector.json";
+    var elementTemplate =
+        ElementTemplate.from(elementTemplatePath)
+            .property("graphql.url", mockUrl)
+            .property("graphql.method", "get")
+            .property("graphql.headers", "={testHeader: \"testHeaderValue\"}")
+            .property("graphql.query", "{hero { name } }")
+            .property("graphql.variables", "={hello:\"world\"}")
+            .property("authentication.type", BasicAuthentication.TYPE)
+            .property("authentication.username", "username")
+            .property("authentication.password", "password")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedElementTemplateFile = new File(tempDir, "result.bpmn");
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "graphqlTask", updatedElementTemplateFile);
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("orderStatus", "processing");
+  }
+
+  @Test
+  void useErrorResponse() {
+    // Prepare an HTTP mock server
+    wm.stubFor(
+        post(urlPathMatching("/mock"))
+            .willReturn(
+                badRequest()
+                    .withJsonBody(
+                        JsonNodeFactory.instance
+                            .objectNode()
+                            .put("message", "custom message")
+                            .put("booleanField", true)
+                            .put("temp", 36))));
+
+    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess()
+            .executable()
+            .startEvent()
+            .serviceTask("restTask")
+            .boundaryEvent("errorId")
+            .error()
+            .endEvent()
+            .done();
+
+    var elementTemplate =
+        ElementTemplate.from(
+                "../../connectors/http/rest/element-templates/http-json-connector.json")
+            .property("url", mockUrl)
+            .property("method", "post")
+            .property(
+                "errorExpression",
+                "if matches(error.code, \"400\") and error.variables.response.body.temp = 36 then bpmnError(\"Too hot\", error.variables.response.body.message, error.variables.response.body) else bpmnError(\"Not too hot\", \"The message default\",{fake: \"fakeValue\"})")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasNoIncidents();
+    assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("temp", 36)
+        .hasVariableWithValue("booleanField", true)
+        .hasVariableWithValue("message", "custom message");
   }
 }
