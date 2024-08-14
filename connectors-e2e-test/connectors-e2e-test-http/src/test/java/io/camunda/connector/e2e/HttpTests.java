@@ -71,6 +71,7 @@ public class HttpTests {
   @RegisterExtension
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
+
   @TempDir File tempDir;
   @Autowired ZeebeClient zeebeClient;
 
