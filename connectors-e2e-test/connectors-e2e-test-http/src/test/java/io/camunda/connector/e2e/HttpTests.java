@@ -366,6 +366,36 @@ public class HttpTests {
   }
 
   @Test
+  void successfulWebhookModelWithQueryParamsRun() throws Exception {
+    var mockUrl = "http://localhost:" + serverPort + "/inbound/test-webhook?value=test";
+
+    var model = replace("webhook_connector.bpmn", replace("http://webhook", mockUrl));
+
+    // Prepare a mocked process connectorData backed by our test model
+    when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
+    var processDef = mock(ProcessDefinition.class);
+    when(processDef.getKey()).thenReturn(1L);
+    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getBpmnProcessId())
+        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+
+    // Deploy the webhook
+    stateStore.update(
+        new ProcessImportResult(
+            Map.of(
+                new ProcessDefinitionIdentifier(
+                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                new ProcessDefinitionVersion(
+                    processDef.getKey(), processDef.getVersion().intValue()))));
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("webhookExecuted", true);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("queryParam", "test");
+  }
+
+  @Test
   void graphQL() {
     // Prepare an HTTP mock server
     wm.stubFor(
