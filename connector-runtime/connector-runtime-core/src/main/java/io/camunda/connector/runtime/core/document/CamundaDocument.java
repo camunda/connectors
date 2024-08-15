@@ -19,19 +19,20 @@ package io.camunda.connector.runtime.core.document;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.store.DocumentStore;
 import java.io.InputStream;
 import java.util.Base64;
-import java.util.Map;
 
-public class DocumentImpl implements Document {
+public class CamundaDocument implements Document {
 
   private final DocumentMetadata metadata;
-  private final DocumentReference reference;
+  private final CamundaDocumentReference reference;
   private final DocumentStore documentStore;
 
-  public DocumentImpl(
-      Map<String, Object> metadata, DocumentReference reference, DocumentStore documentStore) {
-    this.metadata = new DocumentMetadata(metadata);
+  public CamundaDocument(
+      DocumentMetadata metadata, CamundaDocumentReference reference, DocumentStore documentStore) {
+    this.metadata = metadata;
     this.reference = reference;
     this.documentStore = documentStore;
   }
@@ -48,12 +49,16 @@ public class DocumentImpl implements Document {
 
   @Override
   public InputStream asInputStream() {
-    return documentStore.getDocumentContentStream(reference);
+    return documentStore.getDocumentContent(reference);
   }
 
   @Override
   public byte[] asByteArray() {
-    return documentStore.getDocumentContent(reference);
+    try {
+      return documentStore.getDocumentContent(reference).readAllBytes();
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to read document content", e);
+    }
   }
 
   @Override

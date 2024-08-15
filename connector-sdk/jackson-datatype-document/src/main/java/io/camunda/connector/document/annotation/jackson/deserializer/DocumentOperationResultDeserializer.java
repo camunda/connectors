@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document.jackson;
+package io.camunda.connector.document.annotation.jackson.deserializer;
 
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -22,10 +22,10 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
-import io.camunda.connector.api.document.DocumentOperationResult;
-import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.runtime.core.document.DocumentFactory;
-import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import io.camunda.connector.document.annotation.jackson.DocumentOperationResult;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 
 public class DocumentOperationResultDeserializer
     extends DocumentDeserializerBase<DocumentOperationResult<?>> implements ContextualDeserializer {
@@ -48,7 +48,7 @@ public class DocumentOperationResultDeserializer
 
   @Override
   public DocumentOperationResult<?> deserializeDocumentReference(
-      DocumentReference reference, DeserializationContext ctx) {
+      DocumentReferenceModel reference, DeserializationContext ctx) {
     var operation =
         reference
             .operation()

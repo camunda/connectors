@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.outbound.jobhandling;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -52,10 +53,16 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
       OutboundConnectorConfiguration connectorConfiguration) {
-    super(connectorFunction, secretProviderAggregator, validationProvider, objectMapper);
+    super(
+        connectorFunction,
+        secretProviderAggregator,
+        validationProvider,
+        documentFactory,
+        objectMapper);
     this.metricsRecorder = metricsRecorder;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.connectorConfiguration = connectorConfiguration;

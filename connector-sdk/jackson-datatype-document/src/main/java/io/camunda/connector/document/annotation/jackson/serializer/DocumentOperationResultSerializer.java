@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document.jackson;
+package io.camunda.connector.document.annotation.jackson.serializer;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import io.camunda.connector.api.document.DocumentOperationResult;
+import io.camunda.connector.document.annotation.jackson.DocumentOperationResult;
 import java.io.IOException;
 
 public class DocumentOperationResultSerializer extends JsonSerializer<DocumentOperationResult<?>> {
@@ -29,13 +29,26 @@ public class DocumentOperationResultSerializer extends JsonSerializer<DocumentOp
       DocumentOperationResult<?> value, JsonGenerator gen, SerializerProvider serializers)
       throws IOException {
     var result = value.get();
-    switch (result) {
-      case null -> gen.writeNull();
-      case String s -> gen.writeString(s);
-      case byte[] bytes -> gen.writeBinary(bytes);
-      case Boolean b -> gen.writeBoolean(b);
-      case Number number -> gen.writeNumber(number.toString());
-      default -> gen.writeObject(result);
+    if (result == null) {
+      gen.writeNull();
+      return;
     }
+    if (result instanceof byte[]) {
+      gen.writeBinary((byte[]) result);
+      return;
+    }
+    if (result instanceof String) {
+      gen.writeString((String) result);
+      return;
+    }
+    if (result instanceof Boolean) {
+      gen.writeBoolean((Boolean) result);
+      return;
+    }
+    if (result instanceof Number) {
+      gen.writeNumber(result.toString());
+      return;
+    }
+    gen.writeObject(result);
   }
 }

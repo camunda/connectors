@@ -14,19 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.connector.runtime.core.document;
 
-public interface DocumentReference {
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference;
 
-  interface CamundaDocumentReference extends DocumentReference {
-    String storeId();
-
-    String documentId();
-
-    DocumentMetadata metadata();
-  }
-
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
-  }
-}
+public record CamundaDocumentReferenceImpl(
+    String storeId, String documentId, DocumentMetadata metadata)
+    implements DocumentReference.CamundaDocumentReference {}

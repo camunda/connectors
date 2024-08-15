@@ -14,37 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.connector.document.jackson;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.DocumentSource.ReferenceDocumentSource;
-import io.camunda.connector.runtime.core.document.jackson.JacksonModuleDocument;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import java.util.Map;
 import java.util.Optional;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 public class DocumentSerializationTest {
 
-  private final DocumentStore store = new InMemoryDocumentStore();
-  private final DocumentFactory factory = new DocumentFactory(store);
+  @Mock private DocumentFactory factory;
+  @Mock private DocumentOperationExecutor operationExecutor;
 
   private final ObjectMapper objectMapper =
       new ObjectMapper()
-          .registerModule(new JacksonModuleDocument(factory))
+          .registerModule(new JacksonModuleDocument(factory, operationExecutor))
           .registerModule(new Jdk8Module());
 
   record SourceTypeDocument(Document document) {}
 
   @Test
   void sourceTypeDocument() throws JsonProcessingException, JSONException {
-    var ref = new CamundaDocumentReference("test", "test", Map.of(), Optional.empty());
-    var document = factory.from(new ReferenceDocumentSource(ref)).build();
+    var ref = new CamundaDocumentReferenceModel("test", "test", Map.of(), Optional.empty());
+    var document = mock(Document.class);
+    when(document.reference()).thenReturn(ref);
     var source = new SourceTypeDocument(document);
     var result = objectMapper.writeValueAsString(source);
     var expectedResult =

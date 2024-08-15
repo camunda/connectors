@@ -14,18 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
-package io.camunda.connector.runtime.core.document;
+
+package io.camunda.connector.api.document.store;
 
 import io.camunda.connector.api.document.DocumentMetadata;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.Map;
 
 public record DocumentCreationRequest(
-    DocumentMetadata metadata,
-    InputStream content,
-    String documentId,
-    String storeId) {
+    DocumentMetadata metadata, InputStream content, String documentId, String storeId) {
 
   public static BuilderStepMetadata from(InputStream content) {
     return new BuilderStepMetadata(content);
@@ -42,25 +40,38 @@ public record DocumentCreationRequest(
       this.content = content;
     }
 
-    public BuilderStepDocumentId metadata(DocumentMetadata metadata) {
-      return new BuilderStepDocumentId(metadata, content);
+    public BuilderFinalStep metadata(DocumentMetadata metadata) {
+      return new BuilderFinalStep(metadata, content);
     }
 
-    public BuilderStepDocument
+    public BuilderFinalStep metadata(Map<String, Object> metadata) {
+      return new BuilderFinalStep(new DocumentMetadata(metadata), content);
+    }
   }
 
-  public static class BuilderStepDocumentId {
+  public static class BuilderFinalStep {
     private final DocumentMetadata metadata;
     private final InputStream content;
+    private String documentId;
+    private String storeId;
 
-    public BuilderStepDocumentId(DocumentMetadata metadata, InputStream content) {
+    public BuilderFinalStep(DocumentMetadata metadata, InputStream content) {
       this.metadata = metadata;
       this.content = content;
     }
 
-    public BuilderStepStoreId documentId(String documentId) {
-      return new BuilderStepStoreId(metadata, content, documentId);
+    public BuilderFinalStep documentId(String documentId) {
+      this.documentId = documentId;
+      return this;
+    }
+
+    public BuilderFinalStep storeId(String storeId) {
+      this.storeId = storeId;
+      return this;
+    }
+
+    public DocumentCreationRequest build() {
+      return new DocumentCreationRequest(metadata, content, documentId, storeId);
     }
   }
 }
-*/

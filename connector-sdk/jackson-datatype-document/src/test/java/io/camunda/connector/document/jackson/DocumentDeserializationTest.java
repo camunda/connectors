@@ -14,39 +14,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.connector.document.jackson;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.runtime.core.document.jackson.JacksonModuleDocument;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class DocumentDeserializationTest {
 
-  private final DocumentStore store = new InMemoryDocumentStore();
-  private final DocumentFactory factory = new DocumentFactory(store);
+  @Mock private DocumentFactory factory;
+  @Mock private DocumentOperationExecutor operationExecutor;
 
-  private final ObjectMapper objectMapper =
-      new ObjectMapper()
-          .registerModule(new JacksonModuleDocument(factory))
-          .registerModule(new Jdk8Module());
+  private ObjectMapper objectMapper;
 
   public record TargetTypeDocument(Document document) {}
 
+  @BeforeEach
+  public void initialize() {
+    objectMapper =
+        new ObjectMapper()
+            .registerModule(new JacksonModuleDocument(factory, operationExecutor))
+            .registerModule(new Jdk8Module());
+  }
+
   @Test
   void targetTypeDocument() {
-    var ref = new CamundaDocumentReference("test", "test", Map.of(), Optional.empty());
+    var ref = createDocumentMock("Hello World");
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeDocument.class);
     assertEquals(ref, result.document.reference());
@@ -57,9 +75,7 @@ public class DocumentDeserializationTest {
   @Test
   void targetTypeByteArray() {
     var contentString = "Hello World";
-    var ref =
-        store.createDocument(
-            new DocumentMetadata(Map.of("Hello", "World")), contentString.getBytes());
+    var ref = createDocumentMock(contentString);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeByteArray.class);
     assertEquals(contentString, new String(result.document));
@@ -70,9 +86,7 @@ public class DocumentDeserializationTest {
   @Test
   void targetTypeInputStream() throws IOException {
     var contentString = "Hello World";
-    var ref =
-        store.createDocument(
-            new DocumentMetadata(Map.of("Hello", "World")), contentString.getBytes());
+    var ref = createDocumentMock(contentString);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeInputStream.class);
     assertEquals(contentString, new String(result.document.readAllBytes()));
@@ -82,7 +96,7 @@ public class DocumentDeserializationTest {
 
   @Test
   void targetTypeObject() {
-    var ref = new CamundaDocumentReference("test", "test", Map.of(), Optional.empty());
+    var ref = createDocumentMock("Hello World");
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
     assertInstanceOf(Document.class, result.document);
@@ -92,7 +106,7 @@ public class DocumentDeserializationTest {
   @Test
   @SuppressWarnings("unchecked")
   void targetTypeObject_NestedObject() {
-    var ref = new CamundaDocumentReference("test", "test", Map.of(), Optional.empty());
+    var ref = createDocumentMock("Hello World");
     var payload = Map.of("document", Map.of("document", ref));
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
     assertInstanceOf(Map.class, result.document);
@@ -104,12 +118,26 @@ public class DocumentDeserializationTest {
   @Test
   @SuppressWarnings("unchecked")
   void targetTypeObject_Array() {
-    var ref = new CamundaDocumentReference("test", "test", Map.of(), Optional.empty());
+    var ref = createDocumentMock("Hello World");
     var payload = Map.of("document", List.of(ref));
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
-    assertInstanceOf(List.class, result.document);
+    Assertions.assertInstanceOf(List.class, result.document);
     var list = (List<Object>) result.document;
-    assertInstanceOf(Document.class, list.getFirst());
-    assertEquals(ref, ((Document) list.getFirst()).reference());
+    assertInstanceOf(Document.class, list.get(0));
+    assertEquals(ref, ((Document) list.get(0)).reference());
+  }
+
+  private DocumentReferenceModel createDocumentMock(String content) {
+    var ref =
+        new CamundaDocumentReferenceModel(
+            "default", UUID.randomUUID().toString(), Map.of(), Optional.empty());
+    Document document = mock(Document.class);
+    lenient().when(document.asByteArray()).thenReturn(content.getBytes());
+    lenient().when(document.reference()).thenReturn(ref);
+    lenient()
+        .when(document.asInputStream())
+        .thenReturn(new ByteArrayInputStream(content.getBytes()));
+    when((factory.parse(ref))).thenReturn(document);
+    return ref;
   }
 }

@@ -17,8 +17,9 @@
 package io.camunda.connector.runtime.core.document;
 
 import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
+import io.camunda.connector.api.document.store.DocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -29,59 +30,34 @@ public class InMemoryDocumentStore implements DocumentStore {
 
   public static final String STORE_ID = "in-memory";
 
-  private final Map<UUID, byte[]> documents = new HashMap<>();
+  private final Map<String, byte[]> documents = new HashMap<>();
 
   @Override
-  public DocumentReference createDocument(DocumentMetadata metadata, byte[] content) {
-    var id = UUID.randomUUID();
-    documents.put(id, content);
-    return new CamundaDocumentReference(STORE_ID, id.toString(), metadata.getKeys(), null);
-  }
-
-  @Override
-  public DocumentReference createDocument(DocumentMetadata metadata, InputStream content) {
-    var id = UUID.randomUUID();
-    try {
-      documents.put(id, content.readAllBytes());
+  public CamundaDocumentReference createDocument(DocumentCreationRequest request) {
+    final String id =
+        request.documentId() != null ? request.documentId() : UUID.randomUUID().toString();
+    final DocumentMetadata metadata = request.metadata();
+    final byte[] content;
+    try (InputStream contentStream = request.content()) {
+      content = contentStream.readAllBytes();
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Failed to read document content", e);
     }
-    return new CamundaDocumentReference(STORE_ID, id.toString(), metadata.getKeys(), null);
+    documents.put(id, content);
+    return new CamundaDocumentReferenceImpl(STORE_ID, id, metadata);
   }
 
   @Override
-  public byte[] getDocumentContent(DocumentReference reference) {
-    if (!(reference instanceof CamundaDocumentReference ref)) {
-      throw new IllegalArgumentException(
-          "Unsupported document reference type: " + reference.getClass().getName());
+  public InputStream getDocumentContent(CamundaDocumentReference reference) {
+    var content = documents.get(reference.documentId());
+    if (content == null) {
+      throw new RuntimeException("Document not found: " + reference.documentId());
     }
-    if (!STORE_ID.equals(ref.storeId())) {
-      throw new IllegalArgumentException("Unsupported store id: " + ref.storeId());
-    }
-    return documents.get(UUID.fromString(ref.documentId()));
+    return new ByteArrayInputStream(content);
   }
 
   @Override
-  public InputStream getDocumentContentStream(DocumentReference reference) {
-    if (!(reference instanceof CamundaDocumentReference ref)) {
-      throw new IllegalArgumentException(
-          "Unsupported document reference type: " + reference.getClass().getName());
-    }
-    if (!STORE_ID.equals(ref.storeId())) {
-      throw new IllegalArgumentException("Unsupported store id: " + ref.storeId());
-    }
-    return new ByteArrayInputStream(documents.get(UUID.fromString(ref.documentId())));
-  }
-
-  @Override
-  public void deleteDocument(DocumentReference reference) {
-    if (!(reference instanceof CamundaDocumentReference ref)) {
-      throw new IllegalArgumentException(
-          "Unsupported document reference type: " + reference.getClass().getName());
-    }
-    if (!STORE_ID.equals(ref.storeId())) {
-      throw new IllegalArgumentException("Unsupported store id: " + ref.storeId());
-    }
-    documents.remove(UUID.fromString(ref.documentId()));
+  public void deleteDocument(CamundaDocumentReference reference) {
+    documents.remove(reference.documentId());
   }
 }

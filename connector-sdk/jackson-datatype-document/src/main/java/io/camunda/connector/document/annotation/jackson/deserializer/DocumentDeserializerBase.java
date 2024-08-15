@@ -14,19 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document.jackson;
+package io.camunda.connector.document.annotation.jackson.deserializer;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentOperation;
-import io.camunda.connector.api.document.DocumentOperationResult;
-import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.api.document.DocumentSource.ReferenceDocumentSource;
-import io.camunda.connector.runtime.core.document.DocumentFactory;
-import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.operation.DocumentOperation;
+import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import io.camunda.connector.document.annotation.jackson.DocumentOperationResult;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import java.io.IOException;
 
 public abstract class DocumentDeserializerBase<T> extends JsonDeserializer<T> {
@@ -56,7 +55,7 @@ public abstract class DocumentDeserializerBase<T> extends JsonDeserializer<T> {
 
   /** Will be invoked when the deserializable data is a document reference. */
   public abstract T deserializeDocumentReference(
-      DocumentReference reference, DeserializationContext ctx) throws IOException;
+      DocumentReferenceModel reference, DeserializationContext ctx) throws IOException;
 
   /**
    * Will be invoked when the deserializable data is not a document reference. Deserializers should
@@ -65,20 +64,20 @@ public abstract class DocumentDeserializerBase<T> extends JsonDeserializer<T> {
   public abstract T fallback(JsonNode node, DeserializationContext ctx) throws IOException;
 
   protected boolean isDocumentReference(JsonNode node) {
-    return node.has(DocumentReference.DISCRIMINATOR_KEY);
+    return node.has(DocumentReferenceModel.DISCRIMINATOR_KEY);
   }
 
-  protected DocumentReference toReference(JsonNode node, DeserializationContext ctx)
+  protected DocumentReferenceModel toReference(JsonNode node, DeserializationContext ctx)
       throws IOException {
 
     if (!isDocumentReference(node)) {
       throw new IllegalArgumentException(
           "Unsupported document format. Expected a document reference, got: " + node);
     }
-    return ctx.readTreeAsValue(node, DocumentReference.class);
+    return ctx.readTreeAsValue(node, DocumentReferenceModel.class);
   }
 
-  protected void ensureNoOperation(DocumentReference reference) {
+  protected void ensureNoOperation(DocumentReferenceModel reference) {
     if (reference.operation().isPresent()) {
       throw new IllegalArgumentException(
           "Unsupported document format. Expected a document reference without operation, got: "
@@ -86,12 +85,12 @@ public abstract class DocumentDeserializerBase<T> extends JsonDeserializer<T> {
     }
   }
 
-  protected Document createDocument(DocumentReference reference) {
-    return documentFactory.from(new ReferenceDocumentSource(reference)).build();
+  protected Document createDocument(DocumentReferenceModel reference) {
+    return documentFactory.parse(reference);
   }
 
   protected DocumentOperationResult<?> deserializeOperation(
-      DocumentReference reference, DocumentOperation operation) {
+      DocumentReferenceModel reference, DocumentOperation operation) {
     return () -> operationExecutor.execute(operation, createDocument(reference));
   }
 }

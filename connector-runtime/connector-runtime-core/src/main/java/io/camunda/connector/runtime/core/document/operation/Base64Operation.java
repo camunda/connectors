@@ -17,8 +17,8 @@
 package io.camunda.connector.runtime.core.document.operation;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentOperation;
-import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
+import io.camunda.connector.api.document.operation.DocumentOperation;
+import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
 
 public class Base64Operation implements DocumentOperationExecutor {
 

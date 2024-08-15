@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document.jackson;
+package io.camunda.connector.document.annotation.jackson.deserializer;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.runtime.core.document.DocumentFactory;
-import io.camunda.connector.runtime.core.document.DocumentOperationExecutor;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import java.io.InputStream;
 
 public class InputStreamDocumentDeserializer extends DocumentDeserializerBase<InputStream> {
@@ -32,7 +32,7 @@ public class InputStreamDocumentDeserializer extends DocumentDeserializerBase<In
 
   @Override
   public InputStream deserializeDocumentReference(
-      DocumentReference reference, DeserializationContext ctx) {
+      DocumentReferenceModel reference, DeserializationContext ctx) {
     ensureNoOperation(reference);
     var document = createDocument(reference);
     return document.asInputStream();

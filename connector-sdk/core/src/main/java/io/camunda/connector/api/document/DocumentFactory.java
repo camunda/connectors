@@ -16,6 +16,16 @@
  */
 package io.camunda.connector.api.document;
 
-import java.util.function.Supplier;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
 
-public interface DocumentOperationResult<T> extends Supplier<T> {}
+public interface DocumentFactory {
+
+  /** Given a document reference, create the Document object */
+  Document parse(DocumentReference reference);
+
+  /**
+   * Upload a document to the underlying document store and parse the document reference into a
+   * Document object
+   */
+  Document create(DocumentCreationRequest request);
+}

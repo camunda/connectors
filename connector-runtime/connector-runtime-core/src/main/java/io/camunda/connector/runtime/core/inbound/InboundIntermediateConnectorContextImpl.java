@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
@@ -129,6 +131,11 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public Queue<Activity> getLogs() {
     return inboundContext.getLogs();
+  }
+
+  @Override
+  public Document createDocument(DocumentCreationRequest request) {
+    return inboundContext.createDocument(request);
   }
 
   @Override

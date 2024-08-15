@@ -18,6 +18,9 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
@@ -28,6 +31,8 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -56,15 +61,19 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private final EvictingQueue<Activity> logs;
 
+  private final DocumentFactory documentFactory;
+
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
       ValidInboundConnectorDetails connectorDetails,
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
       EvictingQueue logs) {
     super(secretProvider, validationProvider);
+    this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
     this.properties =
@@ -73,6 +82,25 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
     this.logs = logs;
+  }
+
+  public InboundConnectorContextImpl(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      ValidInboundConnectorDetails connectorDetails,
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper,
+      EvictingQueue logs) {
+    this(
+        secretProvider,
+        validationProvider,
+        new DocumentFactoryImpl(new InMemoryDocumentStore()),
+        connectorDetails,
+        correlationHandler,
+        cancellationCallback,
+        objectMapper,
+        logs);
   }
 
   @Override
@@ -147,6 +175,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public List<InboundConnectorElement> connectorElements() {
     return connectorDetails.connectorElements();
+  }
+
+  @Override
+  public Document createDocument(DocumentCreationRequest request) {
+    return documentFactory.create(request);
   }
 
   private Map<String, Object> propertiesWithSecrets;

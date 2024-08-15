@@ -14,14 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.connector.api.document.operation;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentOperation;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 
-public interface DocumentOperationExecutor {
-
-  boolean matches(DocumentOperation operationReference);
-
-  Object execute(DocumentOperation operationReference, Document document);
-}
+public record DocumentOperation(
+    @JsonProperty("$name") String name, @JsonProperty("$params") Map<String, Object> params) {}
