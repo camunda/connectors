@@ -155,7 +155,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^([0-9]?|1[0-9]|20|secrets\\..+)$"
+        "value" : "^([1-9]?|1[0-9]|20|secrets\\..+)$"
       }
     },
     "group" : "messagePollingProperties",
