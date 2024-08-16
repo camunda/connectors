@@ -79,6 +79,7 @@ public class HttpCommonRequest {
       description = "Map of HTTP headers to add to the request")
   private Map<String, String> headers;
 
+  @FEEL
   @TemplateProperty(
       label = "Request body",
       description = "Payload to send with the request",
