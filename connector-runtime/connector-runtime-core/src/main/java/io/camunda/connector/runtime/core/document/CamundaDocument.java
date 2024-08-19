@@ -31,7 +31,9 @@ public class CamundaDocument implements Document {
   private final CamundaDocumentStore documentStore;
 
   public CamundaDocument(
-      DocumentMetadata metadata, CamundaDocumentReference reference, CamundaDocumentStore documentStore) {
+      DocumentMetadata metadata,
+      CamundaDocumentReference reference,
+      CamundaDocumentStore documentStore) {
     this.metadata = metadata;
     this.reference = reference;
     this.documentStore = documentStore;
