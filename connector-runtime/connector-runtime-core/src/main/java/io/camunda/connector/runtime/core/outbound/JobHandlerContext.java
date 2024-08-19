@@ -21,12 +21,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.*;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.InMemoryDocumentStore;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -47,15 +52,32 @@ public class JobHandlerContext extends AbstractConnectorContext
   private final JobContext jobContext;
   private String jsonWithSecrets = null;
 
+  private final DocumentFactory documentFactory;
+
+  public JobHandlerContext(
+      final ActivatedJob job,
+      final SecretProvider secretProvider,
+      final ValidationProvider validationProvider,
+      final DocumentFactory documentFactory,
+      final ObjectMapper objectMapper) {
+    super(secretProvider, validationProvider);
+    this.documentFactory = documentFactory;
+    this.job = job;
+    this.objectMapper = objectMapper;
+    this.jobContext = new ActivatedJobContext(job, this::getJsonReplacedWithSecrets);
+  }
+
   public JobHandlerContext(
       final ActivatedJob job,
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper) {
-    super(secretProvider, validationProvider);
-    this.job = job;
-    this.objectMapper = objectMapper;
-    this.jobContext = new ActivatedJobContext(job, this::getJsonReplacedWithSecrets);
+    this(
+        job,
+        secretProvider,
+        validationProvider,
+        new DocumentFactoryImpl(new InMemoryDocumentStore()),
+        objectMapper);
   }
 
   @Override
@@ -108,6 +130,11 @@ public class JobHandlerContext extends AbstractConnectorContext
   @Override
   public JobContext getJobContext() {
     return jobContext;
+  }
+
+  @Override
+  public Document createDocument(DocumentCreationRequest document) {
+    return documentFactory.create(document);
   }
 
   @Override

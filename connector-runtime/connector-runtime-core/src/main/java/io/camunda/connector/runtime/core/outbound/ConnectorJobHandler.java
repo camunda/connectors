@@ -18,6 +18,7 @@
 package io.camunda.connector.runtime.core.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -58,6 +59,8 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected ValidationProvider validationProvider;
 
+  protected DocumentFactory documentFactory;
+
   protected ObjectMapper objectMapper;
 
   /**
@@ -80,10 +83,12 @@ public class ConnectorJobHandler implements JobHandler {
       final OutboundConnectorFunction call,
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
+      final DocumentFactory documentFactory,
       final ObjectMapper objectMapper) {
     this.call = call;
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
+    this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
   }
 
@@ -180,7 +185,8 @@ public class ConnectorJobHandler implements JobHandler {
 
     try {
       var context =
-          new JobHandlerContext(job, getSecretProvider(), validationProvider, objectMapper);
+          new JobHandlerContext(
+              job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
       var response = call.execute(context);
       var responseVariables =
           ConnectorHelper.createOutputVariables(

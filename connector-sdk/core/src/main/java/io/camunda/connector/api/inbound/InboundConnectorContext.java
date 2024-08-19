@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.api.inbound;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import java.util.Map;
 
 /**
@@ -112,4 +114,7 @@ public interface InboundConnectorContext {
    * implementation requires it.
    */
   void log(Activity activity);
+
+  /** Creates a new document in the Camunda Document Store. */
+  Document createDocument(DocumentCreationRequest request);
 }

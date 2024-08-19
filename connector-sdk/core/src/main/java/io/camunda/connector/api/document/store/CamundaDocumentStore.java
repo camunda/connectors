@@ -14,20 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.jackson;
+package io.camunda.connector.api.document.store;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import io.camunda.connector.api.document.Document;
-import java.io.IOException;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import java.io.InputStream;
 
-public class DocumentSerializer extends JsonSerializer<Document> {
+public interface CamundaDocumentStore {
 
-  @Override
-  public void serialize(
-      Document document, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
-      throws IOException {
-    jsonGenerator.writeString(document.getContent().asBase64());
-  }
+  CamundaDocumentReference createDocument(DocumentCreationRequest request);
+
+  InputStream getDocumentContent(CamundaDocumentReference reference);
+
+  void deleteDocument(CamundaDocumentReference reference);
 }

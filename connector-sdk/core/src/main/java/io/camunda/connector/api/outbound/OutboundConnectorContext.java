@@ -16,17 +16,16 @@
  */
 package io.camunda.connector.api.outbound;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
+
 /**
  * The context object provided to a connector function. The context allows to fetch information
  * injected by the environment runtime.
  */
 public interface OutboundConnectorContext {
 
-  /**
-   * Context information about the activated job.
-   *
-   * @return
-   */
+  /** Context information about the activated job. */
   JobContext getJobContext();
 
   /**
@@ -47,4 +46,7 @@ public interface OutboundConnectorContext {
    * @return deserialized and validated variables with secrets replaced
    */
   <T> T bindVariables(Class<T> cls);
+
+  /** Creates a new document in the Camunda Document Store. */
+  Document createDocument(DocumentCreationRequest request);
 }

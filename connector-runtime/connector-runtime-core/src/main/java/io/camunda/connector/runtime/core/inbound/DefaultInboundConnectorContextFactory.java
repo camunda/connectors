@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
@@ -35,18 +36,21 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   private final SecretProviderAggregator secretProviderAggregator;
   private final ValidationProvider validationProvider;
   private final OperateClientAdapter operateClientAdapter;
+  private final DocumentFactory documentFactory;
 
   public DefaultInboundConnectorContextFactory(
       final ObjectMapper mapper,
       final InboundCorrelationHandler correlationHandler,
       final SecretProviderAggregator secretProviderAggregator,
       final ValidationProvider validationProvider,
-      final OperateClientAdapter operateClientAdapter) {
+      final OperateClientAdapter operateClientAdapter,
+      final DocumentFactory documentFactory) {
     this.objectMapper = mapper;
     this.correlationHandler = correlationHandler;
     this.secretProviderAggregator = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.operateClientAdapter = operateClientAdapter;
+    this.documentFactory = documentFactory;
   }
 
   @Override
@@ -60,6 +64,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
         new InboundConnectorContextImpl(
             secretProviderAggregator,
             validationProvider,
+            documentFactory,
             connectorDetails,
             correlationHandler,
             cancellationCallback,

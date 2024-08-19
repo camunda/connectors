@@ -19,6 +19,9 @@ package io.camunda.connector.test.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
@@ -33,6 +36,8 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
@@ -57,6 +62,8 @@ public class InboundConnectorContextBuilder {
   protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   protected CorrelationResult result;
+
+  protected DocumentFactory documentFactory = new DocumentFactoryImpl(new InMemoryDocumentStore());
 
   public static InboundConnectorContextBuilder create() {
     return new InboundConnectorContextBuilder();
@@ -301,6 +308,11 @@ public class InboundConnectorContextBuilder {
 
     @Override
     public void log(Activity activity) {}
+
+    @Override
+    public Document createDocument(DocumentCreationRequest request) {
+      return documentFactory.create(request);
+    }
 
     @Override
     public Queue<Activity> getLogs() {
