@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
@@ -88,13 +89,15 @@ public class InboundConnectorRuntimeConfiguration {
       InboundCorrelationHandler correlationHandler,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
-      OperateClientAdapter operateClientAdapter) {
+      OperateClientAdapter operateClientAdapter,
+      DocumentFactory documentFactory) {
     return new DefaultInboundConnectorContextFactory(
         mapper,
         correlationHandler,
         secretProviderAggregator,
         validationProvider,
-        operateClientAdapter);
+        operateClientAdapter,
+        documentFactory);
   }
 
   @Bean

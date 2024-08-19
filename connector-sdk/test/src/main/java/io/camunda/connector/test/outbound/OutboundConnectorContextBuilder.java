@@ -19,12 +19,17 @@ package io.camunda.connector.test.outbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.InMemoryDocumentStore;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,6 +47,8 @@ public class OutboundConnectorContextBuilder {
   protected final Map<String, String> headers = new HashMap<>();
 
   private ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+
+  protected DocumentFactory documentFactory = new DocumentFactoryImpl(new InMemoryDocumentStore());
 
   /**
    * @return a new instance of the {@link OutboundConnectorContextBuilder}
@@ -207,6 +214,11 @@ public class OutboundConnectorContextBuilder {
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }
+    }
+
+    @Override
+    public Document createDocument(DocumentCreationRequest request) {
+      return documentFactory.create(request);
     }
   }
 }

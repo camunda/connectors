@@ -17,7 +17,10 @@
 package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
@@ -41,12 +44,18 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  public DocumentFactory documentFactory() {
+    return new DocumentFactoryImpl(new InMemoryDocumentStore());
+  }
+
+  @Bean
   public OutboundConnectorManager outboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder) {
     return new OutboundConnectorManager(
@@ -55,6 +64,7 @@ public class OutboundConnectorRuntimeConfiguration {
         commandExceptionHandlingStrategy,
         secretProviderAggregator,
         validationProvider,
+        documentFactory,
         objectMapper,
         metricsRecorder);
   }

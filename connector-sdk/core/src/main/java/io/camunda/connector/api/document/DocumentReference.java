@@ -16,9 +16,17 @@
  */
 package io.camunda.connector.api.document;
 
-public interface DocumentContent {
+public interface DocumentReference {
 
-  byte[] asBytes();
+  interface CamundaDocumentReference extends DocumentReference {
+    String storeId();
 
-  String asBase64();
+    String documentId();
+
+    DocumentMetadata metadata();
+  }
+
+  interface ExternalDocumentReference extends DocumentReference {
+    String url();
+  }
 }
