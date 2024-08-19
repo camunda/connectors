@@ -5,11 +5,15 @@
   "labels": ["dependencies"],
   "packageRules": [
     {
+      "matchManagers": ["maven"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
     },
     {
-      "matchManagers": ["maven"],
+      "matchManagers": ["github-actions"],
+      "automerge": true
+    },
+    {
       "matchBaseBranches": ["/^release/.*/"],
       "matchUpdateTypes": ["major", "minor"],
       "enabled": false
