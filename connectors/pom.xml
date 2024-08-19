@@ -1,182 +1,181 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.camunda.connector</groupId>
-        <artifactId>connectors-bundle-parent</artifactId>
-        <version>8.6.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-bundle-parent</artifactId>
+    <version>8.6.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
 
-    <artifactId>connectors-parent</artifactId>
-    <packaging>pom</packaging>
+  <artifactId>connectors-parent</artifactId>
+  <packaging>pom</packaging>
 
-    <name>connectors-parent</name>
-    <description>Parent POM for Connectors implementations</description>
-    <inceptionYear>2022</inceptionYear>
+  <name>connectors-parent</name>
+  <description>Parent POM for Connectors implementations</description>
+  <inceptionYear>2022</inceptionYear>
 
-    <modules>
-        <module>automation-anywhere</module>
-        <module>aws</module>
-        <module>email</module>
-        <module>google</module>
-        <module>http</module>
-        <module>jdbc</module>
-        <module>kafka</module>
-        <module>microsoft-teams</module>
-        <module>rabbitmq</module>
-        <module>sendgrid</module>
-        <module>slack</module>
-        <module>soap</module>
-        <module>webhook</module>
-    </modules>
+  <modules>
+    <module>automation-anywhere</module>
+    <module>aws</module>
+    <module>email</module>
+    <module>google</module>
+    <module>http</module>
+    <module>jdbc</module>
+    <module>kafka</module>
+    <module>microsoft-teams</module>
+    <module>rabbitmq</module>
+    <module>sendgrid</module>
+    <module>slack</module>
+    <module>soap</module>
+    <module>webhook</module>
+  </modules>
 
-    <properties>
-        <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
-            under one or more contributor license agreements. Licensed under a proprietary license.
-            See the License.txt file for more information. You may not use this file
-            except in compliance with the proprietary license.
-        </license.inlineheader>
-    </properties>
+  <properties>
+    <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+under one or more contributor license agreements. Licensed under a proprietary license.
+See the License.txt file for more information. You may not use this file
+except in compliance with the proprietary license.</license.inlineheader>
+  </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.camunda.connector</groupId>
-            <artifactId>connector-validation</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.camunda.connector</groupId>
-            <artifactId>jackson-datatype-feel</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.camunda.connector</groupId>
-            <artifactId>connector-core</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-validation</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-feel</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
 
-        <!-- Jackson -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jdk8</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-scala_3</artifactId>
-        </dependency>
+    <!-- Jackson -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-scala_3</artifactId>
+    </dependency>
 
-        <!-- test dependencies -->
-        <dependency>
-            <groupId>io.camunda.connector</groupId>
-            <artifactId>connector-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <!-- test dependencies -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
 
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>io.camunda.connector</groupId>
-                    <artifactId>element-template-generator-maven-plugin</artifactId>
-                    <version>${project.version}</version>
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>generate-templates</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>io.camunda.connector</groupId>
+          <artifactId>element-template-generator-maven-plugin</artifactId>
+          <version>${project.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>generate-templates</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-shade-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <!--This must be named-->
-                            <id>shade</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>shade</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <skip>false</skip>
-                        <relocations>
-                            <!-- common relocation for all OOTB connectors -->
-                            <relocation>
-                                <pattern>com.fasterxml.jackson</pattern>
-                                <shadedPattern>connector.com.fasterxml.jackson</shadedPattern>
-                            </relocation>
-                        </relocations>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <executions>
+            <execution>
+              <!--This must be named-->
+              <id>shade</id>
+              <phase>package</phase>
+              <goals>
+                <goal>shade</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <skip>false</skip>
+            <relocations>
+              <!-- common relocation for all OOTB connectors -->
+              <relocation>
+                <pattern>com.fasterxml.jackson</pattern>
+                <shadedPattern>connector.com.fasterxml.jackson</shadedPattern>
+              </relocation>
+            </relocations>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
 
-        <plugins>
-            <plugin>
-                <!-- This declaration makes sure children get plugin in their lifecycle -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <!-- Configuration won't be propagated to children -->
-                <inherited>false</inherited>
-                <executions>
-                    <execution>
-                        <!--This matches and thus overrides execution defined above -->
-                        <id>shade</id>
-                        <!-- Unbind from lifecycle for this POM -->
-                        <phase>none</phase>
-                    </execution>
-                </executions>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+    <plugins>
+      <plugin>
+        <!-- This declaration makes sure children get plugin in their lifecycle -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <!-- Configuration won't be propagated to children -->
+        <inherited>false</inherited>
+        <executions>
+          <execution>
+            <!--This matches and thus overrides execution defined above -->
+            <id>shade</id>
+            <!-- Unbind from lifecycle for this POM -->
+            <phase>none</phase>
+          </execution>
+        </executions>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>
