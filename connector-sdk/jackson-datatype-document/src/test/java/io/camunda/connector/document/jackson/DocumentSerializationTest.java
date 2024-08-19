@@ -57,7 +57,7 @@ public class DocumentSerializationTest {
         """
         {
           "document": {
-            "$documentType": "camunda",
+            "documentType": "camunda",
             "storeId": "test",
             "documentId": "test",
             "metadata": {}
