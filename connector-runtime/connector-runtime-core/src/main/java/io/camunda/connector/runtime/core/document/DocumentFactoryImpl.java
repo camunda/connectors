@@ -21,8 +21,8 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import io.camunda.connector.api.document.store.CamundaDocumentStore;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
 
 public class DocumentFactoryImpl implements DocumentFactory {
 

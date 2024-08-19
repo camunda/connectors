@@ -18,8 +18,8 @@ package io.camunda.connector.runtime.core.document;
 
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import io.camunda.connector.api.document.store.CamundaDocumentStore;
+import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
