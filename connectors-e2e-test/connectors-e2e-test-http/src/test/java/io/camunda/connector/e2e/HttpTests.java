@@ -371,13 +371,7 @@ public class HttpTests {
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
     // Deploy the webhook
-    stateStore.update(
-        new ProcessImportResult(
-            Map.of(
-                new ProcessDefinitionIdentifier(
-                    processDef.getBpmnProcessId(), processDef.getTenantId()),
-                new ProcessDefinitionVersion(
-                    processDef.getKey(), processDef.getVersion().intValue()))));
+    inboundManager.handleNewProcessDefinitions(Set.of(processDef));
 
     var bpmnTest =
         ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
