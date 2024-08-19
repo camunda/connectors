@@ -14,20 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.jackson;
+package io.camunda.connector.api.document.operation;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import io.camunda.connector.api.document.Document;
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 
-public class DocumentSerializer extends JsonSerializer<Document> {
-
-  @Override
-  public void serialize(
-      Document document, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
-      throws IOException {
-    jsonGenerator.writeString(document.getContent().asBase64());
-  }
-}
+public record DocumentOperation(
+    @JsonProperty("$name") String name, @JsonProperty("$params") Map<String, Object> params) {}

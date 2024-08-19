@@ -14,29 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.jackson;
+package io.camunda.connector.api.document;
 
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.camunda.connector.api.document.Document;
+public interface DocumentReference {
 
-public class JacksonModuleDocument extends SimpleModule {
+  interface CamundaDocumentReference extends DocumentReference {
+    String storeId();
 
-  @Override
-  public String getModuleName() {
-    return "JacksonModuleDocument";
+    String documentId();
+
+    DocumentMetadata metadata();
   }
 
-  @Override
-  public Version version() {
-    // TODO: get version from pom.xml
-    return new Version(0, 1, 0, null, "io.camunda", "jackson-datatype-document");
-  }
-
-  @Override
-  public void setupModule(SetupContext context) {
-    addDeserializer(Document.class, new DocumentDeserializer());
-    addSerializer(Document.class, new DocumentSerializer());
-    super.setupModule(context);
+  interface ExternalDocumentReference extends DocumentReference {
+    String url();
   }
 }

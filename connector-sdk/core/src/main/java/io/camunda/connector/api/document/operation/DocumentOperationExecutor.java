@@ -14,31 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.connector.api.document.operation;
 
-public sealed interface DocumentSource {
+import io.camunda.connector.api.document.Document;
 
-  record Base64DocumentSource(String content) implements DocumentSource {
-    public Base64DocumentSource {
-      if (content == null) {
-        throw new IllegalArgumentException("Content must not be null");
-      }
-    }
-  }
+public interface DocumentOperationExecutor {
 
-  record ByteArrayDocumentSource(byte[] content) implements DocumentSource {
-    public ByteArrayDocumentSource {
-      if (content == null) {
-        throw new IllegalArgumentException("Content must not be null");
-      }
-    }
-  }
+  boolean matches(DocumentOperation operationReference);
 
-  record ReferenceDocumentSource(String reference) implements DocumentSource {
-    public ReferenceDocumentSource {
-      if (reference == null) {
-        throw new IllegalArgumentException("Reference must not be null");
-      }
-    }
-  }
+  Object execute(DocumentOperation operationReference, Document document);
 }
