@@ -137,7 +137,7 @@ public class DocumentDeserializationTest {
     lenient()
         .when(document.asInputStream())
         .thenReturn(new ByteArrayInputStream(content.getBytes()));
-    when((factory.parse(ref))).thenReturn(document);
+    when((factory.resolve(ref))).thenReturn(document);
     return ref;
   }
 }

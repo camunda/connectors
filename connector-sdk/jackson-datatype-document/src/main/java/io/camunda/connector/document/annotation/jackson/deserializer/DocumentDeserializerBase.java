@@ -86,7 +86,7 @@ public abstract class DocumentDeserializerBase<T> extends JsonDeserializer<T> {
   }
 
   protected Document createDocument(DocumentReferenceModel reference) {
-    return documentFactory.parse(reference);
+    return documentFactory.resolve(reference);
   }
 
   protected DocumentOperationResult<?> deserializeOperation(

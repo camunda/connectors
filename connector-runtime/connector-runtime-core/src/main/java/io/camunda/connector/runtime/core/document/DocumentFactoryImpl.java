@@ -22,18 +22,18 @@ import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.document.store.DocumentCreationRequest;
-import io.camunda.connector.api.document.store.DocumentStore;
+import io.camunda.connector.api.document.store.CamundaDocumentStore;
 
 public class DocumentFactoryImpl implements DocumentFactory {
 
-  private final DocumentStore documentStore;
+  private final CamundaDocumentStore documentStore;
 
-  public DocumentFactoryImpl(DocumentStore documentStore) {
+  public DocumentFactoryImpl(CamundaDocumentStore documentStore) {
     this.documentStore = documentStore;
   }
 
   @Override
-  public Document parse(DocumentReference reference) {
+  public Document resolve(DocumentReference reference) {
     return switch (reference) {
       case CamundaDocumentReference camundaDocumentReference -> new CamundaDocument(
           camundaDocumentReference.metadata(), camundaDocumentReference, documentStore);
@@ -46,6 +46,6 @@ public class DocumentFactoryImpl implements DocumentFactory {
   @Override
   public Document create(DocumentCreationRequest request) {
     var reference = documentStore.createDocument(request);
-    return parse(reference);
+    return resolve(reference);
   }
 }

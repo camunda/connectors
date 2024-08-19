@@ -19,7 +19,7 @@ package io.camunda.connector.api.document.store;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import java.io.InputStream;
 
-public interface DocumentStore {
+public interface CamundaDocumentStore {
 
   CamundaDocumentReference createDocument(DocumentCreationRequest request);
 

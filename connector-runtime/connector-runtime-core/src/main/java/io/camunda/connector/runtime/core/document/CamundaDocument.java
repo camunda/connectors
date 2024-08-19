@@ -20,7 +20,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.store.DocumentStore;
+import io.camunda.connector.api.document.store.CamundaDocumentStore;
 import java.io.InputStream;
 import java.util.Base64;
 
@@ -28,10 +28,10 @@ public class CamundaDocument implements Document {
 
   private final DocumentMetadata metadata;
   private final CamundaDocumentReference reference;
-  private final DocumentStore documentStore;
+  private final CamundaDocumentStore documentStore;
 
   public CamundaDocument(
-      DocumentMetadata metadata, CamundaDocumentReference reference, DocumentStore documentStore) {
+      DocumentMetadata metadata, CamundaDocumentReference reference, CamundaDocumentStore documentStore) {
     this.metadata = metadata;
     this.reference = reference;
     this.documentStore = documentStore;

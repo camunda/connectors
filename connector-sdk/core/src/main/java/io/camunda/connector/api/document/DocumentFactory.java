@@ -21,7 +21,7 @@ import io.camunda.connector.api.document.store.DocumentCreationRequest;
 public interface DocumentFactory {
 
   /** Given a document reference, create the Document object */
-  Document parse(DocumentReference reference);
+  Document resolve(DocumentReference reference);
 
   /**
    * Upload a document to the underlying document store and parse the document reference into a

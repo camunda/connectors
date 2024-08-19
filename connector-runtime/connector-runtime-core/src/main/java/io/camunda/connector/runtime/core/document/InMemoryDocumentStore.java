@@ -19,14 +19,14 @@ package io.camunda.connector.runtime.core.document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.store.DocumentCreationRequest;
-import io.camunda.connector.api.document.store.DocumentStore;
+import io.camunda.connector.api.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class InMemoryDocumentStore implements DocumentStore {
+public class InMemoryDocumentStore implements CamundaDocumentStore {
 
   public static final String STORE_ID = "in-memory";
 
