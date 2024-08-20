@@ -295,14 +295,16 @@ public class TemplatePropertiesUtil {
     var builder =
         switch (type) {
           case Boolean -> BooleanProperty.builder();
-          case Dropdown -> DropdownProperty.builder()
-              .choices(
-                  dropdownChoices.entrySet().stream()
-                      .map(
-                          entry ->
-                              new DropdownProperty.DropdownChoice(entry.getValue(), entry.getKey()))
-                      .toList())
-              .feel(FeelMode.disabled);
+          case Dropdown ->
+              DropdownProperty.builder()
+                  .choices(
+                      dropdownChoices.entrySet().stream()
+                          .map(
+                              entry ->
+                                  new DropdownProperty.DropdownChoice(
+                                      entry.getValue(), entry.getKey()))
+                          .toList())
+                  .feel(FeelMode.disabled);
           case Hidden -> HiddenProperty.builder();
           case String -> StringProperty.builder();
           case Text -> TextProperty.builder();
