@@ -1,3 +1,6 @@
+![REST Outbound Connector connector icon](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K)
+# REST Outbound Connector
+Invoke REST API
 # Camunda HTTP JSON Connector
 
 Find the user documentation in our [Camunda](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/rest/).
@@ -87,8 +90,8 @@ The response will contain the status code, the headers and the body of the respo
   "url": "https://httpbin.org/basic-auth/user/password",
   "authentication": {
     "type": "basic",
-    "username": "{{secrets.USERNAME}}",
-    "password": "{{secrets.PASSWORD}}"
+    "username": "",
+    "password": ""
   }
 }
 ```
@@ -101,7 +104,7 @@ The response will contain the status code, the headers and the body of the respo
   "url": "https://httpbin.org/bearer",
   "authentication": {
     "type": "bearer",
-    "token": "{{secrets.TOKEN}}"
+    "token": ""
   }
 }
 ```
@@ -113,13 +116,13 @@ The response will contain the status code, the headers and the body of the respo
   "method": "post",
   "url": "https://youroauthclientdomainname.eu.auth0.com/oauth/token",
   "authentication": {
-    "oauthTokenEndpoint":"{{secrets.OAUTH_TOKEN_ENDPOINT_KEY}}",
+    "oauthTokenEndpoint":"",
     "scopes": "read:clients read:users",
-    "audience":"{{secrets.AUDIENCE_KEY}}",
-    "clientId":"{{secrets.CLIENT_ID_KEY}}",
-    "clientSecret":"{{secrets.CLIENT_SECRET_KEY}}",
+    "audience":"",
+    "clientId":"",
+    "clientSecret":"",
     "type": "oauth-client-credentials-flow",
-    "clientAuthentication":"{{secrets.CLIENT_AUTHENTICATION_KEY}}"
+    "clientAuthentication":""
   }
 }
 ```
@@ -190,3 +193,44 @@ Additional Connector templates based on the HTTP JSON Connector:
 - [Automation Anywhere Connector](../automation-anywhere)
 - [Blue Prism Connector](../blue-prism)
 - [UiPath Connector](../uipath)
+
+
+## Properties
+| Name   | Type     | Required | Description | Example        |
+| ------ | -------- | -------- | ----------- | -------------- |
+| Method | Dropdown | Yes      |             | ```{ }```      |
+| URL    | String   | Yes      |             | ```"string"``` |
+## Result
+The following json structure will be returned by the Connector and can be
+used in the result expression.
+
+```json
+{
+  "status" : 200,
+  "headers" : {
+    "Content-Type" : "application/json"
+  },
+  "body" : {
+    "order" : {
+      "total" : "100.00€",
+      "id" : "123"
+    }
+  }
+}
+```
+
+The body can be accessed via FEEL:
+```json
+= body.order.id
+```
+leading to the following result
+```json
+"123"
+```
+
+
+| Connector Info            |                                                                       |
+| ---                       | ---                                                                   |
+| Type                      | io.camunda:http-json:1                                                            |
+| Version                   | 8                                                         |
+| Supported element types   |     |
