@@ -189,8 +189,9 @@ public class KafkaConnectorConsumer {
             throw new RuntimeException(
                 "Message cannot be processed: " + failure.getClass().getSimpleName());
           }
-          case Ignore ignored -> LOG.debug(
-              "Message not correlated, but the error is ignored. Offset will be committed");
+          case Ignore ignored ->
+              LOG.debug(
+                  "Message not correlated, but the error is ignored. Offset will be committed");
         }
       }
     }

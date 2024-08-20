@@ -225,21 +225,22 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private boolean matchesQuery(RegisteredExecutable executable, ActiveExecutableQuery query) {
     List<ProcessElement> elements =
         switch (executable) {
-          case Activated activated -> activated.context().connectorElements().stream()
-              .map(InboundConnectorElement::element)
-              .toList();
-          case FailedToActivate failed -> failed.data().connectorElements().stream()
-              .map(InboundConnectorElement::element)
-              .toList();
-          case ConnectorNotRegistered notRegistered -> notRegistered
-              .data()
-              .connectorElements()
-              .stream()
-              .map(InboundConnectorElement::element)
-              .toList();
-          case InvalidDefinition invalid -> invalid.data().connectorElements().stream()
-              .map(InboundConnectorElement::element)
-              .toList();
+          case Activated activated ->
+              activated.context().connectorElements().stream()
+                  .map(InboundConnectorElement::element)
+                  .toList();
+          case FailedToActivate failed ->
+              failed.data().connectorElements().stream()
+                  .map(InboundConnectorElement::element)
+                  .toList();
+          case ConnectorNotRegistered notRegistered ->
+              notRegistered.data().connectorElements().stream()
+                  .map(InboundConnectorElement::element)
+                  .toList();
+          case InvalidDefinition invalid ->
+              invalid.data().connectorElements().stream()
+                  .map(InboundConnectorElement::element)
+                  .toList();
         };
     var type =
         switch (executable) {
@@ -277,34 +278,39 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private ActiveExecutableResponse mapToResponse(UUID id, RegisteredExecutable connector) {
 
     return switch (connector) {
-      case Activated activated -> new ActiveExecutableResponse(
-          id,
-          activated.executable().getClass(),
-          activated.context().connectorElements(),
-          activated.context().getHealth(),
-          activated.context().getLogs());
-      case FailedToActivate failed -> new ActiveExecutableResponse(
-          id,
-          null,
-          failed.data().connectorElements(),
-          Health.down(new Error("Activation failure", failed.reason())),
-          List.of());
-      case ConnectorNotRegistered notRegistered -> new ActiveExecutableResponse(
-          id,
-          null,
-          notRegistered.data().connectorElements(),
-          Health.down(
-              new Error(
-                  "Activation failure",
-                  "Connector " + notRegistered.data().type() + " not registered")),
-          List.of());
-      case InvalidDefinition invalid -> new ActiveExecutableResponse(
-          id,
-          null,
-          invalid.data().connectorElements(),
-          Health.down(
-              new Error("Activation failure", "Invalid connector definition: " + invalid.reason())),
-          List.of());
+      case Activated activated ->
+          new ActiveExecutableResponse(
+              id,
+              activated.executable().getClass(),
+              activated.context().connectorElements(),
+              activated.context().getHealth(),
+              activated.context().getLogs());
+      case FailedToActivate failed ->
+          new ActiveExecutableResponse(
+              id,
+              null,
+              failed.data().connectorElements(),
+              Health.down(new Error("Activation failure", failed.reason())),
+              List.of());
+      case ConnectorNotRegistered notRegistered ->
+          new ActiveExecutableResponse(
+              id,
+              null,
+              notRegistered.data().connectorElements(),
+              Health.down(
+                  new Error(
+                      "Activation failure",
+                      "Connector " + notRegistered.data().type() + " not registered")),
+              List.of());
+      case InvalidDefinition invalid ->
+          new ActiveExecutableResponse(
+              id,
+              null,
+              invalid.data().connectorElements(),
+              Health.down(
+                  new Error(
+                      "Activation failure", "Invalid connector definition: " + invalid.reason())),
+              List.of());
     };
   }
 
@@ -318,11 +324,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                 activeExecutable ->
                     switch (activeExecutable) {
                       case Activated activated -> activated.context().getDefinition().type();
-                      case FailedToActivate failed -> failed
-                          .data()
-                          .connectorElements()
-                          .getFirst()
-                          .type();
+                      case FailedToActivate failed ->
+                          failed.data().connectorElements().getFirst().type();
                       case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
                       case InvalidDefinition invalid -> invalid.data().type();
                     },
@@ -342,14 +345,11 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                           Collectors.groupingBy(
                               activeExecutable ->
                                   switch (activeExecutable) {
-                                    case Activated activated -> activated
-                                        .context()
-                                        .getDefinition()
-                                        .tenantId();
+                                    case Activated activated ->
+                                        activated.context().getDefinition().tenantId();
                                     case FailedToActivate failed -> failed.data().tenantId();
-                                    case ConnectorNotRegistered notRegistered -> notRegistered
-                                        .data()
-                                        .tenantId();
+                                    case ConnectorNotRegistered notRegistered ->
+                                        notRegistered.data().tenantId();
                                     case InvalidDefinition invalid -> invalid.data().tenantId();
                                   },
                               Collectors.counting()));
