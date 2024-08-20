@@ -21,13 +21,11 @@ import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentStore;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import java.io.BufferedInputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
@@ -47,8 +45,6 @@ import org.apache.hc.core5.http.message.BasicNameValuePair;
  */
 public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   public static final String EMPTY_BODY = "";
-
-  private final DocumentStore store = new DocumentStore.InMemoryDocumentStore();
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
@@ -137,25 +133,13 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
     return builder.build();
   }
 
-  private URL getDocumentUrl(Document document) {
-    try {
-      Object url = document.getMetadata().get("url");
-      if (url != null) {
-        return new URL((String) url);
-      }
-    } catch (MalformedURLException e) {
-      throw new RuntimeException(e);
-    }
-    return null;
-  }
-
   private void streamDocumentContent(
       Map.Entry<?, ?> entry, Document document, MultipartEntityBuilder builder) {
-    Map<String, Object> metadata = document.getMetadata();
+    DocumentMetadata metadata = document.metadata();
     builder.addBinaryBody(
         String.valueOf(entry.getKey()),
-        new BufferedInputStream(document.loadAsStream(store)),
+        new BufferedInputStream(document.asInputStream()),
         ContentType.DEFAULT_BINARY,
-        (String) metadata.get("filename"));
+        metadata.getFileName());
   }
 }

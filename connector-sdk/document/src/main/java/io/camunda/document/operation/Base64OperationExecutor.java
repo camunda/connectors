@@ -22,11 +22,11 @@ public class Base64OperationExecutor implements DocumentOperationExecutor {
 
   @Override
   public boolean matches(DocumentOperation operationReference) {
-    return false;
+    return "base64".equalsIgnoreCase(operationReference.name());
   }
 
   @Override
   public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
+    return document.asBase64();
   }
 }
