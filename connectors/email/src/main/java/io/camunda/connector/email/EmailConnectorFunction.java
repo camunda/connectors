@@ -41,7 +41,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     icon = "icon.svg")
 public class EmailConnectorFunction implements OutboundConnectorFunction {
   @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
-    return null;
+  public Object execute(OutboundConnectorContext context) {
+    EmailRequest emailRequest = context.bindVariables(EmailRequest.class);
+    return emailRequest;
   }
 }

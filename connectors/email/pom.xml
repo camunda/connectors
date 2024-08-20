@@ -10,7 +10,11 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>email-connector</artifactId>
+    <artifactId>connector-email</artifactId>
+    <name>connector-email</name>
+    <description>Camunda Email Connector</description>
+    <packaging>jar</packaging>
+
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

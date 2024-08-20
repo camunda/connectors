@@ -19,11 +19,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public class EmailRequest {
-  @TemplateProperty(group = "authentication", id = "authentication")
+  @TemplateProperty(group = "authentication", id = "type")
   @Valid
   @NotNull
   private Authentication authentication;
-
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
@@ -37,5 +36,21 @@ public class EmailRequest {
   @Valid
   @NotNull
   @NestedProperties(addNestedPath = false)
-  private Protocol protocol;
+  private Protocol data;
+
+  public @Valid @NotNull Authentication getAuthentication() {
+    return authentication;
+  }
+
+  public void setAuthentication(@Valid @NotNull Authentication authentication) {
+    this.authentication = authentication;
+  }
+
+  public @Valid @NotNull Protocol getData() {
+    return data;
+  }
+
+  public void setData(@Valid @NotNull Protocol data) {
+    this.data = data;
+  }
 }

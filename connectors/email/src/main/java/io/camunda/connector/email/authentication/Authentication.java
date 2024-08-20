@@ -12,11 +12,12 @@ import io.camunda.connector.email.authentication.Authentication.OauthAuthenticat
 import io.camunda.connector.email.authentication.Authentication.SimpleAuthentication;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
-    property = "authentication",
+    property = "type",
     defaultImpl = OauthAuthentication.class)
 @JsonSubTypes({
   @JsonSubTypes.Type(value = SimpleAuthentication.class, name = "simple"),
@@ -25,25 +26,27 @@ import jakarta.validation.constraints.NotBlank;
 @TemplateDiscriminatorProperty(
     label = "Authentication",
     group = "authentication",
-    name = "authentication",
+    name = "type",
     defaultValue = "oauth",
     description = "")
 public sealed interface Authentication permits OauthAuthentication, SimpleAuthentication {
+  @TemplateSubType(id = "oauth", label = "Oauth")
   record OauthAuthentication(
       @TemplateProperty(
               group = "authentication",
               label = "Email address",
               description = "Provide email")
           @NotBlank
-          String mail,
+          String mailOauth2,
       @TemplateProperty(
               group = "authentication",
               label = "Oauth2 token",
               description = "Give token")
           @NotBlank
-          String token)
+          String tokenOauth2)
       implements Authentication {}
 
+  @TemplateSubType(id = "simple", label = "Simple")
   record SimpleAuthentication(
       @TemplateProperty(
               group = "authentication",

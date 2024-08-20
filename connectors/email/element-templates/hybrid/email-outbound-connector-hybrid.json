@@ -1,0 +1,603 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid Email Connector",
+  "id" : "io.camunda.connectors.email.v1-hybrid",
+  "description" : "Execute email requests",
+  "documentationRef" : "https://docs.camunda.io/docs/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "protocol",
+    "label" : "Protocol"
+  }, {
+    "id" : "smtpAction",
+    "label" : "SMTP Action"
+  }, {
+    "id" : "pop3Action",
+    "label" : "POP3 Action"
+  }, {
+    "id" : "imapAction",
+    "label" : "IMAP Action"
+  }, {
+    "id" : "sendEmailSmtp",
+    "label" : "Send Email using SMTP"
+  }, {
+    "id" : "listEmailsPop3",
+    "label" : "List Emails using POP3"
+  }, {
+    "id" : "deleteEmailPop3",
+    "label" : "Delete Email using POP3"
+  }, {
+    "id" : "readEmailPop3",
+    "label" : "Read Email using POP3"
+  }, {
+    "id" : "listEmailImap",
+    "label" : "List Email using IMAP"
+  }, {
+    "id" : "readEmailImap",
+    "label" : "Read Email using IMAP"
+  }, {
+    "id" : "deleteEmailImap",
+    "label" : "Read Email using IMAP"
+  }, {
+    "id" : "moveEmailsImap",
+    "label" : "Move Emails using IMAP"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:email:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "value" : "oauth",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Oauth",
+      "value" : "oauth"
+    }, {
+      "name" : "Simple",
+      "value" : "simple"
+    } ]
+  }, {
+    "id" : "authentication.mailOauth2",
+    "label" : "Email address",
+    "description" : "Provide email",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.mailOauth2",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.tokenOauth2",
+    "label" : "Oauth2 token",
+    "description" : "Give token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.tokenOauth2",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.mail",
+    "label" : "Email address",
+    "description" : "Provide email",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.mail",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.password",
+    "label" : "Email password",
+    "description" : "Provide password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "protocol",
+    "label" : "Protocol",
+    "value" : "SMTP",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "protocol",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Imap",
+      "value" : "imap"
+    }, {
+      "name" : "Pop 3",
+      "value" : "pop3"
+    }, {
+      "name" : "Smtp",
+      "value" : "smtp"
+    } ]
+  }, {
+    "id" : "data.smtpHost",
+    "label" : "SMTP Host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.smtpHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "smtp",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.smtpPort",
+    "label" : "SMTP Port",
+    "optional" : false,
+    "value" : "587",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.smtpPort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "smtp",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.smtpAuth",
+    "label" : "SMTP Authentication",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.smtpAuth",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "smtp",
+      "type" : "simple"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "data.smtpTLS",
+    "label" : "SMTP TLS",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.smtpTLS",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "smtp",
+      "type" : "simple"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "data.action",
+    "label" : "SMTP action",
+    "value" : "sendEmailSmtp",
+    "group" : "smtpAction",
+    "binding" : {
+      "name" : "data.action",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "smtp",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send Email using SMTP",
+      "value" : "sendEmailSmtp"
+    } ]
+  }, {
+    "id" : "pop3Action",
+    "label" : "POP3 action",
+    "value" : "sendEmail",
+    "group" : "pop3Action",
+    "binding" : {
+      "name" : "pop3Action",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "pop3",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "XXXXXXXXXX",
+      "value" : "deleteEmailPop3"
+    }, {
+      "name" : "List Emails using POP3",
+      "value" : "listEmailsPop3"
+    }, {
+      "name" : "XXXXXXXXXX",
+      "value" : "readEmailPop3"
+    } ]
+  }, {
+    "id" : "imapAction",
+    "label" : "IMAP action",
+    "value" : "listEmailImap",
+    "group" : "imapAction",
+    "binding" : {
+      "name" : "imapAction",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "imap",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "XXXXXXXXXX",
+      "value" : "deleteEmailImap"
+    }, {
+      "name" : "XXXXXXXXXX",
+      "value" : "listEmailImap"
+    }, {
+      "name" : "XXXXXXXXXX",
+      "value" : "moveEmailsImap"
+    }, {
+      "name" : "XXXXXXXXXX",
+      "value" : "readEmailImap"
+    } ]
+  }, {
+    "id" : "data.smtpAction.test",
+    "label" : "test",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.test",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.action",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.test2",
+    "label" : "test",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "listEmailsPop3",
+    "binding" : {
+      "name" : "data.test2",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "pop3Action",
+        "equals" : "listEmailsPop3",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.test3",
+    "label" : "test",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "deleteEmailPop3",
+    "binding" : {
+      "name" : "data.test3",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "pop3Action",
+        "equals" : "deleteEmailPop3",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.test1",
+    "label" : "test",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "readEmailPop3",
+    "binding" : {
+      "name" : "data.test1",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "pop3Action",
+        "equals" : "readEmailPop3",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.test6",
+    "label" : "test",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "listEmailImap",
+    "binding" : {
+      "name" : "data.test6",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "imapAction",
+        "equals" : "listEmailImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.test4",
+    "label" : "test",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "readEmailImap",
+    "binding" : {
+      "name" : "data.test4",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "imapAction",
+        "equals" : "readEmailImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.test7",
+    "label" : "test",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "deleteEmailImap",
+    "binding" : {
+      "name" : "data.test7",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "imapAction",
+        "equals" : "deleteEmailImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.test5",
+    "label" : "test",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "moveEmailsImap",
+    "binding" : {
+      "name" : "data.test5",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "imapAction",
+        "equals" : "moveEmailsImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IS0tIFVwbG9hZGVkIHRvOiBTVkcgUmVwbywgd3d3LnN2Z3JlcG8uY29tLCBHZW5lcmF0b3I6IFNWRyBSZXBvIE1peGVyIFRvb2xzIC0tPg0KPHN2ZyB3aWR0aD0iODAwcHgiIGhlaWdodD0iODAwcHgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMy43NSA1LjI1TDMgNlYxOEwzLjc1IDE4Ljc1SDIwLjI1TDIxIDE4VjZMMjAuMjUgNS4yNUgzLjc1Wk00LjUgNy42OTU1VjE3LjI1SDE5LjVWNy42OTUyNUwxMS45OTk5IDE0LjUxMzZMNC41IDcuNjk1NVpNMTguMzA5OSA2Ljc1SDUuNjg5ODZMMTEuOTk5OSAxMi40ODY0TDE4LjMwOTkgNi43NVoiIGZpbGw9IiMwODAzNDEiLz4NCjwvc3ZnPg=="
+  }
+}
