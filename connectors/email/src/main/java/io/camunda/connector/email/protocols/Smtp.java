@@ -8,6 +8,7 @@ package io.camunda.connector.email.protocols;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.protocols.actions.smtp.SmtpAction;
 import io.camunda.connector.email.protocols.actions.smtp.SmtpSendEmail;
 import io.camunda.connector.generator.dsl.Property;
@@ -15,6 +16,7 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.util.Properties;
 
 public final class Smtp implements Protocol {
   @TemplateProperty(
@@ -111,5 +113,15 @@ public final class Smtp implements Protocol {
 
   public void setSmtpTLS(@Valid @NotNull Boolean smtpTLS) {
     this.smtpTLS = smtpTLS;
+  }
+
+  @Override
+  public Object execute(Authentication authentication) {
+    Properties properties = new Properties();
+    properties.put("mail.smtp.host", this.smtpHost);
+    properties.put("mail.smtp.port", this.smtpPort.toString());
+    properties.put("mail.smtp.auth", this.smtpAuth);
+    properties.put("mail.smtp.starttls.enable", this.smtpTLS);
+    return null;
   }
 }

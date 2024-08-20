@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.email.protocols.actions.smtp;
 
+import io.camunda.connector.email.protocols.actions.Action;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
@@ -15,4 +16,4 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     name = "data.action",
     defaultValue = "sendEmailSmtp")
 @TemplateSubType(id = "data.action", label = "SMTP Action")
-public sealed interface SmtpAction permits SmtpSendEmail {}
+public sealed interface SmtpAction extends Action permits SmtpSendEmail {}

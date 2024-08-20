@@ -23,6 +23,7 @@ public class EmailRequest {
   @Valid
   @NotNull
   private Authentication authentication;
+
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
@@ -52,5 +53,9 @@ public class EmailRequest {
 
   public void setData(@Valid @NotNull Protocol data) {
     this.data = data;
+  }
+
+  public Object execute() {
+    return data.execute(authentication);
   }
 }

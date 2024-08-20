@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.email.protocols.actions.imap;
 
+import io.camunda.connector.email.protocols.actions.Action;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
@@ -15,5 +16,5 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     name = "imapAction",
     defaultValue = "listEmailImap")
 @TemplateSubType(id = "imapAction", label = "IMAP Action")
-public sealed interface ImapAction
+public sealed interface ImapAction extends Action
     permits ImapDeleteEmail, ImapListEmails, ImapMoveEmails, ImapReadEmail {}

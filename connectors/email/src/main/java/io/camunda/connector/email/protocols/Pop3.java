@@ -8,6 +8,7 @@ package io.camunda.connector.email.protocols;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.protocols.actions.pop3.Pop3Action;
 import io.camunda.connector.email.protocols.actions.pop3.Pop3ListEmails;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
@@ -24,4 +25,9 @@ public final class Pop3 implements Protocol {
   @NotNull
   @NestedProperties(addNestedPath = false)
   private Pop3Action data;
+
+  @Override
+  public Object execute(Authentication authentication) {
+    return null;
+  }
 }

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.email.protocols.actions.pop3;
 
+import io.camunda.connector.email.protocols.actions.Action;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
@@ -15,4 +16,5 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     name = "pop3Action",
     defaultValue = "sendEmail")
 @TemplateSubType(id = "pop3Action", label = "POP3 Action")
-public sealed interface Pop3Action permits Pop3DeleteEmail, Pop3ListEmails, Pop3ReadEmail {}
+public sealed interface Pop3Action extends Action
+    permits Pop3DeleteEmail, Pop3ListEmails, Pop3ReadEmail {}

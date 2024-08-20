@@ -14,7 +14,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
     name = "Email",
-    inputVariables = {"authentication", "protocol", "action", "data"},
+    inputVariables = {"authentication", "protocol", "data"},
     type = "io.camunda:email:1")
 @ElementTemplate(
     id = "io.camunda.connectors.email.v1",
@@ -43,6 +43,6 @@ public class EmailConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) {
     EmailRequest emailRequest = context.bindVariables(EmailRequest.class);
-    return emailRequest;
+    return emailRequest.execute();
   }
 }

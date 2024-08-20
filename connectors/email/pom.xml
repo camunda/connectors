@@ -27,6 +27,11 @@
             <groupId>io.camunda.connector</groupId>
             <artifactId>element-template-generator-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>jakarta.mail</groupId>
+            <artifactId>jakarta.mail-api</artifactId>
+            <version>2.1.3</version>
+        </dependency>
     </dependencies>
 
     <build>

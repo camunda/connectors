@@ -341,8 +341,9 @@
       "value" : "readEmailImap"
     } ]
   }, {
-    "id" : "data.smtpAction.test",
-    "label" : "test",
+    "id" : "smtpTo",
+    "label" : "TO",
+    "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -350,7 +351,7 @@
     "feel" : "optional",
     "group" : "sendEmailSmtp",
     "binding" : {
-      "name" : "data.smtpAction.test",
+      "name" : "data.smtpAction.to",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -365,6 +366,104 @@
       } ]
     },
     "type" : "String"
+  }, {
+    "id" : "smtpCc",
+    "label" : "CC",
+    "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.cc",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.action",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "smtpCci",
+    "label" : "CCI",
+    "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.cci",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.action",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "smtpSubject",
+    "label" : "subject",
+    "description" : "Subject of the mail",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.subject",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.action",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "smtpBody",
+    "label" : "Body",
+    "description" : "Body of the mail",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.body",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.action",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
   }, {
     "id" : "data.test2",
     "label" : "test",
