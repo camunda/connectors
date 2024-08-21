@@ -1,18 +1,12 @@
 package io.camunda.connector.generator.java.util;
 
-import io.camunda.connector.generator.dsl.Property;
 import io.pebbletemplates.pebble.extension.AbstractExtension;
-import io.pebbletemplates.pebble.extension.Extension;
 import io.pebbletemplates.pebble.extension.Function;
 import io.pebbletemplates.pebble.template.EvaluationContext;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
-import net.steppschuh.markdowngenerator.table.Table;
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.List;
 import java.util.Map;
-
-import static io.camunda.connector.generator.java.ClassBasedDocsGenerator.generateExampleData;
+import net.steppschuh.markdowngenerator.table.Table;
 
 public class DocsPebbleExtension extends AbstractExtension {
 
