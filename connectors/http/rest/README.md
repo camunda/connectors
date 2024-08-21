@@ -212,8 +212,8 @@ used in the result expression.
   },
   "body" : {
     "order" : {
-      "total" : "100.00€",
-      "id" : "123"
+      "id" : "123",
+      "total" : "100.00€"
     }
   }
 }
@@ -234,3 +234,4 @@ leading to the following result
 | Type                      | io.camunda:http-json:1                                                            |
 | Version                   | 8                                                         |
 | Supported element types   |     |
+

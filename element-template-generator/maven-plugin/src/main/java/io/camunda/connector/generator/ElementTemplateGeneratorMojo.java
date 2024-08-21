@@ -157,9 +157,12 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
         .getFiles()
         .forEach(
             fileNameById -> {
-              var config =
-                  new DocsGeneratorConfiguration(
-                      fileNameById.getDocTemplatePath(), fileNameById.getDocOutputPath());
+              var templatePath =
+                  new File(project.getBasedir(), fileNameById.getDocTemplatePath())
+                      .getAbsolutePath();
+              var templateOutputPath =
+                  new File(project.getBasedir(), fileNameById.getDocOutputPath()).getAbsolutePath();
+              var config = new DocsGeneratorConfiguration(templatePath, templateOutputPath);
 
               var doc = generator.generate(clazz, config);
 

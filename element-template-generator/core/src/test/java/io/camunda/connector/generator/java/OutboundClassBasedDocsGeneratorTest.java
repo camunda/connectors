@@ -32,7 +32,7 @@ public class OutboundClassBasedDocsGeneratorTest extends BaseTest {
   class Basic {
 
     @Test
-    void elementType_default_isServiceTask() {
+    void renderTemplateWithLayout() {
       DocsGeneratorConfiguration config =
           new DocsGeneratorConfiguration("src/test/templates/connector-doc.md.peb", "test.md");
       var result = generator.generate(MyConnectorFunction.FullyAnnotated.class, config).content();
