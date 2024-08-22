@@ -25,6 +25,11 @@
       <artifactId>connector-core</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-document</artifactId>
+    </dependency>
+
     <!-- Jackson dependencies defined as provided in the Connector SDK Core -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
