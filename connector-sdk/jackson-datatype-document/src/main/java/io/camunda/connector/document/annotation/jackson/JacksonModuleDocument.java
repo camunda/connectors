@@ -35,6 +35,7 @@ public class JacksonModuleDocument extends SimpleModule {
   private final DocumentFactory documentFactory;
   private final DocumentOperationExecutor operationExecutor;
   private final DocumentModuleSettings settings;
+
   public JacksonModuleDocument(
       DocumentFactory documentFactory,
       DocumentOperationExecutor operationExecutor,
