@@ -14,22 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.document.store;
 
-import io.camunda.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.document.store.CamundaDocumentStore;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.DocumentMetadata;
+import io.camunda.document.reference.CamundaDocumentReferenceImpl;
+import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/** Use this document store to store documents in memory. This is useful for testing purposes. */
 public class InMemoryDocumentStore implements CamundaDocumentStore {
 
   public static final String STORE_ID = "in-memory";
 
+  public static InMemoryDocumentStore INSTANCE = new InMemoryDocumentStore();
+
   private final Map<String, byte[]> documents = new HashMap<>();
+
+  private InMemoryDocumentStore() {}
 
   @Override
   public CamundaDocumentReference createDocument(DocumentCreationRequest request) {

@@ -14,8 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.document.operation;
 
-public record CamundaDocumentReferenceImpl(
-    String storeId, String documentId, DocumentMetadata metadata)
-    implements DocumentReference.CamundaDocumentReference {}
+import io.camunda.document.Document;
+
+public class Base64OperationExecutor implements DocumentOperationExecutor {
+
+  @Override
+  public boolean matches(DocumentOperation operationReference) {
+    return false;
+  }
+
+  @Override
+  public Object execute(DocumentOperation operationReference, Document document) {
+    return null;
+  }
+}

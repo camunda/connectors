@@ -27,10 +27,10 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.document.Document;
-import io.camunda.document.DocumentFactory;
-import io.camunda.document.DocumentFactoryImpl;
-import io.camunda.document.InMemoryDocumentStore;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,17 +38,13 @@ import java.util.Map;
 public class OutboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
-  protected SecretProvider secretProvider = secrets::get;
-
-  protected ValidationProvider validationProvider;
-
-  protected Map<String, Object> variables;
-
   protected final Map<String, String> headers = new HashMap<>();
-
+  protected SecretProvider secretProvider = secrets::get;
+  protected ValidationProvider validationProvider;
+  protected Map<String, Object> variables;
+  protected DocumentFactory documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   private ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-
-  protected DocumentFactory documentFactory = new DocumentFactoryImpl(new InMemoryDocumentStore());
 
   /**
    * @return a new instance of the {@link OutboundConnectorContextBuilder}

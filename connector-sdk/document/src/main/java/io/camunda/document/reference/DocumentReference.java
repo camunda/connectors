@@ -14,22 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.document.reference;
 
-import io.camunda.document.operation.DocumentOperation;
-import io.camunda.document.operation.DocumentOperationExecutor;
+import io.camunda.document.DocumentMetadata;
 
-public class AggregatingOperationExecutor implements DocumentOperationExecutor {
+public interface DocumentReference {
 
-  public AggregatingOperationExecutor() {}
+  interface CamundaDocumentReference extends DocumentReference {
+    String storeId();
 
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return true;
+    String documentId();
+
+    DocumentMetadata metadata();
   }
 
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
+  interface ExternalDocumentReference extends DocumentReference {
+    String url();
   }
 }

@@ -16,6 +16,7 @@
  */
 package io.camunda.document;
 
+import io.camunda.document.reference.DocumentReference;
 import java.io.InputStream;
 
 /**

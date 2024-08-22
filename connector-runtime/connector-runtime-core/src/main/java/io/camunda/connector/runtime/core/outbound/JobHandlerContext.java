@@ -28,10 +28,10 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.document.Document;
-import io.camunda.document.DocumentFactory;
-import io.camunda.document.DocumentFactoryImpl;
-import io.camunda.document.InMemoryDocumentStore;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -50,9 +50,8 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   private final ObjectMapper objectMapper;
   private final JobContext jobContext;
-  private String jsonWithSecrets = null;
-
   private final DocumentFactory documentFactory;
+  private String jsonWithSecrets = null;
 
   public JobHandlerContext(
       final ActivatedJob job,
@@ -76,7 +75,7 @@ public class JobHandlerContext extends AbstractConnectorContext
         job,
         secretProvider,
         validationProvider,
-        new DocumentFactoryImpl(new InMemoryDocumentStore()),
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
         objectMapper);
   }
 

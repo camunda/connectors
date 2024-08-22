@@ -16,7 +16,8 @@
  */
 package io.camunda.document;
 
-import io.camunda.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.io.InputStream;
 import java.util.Base64;

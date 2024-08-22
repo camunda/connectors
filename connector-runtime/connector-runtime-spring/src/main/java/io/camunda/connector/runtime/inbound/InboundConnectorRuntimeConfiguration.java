@@ -38,7 +38,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.document.DocumentFactory;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
@@ -60,6 +60,11 @@ public class InboundConnectorRuntimeConfiguration {
   private Duration messageTtl;
 
   @Bean
+  public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor() {
+    return new InboundConnectorBeanDefinitionProcessor();
+  }
+
+  @Bean
   public ProcessElementContextFactory processElementContextFactory(
       ObjectMapper objectMapper,
       @Autowired(required = false) ValidationProvider validationProvider,
@@ -76,11 +81,6 @@ public class InboundConnectorRuntimeConfiguration {
       final ProcessElementContextFactory elementContextFactory) {
     return new MeteredInboundCorrelationHandler(
         zeebeClient, feelEngine, metricsRecorder, elementContextFactory, messageTtl);
-  }
-
-  @Bean
-  public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor() {
-    return new InboundConnectorBeanDefinitionProcessor();
   }
 
   @Bean

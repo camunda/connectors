@@ -14,19 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.document.factory;
 
-public interface DocumentReference {
+import io.camunda.document.Document;
+import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.store.DocumentCreationRequest;
 
-  interface CamundaDocumentReference extends DocumentReference {
-    String storeId();
+public interface DocumentFactory {
 
-    String documentId();
+  /** Given a document reference, create the Document object */
+  Document resolve(DocumentReference reference);
 
-    DocumentMetadata metadata();
-  }
-
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
-  }
+  /**
+   * Upload a document to the underlying document store and parse the document reference into a
+   * Document object
+   */
+  Document create(DocumentCreationRequest request);
 }

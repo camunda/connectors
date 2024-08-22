@@ -27,8 +27,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.document.DocumentMetadata;
-import io.camunda.document.DocumentReference;
 import io.camunda.document.operation.DocumentOperation;
+import io.camunda.document.reference.DocumentReference;
 import java.util.Map;
 import java.util.Optional;
 

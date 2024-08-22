@@ -26,7 +26,7 @@ import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Outbound;
-import io.camunda.document.DocumentFactory;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;

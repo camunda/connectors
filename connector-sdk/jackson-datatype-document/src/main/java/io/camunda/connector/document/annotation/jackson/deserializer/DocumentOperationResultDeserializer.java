@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import io.camunda.connector.document.annotation.jackson.DocumentOperationResult;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
-import io.camunda.document.DocumentFactory;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperationExecutor;
 
 public class DocumentOperationResultDeserializer

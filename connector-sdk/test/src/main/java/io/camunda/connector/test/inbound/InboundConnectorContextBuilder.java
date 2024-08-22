@@ -37,10 +37,10 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.document.Document;
-import io.camunda.document.DocumentFactory;
-import io.camunda.document.DocumentFactoryImpl;
-import io.camunda.document.InMemoryDocumentStore;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,7 +63,8 @@ public class InboundConnectorContextBuilder {
 
   protected CorrelationResult result;
 
-  protected DocumentFactory documentFactory = new DocumentFactoryImpl(new InMemoryDocumentStore());
+  protected DocumentFactory documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
   public static InboundConnectorContextBuilder create() {
     return new InboundConnectorContextBuilder();
@@ -199,16 +200,21 @@ public class InboundConnectorContextBuilder {
     return new TestInboundConnectorContext(secretProvider, validationProvider, result);
   }
 
+  /**
+   * @return the {@link io.camunda.connector.api.inbound.InboundIntermediateConnectorContext}
+   *     including all previously defined properties
+   */
+  public TestInboundIntermediateConnectorContext buildIntermediateConnectorContext() {
+    return new TestInboundIntermediateConnectorContext(secretProvider, validationProvider);
+  }
+
   public class TestInboundConnectorContext extends AbstractConnectorContext
       implements InboundConnectorContext, InboundConnectorReportingContext {
 
     private final List<Object> correlatedEvents = new ArrayList<>();
-
-    private Health health = Health.unknown();
-
     private final String propertiesWithSecrets;
-
     private final CorrelationResult result;
+    private Health health = Health.unknown();
 
     protected TestInboundConnectorContext(
         SecretProvider secretProvider,
@@ -324,14 +330,6 @@ public class InboundConnectorContextBuilder {
       // never used in tests, runtime-specific method
       return null;
     }
-  }
-
-  /**
-   * @return the {@link io.camunda.connector.api.inbound.InboundIntermediateConnectorContext}
-   *     including all previously defined properties
-   */
-  public TestInboundIntermediateConnectorContext buildIntermediateConnectorContext() {
-    return new TestInboundIntermediateConnectorContext(secretProvider, validationProvider);
   }
 
   public class TestInboundIntermediateConnectorContext extends TestInboundConnectorContext

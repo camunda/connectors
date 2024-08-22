@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
-import io.camunda.document.DocumentFactory;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
 

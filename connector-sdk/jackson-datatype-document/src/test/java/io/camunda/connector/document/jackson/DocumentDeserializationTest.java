@@ -28,7 +28,7 @@ import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.document.Document;
-import io.camunda.document.DocumentFactory;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -52,8 +52,6 @@ public class DocumentDeserializationTest {
 
   private ObjectMapper objectMapper;
 
-  public record TargetTypeDocument(Document document) {}
-
   @BeforeEach
   public void initialize() {
     objectMapper =
@@ -70,8 +68,6 @@ public class DocumentDeserializationTest {
     assertEquals(ref, result.document.reference());
   }
 
-  public record TargetTypeByteArray(byte[] document) {}
-
   @Test
   void targetTypeByteArray() {
     var contentString = "Hello World";
@@ -81,8 +77,6 @@ public class DocumentDeserializationTest {
     assertEquals(contentString, new String(result.document));
   }
 
-  public record TargetTypeInputStream(InputStream document) {}
-
   @Test
   void targetTypeInputStream() throws IOException {
     var contentString = "Hello World";
@@ -91,8 +85,6 @@ public class DocumentDeserializationTest {
     var result = objectMapper.convertValue(payload, TargetTypeInputStream.class);
     assertEquals(contentString, new String(result.document.readAllBytes()));
   }
-
-  public record TargetTypeObject(Object document) {}
 
   @Test
   void targetTypeObject() {
@@ -140,4 +132,12 @@ public class DocumentDeserializationTest {
     when((factory.resolve(ref))).thenReturn(document);
     return ref;
   }
+
+  public record TargetTypeDocument(Document document) {}
+
+  public record TargetTypeByteArray(byte[] document) {}
+
+  public record TargetTypeInputStream(InputStream document) {}
+
+  public record TargetTypeObject(Object document) {}
 }

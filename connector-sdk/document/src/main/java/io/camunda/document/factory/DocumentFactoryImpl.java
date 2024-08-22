@@ -14,10 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.document.factory;
 
-import io.camunda.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.document.DocumentReference.ExternalDocumentReference;
+import io.camunda.document.CamundaDocument;
+import io.camunda.document.Document;
+import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.document.reference.DocumentReference.ExternalDocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.DocumentCreationRequest;
 

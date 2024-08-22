@@ -26,17 +26,20 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument.DocumentModuleSettings;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.InMemoryDocumentStore;
 
 /** Default ObjectMapper supplier to be used by the connector runtime. */
 public class ConnectorsObjectMapperSupplier {
-
-  private ConnectorsObjectMapperSupplier() {}
 
   public static ObjectMapper DEFAULT_MAPPER =
       JsonMapper.builder()
           .addModules(
               new JacksonModuleFeelFunction(),
-              new JacksonModuleDocument(null, null, DocumentModuleSettings.create()),
+              new JacksonModuleDocument(
+                  new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+                  null,
+                  DocumentModuleSettings.create()),
               new Jdk8Module(),
               new JavaTimeModule())
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
@@ -45,6 +48,8 @@ public class ConnectorsObjectMapperSupplier {
           .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
           .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
           .build();
+
+  private ConnectorsObjectMapperSupplier() {}
 
   public static ObjectMapper getCopy() {
     return DEFAULT_MAPPER.copy();
