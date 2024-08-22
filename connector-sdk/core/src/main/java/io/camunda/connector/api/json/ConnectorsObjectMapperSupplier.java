@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument.DocumentModuleSettings;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 
 /** Default ObjectMapper supplier to be used by the connector runtime. */
