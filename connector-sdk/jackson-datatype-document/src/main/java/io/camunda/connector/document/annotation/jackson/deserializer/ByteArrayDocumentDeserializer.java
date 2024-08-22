@@ -22,6 +22,7 @@ import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class ByteArrayDocumentDeserializer extends DocumentDeserializerBase<byte[]> {
 
@@ -41,6 +42,6 @@ public class ByteArrayDocumentDeserializer extends DocumentDeserializerBase<byte
 
   @Override
   public byte[] fallback(JsonNode node, DeserializationContext ctx) throws IOException {
-    return ctx.readTreeAsValue(node, byte[].class);
+    return ctx.readTreeAsValue(node, ByteBuffer.class).array();
   }
 }
