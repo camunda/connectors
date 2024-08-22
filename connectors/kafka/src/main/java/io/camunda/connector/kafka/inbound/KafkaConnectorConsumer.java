@@ -86,7 +86,7 @@ public class KafkaConnectorConsumer {
 
   public void startConsumer() {
     if (elementProps.avro() != null) {
-      Schema schema = new Schema.Parser().setValidate(true).parse(elementProps.avro().schema());
+      Schema schema = new Schema.Parser().parse(elementProps.avro().schema());
       AvroSchema avroSchema = new AvroSchema(schema);
       AvroMapper avroMapper = new AvroMapper();
       avroObjectReader = avroMapper.reader(avroSchema);

@@ -60,10 +60,9 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     icon = "icon.svg")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
-  private final Function<Properties, Producer<String, Object>> producerCreatorFunction;
-
   private static final ObjectMapper objectMapper =
       ConnectorsObjectMapperSupplier.getCopy().enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
+  private final Function<Properties, Producer<String, Object>> producerCreatorFunction;
 
   public KafkaConnectorFunction() {
     this(KafkaProducer::new);
@@ -74,15 +73,9 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
     this.producerCreatorFunction = producerCreatorFunction;
   }
 
-  @Override
-  public Object execute(final OutboundConnectorContext context) {
-    var connectorRequest = context.bindVariables(KafkaConnectorRequest.class);
-    return executeConnector(connectorRequest);
-  }
-
   public static byte[] produceAvroMessage(final KafkaConnectorRequest request) throws Exception {
     var schemaString = request.avro().schema();
-    Schema raw = new Schema.Parser().setValidate(true).parse(schemaString);
+    Schema raw = new Schema.Parser().parse(schemaString);
     AvroSchema schema = new AvroSchema(raw);
     AvroMapper avroMapper = new AvroMapper();
     Object messageValue = request.message().value();
@@ -90,6 +83,16 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
       messageValue = objectMapper.readTree(messageValueAsString);
     }
     return avroMapper.writer(schema).writeValueAsBytes(messageValue);
+  }
+
+  public static String transformData(Object data) throws JsonProcessingException {
+    return data instanceof String ? (String) data : objectMapper.writeValueAsString(data);
+  }
+
+  @Override
+  public Object execute(final OutboundConnectorContext context) {
+    var connectorRequest = context.bindVariables(KafkaConnectorRequest.class);
+    return executeConnector(connectorRequest);
   }
 
   private KafkaConnectorResponse executeConnector(final KafkaConnectorRequest request) {
@@ -120,10 +123,6 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
     String transformedKey = transformData(request.message().key());
     return new ProducerRecord<>(
         request.topic().topicName(), null, null, transformedKey, transformedValue);
-  }
-
-  public static String transformData(Object data) throws JsonProcessingException {
-    return data instanceof String ? (String) data : objectMapper.writeValueAsString(data);
   }
 
   private void addHeadersToProducerRecord(
