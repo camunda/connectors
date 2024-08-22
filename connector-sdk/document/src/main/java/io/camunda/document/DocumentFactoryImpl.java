@@ -14,15 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.document;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.connector.api.document.store.CamundaDocumentStore;
-import io.camunda.connector.api.document.store.DocumentCreationRequest;
+import io.camunda.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.document.DocumentReference.ExternalDocumentReference;
+import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.document.store.DocumentCreationRequest;
 
 public class DocumentFactoryImpl implements DocumentFactory {
 
@@ -34,13 +31,18 @@ public class DocumentFactoryImpl implements DocumentFactory {
 
   @Override
   public Document resolve(DocumentReference reference) {
-    return switch (reference) {
-      case CamundaDocumentReference camundaDocumentReference -> new CamundaDocument(
+    if (reference == null) {
+      return null;
+    }
+    if (reference instanceof CamundaDocumentReference camundaDocumentReference) {
+      return new CamundaDocument(
           camundaDocumentReference.metadata(), camundaDocumentReference, documentStore);
-      case ExternalDocumentReference ignored -> throw new IllegalArgumentException(
+    }
+    if (reference instanceof ExternalDocumentReference ignored) {
+      throw new IllegalArgumentException(
           "External document references are not yet supported: " + reference.getClass());
-      default -> throw new IllegalArgumentException("Unsupported document reference: " + reference);
-    };
+    }
+    throw new IllegalArgumentException("Unknown document reference type: " + reference.getClass());
   }
 
   @Override

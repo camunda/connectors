@@ -22,10 +22,10 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
 import io.camunda.connector.document.annotation.jackson.DocumentOperationResult;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.document.DocumentFactory;
+import io.camunda.document.operation.DocumentOperationExecutor;
 
 public class DocumentOperationResultDeserializer
     extends DocumentDeserializerBase<DocumentOperationResult<?>> implements ContextualDeserializer {

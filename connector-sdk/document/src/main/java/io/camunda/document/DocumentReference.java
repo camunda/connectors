@@ -14,13 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document.operation;
+package io.camunda.document;
 
-import io.camunda.connector.api.document.Document;
+public interface DocumentReference {
 
-public interface DocumentOperationExecutor {
+  interface CamundaDocumentReference extends DocumentReference {
+    String storeId();
 
-  boolean matches(DocumentOperation operationReference);
+    String documentId();
 
-  Object execute(DocumentOperation operationReference, Document document);
+    DocumentMetadata metadata();
+  }
+
+  interface ExternalDocumentReference extends DocumentReference {
+    String url();
+  }
 }

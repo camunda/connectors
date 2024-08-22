@@ -14,27 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.document;
 
-import java.io.InputStream;
+import io.camunda.document.store.DocumentCreationRequest;
 
-/**
- * Represents a uniform document (file) object that can be passed between connectors and used in the
- * FEEL engine.
- */
-public interface Document {
+public interface DocumentFactory {
+
+  /** Given a document reference, create the Document object */
+  Document resolve(DocumentReference reference);
 
   /**
-   * Domain-specific metadata that can be attached to the document. When a file is consumed by a
-   * connector as input, the metadata originates from the
+   * Upload a document to the underlying document store and parse the document reference into a
+   * Document object
    */
-  DocumentMetadata metadata();
-
-  String asBase64();
-
-  InputStream asInputStream();
-
-  byte[] asByteArray();
-
-  DocumentReference reference();
+  Document create(DocumentCreationRequest request);
 }

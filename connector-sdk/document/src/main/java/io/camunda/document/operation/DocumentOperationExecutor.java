@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.document.operation;
 
-import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.document.Document;
 
-public record CamundaDocumentReferenceImpl(
-    String storeId, String documentId, DocumentMetadata metadata)
-    implements DocumentReference.CamundaDocumentReference {}
+public interface DocumentOperationExecutor {
+
+  boolean matches(DocumentOperation operationReference);
+
+  Object execute(DocumentOperation operationReference, Document document);
+}

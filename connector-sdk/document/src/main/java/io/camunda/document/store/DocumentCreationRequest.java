@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.api.document.store;
+package io.camunda.document.store;
 
-import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.document.DocumentMetadata;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Map;

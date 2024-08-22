@@ -14,23 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.document;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.operation.DocumentOperation;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import java.util.Map;
 
-public class AggregatingOperationExecutor implements DocumentOperationExecutor {
+public class DocumentMetadata {
 
-  public AggregatingOperationExecutor() {}
+  public static final String CONTENT_TYPE = "contentType";
+  public static final String FILE_NAME = "fileName";
+  public static final String DESCRIPTION = "description";
 
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return true;
+  private final Map<String, Object> keys;
+
+  public DocumentMetadata(Map<String, Object> keys) {
+    this.keys = keys;
   }
 
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
+  public Map<String, Object> getKeys() {
+    return keys;
+  }
+
+  public Object getKey(String key) {
+    return keys.get(key);
+  }
+
+  public String getContentType() {
+    return (String) keys.get(CONTENT_TYPE);
+  }
+
+  public String getFileName() {
+    return (String) keys.get(FILE_NAME);
+  }
+
+  public String getDescription() {
+    return (String) keys.get(DESCRIPTION);
   }
 }

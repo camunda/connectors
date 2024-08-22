@@ -14,21 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document.operation;
+package io.camunda.document;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.operation.DocumentOperation;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import java.io.InputStream;
 
-public class Base64Operation implements DocumentOperationExecutor {
+/**
+ * Represents a uniform document (file) object that can be passed between connectors and used in the
+ * FEEL engine.
+ */
+public interface Document {
 
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return false;
-  }
+  /**
+   * Domain-specific metadata that can be attached to the document. When a file is consumed by a
+   * connector as input, the metadata originates from the
+   */
+  DocumentMetadata metadata();
 
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
-  }
+  String asBase64();
+
+  InputStream asInputStream();
+
+  byte[] asByteArray();
+
+  DocumentReference reference();
 }

@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.document;
 
-import io.camunda.connector.api.document.store.DocumentCreationRequest;
+import io.camunda.document.operation.DocumentOperation;
+import io.camunda.document.operation.DocumentOperationExecutor;
 
-public interface DocumentFactory {
+public class Base64Operation implements DocumentOperationExecutor {
 
-  /** Given a document reference, create the Document object */
-  Document resolve(DocumentReference reference);
+  @Override
+  public boolean matches(DocumentOperation operationReference) {
+    return false;
+  }
 
-  /**
-   * Upload a document to the underlying document store and parse the document reference into a
-   * Document object
-   */
-  Document create(DocumentCreationRequest request);
+  @Override
+  public Object execute(DocumentOperation operationReference, Document document) {
+    return null;
+  }
 }

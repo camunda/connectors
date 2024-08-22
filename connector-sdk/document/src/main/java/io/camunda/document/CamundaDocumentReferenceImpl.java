@@ -14,39 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.document;
 
-import java.util.Map;
-
-public class DocumentMetadata {
-
-  public static final String CONTENT_TYPE = "contentType";
-  public static final String FILE_NAME = "fileName";
-  public static final String DESCRIPTION = "description";
-
-  private final Map<String, Object> keys;
-
-  public DocumentMetadata(Map<String, Object> keys) {
-    this.keys = keys;
-  }
-
-  public Map<String, Object> getKeys() {
-    return keys;
-  }
-
-  public Object getKey(String key) {
-    return keys.get(key);
-  }
-
-  public String getContentType() {
-    return (String) keys.get(CONTENT_TYPE);
-  }
-
-  public String getFileName() {
-    return (String) keys.get(FILE_NAME);
-  }
-
-  public String getDescription() {
-    return (String) keys.get(DESCRIPTION);
-  }
-}
+public record CamundaDocumentReferenceImpl(
+    String storeId, String documentId, DocumentMetadata metadata)
+    implements DocumentReference.CamundaDocumentReference {}

@@ -24,12 +24,12 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
+import io.camunda.document.Document;
+import io.camunda.document.DocumentFactory;
+import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;

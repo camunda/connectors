@@ -32,7 +32,11 @@ public class ConnectorsObjectMapperSupplier {
 
   public static ObjectMapper DEFAULT_MAPPER =
       JsonMapper.builder()
-          .addModules(new JacksonModuleFeelFunction(), new Jdk8Module(), new JavaTimeModule())
+          .addModules(
+              new JacksonModuleFeelFunction(),
+              new JacksonModuleDocument(null, null, DocumentModuleSettings.create()),
+              new Jdk8Module(),
+              new JavaTimeModule())
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
           .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)

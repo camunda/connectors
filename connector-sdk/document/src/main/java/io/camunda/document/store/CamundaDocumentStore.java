@@ -14,19 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.document.store;
 
-public interface DocumentReference {
+import io.camunda.document.DocumentReference.CamundaDocumentReference;
+import java.io.InputStream;
 
-  interface CamundaDocumentReference extends DocumentReference {
-    String storeId();
+public interface CamundaDocumentStore {
 
-    String documentId();
+  CamundaDocumentReference createDocument(DocumentCreationRequest request);
 
-    DocumentMetadata metadata();
-  }
+  InputStream getDocumentContent(CamundaDocumentReference reference);
 
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
-  }
+  void deleteDocument(CamundaDocumentReference reference);
 }

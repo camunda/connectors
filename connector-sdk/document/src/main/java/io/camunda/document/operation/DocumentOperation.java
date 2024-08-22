@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document.operation;
+package io.camunda.document.operation;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 
-public record DocumentOperation(
-    @JsonProperty("$name") String name, @JsonProperty("$params") Map<String, Object> params) {}
+public record DocumentOperation(String name, Map<String, Object> params) {}

@@ -14,16 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document.store;
+package io.camunda.document;
 
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import java.io.InputStream;
+import io.camunda.document.operation.DocumentOperation;
+import io.camunda.document.operation.DocumentOperationExecutor;
 
-public interface CamundaDocumentStore {
+public class AggregatingOperationExecutor implements DocumentOperationExecutor {
 
-  CamundaDocumentReference createDocument(DocumentCreationRequest request);
+  public AggregatingOperationExecutor() {}
 
-  InputStream getDocumentContent(CamundaDocumentReference reference);
+  @Override
+  public boolean matches(DocumentOperation operationReference) {
+    return true;
+  }
 
-  void deleteDocument(CamundaDocumentReference reference);
+  @Override
+  public Object execute(DocumentOperation operationReference, Document document) {
+    return null;
+  }
 }
