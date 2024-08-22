@@ -4,16 +4,16 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.protocols.actions.smtp;
+package io.camunda.connector.email.protocols.actions;
 
-import io.camunda.connector.email.protocols.actions.Action;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateDiscriminatorProperty(
-    label = "SMTP action",
-    group = "smtpAction",
-    name = "data.action",
-    defaultValue = "sendEmailSmtp")
-@TemplateSubType(id = "data.action", label = "SMTP Action")
-public sealed interface SmtpAction extends Action permits SmtpSendEmail {}
+    label = "POP3 action",
+    group = "pop3Action",
+    name = "pop3Action",
+    defaultValue = "sendEmail")
+@TemplateSubType(id = "pop3Action", label = "POP3 Action")
+public sealed interface Pop3Action extends Action
+    permits Pop3DeleteEmail, Pop3ListEmails, Pop3ReadEmail {}

@@ -8,8 +8,6 @@ package io.camunda.connector.email.authentication;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.mail.Session;
-import jakarta.mail.Transport;
 import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(id = "oauth", label = "Oauth")
@@ -25,13 +23,29 @@ public final class OauthAuthentication implements Authentication {
   @NotBlank
   private String tokenOauth2;
 
-  @Override
-  public Session smtpSession() {
-    return null;
+  public @NotBlank String getMailOauth2() {
+    return mailOauth2;
+  }
+
+  public void setMailOauth2(@NotBlank String mailOauth2) {
+    this.mailOauth2 = mailOauth2;
+  }
+
+  public @NotBlank String getTokenOauth2() {
+    return tokenOauth2;
+  }
+
+  public void setTokenOauth2(@NotBlank String tokenOauth2) {
+    this.tokenOauth2 = tokenOauth2;
   }
 
   @Override
-  public Transport smtpTransport(Session session) {
-    return null;
+  public String getSender() {
+    return this.mailOauth2;
+  }
+
+  @Override
+  public String getSecret() {
+    return this.tokenOauth2;
   }
 }

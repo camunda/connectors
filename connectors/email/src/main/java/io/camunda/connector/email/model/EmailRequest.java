@@ -54,8 +54,4 @@ public class EmailRequest {
   public void setData(@Valid @NotNull Protocol data) {
     this.data = data;
   }
-
-  public Object execute() {
-    return data.execute(authentication);
-  }
 }

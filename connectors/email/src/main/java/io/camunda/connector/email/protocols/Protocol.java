@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.protocols;
 
-import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.protocols.actions.Action;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
@@ -17,5 +17,5 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     defaultValue = "SMTP")
 @TemplateSubType(id = "protocol", label = "Protocol")
 public sealed interface Protocol permits Imap, Pop3, Smtp {
-  Object execute(Authentication authentication);
+  Action getProtocolAction();
 }

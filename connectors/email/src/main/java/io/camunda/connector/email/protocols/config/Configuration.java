@@ -4,6 +4,6 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.protocols.actions;
+package io.camunda.connector.email.protocols.config;
 
-public sealed interface Action permits SmtpAction, Pop3Action, ImapAction {}
+public sealed interface Configuration permits SmtpConfig {}

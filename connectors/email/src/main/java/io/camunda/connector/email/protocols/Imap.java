@@ -8,9 +8,9 @@ package io.camunda.connector.email.protocols;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.email.authentication.Authentication;
-import io.camunda.connector.email.protocols.actions.imap.ImapAction;
-import io.camunda.connector.email.protocols.actions.imap.ImapListEmails;
+import io.camunda.connector.email.protocols.actions.Action;
+import io.camunda.connector.email.protocols.actions.ImapAction;
+import io.camunda.connector.email.protocols.actions.ImapListEmails;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -24,10 +24,10 @@ public final class Imap implements Protocol {
   @Valid
   @NotNull
   @NestedProperties(addNestedPath = false)
-  private ImapAction data;
+  private ImapAction imapAction;
 
   @Override
-  public Object execute(Authentication authentication) {
-    return null;
+  public Action getProtocolAction() {
+    return imapAction;
   }
 }

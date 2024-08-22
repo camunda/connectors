@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.protocols.actions.imap;
+package io.camunda.connector.email.protocols.actions;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -12,15 +12,15 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "listEmailImap", label = "XXXXXXXXXX")
-public final class ImapListEmails implements ImapAction {
+@TemplateSubType(id = "readEmailPop3", label = "XXXXXXXXXX")
+public final class Pop3ReadEmail implements Pop3Action {
   @TemplateProperty(
       label = "test",
-      group = "listEmailImap",
-      id = "data.test6",
+      group = "readEmailPop3",
+      id = "data.test1",
       description = "",
       feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.test6"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.test1"))
   @Valid
   @NotNull
   String test;

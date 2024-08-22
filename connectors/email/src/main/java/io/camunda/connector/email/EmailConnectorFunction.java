@@ -9,6 +9,7 @@ package io.camunda.connector.email;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.email.core.JakartaExecutor;
 import io.camunda.connector.email.model.EmailRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
@@ -40,9 +41,10 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     documentationRef = "https://docs.camunda.io/docs/",
     icon = "icon.svg")
 public class EmailConnectorFunction implements OutboundConnectorFunction {
+
   @Override
   public Object execute(OutboundConnectorContext context) {
     EmailRequest emailRequest = context.bindVariables(EmailRequest.class);
-    return emailRequest.execute();
+    return JakartaExecutor.execute(emailRequest);
   }
 }

@@ -8,7 +8,6 @@ package io.camunda.connector.email.authentication;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.mail.*;
 import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(id = "simple", label = "Simple")
@@ -27,13 +26,29 @@ public final class SimpleAuthentication implements Authentication {
   @NotBlank
   private String password;
 
-  @Override
-  public Session smtpSession() {
-    return null;
+  public @NotBlank String getMail() {
+    return mail;
+  }
+
+  public void setMail(@NotBlank String mail) {
+    this.mail = mail;
+  }
+
+  public @NotBlank String getPassword() {
+    return password;
+  }
+
+  public void setPassword(@NotBlank String password) {
+    this.password = password;
   }
 
   @Override
-  public Transport smtpTransport(Session session) {
-    return null;
+  public String getSender() {
+    return this.mail;
+  }
+
+  @Override
+  public String getSecret() {
+    return this.password;
   }
 }

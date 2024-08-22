@@ -9,8 +9,6 @@ package io.camunda.connector.email.authentication;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
-import jakarta.mail.Session;
-import jakarta.mail.Transport;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -27,8 +25,7 @@ import jakarta.mail.Transport;
     defaultValue = "oauth",
     description = "")
 public sealed interface Authentication permits OauthAuthentication, SimpleAuthentication {
+  String getSender();
 
-  Session smtpSession();
-
-  Transport smtpTransport(Session Session);
+  String getSecret();
 }

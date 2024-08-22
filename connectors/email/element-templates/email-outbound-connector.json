@@ -196,7 +196,7 @@
     "feel" : "optional",
     "group" : "protocol",
     "binding" : {
-      "name" : "data.smtpHost",
+      "name" : "data.smtpConfig.smtpHost",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -216,7 +216,7 @@
     "feel" : "optional",
     "group" : "protocol",
     "binding" : {
-      "name" : "data.smtpPort",
+      "name" : "data.smtpConfig.smtpPort",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -235,7 +235,7 @@
     "feel" : "optional",
     "group" : "protocol",
     "binding" : {
-      "name" : "data.smtpAuth",
+      "name" : "data.smtpConfig.smtpAuth",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -254,7 +254,7 @@
     "feel" : "optional",
     "group" : "protocol",
     "binding" : {
-      "name" : "data.smtpTLS",
+      "name" : "data.smtpConfig.smtpTLS",
       "type" : "zeebe:input"
     },
     "condition" : {

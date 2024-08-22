@@ -4,17 +4,15 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.protocols.actions.imap;
+package io.camunda.connector.email.protocols.actions;
 
-import io.camunda.connector.email.protocols.actions.Action;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateDiscriminatorProperty(
-    label = "IMAP action",
-    group = "imapAction",
-    name = "imapAction",
-    defaultValue = "listEmailImap")
-@TemplateSubType(id = "imapAction", label = "IMAP Action")
-public sealed interface ImapAction extends Action
-    permits ImapDeleteEmail, ImapListEmails, ImapMoveEmails, ImapReadEmail {}
+    label = "SMTP action",
+    group = "smtpAction",
+    name = "data.action",
+    defaultValue = "sendEmailSmtp")
+@TemplateSubType(id = "data.action", label = "SMTP Action")
+public sealed interface SmtpAction extends Action permits SmtpSendEmail {}
