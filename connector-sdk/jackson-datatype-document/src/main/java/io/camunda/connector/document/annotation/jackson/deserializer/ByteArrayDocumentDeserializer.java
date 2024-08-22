@@ -23,6 +23,7 @@ import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 public class ByteArrayDocumentDeserializer extends DocumentDeserializerBase<byte[]> {
 
@@ -42,6 +43,8 @@ public class ByteArrayDocumentDeserializer extends DocumentDeserializerBase<byte
 
   @Override
   public byte[] fallback(JsonNode node, DeserializationContext ctx) throws IOException {
-    return ctx.readTreeAsValue(node, ByteBuffer.class).array();
+    return Optional.ofNullable(ctx.readTreeAsValue(node, ByteBuffer.class))
+        .map(ByteBuffer::array)
+        .orElse(null);
   }
 }
