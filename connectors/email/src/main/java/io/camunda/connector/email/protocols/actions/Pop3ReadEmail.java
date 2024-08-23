@@ -12,16 +12,41 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "readEmailPop3", label = "XXXXXXXXXX")
+@TemplateSubType(id = "readEmailPop3", label = "Read Email using POP3")
 public final class Pop3ReadEmail implements Pop3Action {
   @TemplateProperty(
-      label = "test",
+      label = "UIDL of email to read",
       group = "readEmailPop3",
-      id = "data.test1",
+      id = "pop3uidlRead",
       description = "",
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.test1"))
+      feel = Property.FeelMode.required,
+      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.uidlRead"))
   @Valid
   @NotNull
-  String test;
+  private String uidlRead;
+
+  @TemplateProperty(
+      label = "Delete after reading",
+      group = "readEmailPop3",
+      type = TemplateProperty.PropertyType.Boolean,
+      defaultValue = "false",
+      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.deleteOnRead"))
+  private boolean deleteOnRead = false;
+
+  public boolean isDeleteOnRead() {
+    return deleteOnRead;
+  }
+
+  public void setDeleteOnRead(boolean deleteOnRead) {
+    this.deleteOnRead = deleteOnRead;
+  }
+
+  public @Valid @NotNull String getUidlRead() {
+    return uidlRead;
+  }
+
+  public void setUidlRead(@Valid @NotNull String uidlRead) {
+    this.uidlRead = uidlRead;
+  }
 }

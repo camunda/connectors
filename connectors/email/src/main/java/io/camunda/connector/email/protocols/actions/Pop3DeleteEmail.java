@@ -9,19 +9,17 @@ package io.camunda.connector.email.protocols.actions;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "deleteEmailPop3", label = "XXXXXXXXXX")
+@TemplateSubType(id = "deleteEmailPop3", label = "Delete Email using POP3")
 public final class Pop3DeleteEmail implements Pop3Action {
   @TemplateProperty(
-      label = "test",
+      label = "UIDL of email to delete",
       group = "deleteEmailPop3",
-      id = "data.test3",
+      id = "pop3uidlDelete",
       description = "",
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.test3"))
-  @Valid
+      feel = Property.FeelMode.required,
+      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.uidlDelete"))
   @NotNull
-  String test;
+  String uidlDelete;
 }

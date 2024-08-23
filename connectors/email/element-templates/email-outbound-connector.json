@@ -72,7 +72,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
-    "value" : "oauth",
+    "value" : "simple",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",
@@ -80,14 +80,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Oauth",
-      "value" : "oauth"
+      "name" : "No authentication",
+      "value" : "none"
     }, {
       "name" : "Simple",
       "value" : "simple"
     } ]
   }, {
-    "id" : "authentication.mailOauth2",
+    "id" : "authentication.noAuthenticationMail",
     "label" : "Email address",
     "description" : "Provide email",
     "optional" : false,
@@ -97,37 +97,17 @@
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
-      "name" : "authentication.mailOauth2",
+      "name" : "authentication.noAuthenticationMail",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "oauth",
+      "equals" : "none",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "authentication.tokenOauth2",
-    "label" : "Oauth2 token",
-    "description" : "Give token",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.tokenOauth2",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.mail",
+    "id" : "authentication.simpleAuthenticationMail",
     "label" : "Email address",
     "description" : "Provide email",
     "optional" : false,
@@ -137,7 +117,7 @@
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
-      "name" : "authentication.mail",
+      "name" : "authentication.simpleAuthenticationMail",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -147,7 +127,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "authentication.password",
+    "id" : "authentication.simpleAuthenticationPassword",
     "label" : "Email password",
     "description" : "Provide password",
     "optional" : false,
@@ -157,7 +137,7 @@
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
-      "name" : "authentication.password",
+      "name" : "authentication.simpleAuthenticationPassword",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -169,7 +149,7 @@
   }, {
     "id" : "protocol",
     "label" : "Protocol",
-    "value" : "SMTP",
+    "value" : "smtp",
     "group" : "protocol",
     "binding" : {
       "name" : "protocol",
@@ -177,14 +157,83 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Imap",
+      "name" : "IMAP",
       "value" : "imap"
     }, {
-      "name" : "Pop 3",
+      "name" : "POP3",
       "value" : "pop3"
     }, {
-      "name" : "Smtp",
+      "name" : "SMTP",
       "value" : "smtp"
+    } ]
+  }, {
+    "id" : "data.pop3Host",
+    "label" : "POP3 Host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.pop3Config.pop3Host",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "pop3",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.pop3Port",
+    "label" : "POP3 Port",
+    "optional" : false,
+    "value" : "995",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.pop3Config.pop3Port",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "pop3",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "pop3CryptographicProtocol",
+    "label" : "Cryptographic protocol",
+    "description" : "Chose the desired cryptographic protocol",
+    "optional" : false,
+    "value" : "TLS",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.pop3Config.pop3CryptographicProtocol",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "pop3",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "TLS",
+      "value" : "TLS"
+    }, {
+      "name" : "None",
+      "value" : "NONE"
+    }, {
+      "name" : "SSL",
+      "value" : "SSL"
     } ]
   }, {
     "id" : "data.smtpHost",
@@ -226,16 +275,17 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.smtpAuth",
-    "label" : "SMTP Authentication",
+    "id" : "smtpCryptographicProtocol",
+    "label" : "Cryptographic protocol",
+    "description" : "Chose the desired cryptographic protocol",
     "optional" : false,
+    "value" : "TLS",
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "protocol",
     "binding" : {
-      "name" : "data.smtpConfig.smtpAuth",
+      "name" : "data.smtpConfig.smtpCryptographicProtocol",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -243,33 +293,24 @@
       "equals" : "smtp",
       "type" : "simple"
     },
-    "type" : "Boolean"
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "tls",
+      "value" : "TLS"
+    }, {
+      "name" : "none",
+      "value" : "NONE"
+    }, {
+      "name" : "ssl",
+      "value" : "SSL"
+    } ]
   }, {
-    "id" : "data.smtpTLS",
-    "label" : "SMTP TLS",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "protocol",
-    "binding" : {
-      "name" : "data.smtpConfig.smtpTLS",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "protocol",
-      "equals" : "smtp",
-      "type" : "simple"
-    },
-    "type" : "Boolean"
-  }, {
-    "id" : "data.action",
+    "id" : "data.smtpActionDiscriminator",
     "label" : "SMTP action",
     "value" : "sendEmailSmtp",
     "group" : "smtpAction",
     "binding" : {
-      "name" : "data.action",
+      "name" : "data.smtpActionDiscriminator",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -283,12 +324,12 @@
       "value" : "sendEmailSmtp"
     } ]
   }, {
-    "id" : "pop3Action",
+    "id" : "data.pop3ActionDiscriminator",
     "label" : "POP3 action",
-    "value" : "sendEmail",
+    "value" : "listEmailsPop3",
     "group" : "pop3Action",
     "binding" : {
-      "name" : "pop3Action",
+      "name" : "data.pop3ActionDiscriminator",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -298,13 +339,13 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "XXXXXXXXXX",
+      "name" : "Delete Email using POP3",
       "value" : "deleteEmailPop3"
     }, {
       "name" : "List Emails using POP3",
       "value" : "listEmailsPop3"
     }, {
-      "name" : "XXXXXXXXXX",
+      "name" : "Read Email using POP3",
       "value" : "readEmailPop3"
     } ]
   }, {
@@ -351,7 +392,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "data.action",
+        "property" : "data.smtpActionDiscriminator",
         "equals" : "sendEmailSmtp",
         "type" : "simple"
       }, {
@@ -374,7 +415,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "data.action",
+        "property" : "data.smtpActionDiscriminator",
         "equals" : "sendEmailSmtp",
         "type" : "simple"
       }, {
@@ -397,7 +438,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "data.action",
+        "property" : "data.smtpActionDiscriminator",
         "equals" : "sendEmailSmtp",
         "type" : "simple"
       }, {
@@ -423,7 +464,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "data.action",
+        "property" : "data.smtpActionDiscriminator",
         "equals" : "sendEmailSmtp",
         "type" : "simple"
       }, {
@@ -449,7 +490,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "data.action",
+        "property" : "data.smtpActionDiscriminator",
         "equals" : "sendEmailSmtp",
         "type" : "simple"
       }, {
@@ -460,21 +501,21 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.test2",
-    "label" : "test",
+    "id" : "pop3maxToBeRead",
+    "label" : "Max email to read",
     "optional" : false,
+    "value" : "100",
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "listEmailsPop3",
     "binding" : {
-      "name" : "data.test2",
+      "name" : "data.pop3Action.maxToBeRead",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "pop3Action",
+        "property" : "data.pop3ActionDiscriminator",
         "equals" : "listEmailsPop3",
         "type" : "simple"
       }, {
@@ -485,21 +526,21 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.test3",
-    "label" : "test",
+    "id" : "pop3uidlDelete",
+    "label" : "UIDL of email to delete",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "deleteEmailPop3",
     "binding" : {
-      "name" : "data.test3",
+      "name" : "data.pop3Action.uidlDelete",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "pop3Action",
+        "property" : "data.pop3ActionDiscriminator",
         "equals" : "deleteEmailPop3",
         "type" : "simple"
       }, {
@@ -510,21 +551,21 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.test1",
-    "label" : "test",
+    "id" : "pop3uidlRead",
+    "label" : "UIDL of email to read",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "readEmailPop3",
     "binding" : {
-      "name" : "data.test1",
+      "name" : "data.pop3Action.uidlRead",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "pop3Action",
+        "property" : "data.pop3ActionDiscriminator",
         "equals" : "readEmailPop3",
         "type" : "simple"
       }, {
@@ -534,6 +575,29 @@
       } ]
     },
     "type" : "String"
+  }, {
+    "id" : "deleteOnRead",
+    "label" : "Delete after reading",
+    "optional" : false,
+    "value" : false,
+    "feel" : "optional",
+    "group" : "readEmailPop3",
+    "binding" : {
+      "name" : "data.pop3Action.deleteOnRead",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.pop3ActionDiscriminator",
+        "equals" : "readEmailPop3",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "pop3",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Boolean"
   }, {
     "id" : "data.test6",
     "label" : "test",

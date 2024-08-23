@@ -13,15 +13,17 @@ import io.camunda.connector.email.protocols.actions.SmtpAction;
 import io.camunda.connector.email.protocols.actions.SmtpSendEmail;
 import io.camunda.connector.email.protocols.config.SmtpConfig;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+@TemplateSubType(id = "smtp", label = "SMTP")
 public final class Smtp implements Protocol {
 
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
-      property = "action")
+      property = "smtpActionDiscriminator")
   @JsonSubTypes(value = {@JsonSubTypes.Type(value = SmtpSendEmail.class, name = "sendEmailSmtp")})
   @Valid
   @NotNull

@@ -15,13 +15,22 @@ import jakarta.validation.constraints.NotNull;
 @TemplateSubType(id = "listEmailsPop3", label = "List Emails using POP3")
 public final class Pop3ListEmails implements Pop3Action {
   @TemplateProperty(
-      label = "test",
+      label = "Max email to read",
       group = "listEmailsPop3",
-      id = "data.test2",
+      id = "pop3maxToBeRead",
+      defaultValue = "100",
       description = "",
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.test2"))
+      feel = Property.FeelMode.disabled,
+      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.maxToBeRead"))
   @Valid
   @NotNull
-  String test;
+  Integer maxToBeRead;
+
+  public @Valid @NotNull Integer getMaxToBeRead() {
+    return maxToBeRead;
+  }
+
+  public void setMaxToBeRead(@Valid @NotNull Integer maxToBeRead) {
+    this.maxToBeRead = maxToBeRead;
+  }
 }

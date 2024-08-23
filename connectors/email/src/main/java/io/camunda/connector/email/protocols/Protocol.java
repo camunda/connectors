@@ -14,7 +14,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     label = "Protocol",
     group = "protocol",
     name = "protocol",
-    defaultValue = "SMTP")
+    defaultValue = "smtp")
 @TemplateSubType(id = "protocol", label = "Protocol")
 public sealed interface Protocol permits Imap, Pop3, Smtp {
   Action getProtocolAction();

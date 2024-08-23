@@ -12,9 +12,11 @@ import io.camunda.connector.email.protocols.actions.Action;
 import io.camunda.connector.email.protocols.actions.ImapAction;
 import io.camunda.connector.email.protocols.actions.ImapListEmails;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+@TemplateSubType(id = "imap", label = "IMAP")
 public final class Imap implements Protocol {
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,

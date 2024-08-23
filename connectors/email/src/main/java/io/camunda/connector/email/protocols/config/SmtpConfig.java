@@ -34,54 +34,25 @@ public final class SmtpConfig implements Configuration {
       binding = @TemplateProperty.PropertyBinding(name = "data.smtpConfig.smtpPort"))
   @Valid
   @NotNull
-  private Integer smtpPort = 587;
+  private Integer smtpPort;
 
   @TemplateProperty(
-      label = "SMTP Authentication",
+      label = "Cryptographic protocol",
+      description = "Chose the desired cryptographic protocol",
       group = "protocol",
-      id = "data.smtpAuth",
-      description = "",
-      type = TemplateProperty.PropertyType.Boolean,
-      binding = @TemplateProperty.PropertyBinding(name = "data.smtpConfig.smtpAuth"))
-  @Valid
+      feel = Property.FeelMode.required,
+      type = TemplateProperty.PropertyType.Dropdown,
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+      defaultValue = "TLS",
+      choices = {
+        @TemplateProperty.DropdownPropertyChoice(label = "tls", value = "TLS"),
+        @TemplateProperty.DropdownPropertyChoice(label = "none", value = "NONE"),
+        @TemplateProperty.DropdownPropertyChoice(label = "ssl", value = "SSL")
+      },
+      binding =
+          @TemplateProperty.PropertyBinding(name = "data.smtpConfig.smtpCryptographicProtocol"))
   @NotNull
-  private Boolean smtpAuth = true;
-
-  @TemplateProperty(
-      label = "SMTP TLS",
-      group = "protocol",
-      id = "data.smtpTLS",
-      description = "",
-      type = TemplateProperty.PropertyType.Boolean,
-      binding = @TemplateProperty.PropertyBinding(name = "data.smtpConfig.smtpTLS"))
-  @Valid
-  @NotNull
-  private Boolean smtpTLS = true;
-
-  public @Valid @NotNull Integer getSmtpPort() {
-
-    return smtpPort;
-  }
-
-  public void setSmtpPort(@Valid @NotNull Integer smtpPort) {
-    this.smtpPort = smtpPort;
-  }
-
-  public @Valid @NotNull Boolean getSmtpAuth() {
-    return smtpAuth;
-  }
-
-  public void setSmtpAuth(@Valid @NotNull Boolean smtpAuth) {
-    this.smtpAuth = smtpAuth;
-  }
-
-  public @Valid @NotNull Boolean getSmtpTLS() {
-    return smtpTLS;
-  }
-
-  public void setSmtpTLS(@Valid @NotNull Boolean smtpTLS) {
-    this.smtpTLS = smtpTLS;
-  }
+  private CryptographicProtocol smtpCryptographicProtocol;
 
   public @Valid @NotNull String getSmtpHost() {
     return smtpHost;
@@ -89,5 +60,22 @@ public final class SmtpConfig implements Configuration {
 
   public void setSmtpHost(@Valid @NotNull String smtpHost) {
     this.smtpHost = smtpHost;
+  }
+
+  public @Valid @NotNull Integer getSmtpPort() {
+    return smtpPort;
+  }
+
+  public void setSmtpPort(@Valid @NotNull Integer smtpPort) {
+    this.smtpPort = smtpPort;
+  }
+
+  public @NotNull CryptographicProtocol getSmtpCryptographicProtocol() {
+    return smtpCryptographicProtocol;
+  }
+
+  public void setSmtpCryptographicProtocol(
+      @NotNull CryptographicProtocol smtpCryptographicProtocol) {
+    this.smtpCryptographicProtocol = smtpCryptographicProtocol;
   }
 }

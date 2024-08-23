@@ -6,4 +6,8 @@
  */
 package io.camunda.connector.email.protocols.config;
 
-public sealed interface Configuration permits SmtpConfig, Pop3Config {}
+public enum CryptographicProtocol {
+  NONE,
+  TLS,
+  SSL;
+}

@@ -12,7 +12,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 @TemplateDiscriminatorProperty(
     label = "SMTP action",
     group = "smtpAction",
-    name = "data.action",
+    name = "data.smtpActionDiscriminator",
     defaultValue = "sendEmailSmtp")
-@TemplateSubType(id = "data.action", label = "SMTP Action")
+@TemplateSubType(id = "data.smtpActionDiscriminator", label = "SMTP Action")
 public sealed interface SmtpAction extends Action permits SmtpSendEmail {}
