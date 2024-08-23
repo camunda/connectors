@@ -14,21 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document.operation;
+package io.camunda.document.reference;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.operation.DocumentOperation;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import io.camunda.document.DocumentMetadata;
 
-public class Base64Operation implements DocumentOperationExecutor {
-
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return false;
-  }
-
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
-  }
-}
+public record CamundaDocumentReferenceImpl(
+    String storeId, String documentId, DocumentMetadata metadata)
+    implements DocumentReference.CamundaDocumentReference {}

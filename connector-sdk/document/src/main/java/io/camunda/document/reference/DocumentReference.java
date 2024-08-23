@@ -14,10 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document.operation;
+package io.camunda.document.reference;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Map;
+import io.camunda.document.DocumentMetadata;
 
-public record DocumentOperation(
-    @JsonProperty("$name") String name, @JsonProperty("$params") Map<String, Object> params) {}
+public interface DocumentReference {
+
+  interface CamundaDocumentReference extends DocumentReference {
+    String storeId();
+
+    String documentId();
+
+    DocumentMetadata metadata();
+  }
+
+  interface ExternalDocumentReference extends DocumentReference {
+    String url();
+  }
+}

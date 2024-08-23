@@ -18,9 +18,6 @@ package io.camunda.connector.document.annotation.jackson;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
 import io.camunda.connector.document.annotation.jackson.deserializer.ByteArrayDocumentDeserializer;
 import io.camunda.connector.document.annotation.jackson.deserializer.DocumentDeserializer;
 import io.camunda.connector.document.annotation.jackson.deserializer.DocumentOperationResultDeserializer;
@@ -28,49 +25,12 @@ import io.camunda.connector.document.annotation.jackson.deserializer.InputStream
 import io.camunda.connector.document.annotation.jackson.deserializer.ObjectDocumentDeserializer;
 import io.camunda.connector.document.annotation.jackson.deserializer.StringDocumentDeserializer;
 import io.camunda.connector.document.annotation.jackson.serializer.DocumentSerializer;
+import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.InputStream;
 
 public class JacksonModuleDocument extends SimpleModule {
-
-  public static class DocumentModuleSettings {
-
-    private boolean lazy = true;
-    private boolean enableObject = true;
-    private boolean enableString = true;
-
-    private DocumentModuleSettings() {}
-
-    /**
-     * Enable lazy operations for document deserialization.
-     *
-     * <p>When enabled, given that the connector consumes a document as a generic {@link Object}
-     * type, and an operation is present in the document reference, the operation is not executed in
-     * the deserialization phase. Instead, the operation is executed during serialization using the
-     * {@link DocumentSerializer}.
-     *
-     * <p>Disable lazy operations if your connector doesn't use the document module for
-     * serialization (or doesn't use Jackson at all).
-     *
-     * <p>This takes no effect if {@link #enableObject(boolean)} is disabled.
-     */
-    public void lazyOperations(boolean lazy) {
-      this.lazy = lazy;
-    }
-
-    /** Enable deserialization of document references into objects. */
-    public void enableObject(boolean enable) {
-      this.enableObject = enable;
-    }
-
-    /** Enable deserialization of document references into strings. */
-    public void enableString(boolean enable) {
-      this.enableString = enable;
-    }
-
-    public static DocumentModuleSettings create() {
-      return new DocumentModuleSettings();
-    }
-  }
 
   private final DocumentFactory documentFactory;
   private final DocumentOperationExecutor operationExecutor;
@@ -122,5 +82,45 @@ public class JacksonModuleDocument extends SimpleModule {
     }
     addSerializer(Document.class, new DocumentSerializer(operationExecutor));
     super.setupModule(context);
+  }
+
+  public static class DocumentModuleSettings {
+
+    private boolean lazy = true;
+    private boolean enableObject = true;
+    private boolean enableString = true;
+
+    private DocumentModuleSettings() {}
+
+    public static DocumentModuleSettings create() {
+      return new DocumentModuleSettings();
+    }
+
+    /**
+     * Enable lazy operations for document deserialization.
+     *
+     * <p>When enabled, given that the connector consumes a document as a generic {@link Object}
+     * type, and an operation is present in the document reference, the operation is not executed in
+     * the deserialization phase. Instead, the operation is executed during serialization using the
+     * {@link DocumentSerializer}.
+     *
+     * <p>Disable lazy operations if your connector doesn't use the document module for
+     * serialization (or doesn't use Jackson at all).
+     *
+     * <p>This takes no effect if {@link #enableObject(boolean)} is disabled.
+     */
+    public void lazyOperations(boolean lazy) {
+      this.lazy = lazy;
+    }
+
+    /** Enable deserialization of document references into objects. */
+    public void enableObject(boolean enable) {
+      this.enableObject = enable;
+    }
+
+    /** Enable deserialization of document references into strings. */
+    public void enableString(boolean enable) {
+      this.enableString = enable;
+    }
   }
 }

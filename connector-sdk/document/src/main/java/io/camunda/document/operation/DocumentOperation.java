@@ -14,13 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document.operation;
+package io.camunda.document.operation;
 
-import io.camunda.connector.api.document.Document;
+import java.util.Map;
 
-public interface DocumentOperationExecutor {
-
-  boolean matches(DocumentOperation operationReference);
-
-  Object execute(DocumentOperation operationReference, Document document);
-}
+public record DocumentOperation(String name, Map<String, Object> params) {}

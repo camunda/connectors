@@ -20,12 +20,12 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.operation.DocumentOperation;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
 import io.camunda.connector.document.annotation.jackson.DocumentOperationResult;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.operation.DocumentOperation;
+import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
 
 public abstract class DocumentDeserializerBase<T> extends JsonDeserializer<T> {

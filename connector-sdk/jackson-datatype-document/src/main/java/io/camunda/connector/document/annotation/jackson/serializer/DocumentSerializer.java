@@ -19,8 +19,8 @@ package io.camunda.connector.document.annotation.jackson.serializer;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import io.camunda.document.Document;
+import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
 
 public class DocumentSerializer extends JsonSerializer<Document> {

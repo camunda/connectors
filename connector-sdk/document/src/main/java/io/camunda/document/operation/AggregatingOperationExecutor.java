@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.document.operation;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.operation.DocumentOperation;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import io.camunda.document.Document;
 
 public class AggregatingOperationExecutor implements DocumentOperationExecutor {
 

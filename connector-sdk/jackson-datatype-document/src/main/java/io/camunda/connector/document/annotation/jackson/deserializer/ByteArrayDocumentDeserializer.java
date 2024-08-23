@@ -17,13 +17,18 @@
 package io.camunda.connector.document.annotation.jackson.deserializer;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
+import com.fasterxml.jackson.databind.deser.std.PrimitiveArrayDeserializers;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
 
 public class ByteArrayDocumentDeserializer extends DocumentDeserializerBase<byte[]> {
+
+  private final JsonDeserializer<?> fallbackDeserializer =
+      PrimitiveArrayDeserializers.forType(byte.class);
 
   public ByteArrayDocumentDeserializer(
       DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory) {
@@ -41,6 +46,8 @@ public class ByteArrayDocumentDeserializer extends DocumentDeserializerBase<byte
 
   @Override
   public byte[] fallback(JsonNode node, DeserializationContext ctx) throws IOException {
-    return ctx.readTreeAsValue(node, byte[].class);
+    var parser = node.traverse(ctx.getParser().getCodec());
+    parser.nextToken();
+    return (byte[]) fallbackDeserializer.deserialize(parser, ctx);
   }
 }

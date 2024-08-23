@@ -22,11 +22,11 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
+import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.operation.DocumentOperationExecutor;
 import java.util.Map;
 import java.util.Optional;
 import org.json.JSONException;
@@ -43,8 +43,6 @@ public class DocumentSerializationTest {
       new ObjectMapper()
           .registerModule(new JacksonModuleDocument(factory, operationExecutor))
           .registerModule(new Jdk8Module());
-
-  record SourceTypeDocument(Document document) {}
 
   @Test
   void sourceTypeDocument() throws JsonProcessingException, JSONException {
@@ -66,4 +64,6 @@ public class DocumentSerializationTest {
         """;
     JSONAssert.assertEquals(expectedResult, result, true);
   }
+
+  record SourceTypeDocument(Document document) {}
 }

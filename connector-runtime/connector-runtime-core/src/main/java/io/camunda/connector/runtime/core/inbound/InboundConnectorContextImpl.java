@@ -18,9 +18,6 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
@@ -31,11 +28,14 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,12 +56,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
 
   private final Consumer<Throwable> cancellationCallback;
-
-  private Health health = Health.unknown();
-
   private final EvictingQueue<Activity> logs;
-
   private final DocumentFactory documentFactory;
+  private Health health = Health.unknown();
+  private Map<String, Object> propertiesWithSecrets;
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -95,7 +93,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this(
         secretProvider,
         validationProvider,
-        new DocumentFactoryImpl(new InMemoryDocumentStore()),
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
         connectorDetails,
         correlationHandler,
         cancellationCallback,
@@ -181,8 +179,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   public Document createDocument(DocumentCreationRequest request) {
     return documentFactory.create(request);
   }
-
-  private Map<String, Object> propertiesWithSecrets;
 
   private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
     if (propertiesWithSecrets == null) {

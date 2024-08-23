@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document.store;
+package io.camunda.document.factory;
 
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import java.io.InputStream;
+import io.camunda.document.Document;
+import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.store.DocumentCreationRequest;
 
-public interface CamundaDocumentStore {
+public interface DocumentFactory {
 
-  CamundaDocumentReference createDocument(DocumentCreationRequest request);
+  /** Given a document reference, create the Document object */
+  Document resolve(DocumentReference reference);
 
-  InputStream getDocumentContent(CamundaDocumentReference reference);
-
-  void deleteDocument(CamundaDocumentReference reference);
+  /**
+   * Upload a document to the underlying document store and parse the document reference into a
+   * Document object
+   */
+  Document create(DocumentCreationRequest request);
 }

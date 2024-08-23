@@ -17,13 +17,13 @@
 package io.camunda.connector.runtime.outbound.lifecycle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;

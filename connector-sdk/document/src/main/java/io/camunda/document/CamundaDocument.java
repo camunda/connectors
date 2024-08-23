@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.document;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.api.document.store.CamundaDocumentStore;
+import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.document.store.CamundaDocumentStore;
 import java.io.InputStream;
 import java.util.Base64;
 

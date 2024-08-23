@@ -19,9 +19,9 @@ package io.camunda.connector.document.annotation.jackson.deserializer;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.document.operation.DocumentOperationExecutor;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -30,14 +30,13 @@ public class ObjectDocumentDeserializer extends DocumentDeserializerBase<Object>
 
   private final UntypedObjectDeserializer fallbackDeserializer =
       new UntypedObjectDeserializer(null, null);
+  private final boolean lazy;
 
   public ObjectDocumentDeserializer(
       DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory, boolean lazy) {
     super(operationExecutor, documentFactory);
     this.lazy = lazy;
   }
-
-  private final boolean lazy;
 
   @Override
   public Object deserializeDocumentReference(

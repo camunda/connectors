@@ -14,27 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.document.operation;
 
-import java.io.InputStream;
+import io.camunda.document.Document;
 
-/**
- * Represents a uniform document (file) object that can be passed between connectors and used in the
- * FEEL engine.
- */
-public interface Document {
+public interface DocumentOperationExecutor {
 
-  /**
-   * Domain-specific metadata that can be attached to the document. When a file is consumed by a
-   * connector as input, the metadata originates from the
-   */
-  DocumentMetadata metadata();
+  boolean matches(DocumentOperation operationReference);
 
-  String asBase64();
-
-  InputStream asInputStream();
-
-  byte[] asByteArray();
-
-  DocumentReference reference();
+  Object execute(DocumentOperation operationReference, Document document);
 }
