@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.outbound.lifecycle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
