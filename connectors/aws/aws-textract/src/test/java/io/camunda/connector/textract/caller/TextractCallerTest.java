@@ -1,8 +1,8 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- *       under one or more contributor license agreements. Licensed under a proprietary license.
- *       See the License.txt file for more information. You may not use this file
- *       except in compliance with the proprietary license.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
 package io.camunda.connector.textract.caller;
 
@@ -77,10 +77,7 @@ class TextractCallerTest {
 
     Exception exception =
         assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              textractCaller.prepareFeatureTypes(requestData);
-            });
+            IllegalArgumentException.class, () -> textractCaller.prepareFeatureTypes(requestData));
 
     assertThat(exception.getMessage()).isEqualTo(WRONG_ANALYZE_TYPE_MSG);
   }
