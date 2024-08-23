@@ -51,9 +51,6 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
-import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.store.CamundaDocumentStore;
-import io.camunda.connector.api.document.store.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.authentication.OAuthConstants;
@@ -65,8 +62,11 @@ import io.camunda.connector.http.base.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
-import io.camunda.connector.runtime.core.document.CamundaDocument;
-import io.camunda.connector.runtime.core.document.InMemoryDocumentStore;
+import io.camunda.document.CamundaDocument;
+import io.camunda.document.DocumentMetadata;
+import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
@@ -93,7 +93,7 @@ public class CustomApacheHttpClientTest {
 
   private final CustomApacheHttpClient customApacheHttpClient = CustomApacheHttpClient.getDefault();
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
-  private final CamundaDocumentStore store = new InMemoryDocumentStore();
+  private final CamundaDocumentStore store = InMemoryDocumentStore.INSTANCE;
 
   private String getHostAndPort(WireMockRuntimeInfo wmRuntimeInfo) {
     return "http://localhost:" + wmRuntimeInfo.getHttpPort();

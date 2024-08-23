@@ -30,6 +30,7 @@ import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.io.IOException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,7 +45,17 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public DocumentFactory documentFactory() {
+  public DocumentFactory documentFactory() throws IOException {
+    //    ClassPathResource resource = new ClassPathResource("base64image.txt");
+    //    String id = "base64imageId";
+    //    byte[] fileContent = Files.readAllBytes(resource.getFile().toPath());
+    //
+    //    InMemoryDocumentStore.INSTANCE.createDocument(
+    //        DocumentCreationRequest.from(fileContent)
+    //            .metadata(Map.of(DocumentMetadata.FILE_NAME, "base64image.txt"))
+    //            .documentId(id)
+    //            .build());
+
     return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   }
 
