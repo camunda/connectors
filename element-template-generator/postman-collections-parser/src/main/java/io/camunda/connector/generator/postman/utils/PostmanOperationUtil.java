@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,32 +51,54 @@ public class PostmanOperationUtil {
   public static List<OperationParseResult> extractOperations(
       PostmanCollectionV210 collection, Set<String> includeOperations) {
     final var allOperationsRegistry = traverseCollection(collection);
-    final var includedRequests = new HashMap<String, Endpoint>();
+    final var allEndpoints = new HashMap<String, Endpoint>();
 
     // parse everything
+    allOperationsRegistry.forEach(
+        (name, item) -> {
+          if (item instanceof Endpoint e) allEndpoints.put(name, e);
+        });
+
+    // if there is no need to filter, return every operation
     if (includeOperations.isEmpty()) {
-      allOperationsRegistry.forEach(
-          (name, item) -> {
-            if (item instanceof Endpoint e) includedRequests.put(name, e);
-          });
+      return allEndpoints.entrySet().stream()
+          .map(
+              endpointEntry -> {
+                OperationParseResult res =
+                    extractOperation(endpointEntry.getKey(), endpointEntry.getValue());
+                res.builder().pathFeelExpression(extractPath(res.path()));
+                return res;
+              })
+          .collect(Collectors.toList());
     }
 
-    for (String includedOp : includeOperations) {
-      final var opIdentifier = normalizeOperationName(includedOp);
-      Item item = allOperationsRegistry.get(opIdentifier);
-      if (item instanceof Endpoint e) {
-        includedRequests.put(opIdentifier, e);
-      } else {
-        LOG.warn("Operation " + includedOp + " was not an endpoint, ignoring!");
+    // gather included operations
+    final var includedOperations = new ArrayList<OperationParseResult>();
+    for (Entry<String, Endpoint> endpointEntry : allEndpoints.entrySet()) {
+      OperationParseResult res = extractOperation(endpointEntry.getKey(), endpointEntry.getValue());
+      if (shouldIncludeOperation(includeOperations, res, endpointEntry)) {
+        res.builder().pathFeelExpression(extractPath(res.path()));
+        includedOperations.add(res);
       }
     }
-    final var includedOperations = new ArrayList<OperationParseResult>();
-    for (Entry<String, Endpoint> endpointEntry : includedRequests.entrySet()) {
-      OperationParseResult res = extractOperation(endpointEntry.getKey(), endpointEntry.getValue());
-      res.builder().pathFeelExpression(extractPath(res.path()));
-      includedOperations.add(res);
+
+    if (includedOperations.isEmpty()) {
+      LOG.warn("No operation found with the provided parameters!");
     }
+
     return includedOperations;
+  }
+
+  private static boolean shouldIncludeOperation(
+      Set<String> includeOperations,
+      OperationParseResult res,
+      Entry<String, Endpoint> endpointEntry) {
+    // match by operation id or normalized operation name
+    return includeOperations.stream()
+            .anyMatch(includeOperationId -> includeOperationId.equals(res.id()))
+        || includeOperations.stream()
+            .anyMatch(
+                includedOp -> normalizeOperationName(includedOp).equals(endpointEntry.getKey()));
   }
 
   // Postman collections are arranged as a folder structure
