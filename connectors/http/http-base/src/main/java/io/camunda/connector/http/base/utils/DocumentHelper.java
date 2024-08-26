@@ -1,10 +1,19 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. Licensed under a proprietary license.
- * See the License.txt file for more information. You may not use this file
- * except in compliance with the proprietary license.
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package io.camunda.connector.http.base.utils;
 
 import io.camunda.document.CamundaDocument;
@@ -24,15 +33,13 @@ public class DocumentHelper {
    */
   public Object createDocuments(Object input, Function<CamundaDocument, Object> transformer) {
     return switch (input) {
-      case Map<?, ?> map ->
-          map.entrySet().stream()
-              .map(
-                  (Map.Entry<?, ?> e) ->
-                      new AbstractMap.SimpleEntry<>(
-                          e.getKey(), createDocuments(e.getValue(), transformer)))
-              .collect(
-                  Collectors.toMap(
-                      AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+      case Map<?, ?> map -> map.entrySet().stream()
+          .map(
+              (Map.Entry<?, ?> e) ->
+                  new AbstractMap.SimpleEntry<>(
+                      e.getKey(), createDocuments(e.getValue(), transformer)))
+          .collect(
+              Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
 
       case Collection list -> list.stream().map(o -> createDocuments(o, transformer)).toList();
       case CamundaDocument doc -> transformer.apply(doc);
