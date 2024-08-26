@@ -1,1 +1,1 @@
-io.camunda.connector.email.EmailConnectorFunction
+io.camunda.connector.email.outbound.EmailConnectorFunction

@@ -43,7 +43,7 @@
                 <configuration>
                     <connectors>
                         <connector>
-                            <connectorClass>io.camunda.connector.email.EmailConnectorFunction</connectorClass>
+                            <connectorClass>io.camunda.connector.email.outbound.EmailConnectorFunction</connectorClass>
                             <files>
                                 <file>
                                     <templateId>io.camunda.connectors.email.v1</templateId>
