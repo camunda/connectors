@@ -22,4 +22,12 @@ public final class Pop3DeleteEmail implements Pop3Action {
       binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.uidlDelete"))
   @NotNull
   String uidlDelete;
+
+  public @NotNull String getUidlDelete() {
+    return uidlDelete;
+  }
+
+  public void setUidlDelete(@NotNull String uidlDelete) {
+    this.uidlDelete = uidlDelete;
+  }
 }

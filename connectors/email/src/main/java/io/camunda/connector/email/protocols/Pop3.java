@@ -8,10 +8,7 @@ package io.camunda.connector.email.protocols;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.email.protocols.actions.Action;
-import io.camunda.connector.email.protocols.actions.Pop3Action;
-import io.camunda.connector.email.protocols.actions.Pop3ListEmails;
-import io.camunda.connector.email.protocols.actions.Pop3ReadEmail;
+import io.camunda.connector.email.protocols.actions.*;
 import io.camunda.connector.email.protocols.config.Pop3Config;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -27,7 +24,8 @@ public final class Pop3 implements Protocol {
   @JsonSubTypes(
       value = {
         @JsonSubTypes.Type(value = Pop3ListEmails.class, name = "listEmailsPop3"),
-        @JsonSubTypes.Type(value = Pop3ReadEmail.class, name = "readEmailPop3")
+        @JsonSubTypes.Type(value = Pop3ReadEmail.class, name = "readEmailPop3"),
+        @JsonSubTypes.Type(value = Pop3DeleteEmail.class, name = "deleteEmailPop3")
       })
   @Valid
   @NotNull

@@ -39,32 +39,59 @@ public class JakartaExecutor {
       case ImapListEmails imapListEmails -> null;
       case ImapDeleteEmail imapDeleteEmail -> null;
       case ImapReadEmail imapReadEmail -> null;
-      case Pop3DeleteEmail pop3DeleteEmail -> null;
+      case Pop3DeleteEmail pop3DeleteEmail ->
+          pop3DeleteEmail(pop3DeleteEmail, authentication, session);
       case Pop3ListEmails pop3ListEmails -> pop3ListEmails(pop3ListEmails, authentication, session);
       case Pop3ReadEmail pop3ReadEmail -> pop3ReadEmail(pop3ReadEmail, authentication, session);
     };
   }
 
+  private Object pop3DeleteEmail(
+      Pop3DeleteEmail pop3DeleteEmail, Authentication authentication, Session session) {
+    try {
+      try (Store store = session.getStore()) {
+        connectStore(store, authentication);
+        try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
+          folder.open(Folder.READ_WRITE);
+          Message[] messages = folder.getMessages();
+          for (Message message : messages) {
+            String uid = folder.getUID(message);
+            if (uid.equals(pop3DeleteEmail.getUidlDelete())) {
+              message.setFlag(Flags.Flag.DELETED, true);
+            }
+          }
+        }
+      }
+      throw new RuntimeException(
+          "No corresponding POP3 email found for uidl %s"
+              .formatted(pop3DeleteEmail.getUidlDelete()));
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private Object pop3ReadEmail(
       Pop3ReadEmail pop3ReadEmail, Authentication authentication, Session session) {
     try {
-      Store store = session.getStore();
-      connectStore(store, authentication);
-      POP3Folder folder = (POP3Folder) store.getFolder("INBOX");
-      folder.open(Folder.READ_WRITE);
-      Message[] messages = folder.getMessages();
-      for (Message message : messages) {
-        String uid = folder.getUID(message);
-        if (uid.equals(pop3ReadEmail.getUidlRead())) {
-          Email email = Email.createEmail(message);
-          if (pop3ReadEmail.isDeleteOnRead()) message.setFlag(Flags.Flag.DELETED, true);
-          return new Pop3ReadEmailResponse(
-              folder.getUID(message),
-              email.getFrom(),
-              email.getSubject(),
-              email.getSize(),
-              email.getBody().getBodyAsPlainText(),
-              email.getBody().getBodyAsHtml());
+      try (Store store = session.getStore()) {
+        connectStore(store, authentication);
+        try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
+          folder.open(Folder.READ_WRITE);
+          Message[] messages = folder.getMessages();
+          for (Message message : messages) {
+            String uid = folder.getUID(message);
+            if (uid.equals(pop3ReadEmail.getUidlRead())) {
+              Email email = Email.createEmail(message);
+              if (pop3ReadEmail.isDeleteOnRead()) message.setFlag(Flags.Flag.DELETED, true);
+              return new Pop3ReadEmailResponse(
+                  folder.getUID(message),
+                  email.getFrom(),
+                  email.getSubject(),
+                  email.getSize(),
+                  email.getBody().getBodyAsPlainText(),
+                  email.getBody().getBodyAsHtml());
+            }
+          }
         }
       }
       throw new RuntimeException(
@@ -77,20 +104,22 @@ public class JakartaExecutor {
   private Object pop3ListEmails(
       Pop3ListEmails pop3ListEmails, Authentication authentication, Session session) {
     try {
-      Store store = session.getStore();
-      connectStore(store, authentication);
-      POP3Folder folder = (POP3Folder) store.getFolder("INBOX");
-      folder.open(Folder.READ_ONLY);
-      Message[] messages = folder.getMessages();
-      List<Pop3ListEmailsResponse> response = new ArrayList<>();
-      for (Message message : messages) {
-        Email email = Email.createBodylessEmail(message);
-        Pop3ListEmailsResponse pop3ListEmailsResponse =
-            new Pop3ListEmailsResponse(
-                folder.getUID(message), email.getFrom(), email.getSubject(), email.getSize());
-        response.add(pop3ListEmailsResponse);
+      try (Store store = session.getStore()) {
+        connectStore(store, authentication);
+        try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
+          folder.open(Folder.READ_ONLY);
+          Message[] messages = folder.getMessages();
+          List<Pop3ListEmailsResponse> response = new ArrayList<>();
+          for (Message message : messages) {
+            Email email = Email.createBodylessEmail(message);
+            Pop3ListEmailsResponse pop3ListEmailsResponse =
+                new Pop3ListEmailsResponse(
+                    folder.getUID(message), email.getFrom(), email.getSubject(), email.getSize());
+            response.add(pop3ListEmailsResponse);
+          }
+          return response;
+        }
       }
-      return response;
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
