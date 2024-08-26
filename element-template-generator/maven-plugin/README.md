@@ -1,16 +1,31 @@
 # Element Template Generator Maven Plugin
 
-This plugin generates [Connector Templates](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-templates/)
+This plugin
+generates [Connector Templates](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-templates/)
 based on Connector code.
 
 To use the plugin, your Connector must be annotated with `@ElementTemplate` annotation.
 See the [Element Template Generator](../core) module for more information.
+
+## How to Build a Connector's Element Templates
+
+To build the actual element templates, you need to add the `element-template-generator-maven-plugin` to your project's
+`pom.xml` file. The plugin will generate the element templates based on the Connector classes in your project.
+Then run the following command in the root directory of your project:
+
+```bash
+mvn clean install
+```
+
+The generated element templates will be stored in the `element-templates` directory inside your project's base
+directory.
 
 ## Usage
 
 Add the following plugin to your `pom.xml`:
 
 ```xml
+
 <plugin>
   <groupId>io.camunda.connector</groupId>
   <artifactId>element-template-generator-maven-plugin</artifactId>
@@ -46,6 +61,7 @@ to find them automatically. You can add direct dependencies of your project to t
 by adding the following configuration to the plugin:
 
 ```xml
+
 <configuration>
   <connectorClasses>
     <connectorClass>io.camunda.connector.MyConnector</connectorClass>
@@ -65,6 +81,7 @@ If you want to generate an element template for a Connector that should work in 
 `generate-hybrid-templates` parameter:
 
 ```xml
+
 <configuration>
   <connectors>
     <connector>
@@ -87,6 +104,7 @@ the element template ID (configurable via `@ElementTemplate` annotation). You ca
 the file name by setting the `templateFileName` configuration parameter:
 
 ```xml
+
 <configuration>
   <connectorClasses>
     <connectorClass>io.camunda.connector.MyConnector</connectorClass>
