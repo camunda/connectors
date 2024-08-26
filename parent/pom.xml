@@ -84,7 +84,7 @@ limitations under the License.</license.inlineheader>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
 
-    <version.spring-boot>3.3.0</version.spring-boot>
+    <version.spring-boot>3.3.3</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>5.3.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.7</version.logback>
 
