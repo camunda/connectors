@@ -24,21 +24,16 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
-import io.camunda.document.DocumentMetadata;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 
 @Configuration
 public class OutboundConnectorRuntimeConfiguration {
@@ -51,22 +46,6 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public DocumentFactory documentFactory() throws IOException {
-    ClassPathResource resource = new ClassPathResource("base64image.png");
-    ClassPathResource resource2 = new ClassPathResource("pdf-example.pdf");
-    byte[] fileContent = Files.readAllBytes(resource.getFile().toPath());
-    byte[] fileContent2 = Files.readAllBytes(resource2.getFile().toPath());
-
-    InMemoryDocumentStore.INSTANCE.createDocument(
-        DocumentCreationRequest.from(fileContent)
-            .metadata(Map.of(DocumentMetadata.FILE_NAME, "base64image.png"))
-            .documentId("base64imageId")
-            .build());
-    InMemoryDocumentStore.INSTANCE.createDocument(
-        DocumentCreationRequest.from(fileContent2)
-            .metadata(Map.of(DocumentMetadata.FILE_NAME, "pdf-example.pdf"))
-            .documentId("pdfExampleId")
-            .build());
-
     return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   }
 
