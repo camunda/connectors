@@ -7,7 +7,7 @@ based on Connector code.
 To use the plugin, your Connector must be annotated with `@ElementTemplate` annotation.
 See the [Element Template Generator](../core) module for more information.
 
-## How to build a connector's element templates
+## How to Build a Connector's Element Templates
 
 To build the actual element templates, you need to add the `element-template-generator-maven-plugin` to your project's
 `pom.xml` file. The plugin will generate the element templates based on the Connector classes in your project.
