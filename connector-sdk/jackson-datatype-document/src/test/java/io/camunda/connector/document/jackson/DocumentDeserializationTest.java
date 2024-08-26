@@ -109,6 +109,18 @@ public class DocumentDeserializationTest {
 
   @Test
   @SuppressWarnings("unchecked")
+  void targetTypeObject_NestedObjectMultiLevels() {
+    var ref = createDocumentMock("Hello World");
+    var payload = Map.of("body", Map.of("document", ref));
+    var result = objectMapper.convertValue(payload, TargetTypeObject.class);
+    assertInstanceOf(Map.class, result.document);
+    var nested = (Map<String, Object>) result.document;
+    assertInstanceOf(Document.class, nested.get("document"));
+    assertEquals(ref, ((Document) nested.get("document")).reference());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
   void targetTypeObject_Array() {
     var ref = createDocumentMock("Hello World");
     var payload = Map.of("document", List.of(ref));

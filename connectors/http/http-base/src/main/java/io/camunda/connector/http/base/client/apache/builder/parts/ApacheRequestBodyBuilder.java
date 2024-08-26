@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.utils.DocumentHelper;
 import io.camunda.document.Document;
 import io.camunda.document.DocumentMetadata;
 import java.io.BufferedInputStream;
@@ -93,6 +94,9 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
 
   private HttpEntity createStringEntity(HttpCommonRequest request) {
     Object body = request.getBody();
+    if (body instanceof Map map) {
+      body = new DocumentHelper().createDocuments(map, Document::asByteArray);
+    }
     Optional<ContentType> contentType = tryGetContentType(request);
     try {
       return body instanceof String s
