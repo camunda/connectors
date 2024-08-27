@@ -6,12 +6,18 @@ connector templates from Postman Collections specifications.
 ## Usage
 
 The generator accepts the path or URL of the Postman Collections specification as the first parameter,
-followed by an optional list of operation paths to include in the generated template.
+followed by an optional list of operation paths or operation id to include in the generated template.
 
 The following command will ask the generator to include only the `/Process instances/Search for process instances` operation.
 
 ```shell
 congen postman-collections-outbound generate https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json "/Process instances/Search for process instances"
+```
+
+The command below will lead to the exact same result by asking the generator to include only the operation with the id `search_for_process_instances__process_instances_search_for_process_instances`.
+
+```shell
+congen postman-collections-outbound generate https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json "search_for_process_instances__process_instances_search_for_process_instances"
 ```
 
 Use the options provided by `congen` to customize the generated template.
