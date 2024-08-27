@@ -16,8 +16,10 @@
  */
 package io.camunda.connector.generator.openapi;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -37,7 +39,7 @@ public record OpenApiGenerationSource(
    */
   public record Options(boolean rawBody) {}
 
-  static final String USAGE = "openapi-outbound [openapi-file] [operation-id]... [--raw-body]";
+  static final String USAGE = "[operation-id] openapi-outbound [openapi-file]... [--raw-body]";
 
   public OpenApiGenerationSource(List<String> cliParams) {
     this(fetchOpenApi(cliParams), extractOperationIds(cliParams), extractOptions(cliParams));
@@ -48,16 +50,29 @@ public record OpenApiGenerationSource(
       throw new IllegalArgumentException(
           "OpenAPI file path or URL must be provided as first parameter");
     }
-    var openApiPath = cliParams.get(0);
+    var openApiPathOrContent = cliParams.get(0);
     var openApiParser = new OpenAPIV3Parser();
     try {
-      return openApiParser.read(openApiPath);
+      if (isValidJSON(openApiPathOrContent)) {
+        return openApiParser.readContents(openApiPathOrContent).getOpenAPI();
+      }
+      return openApiParser.read(openApiPathOrContent);
     } catch (Exception e) {
       throw new IllegalArgumentException(
           "Failed to parse OpenAPI file from "
-              + openApiPath
+              + openApiPathOrContent
               + ". Make sure the location is specified correctly and does not require authentication.",
           e);
+    }
+  }
+
+  public static boolean isValidJSON(String jsonInString) {
+    try {
+      final ObjectMapper mapper = new ObjectMapper();
+      mapper.readTree(jsonInString);
+      return true;
+    } catch (IOException e) {
+      return false;
     }
   }
 
