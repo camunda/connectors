@@ -9,6 +9,7 @@ import jakarta.mail.event.MessageCountListener;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.eclipse.angus.mail.imap.IMAPFolder;
+import org.eclipse.angus.mail.imap.IdleManager;
 
 public class JakartaEmailListener {
 
@@ -16,6 +17,7 @@ public class JakartaEmailListener {
   private final EmailProperties emailProperties;
   private final JakartaSessionFactory sessionFactory;
   private ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+  private IdleManager idleManager;
 
   public JakartaEmailListener(
       InboundConnectorContext context,
@@ -54,6 +56,9 @@ public class JakartaEmailListener {
             @Override
             public void messagesRemoved(MessageCountEvent e) {}
           });
+
+      inbox.idle();
+
     } catch (MessagingException e) {
       this.connectorContext.reportHealth(Health.down(e));
     }

@@ -30,6 +30,24 @@ public class EmailListenerData {
   @NotNull
   private String folderToListen;
 
+  @TemplateProperty(
+      label = "Trigger on new message",
+      group = "triggerAdded",
+      type = TemplateProperty.PropertyType.Boolean,
+      defaultValue = "true",
+      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+      binding = @TemplateProperty.PropertyBinding(name = "data.triggerAdded"))
+  private boolean triggerAdded;
+
+  @TemplateProperty(
+      label = "Trigger on deleted message",
+      group = "triggerRemoved",
+      type = TemplateProperty.PropertyType.Boolean,
+      defaultValue = "false",
+      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+      binding = @TemplateProperty.PropertyBinding(name = "data.triggerRemoved"))
+  private boolean triggerRemoved;
+
   public @Valid ImapConfig getImapConfig() {
     return imapConfig;
   }
@@ -44,5 +62,21 @@ public class EmailListenerData {
 
   public void setFolderToListen(@Valid @NotNull String folderToListen) {
     this.folderToListen = folderToListen;
+  }
+
+  public boolean isTriggerAdded() {
+    return triggerAdded;
+  }
+
+  public void setTriggerAdded(boolean triggerAdded) {
+    this.triggerAdded = triggerAdded;
+  }
+
+  public boolean isTriggerRemoved() {
+    return triggerRemoved;
+  }
+
+  public void setTriggerRemoved(boolean triggerRemoved) {
+    this.triggerRemoved = triggerRemoved;
   }
 }
