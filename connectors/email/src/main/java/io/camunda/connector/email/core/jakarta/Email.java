@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.core;
+package io.camunda.connector.email.core.jakarta;
 
 import jakarta.mail.*;
 import jakarta.mail.internet.MimeMultipart;

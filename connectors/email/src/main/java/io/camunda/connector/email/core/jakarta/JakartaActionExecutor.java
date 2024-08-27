@@ -4,9 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.core;
+package io.camunda.connector.email.core.jakarta;
 
 import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.core.ActionExecutor;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
@@ -19,20 +20,23 @@ import jakarta.mail.internet.MimeMessage;
 import java.util.*;
 import org.eclipse.angus.mail.pop3.POP3Folder;
 
-public class JakartaExecutor {
+public class JakartaActionExecutor implements ActionExecutor {
 
-  private JakartaExecutor() {}
+  private final JakartaSessionFactory sessionFactory;
 
-  public static JakartaExecutor create() {
-    return new JakartaExecutor();
+  private JakartaActionExecutor(JakartaSessionFactory sessionFactory) {
+    this.sessionFactory = sessionFactory;
+  }
+
+  public static JakartaActionExecutor create(JakartaSessionFactory sessionFactory) {
+    return new JakartaActionExecutor(sessionFactory);
   }
 
   public Object execute(EmailRequest emailRequest) {
-    JakartaSessionFactory jakartaSessionFactory = new JakartaSessionFactory();
     Authentication authentication = emailRequest.getAuthentication();
     Protocol protocol = emailRequest.getData();
     Action action = protocol.getProtocolAction();
-    Session session = jakartaSessionFactory.createSession(protocol, authentication);
+    Session session = sessionFactory.createSession(protocol.getConfiguration(), authentication);
     return switch (action) {
       case SmtpSendEmail smtpSendEmail -> smtpSendEmail(smtpSendEmail, authentication, session);
       case ImapMoveEmails imapMoveEmails -> null;
@@ -58,6 +62,7 @@ public class JakartaExecutor {
             String uid = folder.getUID(message);
             if (uid.equals(pop3DeleteEmail.getUidlDelete())) {
               message.setFlag(Flags.Flag.DELETED, true);
+              return true;
             }
           }
         }
@@ -108,7 +113,7 @@ public class JakartaExecutor {
         connectStore(store, authentication);
         try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
           folder.open(Folder.READ_ONLY);
-          Message[] messages = folder.getMessages();
+          Message[] messages = folder.getMessages(1, pop3ListEmails.getMaxToBeRead());
           List<Pop3ListEmailsResponse> response = new ArrayList<>();
           for (Message message : messages) {
             Email email = Email.createBodylessEmail(message);

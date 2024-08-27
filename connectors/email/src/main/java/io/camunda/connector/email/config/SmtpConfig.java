@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.protocols.config;
+package io.camunda.connector.email.config;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;

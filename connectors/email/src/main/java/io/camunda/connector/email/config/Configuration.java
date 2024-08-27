@@ -4,6 +4,6 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.protocols.config;
+package io.camunda.connector.email.config;
 
-public sealed interface Configuration permits SmtpConfig, Pop3Config {}
+public sealed interface Configuration permits ImapConfig, Pop3Config, SmtpConfig {}

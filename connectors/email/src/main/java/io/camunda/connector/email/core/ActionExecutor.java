@@ -4,10 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.protocols.config;
+package io.camunda.connector.email.core;
 
-public enum CryptographicProtocol {
-  NONE,
-  TLS,
-  SSL;
+import io.camunda.connector.email.outbound.model.EmailRequest;
+
+public interface ActionExecutor {
+  Object execute(EmailRequest emailRequest);
 }

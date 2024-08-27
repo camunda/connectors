@@ -4,37 +4,37 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.protocols.config;
+package io.camunda.connector.email.config;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-public final class Pop3Config implements Configuration {
+public final class ImapConfig implements Configuration {
 
   @TemplateProperty(
-      label = "POP3 Host",
+      label = "IMAP Host",
       group = "protocol",
-      id = "data.pop3Host",
+      id = "data.imapHost",
       description = "",
       feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Config.pop3Host"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapHost"))
   @Valid
   @NotNull
-  private String pop3Host;
+  private String imapHost;
 
   @TemplateProperty(
-      label = "POP3 Port",
+      label = "IMAP Port",
       group = "protocol",
-      id = "data.pop3Port",
+      id = "data.imapPort",
       description = "",
       defaultValue = "995",
       feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Config.pop3Port"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapPort"))
   @Valid
   @NotNull
-  private Integer pop3Port;
+  private Integer imapPort;
 
   @TemplateProperty(
       label = "Cryptographic protocol",
@@ -50,32 +50,32 @@ public final class Pop3Config implements Configuration {
         @TemplateProperty.DropdownPropertyChoice(label = "SSL", value = "SSL")
       },
       binding =
-          @TemplateProperty.PropertyBinding(name = "data.pop3Config.pop3CryptographicProtocol"))
+          @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapCryptographicProtocol"))
   @NotNull
-  private CryptographicProtocol pop3CryptographicProtocol;
+  private CryptographicProtocol imapCryptographicProtocol;
 
-  public @Valid @NotNull String getPop3Host() {
-    return pop3Host;
+  public @NotNull CryptographicProtocol getImapCryptographicProtocol() {
+    return imapCryptographicProtocol;
   }
 
-  public void setPop3Host(@Valid @NotNull String pop3Host) {
-    this.pop3Host = pop3Host;
+  public void setImapCryptographicProtocol(
+      @NotNull CryptographicProtocol imapCryptographicProtocol) {
+    this.imapCryptographicProtocol = imapCryptographicProtocol;
   }
 
-  public @Valid @NotNull Integer getPop3Port() {
-    return pop3Port;
+  public @Valid @NotNull Integer getImapPort() {
+    return imapPort;
   }
 
-  public void setPop3Port(@Valid @NotNull Integer pop3Port) {
-    this.pop3Port = pop3Port;
+  public void setImapPort(@Valid @NotNull Integer imapPort) {
+    this.imapPort = imapPort;
   }
 
-  public @NotNull CryptographicProtocol getPop3CryptographicProtocol() {
-    return pop3CryptographicProtocol;
+  public @Valid @NotNull String getImapHost() {
+    return imapHost;
   }
 
-  public void setPop3CryptographicProtocol(
-      @NotNull CryptographicProtocol pop3CryptographicProtocol) {
-    this.pop3CryptographicProtocol = pop3CryptographicProtocol;
+  public void setImapHost(@Valid @NotNull String imapHost) {
+    this.imapHost = imapHost;
   }
 }

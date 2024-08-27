@@ -8,10 +8,11 @@ package io.camunda.connector.email.outbound.protocols;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.email.config.Configuration;
+import io.camunda.connector.email.config.SmtpConfig;
 import io.camunda.connector.email.outbound.protocols.actions.Action;
 import io.camunda.connector.email.outbound.protocols.actions.SmtpAction;
 import io.camunda.connector.email.outbound.protocols.actions.SmtpSendEmail;
-import io.camunda.connector.email.outbound.protocols.config.SmtpConfig;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -53,5 +54,10 @@ public final class Smtp implements Protocol {
   @Override
   public Action getProtocolAction() {
     return smtpAction;
+  }
+
+  @Override
+  public Configuration getConfiguration() {
+    return smtpConfig;
   }
 }

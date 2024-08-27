@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.core;
+package io.camunda.connector.email.core.jakarta;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -13,9 +13,9 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.authentication.NoAuthentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
+import io.camunda.connector.email.config.CryptographicProtocol;
+import io.camunda.connector.email.config.SmtpConfig;
 import io.camunda.connector.email.outbound.protocols.Smtp;
-import io.camunda.connector.email.outbound.protocols.config.CryptographicProtocol;
-import io.camunda.connector.email.outbound.protocols.config.SmtpConfig;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +36,7 @@ class JakartaSessionFactoryTest {
     JakartaSessionFactory factory = new JakartaSessionFactory();
 
     // When
-    Session session = factory.createSession(smtp, auth);
+    Session session = factory.createSession(smtp.getSmtpConfig(), auth);
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -61,7 +61,7 @@ class JakartaSessionFactoryTest {
     JakartaSessionFactory factory = new JakartaSessionFactory();
 
     // When
-    Session session = factory.createSession(smtp, auth);
+    Session session = factory.createSession(smtp.getSmtpConfig(), auth);
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -87,7 +87,7 @@ class JakartaSessionFactoryTest {
     JakartaSessionFactory factory = new JakartaSessionFactory();
 
     // When
-    Session session = factory.createSession(smtp, auth);
+    Session session = factory.createSession(smtp.getSmtpConfig(), auth);
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -113,7 +113,7 @@ class JakartaSessionFactoryTest {
     JakartaSessionFactory factory = new JakartaSessionFactory();
 
     // When
-    Session session = factory.createSession(smtp, auth);
+    Session session = factory.createSession(smtp.getSmtpConfig(), auth);
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));

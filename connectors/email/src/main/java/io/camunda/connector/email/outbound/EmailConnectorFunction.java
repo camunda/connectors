@@ -9,7 +9,8 @@ package io.camunda.connector.email.outbound;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.email.outbound.core.JakartaExecutor;
+import io.camunda.connector.email.core.jakarta.JakartaActionExecutor;
+import io.camunda.connector.email.core.jakarta.JakartaSessionFactory;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
@@ -45,6 +46,6 @@ public class EmailConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) {
     EmailRequest emailRequest = context.bindVariables(EmailRequest.class);
-    return JakartaExecutor.create().execute(emailRequest);
+    return JakartaActionExecutor.create(new JakartaSessionFactory()).execute(emailRequest);
   }
 }

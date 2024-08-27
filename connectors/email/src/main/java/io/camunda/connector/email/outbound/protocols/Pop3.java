@@ -8,8 +8,9 @@ package io.camunda.connector.email.outbound.protocols;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.email.config.Configuration;
+import io.camunda.connector.email.config.Pop3Config;
 import io.camunda.connector.email.outbound.protocols.actions.*;
-import io.camunda.connector.email.outbound.protocols.config.Pop3Config;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -39,6 +40,11 @@ public final class Pop3 implements Protocol {
   @Override
   public Action getProtocolAction() {
     return pop3Action;
+  }
+
+  @Override
+  public Configuration getConfiguration() {
+    return pop3Config;
   }
 
   public @Valid @NotNull Pop3Action getPop3Action() {

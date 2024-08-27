@@ -1,0 +1,15 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.email.core;
+
+import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.config.Configuration;
+
+public interface SessionFactory<T> {
+
+  T createSession(Configuration configuration, Authentication authentication);
+}
