@@ -53,7 +53,7 @@ public class EmailConnectorExecutable
 
   @Override
   public void activate(InboundConnectorContext context) {
-    JakartaEmailListener.create(context, new JakartaSessionFactory()).start();
+    JakartaEmailListener.create(context, new JakartaSessionFactory()).startListener();
     context.reportHealth(Health.up());
   }
 

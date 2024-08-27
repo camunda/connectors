@@ -54,7 +54,7 @@ public class JakartaActionExecutor implements ActionExecutor {
       Pop3DeleteEmail pop3DeleteEmail, Authentication authentication, Session session) {
     try {
       try (Store store = session.getStore()) {
-        connectStore(store, authentication);
+        this.sessionFactory.connectStore(store, authentication);
         try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
           folder.open(Folder.READ_WRITE);
           Message[] messages = folder.getMessages();
@@ -79,7 +79,7 @@ public class JakartaActionExecutor implements ActionExecutor {
       Pop3ReadEmail pop3ReadEmail, Authentication authentication, Session session) {
     try {
       try (Store store = session.getStore()) {
-        connectStore(store, authentication);
+        this.sessionFactory.connectStore(store, authentication);
         try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
           folder.open(Folder.READ_WRITE);
           Message[] messages = folder.getMessages();
@@ -110,7 +110,7 @@ public class JakartaActionExecutor implements ActionExecutor {
       Pop3ListEmails pop3ListEmails, Authentication authentication, Session session) {
     try {
       try (Store store = session.getStore()) {
-        connectStore(store, authentication);
+        this.sessionFactory.connectStore(store, authentication);
         try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
           folder.open(Folder.READ_ONLY);
           Message[] messages = folder.getMessages(1, pop3ListEmails.getMaxToBeRead());
@@ -144,7 +144,7 @@ public class JakartaActionExecutor implements ActionExecutor {
       message.setSubject(smtpSendEmail.getSubject());
       message.setText(smtpSendEmail.getBody());
       try (Transport transport = session.getTransport()) {
-        connectTransport(transport, authentication);
+        this.sessionFactory.connectTransport(transport, authentication);
         transport.sendMessage(message, message.getAllRecipients());
       }
     } catch (MessagingException e) {
@@ -152,23 +152,6 @@ public class JakartaActionExecutor implements ActionExecutor {
       return false;
     }
     return true;
-  }
-
-  private void connectStore(Store store, Authentication authentication) throws MessagingException {
-    if (authentication.isSecuredAuth())
-      store.connect(
-          authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
-          authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
-    else store.connect();
-  }
-
-  private void connectTransport(Transport transport, Authentication authentication)
-      throws MessagingException {
-    if (authentication.isSecuredAuth())
-      transport.connect(
-          authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
-          authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
-    else transport.connect();
   }
 
   private Optional<InternetAddress[]> createParsedInternetAddresses(Object object)

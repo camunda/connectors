@@ -26,13 +26,11 @@ public class EmailListenerData {
       description = "",
       feel = Property.FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.folderToListen"))
-  @Valid
-  @NotNull
-  private String folderToListen;
+  private @Valid @NotNull Object folderToListen;
 
   @TemplateProperty(
       label = "Trigger on new message",
-      group = "triggerAdded",
+      group = "listenerInfos",
       type = TemplateProperty.PropertyType.Boolean,
       defaultValue = "true",
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
@@ -41,12 +39,21 @@ public class EmailListenerData {
 
   @TemplateProperty(
       label = "Trigger on deleted message",
-      group = "triggerRemoved",
+      group = "listenerInfos",
       type = TemplateProperty.PropertyType.Boolean,
       defaultValue = "false",
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       binding = @TemplateProperty.PropertyBinding(name = "data.triggerRemoved"))
   private boolean triggerRemoved;
+
+  @TemplateProperty(
+      label = "Mark as read",
+      group = "listenerInfos",
+      type = TemplateProperty.PropertyType.Boolean,
+      defaultValue = "false",
+      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+      binding = @TemplateProperty.PropertyBinding(name = "data.markAsRead"))
+  private boolean markAsRead;
 
   public @Valid ImapConfig getImapConfig() {
     return imapConfig;
@@ -56,7 +63,7 @@ public class EmailListenerData {
     this.imapConfig = imapConfig;
   }
 
-  public @Valid @NotNull String getFolderToListen() {
+  public @Valid @NotNull Object getFolderToListen() {
     return folderToListen;
   }
 
@@ -78,5 +85,13 @@ public class EmailListenerData {
 
   public void setTriggerRemoved(boolean triggerRemoved) {
     this.triggerRemoved = triggerRemoved;
+  }
+
+  public boolean isMarkAsRead() {
+    return markAsRead;
+  }
+
+  public void setMarkAsRead(boolean markAsRead) {
+    this.markAsRead = markAsRead;
   }
 }

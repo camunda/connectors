@@ -29,7 +29,7 @@ public final class ImapConfig implements Configuration {
       group = "protocol",
       id = "data.imapPort",
       description = "",
-      defaultValue = "995",
+      defaultValue = "993",
       feel = Property.FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapPort"))
   @Valid

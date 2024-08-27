@@ -12,7 +12,10 @@ import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;
 import io.camunda.connector.email.config.SmtpConfig;
 import io.camunda.connector.email.core.SessionFactory;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.Store;
+import jakarta.mail.Transport;
 import java.util.Properties;
 
 public class JakartaSessionFactory implements SessionFactory<Session> {
@@ -23,6 +26,23 @@ public class JakartaSessionFactory implements SessionFactory<Session> {
           case Pop3Config pop3 -> createProperties(pop3, authentication.isSecuredAuth());
           case SmtpConfig smtp -> createProperties(smtp, authentication.isSecuredAuth());
         });
+  }
+
+  public void connectStore(Store store, Authentication authentication) throws MessagingException {
+    if (authentication.isSecuredAuth())
+      store.connect(
+          authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
+          authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
+    else store.connect();
+  }
+
+  public void connectTransport(Transport transport, Authentication authentication)
+      throws MessagingException {
+    if (authentication.isSecuredAuth())
+      transport.connect(
+          authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
+          authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
+    else transport.connect();
   }
 
   private Properties createProperties(SmtpConfig smtp, Boolean securedAuth) {
@@ -83,6 +103,7 @@ public class JakartaSessionFactory implements SessionFactory<Session> {
         properties.put("mail.imaps.port", imap.getImapPort().toString());
         properties.put("mail.imaps.auth", securedAuth);
         properties.put("mail.imaps.starttls.enable", true);
+        properties.put("mail.imaps.usesocketchannels", true);
       }
       case SSL -> {
         properties.put("mail.store.protocol", "imaps");
@@ -90,6 +111,7 @@ public class JakartaSessionFactory implements SessionFactory<Session> {
         properties.put("mail.imaps.port", imap.getImapPort().toString());
         properties.put("mail.imaps.auth", securedAuth);
         properties.put("mail.imaps.ssl.enable", true);
+        properties.put("mail.imaps.usesocketchannel", true);
       }
     }
     return properties;
