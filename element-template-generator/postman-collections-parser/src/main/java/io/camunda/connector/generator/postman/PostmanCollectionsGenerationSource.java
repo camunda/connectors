@@ -29,6 +29,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public record PostmanCollectionsGenerationSource(
@@ -43,35 +44,52 @@ public record PostmanCollectionsGenerationSource(
       throw new IllegalArgumentException("Incorrect usage");
     }
 
-    final var collectionPath = cliParams.getFirst();
+    final var collectionPathOrContent = cliParams.getFirst();
 
-    File postmanCollectionsFileJson;
-    if (collectionPath.startsWith("http")) { // Network
-      try {
-        postmanCollectionsFileJson = File.createTempFile("postman-gen", "tmp");
-        postmanCollectionsFileJson.deleteOnExit();
-        InputStream collectionUrl = new URL(collectionPath).openStream();
-        Files.copy(
-            collectionUrl,
-            postmanCollectionsFileJson.toPath(),
-            StandardCopyOption.REPLACE_EXISTING);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    } else { // Local file system
-      postmanCollectionsFileJson = new File(collectionPath);
-    }
-
-    if (!postmanCollectionsFileJson.exists() || !postmanCollectionsFileJson.isFile()) {
-      throw new IllegalArgumentException(
-          "Incorrect Postman Collections file: " + postmanCollectionsFileJson.getName());
-    }
+    JsonNode collectionNode =
+        Optional.ofNullable(collectionPathOrContent)
+            .map(
+                pathOrContent -> {
+                  try {
+                    if (isValidJSON(pathOrContent)) {
+                      try {
+                        return ObjectMapperProvider.getInstance()
+                            .readValue(pathOrContent, JsonNode.class);
+                      } catch (IOException e) {
+                        throw new IllegalArgumentException(
+                            "Couldn't parse Postman Collection to v.2.1.0 standard", e);
+                      }
+                    }
+                    final File postmanCollectionsFileJson;
+                    if (pathOrContent.startsWith("http")) { // Network
+                      postmanCollectionsFileJson = File.createTempFile("postman-gen", "tmp");
+                      postmanCollectionsFileJson.deleteOnExit();
+                      InputStream collectionUrl = new URL(collectionPathOrContent).openStream();
+                      Files.copy(
+                          collectionUrl,
+                          postmanCollectionsFileJson.toPath(),
+                          StandardCopyOption.REPLACE_EXISTING);
+                    } else { // Local file system
+                      postmanCollectionsFileJson = new File(collectionPathOrContent);
+                    }
+                    if (!postmanCollectionsFileJson.exists()
+                        || !postmanCollectionsFileJson.isFile()) {
+                      throw new IllegalArgumentException(
+                          "Incorrect Postman Collections file: "
+                              + postmanCollectionsFileJson.getName());
+                    }
+                    return ObjectMapperProvider.getInstance()
+                        .readValue(new FileInputStream(postmanCollectionsFileJson), JsonNode.class);
+                  } catch (IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                })
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Postman file path, URL, or content must be provided as first parameter"));
 
     try {
-      JsonNode collectionNode =
-          ObjectMapperProvider.getInstance()
-              .readValue(new FileInputStream(postmanCollectionsFileJson), JsonNode.class);
-
       PostmanCollectionV210 collection;
       // When collection shared directly from Postman UI
       if (collectionNode.has("collection")) {
@@ -91,6 +109,15 @@ public record PostmanCollectionsGenerationSource(
     } catch (IOException e) {
       throw new IllegalArgumentException(
           "Couldn't parse Postman Collection to v.2.1.0 standard", e);
+    }
+  }
+
+  public static boolean isValidJSON(String jsonInString) {
+    try {
+      ObjectMapperProvider.getInstance().readTree(jsonInString);
+      return true;
+    } catch (IOException e) {
+      return false;
     }
   }
 

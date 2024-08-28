@@ -17,9 +17,13 @@
 package io.camunda.connector.generator.openapi;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.openapi.OpenApiGenerationSource.Options;
 import io.swagger.v3.parser.OpenAPIV3Parser;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -45,6 +49,26 @@ public class ExampleTest {
   }
 
   @Test
+  void generateFromRawJsonContent() throws IOException {
+    // given
+    try (var openApiJsonContent =
+        new FileInputStream("src/test/resources/web-modeler-rest-api.json")) {
+      String openApiCollectionsJsonContent =
+          mapper.readValue(openApiJsonContent, JsonNode.class).toString();
+      var source = new OpenApiGenerationSource(List.of(openApiCollectionsJsonContent));
+      var generator = new OpenApiOutboundTemplateGenerator();
+
+      // when
+      var templates = generator.generate(source);
+
+      // then
+      System.out.println(mapper.writeValueAsString(templates));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
   void scan() {
     var parser = new OpenAPIV3Parser();
     var openApi = parser.read("web-modeler-rest-api.json");
@@ -52,6 +76,24 @@ public class ExampleTest {
 
     var scanResult =
         generator.scan(new OpenApiGenerationSource(openApi, Set.of(), new Options(false)));
+
     System.out.println(scanResult);
+  }
+
+  @Test
+  void scanFromRawJsonContent() {
+    try (var openApiJsonContent =
+        new FileInputStream("src/test/resources/web-modeler-rest-api.json")) {
+      String openApiCollectionsJsonContent =
+          mapper.readValue(openApiJsonContent, JsonNode.class).toString();
+      var source = new OpenApiGenerationSource(List.of(openApiCollectionsJsonContent));
+      var generator = new OpenApiOutboundTemplateGenerator();
+
+      var scanResult = generator.scan(source);
+
+      System.out.println(scanResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

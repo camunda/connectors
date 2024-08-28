@@ -17,9 +17,12 @@
 package io.camunda.connector.generator.postman;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.postman.utils.ObjectMapperProvider;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -62,28 +65,40 @@ public class PostmanCollectionsGeneratorDryRunExampleTest {
   }
 
   private static Stream<Arguments> commandLineArguments() {
-    return Stream.of(
-        // Test case 1: generate all methods
-        Arguments.of(List.of("src/test/resources/operate-api-saas-bearer.json")),
+    try (var openApiJsonContent =
+        new FileInputStream("src/test/resources/operate-api-saas-bearer.json")) {
+      String postmanCollectionsJsonContent =
+          ObjectMapperProvider.getInstance()
+              .readValue(openApiJsonContent, JsonNode.class)
+              .toString();
+      return Stream.of(
+          // Test case 1: generate all methods
+          Arguments.of(List.of("src/test/resources/operate-api-saas-bearer.json")),
 
-        // Test case 2: generate specific methods
-        Arguments.of(
-            List.of(
-                "src/test/resources/postman-books.json",
-                "/1. Sending requests & inspecting responses/books",
-                "/1. Sending requests & inspecting responses/book",
-                "/1. Sending requests & inspecting responses/add book")),
+          // Test case 2: generate specific methods
+          Arguments.of(
+              List.of(
+                  "src/test/resources/postman-books.json",
+                  "/1. Sending requests & inspecting responses/books",
+                  "/1. Sending requests & inspecting responses/book",
+                  "/1. Sending requests & inspecting responses/add book")),
 
-        // Test case 3: fetch from internet
-        Arguments.of(
-            List.of(
-                "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json")),
+          // Test case 3: fetch from internet
+          Arguments.of(
+              List.of(
+                  "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json")),
 
-        // Test case 4: from internet with operations
-        Arguments.of(
-            List.of(
-                "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json",
-                "/Process instances/Search for process instances",
-                "/Process instances/Get process instance by key")));
+          // Test case 4: from internet with operations
+          Arguments.of(
+              List.of(
+                  "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json",
+                  "/Process instances/Search for process instances",
+                  "/Process instances/Get process instance by key")),
+
+          // Test case 5: from raw content
+          Arguments.of(List.of(postmanCollectionsJsonContent)));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
