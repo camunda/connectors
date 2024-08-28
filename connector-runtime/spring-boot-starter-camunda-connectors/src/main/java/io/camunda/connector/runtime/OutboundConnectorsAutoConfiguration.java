@@ -27,8 +27,11 @@ import io.camunda.connector.runtime.secret.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.operate.auth.JwtCredential;
+import io.camunda.zeebe.client.api.JsonMapper;
+import io.camunda.zeebe.client.impl.ZeebeObjectMapper;
 import io.camunda.zeebe.spring.client.properties.CamundaClientProperties;
 import io.camunda.zeebe.spring.client.properties.CamundaClientProperties.ClientMode;
+import io.camunda.zeebe.spring.common.json.SdkObjectMapper;
 import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
@@ -89,6 +92,25 @@ public class OutboundConnectorsAutoConfiguration {
       secretProviders.addAll(discoveredSecretProviders);
     }
     return new SecretProviderAggregator(secretProviders);
+  }
+
+  @Bean(name = "zeebeJsonMapper")
+  @ConditionalOnMissingBean
+  public JsonMapper jsonMapper(ObjectMapper objectMapper) {
+    if (objectMapper == null) {
+      return new ZeebeObjectMapper();
+    }
+    return new ZeebeObjectMapper(objectMapper.copy());
+  }
+
+  @Bean(name = "commonJsonMapper")
+  @ConditionalOnMissingBean
+  public io.camunda.zeebe.spring.common.json.JsonMapper commonJsonMapper(
+      ObjectMapper objectMapper) {
+    if (objectMapper == null) {
+      return new SdkObjectMapper();
+    }
+    return new SdkObjectMapper(objectMapper.copy());
   }
 
   @Bean

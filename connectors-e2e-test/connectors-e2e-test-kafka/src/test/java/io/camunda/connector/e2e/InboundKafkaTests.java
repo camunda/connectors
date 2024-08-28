@@ -28,8 +28,6 @@ import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
-import io.camunda.zeebe.process.test.assertions.BpmnAssert;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
