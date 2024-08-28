@@ -45,24 +45,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "input.WRONG_OUTPUT_VALUES_MSG",
-    "label" : "WRONG_OUTPUT_VALUES_MSG",
-    "feel" : "optional",
-    "binding" : {
-      "name" : "input.WRONG_OUTPUT_VALUES_MSG",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "input.WRONG_NOTIFICATION_VALUES_MSG",
-    "label" : "WRONG_NOTIFICATION_VALUES_MSG",
-    "feel" : "optional",
-    "binding" : {
-      "name" : "input.WRONG_NOTIFICATION_VALUES_MSG",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
     "id" : "authentication.type",
     "label" : "Authentication",
     "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
