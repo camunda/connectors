@@ -27,13 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.commons.collections4.CollectionUtils;
 
 public class InboundConnectorDetailsUtil {
 
   static InboundConnectorDetails create(
       String deduplicationId, List<InboundConnectorElement> groupedElements) {
-    if (CollectionUtils.isEmpty(groupedElements)) {
+    if (groupedElements == null || groupedElements.isEmpty()) {
       throw new IllegalArgumentException("At least one element must be provided");
     }
     try {

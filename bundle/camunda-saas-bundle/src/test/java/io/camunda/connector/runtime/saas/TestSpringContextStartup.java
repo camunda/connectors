@@ -27,7 +27,8 @@ import org.springframework.test.context.ActiveProfiles;
     classes = {SaaSConnectorRuntimeApplication.class, MockSaaSConfiguration.class},
     properties = {
       "camunda.saas.secrets.projectId=42",
-      "zeebe.client.cloud.cluster-id=42",
+      "zeebe.client.cloud.clusterId=42",
+      "zeebe.client.cloud.region=bru-1",
       "zeebe.client.security.plaintext=true",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
@@ -52,11 +53,10 @@ public class TestSpringContextStartup {
   public void jwtCredentialConfigured() {
     var jwtCredential = operateClientFactory.configureJwtCredential();
     assertThat(jwtCredential).isNotNull();
-    assertThat(jwtCredential.getClientId())
-        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_CLIENT_ID);
-    assertThat(jwtCredential.getClientSecret())
-        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_SECRET);
-    assertThat(jwtCredential.getAudience()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_BASEURL);
-    assertThat(jwtCredential.getAuthUrl()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL);
+    assertThat(jwtCredential.clientId()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_CLIENT_ID);
+    assertThat(jwtCredential.clientSecret()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_SECRET);
+    assertThat(jwtCredential.audience()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_BASEURL);
+    assertThat(jwtCredential.authUrl().toString())
+        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL);
   }
 }

@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.saas;
 
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.zeebe.spring.client.properties.ZeebeClientConfigurationProperties;
 import java.util.Map;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -39,8 +38,8 @@ public class MockSaaSConfiguration {
           SaaSOperateClientFactory.SECRET_NAME_SECRET, OPERATE_CLIENT_SECRET);
 
   @Bean
-  public SaaSConfiguration saaSConfiguration(ZeebeClientConfigurationProperties conf) {
-    return new SaaSConfiguration(conf) {
+  public SaaSConfiguration saaSConfiguration() {
+    return new SaaSConfiguration() {
       @Override
       public SecretProvider getInternalSecretProvider() {
         return secrets::get;

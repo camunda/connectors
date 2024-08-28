@@ -26,8 +26,7 @@ import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import io.camunda.common.auth.Authentication;
-import io.camunda.common.auth.Product;
+import io.camunda.operate.auth.Authentication;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
@@ -53,7 +52,7 @@ public class ConsoleSecretProviderTest {
     // Mock authentication
     auth = Mockito.mock(Authentication.class);
     authToken = Map.of("Authorization", "Bearer XXX");
-    when(auth.getTokenHeader(Product.CONSOLE)).thenReturn(authToken);
+    when(auth.getTokenHeader()).thenReturn(authToken);
 
     client = new ConsoleSecretApiClient(wm.baseUrl() + "/secrets", auth);
   }
