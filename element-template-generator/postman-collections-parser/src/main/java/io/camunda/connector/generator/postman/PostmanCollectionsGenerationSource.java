@@ -87,7 +87,7 @@ public record PostmanCollectionsGenerationSource(
             .orElseThrow(
                 () ->
                     new IllegalArgumentException(
-                        "OpenAPI file path or URL must be provided as first parameter"));
+                        "Postman file path, URL, or content must be provided as first parameter"));
 
     try {
       PostmanCollectionV210 collection;

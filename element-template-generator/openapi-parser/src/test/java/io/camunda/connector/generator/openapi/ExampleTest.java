@@ -51,19 +51,21 @@ public class ExampleTest {
   @Test
   void generateFromRawJsonContent() throws IOException {
     // given
-    String openApiCollectionsJsonContent =
-        mapper
-            .readValue(
-                new FileInputStream("src/test/resources/web-modeler-rest-api.json"), JsonNode.class)
-            .toString();
-    var source = new OpenApiGenerationSource(List.of(openApiCollectionsJsonContent));
-    var generator = new OpenApiOutboundTemplateGenerator();
+    try (var openApiJsonContent =
+        new FileInputStream("src/test/resources/web-modeler-rest-api.json")) {
+      String openApiCollectionsJsonContent =
+          mapper.readValue(openApiJsonContent, JsonNode.class).toString();
+      var source = new OpenApiGenerationSource(List.of(openApiCollectionsJsonContent));
+      var generator = new OpenApiOutboundTemplateGenerator();
 
-    // when
-    var templates = generator.generate(source);
+      // when
+      var templates = generator.generate(source);
 
-    // then
-    System.out.println(mapper.writeValueAsString(templates));
+      // then
+      System.out.println(mapper.writeValueAsString(templates));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
@@ -79,17 +81,19 @@ public class ExampleTest {
   }
 
   @Test
-  void scanFromRawJsonContent() throws IOException {
-    String openApiCollectionsJsonContent =
-        mapper
-            .readValue(
-                new FileInputStream("src/test/resources/web-modeler-rest-api.json"), JsonNode.class)
-            .toString();
-    var source = new OpenApiGenerationSource(List.of(openApiCollectionsJsonContent));
-    var generator = new OpenApiOutboundTemplateGenerator();
+  void scanFromRawJsonContent() {
+    try (var openApiJsonContent =
+        new FileInputStream("src/test/resources/web-modeler-rest-api.json")) {
+      String openApiCollectionsJsonContent =
+          mapper.readValue(openApiJsonContent, JsonNode.class).toString();
+      var source = new OpenApiGenerationSource(List.of(openApiCollectionsJsonContent));
+      var generator = new OpenApiOutboundTemplateGenerator();
 
-    var scanResult = generator.scan(source);
+      var scanResult = generator.scan(source);
 
-    System.out.println(scanResult);
+      System.out.println(scanResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
