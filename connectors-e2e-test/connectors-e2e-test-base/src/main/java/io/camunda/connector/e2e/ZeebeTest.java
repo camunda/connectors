@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.e2e;
 
-import static org.awaitility.Awaitility.await;
-
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.DeploymentEvent;
@@ -68,7 +66,9 @@ public class ZeebeTest {
   }
 
   public ZeebeTest waitForProcessCompletion() {
-    Awaitility.with().pollInSameThread().await()
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
         .atMost(10, TimeUnit.SECONDS)
         .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).isCompleted());
     return this;

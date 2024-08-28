@@ -70,7 +70,7 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
       "camunda.connector.polling.enabled=true",
-        "operate.client.profile=simple"
+      "operate.client.profile=simple"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
