@@ -151,9 +151,11 @@ public record TextractRequestData(
                     property = "input.executionType",
                     equals = "ASYNC"))
         String outputConfigS3Prefix) {
+  @TemplateProperty(ignore = true)
   public static final String WRONG_OUTPUT_VALUES_MSG =
       "Output S3 bucket must be filled in if output S3 prefix is filled in";
 
+  @TemplateProperty(ignore = true)
   public static final String WRONG_NOTIFICATION_VALUES_MSG =
       "either both notification values role ARN and topic ARN must be filled in or none of them";
 
