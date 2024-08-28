@@ -66,7 +66,7 @@ public class PostmanCollectionsGeneratorDryRunExampleTest {
 
   private static Stream<Arguments> commandLineArguments() {
     try (var openApiJsonContent =
-        new FileInputStream("src/test/resources/web-modeler-rest-api.json")) {
+        new FileInputStream("src/test/resources/operate-api-saas-bearer.json")) {
       String postmanCollectionsJsonContent =
           ObjectMapperProvider.getInstance()
               .readValue(openApiJsonContent, JsonNode.class)
