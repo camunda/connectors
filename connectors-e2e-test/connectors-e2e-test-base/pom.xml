@@ -39,6 +39,11 @@
             <artifactId>spring-boot-starter-camunda-sdk</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.camunda</groupId>
+            <artifactId>camunda-process-test-spring</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>io.camunda.connector</groupId>
             <artifactId>connector-test</artifactId>
         </dependency>

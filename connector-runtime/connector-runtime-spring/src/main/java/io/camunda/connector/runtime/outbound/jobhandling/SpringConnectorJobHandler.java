@@ -44,8 +44,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SpringConnectorJobHandler.class);
 
-  // no client side retries, retries are handled by Zeebe
-  private static final int MAX_CLIENT_SIDE_RETRIES = -1;
+  private static final int MAX_ZEEBE_COMMAND_RETRIES = 3;
 
   private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
   private final MetricsRecorder metricsRecorder;
@@ -106,7 +105,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
               job,
               commandExceptionHandlingStrategy,
               metricsRecorder,
-              MAX_CLIENT_SIDE_RETRIES)
+          MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }
   }
@@ -124,7 +123,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
               job,
               commandExceptionHandlingStrategy,
               metricsRecorder,
-              MAX_CLIENT_SIDE_RETRIES)
+          MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }
   }
@@ -145,7 +144,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
               job,
               commandExceptionHandlingStrategy,
               metricsRecorder,
-              MAX_CLIENT_SIDE_RETRIES)
+          MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }
   }
