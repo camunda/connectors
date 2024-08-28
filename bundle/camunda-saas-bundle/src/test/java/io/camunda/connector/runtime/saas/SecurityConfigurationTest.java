@@ -51,14 +51,16 @@ import org.springframework.test.web.servlet.MockMvc;
     webEnvironment = WebEnvironment.RANDOM_PORT,
     classes = {SaaSConnectorRuntimeApplication.class, MockSaaSConfiguration.class},
     properties = {
-      "camunda.saas.secrets.projectId=42",
-      "zeebe.client.cloud.cluster-id=42",
-      "zeebe.client.security.plaintext=true",
-      "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
-      "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
-      "camunda.operate.client.url=" + MockSaaSConfiguration.OPERATE_CLIENT_URL,
-      "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
-      "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL
+        "camunda.saas.secrets.projectId=42",
+        "zeebe.client.cloud.cluster-id=42",
+        "zeebe.client.security.plaintext=true",
+        "zeebe.client.broker.gateway-address=zeebe-service:26500",
+        "zeebe.client.cloud.region=bru-1",
+        "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
+        "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
+        "camunda.operate.client.url=" + MockSaaSConfiguration.OPERATE_CLIENT_URL,
+        "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
+        "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL
     })
 @DirtiesContext
 @ActiveProfiles("test")

@@ -18,8 +18,6 @@ package io.camunda.connector.runtime.saas;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.cloud.GcpSecretManagerSecretProvider;
-import io.camunda.zeebe.spring.client.properties.ZeebeClientConfigurationProperties;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,21 +37,16 @@ public class SaaSConfiguration {
   @Value("${camunda.saas.secrets.internalPrefix:internal-connector-secrets}")
   private String secretsInternalNamePrefix;
 
-  private final ZeebeClientConfigurationProperties conf;
-
-  @Autowired
-  public SaaSConfiguration(ZeebeClientConfigurationProperties conf) {
-    this.conf = conf;
-  }
+  @Value("${zeebe.client.cloud.cluster-id}")
+  private String clusterId;
 
   @Bean
   public SecretProvider getSecretProvider() {
-    return new GcpSecretManagerSecretProvider(
-        conf.getCloud().getClusterId(), secretsProjectId, secretsNamePrefix);
+    return new GcpSecretManagerSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
   }
 
   public SecretProvider getInternalSecretProvider() {
     return new GcpSecretManagerSecretProvider(
-        conf.getCloud().getClusterId(), secretsProjectId, secretsInternalNamePrefix);
+        clusterId, secretsProjectId, secretsInternalNamePrefix);
   }
 }

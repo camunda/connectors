@@ -16,14 +16,18 @@
  */
 package io.camunda.connector.runtime.saas;
 
-import io.camunda.common.auth.JwtConfig;
-import io.camunda.common.auth.JwtCredential;
-import io.camunda.common.auth.Product;
-import io.camunda.common.auth.SaaSAuthenticationBuilder;
-import io.camunda.common.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
+import io.camunda.operate.CamundaOperateClientConfiguration;
+import io.camunda.operate.auth.JwtAuthentication;
+import io.camunda.operate.auth.JwtCredential;
+import io.camunda.operate.auth.TokenResponseMapper.JacksonTokenResponseMapper;
+import io.camunda.operate.spring.OperateClientConfiguration;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -37,40 +41,50 @@ public class SaaSOperateClientFactory {
   public static String SECRET_NAME_SECRET = "M2MSecret";
 
   private final SecretProvider internalSecretProvider;
-  private final OperateClientConfigurationProperties operateProperties;
 
   @Value("${camunda.operate.client.url}")
   private String operateUrl;
 
-  public SaaSOperateClientFactory(
-      @Autowired SaaSConfiguration saaSConfiguration,
-      @Autowired OperateClientConfigurationProperties operateProperties) {
+  @Value("${camunda.operate.client.baseUrl}")
+  private String operateBaseUrl;
+
+  @Value("${camunda.operate.client.authUrl}")
+  private String operateAuthUrl;
+
+  public SaaSOperateClientFactory(@Autowired SaaSConfiguration saaSConfiguration) {
     this.internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
-    this.operateProperties = operateProperties;
   }
 
   @Bean
   @Primary
-  public CamundaOperateClient camundaOperateClientBundle(JsonMapper jsonMapper) {
+  public CamundaOperateClient camundaOperateClientBundle(
+      ObjectMapper objectMapper, OperateClientConfiguration configuration) {
 
-    var jwtConfig = new JwtConfig();
-    jwtConfig.addProduct(Product.OPERATE, configureJwtCredential());
-
+    var jwtCredential = configureJwtCredential();
     var authentication =
-        new SaaSAuthenticationBuilder().withJwtConfig(jwtConfig).withJsonMapper(jsonMapper).build();
-
-    return CamundaOperateClient.builder()
-        .operateUrl(operateUrl)
-        .authentication(authentication)
-        .setup()
-        .build();
+        new JwtAuthentication(jwtCredential, new JacksonTokenResponseMapper(objectMapper));
+    URL convertedOperateUrl;
+    try {
+      convertedOperateUrl = new URI(operateUrl).toURL();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    var adjustedConfiguration =
+        new CamundaOperateClientConfiguration(
+            authentication, convertedOperateUrl, objectMapper, configuration.operateHttpClient());
+    return new CamundaOperateClient(adjustedConfiguration);
   }
 
   JwtCredential configureJwtCredential() {
-    return new JwtCredential(
-        internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID),
-        internalSecretProvider.getSecret(SECRET_NAME_SECRET),
-        operateProperties.getBaseUrl(),
-        operateProperties.getAuthUrl());
+    try {
+      var authUrl = new URI(operateAuthUrl).toURL();
+      return new JwtCredential(
+          internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID),
+          internalSecretProvider.getSecret(SECRET_NAME_SECRET),
+          operateBaseUrl,
+          authUrl);
+    } catch (MalformedURLException | URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

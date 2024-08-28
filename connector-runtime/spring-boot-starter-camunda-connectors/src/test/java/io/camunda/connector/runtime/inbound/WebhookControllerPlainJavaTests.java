@@ -182,6 +182,6 @@ public class WebhookControllerPlainJavaTests {
         Map.of("inbound.type", "io.camunda:webhook:1", "inbound.context", path),
         new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey),
         new ProcessElement(
-            bpmnProcessId, version, processDefinitionKey, "testElement", "testTenantId"));
+            bpmnProcessId, version, processDefinitionKey, "testElement", "<default>"));
   }
 }
