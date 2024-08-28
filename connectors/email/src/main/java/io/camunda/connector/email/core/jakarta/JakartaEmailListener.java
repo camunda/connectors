@@ -23,41 +23,33 @@ import org.eclipse.angus.mail.imap.IdleManager;
 
 public class JakartaEmailListener {
 
-  private final InboundConnectorContext connectorContext;
-  private final EmailProperties emailProperties;
-  private final JakartaSessionFactory sessionFactory;
+  private final JakartaUtils jakartaUtils;
   private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
   private IdleManager idleManager;
   private Store store;
   private List<IMAPFolder> imapFolders;
 
-  public JakartaEmailListener(
-      InboundConnectorContext context,
-      EmailProperties emailProperties,
-      JakartaSessionFactory sessionFactory) {
-    this.connectorContext = context;
-    this.emailProperties = emailProperties;
-    this.sessionFactory = sessionFactory;
+  public JakartaEmailListener(JakartaUtils jakartaUtils) {
+    this.jakartaUtils = jakartaUtils;
   }
 
-  public static JakartaEmailListener create(
-      InboundConnectorContext context, JakartaSessionFactory sessionFactory) {
-    return new JakartaEmailListener(
-        context, context.bindProperties(EmailProperties.class), sessionFactory);
+  public static JakartaEmailListener create(JakartaUtils sessionFactory) {
+    return new JakartaEmailListener(sessionFactory);
   }
 
-  public void startListener() {
+  public void startListener(InboundConnectorContext context) {
+    EmailProperties emailProperties = context.bindProperties(EmailProperties.class);
     Authentication authentication = emailProperties.getAuthentication();
     Session session =
-        this.sessionFactory.createSession(
+        this.jakartaUtils.createSession(
             emailProperties.getData().getImapConfig(), emailProperties.getAuthentication());
     try {
       this.store = session.getStore();
       this.imapFolders = new ArrayList<>();
       this.idleManager = new IdleManager(session, this.executorService);
 
-      this.sessionFactory.connectStore(this.store, authentication);
+      this.jakartaUtils.connectStore(this.store, authentication);
       List<String> inboxes = createInboxList(emailProperties.getData().getFolderToListen());
       for (String inbox : inboxes) {
         IMAPFolder folder = (IMAPFolder) store.getFolder(inbox);
@@ -66,12 +58,20 @@ public class JakartaEmailListener {
             new MessageCountListener() {
               @Override
               public void messagesAdded(MessageCountEvent e) {
-                processNewEvent(e, emailProperties.getData().isTriggerAdded());
+                processNewEvent(
+                    e,
+                    context,
+                    emailProperties.getData().isTriggerAdded(),
+                    emailProperties.getData().isMarkAsRead());
               }
 
               @Override
               public void messagesRemoved(MessageCountEvent e) {
-                processNewEvent(e, emailProperties.getData().isTriggerRemoved());
+                processNewEvent(
+                    e,
+                    context,
+                    emailProperties.getData().isTriggerRemoved(),
+                    emailProperties.getData().isMarkAsRead());
               }
             });
         this.imapFolders.add(folder);
@@ -82,11 +82,21 @@ public class JakartaEmailListener {
     }
   }
 
-  private void processNewEvent(MessageCountEvent e, boolean triggerAdded) {
+  private void processNewEvent(
+      MessageCountEvent e,
+      InboundConnectorContext connectorContext,
+      boolean triggerAdded,
+      boolean markAsRead) {
     IMAPFolder imapFolder = (IMAPFolder) e.getSource();
     if (triggerAdded) {
       connectorContext.correlateWithResult(
-          Arrays.stream(e.getMessages()).map(Email::createEmail).toList());
+          Arrays.stream(e.getMessages())
+              .peek(
+                  message -> {
+                    if (markAsRead) this.jakartaUtils.markAsSeen(message);
+                  })
+              .map(Email::createEmail)
+              .toList());
     }
     try {
       idleManager.watch(imapFolder);
@@ -97,11 +107,24 @@ public class JakartaEmailListener {
 
   private List<String> createInboxList(Object folderToListen) {
     return switch (folderToListen) {
+      case null -> List.of("");
       case List<?> list -> list.stream().map(Object::toString).toList();
       case String string -> Arrays.stream(string.split(",")).toList();
       default ->
           throw new IllegalStateException(
               "Unexpected value: " + folderToListen + ". List or String was expected");
     };
+  }
+
+  public void stopListener() {
+    try {
+      this.idleManager.stop();
+      for (IMAPFolder folder : this.imapFolders) {
+        folder.close();
+      }
+      this.store.close();
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

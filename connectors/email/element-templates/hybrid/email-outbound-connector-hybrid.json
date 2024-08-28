@@ -172,6 +172,75 @@
       "value" : "smtp"
     } ]
   }, {
+    "id" : "data.imapHost",
+    "label" : "IMAP Host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.imapConfig.imapHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "imap",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.imapPort",
+    "label" : "IMAP Port",
+    "optional" : false,
+    "value" : "993",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.imapConfig.imapPort",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "imap",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "imapCryptographicProtocol",
+    "label" : "Cryptographic protocol",
+    "description" : "Chose the desired cryptographic protocol",
+    "optional" : false,
+    "value" : "TLS",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "protocol",
+    "binding" : {
+      "name" : "data.imapConfig.imapCryptographicProtocol",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "protocol",
+      "equals" : "imap",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "TLS",
+      "value" : "TLS"
+    }, {
+      "name" : "None",
+      "value" : "NONE"
+    }, {
+      "name" : "SSL",
+      "value" : "SSL"
+    } ]
+  }, {
     "id" : "data.pop3Host",
     "label" : "POP3 Host",
     "optional" : false,
@@ -369,16 +438,16 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "XXXXXXXXXX",
+      "name" : "Delete an email using IMAP",
       "value" : "deleteEmailImap"
     }, {
-      "name" : "XXXXXXXXXX",
+      "name" : "List emails using IMAP",
       "value" : "listEmailImap"
     }, {
-      "name" : "XXXXXXXXXX",
+      "name" : "Move email",
       "value" : "moveEmailsImap"
     }, {
-      "name" : "XXXXXXXXXX",
+      "name" : "Read an email using IMAP",
       "value" : "readEmailImap"
     } ]
   }, {
@@ -531,7 +600,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "pop3uidlDelete",
+    "id" : "pop3MessageIdDelete",
     "label" : "UIDL of email to delete",
     "optional" : false,
     "constraints" : {
@@ -540,7 +609,7 @@
     "feel" : "required",
     "group" : "deleteEmailPop3",
     "binding" : {
-      "name" : "data.pop3Action.uidlDelete",
+      "name" : "data.pop3Action.messageId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -556,7 +625,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "pop3uidlRead",
+    "id" : "pop3MessageIdRead",
     "label" : "UIDL of email to read",
     "optional" : false,
     "constraints" : {
@@ -565,7 +634,7 @@
     "feel" : "required",
     "group" : "readEmailPop3",
     "binding" : {
-      "name" : "data.pop3Action.uidlRead",
+      "name" : "data.pop3Action.messageId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -604,16 +673,49 @@
     },
     "type" : "Boolean"
   }, {
-    "id" : "data.test6",
-    "label" : "test",
+    "id" : "emailFlag",
+    "label" : "Email status",
+    "description" : "Status of email to search trough",
     "optional" : false,
+    "value" : "ALL",
     "constraints" : {
       "notEmpty" : true
     },
+    "group" : "listEmailImap",
+    "binding" : {
+      "name" : "data.imapAction.emailFlag",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "imapAction",
+        "equals" : "listEmailImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "SEEN",
+      "value" : "SEEN"
+    }, {
+      "name" : "ALL",
+      "value" : "ALL"
+    }, {
+      "name" : "UNSEEN",
+      "value" : "UNSEEN"
+    } ]
+  }, {
+    "id" : "data.listEmailsFolder",
+    "label" : "Folder",
+    "optional" : true,
     "feel" : "optional",
     "group" : "listEmailImap",
     "binding" : {
-      "name" : "data.test6",
+      "name" : "data.imapAction.listEmailsFolder",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -629,8 +731,74 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.test4",
-    "label" : "test",
+    "id" : "data.subjectCriteria",
+    "label" : "Subject search criteria",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "listEmailImap",
+    "binding" : {
+      "name" : "data.imapAction.subjectCriteria",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "imapAction",
+        "equals" : "listEmailImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.bodyCriteria",
+    "label" : "Body search criteria",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "listEmailImap",
+    "binding" : {
+      "name" : "data.imapAction.bodyCriteria",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "imapAction",
+        "equals" : "listEmailImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.fromCriteria",
+    "label" : "From search criteria",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "listEmailImap",
+    "binding" : {
+      "name" : "data.imapAction.fromCriteria",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "imapAction",
+        "equals" : "listEmailImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "imapMessageIdRead",
+    "label" : "Imap UID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -638,7 +806,7 @@
     "feel" : "optional",
     "group" : "readEmailImap",
     "binding" : {
-      "name" : "data.test4",
+      "name" : "data.imapAction.messageId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -654,8 +822,8 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.test7",
-    "label" : "test",
+    "id" : "imapMessageIdDelete",
+    "label" : "Imap UID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -663,7 +831,7 @@
     "feel" : "optional",
     "group" : "deleteEmailImap",
     "binding" : {
-      "name" : "data.test7",
+      "name" : "data.imapAction.messageId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -679,8 +847,8 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.test5",
-    "label" : "test",
+    "id" : "data.uidMove",
+    "label" : "IMAP UID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -688,7 +856,32 @@
     "feel" : "optional",
     "group" : "moveEmailsImap",
     "binding" : {
-      "name" : "data.test5",
+      "name" : "data.imapAction.uidMove",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "imapAction",
+        "equals" : "moveEmailsImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.fromFolder",
+    "label" : "Source folder",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "moveEmailsImap",
+    "binding" : {
+      "name" : "data.imapAction.fromFolder",
       "type" : "zeebe:input"
     },
     "condition" : {

@@ -19,8 +19,8 @@ import io.camunda.connector.email.outbound.protocols.actions.Pop3DeleteEmail;
 import io.camunda.connector.email.outbound.protocols.actions.Pop3ListEmails;
 import io.camunda.connector.email.outbound.protocols.actions.Pop3ReadEmail;
 import io.camunda.connector.email.outbound.protocols.actions.SmtpSendEmail;
-import io.camunda.connector.email.outbound.response.Pop3ListEmailsResponse;
-import io.camunda.connector.email.outbound.response.Pop3ReadEmailResponse;
+import io.camunda.connector.email.response.ListEmailsResponse;
+import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
 import java.io.IOException;
 import java.util.Arrays;
@@ -36,7 +36,7 @@ class JakartaExecutorTest {
   @Test
   void executeSmtpSendEmail() throws MessagingException {
 
-    JakartaSessionFactory sessionFactory = mock(JakartaSessionFactory.class);
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
     JakartaActionExecutor actionExecutor = JakartaActionExecutor.create(sessionFactory);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
@@ -87,7 +87,7 @@ class JakartaExecutorTest {
 
   @Test
   void executePop3ListEmails() throws MessagingException {
-    JakartaSessionFactory sessionFactory = mock(JakartaSessionFactory.class);
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
     JakartaActionExecutor actionExecutor = JakartaActionExecutor.create(sessionFactory);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
@@ -105,7 +105,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
 
-    when(store.getFolder(anyString())).thenReturn(pop3Folder);
+    when(store.getDefaultFolder()).thenReturn(pop3Folder);
 
     doNothing().when(pop3Folder).open(Folder.READ_ONLY);
 
@@ -113,6 +113,7 @@ class JakartaExecutorTest {
     when(pop3Folder.getMessages(1, 10)).thenReturn(new Message[] {message});
 
     when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(message.getHeader(any())).thenReturn(new String[] {"id"});
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
     when(emailRequest.getData()).thenReturn(protocol);
@@ -123,12 +124,12 @@ class JakartaExecutorTest {
     Object object = actionExecutor.execute(emailRequest);
 
     Assertions.assertInstanceOf(List.class, object);
-    Assertions.assertInstanceOf(Pop3ListEmailsResponse.class, ((List) object).getFirst());
+    Assertions.assertInstanceOf(ListEmailsResponse.class, ((List) object).getFirst());
   }
 
   @Test
   void executePop3ReadEmail() throws MessagingException, IOException {
-    JakartaSessionFactory sessionFactory = mock(JakartaSessionFactory.class);
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
     JakartaActionExecutor actionExecutor = JakartaActionExecutor.create(sessionFactory);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
@@ -148,10 +149,10 @@ class JakartaExecutorTest {
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
 
-    when(store.getFolder(anyString())).thenReturn(pop3Folder);
-    when(pop3Folder.getMessages()).thenReturn(new Message[] {message});
-    when(pop3Folder.getUID(any())).thenReturn("10");
-    when(pop3ReadEmail.getUidlRead()).thenReturn("10");
+    when(store.getDefaultFolder()).thenReturn(pop3Folder);
+    when(pop3Folder.search(any())).thenReturn(new Message[] {message});
+    when(message.getHeader(any())).thenReturn(new String[] {"10"});
+    when(pop3ReadEmail.getMessageId()).thenReturn("10");
     when(message.getContent()).thenReturn("string");
     when(message.isMimeType("text/plain")).thenReturn(true);
     when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
@@ -163,12 +164,12 @@ class JakartaExecutorTest {
 
     Object object = actionExecutor.execute(emailRequest);
 
-    Assertions.assertInstanceOf(Pop3ReadEmailResponse.class, object);
+    Assertions.assertInstanceOf(ReadEmailResponse.class, object);
   }
 
   @Test
   void executePop3DeleteEmail() throws MessagingException, IOException {
-    JakartaSessionFactory sessionFactory = mock(JakartaSessionFactory.class);
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
     JakartaActionExecutor actionExecutor = JakartaActionExecutor.create(sessionFactory);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
@@ -188,10 +189,10 @@ class JakartaExecutorTest {
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
 
-    when(store.getFolder(anyString())).thenReturn(pop3Folder);
-    when(pop3Folder.getMessages()).thenReturn(new Message[] {message});
-    when(pop3Folder.getUID(any())).thenReturn("10");
-    when(pop3DeleteEmail.getUidlDelete()).thenReturn("10");
+    when(store.getDefaultFolder()).thenReturn(pop3Folder);
+    when(pop3Folder.search(any())).thenReturn(new Message[] {message});
+    when(message.getHeader(any())).thenReturn(new String[] {"10"});
+    when(pop3DeleteEmail.getMessageId()).thenReturn("10");
     when(message.getContent()).thenReturn("string");
     when(message.isMimeType("text/plain")).thenReturn(true);
     when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);

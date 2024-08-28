@@ -11,24 +11,26 @@ import io.camunda.connector.email.core.ActionExecutor;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
-import io.camunda.connector.email.outbound.response.Pop3ListEmailsResponse;
-import io.camunda.connector.email.outbound.response.Pop3ReadEmailResponse;
+import io.camunda.connector.email.response.ListEmailsResponse;
+import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.search.*;
 import java.util.*;
+import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.eclipse.angus.mail.pop3.POP3Folder;
 
 public class JakartaActionExecutor implements ActionExecutor {
 
-  private final JakartaSessionFactory sessionFactory;
+  private final JakartaUtils sessionFactory;
 
-  private JakartaActionExecutor(JakartaSessionFactory sessionFactory) {
+  private JakartaActionExecutor(JakartaUtils sessionFactory) {
     this.sessionFactory = sessionFactory;
   }
 
-  public static JakartaActionExecutor create(JakartaSessionFactory sessionFactory) {
+  public static JakartaActionExecutor create(JakartaUtils sessionFactory) {
     return new JakartaActionExecutor(sessionFactory);
   }
 
@@ -39,10 +41,13 @@ public class JakartaActionExecutor implements ActionExecutor {
     Session session = sessionFactory.createSession(protocol.getConfiguration(), authentication);
     return switch (action) {
       case SmtpSendEmail smtpSendEmail -> smtpSendEmail(smtpSendEmail, authentication, session);
-      case ImapMoveEmails imapMoveEmails -> null;
-      case ImapListEmails imapListEmails -> null;
-      case ImapDeleteEmail imapDeleteEmail -> null;
-      case ImapReadEmail imapReadEmail -> null;
+      case ImapMoveEmails imapMoveEmails -> imapMoveEmails(imapMoveEmails, authentication, session);
+      case ImapListEmails imapListEmails -> imapListEmails(imapListEmails, authentication, session);
+      case ImapDeleteEmail imapDeleteEmail ->
+          imapDeleteEmail(imapDeleteEmail, authentication, session);
+      case ImapSearchEmails imapSearchEmails ->
+          imapSearchEmails(imapSearchEmails, authentication, session);
+      case ImapReadEmail imapReadEmail -> imapReadEmail(imapReadEmail, authentication, session);
       case Pop3DeleteEmail pop3DeleteEmail ->
           pop3DeleteEmail(pop3DeleteEmail, authentication, session);
       case Pop3ListEmails pop3ListEmails -> pop3ListEmails(pop3ListEmails, authentication, session);
@@ -50,26 +55,125 @@ public class JakartaActionExecutor implements ActionExecutor {
     };
   }
 
+  private Object imapSearchEmails(
+      ImapSearchEmails imapSearchEmails, Authentication authentication, Session session) {
+    return null;
+  }
+
+  private Object imapReadEmail(
+      ImapReadEmail imapReadEmail, Authentication authentication, Session session) {
+    try (Store store = session.getStore()) {
+      this.sessionFactory.connectStore(store, authentication);
+      try (IMAPFolder imapFolder = (IMAPFolder) store.getDefaultFolder()) {
+        Message[] messages = imapFolder.search(new MessageIDTerm(imapReadEmail.getMessageId()));
+        return Arrays.stream(messages)
+            .findFirst()
+            .map(Email::createEmail)
+            .map(
+                email ->
+                    new ReadEmailResponse(
+                        email.getMessageId(),
+                        email.getFrom(),
+                        email.getSubject(),
+                        email.getSize(),
+                        email.getBody().getBodyAsPlainText(),
+                        email.getBody().getBodyAsHtml()))
+            .orElseThrow(() -> new MessagingException("Could not find an email ID"));
+      }
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Object imapDeleteEmail(
+      ImapDeleteEmail imapDeleteEmail, Authentication authentication, Session session) {
+    try (Store store = session.getStore()) {
+      this.sessionFactory.connectStore(store, authentication);
+      try (IMAPFolder imapFolder = (IMAPFolder) store.getDefaultFolder()) {
+        Message[] messages = imapFolder.search(new MessageIDTerm(imapDeleteEmail.getMessageId()));
+        Arrays.stream(messages)
+            .findFirst()
+            .ifPresentOrElse(
+                this.sessionFactory::markAsDeleted,
+                () -> {
+                  throw new RuntimeException("No emails have been found with this ID");
+                });
+        return true;
+      }
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Object imapMoveEmails(
+      ImapMoveEmails imapMoveEmails, Authentication authentication, Session session) {
+    try (Store store = session.getStore()) {
+      this.sessionFactory.connectStore(store, authentication);
+      IMAPFolder sourceImapFolder = (IMAPFolder) store.getFolder(imapMoveEmails.getFromFolder());
+      if (!sourceImapFolder.exists()) throw new MessagingException("Source folder does not exist");
+      sourceImapFolder.open(Folder.READ_WRITE);
+      IMAPFolder targetImapFolder = (IMAPFolder) store.getFolder(imapMoveEmails.getToFolder());
+      if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
+      targetImapFolder.open(Folder.READ_WRITE);
+
+      Message[] messages =
+          sourceImapFolder.search(new MessageIDTerm(imapMoveEmails.getMessageId()));
+      sourceImapFolder.copyMessages(messages, targetImapFolder);
+      sourceImapFolder.setFlags(messages, new Flags(Flags.Flag.DELETED), true);
+
+      sourceImapFolder.close();
+      targetImapFolder.close();
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+    return null;
+  }
+
+  private Object imapListEmails(
+      ImapListEmails imapListEmails, Authentication authentication, Session session) {
+    try (Store store = session.getStore()) {
+      this.sessionFactory.connectStore(store, authentication);
+      try (IMAPFolder imapFolder =
+          (IMAPFolder)
+              (imapListEmails.getListEmailsFolder().isEmpty()
+                  ? store.getDefaultFolder()
+                  : store.getFolder(imapListEmails.getListEmailsFolder().get()))) {
+        imapFolder.open(Folder.READ_ONLY);
+        Message[] messages = imapFolder.getMessages(1, imapListEmails.getMaxToBeRead());
+        return Arrays.stream(messages)
+            .map(Email::createBodylessEmail)
+            .sorted(
+                this.sessionFactory.retrieveEmailComparator(
+                    imapListEmails.getSortField(), imapListEmails.getSortOrder()))
+            .map(
+                email ->
+                    new ListEmailsResponse(
+                        email.getMessageId(),
+                        email.getFrom(),
+                        email.getSubject(),
+                        email.getSize()));
+      }
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private Object pop3DeleteEmail(
       Pop3DeleteEmail pop3DeleteEmail, Authentication authentication, Session session) {
-    try {
-      try (Store store = session.getStore()) {
-        this.sessionFactory.connectStore(store, authentication);
-        try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
-          folder.open(Folder.READ_WRITE);
-          Message[] messages = folder.getMessages();
-          for (Message message : messages) {
-            String uid = folder.getUID(message);
-            if (uid.equals(pop3DeleteEmail.getUidlDelete())) {
-              message.setFlag(Flags.Flag.DELETED, true);
-              return true;
-            }
-          }
-        }
+    try (Store store = session.getStore()) {
+      this.sessionFactory.connectStore(store, authentication);
+      try (POP3Folder folder = (POP3Folder) store.getDefaultFolder()) {
+        folder.open(Folder.READ_WRITE);
+        Message[] messages = folder.search(new MessageIDTerm(pop3DeleteEmail.getMessageId()));
+        Arrays.stream(messages)
+            .findFirst()
+            .ifPresentOrElse(
+                this.sessionFactory::markAsDeleted,
+                () -> {
+                  throw new RuntimeException("No emails have been found with this ID");
+                });
+        return true;
       }
-      throw new RuntimeException(
-          "No corresponding POP3 email found for uidl %s"
-              .formatted(pop3DeleteEmail.getUidlDelete()));
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
@@ -80,27 +184,24 @@ public class JakartaActionExecutor implements ActionExecutor {
     try {
       try (Store store = session.getStore()) {
         this.sessionFactory.connectStore(store, authentication);
-        try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
+        try (POP3Folder folder = (POP3Folder) store.getDefaultFolder()) {
           folder.open(Folder.READ_WRITE);
-          Message[] messages = folder.getMessages();
-          for (Message message : messages) {
-            String uid = folder.getUID(message);
-            if (uid.equals(pop3ReadEmail.getUidlRead())) {
-              Email email = Email.createEmail(message);
-              if (pop3ReadEmail.isDeleteOnRead()) message.setFlag(Flags.Flag.DELETED, true);
-              return new Pop3ReadEmailResponse(
-                  folder.getUID(message),
-                  email.getFrom(),
-                  email.getSubject(),
-                  email.getSize(),
-                  email.getBody().getBodyAsPlainText(),
-                  email.getBody().getBodyAsHtml());
-            }
-          }
+          Message[] messages = folder.search(new MessageIDTerm(pop3ReadEmail.getMessageId()));
+          return Arrays.stream(messages)
+              .findFirst()
+              .map(Email::createEmail)
+              .map(
+                  email ->
+                      new ReadEmailResponse(
+                          email.getMessageId(),
+                          email.getFrom(),
+                          email.getSubject(),
+                          email.getSize(),
+                          email.getBody().getBodyAsPlainText(),
+                          email.getBody().getBodyAsHtml()))
+              .orElseThrow(() -> new MessagingException("No emails have been found with this ID"));
         }
       }
-      throw new RuntimeException(
-          "No corresponding POP3 email found for uidl %s".formatted(pop3ReadEmail.getUidlRead()));
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
@@ -111,18 +212,19 @@ public class JakartaActionExecutor implements ActionExecutor {
     try {
       try (Store store = session.getStore()) {
         this.sessionFactory.connectStore(store, authentication);
-        try (POP3Folder folder = (POP3Folder) store.getFolder("INBOX")) {
+        try (POP3Folder folder = (POP3Folder) store.getDefaultFolder()) {
           folder.open(Folder.READ_ONLY);
           Message[] messages = folder.getMessages(1, pop3ListEmails.getMaxToBeRead());
-          List<Pop3ListEmailsResponse> response = new ArrayList<>();
-          for (Message message : messages) {
-            Email email = Email.createBodylessEmail(message);
-            Pop3ListEmailsResponse pop3ListEmailsResponse =
-                new Pop3ListEmailsResponse(
-                    folder.getUID(message), email.getFrom(), email.getSubject(), email.getSize());
-            response.add(pop3ListEmailsResponse);
-          }
-          return response;
+          return Arrays.stream(messages)
+              .map(Email::createBodylessEmail)
+              .map(
+                  email ->
+                      new ListEmailsResponse(
+                          email.getMessageId(),
+                          email.getFrom(),
+                          email.getSubject(),
+                          email.getSize()))
+              .toList();
         }
       }
     } catch (MessagingException e) {
@@ -148,8 +250,7 @@ public class JakartaActionExecutor implements ActionExecutor {
         transport.sendMessage(message, message.getAllRecipients());
       }
     } catch (MessagingException e) {
-      e.printStackTrace();
-      return false;
+      throw new RuntimeException(e);
     }
     return true;
   }

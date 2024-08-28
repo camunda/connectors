@@ -20,6 +20,7 @@ public class Email {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Email.class);
   private final EmailBody body;
+  private final String messageId;
   private final String subject;
   private final List<String> from;
   private final List<String> to;
@@ -30,6 +31,7 @@ public class Email {
 
   private Email(
       EmailBody body,
+      String messageId,
       String subject,
       List<String> from,
       List<String> to,
@@ -38,6 +40,7 @@ public class Email {
       OffsetDateTime receivedAt,
       Integer size) {
     this.body = body;
+    this.messageId = messageId;
     this.subject = subject;
     this.from = from;
     this.to = to;
@@ -78,8 +81,17 @@ public class Email {
               .map(Date::toInstant)
               .map(instant -> instant.atOffset(ZoneOffset.UTC))
               .orElse(null);
+      String messageId = stripMessageId(message.getHeader("Message-ID")[0]);
       return new Email(
-          null, message.getSubject(), from, to, cc, sentAt, receivedAt, message.getSize());
+          null,
+          messageId,
+          message.getSubject(),
+          from,
+          to,
+          cc,
+          sentAt,
+          receivedAt,
+          message.getSize());
 
     } catch (MessagingException e) {
       throw new RuntimeException(e);
@@ -101,6 +113,7 @@ public class Email {
           };
       return new Email(
           emailBody,
+          email.getMessageId(),
           email.getSubject(),
           email.getFrom(),
           email.getTo(),
@@ -139,6 +152,15 @@ public class Email {
     } catch (MessagingException | IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private static String stripMessageId(String messageId) {
+    if (messageId == null) return null;
+    return messageId.trim().replaceAll("[<>]", "");
+  }
+
+  public String getMessageId() {
+    return messageId;
   }
 
   public OffsetDateTime getReceivedAt() {

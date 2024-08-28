@@ -11,14 +11,15 @@ import io.camunda.connector.email.config.Configuration;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;
 import io.camunda.connector.email.config.SmtpConfig;
-import io.camunda.connector.email.core.SessionFactory;
-import jakarta.mail.MessagingException;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.Transport;
+import io.camunda.connector.email.outbound.protocols.actions.SortField;
+import io.camunda.connector.email.outbound.protocols.actions.SortOrder;
+import jakarta.mail.*;
+import jakarta.validation.constraints.NotNull;
+
+import java.util.Comparator;
 import java.util.Properties;
 
-public class JakartaSessionFactory implements SessionFactory<Session> {
+public class JakartaUtils {
   public Session createSession(Configuration configuration, Authentication authentication) {
     return Session.getInstance(
         switch (configuration) {
@@ -43,6 +44,22 @@ public class JakartaSessionFactory implements SessionFactory<Session> {
           authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
           authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
     else transport.connect();
+  }
+
+  public void markAsDeleted(Message message) {
+    try {
+      message.setFlag(Flags.Flag.DELETED, true);
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void markAsSeen(Message message) {
+    try {
+      message.setFlag(Flags.Flag.SEEN, true);
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private Properties createProperties(SmtpConfig smtp, Boolean securedAuth) {
@@ -115,5 +132,16 @@ public class JakartaSessionFactory implements SessionFactory<Session> {
       }
     }
     return properties;
+  }
+
+  public Comparator<Email> retrieveEmailComparator(
+      @NotNull SortField sortField, @NotNull SortOrder sortOrder) {
+    return (email1, email2) ->
+        switch (sortField) {
+          case RECEIVED_DATE ->
+              sortOrder.order(email1.getReceivedAt().compareTo(email2.getReceivedAt()));
+          case SENT_DATE -> sortOrder.order(email1.getSentAt().compareTo(email2.getSentAt()));
+          case SIZE -> sortOrder.order(email1.getSize().compareTo(email2.getSize()));
+        };
   }
 }

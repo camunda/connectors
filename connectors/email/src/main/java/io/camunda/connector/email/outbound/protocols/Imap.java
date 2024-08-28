@@ -9,6 +9,7 @@ package io.camunda.connector.email.outbound.protocols;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.email.config.Configuration;
+import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.outbound.protocols.actions.Action;
 import io.camunda.connector.email.outbound.protocols.actions.ImapAction;
 import io.camunda.connector.email.outbound.protocols.actions.ImapListEmails;
@@ -29,6 +30,10 @@ public final class Imap implements Protocol {
   @NestedProperties(addNestedPath = false)
   private ImapAction imapAction;
 
+  @Valid
+  @NestedProperties(addNestedPath = false)
+  private ImapConfig imapConfig;
+
   @Override
   public Action getProtocolAction() {
     return imapAction;
@@ -36,6 +41,6 @@ public final class Imap implements Protocol {
 
   @Override
   public Configuration getConfiguration() {
-    return null;
+    return imapConfig;
   }
 }

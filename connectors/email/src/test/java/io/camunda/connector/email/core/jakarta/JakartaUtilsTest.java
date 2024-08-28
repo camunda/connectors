@@ -19,7 +19,7 @@ import io.camunda.connector.email.outbound.protocols.Smtp;
 import jakarta.mail.Session;
 import org.junit.jupiter.api.Test;
 
-class JakartaSessionFactoryTest {
+class JakartaUtilsTest {
 
   @Test
   void testCreateSessionWithSmtpAndTLS() {
@@ -33,7 +33,7 @@ class JakartaSessionFactoryTest {
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
 
-    JakartaSessionFactory factory = new JakartaSessionFactory();
+    JakartaUtils factory = new JakartaUtils();
 
     // When
     Session session = factory.createSession(smtp.getSmtpConfig(), auth);
@@ -58,7 +58,7 @@ class JakartaSessionFactoryTest {
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
 
-    JakartaSessionFactory factory = new JakartaSessionFactory();
+    JakartaUtils factory = new JakartaUtils();
 
     // When
     Session session = factory.createSession(smtp.getSmtpConfig(), auth);
@@ -84,7 +84,7 @@ class JakartaSessionFactoryTest {
     Authentication auth = mock(NoAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(false);
 
-    JakartaSessionFactory factory = new JakartaSessionFactory();
+    JakartaUtils factory = new JakartaUtils();
 
     // When
     Session session = factory.createSession(smtp.getSmtpConfig(), auth);
@@ -110,7 +110,7 @@ class JakartaSessionFactoryTest {
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
 
-    JakartaSessionFactory factory = new JakartaSessionFactory();
+    JakartaUtils factory = new JakartaUtils();
 
     // When
     Session session = factory.createSession(smtp.getSmtpConfig(), auth);

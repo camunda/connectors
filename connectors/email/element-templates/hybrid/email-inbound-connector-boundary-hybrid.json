@@ -181,10 +181,7 @@
   }, {
     "id" : "data.folderToListen",
     "label" : "Folder to listen",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "optional" : true,
     "feel" : "optional",
     "group" : "listenerInfos",
     "binding" : {

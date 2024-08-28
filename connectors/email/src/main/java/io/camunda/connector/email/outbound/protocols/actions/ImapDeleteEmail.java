@@ -12,16 +12,24 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "deleteEmailImap", label = "XXXXXXXXXX")
+@TemplateSubType(id = "deleteEmailImap", label = "Delete an email using IMAP")
 public final class ImapDeleteEmail implements ImapAction {
   @TemplateProperty(
-      label = "test",
+      label = "Imap UID",
       group = "deleteEmailImap",
-      id = "data.test7",
+      id = "imapMessageIdDelete",
       description = "",
       feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.test7"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.messageId"))
   @Valid
   @NotNull
-  String test;
+  String messageId;
+
+  public @Valid @NotNull String getMessageId() {
+    return messageId;
+  }
+
+  public void setMessageId(@Valid @NotNull String messageId) {
+    this.messageId = messageId;
+  }
 }

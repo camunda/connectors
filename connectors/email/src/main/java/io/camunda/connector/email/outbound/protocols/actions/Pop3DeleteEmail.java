@@ -16,18 +16,18 @@ public final class Pop3DeleteEmail implements Pop3Action {
   @TemplateProperty(
       label = "UIDL of email to delete",
       group = "deleteEmailPop3",
-      id = "pop3uidlDelete",
+      id = "pop3MessageIdDelete",
       description = "",
       feel = Property.FeelMode.required,
-      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.uidlDelete"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
   @NotNull
-  String uidlDelete;
+  String messageId;
 
-  public @NotNull String getUidlDelete() {
-    return uidlDelete;
+  public @NotNull String getMessageId() {
+    return messageId;
   }
 
-  public void setUidlDelete(@NotNull String uidlDelete) {
-    this.uidlDelete = uidlDelete;
+  public void setMessageId(@NotNull String messageId) {
+    this.messageId = messageId;
   }
 }

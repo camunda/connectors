@@ -12,6 +12,7 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.util.Optional;
 
 public class EmailListenerData {
 
@@ -24,9 +25,10 @@ public class EmailListenerData {
       group = "listenerInfos",
       id = "data.folderToListen",
       description = "",
+      optional = true,
       feel = Property.FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.folderToListen"))
-  private @Valid @NotNull Object folderToListen;
+  private Object folderToListen;
 
   @TemplateProperty(
       label = "Trigger on new message",
@@ -63,8 +65,8 @@ public class EmailListenerData {
     this.imapConfig = imapConfig;
   }
 
-  public @Valid @NotNull Object getFolderToListen() {
-    return folderToListen;
+  public Optional<Object> getFolderToListen() {
+    return Optional.ofNullable(folderToListen);
   }
 
   public void setFolderToListen(@Valid @NotNull String folderToListen) {

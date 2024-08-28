@@ -11,7 +11,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.email.core.jakarta.JakartaEmailListener;
-import io.camunda.connector.email.core.jakarta.JakartaSessionFactory;
+import io.camunda.connector.email.core.jakarta.JakartaUtils;
 import io.camunda.connector.email.inbound.model.EmailProperties;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -51,12 +51,24 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 public class EmailConnectorExecutable
     implements InboundConnectorExecutable<InboundConnectorContext> {
 
+  private final JakartaEmailListener jakartaEmailListener;
+
+  private EmailConnectorExecutable(JakartaEmailListener jakartaEmailListener) {
+    this.jakartaEmailListener = jakartaEmailListener;
+  }
+
+  public EmailConnectorExecutable() {
+    this(JakartaEmailListener.create(new JakartaUtils()));
+  }
+
   @Override
   public void activate(InboundConnectorContext context) {
-    JakartaEmailListener.create(context, new JakartaSessionFactory()).startListener();
+    this.jakartaEmailListener.startListener(context);
     context.reportHealth(Health.up());
   }
 
   @Override
-  public void deactivate() {}
+  public void deactivate() {
+    this.jakartaEmailListener.stopListener();
+  }
 }

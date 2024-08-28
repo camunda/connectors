@@ -17,13 +17,13 @@ public final class Pop3ReadEmail implements Pop3Action {
   @TemplateProperty(
       label = "UIDL of email to read",
       group = "readEmailPop3",
-      id = "pop3uidlRead",
+      id = "pop3MessageIdRead",
       description = "",
       feel = Property.FeelMode.required,
-      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.uidlRead"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
   @Valid
   @NotNull
-  private String uidlRead;
+  private String messageId;
 
   @TemplateProperty(
       label = "Delete after reading",
@@ -42,11 +42,11 @@ public final class Pop3ReadEmail implements Pop3Action {
     this.deleteOnRead = deleteOnRead;
   }
 
-  public @Valid @NotNull String getUidlRead() {
-    return uidlRead;
+  public @Valid @NotNull String getMessageId() {
+    return messageId;
   }
 
-  public void setUidlRead(@Valid @NotNull String uidlRead) {
-    this.uidlRead = uidlRead;
+  public void setMessageId(@Valid @NotNull String messageId) {
+    this.messageId = messageId;
   }
 }

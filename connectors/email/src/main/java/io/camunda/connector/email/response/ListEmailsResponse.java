@@ -4,14 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.outbound.response;
+package io.camunda.connector.email.response;
 
 import java.util.List;
 
-public record Pop3ReadEmailResponse(
-    String uidl,
-    List<String> fromAddresses,
-    String subject,
-    Integer size,
-    String plainTextBody,
-    String htmlBody) {}
+public record ListEmailsResponse(
+    String uid, List<String> fromAddresses, String subject, Integer size) {}
