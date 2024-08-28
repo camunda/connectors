@@ -98,7 +98,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
               job,
               commandExceptionHandlingStrategy,
               metricsRecorder,
-          MAX_ZEEBE_COMMAND_RETRIES)
+              MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }
   }
@@ -116,7 +116,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
               job,
               commandExceptionHandlingStrategy,
               metricsRecorder,
-          MAX_ZEEBE_COMMAND_RETRIES)
+              MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }
   }
@@ -137,7 +137,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
               job,
               commandExceptionHandlingStrategy,
               metricsRecorder,
-          MAX_ZEEBE_COMMAND_RETRIES)
+              MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }
   }

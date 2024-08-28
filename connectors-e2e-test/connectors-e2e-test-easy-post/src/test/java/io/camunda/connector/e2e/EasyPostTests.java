@@ -38,7 +38,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false",
-        "operate.client.profile=simple"
+      "operate.client.profile=simple"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -71,8 +71,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostCreateAddressTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariable("addressId", "expectedAddressId");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("addressId", "expectedAddressId");
   }
 
   @Test
@@ -94,8 +93,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostCreateParcelTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariable("parcelId", "expectedParcelId");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("parcelId", "expectedParcelId");
   }
 
   @Test
@@ -117,8 +115,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostCreateShipmentTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariable("shipmentId", "shp_123456789");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("shipmentId", "shp_123456789");
   }
 
   @Test
@@ -161,8 +158,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostVerifyAddressTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariable("addressDeliverySuccess", true);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("addressDeliverySuccess", true);
   }
 
   @Test
@@ -179,8 +175,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostRetrieveTrackerTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariable("trackerStatus", "pre_transit");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("trackerStatus", "pre_transit");
   }
 
   private ElementTemplate getElementTemplateWithBasicAuthForOperationType(String operationType) {
