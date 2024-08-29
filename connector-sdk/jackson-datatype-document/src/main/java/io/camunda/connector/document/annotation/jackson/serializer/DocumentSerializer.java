@@ -19,9 +19,12 @@ package io.camunda.connector.document.annotation.jackson.serializer;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.document.Document;
 import io.camunda.document.operation.DocumentOperationExecutor;
+import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.IOException;
+import java.util.Optional;
 
 public class DocumentSerializer extends JsonSerializer<Document> {
 
@@ -37,6 +40,20 @@ public class DocumentSerializer extends JsonSerializer<Document> {
       throws IOException {
 
     var reference = document.reference();
-    jsonGenerator.writeObject(reference);
+    if (!(reference instanceof CamundaDocumentReference camundaReference)) {
+      throw new IllegalArgumentException("Unsupported document reference type: " + reference);
+    }
+    final CamundaDocumentReferenceModel model;
+    if (camundaReference instanceof CamundaDocumentReferenceModel camundaModel) {
+      model = camundaModel;
+    } else {
+      model =
+          new CamundaDocumentReferenceModel(
+              camundaReference.storeId(),
+              camundaReference.documentId(),
+              camundaReference.metadata().getKeys(),
+              Optional.empty());
+    }
+    jsonGenerator.writeObject(model);
   }
 }
