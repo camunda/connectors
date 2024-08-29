@@ -25,6 +25,7 @@ public final class ImapMoveEmails implements ImapAction {
   @Valid
   @NotNull
   String messageId;
+
   @TemplateProperty(
       label = "Source folder",
       group = "moveEmailsImap",
@@ -35,6 +36,7 @@ public final class ImapMoveEmails implements ImapAction {
   @Valid
   @NotNull
   String fromFolder;
+
   @TemplateProperty(
       label = "Target folder",
       group = "moveEmailsImap",
@@ -69,5 +71,4 @@ public final class ImapMoveEmails implements ImapAction {
   public void setFromFolder(@Valid @NotNull String fromFolder) {
     this.fromFolder = fromFolder;
   }
-
 }

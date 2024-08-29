@@ -40,6 +40,7 @@ public final class ImapListEmails implements ImapAction {
   @TemplateProperty(
       label = "Sort emails by",
       description = "",
+      id = "imapSortField",
       group = "listEmailImap",
       feel = Property.FeelMode.required,
       type = TemplateProperty.PropertyType.Dropdown,
@@ -58,6 +59,7 @@ public final class ImapListEmails implements ImapAction {
       label = "Sort order",
       description = "",
       group = "listEmailImap",
+      id = "imapSortOrder",
       feel = Property.FeelMode.required,
       type = TemplateProperty.PropertyType.Dropdown,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),

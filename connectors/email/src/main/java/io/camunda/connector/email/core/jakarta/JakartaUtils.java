@@ -15,7 +15,6 @@ import io.camunda.connector.email.outbound.protocols.actions.SortField;
 import io.camunda.connector.email.outbound.protocols.actions.SortOrder;
 import jakarta.mail.*;
 import jakarta.validation.constraints.NotNull;
-
 import java.util.Comparator;
 import java.util.Properties;
 

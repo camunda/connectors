@@ -217,6 +217,9 @@ public class JakartaActionExecutor implements ActionExecutor {
           Message[] messages = folder.getMessages(1, pop3ListEmails.getMaxToBeRead());
           return Arrays.stream(messages)
               .map(Email::createBodylessEmail)
+              .sorted(
+                  this.sessionFactory.retrieveEmailComparator(
+                      pop3ListEmails.getSortField(), pop3ListEmails.getSortOrder()))
               .map(
                   email ->
                       new ListEmailsResponse(

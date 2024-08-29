@@ -15,18 +15,12 @@ import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Pop3;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.Smtp;
-import io.camunda.connector.email.outbound.protocols.actions.Pop3DeleteEmail;
-import io.camunda.connector.email.outbound.protocols.actions.Pop3ListEmails;
-import io.camunda.connector.email.outbound.protocols.actions.Pop3ReadEmail;
-import io.camunda.connector.email.outbound.protocols.actions.SmtpSendEmail;
+import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.email.response.ListEmailsResponse;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import org.eclipse.angus.mail.pop3.POP3Folder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -113,6 +107,7 @@ class JakartaExecutorTest {
     when(pop3Folder.getMessages(1, 10)).thenReturn(new Message[] {message});
 
     when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(sessionFactory.retrieveEmailComparator(any(), any())).thenReturn((o1, o2) -> 1);
     when(message.getHeader(any())).thenReturn(new String[] {"id"});
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
