@@ -25,8 +25,10 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.document.Document;
+import io.camunda.document.DocumentMetadata;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperationExecutor;
+import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import java.util.Map;
 import java.util.Optional;
 import org.json.JSONException;
@@ -45,8 +47,29 @@ public class DocumentSerializationTest {
           .registerModule(new Jdk8Module());
 
   @Test
-  void sourceTypeDocument() throws JsonProcessingException, JSONException {
+  void sourceTypeDocument_jacksonInternalModel() throws JsonProcessingException, JSONException {
     var ref = new CamundaDocumentReferenceModel("test", "test", Map.of(), Optional.empty());
+    var document = mock(Document.class);
+    when(document.reference()).thenReturn(ref);
+    var source = new SourceTypeDocument(document);
+    var result = objectMapper.writeValueAsString(source);
+    var expectedResult =
+        """
+        {
+          "document": {
+            "documentType": "camunda",
+            "storeId": "test",
+            "documentId": "test",
+            "metadata": {}
+          }
+        }
+        """;
+    JSONAssert.assertEquals(expectedResult, result, true);
+  }
+
+  @Test
+  void sourceTypeDocument_connectorSdkModel() throws JsonProcessingException, JSONException {
+    var ref = new CamundaDocumentReferenceImpl("test", "test", new DocumentMetadata(Map.of()));
     var document = mock(Document.class);
     when(document.reference()).thenReturn(ref);
     var source = new SourceTypeDocument(document);
