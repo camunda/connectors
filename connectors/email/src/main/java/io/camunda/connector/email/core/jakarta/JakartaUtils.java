@@ -11,7 +11,8 @@ import io.camunda.connector.email.config.Configuration;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;
 import io.camunda.connector.email.config.SmtpConfig;
-import io.camunda.connector.email.outbound.protocols.actions.SortField;
+import io.camunda.connector.email.outbound.protocols.actions.SortFieldImap;
+import io.camunda.connector.email.outbound.protocols.actions.SortFieldPop3;
 import io.camunda.connector.email.outbound.protocols.actions.SortOrder;
 import jakarta.mail.*;
 import jakarta.validation.constraints.NotNull;
@@ -134,9 +135,18 @@ public class JakartaUtils {
   }
 
   public Comparator<Email> retrieveEmailComparator(
-      @NotNull SortField sortField, @NotNull SortOrder sortOrder) {
+      @NotNull SortFieldPop3 sortFieldPop3, @NotNull SortOrder sortOrder) {
     return (email1, email2) ->
-        switch (sortField) {
+        switch (sortFieldPop3) {
+          case SENT_DATE -> sortOrder.order(email1.getSentAt().compareTo(email2.getSentAt()));
+          case SIZE -> sortOrder.order(email1.getSize().compareTo(email2.getSize()));
+        };
+  }
+
+  public Comparator<Email> retrieveEmailComparator(
+      @NotNull SortFieldImap sortFieldImap, @NotNull SortOrder sortOrder) {
+    return (email1, email2) ->
+        switch (sortFieldImap) {
           case RECEIVED_DATE ->
               sortOrder.order(email1.getReceivedAt().compareTo(email2.getReceivedAt()));
           case SENT_DATE -> sortOrder.order(email1.getSentAt().compareTo(email2.getSentAt()));

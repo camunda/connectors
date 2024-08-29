@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
-public enum SortField {
+public enum SortFieldImap {
   RECEIVED_DATE,
   SENT_DATE,
   SIZE;

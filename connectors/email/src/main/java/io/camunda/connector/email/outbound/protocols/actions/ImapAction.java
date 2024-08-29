@@ -16,4 +16,4 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     defaultValue = "listEmailImap")
 @TemplateSubType(id = "imapAction", label = "IMAP Action")
 public sealed interface ImapAction extends Action
-    permits ImapDeleteEmail, ImapListEmails, ImapMoveEmails, ImapReadEmail, ImapSearchEmails {}
+    permits ImapDeleteEmail, ImapListEmails, ImapMoveEmail, ImapReadEmail, ImapSearchEmails {}

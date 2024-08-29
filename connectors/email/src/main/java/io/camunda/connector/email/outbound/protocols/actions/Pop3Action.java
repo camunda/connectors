@@ -16,4 +16,4 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     defaultValue = "listEmailsPop3")
 @TemplateSubType(id = "data.pop3ActionDiscriminator", label = "POP3 Action")
 public sealed interface Pop3Action extends Action
-    permits Pop3DeleteEmail, Pop3ListEmails, Pop3ReadEmail {}
+    permits Pop3DeleteEmail, Pop3ListEmails, Pop3ReadEmail, Pop3SearchEmails {}

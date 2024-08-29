@@ -12,12 +12,12 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "moveEmailsImap", label = "Move email")
-public final class ImapMoveEmails implements ImapAction {
+@TemplateSubType(id = "moveEmailImap", label = "Move email")
+public final class ImapMoveEmail implements ImapAction {
 
   @TemplateProperty(
       label = "Message ID",
-      group = "moveEmailsImap",
+      group = "moveEmailImap",
       id = "imapMessageIdMove",
       description = "",
       feel = Property.FeelMode.optional,
@@ -28,7 +28,7 @@ public final class ImapMoveEmails implements ImapAction {
 
   @TemplateProperty(
       label = "Source folder",
-      group = "moveEmailsImap",
+      group = "moveEmailImap",
       id = "data.fromFolder",
       description = "",
       feel = Property.FeelMode.optional,
@@ -39,7 +39,7 @@ public final class ImapMoveEmails implements ImapAction {
 
   @TemplateProperty(
       label = "Target folder",
-      group = "moveEmailsImap",
+      group = "moveEmailImap",
       id = "data.toFolder",
       description = "",
       feel = Property.FeelMode.optional,

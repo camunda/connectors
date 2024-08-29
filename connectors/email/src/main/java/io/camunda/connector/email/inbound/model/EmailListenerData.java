@@ -12,7 +12,6 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import java.util.Optional;
 
 public class EmailListenerData {
 
@@ -65,8 +64,8 @@ public class EmailListenerData {
     this.imapConfig = imapConfig;
   }
 
-  public Optional<Object> getFolderToListen() {
-    return Optional.ofNullable(folderToListen);
+  public Object getFolderToListen() {
+    return folderToListen;
   }
 
   public void setFolderToListen(@Valid @NotNull String folderToListen) {

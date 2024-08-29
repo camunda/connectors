@@ -24,7 +24,14 @@ public final class Imap implements Protocol {
       use = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
       property = "action")
-  @JsonSubTypes(value = {@JsonSubTypes.Type(value = ImapListEmails.class, name = "listEmailImap")})
+  @JsonSubTypes(
+      value = {
+        @JsonSubTypes.Type(value = ImapListEmails.class, name = "listEmailImap"),
+        @JsonSubTypes.Type(value = ImapListEmails.class, name = "searchEmailsImap"),
+        @JsonSubTypes.Type(value = ImapListEmails.class, name = "moveEmailImap"),
+        @JsonSubTypes.Type(value = ImapListEmails.class, name = "readEmailImap"),
+        @JsonSubTypes.Type(value = ImapListEmails.class, name = "deleteEmailImap")
+      })
   @Valid
   @NotNull
   @NestedProperties(addNestedPath = false)

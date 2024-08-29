@@ -53,7 +53,7 @@ public final class ImapListEmails implements ImapAction {
       },
       binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.sortField"))
   @NotNull
-  private SortField sortField;
+  private SortFieldImap sortField;
 
   @TemplateProperty(
       label = "Sort order",
@@ -88,19 +88,19 @@ public final class ImapListEmails implements ImapAction {
     this.listEmailsFolder = listEmailsFolder;
   }
 
-  public @NotNull SortField getSortField() {
-    return sortField;
-  }
-
-  public void setSortField(@NotNull SortField sortField) {
-    this.sortField = sortField;
-  }
-
   public @NotNull SortOrder getSortOrder() {
     return sortOrder;
   }
 
   public void setSortOrder(@NotNull SortOrder sortOrder) {
     this.sortOrder = sortOrder;
+  }
+
+  public @NotNull SortFieldImap getSortFieldImap() {
+    return sortField;
+  }
+
+  public void setSortFieldImap(@NotNull SortFieldImap sortField) {
+    this.sortField = sortField;
   }
 }

@@ -10,16 +10,15 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
-@TemplateSubType(id = "searchEmailsImap", label = "Search an email using IMAP")
-public final class ImapSearchEmails implements ImapAction {
-
+@TemplateSubType(id = "searchEmailsPop3", label = "Search an email using POP3")
+public final class Pop3SearchEmails implements Pop3Action {
   @TemplateProperty(
       label = "Search criteria",
-      group = "searchEmailsImap",
-      id = "searchStringEmailImap",
+      group = "searchEmailsPop3",
+      id = "searchStringEmailPop3",
       description = "",
       feel = Property.FeelMode.required,
       optional = true,
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.criteria"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.criteria"))
   private Object criteria;
 }

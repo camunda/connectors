@@ -11,6 +11,7 @@ import io.camunda.connector.email.core.ActionExecutor;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
+import io.camunda.connector.email.response.DeleteEmailResponse;
 import io.camunda.connector.email.response.ListEmailsResponse;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
@@ -41,7 +42,7 @@ public class JakartaActionExecutor implements ActionExecutor {
     Session session = sessionFactory.createSession(protocol.getConfiguration(), authentication);
     return switch (action) {
       case SmtpSendEmail smtpSendEmail -> smtpSendEmail(smtpSendEmail, authentication, session);
-      case ImapMoveEmails imapMoveEmails -> imapMoveEmails(imapMoveEmails, authentication, session);
+      case ImapMoveEmail imapMoveEmail -> imapMoveEmails(imapMoveEmail, authentication, session);
       case ImapListEmails imapListEmails -> imapListEmails(imapListEmails, authentication, session);
       case ImapDeleteEmail imapDeleteEmail ->
           imapDeleteEmail(imapDeleteEmail, authentication, session);
@@ -52,6 +53,7 @@ public class JakartaActionExecutor implements ActionExecutor {
           pop3DeleteEmail(pop3DeleteEmail, authentication, session);
       case Pop3ListEmails pop3ListEmails -> pop3ListEmails(pop3ListEmails, authentication, session);
       case Pop3ReadEmail pop3ReadEmail -> pop3ReadEmail(pop3ReadEmail, authentication, session);
+      case Pop3SearchEmails pop3SearchEmails -> null;
     };
   }
 
@@ -91,14 +93,13 @@ public class JakartaActionExecutor implements ActionExecutor {
       this.sessionFactory.connectStore(store, authentication);
       try (IMAPFolder imapFolder = (IMAPFolder) store.getDefaultFolder()) {
         Message[] messages = imapFolder.search(new MessageIDTerm(imapDeleteEmail.getMessageId()));
-        Arrays.stream(messages)
-            .findFirst()
-            .ifPresentOrElse(
-                this.sessionFactory::markAsDeleted,
-                () -> {
-                  throw new RuntimeException("No emails have been found with this ID");
-                });
-        return true;
+        Message message =
+            Arrays.stream(messages)
+                .findFirst()
+                .orElseThrow(
+                    () -> new MessagingException("No emails have been found with this ID"));
+        this.sessionFactory.markAsDeleted(message);
+        return new DeleteEmailResponse(Email.createBodylessEmail(message).getMessageId(), true);
       }
     } catch (MessagingException e) {
       throw new RuntimeException(e);
@@ -106,18 +107,17 @@ public class JakartaActionExecutor implements ActionExecutor {
   }
 
   private Object imapMoveEmails(
-      ImapMoveEmails imapMoveEmails, Authentication authentication, Session session) {
+      ImapMoveEmail imapMoveEmail, Authentication authentication, Session session) {
     try (Store store = session.getStore()) {
       this.sessionFactory.connectStore(store, authentication);
-      IMAPFolder sourceImapFolder = (IMAPFolder) store.getFolder(imapMoveEmails.getFromFolder());
+      IMAPFolder sourceImapFolder = (IMAPFolder) store.getFolder(imapMoveEmail.getFromFolder());
       if (!sourceImapFolder.exists()) throw new MessagingException("Source folder does not exist");
       sourceImapFolder.open(Folder.READ_WRITE);
-      IMAPFolder targetImapFolder = (IMAPFolder) store.getFolder(imapMoveEmails.getToFolder());
+      IMAPFolder targetImapFolder = (IMAPFolder) store.getFolder(imapMoveEmail.getToFolder());
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
       targetImapFolder.open(Folder.READ_WRITE);
 
-      Message[] messages =
-          sourceImapFolder.search(new MessageIDTerm(imapMoveEmails.getMessageId()));
+      Message[] messages = sourceImapFolder.search(new MessageIDTerm(imapMoveEmail.getMessageId()));
       sourceImapFolder.copyMessages(messages, targetImapFolder);
       sourceImapFolder.setFlags(messages, new Flags(Flags.Flag.DELETED), true);
 
@@ -139,19 +139,17 @@ public class JakartaActionExecutor implements ActionExecutor {
                   ? store.getDefaultFolder()
                   : store.getFolder(imapListEmails.getListEmailsFolder().get()))) {
         imapFolder.open(Folder.READ_ONLY);
-        Message[] messages = imapFolder.getMessages(1, imapListEmails.getMaxToBeRead());
-        return Arrays.stream(messages)
+        return Arrays.stream(imapFolder.getMessages())
             .map(Email::createBodylessEmail)
             .sorted(
                 this.sessionFactory.retrieveEmailComparator(
-                    imapListEmails.getSortField(), imapListEmails.getSortOrder()))
+                    imapListEmails.getSortFieldImap(), imapListEmails.getSortOrder()))
             .map(
                 email ->
                     new ListEmailsResponse(
-                        email.getMessageId(),
-                        email.getFrom(),
-                        email.getSubject(),
-                        email.getSize()));
+                        email.getMessageId(), email.getFrom(), email.getSubject(), email.getSize()))
+            .limit(imapListEmails.getMaxToBeRead())
+            .toList();
       }
     } catch (MessagingException e) {
       throw new RuntimeException(e);
@@ -165,14 +163,13 @@ public class JakartaActionExecutor implements ActionExecutor {
       try (POP3Folder folder = (POP3Folder) store.getDefaultFolder()) {
         folder.open(Folder.READ_WRITE);
         Message[] messages = folder.search(new MessageIDTerm(pop3DeleteEmail.getMessageId()));
-        Arrays.stream(messages)
-            .findFirst()
-            .ifPresentOrElse(
-                this.sessionFactory::markAsDeleted,
-                () -> {
-                  throw new RuntimeException("No emails have been found with this ID");
-                });
-        return true;
+        Message message =
+            Arrays.stream(messages)
+                .findFirst()
+                .orElseThrow(
+                    () -> new MessagingException("No emails have been found with this ID"));
+        this.sessionFactory.markAsDeleted(message);
+        return new DeleteEmailResponse(Email.createBodylessEmail(message).getMessageId(), true);
       }
     } catch (MessagingException e) {
       throw new RuntimeException(e);
@@ -214,8 +211,7 @@ public class JakartaActionExecutor implements ActionExecutor {
         this.sessionFactory.connectStore(store, authentication);
         try (POP3Folder folder = (POP3Folder) store.getDefaultFolder()) {
           folder.open(Folder.READ_ONLY);
-          Message[] messages = folder.getMessages(1, pop3ListEmails.getMaxToBeRead());
-          return Arrays.stream(messages)
+          return Arrays.stream(folder.getMessages())
               .map(Email::createBodylessEmail)
               .sorted(
                   this.sessionFactory.retrieveEmailComparator(
@@ -227,6 +223,7 @@ public class JakartaActionExecutor implements ActionExecutor {
                           email.getFrom(),
                           email.getSubject(),
                           email.getSize()))
+              .limit(pop3ListEmails.getMaxToBeRead())
               .toList();
         }
       }

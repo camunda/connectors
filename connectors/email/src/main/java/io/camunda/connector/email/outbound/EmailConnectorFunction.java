@@ -32,12 +32,14 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "imapAction", label = "IMAP Action"),
       @ElementTemplate.PropertyGroup(id = "sendEmailSmtp", label = "Send Email using SMTP"),
       @ElementTemplate.PropertyGroup(id = "listEmailsPop3", label = "List Emails using POP3"),
+      @ElementTemplate.PropertyGroup(id = "searchEmailsPop3", label = "Search Emails using POP3"),
       @ElementTemplate.PropertyGroup(id = "deleteEmailPop3", label = "Delete Email using POP3"),
       @ElementTemplate.PropertyGroup(id = "readEmailPop3", label = "Read Email using POP3"),
       @ElementTemplate.PropertyGroup(id = "listEmailImap", label = "List Email using IMAP"),
+      @ElementTemplate.PropertyGroup(id = "searchEmailsImap", label = "Search Emails using IMAP"),
       @ElementTemplate.PropertyGroup(id = "readEmailImap", label = "Read Email using IMAP"),
       @ElementTemplate.PropertyGroup(id = "deleteEmailImap", label = "Read Email using IMAP"),
-      @ElementTemplate.PropertyGroup(id = "moveEmailsImap", label = "Move Emails using IMAP")
+      @ElementTemplate.PropertyGroup(id = "moveEmailImap", label = "Move Emails using IMAP")
     },
     documentationRef = "https://docs.camunda.io/docs/",
     icon = "icon.svg")

@@ -16,6 +16,7 @@ import io.camunda.connector.email.outbound.protocols.Pop3;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.Smtp;
 import io.camunda.connector.email.outbound.protocols.actions.*;
+import io.camunda.connector.email.response.DeleteEmailResponse;
 import io.camunda.connector.email.response.ListEmailsResponse;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
@@ -104,10 +105,11 @@ class JakartaExecutorTest {
     doNothing().when(pop3Folder).open(Folder.READ_ONLY);
 
     when(pop3ListEmails.getMaxToBeRead()).thenReturn(10);
-    when(pop3Folder.getMessages(1, 10)).thenReturn(new Message[] {message});
+    when(pop3Folder.getMessages()).thenReturn(new Message[] {message});
 
     when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
-    when(sessionFactory.retrieveEmailComparator(any(), any())).thenReturn((o1, o2) -> 1);
+    when(sessionFactory.retrieveEmailComparator((SortFieldPop3) any(), any()))
+        .thenReturn((o1, o2) -> 1);
     when(message.getHeader(any())).thenReturn(new String[] {"id"});
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
@@ -199,6 +201,6 @@ class JakartaExecutorTest {
 
     Object object = actionExecutor.execute(emailRequest);
 
-    Assertions.assertTrue((Boolean) object);
+    Assertions.assertInstanceOf(DeleteEmailResponse.class, object);
   }
 }

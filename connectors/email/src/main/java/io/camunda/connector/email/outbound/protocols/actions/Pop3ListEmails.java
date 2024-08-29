@@ -34,15 +34,14 @@ public final class Pop3ListEmails implements Pop3Action {
       feel = Property.FeelMode.required,
       type = TemplateProperty.PropertyType.Dropdown,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-      defaultValue = "RECEIVED_DATE",
+      defaultValue = "SENT_DATE",
       choices = {
-        @TemplateProperty.DropdownPropertyChoice(label = "Received Date", value = "RECEIVED_DATE"),
         @TemplateProperty.DropdownPropertyChoice(label = "Sent Date", value = "SENT_DATE"),
         @TemplateProperty.DropdownPropertyChoice(label = "Size", value = "SIZE")
       },
       binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.sortField"))
   @NotNull
-  private SortField sortField;
+  private SortFieldPop3 sortField;
 
   @TemplateProperty(
       label = "Sort order",
@@ -69,11 +68,11 @@ public final class Pop3ListEmails implements Pop3Action {
     this.sortOrder = sortOrder;
   }
 
-  public @NotNull SortField getSortField() {
+  public @NotNull SortFieldPop3 getSortField() {
     return sortField;
   }
 
-  public void setSortField(@NotNull SortField sortField) {
+  public void setSortField(@NotNull SortFieldPop3 sortField) {
     this.sortField = sortField;
   }
 
