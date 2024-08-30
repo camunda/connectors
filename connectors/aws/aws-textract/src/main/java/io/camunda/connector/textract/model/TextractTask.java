@@ -24,7 +24,7 @@ public class TextractTask implements Callable<GetDocumentAnalysisResult> {
   }
 
   @Override
-  public GetDocumentAnalysisResult call() {
-    return this.amazonTextract.getDocumentAnalysis(docAnalysisReq);
+  public GetDocumentAnalysisResult call() throws Exception {
+    return amazonTextract.getDocumentAnalysis(docAnalysisReq);
   }
 }
