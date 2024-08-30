@@ -8,3 +8,7 @@
 
 closes #
 
+## Checklist
+
+- [ ] PR has a **milestone** or the `no milestone` label.
+
