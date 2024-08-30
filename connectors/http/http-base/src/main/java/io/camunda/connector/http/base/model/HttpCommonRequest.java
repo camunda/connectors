@@ -166,7 +166,8 @@ public class HttpCommonRequest {
   }
 
   public Integer getReadTimeoutInSeconds() {
-    return Optional.ofNullable(readTimeoutInSeconds).orElse(DEFAULT_TIMEOUT);
+    return Optional.ofNullable(readTimeoutInSeconds)
+        .orElse(connectionTimeoutInSeconds != null ? connectionTimeoutInSeconds : DEFAULT_TIMEOUT);
   }
 
   public void setReadTimeoutInSeconds(final Integer readTimeoutInSeconds) {
