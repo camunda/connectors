@@ -118,7 +118,7 @@ public class JakartaEmailListener {
     return switch (folderToListen) {
       case null -> List.of("");
       case List<?> list -> list.stream().map(Object::toString).toList();
-      case String string -> Arrays.stream(string.split(",")).toList();
+      case String string -> List.of(string.split(","));
       default ->
           throw new IllegalStateException(
               "Unexpected value: " + folderToListen + ". List or String was expected");
