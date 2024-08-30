@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.outbound.model.EmailRequest;
+import io.camunda.connector.email.outbound.protocols.Imap;
 import io.camunda.connector.email.outbound.protocols.Pop3;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.Smtp;
@@ -20,8 +21,11 @@ import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.email.response.DeleteEmailResponse;
 import io.camunda.connector.email.response.ListEmailsResponse;
 import io.camunda.connector.email.response.ReadEmailResponse;
+import io.camunda.connector.email.response.SearchEmailsResponse;
 import jakarta.mail.*;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import org.eclipse.angus.mail.pop3.POP3Folder;
 import org.junit.jupiter.api.Assertions;
@@ -131,6 +135,52 @@ class JakartaExecutorTest {
   }
 
   @Test
+  void executeImapListEmails() throws MessagingException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+
+    JakartaActionExecutor actionExecutor =
+        JakartaActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    ImapListEmails imapListEmails = mock(ImapListEmails.class);
+    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Imap.class);
+    Session session = mock(Session.class);
+    Store store = mock(Store.class);
+    Folder folder = mock(Folder.class);
+    Message message = mock(Message.class);
+
+    // Authentication
+    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
+    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
+    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    doNothing().when(store).connect(any(), any());
+
+    doNothing().when(folder).open(Folder.READ_ONLY);
+
+    when(imapListEmails.getMaxToBeRead()).thenReturn(10);
+    when(folder.getMessages()).thenReturn(new Message[] {message});
+
+    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
+    when(sessionFactory.retrieveEmailComparator((SortFieldImap) any(), any()))
+        .thenReturn((o1, o2) -> 1);
+    when(message.getHeader(any())).thenReturn(new String[] {"id"});
+    when(session.getProperties()).thenReturn(new Properties());
+    when(session.getStore()).thenReturn(store);
+    when(emailRequest.getData()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(imapListEmails);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
+    doNothing().when(store).connect(any(), any());
+
+    Object object = actionExecutor.execute(emailRequest);
+
+    Assertions.assertInstanceOf(List.class, object);
+    Assertions.assertInstanceOf(ListEmailsResponse.class, ((List) object).getFirst());
+  }
+
+  @Test
   void executePop3ReadEmail() throws MessagingException, IOException {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
@@ -166,6 +216,49 @@ class JakartaExecutorTest {
     when(session.getStore()).thenReturn(store);
     when(emailRequest.getData()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(pop3ReadEmail);
+    doNothing().when(store).connect(any(), any());
+
+    Object object = actionExecutor.execute(emailRequest);
+
+    Assertions.assertInstanceOf(ReadEmailResponse.class, object);
+  }
+
+  @Test
+  void executeImapReadEmail() throws MessagingException, IOException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+
+    JakartaActionExecutor actionExecutor =
+        JakartaActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    ImapReadEmail imapReadEmail = mock(ImapReadEmail.class);
+    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Imap.class);
+    Session session = mock(Session.class);
+    Store store = mock(Store.class);
+    Folder folder = mock(Folder.class);
+    Message message = mock(Message.class);
+
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
+
+    // Authentication
+    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
+    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
+    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    doNothing().when(store).connect(any(), any());
+
+    when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
+    when(folder.search(any())).thenReturn(new Message[] {message});
+    when(message.getHeader(any())).thenReturn(new String[] {"10"});
+    when(imapReadEmail.getMessageId()).thenReturn("10");
+    when(message.getContent()).thenReturn("string");
+    when(message.isMimeType("text/plain")).thenReturn(true);
+    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(session.getStore()).thenReturn(store);
+    when(emailRequest.getData()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(imapReadEmail);
     doNothing().when(store).connect(any(), any());
 
     Object object = actionExecutor.execute(emailRequest);
@@ -214,5 +307,265 @@ class JakartaExecutorTest {
     Object object = actionExecutor.execute(emailRequest);
 
     Assertions.assertInstanceOf(DeleteEmailResponse.class, object);
+  }
+
+  @Test
+  void executeImapDeleteEmail() throws MessagingException, IOException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+
+    JakartaActionExecutor actionExecutor =
+        JakartaActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    ImapDeleteEmail imapDeleteEmail = mock(ImapDeleteEmail.class);
+    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Imap.class);
+    Session session = mock(Session.class);
+    Store store = mock(Store.class);
+    Folder folder = mock(Folder.class);
+    Message message = mock(Message.class);
+
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
+
+    // Authentication
+    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
+    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
+    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    doNothing().when(store).connect(any(), any());
+
+    when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
+    when(folder.search(any())).thenReturn(new Message[] {message});
+    when(message.getHeader(any())).thenReturn(new String[] {"10"});
+    when(imapDeleteEmail.getMessageId()).thenReturn("10");
+    when(message.getContent()).thenReturn("string");
+    when(message.isMimeType("text/plain")).thenReturn(true);
+    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(session.getStore()).thenReturn(store);
+    when(emailRequest.getData()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(imapDeleteEmail);
+    doNothing().when(store).connect(any(), any());
+
+    Object object = actionExecutor.execute(emailRequest);
+
+    Assertions.assertInstanceOf(DeleteEmailResponse.class, object);
+  }
+
+  @Test
+  void executePop3SearchEmails() throws MessagingException, IOException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    JakartaActionExecutor actionExecutor =
+        JakartaActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    Pop3SearchEmails pop3SearchEmails = mock(Pop3SearchEmails.class);
+    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Pop3.class);
+    Session session = mock(Session.class);
+    Store store = mock(Store.class);
+    POP3Folder pop3Folder = mock(POP3Folder.class);
+    Message message = mock(Message.class);
+
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
+
+    // Authentication
+    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
+    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
+    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    doNothing().when(store).connect(any(), any());
+
+    when(store.getFolder(anyString())).thenReturn(pop3Folder);
+    when(pop3Folder.search(any())).thenReturn(new Message[] {message});
+    when(pop3SearchEmails.getCriteria())
+        .thenReturn(loadCriteria("src/test/resources/criterias/simple-criteria.json"));
+    when(message.getContent()).thenReturn("string");
+    when(message.isMimeType("text/plain")).thenReturn(true);
+    when(message.getHeader(any())).thenReturn(new String[] {"1"});
+    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(session.getStore()).thenReturn(store);
+    when(emailRequest.getData()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(pop3SearchEmails);
+    doNothing().when(store).connect(any(), any());
+
+    Object object = actionExecutor.execute(emailRequest);
+
+    Assertions.assertInstanceOf(List.class, object);
+  }
+
+  @Test
+  void executeImapSearchEmails() throws MessagingException, IOException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    JakartaActionExecutor actionExecutor =
+        JakartaActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
+    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Imap.class);
+    Session session = mock(Session.class);
+    Store store = mock(Store.class);
+    Folder folder = mock(Folder.class);
+    Message message = mock(Message.class);
+
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
+
+    // Authentication
+    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
+    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
+    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    doNothing().when(store).connect(any(), any());
+
+    when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
+    when(folder.search(any())).thenReturn(new Message[] {message});
+    when(imapSearchEmails.getCriteria())
+        .thenReturn(loadCriteria("src/test/resources/criterias/simple-criteria.json"));
+    when(message.getContent()).thenReturn("string");
+    when(message.isMimeType("text/plain")).thenReturn(true);
+    when(message.getHeader(any())).thenReturn(new String[] {"1"});
+    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(session.getStore()).thenReturn(store);
+    when(emailRequest.getData()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
+    doNothing().when(store).connect(any(), any());
+
+    Object object = actionExecutor.execute(emailRequest);
+
+    Assertions.assertInstanceOf(List.class, object);
+  }
+
+  @Test
+  void executeImapSearchEmailsCriteriaSpecification() throws MessagingException, IOException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    JakartaActionExecutor actionExecutor =
+        JakartaActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
+    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Imap.class);
+    Session session = mock(Session.class);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
+
+    // Authentication
+    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
+    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
+    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+
+    Message message =
+        TestMessage.builder()
+            .setMessageId("10")
+            .setSubject("important")
+            .setFrom(List.of("camundi@camunda.com"))
+            .createTestMessage();
+    Message message2 =
+        TestMessage.builder()
+            .setMessageId("12")
+            .setSubject("test")
+            .setFrom(List.of("camundi@camunda.com"))
+            .createTestMessage();
+    Message message3 =
+        TestMessage.builder()
+            .setMessageId("11")
+            .setSubject("urgent")
+            .setFrom(List.of("test@camundal.com"))
+            .createTestMessage();
+
+    Store store = new TestStore(Session.getInstance(new Properties()), new URLName(""));
+    Folder folder = new TestFolder(store, message, message2, message3);
+
+    when(session.getStore()).thenReturn(store);
+    when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
+    when(imapSearchEmails.getCriteria())
+        .thenReturn(loadCriteria("src/test/resources/criterias/simple-criteria.json"));
+    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.getData()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
+
+    List<SearchEmailsResponse> searchEmailsResponses =
+        (List<SearchEmailsResponse>) actionExecutor.execute(emailRequest);
+
+    Assertions.assertEquals(1, searchEmailsResponses.size());
+    Assertions.assertEquals("important", searchEmailsResponses.getFirst().subject());
+  }
+
+  @Test
+  void executeImapSearchEmailsBodyCriteriaSpecification() throws MessagingException, IOException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    JakartaActionExecutor actionExecutor =
+        JakartaActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
+    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Imap.class);
+    Session session = mock(Session.class);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
+
+    // Authentication
+    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
+    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
+    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+
+    Message message =
+        TestMessage.builder()
+            .setMessageId("10")
+            .setSubject("important")
+            .setBody("crazy")
+            .setFrom(List.of("camundi@camunda.com"))
+            .createTestMessage();
+    Message message2 =
+        TestMessage.builder()
+            .setMessageId("12")
+            .setBody("crazy")
+            .setSubject("test")
+            .setFrom(List.of("camundi@camunda.com"))
+            .createTestMessage();
+    Message message3 =
+        TestMessage.builder()
+            .setMessageId("11")
+            .setBody("crazy")
+            .setSubject("urgent")
+            .setFrom(List.of("test@camundal.com"))
+            .createTestMessage();
+
+    Store store = new TestStore(Session.getInstance(new Properties()), new URLName(""));
+    Folder folder = new TestFolder(store, message, message2, message3);
+
+    when(session.getStore()).thenReturn(store);
+    when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
+    when(imapSearchEmails.getCriteria())
+        .thenReturn(loadCriteria("src/test/resources/criterias/body-criteria.json"));
+    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.getData()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
+
+    List<SearchEmailsResponse> searchEmailsResponses =
+        (List<SearchEmailsResponse>) actionExecutor.execute(emailRequest);
+
+    System.out.println(searchEmailsResponses);
+    Assertions.assertEquals(2, searchEmailsResponses.size());
+    Assertions.assertEquals("10", searchEmailsResponses.get(0).messageId());
+    Assertions.assertEquals("important", searchEmailsResponses.get(0).subject());
+    Assertions.assertEquals("11", searchEmailsResponses.get(1).messageId());
+    Assertions.assertEquals("urgent", searchEmailsResponses.get(1).subject());
+  }
+
+  private Object loadCriteria(String path) {
+    try {
+      return new ObjectMapper().readValue(Files.readString(Path.of(path)), Object.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

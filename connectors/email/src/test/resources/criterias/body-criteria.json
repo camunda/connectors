@@ -1,0 +1,22 @@
+{
+  "operator":"AND",
+  "criteria":[
+    {
+      "field":"BODY",
+      "value":"crazy"
+    },
+    {
+      "operator":"OR",
+      "criteria":[
+        {
+          "field":"SUBJECT",
+          "value":"urgent"
+        },
+        {
+          "field":"SUBJECT",
+          "value":"important"
+        }
+      ]
+    }
+  ]
+}

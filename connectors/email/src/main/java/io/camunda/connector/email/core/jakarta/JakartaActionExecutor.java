@@ -301,12 +301,12 @@ public class JakartaActionExecutor implements ActionExecutor {
     };
   }
 
-  private List<SearchEmailsResponse> searchEmails(Folder imapFolder, Object criteria)
+  private List<SearchEmailsResponse> searchEmails(Folder folder, Object criteria)
       throws MessagingException {
-    imapFolder.open(Folder.READ_ONLY);
+    folder.open(Folder.READ_ONLY);
     JsonNode jsonNode = this.objectMapper.convertValue(criteria, JsonNode.class);
     SearchTerm searchTerm = createSearchTerms(jsonNode);
-    return Arrays.stream(imapFolder.search(searchTerm))
+    return Arrays.stream(folder.search(searchTerm))
         .map(Email::createBodylessEmail)
         .map(email -> new SearchEmailsResponse(email.getMessageId(), email.getSubject()))
         .toList();
