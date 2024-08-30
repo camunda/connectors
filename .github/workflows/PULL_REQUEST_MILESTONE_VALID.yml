@@ -3,7 +3,7 @@ name: Pull Request Milestone Validation
 on:
   pull_request:
     branches:
-      - "*" # all branches
+      - main
     types:
       - labeled
       - unlabeled
