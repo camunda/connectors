@@ -48,7 +48,6 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.json.JSONException;
-import org.junit.ClassRule;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -56,6 +55,10 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.skyscreamer.jsonassert.JSONAssert;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -66,19 +69,29 @@ public class KafkaIntegrationTest {
   private static final String AVRO_TOPIC = "avro-test-topic-" + UUID.randomUUID();
   private static final Map<String, String> HEADERS =
       Map.of("header1", "value1", "header2", "value2");
+  private static final Network NETWORK = Network.newNetwork();
 
-  @ClassRule
-  public static final KafkaContainer kafkaContainer =
-      new KafkaContainer(
-          DockerImageName.parse("apache/kafka-native:3.8.0")
-              .asCompatibleSubstituteFor("apache/kafka"));
+  private static final KafkaContainer kafkaContainer =
+      new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0")).withNetwork(NETWORK);
+
+  private static final GenericContainer<?> SCHEMA_REGISTRY =
+      new GenericContainer<>(DockerImageName.parse("confluentinc/cp-schema-registry:7.5.2"))
+          .withNetwork(NETWORK)
+          .withExposedPorts(8081)
+          .withEnv("SCHEMA_REGISTRY_HOST_NAME", "schema-registry")
+          .withEnv("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:8081")
+          .withEnv(
+              "SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS",
+              kafkaContainer.getNetworkAliases().get(0) + ":9092")
+          .waitingFor(Wait.forHttp("/subjects").forStatusCode(200));
 
   private static String BOOTSTRAP_SERVERS;
   private static Avro avro;
 
   @BeforeAll
   public static void init() throws Exception {
-    kafkaContainer.start();
+    kafkaContainer.waitingFor(new HostPortWaitStrategy().forPorts(9092)).start();
+    SCHEMA_REGISTRY.start();
     createTopics(TOPIC, AVRO_TOPIC);
     BOOTSTRAP_SERVERS = kafkaContainer.getBootstrapServers().replace("PLAINTEXT://", "");
     URI file = ClassLoader.getSystemResource("./example-avro-schema.json").toURI();
@@ -88,6 +101,7 @@ public class KafkaIntegrationTest {
 
   @AfterAll
   public static void cleanup() {
+    SCHEMA_REGISTRY.stop();
     kafkaContainer.stop();
   }
 
@@ -151,7 +165,12 @@ public class KafkaIntegrationTest {
             kafkaMessage,
             null,
             null,
-            null);
+            Map.of(
+                "schema.registry.url",
+                "http://"
+                    + SCHEMA_REGISTRY.getHost()
+                    + ":"
+                    + SCHEMA_REGISTRY.getFirstMappedPort()));
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
