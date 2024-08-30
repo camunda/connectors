@@ -6,49 +6,96 @@
  */
 package io.camunda.connector.textract.caller;
 
+import static io.camunda.connector.textract.caller.PollingTextractCalller.MAX_RESULT;
 import static io.camunda.connector.textract.util.TextractTestUtils.FULL_FILLED_ASYNC_TEXTRACT_DATA;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.textract.AmazonTextractAsyncClient;
+import com.amazonaws.services.textract.model.Block;
 import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
 import com.amazonaws.services.textract.model.GetDocumentAnalysisResult;
 import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
-import java.util.stream.Stream;
+import java.util.List;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class PollingTextractCalllerTest {
 
-  private static Stream<Arguments> provideStatuses() {
-    return Stream.of(
-        Arguments.of("IN_PROGRESS", "SUCCEEDED"),
-        Arguments.of("IN_PROGRESS", "FAILED"),
-        Arguments.of("IN_PROGRESS", "PARTIAL_SUCCESS"));
-  }
+  @Test
+  void callUtilDocumentAnalysisResultNextTokenEqNull() throws Exception {
+    List<Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResult>> callSequence =
+        getRequestResponseSequence();
+    Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResult> firstRequestResp =
+        callSequence.getFirst();
 
-  @ParameterizedTest
-  @MethodSource("provideStatuses")
-  void callUntilSucceedOrFailedResult(String firstCallStatus, String secondCallStatus)
-      throws Exception {
     AmazonTextractAsyncClient asyncClient = Mockito.mock(AmazonTextractAsyncClient.class);
-    StartDocumentAnalysisResult startDocRequest = new StartDocumentAnalysisResult();
+    StartDocumentAnalysisResult startDocRequest =
+        new StartDocumentAnalysisResult().withJobId(firstRequestResp.getLeft().getJobId());
     when(asyncClient.startDocumentAnalysis(any())).thenReturn(startDocRequest);
 
-    GetDocumentAnalysisResult mockResult1 =
-        new GetDocumentAnalysisResult().withJobStatus(firstCallStatus);
-    GetDocumentAnalysisResult mockResult2 =
-        new GetDocumentAnalysisResult().withJobStatus(secondCallStatus);
-    when(asyncClient.getDocumentAnalysis(any(GetDocumentAnalysisRequest.class)))
-        .thenReturn(mockResult1, mockResult2);
+    when(asyncClient.getDocumentAnalysis(firstRequestResp.getLeft()))
+        .thenReturn(firstRequestResp.getRight());
 
-    new PollingTextractCalller().call(FULL_FILLED_ASYNC_TEXTRACT_DATA, asyncClient);
+    Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResult> secondRequestResp =
+        callSequence.getLast();
 
-    verify(asyncClient, times(2)).getDocumentAnalysis(any(GetDocumentAnalysisRequest.class));
+    when(asyncClient.getDocumentAnalysis(secondRequestResp.getLeft()))
+        .thenReturn(secondRequestResp.getRight());
+
+    List<Block> expectedBlocks =
+        ListUtils.union(
+            firstRequestResp.getRight().getBlocks(), secondRequestResp.getRight().getBlocks());
+
+    GetDocumentAnalysisResult result =
+        new PollingTextractCalller().call(FULL_FILLED_ASYNC_TEXTRACT_DATA, asyncClient);
+
+    verify(asyncClient).getDocumentAnalysis(firstRequestResp.getLeft());
+    verify(asyncClient).getDocumentAnalysis(secondRequestResp.getLeft());
+
+    assertThat(result.getBlocks()).isEqualTo(expectedBlocks);
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringFields("blocks")
+        .isEqualTo(secondRequestResp.getRight());
+  }
+
+  private List<Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResult>>
+      getRequestResponseSequence() {
+    String jobId = "1";
+    GetDocumentAnalysisRequest firstDocRequest =
+        new GetDocumentAnalysisRequest()
+            .withJobId(jobId)
+            .withMaxResults(MAX_RESULT)
+            .withNextToken(null);
+
+    String nextToken = "2";
+    GetDocumentAnalysisRequest secondDocRequest =
+        new GetDocumentAnalysisRequest()
+            .withJobId(jobId)
+            .withMaxResults(MAX_RESULT)
+            .withNextToken(nextToken);
+
+    GetDocumentAnalysisResult firstDocResult =
+        new GetDocumentAnalysisResult()
+            .withJobStatus("SUCCESS")
+            .withNextToken(nextToken)
+            .withBlocks(List.of(new Block().withText("AAA"), new Block().withText("BBB")));
+
+    GetDocumentAnalysisResult secondDocResult =
+        new GetDocumentAnalysisResult()
+            .withJobStatus("SUCCESS")
+            .withNextToken(null)
+            .withBlocks(List.of(new Block().withText("CCC"), new Block().withText("DDD")));
+
+    return List.of(
+        Pair.of(firstDocRequest, firstDocResult), Pair.of(secondDocRequest, secondDocResult));
   }
 }
