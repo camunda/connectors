@@ -18,8 +18,35 @@ public final class ImapSearchEmails implements ImapAction {
       group = "searchEmailsImap",
       id = "searchStringEmailImap",
       description = "",
+      type = TemplateProperty.PropertyType.Text,
       feel = Property.FeelMode.required,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.criteria"))
   private Object criteria;
+
+  @TemplateProperty(
+      label = "Folder",
+      group = "searchEmailsImap",
+      id = "searchEmailFolder",
+      description = "",
+      optional = true,
+      feel = Property.FeelMode.optional,
+      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.searchEmailFolder"))
+  private String searchEmailFolder;
+
+  public Object getCriteria() {
+    return criteria;
+  }
+
+  public void setCriteria(Object criteria) {
+    this.criteria = criteria;
+  }
+
+  public String getSearchEmailFolder() {
+    return searchEmailFolder;
+  }
+
+  public void setSearchEmailFolder(String searchEmailFolder) {
+    this.searchEmailFolder = searchEmailFolder;
+  }
 }

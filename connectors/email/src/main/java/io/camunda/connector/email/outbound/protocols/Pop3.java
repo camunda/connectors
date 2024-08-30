@@ -26,7 +26,8 @@ public final class Pop3 implements Protocol {
       value = {
         @JsonSubTypes.Type(value = Pop3ListEmails.class, name = "listEmailsPop3"),
         @JsonSubTypes.Type(value = Pop3ReadEmail.class, name = "readEmailPop3"),
-        @JsonSubTypes.Type(value = Pop3DeleteEmail.class, name = "deleteEmailPop3")
+        @JsonSubTypes.Type(value = Pop3DeleteEmail.class, name = "deleteEmailPop3"),
+        @JsonSubTypes.Type(value = Pop3SearchEmails.class, name = "searchEmailsPop3")
       })
   @Valid
   @NotNull

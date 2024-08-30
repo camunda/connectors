@@ -25,11 +25,29 @@ public final class ImapReadEmail implements ImapAction {
   @NotNull
   String messageId;
 
+  @TemplateProperty(
+      label = "Folder",
+      group = "readEmailImap",
+      id = "readEmailFolder",
+      description = "",
+      optional = true,
+      feel = Property.FeelMode.optional,
+      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.readEmailFolder"))
+  private String readEmailFolder;
+
   public @Valid @NotNull String getMessageId() {
     return messageId;
   }
 
   public void setMessageId(@Valid @NotNull String messageId) {
     this.messageId = messageId;
+  }
+
+  public String getReadEmailFolder() {
+    return readEmailFolder;
+  }
+
+  public void setReadEmailFolder(String readEmailFolder) {
+    this.readEmailFolder = readEmailFolder;
   }
 }

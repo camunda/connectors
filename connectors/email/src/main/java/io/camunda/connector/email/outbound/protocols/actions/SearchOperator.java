@@ -4,6 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.response;
+package io.camunda.connector.email.outbound.protocols.actions;
 
-public record MoveEmailResponse(String messageId, String from, String to) {}
+public enum SearchOperator {
+  AND,
+  OR;
+}

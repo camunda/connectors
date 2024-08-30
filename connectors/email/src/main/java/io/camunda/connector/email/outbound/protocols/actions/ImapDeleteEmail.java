@@ -25,11 +25,29 @@ public final class ImapDeleteEmail implements ImapAction {
   @NotNull
   String messageId;
 
+  @TemplateProperty(
+      label = "Folder",
+      group = "deleteEmailImap",
+      id = "deleteEmailFolder",
+      description = "",
+      optional = true,
+      feel = Property.FeelMode.optional,
+      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.deleteEmailFolder"))
+  private String deleteEmailFolder;
+
   public @Valid @NotNull String getMessageId() {
     return messageId;
   }
 
   public void setMessageId(@Valid @NotNull String messageId) {
     this.messageId = messageId;
+  }
+
+  public String getDeleteEmailFolder() {
+    return deleteEmailFolder;
+  }
+
+  public void setDeleteEmailFolder(String deleteEmailFolder) {
+    this.deleteEmailFolder = deleteEmailFolder;
   }
 }

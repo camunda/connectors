@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.email.outbound;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -35,7 +36,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "searchEmailsPop3", label = "Search Emails using POP3"),
       @ElementTemplate.PropertyGroup(id = "deleteEmailPop3", label = "Delete Email using POP3"),
       @ElementTemplate.PropertyGroup(id = "readEmailPop3", label = "Read Email using POP3"),
-      @ElementTemplate.PropertyGroup(id = "listEmailImap", label = "List Email using IMAP"),
+      @ElementTemplate.PropertyGroup(id = "listEmailsImap", label = "List Email using IMAP"),
       @ElementTemplate.PropertyGroup(id = "searchEmailsImap", label = "Search Emails using IMAP"),
       @ElementTemplate.PropertyGroup(id = "readEmailImap", label = "Read Email using IMAP"),
       @ElementTemplate.PropertyGroup(id = "deleteEmailImap", label = "Read Email using IMAP"),
@@ -48,6 +49,7 @@ public class EmailConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) {
     EmailRequest emailRequest = context.bindVariables(EmailRequest.class);
-    return JakartaActionExecutor.create(new JakartaUtils()).execute(emailRequest);
+    return JakartaActionExecutor.create(new JakartaUtils(), new ObjectMapper())
+        .execute(emailRequest);
   }
 }

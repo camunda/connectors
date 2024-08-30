@@ -6,4 +6,4 @@
  */
 package io.camunda.connector.email.response;
 
-public record MoveEmailResponse(String messageId, String from, String to) {}
+public record SearchEmailsResponse(String messageId, String subject) {}

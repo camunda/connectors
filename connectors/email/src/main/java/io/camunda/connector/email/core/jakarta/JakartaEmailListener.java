@@ -9,6 +9,7 @@ package io.camunda.connector.email.core.jakarta;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.inbound.model.EmailProperties;
+import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
 import jakarta.mail.event.MessageCountEvent;
 import jakarta.mail.event.MessageCountListener;
@@ -89,14 +90,22 @@ public class JakartaEmailListener {
       boolean markAsRead) {
     IMAPFolder imapFolder = (IMAPFolder) e.getSource();
     if (triggerAdded) {
-      connectorContext.correlateWithResult(
-          Arrays.stream(e.getMessages())
-              .peek(
-                  message -> {
-                    if (markAsRead) this.jakartaUtils.markAsSeen(message);
-                  })
-              .map(Email::createEmail)
-              .toList());
+      Arrays.stream(e.getMessages())
+          .peek(
+              message -> {
+                if (markAsRead) this.jakartaUtils.markAsSeen(message);
+              })
+          .map(Email::createEmail)
+          .forEach(
+              email ->
+                  connectorContext.correlateWithResult(
+                      new ReadEmailResponse(
+                          email.getMessageId(),
+                          email.getFrom(),
+                          email.getSubject(),
+                          email.getSize(),
+                          email.getBody().getBodyAsPlainText(),
+                          email.getBody().getBodyAsHtml())));
     }
     try {
       idleManager.watch(imapFolder);

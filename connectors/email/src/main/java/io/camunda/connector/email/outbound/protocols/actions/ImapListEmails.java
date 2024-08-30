@@ -11,13 +11,12 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import java.util.Optional;
 
-@TemplateSubType(id = "listEmailImap", label = "List emails using IMAP")
+@TemplateSubType(id = "listEmailsImap", label = "List emails using IMAP")
 public final class ImapListEmails implements ImapAction {
   @TemplateProperty(
       label = "Max email to read",
-      group = "listEmailImap",
+      group = "listEmailsImap",
       id = "imapMaxToBeRead",
       defaultValue = "100",
       description = "",
@@ -29,7 +28,7 @@ public final class ImapListEmails implements ImapAction {
 
   @TemplateProperty(
       label = "Folder",
-      group = "listEmailImap",
+      group = "listEmailsImap",
       id = "imapListEmailsFolder",
       description = "",
       optional = true,
@@ -41,7 +40,7 @@ public final class ImapListEmails implements ImapAction {
       label = "Sort emails by",
       description = "",
       id = "imapSortField",
-      group = "listEmailImap",
+      group = "listEmailsImap",
       feel = Property.FeelMode.required,
       type = TemplateProperty.PropertyType.Dropdown,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
@@ -58,7 +57,7 @@ public final class ImapListEmails implements ImapAction {
   @TemplateProperty(
       label = "Sort order",
       description = "",
-      group = "listEmailImap",
+      group = "listEmailsImap",
       id = "imapSortOrder",
       feel = Property.FeelMode.required,
       type = TemplateProperty.PropertyType.Dropdown,
@@ -72,6 +71,14 @@ public final class ImapListEmails implements ImapAction {
   @NotNull
   private SortOrder sortOrder;
 
+  public @NotNull SortFieldImap getSortField() {
+    return sortField;
+  }
+
+  public void setSortField(@NotNull SortFieldImap sortField) {
+    this.sortField = sortField;
+  }
+
   public @Valid @NotNull Integer getMaxToBeRead() {
     return maxToBeRead;
   }
@@ -80,8 +87,8 @@ public final class ImapListEmails implements ImapAction {
     this.maxToBeRead = maxToBeRead;
   }
 
-  public Optional<String> getListEmailsFolder() {
-    return Optional.ofNullable(listEmailsFolder);
+  public String getListEmailsFolder() {
+    return listEmailsFolder;
   }
 
   public void setListEmailsFolder(String listEmailsFolder) {
@@ -94,13 +101,5 @@ public final class ImapListEmails implements ImapAction {
 
   public void setSortOrder(@NotNull SortOrder sortOrder) {
     this.sortOrder = sortOrder;
-  }
-
-  public @NotNull SortFieldImap getSortFieldImap() {
-    return sortField;
-  }
-
-  public void setSortFieldImap(@NotNull SortFieldImap sortField) {
-    this.sortField = sortField;
   }
 }

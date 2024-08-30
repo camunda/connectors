@@ -9,7 +9,7 @@ package io.camunda.connector.email.response;
 import java.util.List;
 
 public record ReadEmailResponse(
-    String uidl,
+    String messageId,
     List<String> fromAddresses,
     String subject,
     Integer size,

@@ -153,4 +153,31 @@ public class JakartaUtils {
           case SIZE -> sortOrder.order(email1.getSize().compareTo(email2.getSize()));
         };
   }
+
+  private Folder findFolderRecursively(Folder rootFolder, String targetFolder)
+      throws MessagingException {
+    if (targetFolder == null || targetFolder.isEmpty() || "INBOX".equals(targetFolder)) {
+      return rootFolder.getFolder("INBOX");
+    }
+    Folder[] folders = rootFolder.list();
+    for (Folder folder : folders) {
+      if (folder.getName().equals(targetFolder)) {
+        return folder;
+      } else {
+        Folder folderReturned = findFolderRecursively(folder, targetFolder);
+        if (folderReturned != null) {
+          return folderReturned;
+        }
+      }
+    }
+    return null;
+  }
+
+  public Folder findImapFolder(Folder rootFolder, String targetFolder) throws MessagingException {
+    Folder folder = findFolderRecursively(rootFolder, targetFolder);
+    if (folder != null) {
+      return folder;
+    }
+    throw new MessagingException("Unable to find IMAP folder");
+  }
 }

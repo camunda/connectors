@@ -17,8 +17,17 @@ public final class Pop3SearchEmails implements Pop3Action {
       group = "searchEmailsPop3",
       id = "searchStringEmailPop3",
       description = "",
+      type = TemplateProperty.PropertyType.Text,
       feel = Property.FeelMode.required,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.criteria"))
   private Object criteria;
+
+  public Object getCriteria() {
+    return criteria;
+  }
+
+  public void setCriteria(Object criteria) {
+    this.criteria = criteria;
+  }
 }

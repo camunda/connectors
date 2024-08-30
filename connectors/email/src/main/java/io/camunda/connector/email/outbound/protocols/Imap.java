@@ -10,9 +10,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.email.config.Configuration;
 import io.camunda.connector.email.config.ImapConfig;
-import io.camunda.connector.email.outbound.protocols.actions.Action;
-import io.camunda.connector.email.outbound.protocols.actions.ImapAction;
-import io.camunda.connector.email.outbound.protocols.actions.ImapListEmails;
+import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -23,14 +21,14 @@ public final class Imap implements Protocol {
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
-      property = "action")
+      property = "imapActionDiscriminator")
   @JsonSubTypes(
       value = {
-        @JsonSubTypes.Type(value = ImapListEmails.class, name = "listEmailImap"),
-        @JsonSubTypes.Type(value = ImapListEmails.class, name = "searchEmailsImap"),
-        @JsonSubTypes.Type(value = ImapListEmails.class, name = "moveEmailImap"),
-        @JsonSubTypes.Type(value = ImapListEmails.class, name = "readEmailImap"),
-        @JsonSubTypes.Type(value = ImapListEmails.class, name = "deleteEmailImap")
+        @JsonSubTypes.Type(value = ImapListEmails.class, name = "listEmailsImap"),
+        @JsonSubTypes.Type(value = ImapSearchEmails.class, name = "searchEmailsImap"),
+        @JsonSubTypes.Type(value = ImapMoveEmail.class, name = "moveEmailImap"),
+        @JsonSubTypes.Type(value = ImapReadEmail.class, name = "readEmailImap"),
+        @JsonSubTypes.Type(value = ImapDeleteEmail.class, name = "deleteEmailImap")
       })
   @Valid
   @NotNull
@@ -49,5 +47,21 @@ public final class Imap implements Protocol {
   @Override
   public Configuration getConfiguration() {
     return imapConfig;
+  }
+
+  public @Valid @NotNull ImapAction getImapAction() {
+    return imapAction;
+  }
+
+  public void setImapAction(@Valid @NotNull ImapAction imapAction) {
+    this.imapAction = imapAction;
+  }
+
+  public @Valid ImapConfig getImapConfig() {
+    return imapConfig;
+  }
+
+  public void setImapConfig(@Valid ImapConfig imapConfig) {
+    this.imapConfig = imapConfig;
   }
 }

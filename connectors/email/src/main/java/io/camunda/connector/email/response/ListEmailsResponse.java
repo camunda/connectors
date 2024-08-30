@@ -9,4 +9,4 @@ package io.camunda.connector.email.response;
 import java.util.List;
 
 public record ListEmailsResponse(
-    String uid, List<String> fromAddresses, String subject, Integer size) {}
+    String messageId, List<String> fromAddresses, String subject, Integer size) {}

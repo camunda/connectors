@@ -44,7 +44,7 @@
     "id" : "readEmailPop3",
     "label" : "Read Email using POP3"
   }, {
-    "id" : "listEmailImap",
+    "id" : "listEmailsImap",
     "label" : "List Email using IMAP"
   }, {
     "id" : "searchEmailsImap",
@@ -427,12 +427,12 @@
       "value" : "searchEmailsPop3"
     } ]
   }, {
-    "id" : "imapAction",
+    "id" : "data.imapActionDiscriminator",
     "label" : "IMAP action",
-    "value" : "listEmailImap",
+    "value" : "listEmailsImap",
     "group" : "imapAction",
     "binding" : {
-      "name" : "imapAction",
+      "name" : "data.imapActionDiscriminator",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -446,7 +446,7 @@
       "value" : "deleteEmailImap"
     }, {
       "name" : "List emails using IMAP",
-      "value" : "listEmailImap"
+      "value" : "listEmailsImap"
     }, {
       "name" : "Move email",
       "value" : "moveEmailImap"
@@ -691,7 +691,7 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Text"
   }, {
     "id" : "pop3MessageIdDelete",
     "label" : "UIDL of email to delete",
@@ -773,15 +773,15 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "group" : "listEmailImap",
+    "group" : "listEmailsImap",
     "binding" : {
       "name" : "data.imapAction.maxToBeRead",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
-        "equals" : "listEmailImap",
+        "property" : "data.imapActionDiscriminator",
+        "equals" : "listEmailsImap",
         "type" : "simple"
       }, {
         "property" : "protocol",
@@ -795,15 +795,15 @@
     "label" : "Folder",
     "optional" : true,
     "feel" : "optional",
-    "group" : "listEmailImap",
+    "group" : "listEmailsImap",
     "binding" : {
       "name" : "data.imapAction.listEmailsFolder",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
-        "equals" : "listEmailImap",
+        "property" : "data.imapActionDiscriminator",
+        "equals" : "listEmailsImap",
         "type" : "simple"
       }, {
         "property" : "protocol",
@@ -820,15 +820,15 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "group" : "listEmailImap",
+    "group" : "listEmailsImap",
     "binding" : {
       "name" : "data.imapAction.sortField",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
-        "equals" : "listEmailImap",
+        "property" : "data.imapActionDiscriminator",
+        "equals" : "listEmailsImap",
         "type" : "simple"
       }, {
         "property" : "protocol",
@@ -855,15 +855,15 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "group" : "listEmailImap",
+    "group" : "listEmailsImap",
     "binding" : {
       "name" : "data.imapAction.sortOrder",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
-        "equals" : "listEmailImap",
+        "property" : "data.imapActionDiscriminator",
+        "equals" : "listEmailsImap",
         "type" : "simple"
       }, {
         "property" : "protocol",
@@ -891,7 +891,29 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
+        "property" : "data.imapActionDiscriminator",
+        "equals" : "searchEmailsImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "searchEmailFolder",
+    "label" : "Folder",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "searchEmailsImap",
+    "binding" : {
+      "name" : "data.imapAction.searchEmailFolder",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.imapActionDiscriminator",
         "equals" : "searchEmailsImap",
         "type" : "simple"
       }, {
@@ -916,7 +938,29 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
+        "property" : "data.imapActionDiscriminator",
+        "equals" : "readEmailImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "readEmailFolder",
+    "label" : "Folder",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "readEmailImap",
+    "binding" : {
+      "name" : "data.imapAction.readEmailFolder",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.imapActionDiscriminator",
         "equals" : "readEmailImap",
         "type" : "simple"
       }, {
@@ -941,7 +985,29 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
+        "property" : "data.imapActionDiscriminator",
+        "equals" : "deleteEmailImap",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "imap",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "deleteEmailFolder",
+    "label" : "Folder",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "deleteEmailImap",
+    "binding" : {
+      "name" : "data.imapAction.deleteEmailFolder",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.imapActionDiscriminator",
         "equals" : "deleteEmailImap",
         "type" : "simple"
       }, {
@@ -966,7 +1032,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
+        "property" : "data.imapActionDiscriminator",
         "equals" : "moveEmailImap",
         "type" : "simple"
       }, {
@@ -991,7 +1057,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
+        "property" : "data.imapActionDiscriminator",
         "equals" : "moveEmailImap",
         "type" : "simple"
       }, {
@@ -1016,7 +1082,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "imapAction",
+        "property" : "data.imapActionDiscriminator",
         "equals" : "moveEmailImap",
         "type" : "simple"
       }, {
