@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.7</version.logback>
 
     <version.aws-java-sdk>1.12.770</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.27.17</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.27.18</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.13.0</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
