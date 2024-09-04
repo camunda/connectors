@@ -64,4 +64,8 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   public void deleteDocument(CamundaDocumentReference reference) {
     documents.remove(reference.documentId());
   }
+
+  public void clear() {
+    documents.clear();
+  }
 }

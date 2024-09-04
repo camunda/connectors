@@ -23,8 +23,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.utils.DocumentHelper;
+import io.camunda.document.Document;
+import io.camunda.document.DocumentMetadata;
+import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
@@ -89,6 +94,9 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
 
   private HttpEntity createStringEntity(HttpCommonRequest request) {
     Object body = request.getBody();
+    if (body instanceof Map map) {
+      body = new DocumentHelper().parseDocumentsInBody(map, Document::asByteArray);
+    }
     Optional<ContentType> contentType = tryGetContentType(request);
     try {
       return body instanceof String s
@@ -119,9 +127,23 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
     builder.setMode(HttpMultipartMode.LEGACY);
     Optional.ofNullable(contentType.getParameter("boundary")).ifPresent(builder::setBoundary);
     for (Map.Entry<?, ?> entry : body.entrySet()) {
-      builder.addTextBody(
-          String.valueOf(entry.getKey()), String.valueOf(entry.getValue()), MULTIPART_FORM_DATA);
+      if (Objects.requireNonNull(entry.getValue()) instanceof Document document) {
+        streamDocumentContent(entry, document, builder);
+      } else {
+        builder.addTextBody(
+            String.valueOf(entry.getKey()), String.valueOf(entry.getValue()), MULTIPART_FORM_DATA);
+      }
     }
     return builder.build();
+  }
+
+  private void streamDocumentContent(
+      Map.Entry<?, ?> entry, Document document, MultipartEntityBuilder builder) {
+    DocumentMetadata metadata = document.metadata();
+    builder.addBinaryBody(
+        String.valueOf(entry.getKey()),
+        new BufferedInputStream(document.asInputStream()),
+        ContentType.DEFAULT_BINARY,
+        metadata.getFileName());
   }
 }
