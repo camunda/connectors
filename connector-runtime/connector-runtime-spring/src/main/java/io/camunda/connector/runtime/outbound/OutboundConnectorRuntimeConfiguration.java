@@ -30,7 +30,6 @@ import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import java.io.IOException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,7 +44,7 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public DocumentFactory documentFactory() throws IOException {
+  public DocumentFactory documentFactory() {
     return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   }
 
