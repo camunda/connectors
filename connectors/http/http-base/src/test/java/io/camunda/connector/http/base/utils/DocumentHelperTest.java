@@ -42,7 +42,7 @@ public class DocumentHelperTest {
   }
 
   @Test
-  public void shouldCreateDocuments_whenMapInput() {
+  public void shouldParseDocuments_InBody_whenMapInput() {
     // given
     DocumentHelper documentHelper = new DocumentHelper();
     CamundaDocument document =
@@ -56,7 +56,7 @@ public class DocumentHelperTest {
     when(transformer.apply(document)).thenReturn("transformed".getBytes(StandardCharsets.UTF_8));
 
     // when
-    Object res = documentHelper.createDocuments(input, transformer);
+    Object res = documentHelper.parseDocumentsInBody(input, transformer);
 
     // then
     assertThat(res).isInstanceOf(Map.class);
@@ -72,7 +72,7 @@ public class DocumentHelperTest {
   }
 
   @Test
-  public void shouldCreateDocuments_whenListInput() {
+  public void shouldParseDocuments_InBody_whenListInput() {
     // given
     DocumentHelper documentHelper = new DocumentHelper();
     CamundaDocument document =
@@ -85,7 +85,7 @@ public class DocumentHelperTest {
     when(transformer.apply(document)).thenReturn("transformed".getBytes(StandardCharsets.UTF_8));
 
     // when
-    Object res = documentHelper.createDocuments(input, transformer);
+    Object res = documentHelper.parseDocumentsInBody(input, transformer);
 
     // then
     assertThat(res).isInstanceOf(List.class);
@@ -99,14 +99,14 @@ public class DocumentHelperTest {
   }
 
   @Test
-  public void shouldNotCreateDocuments_whenNoDocumentProvided() {
+  public void shouldNotParseDocuments_InBody_whenNoDocumentProvided() {
     // given
     DocumentHelper documentHelper = new DocumentHelper();
     Map<String, Object> input = Map.of("body", Map.of("content", "no document"));
     Function<CamundaDocument, Object> transformer = mock(Function.class);
 
     // when
-    Object res = documentHelper.createDocuments(input, transformer);
+    Object res = documentHelper.parseDocumentsInBody(input, transformer);
 
     // then
     assertThat(res).isInstanceOf(Map.class);

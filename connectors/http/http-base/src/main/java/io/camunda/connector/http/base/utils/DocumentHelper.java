@@ -31,17 +31,19 @@ public class DocumentHelper {
    * @param input the input map
    * @param transformer the transformer to apply to each document (e.g. convert to Base64 etc)
    */
-  public Object createDocuments(Object input, Function<CamundaDocument, Object> transformer) {
+  public Object parseDocumentsInBody(Object input, Function<CamundaDocument, Object> transformer) {
     return switch (input) {
-      case Map<?, ?> map -> map.entrySet().stream()
-          .map(
-              (Map.Entry<?, ?> e) ->
-                  new AbstractMap.SimpleEntry<>(
-                      e.getKey(), createDocuments(e.getValue(), transformer)))
-          .collect(
-              Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+      case Map<?, ?> map ->
+          map.entrySet().stream()
+              .map(
+                  (Map.Entry<?, ?> e) ->
+                      new AbstractMap.SimpleEntry<>(
+                          e.getKey(), parseDocumentsInBody(e.getValue(), transformer)))
+              .collect(
+                  Collectors.toMap(
+                      AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
 
-      case Collection list -> list.stream().map(o -> createDocuments(o, transformer)).toList();
+      case Collection list -> list.stream().map(o -> parseDocumentsInBody(o, transformer)).toList();
       case CamundaDocument doc -> transformer.apply(doc);
       default -> input;
     };
