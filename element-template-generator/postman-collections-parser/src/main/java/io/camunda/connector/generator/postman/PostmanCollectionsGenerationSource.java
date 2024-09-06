@@ -17,6 +17,8 @@
 package io.camunda.connector.generator.postman;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.camunda.connector.generator.postman.model.PostmanCollectionV210;
 import io.camunda.connector.generator.postman.utils.ObjectMapperProvider;
 import java.io.File;
@@ -59,6 +61,10 @@ public record PostmanCollectionsGenerationSource(
                         throw new IllegalArgumentException(
                             "Couldn't parse Postman Collection to v.2.1.0 standard", e);
                       }
+                    } else if (isValidYAML(pathOrContent)) {
+                      final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+                      mapper.findAndRegisterModules();
+                      return mapper.readValue(pathOrContent, JsonNode.class);
                     }
                     final File postmanCollectionsFileJson;
                     if (pathOrContent.startsWith("http")) { // Network
@@ -116,6 +122,16 @@ public record PostmanCollectionsGenerationSource(
     try {
       ObjectMapperProvider.getInstance().readTree(jsonInString);
       return true;
+    } catch (IOException e) {
+      return false;
+    }
+  }
+
+  public static boolean isValidYAML(String yamlString) {
+    try {
+      final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+      mapper.readTree(yamlString);
+      return yamlString.contains("\n");
     } catch (IOException e) {
       return false;
     }

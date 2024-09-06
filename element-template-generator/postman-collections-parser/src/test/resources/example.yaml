@@ -1,0 +1,25 @@
+info:
+  _postman_id: 431257b5-df1f-4a84-863a-46d2aa3ae731
+  name: TEST
+  schema: https://schema.getpostman.com/json/collection/v2.1.0/collection.json
+  _exporter_id: '25378986'
+item:
+  - name: v1
+    item:
+      - name: New Request
+        request:
+          method: GET
+          header: []
+        response: []
+  - name: v2
+    item:
+      - name: New Request
+        request:
+          method: GET
+          header: []
+        response: []
+  - name: test
+    request:
+      method: GET
+      header: []
+    response: []

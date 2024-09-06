@@ -68,6 +68,26 @@ public class ExampleTest {
     }
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  @Test
+  void generateFromRawYamlContent() {
+    // given
+    try (var openApiYamlContent = new FileInputStream("src/test/resources/example.yaml")) {
+      byte[] b = new byte[openApiYamlContent.available()];
+      openApiYamlContent.read(b);
+      var source = new OpenApiGenerationSource(List.of(new String(b)));
+      var generator = new OpenApiOutboundTemplateGenerator();
+
+      // when
+      var scanResult = generator.generate(source);
+
+      // then
+      System.out.println(scanResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Test
   void scan() {
     var parser = new OpenAPIV3Parser();
@@ -87,6 +107,23 @@ public class ExampleTest {
       String openApiCollectionsJsonContent =
           mapper.readValue(openApiJsonContent, JsonNode.class).toString();
       var source = new OpenApiGenerationSource(List.of(openApiCollectionsJsonContent));
+      var generator = new OpenApiOutboundTemplateGenerator();
+
+      var scanResult = generator.scan(source);
+
+      System.out.println(scanResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  @Test
+  void scanFromRawYamlContent() {
+    try (var openApiYamlContent = new FileInputStream("src/test/resources/example.yaml")) {
+      byte[] b = new byte[openApiYamlContent.available()];
+      openApiYamlContent.read(b);
+      var source = new OpenApiGenerationSource(List.of(new String(b)));
       var generator = new OpenApiOutboundTemplateGenerator();
 
       var scanResult = generator.scan(source);
