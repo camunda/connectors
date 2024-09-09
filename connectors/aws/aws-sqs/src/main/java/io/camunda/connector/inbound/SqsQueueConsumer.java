@@ -99,7 +99,7 @@ public class SqsQueueConsumer implements Runnable {
 
   private ReceiveMessageRequest createReceiveMessageRequest() {
     return new ReceiveMessageRequest()
-        .withWaitTimeSeconds(Integer.valueOf(properties.getQueue().pollingWaitTime()))
+        .withWaitTimeSeconds(Math.max(Integer.parseInt(properties.getQueue().pollingWaitTime()), 1))
         .withQueueUrl(properties.getQueue().url())
         .withMessageAttributeNames(
             Optional.ofNullable(properties.getQueue().messageAttributeNames())
