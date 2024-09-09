@@ -68,21 +68,22 @@ public class ExampleTest {
     }
   }
 
-  @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   void generateFromRawYamlContent() {
     // given
     try (var openApiYamlContent = new FileInputStream("src/test/resources/example.yaml")) {
       byte[] b = new byte[openApiYamlContent.available()];
-      openApiYamlContent.read(b);
+      if (openApiYamlContent.read(b) == -1) {
+        throw new RuntimeException("Failed to read yaml file!");
+      }
       var source = new OpenApiGenerationSource(List.of(new String(b)));
       var generator = new OpenApiOutboundTemplateGenerator();
 
       // when
-      var scanResult = generator.generate(source);
+      var templates = generator.generate(source);
 
       // then
-      System.out.println(scanResult);
+      System.out.println(mapper.writeValueAsString(templates));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -117,12 +118,13 @@ public class ExampleTest {
     }
   }
 
-  @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   void scanFromRawYamlContent() {
     try (var openApiYamlContent = new FileInputStream("src/test/resources/example.yaml")) {
       byte[] b = new byte[openApiYamlContent.available()];
-      openApiYamlContent.read(b);
+      if (openApiYamlContent.read(b) == -1) {
+        throw new RuntimeException("Failed to read yaml file!");
+      }
       var source = new OpenApiGenerationSource(List.of(new String(b)));
       var generator = new OpenApiOutboundTemplateGenerator();
 

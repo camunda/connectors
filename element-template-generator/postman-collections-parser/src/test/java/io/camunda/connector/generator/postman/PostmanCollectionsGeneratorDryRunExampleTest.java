@@ -110,11 +110,12 @@ public class PostmanCollectionsGeneratorDryRunExampleTest {
     }
   }
 
-  @SuppressWarnings("ResultOfMethodCallIgnored")
   private static String getYamlContent() {
     try (var openApiYamlContent = new FileInputStream("src/test/resources/example.yaml")) {
       byte[] b = new byte[openApiYamlContent.available()];
-      openApiYamlContent.read(b);
+      if (openApiYamlContent.read(b) == -1) {
+        throw new RuntimeException("Failed to read yaml file!");
+      }
       return new String(b);
     } catch (IOException e) {
       throw new RuntimeException(e);
