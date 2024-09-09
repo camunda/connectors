@@ -4,10 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.core;
+package io.camunda.connector.email.client;
 
-import io.camunda.connector.email.outbound.model.EmailRequest;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 
-public interface ActionExecutor {
-  Object execute(EmailRequest emailRequest);
+public interface EmailListener {
+  void startListener(InboundConnectorContext context);
+
+  void stopListener();
 }

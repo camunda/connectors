@@ -13,41 +13,24 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "deleteEmailImap", label = "Delete an email using IMAP")
-public final class ImapDeleteEmail implements ImapAction {
-  @TemplateProperty(
-      label = "Imap UID",
-      group = "deleteEmailImap",
-      id = "imapMessageIdDelete",
-      description = "",
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.messageId"))
-  @Valid
-  @NotNull
-  String messageId;
-
-  @TemplateProperty(
-      label = "Folder",
-      group = "deleteEmailImap",
-      id = "deleteEmailFolder",
-      description = "",
-      optional = true,
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.deleteEmailFolder"))
-  private String deleteEmailFolder;
-
-  public @Valid @NotNull String getMessageId() {
-    return messageId;
-  }
-
-  public void setMessageId(@Valid @NotNull String messageId) {
-    this.messageId = messageId;
-  }
-
-  public String getDeleteEmailFolder() {
-    return deleteEmailFolder;
-  }
-
-  public void setDeleteEmailFolder(String deleteEmailFolder) {
-    this.deleteEmailFolder = deleteEmailFolder;
-  }
-}
+public record ImapDeleteEmail(
+    @TemplateProperty(
+            label = "Imap UID",
+            group = "deleteEmailImap",
+            id = "imapMessageIdDelete",
+            description = "",
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.messageId"))
+        @Valid
+        @NotNull
+        String messageId,
+    @TemplateProperty(
+            label = "Folder",
+            group = "deleteEmailImap",
+            id = "deleteEmailFolder",
+            description = "",
+            optional = true,
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.deleteEmailFolder"))
+        String deleteEmailFolder)
+    implements ImapAction {}

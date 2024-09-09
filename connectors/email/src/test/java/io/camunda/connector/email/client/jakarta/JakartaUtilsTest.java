@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.core.jakarta;
+package io.camunda.connector.email.client.jakarta;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -26,19 +26,15 @@ class JakartaUtilsTest {
   @Test
   void testCreateSessionWithSmtpAndTLS() {
     // Given
-    SmtpConfig smtpConfig = new SmtpConfig();
-    smtpConfig.setSmtpHost("smtp.example.com");
-    smtpConfig.setSmtpPort(587);
-    smtpConfig.setSmtpCryptographicProtocol(CryptographicProtocol.TLS);
-    Smtp smtp = new Smtp();
-    smtp.setSmtpConfig(smtpConfig);
+    SmtpConfig smtpConfig = new SmtpConfig("smtp.example.com", 587, CryptographicProtocol.TLS);
+    Smtp smtp = new Smtp(null, smtpConfig);
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
 
     // When
-    Session session = factory.createSession(smtp.getSmtpConfig(), auth);
+    Session session = factory.createSession(smtp.smtpConfig(), auth);
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -51,19 +47,15 @@ class JakartaUtilsTest {
   @Test
   void testCreateSessionWithSmtpAndNoSecurity() {
     // Given
-    SmtpConfig smtpConfig = new SmtpConfig();
-    smtpConfig.setSmtpHost("smtp.example.com");
-    smtpConfig.setSmtpPort(25);
-    smtpConfig.setSmtpCryptographicProtocol(CryptographicProtocol.NONE);
-    Smtp smtp = new Smtp();
-    smtp.setSmtpConfig(smtpConfig);
+    SmtpConfig smtpConfig = new SmtpConfig("smtp.example.com", 25, CryptographicProtocol.NONE);
+    Smtp smtp = new Smtp(null, smtpConfig);
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
 
     // When
-    Session session = factory.createSession(smtp.getSmtpConfig(), auth);
+    Session session = factory.createSession(smtp.smtpConfig(), auth);
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -77,19 +69,15 @@ class JakartaUtilsTest {
   @Test
   void testCreateSessionWithSmtpWithoutAuthentication() {
     // Given
-    SmtpConfig smtpConfig = new SmtpConfig();
-    smtpConfig.setSmtpHost("smtp.example.com");
-    smtpConfig.setSmtpPort(25);
-    smtpConfig.setSmtpCryptographicProtocol(CryptographicProtocol.NONE);
-    Smtp smtp = new Smtp();
-    smtp.setSmtpConfig(smtpConfig);
+    SmtpConfig smtpConfig = new SmtpConfig("smtp.example.com", 25, CryptographicProtocol.NONE);
+    Smtp smtp = new Smtp(null, smtpConfig);
     Authentication auth = mock(NoAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(false);
 
     JakartaUtils factory = new JakartaUtils();
 
     // When
-    Session session = factory.createSession(smtp.getSmtpConfig(), auth);
+    Session session = factory.createSession(smtp.smtpConfig(), auth);
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -103,19 +91,15 @@ class JakartaUtilsTest {
   @Test
   void testCreateSessionWithSmtpAndSSL() {
     // Given
-    SmtpConfig smtpConfig = new SmtpConfig();
-    smtpConfig.setSmtpHost("smtp.ssl-example.com");
-    smtpConfig.setSmtpPort(465);
-    smtpConfig.setSmtpCryptographicProtocol(CryptographicProtocol.SSL);
-    Smtp smtp = new Smtp();
-    smtp.setSmtpConfig(smtpConfig);
+    SmtpConfig smtpConfig = new SmtpConfig("smtp.ssl-example.com", 465, CryptographicProtocol.SSL);
+    Smtp smtp = new Smtp(null, smtpConfig);
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
 
     // When
-    Session session = factory.createSession(smtp.getSmtpConfig(), auth);
+    Session session = factory.createSession(smtp.smtpConfig(), auth);
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -129,10 +113,7 @@ class JakartaUtilsTest {
   @Test
   void testCreatePropertiesWithPop3AndNoSecurity() {
     // Given
-    Pop3Config pop3Config = new Pop3Config();
-    pop3Config.setPop3Host("pop3.example.com");
-    pop3Config.setPop3Port(110);
-    pop3Config.setPop3CryptographicProtocol(CryptographicProtocol.NONE);
+    Pop3Config pop3Config = new Pop3Config("pop3.example.com", 110, CryptographicProtocol.NONE);
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
 
@@ -152,10 +133,7 @@ class JakartaUtilsTest {
   @Test
   void testCreatePropertiesWithPop3AndTLS() {
     // Given
-    Pop3Config pop3Config = new Pop3Config();
-    pop3Config.setPop3Host("pop3.example.com");
-    pop3Config.setPop3Port(995);
-    pop3Config.setPop3CryptographicProtocol(CryptographicProtocol.TLS);
+    Pop3Config pop3Config = new Pop3Config("pop3.example.com", 995, CryptographicProtocol.TLS);
 
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
@@ -175,10 +153,7 @@ class JakartaUtilsTest {
   @Test
   void testCreatePropertiesWithImapAndNoSecurity() {
     // Given
-    ImapConfig imapConfig = new ImapConfig();
-    imapConfig.setImapHost("imap.example.com");
-    imapConfig.setImapPort(143);
-    imapConfig.setImapCryptographicProtocol(CryptographicProtocol.NONE);
+    ImapConfig imapConfig = new ImapConfig("imap.example.com", 143, CryptographicProtocol.NONE);
 
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
@@ -199,11 +174,7 @@ class JakartaUtilsTest {
   @Test
   void testCreatePropertiesWithImapAndTLS() {
     // Given
-    ImapConfig imapConfig = new ImapConfig();
-    imapConfig.setImapHost("imap.tls-example.com");
-    imapConfig.setImapPort(993);
-    imapConfig.setImapCryptographicProtocol(CryptographicProtocol.TLS);
-
+    ImapConfig imapConfig = new ImapConfig("imap.tls-example.com", 993, CryptographicProtocol.TLS);
     // When
     Authentication auth = mock(SimpleAuthentication.class);
     when(auth.isSecuredAuth()).thenReturn(true);
@@ -224,10 +195,7 @@ class JakartaUtilsTest {
   @Test
   void testCreatePropertiesWithImapAndSSL() {
     // Given
-    ImapConfig imapConfig = new ImapConfig();
-    imapConfig.setImapHost("imap.ssl-example.com");
-    imapConfig.setImapPort(993);
-    imapConfig.setImapCryptographicProtocol(CryptographicProtocol.SSL);
+    ImapConfig imapConfig = new ImapConfig("imap.ssl-example.com", 993, CryptographicProtocol.SSL);
 
     // When
     Authentication auth = mock(SimpleAuthentication.class);

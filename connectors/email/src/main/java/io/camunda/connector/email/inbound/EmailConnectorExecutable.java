@@ -10,8 +10,9 @@ import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.email.core.jakarta.JakartaEmailListener;
-import io.camunda.connector.email.core.jakarta.JakartaUtils;
+import io.camunda.connector.email.client.EmailListener;
+import io.camunda.connector.email.client.jakarta.JakartaEmailListener;
+import io.camunda.connector.email.client.jakarta.JakartaUtils;
 import io.camunda.connector.email.inbound.model.EmailProperties;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -51,10 +52,10 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 public class EmailConnectorExecutable
     implements InboundConnectorExecutable<InboundConnectorContext> {
 
-  private final JakartaEmailListener jakartaEmailListener;
+  private final EmailListener emailListener;
 
   private EmailConnectorExecutable(JakartaEmailListener jakartaEmailListener) {
-    this.jakartaEmailListener = jakartaEmailListener;
+    this.emailListener = jakartaEmailListener;
   }
 
   public EmailConnectorExecutable() {
@@ -63,12 +64,12 @@ public class EmailConnectorExecutable
 
   @Override
   public void activate(InboundConnectorContext context) {
-    this.jakartaEmailListener.startListener(context);
+    this.emailListener.startListener(context);
     context.reportHealth(Health.up());
   }
 
   @Override
   public void deactivate() {
-    this.jakartaEmailListener.stopListener();
+    this.emailListener.stopListener();
   }
 }

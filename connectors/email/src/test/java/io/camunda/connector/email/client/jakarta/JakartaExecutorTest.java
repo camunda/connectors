@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.core.jakarta;
+package io.camunda.connector.email.client.jakarta;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -54,16 +54,16 @@ class JakartaExecutorTest {
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(transport).connect(any(), any());
 
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(session.getProperties()).thenReturn(new Properties());
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
-    when(smtpSendEmail.getTo()).thenReturn(List.of("to"));
-    when(smtpSendEmail.getCc()).thenReturn(List.of("cc"));
-    when(smtpSendEmail.getCci()).thenReturn(List.of("bcc"));
+    when(smtpSendEmail.to()).thenReturn(List.of("to"));
+    when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
+    when(smtpSendEmail.cci()).thenReturn(List.of("bcc"));
     when(simpleAuthentication.getSender()).thenReturn("myself");
-    when(smtpSendEmail.getBody()).thenReturn("body");
+    when(smtpSendEmail.body()).thenReturn("body");
     when(session.getTransport()).thenReturn(transport);
 
     actionExecutor.execute(emailRequest);
@@ -114,16 +114,16 @@ class JakartaExecutorTest {
 
     doNothing().when(pop3Folder).open(Folder.READ_ONLY);
 
-    when(pop3ListEmails.getMaxToBeRead()).thenReturn(10);
+    when(pop3ListEmails.maxToBeRead()).thenReturn(10);
     when(pop3Folder.getMessages()).thenReturn(new Message[] {message});
 
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(sessionFactory.retrieveEmailComparator((SortFieldPop3) any(), any()))
         .thenReturn((o1, o2) -> 1);
     when(message.getHeader(any())).thenReturn(new String[] {"id"});
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(pop3ListEmails);
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
     doNothing().when(store).connect(any(), any());
@@ -159,17 +159,17 @@ class JakartaExecutorTest {
 
     doNothing().when(folder).open(Folder.READ_ONLY);
 
-    when(imapListEmails.getMaxToBeRead()).thenReturn(10);
+    when(imapListEmails.maxToBeRead()).thenReturn(10);
     when(folder.getMessages()).thenReturn(new Message[] {message});
 
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(sessionFactory.retrieveEmailComparator((SortFieldImap) any(), any()))
         .thenReturn((o1, o2) -> 1);
     when(message.getHeader(any())).thenReturn(new String[] {"id"});
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapListEmails);
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
     doNothing().when(store).connect(any(), any());
@@ -211,10 +211,10 @@ class JakartaExecutorTest {
     when(pop3ReadEmail.getMessageId()).thenReturn("10");
     when(message.getContent()).thenReturn("string");
     when(message.isMimeType("text/plain")).thenReturn(true);
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(pop3ReadEmail);
     doNothing().when(store).connect(any(), any());
 
@@ -251,13 +251,13 @@ class JakartaExecutorTest {
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(folder.search(any())).thenReturn(new Message[] {message});
     when(message.getHeader(any())).thenReturn(new String[] {"10"});
-    when(imapReadEmail.getMessageId()).thenReturn("10");
+    when(imapReadEmail.messageId()).thenReturn("10");
     when(message.getContent()).thenReturn("string");
     when(message.isMimeType("text/plain")).thenReturn(true);
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapReadEmail);
     doNothing().when(store).connect(any(), any());
 
@@ -294,13 +294,13 @@ class JakartaExecutorTest {
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
     when(pop3Folder.search(any())).thenReturn(new Message[] {message});
     when(message.getHeader(any())).thenReturn(new String[] {"10"});
-    when(pop3DeleteEmail.getMessageId()).thenReturn("10");
+    when(pop3DeleteEmail.messageId()).thenReturn("10");
     when(message.getContent()).thenReturn("string");
     when(message.isMimeType("text/plain")).thenReturn(true);
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(pop3DeleteEmail);
     doNothing().when(store).connect(any(), any());
 
@@ -337,13 +337,13 @@ class JakartaExecutorTest {
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(folder.search(any())).thenReturn(new Message[] {message});
     when(message.getHeader(any())).thenReturn(new String[] {"10"});
-    when(imapDeleteEmail.getMessageId()).thenReturn("10");
+    when(imapDeleteEmail.messageId()).thenReturn("10");
     when(message.getContent()).thenReturn("string");
     when(message.isMimeType("text/plain")).thenReturn(true);
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapDeleteEmail);
     doNothing().when(store).connect(any(), any());
 
@@ -379,15 +379,15 @@ class JakartaExecutorTest {
 
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
     when(pop3Folder.search(any())).thenReturn(new Message[] {message});
-    when(pop3SearchEmails.getCriteria())
+    when(pop3SearchEmails.criteria())
         .thenReturn(loadCriteria("src/test/resources/criterias/simple-criteria.json"));
     when(message.getContent()).thenReturn("string");
     when(message.isMimeType("text/plain")).thenReturn(true);
     when(message.getHeader(any())).thenReturn(new String[] {"1"});
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(pop3SearchEmails);
     doNothing().when(store).connect(any(), any());
 
@@ -423,15 +423,15 @@ class JakartaExecutorTest {
 
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(folder.search(any())).thenReturn(new Message[] {message});
-    when(imapSearchEmails.getCriteria())
+    when(imapSearchEmails.criteria())
         .thenReturn(loadCriteria("src/test/resources/criterias/simple-criteria.json"));
     when(message.getContent()).thenReturn("string");
     when(message.isMimeType("text/plain")).thenReturn(true);
     when(message.getHeader(any())).thenReturn(new String[] {"1"});
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(session.getProperties()).thenReturn(new Properties());
     when(session.getStore()).thenReturn(store);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
     doNothing().when(store).connect(any(), any());
 
@@ -484,10 +484,10 @@ class JakartaExecutorTest {
 
     when(session.getStore()).thenReturn(store);
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
-    when(imapSearchEmails.getCriteria())
+    when(imapSearchEmails.criteria())
         .thenReturn(loadCriteria("src/test/resources/criterias/simple-criteria.json"));
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
 
     List<SearchEmailsResponse> searchEmailsResponses =
@@ -544,10 +544,10 @@ class JakartaExecutorTest {
 
     when(session.getStore()).thenReturn(store);
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
-    when(imapSearchEmails.getCriteria())
+    when(imapSearchEmails.criteria())
         .thenReturn(loadCriteria("src/test/resources/criterias/body-criteria.json"));
-    when(emailRequest.getAuthentication()).thenReturn(simpleAuthentication);
-    when(emailRequest.getData()).thenReturn(protocol);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
 
     List<SearchEmailsResponse> searchEmailsResponses =

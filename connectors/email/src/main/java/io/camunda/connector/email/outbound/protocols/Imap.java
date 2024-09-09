@@ -17,28 +17,25 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "imap", label = "IMAP")
-public final class Imap implements Protocol {
-  @JsonTypeInfo(
-      use = JsonTypeInfo.Id.NAME,
-      include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
-      property = "imapActionDiscriminator")
-  @JsonSubTypes(
-      value = {
-        @JsonSubTypes.Type(value = ImapListEmails.class, name = "listEmailsImap"),
-        @JsonSubTypes.Type(value = ImapSearchEmails.class, name = "searchEmailsImap"),
-        @JsonSubTypes.Type(value = ImapMoveEmail.class, name = "moveEmailImap"),
-        @JsonSubTypes.Type(value = ImapReadEmail.class, name = "readEmailImap"),
-        @JsonSubTypes.Type(value = ImapDeleteEmail.class, name = "deleteEmailImap")
-      })
-  @Valid
-  @NotNull
-  @NestedProperties(addNestedPath = false)
-  private ImapAction imapAction;
-
-  @Valid
-  @NestedProperties(addNestedPath = false)
-  private ImapConfig imapConfig;
-
+public record Imap(
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+            property = "imapActionDiscriminator")
+        @JsonSubTypes(
+            value = {
+              @JsonSubTypes.Type(value = ImapListEmails.class, name = "listEmailsImap"),
+              @JsonSubTypes.Type(value = ImapSearchEmails.class, name = "searchEmailsImap"),
+              @JsonSubTypes.Type(value = ImapMoveEmail.class, name = "moveEmailImap"),
+              @JsonSubTypes.Type(value = ImapReadEmail.class, name = "readEmailImap"),
+              @JsonSubTypes.Type(value = ImapDeleteEmail.class, name = "deleteEmailImap")
+            })
+        @NestedProperties(addNestedPath = false)
+        @Valid
+        @NotNull
+        ImapAction imapAction,
+    @NestedProperties(addNestedPath = false) @Valid ImapConfig imapConfig)
+    implements Protocol {
   @Override
   public Action getProtocolAction() {
     return imapAction;
@@ -47,21 +44,5 @@ public final class Imap implements Protocol {
   @Override
   public Configuration getConfiguration() {
     return imapConfig;
-  }
-
-  public @Valid @NotNull ImapAction getImapAction() {
-    return imapAction;
-  }
-
-  public void setImapAction(@Valid @NotNull ImapAction imapAction) {
-    this.imapAction = imapAction;
-  }
-
-  public @Valid ImapConfig getImapConfig() {
-    return imapConfig;
-  }
-
-  public void setImapConfig(@Valid ImapConfig imapConfig) {
-    this.imapConfig = imapConfig;
   }
 }

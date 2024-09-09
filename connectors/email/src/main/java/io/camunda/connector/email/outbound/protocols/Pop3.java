@@ -17,27 +17,24 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "pop3", label = "POP3")
-public final class Pop3 implements Protocol {
-  @JsonTypeInfo(
-      use = JsonTypeInfo.Id.NAME,
-      include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
-      property = "pop3ActionDiscriminator")
-  @JsonSubTypes(
-      value = {
-        @JsonSubTypes.Type(value = Pop3ListEmails.class, name = "listEmailsPop3"),
-        @JsonSubTypes.Type(value = Pop3ReadEmail.class, name = "readEmailPop3"),
-        @JsonSubTypes.Type(value = Pop3DeleteEmail.class, name = "deleteEmailPop3"),
-        @JsonSubTypes.Type(value = Pop3SearchEmails.class, name = "searchEmailsPop3")
-      })
-  @Valid
-  @NotNull
-  @NestedProperties(addNestedPath = false)
-  private Pop3Action pop3Action;
-
-  @Valid
-  @NestedProperties(addNestedPath = false)
-  private Pop3Config pop3Config;
-
+public record Pop3(
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+            property = "pop3ActionDiscriminator")
+        @JsonSubTypes(
+            value = {
+              @JsonSubTypes.Type(value = Pop3ListEmails.class, name = "listEmailsPop3"),
+              @JsonSubTypes.Type(value = Pop3ReadEmail.class, name = "readEmailPop3"),
+              @JsonSubTypes.Type(value = Pop3DeleteEmail.class, name = "deleteEmailPop3"),
+              @JsonSubTypes.Type(value = Pop3SearchEmails.class, name = "searchEmailsPop3")
+            })
+        @NestedProperties(addNestedPath = false)
+        @Valid
+        @NotNull
+        Pop3Action pop3Action,
+    @NestedProperties(addNestedPath = false) @Valid Pop3Config pop3Config)
+    implements Protocol {
   @Override
   public Action getProtocolAction() {
     return pop3Action;
@@ -46,21 +43,5 @@ public final class Pop3 implements Protocol {
   @Override
   public Configuration getConfiguration() {
     return pop3Config;
-  }
-
-  public @Valid @NotNull Pop3Action getPop3Action() {
-    return pop3Action;
-  }
-
-  public void setPop3Action(@Valid @NotNull Pop3Action pop3Action) {
-    this.pop3Action = pop3Action;
-  }
-
-  public @Valid Pop3Config getPop3Config() {
-    return pop3Config;
-  }
-
-  public void setPop3Config(@Valid Pop3Config pop3Config) {
-    this.pop3Config = pop3Config;
   }
 }

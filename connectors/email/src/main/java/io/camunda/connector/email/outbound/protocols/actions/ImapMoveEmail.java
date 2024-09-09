@@ -13,62 +13,35 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "moveEmailImap", label = "Move email")
-public final class ImapMoveEmail implements ImapAction {
-
-  @TemplateProperty(
-      label = "Message ID",
-      group = "moveEmailImap",
-      id = "imapMessageIdMove",
-      description = "",
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.messageId"))
-  @Valid
-  @NotNull
-  String messageId;
-
-  @TemplateProperty(
-      label = "Source folder",
-      group = "moveEmailImap",
-      id = "data.fromFolder",
-      description = "",
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.fromFolder"))
-  @Valid
-  @NotNull
-  String fromFolder;
-
-  @TemplateProperty(
-      label = "Target folder",
-      group = "moveEmailImap",
-      id = "data.toFolder",
-      description = "",
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.toFolder"))
-  @Valid
-  @NotNull
-  String toFolder;
-
-  public @Valid @NotNull String getMessageId() {
-    return messageId;
-  }
-
-  public void setMessageId(@Valid @NotNull String messageId) {
-    this.messageId = messageId;
-  }
-
-  public @Valid @NotNull String getToFolder() {
-    return toFolder;
-  }
-
-  public void setToFolder(@Valid @NotNull String toFolder) {
-    this.toFolder = toFolder;
-  }
-
-  public @Valid @NotNull String getFromFolder() {
-    return fromFolder;
-  }
-
-  public void setFromFolder(@Valid @NotNull String fromFolder) {
-    this.fromFolder = fromFolder;
-  }
-}
+public record ImapMoveEmail(
+    @TemplateProperty(
+            label = "Message ID",
+            group = "moveEmailImap",
+            id = "imapMessageIdMove",
+            description = "",
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.messageId"))
+        @Valid
+        @NotNull
+        String messageId,
+    @TemplateProperty(
+            label = "Source folder",
+            group = "moveEmailImap",
+            id = "data.fromFolder",
+            description = "",
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.fromFolder"))
+        @Valid
+        @NotNull
+        String fromFolder,
+    @TemplateProperty(
+            label = "Target folder",
+            group = "moveEmailImap",
+            id = "data.toFolder",
+            description = "",
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.toFolder"))
+        @Valid
+        @NotNull
+        String toFolder)
+    implements ImapAction {}

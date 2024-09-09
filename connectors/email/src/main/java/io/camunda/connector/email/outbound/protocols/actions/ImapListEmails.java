@@ -13,93 +13,60 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "listEmailsImap", label = "List emails using IMAP")
-public final class ImapListEmails implements ImapAction {
-  @TemplateProperty(
-      label = "Max email to read",
-      group = "listEmailsImap",
-      id = "imapMaxToBeRead",
-      defaultValue = "100",
-      description = "",
-      feel = Property.FeelMode.disabled,
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.maxToBeRead"))
-  @Valid
-  @NotNull
-  Integer maxToBeRead;
-
-  @TemplateProperty(
-      label = "Folder",
-      group = "listEmailsImap",
-      id = "imapListEmailsFolder",
-      description = "",
-      optional = true,
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.listEmailsFolder"))
-  private String listEmailsFolder;
-
-  @TemplateProperty(
-      label = "Sort emails by",
-      description = "",
-      id = "imapSortField",
-      group = "listEmailsImap",
-      feel = Property.FeelMode.required,
-      type = TemplateProperty.PropertyType.Dropdown,
-      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-      defaultValue = "RECEIVED_DATE",
-      choices = {
-        @TemplateProperty.DropdownPropertyChoice(label = "Received Date", value = "RECEIVED_DATE"),
-        @TemplateProperty.DropdownPropertyChoice(label = "Sent Date", value = "SENT_DATE"),
-        @TemplateProperty.DropdownPropertyChoice(label = "Size", value = "SIZE")
-      },
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.sortField"))
-  @NotNull
-  private SortFieldImap sortField;
-
-  @TemplateProperty(
-      label = "Sort order",
-      description = "",
-      group = "listEmailsImap",
-      id = "imapSortOrder",
-      feel = Property.FeelMode.required,
-      type = TemplateProperty.PropertyType.Dropdown,
-      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-      defaultValue = "ASC",
-      choices = {
-        @TemplateProperty.DropdownPropertyChoice(label = "ASC", value = "ASC"),
-        @TemplateProperty.DropdownPropertyChoice(label = "DESC", value = "DESC")
-      },
-      binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.sortOrder"))
-  @NotNull
-  private SortOrder sortOrder;
-
-  public @NotNull SortFieldImap getSortField() {
-    return sortField;
-  }
-
-  public void setSortField(@NotNull SortFieldImap sortField) {
-    this.sortField = sortField;
-  }
-
-  public @Valid @NotNull Integer getMaxToBeRead() {
-    return maxToBeRead;
-  }
-
-  public void setMaxToBeRead(@Valid @NotNull Integer maxToBeRead) {
-    this.maxToBeRead = maxToBeRead;
-  }
-
-  public String getListEmailsFolder() {
-    return listEmailsFolder;
-  }
-
-  public void setListEmailsFolder(String listEmailsFolder) {
-    this.listEmailsFolder = listEmailsFolder;
-  }
-
-  public @NotNull SortOrder getSortOrder() {
-    return sortOrder;
-  }
-
-  public void setSortOrder(@NotNull SortOrder sortOrder) {
-    this.sortOrder = sortOrder;
-  }
-}
+public record ImapListEmails(
+    @TemplateProperty(
+            label = "Max email to read",
+            group = "listEmailsImap",
+            id = "imapMaxToBeRead",
+            defaultValue = "100",
+            description = "",
+            feel = Property.FeelMode.disabled,
+            binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.maxToBeRead"))
+        @Valid
+        @NotNull
+        Integer maxToBeRead,
+    @TemplateProperty(
+            label = "Folder",
+            group = "listEmailsImap",
+            id = "imapListEmailsFolder",
+            description = "",
+            optional = true,
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.listEmailsFolder"))
+        String listEmailsFolder,
+    @TemplateProperty(
+            label = "Sort emails by",
+            description = "",
+            id = "imapSortField",
+            group = "listEmailsImap",
+            feel = Property.FeelMode.required,
+            type = TemplateProperty.PropertyType.Dropdown,
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            defaultValue = "RECEIVED_DATE",
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(
+                  label = "Received Date",
+                  value = "RECEIVED_DATE"),
+              @TemplateProperty.DropdownPropertyChoice(label = "Sent Date", value = "SENT_DATE"),
+              @TemplateProperty.DropdownPropertyChoice(label = "Size", value = "SIZE")
+            },
+            binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.sortField"))
+        @NotNull
+        SortFieldImap sortField,
+    @TemplateProperty(
+            label = "Sort order",
+            description = "",
+            group = "listEmailsImap",
+            id = "imapSortOrder",
+            feel = Property.FeelMode.required,
+            type = TemplateProperty.PropertyType.Dropdown,
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            defaultValue = "ASC",
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(label = "ASC", value = "ASC"),
+              @TemplateProperty.DropdownPropertyChoice(label = "DESC", value = "DESC")
+            },
+            binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.sortOrder"))
+        @NotNull
+        SortOrder sortOrder)
+    implements ImapAction {}

@@ -6,12 +6,13 @@
  */
 package io.camunda.connector.email.outbound;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.email.core.jakarta.JakartaActionExecutor;
-import io.camunda.connector.email.core.jakarta.JakartaUtils;
+import io.camunda.connector.email.client.ActionExecutor;
+import io.camunda.connector.email.client.jakarta.JakartaActionExecutor;
+import io.camunda.connector.email.client.jakarta.JakartaUtils;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
@@ -42,14 +43,25 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "deleteEmailImap", label = "Read Email using IMAP"),
       @ElementTemplate.PropertyGroup(id = "moveEmailImap", label = "Move Emails using IMAP")
     },
-    documentationRef = "https://docs.camunda.io/docs/",
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
     icon = "icon.svg")
 public class EmailConnectorFunction implements OutboundConnectorFunction {
+
+  private final ActionExecutor actionExecutor;
+
+  public EmailConnectorFunction() {
+    this(
+        JakartaActionExecutor.create(new JakartaUtils(), ConnectorsObjectMapperSupplier.getCopy()));
+  }
+
+  public EmailConnectorFunction(ActionExecutor actionExecutor) {
+    this.actionExecutor = actionExecutor;
+  }
 
   @Override
   public Object execute(OutboundConnectorContext context) {
     EmailRequest emailRequest = context.bindVariables(EmailRequest.class);
-    return JakartaActionExecutor.create(new JakartaUtils(), new ObjectMapper())
-        .execute(emailRequest);
+    return actionExecutor.execute(emailRequest);
   }
 }

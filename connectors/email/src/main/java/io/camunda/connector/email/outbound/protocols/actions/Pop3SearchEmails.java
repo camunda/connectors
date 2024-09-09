@@ -11,23 +11,15 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateSubType(id = "searchEmailsPop3", label = "Search an email using POP3")
-public final class Pop3SearchEmails implements Pop3Action {
-  @TemplateProperty(
-      label = "Search criteria",
-      group = "searchEmailsPop3",
-      id = "searchStringEmailPop3",
-      description = "",
-      type = TemplateProperty.PropertyType.Text,
-      feel = Property.FeelMode.required,
-      optional = true,
-      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.criteria"))
-  private Object criteria;
-
-  public Object getCriteria() {
-    return criteria;
-  }
-
-  public void setCriteria(Object criteria) {
-    this.criteria = criteria;
-  }
-}
+public record Pop3SearchEmails(
+    @TemplateProperty(
+            label = "Search criteria",
+            group = "searchEmailsPop3",
+            id = "searchStringEmailPop3",
+            description = "",
+            type = TemplateProperty.PropertyType.Text,
+            feel = Property.FeelMode.required,
+            optional = true,
+            binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.criteria"))
+        Object criteria)
+    implements Pop3Action {}

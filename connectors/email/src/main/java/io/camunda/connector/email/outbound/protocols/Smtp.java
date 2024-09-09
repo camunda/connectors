@@ -19,36 +19,23 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "smtp", label = "SMTP")
-public final class Smtp implements Protocol {
+public record Smtp(
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+            property = "smtpActionDiscriminator")
+        @JsonSubTypes(
+            value = {@JsonSubTypes.Type(value = SmtpSendEmail.class, name = "sendEmailSmtp")})
+        @NestedProperties(addNestedPath = false)
+        @Valid
+        @NotNull
+        SmtpAction smtpAction,
+    @NestedProperties(addNestedPath = false) @Valid SmtpConfig smtpConfig)
+    implements Protocol {
 
-  @JsonTypeInfo(
-      use = JsonTypeInfo.Id.NAME,
-      include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
-      property = "smtpActionDiscriminator")
-  @JsonSubTypes(value = {@JsonSubTypes.Type(value = SmtpSendEmail.class, name = "sendEmailSmtp")})
-  @Valid
-  @NotNull
-  @NestedProperties(addNestedPath = false)
-  private SmtpAction smtpAction;
-
-  @Valid
-  @NestedProperties(addNestedPath = false)
-  private SmtpConfig smtpConfig;
-
-  public @Valid @NotNull SmtpAction getSmtpAction() {
+  @Override
+  public @Valid @NotNull SmtpAction smtpAction() {
     return smtpAction;
-  }
-
-  public void setSmtpAction(@Valid @NotNull SmtpAction smtpAction) {
-    this.smtpAction = smtpAction;
-  }
-
-  public @Valid SmtpConfig getSmtpConfig() {
-    return smtpConfig;
-  }
-
-  public void setSmtpConfig(@Valid SmtpConfig smtpConfig) {
-    this.smtpConfig = smtpConfig;
   }
 
   @Override

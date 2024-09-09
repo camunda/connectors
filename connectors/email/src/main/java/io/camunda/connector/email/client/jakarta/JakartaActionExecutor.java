@@ -4,12 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.core.jakarta;
+package io.camunda.connector.email.client.jakarta;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.email.authentication.Authentication;
-import io.camunda.connector.email.core.ActionExecutor;
+import io.camunda.connector.email.client.ActionExecutor;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
@@ -37,8 +37,8 @@ public class JakartaActionExecutor implements ActionExecutor {
   }
 
   public Object execute(EmailRequest emailRequest) {
-    Authentication authentication = emailRequest.getAuthentication();
-    Protocol protocol = emailRequest.getData();
+    Authentication authentication = emailRequest.authentication();
+    Protocol protocol = emailRequest.data();
     Action action = protocol.getProtocolAction();
     Session session = jakartaUtils.createSession(protocol.getConfiguration(), authentication);
     return switch (action) {
@@ -64,9 +64,9 @@ public class JakartaActionExecutor implements ActionExecutor {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
       Folder defaultFolder = store.getDefaultFolder();
-      String targetFolder = imapSearchEmails.getSearchEmailFolder();
+      String targetFolder = imapSearchEmails.searchEmailFolder();
       try (Folder imapFolder = this.jakartaUtils.findImapFolder(defaultFolder, targetFolder)) {
-        return searchEmails(imapFolder, imapSearchEmails.getCriteria());
+        return searchEmails(imapFolder, imapSearchEmails.criteria());
       }
     } catch (MessagingException e) {
       throw new RuntimeException(e);
@@ -78,10 +78,10 @@ public class JakartaActionExecutor implements ActionExecutor {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
       Folder defaultFolder = store.getDefaultFolder();
-      String targetFolder = imapReadEmail.getReadEmailFolder();
+      String targetFolder = imapReadEmail.readEmailFolder();
       try (Folder imapFolder = this.jakartaUtils.findImapFolder(defaultFolder, targetFolder)) {
         imapFolder.open(Folder.READ_ONLY);
-        Message[] messages = imapFolder.search(new MessageIDTerm(imapReadEmail.getMessageId()));
+        Message[] messages = imapFolder.search(new MessageIDTerm(imapReadEmail.messageId()));
         return Arrays.stream(messages)
             .findFirst()
             .map(Email::createEmail)
@@ -106,9 +106,9 @@ public class JakartaActionExecutor implements ActionExecutor {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
       Folder defaultFolder = store.getDefaultFolder();
-      String targetFolder = imapDeleteEmail.getDeleteEmailFolder();
+      String targetFolder = imapDeleteEmail.deleteEmailFolder();
       try (Folder folder = this.jakartaUtils.findImapFolder(defaultFolder, targetFolder)) {
-        return deleteEmail(folder, imapDeleteEmail.getMessageId());
+        return deleteEmail(folder, imapDeleteEmail.messageId());
       }
     } catch (MessagingException e) {
       throw new RuntimeException(e);
@@ -120,8 +120,8 @@ public class JakartaActionExecutor implements ActionExecutor {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
       Folder rootFolder = store.getDefaultFolder();
-      String fromFolder = imapMoveEmail.getFromFolder();
-      String toFolder = imapMoveEmail.getToFolder();
+      String fromFolder = imapMoveEmail.fromFolder();
+      String toFolder = imapMoveEmail.toFolder();
       Folder sourceImapFolder = this.jakartaUtils.findImapFolder(rootFolder, fromFolder);
       if (!sourceImapFolder.exists()) throw new MessagingException("Source folder does not exist");
       sourceImapFolder.open(Folder.READ_WRITE);
@@ -131,7 +131,7 @@ public class JakartaActionExecutor implements ActionExecutor {
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
       targetImapFolder.open(Folder.READ_WRITE);
 
-      Message[] messages = sourceImapFolder.search(new MessageIDTerm(imapMoveEmail.getMessageId()));
+      Message[] messages = sourceImapFolder.search(new MessageIDTerm(imapMoveEmail.messageId()));
       Message message =
           Arrays.stream(messages)
               .findFirst()
@@ -139,13 +139,13 @@ public class JakartaActionExecutor implements ActionExecutor {
                   () ->
                       new MessagingException(
                           "Email with messageId %s does not exist"
-                              .formatted(imapMoveEmail.getMessageId())));
+                              .formatted(imapMoveEmail.messageId())));
       sourceImapFolder.copyMessages(new Message[] {message}, targetImapFolder);
       this.jakartaUtils.markAsDeleted(message);
       sourceImapFolder.close();
       targetImapFolder.close();
       return new MoveEmailResponse(
-          imapMoveEmail.getMessageId(), imapMoveEmail.getFromFolder(), imapMoveEmail.getToFolder());
+          imapMoveEmail.messageId(), imapMoveEmail.fromFolder(), imapMoveEmail.toFolder());
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
@@ -156,19 +156,19 @@ public class JakartaActionExecutor implements ActionExecutor {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
       Folder rootFolder = store.getDefaultFolder();
-      String targetFolder = imapListEmails.getListEmailsFolder();
+      String targetFolder = imapListEmails.listEmailsFolder();
       try (Folder imapFolder = this.jakartaUtils.findImapFolder(rootFolder, targetFolder)) {
         imapFolder.open(Folder.READ_ONLY);
         return Arrays.stream(imapFolder.getMessages())
             .map(Email::createBodylessEmail)
             .sorted(
                 this.jakartaUtils.retrieveEmailComparator(
-                    imapListEmails.getSortField(), imapListEmails.getSortOrder()))
+                    imapListEmails.sortField(), imapListEmails.sortOrder()))
             .map(
                 email ->
                     new ListEmailsResponse(
                         email.getMessageId(), email.getFrom(), email.getSubject(), email.getSize()))
-            .limit(imapListEmails.getMaxToBeRead())
+            .limit(imapListEmails.maxToBeRead())
             .toList();
       }
     } catch (MessagingException e) {
@@ -181,7 +181,7 @@ public class JakartaActionExecutor implements ActionExecutor {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
       try (Folder folder = store.getFolder("INBOX")) {
-        return deleteEmail(folder, pop3DeleteEmail.getMessageId());
+        return deleteEmail(folder, pop3DeleteEmail.messageId());
       }
     } catch (MessagingException e) {
       throw new RuntimeException(e);
@@ -227,7 +227,7 @@ public class JakartaActionExecutor implements ActionExecutor {
               .map(Email::createBodylessEmail)
               .sorted(
                   this.jakartaUtils.retrieveEmailComparator(
-                      pop3ListEmails.getSortField(), pop3ListEmails.getSortOrder()))
+                      pop3ListEmails.sortField(), pop3ListEmails.sortOrder()))
               .map(
                   email ->
                       new ListEmailsResponse(
@@ -235,7 +235,7 @@ public class JakartaActionExecutor implements ActionExecutor {
                           email.getFrom(),
                           email.getSubject(),
                           email.getSize()))
-              .limit(pop3ListEmails.getMaxToBeRead())
+              .limit(pop3ListEmails.maxToBeRead())
               .toList();
         }
       }
@@ -249,7 +249,7 @@ public class JakartaActionExecutor implements ActionExecutor {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
       try (Folder folder = store.getFolder("INBOX")) {
-        return searchEmails(folder, pop3SearchEmails.getCriteria());
+        return searchEmails(folder, pop3SearchEmails.criteria());
       }
     } catch (MessagingException e) {
       throw new RuntimeException(e);
@@ -259,23 +259,23 @@ public class JakartaActionExecutor implements ActionExecutor {
   private SendEmailResponse smtpSendEmail(
       SmtpSendEmail smtpSendEmail, Authentication authentication, Session session) {
     try {
-      Optional<InternetAddress[]> to = createParsedInternetAddresses(smtpSendEmail.getTo());
-      Optional<InternetAddress[]> cc = createParsedInternetAddresses(smtpSendEmail.getCc());
-      Optional<InternetAddress[]> cci = createParsedInternetAddresses(smtpSendEmail.getCci());
+      Optional<InternetAddress[]> to = createParsedInternetAddresses(smtpSendEmail.to());
+      Optional<InternetAddress[]> cc = createParsedInternetAddresses(smtpSendEmail.cc());
+      Optional<InternetAddress[]> cci = createParsedInternetAddresses(smtpSendEmail.cci());
       Message message = new MimeMessage(session);
       message.setFrom(new InternetAddress(authentication.getSender()));
       if (to.isPresent()) message.setRecipients(Message.RecipientType.TO, to.get());
       if (cc.isPresent()) message.setRecipients(Message.RecipientType.CC, cc.get());
       if (cci.isPresent()) message.setRecipients(Message.RecipientType.BCC, cci.get());
-      message.setSubject(smtpSendEmail.getSubject());
-      message.setText(smtpSendEmail.getBody());
+      message.setSubject(smtpSendEmail.subject());
+      message.setText(smtpSendEmail.body());
       try (Transport transport = session.getTransport()) {
         this.jakartaUtils.connectTransport(transport, authentication);
         transport.sendMessage(message, message.getAllRecipients());
       }
-      return new SendEmailResponse(smtpSendEmail.getSubject(), true);
+      return new SendEmailResponse(smtpSendEmail.subject(), true);
     } catch (SendFailedException e) {
-      return new SendEmailResponse(smtpSendEmail.getSubject(), false);
+      return new SendEmailResponse(smtpSendEmail.subject(), false);
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }

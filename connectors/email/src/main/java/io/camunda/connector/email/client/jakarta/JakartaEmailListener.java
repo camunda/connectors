@@ -4,10 +4,11 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.core.jakarta;
+package io.camunda.connector.email.client.jakarta;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.client.EmailListener;
 import io.camunda.connector.email.inbound.model.EmailProperties;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
@@ -22,7 +23,7 @@ import java.util.concurrent.Executors;
 import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.eclipse.angus.mail.imap.IdleManager;
 
-public class JakartaEmailListener {
+public class JakartaEmailListener implements EmailListener {
 
   private final JakartaUtils jakartaUtils;
   private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();

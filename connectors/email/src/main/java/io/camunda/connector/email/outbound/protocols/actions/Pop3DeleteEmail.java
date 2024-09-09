@@ -12,22 +12,14 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "deleteEmailPop3", label = "Delete Email using POP3")
-public final class Pop3DeleteEmail implements Pop3Action {
-  @TemplateProperty(
-      label = "UIDL of email to delete",
-      group = "deleteEmailPop3",
-      id = "pop3MessageIdDelete",
-      description = "",
-      feel = Property.FeelMode.required,
-      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
-  @NotNull
-  String messageId;
-
-  public @NotNull String getMessageId() {
-    return messageId;
-  }
-
-  public void setMessageId(@NotNull String messageId) {
-    this.messageId = messageId;
-  }
-}
+public record Pop3DeleteEmail(
+    @TemplateProperty(
+            label = "UIDL of email to delete",
+            group = "deleteEmailPop3",
+            id = "pop3MessageIdDelete",
+            description = "",
+            feel = Property.FeelMode.required,
+            binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
+        @NotNull
+        String messageId)
+    implements Pop3Action {}
