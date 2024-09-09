@@ -8,6 +8,8 @@ package io.camunda.connector.kafka.model;
 
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
 import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -32,13 +34,12 @@ public final class KafkaPropertiesUtil {
 
   private static final String SECURITY_PROTOCOL_VALUE = "SASL_SSL"; // default value
   private static final String SASL_MECHANISM_VALUE = "PLAIN"; // default value
-
-  private KafkaPropertiesUtil() {}
-
   private static final String STRING_SERIALIZER =
       "org.apache.kafka.common.serialization.StringSerializer";
   private static final String BYTE_ARRAY_SERIALIZER =
       "org.apache.kafka.common.serialization.ByteArraySerializer";
+
+  private KafkaPropertiesUtil() {}
 
   // Kafka client is built using java.utils.Properties.
   // This method creates properties required to establish connection and produce messages.
@@ -59,10 +60,25 @@ public final class KafkaPropertiesUtil {
     if (request.message() != null) { // can be valid in case of inbound
       Properties messageProps = new Properties();
       messageProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
-      if (request.avro() == null) {
-        messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
-      } else {
+      messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
+      if (request.avro() != null) {
         messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, BYTE_ARRAY_SERIALIZER);
+      }
+      if (request.schemaRegistryUrl() != null) {
+        messageProps.put("schema.registry.url", request.schemaRegistryUrl());
+        switch (request.serializationType()) {
+          case AVRO:
+            messageProps.put(
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
+            break;
+          case JSON:
+            messageProps.put(
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaJsonSchemaSerializer.class);
+            break;
+          default:
+            throw new IllegalArgumentException(
+                "Unsupported serialization type: " + request.serializationType());
+        }
       }
       props.putAll(messageProps);
     }

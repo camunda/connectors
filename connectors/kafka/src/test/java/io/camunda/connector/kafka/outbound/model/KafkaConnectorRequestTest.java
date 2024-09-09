@@ -56,6 +56,6 @@ class KafkaConnectorRequestTest {
     KafkaTopic topic = new KafkaTopic("server1:1234,server2:1234", "my-topic");
     KafkaMessage msg = new KafkaMessage("myKey", "myValue");
     return new KafkaConnectorRequest(
-        SerializationType.JSON, auth, topic, msg, null, null, kafkaProps);
+        SerializationType.JSON, null, auth, topic, msg, null, null, kafkaProps);
   }
 }

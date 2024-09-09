@@ -25,13 +25,17 @@ public record KafkaConnectorRequest(
             type = TemplateProperty.PropertyType.Dropdown,
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "json", label = "Default (JSON)"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "avro",
-                  label = "Avro (experimental)")
+              @TemplateProperty.DropdownPropertyChoice(value = "avro", label = "Avro (alpha)")
             },
             description =
                 "Select the serialization type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound\" target=\"_blank\">documentation</a>")
         SerializationType serializationType,
+    @TemplateProperty(
+            group = "kafka",
+            label = "Schema registry URL (alpha)",
+            id = "schemaRegistry",
+            description = "Provide the schema registry URL")
+        String schemaRegistryUrl,
     @Valid KafkaAuthentication authentication,
     @Valid @NotNull KafkaTopic topic,
     @Valid @NotNull KafkaMessage message,

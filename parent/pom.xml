@@ -564,6 +564,10 @@ limitations under the License.</license.inlineheader>
 
   <repositories>
     <repository>
+     <id>confluent</id>
+     <url>https://packages.confluent.io/maven/</url>
+    </repository>
+    <repository>
       <releases>
         <enabled>true</enabled>
       </releases>

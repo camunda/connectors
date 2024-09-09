@@ -17,7 +17,9 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.kafka.converter.GenericRecordDecoder;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
+import io.camunda.connector.kafka.model.SerializationType;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +30,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -60,6 +64,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     icon = "icon.svg")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
+  private static final GenericRecordDecoder GENERIC_RECORD_DECODER = new GenericRecordDecoder();
   private static final ObjectMapper objectMapper =
       ConnectorsObjectMapperSupplier.getCopy().enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
   private final Function<Properties, Producer<String, Object>> producerCreatorFunction;
@@ -89,6 +94,30 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
     return data instanceof String ? (String) data : objectMapper.writeValueAsString(data);
   }
 
+  public Object produceSchemaRegistryMessage(final KafkaConnectorRequest request)
+      throws JsonProcessingException {
+    if (request.serializationType() == SerializationType.AVRO
+        && (request.avro() == null || request.avro().schema() == null)) {
+      throw new ConnectorException("FAIL", "Avro schema is required for schema registry message");
+    }
+
+    if (request.serializationType() == SerializationType.AVRO) {
+      var schemaString = request.avro().schema();
+      Schema raw = new Schema.Parser().parse(schemaString);
+      GenericRecord record = new GenericData.Record(raw);
+      var messageValue = request.message().value();
+      if (messageValue instanceof String messageValueAsString) {
+        messageValue = objectMapper.readValue(messageValueAsString, Map.class);
+      }
+      if (!(messageValue instanceof Map)) {
+        throw new ConnectorException("FAIL", "Message value must be a map for AVRO message");
+      }
+      record = GENERIC_RECORD_DECODER.decode(raw, (Map) messageValue);
+      return record;
+    }
+    return transformData(request.message().value());
+  }
+
   @Override
   public Object execute(final OutboundConnectorContext context) {
     var connectorRequest = context.bindVariables(KafkaConnectorRequest.class);
@@ -114,15 +143,20 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
   private ProducerRecord<String, Object> createProducerRecord(final KafkaConnectorRequest request)
       throws Exception {
-    Object transformedValue;
-    if (request.avro() != null) {
-      transformedValue = produceAvroMessage(request);
-    } else {
-      transformedValue = transformData(request.message().value());
-    }
+    Object transformedValue = createMessage(request);
     String transformedKey = transformData(request.message().key());
     return new ProducerRecord<>(
         request.topic().topicName(), null, null, transformedKey, transformedValue);
+  }
+
+  private Object createMessage(final KafkaConnectorRequest request) throws Exception {
+    if (request.schemaRegistryUrl() != null) {
+      return produceSchemaRegistryMessage(request);
+    } else if (request.serializationType() == SerializationType.AVRO) {
+      return produceAvroMessage(request);
+    } else {
+      return transformData(request.message().value());
+    }
   }
 
   private void addHeadersToProducerRecord(

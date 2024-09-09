@@ -85,6 +85,7 @@ public class KafkaExecutableTest {
     kafkaConnectorProperties =
         new KafkaConnectorProperties(
             SerializationType.JSON,
+            null,
             KafkaConnectorProperties.AuthenticationType.custom,
             kafkaAuthentication,
             kafkaTopic,
@@ -204,6 +205,7 @@ public class KafkaExecutableTest {
     KafkaConnectorProperties kafkaConnectorProperties =
         new KafkaConnectorProperties(
             SerializationType.JSON,
+            null,
             KafkaConnectorProperties.AuthenticationType.custom,
             kafkaAuthentication,
             kafkaTopic,

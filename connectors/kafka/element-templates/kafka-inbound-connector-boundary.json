@@ -105,9 +105,20 @@
       "name" : "Default (JSON)",
       "value" : "json"
     }, {
-      "name" : "Avro (experimental)",
+      "name" : "Avro (alpha)",
       "value" : "avro"
     } ]
+  }, {
+    "id" : "schemaRegistry",
+    "label" : "Schema registry URL (alpha)",
+    "description" : "Provide the schema registry URL",
+    "optional" : false,
+    "group" : "kafka",
+    "binding" : {
+      "name" : "schemaRegistryUrl",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
   }, {
     "id" : "topic.bootstrapServers",
     "label" : "Bootstrap servers",

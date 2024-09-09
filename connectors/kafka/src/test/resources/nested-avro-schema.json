@@ -1,0 +1,62 @@
+{
+  "type": "record",
+  "name": "Employee",
+  "fields": [
+    {
+      "name": "colleagues",
+      "type": [
+        {
+          "type": "array",
+          "items": "Employee"
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "nickname",
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "avro.java.string": "String"
+    },
+    {
+      "name": "age",
+      "type": "int"
+    },
+    {
+      "name": "emails",
+      "type": {
+        "type": "array",
+        "items": "string",
+        "avro.java.string": "String"
+      }
+    },
+    {
+      "name": "boss",
+      "type": [
+        {
+          "type": "record",
+          "name": "Boss",
+          "fields": [
+            {
+              "name": "name",
+              "type": "string",
+              "avro.java.string": "String"
+            },
+            {
+              "name": "position",
+              "type": "string",
+              "avro.java.string": "String"
+            }
+          ]
+        },
+        "null"
+      ]
+    }
+  ]
+}
