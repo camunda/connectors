@@ -44,6 +44,8 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Duration;
+
 @SpringBootTest(
     webEnvironment = WebEnvironment.RANDOM_PORT,
     classes = {SaaSConnectorRuntimeApplication.class, MockSaaSConfiguration.class},
@@ -138,11 +140,12 @@ public class SecurityConfigurationTest {
         .andExpect(status().isUnauthorized());
   }
 
-  @Ignore
+  @Test
   public void actuatorEndpoint_isAccessible() {
     ResponseEntity<String> response =
         restTemplateBuilder
             .rootUri("http://localhost:" + managementPort + "/actuator")
+            .setConnectTimeout(Duration.ofSeconds(60))
             .build()
             .exchange("/metrics", HttpMethod.GET, new HttpEntity<>(null), String.class);
 
