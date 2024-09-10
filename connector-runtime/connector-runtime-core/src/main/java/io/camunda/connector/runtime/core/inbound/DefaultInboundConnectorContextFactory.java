@@ -35,6 +35,22 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   private final SecretProviderAggregator secretProviderAggregator;
   private final ValidationProvider validationProvider;
   private final OperateClientAdapter operateClientAdapter;
+  private final boolean logWithLogger;
+
+  public DefaultInboundConnectorContextFactory(
+      final ObjectMapper mapper,
+      final InboundCorrelationHandler correlationHandler,
+      final SecretProviderAggregator secretProviderAggregator,
+      final ValidationProvider validationProvider,
+      final OperateClientAdapter operateClientAdapter,
+      final boolean logWithLogger) {
+    this.objectMapper = mapper;
+    this.correlationHandler = correlationHandler;
+    this.secretProviderAggregator = secretProviderAggregator;
+    this.validationProvider = validationProvider;
+    this.operateClientAdapter = operateClientAdapter;
+    this.logWithLogger = logWithLogger;
+  }
 
   public DefaultInboundConnectorContextFactory(
       final ObjectMapper mapper,
@@ -42,11 +58,13 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       final SecretProviderAggregator secretProviderAggregator,
       final ValidationProvider validationProvider,
       final OperateClientAdapter operateClientAdapter) {
-    this.objectMapper = mapper;
-    this.correlationHandler = correlationHandler;
-    this.secretProviderAggregator = secretProviderAggregator;
-    this.validationProvider = validationProvider;
-    this.operateClientAdapter = operateClientAdapter;
+    this(
+        mapper,
+        correlationHandler,
+        secretProviderAggregator,
+        validationProvider,
+        operateClientAdapter,
+        false);
   }
 
   @Override
@@ -64,7 +82,8 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
             correlationHandler,
             cancellationCallback,
             objectMapper,
-            queue);
+            queue,
+            logWithLogger);
 
     if (isIntermediateContext(executableClass)) {
       inboundContext =

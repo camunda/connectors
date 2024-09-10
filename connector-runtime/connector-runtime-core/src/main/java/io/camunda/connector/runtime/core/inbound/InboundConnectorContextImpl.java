@@ -44,6 +44,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext, InboundConnectorReportingContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
+  private final boolean logWithLogger;
   private final InboundConnectorDetails connectorDetails;
   private final Map<String, Object> properties;
 
@@ -51,10 +52,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
 
   private final Consumer<Throwable> cancellationCallback;
-
-  private Health health = Health.unknown();
-
   private final EvictingQueue<Activity> logs;
+  private Health health = Health.unknown();
+  private Map<String, Object> propertiesWithSecrets;
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -63,7 +63,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      EvictingQueue logs) {
+      EvictingQueue logs,
+      boolean logWithLogger) {
     super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
@@ -73,6 +74,26 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
     this.logs = logs;
+    this.logWithLogger = logWithLogger;
+  }
+
+  public InboundConnectorContextImpl(
+      SecretProvider secretProvider,
+      ValidationProvider validationProvider,
+      ValidInboundConnectorDetails connectorDetails,
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper,
+      EvictingQueue logs) {
+    this(
+        secretProvider,
+        validationProvider,
+        connectorDetails,
+        correlationHandler,
+        cancellationCallback,
+        objectMapper,
+        logs,
+        false);
   }
 
   @Override
@@ -136,7 +157,25 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
+    if (logWithLogger) {
+      logWithLogger(log);
+    }
     this.logs.add(log);
+  }
+
+  private void logWithLogger(Activity log) {
+    switch (log.severity()) {
+      case ERROR:
+        LOG.error("tag: {}, message: {}", log.tag(), log.message());
+      case WARNING:
+        LOG.warn("tag: {}, message: {}", log.tag(), log.message());
+      case INFO:
+        LOG.info("tag: {}, message: {}", log.tag(), log.message());
+      case DEBUG:
+        LOG.debug("tag: {}, message: {}", log.tag(), log.message());
+      default:
+        LOG.info("tag: {}, message: {}", log.tag(), log.message());
+    }
   }
 
   @Override
@@ -148,8 +187,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   public List<InboundConnectorElement> connectorElements() {
     return connectorDetails.connectorElements();
   }
-
-  private Map<String, Object> propertiesWithSecrets;
 
   private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
     if (propertiesWithSecrets == null) {

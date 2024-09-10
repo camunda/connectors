@@ -58,6 +58,9 @@ public class InboundConnectorRuntimeConfiguration {
   @Value("${camunda.connector.inbound.message.ttl:PT1H}")
   private Duration messageTtl;
 
+  @Value("${camunda.connector.inbound.log.withLogger:false}")
+  private boolean logWithLogger;
+
   @Bean
   public ProcessElementContextFactory processElementContextFactory(
       ObjectMapper objectMapper,
@@ -94,7 +97,8 @@ public class InboundConnectorRuntimeConfiguration {
         correlationHandler,
         secretProviderAggregator,
         validationProvider,
-        operateClientAdapter);
+        operateClientAdapter,
+        logWithLogger);
   }
 
   @Bean
