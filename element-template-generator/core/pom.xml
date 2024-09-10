@@ -9,7 +9,7 @@
     <version>8.6.0-SNAPSHOT</version>
   </parent>
 
-  <name>core</name>
+  <name>element-template-generator-core</name>
   <description>Camunda Connector template generator</description>
   <artifactId>element-template-generator-core</artifactId>
   <packaging>jar</packaging>
@@ -20,20 +20,47 @@
       <artifactId>connector-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-feel</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
     </dependency>
     <dependency>
       <groupId>jakarta.validation</groupId>
       <artifactId>jakarta.validation-api</artifactId>
     </dependency>
-
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>3.17.0</version>
     </dependency>
+    <!-- Docs template engine -->
+    <dependency>
+      <groupId>io.pebbletemplates</groupId>
+      <artifactId>pebble</artifactId>
+      <version>3.2.2</version>
+    </dependency>
+    <!-- Markdown generator -->
+    <dependency>
+      <groupId>net.steppschuh.markdowngenerator</groupId>
+      <artifactId>markdowngenerator</artifactId>
+      <version>1.3.1.1</version>
+    </dependency>
+    <!-- Generate example data -->
+    <dependency>
+      <groupId>uk.co.jemos.podam</groupId>
+      <artifactId>podam</artifactId>
+      <version>8.0.2.RELEASE</version>
+    </dependency>
 
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

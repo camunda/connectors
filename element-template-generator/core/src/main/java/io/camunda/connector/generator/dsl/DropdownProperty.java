@@ -37,7 +37,8 @@ public final class DropdownProperty extends Property {
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
-      List<DropdownChoice> choices) {
+      List<DropdownChoice> choices,
+      Object exampleValue) {
     super(
         name,
         label,
@@ -51,6 +52,7 @@ public final class DropdownProperty extends Property {
         binding,
         condition,
         tooltip,
+        exampleValue,
         TYPE);
     this.choices = choices;
   }
@@ -93,7 +95,8 @@ public final class DropdownProperty extends Property {
           binding,
           condition,
           tooltip,
-          choices);
+          choices,
+          exampleValue);
     }
   }
 }
