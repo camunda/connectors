@@ -52,6 +52,7 @@ import org.springframework.test.web.servlet.MockMvc;
       "zeebe.client.security.plaintext=true",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
+      "camunda.client.zeebe.defaults.stream-enabled=false",
       "camunda.operate.client.url=" + MockSaaSConfiguration.OPERATE_CLIENT_URL,
       "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
       "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL
