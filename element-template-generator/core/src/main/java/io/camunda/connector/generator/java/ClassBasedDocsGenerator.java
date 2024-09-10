@@ -16,11 +16,13 @@
  */
 package io.camunda.connector.generator.java;
 
+import static com.fasterxml.jackson.databind.MapperFeature.SORT_PROPERTIES_ALPHABETICALLY;
 import static java.lang.Boolean.TRUE;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.generator.api.DocsGenerator;
@@ -66,6 +68,9 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
   private static final ObjectWriter OBJECT_WRITER =
       ConnectorsObjectMapperSupplier.DEFAULT_MAPPER
+          .copy()
+          .enable(SORT_PROPERTIES_ALPHABETICALLY)
+          .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
           .setSerializationInclusion(JsonInclude.Include.NON_NULL)
           .writerWithDefaultPrettyPrinter();
 
