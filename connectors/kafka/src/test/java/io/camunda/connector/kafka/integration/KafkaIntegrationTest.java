@@ -70,6 +70,8 @@ public class KafkaIntegrationTest {
   private static final String AVRO_TOPIC = "avro-test-topic-" + UUID.randomUUID();
   private static final String SCHEMA_REGISTRY_AVRO_TOPIC =
       "schema-registry-avro-test-topic-" + UUID.randomUUID();
+  private static final String SCHEMA_REGISTRY_JSON_TOPIC =
+      "schema-registry-json-test-topic-" + UUID.randomUUID();
   private static final Map<String, String> HEADERS =
       Map.of("header1", "value1", "header2", "value2");
   private static final Network NETWORK = Network.newNetwork();
@@ -102,13 +104,13 @@ public class KafkaIntegrationTest {
     URI file = ClassLoader.getSystemResource("nested-avro-schema.json").toURI();
     var avroSchema = Files.readString(Paths.get(file));
     avro = new Avro(avroSchema);
-    var response =
+    var avroSchemaResponse =
         SCHEMA_REGISTRY_CLIENT.register(
             avroSchema,
             SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort(),
             SCHEMA_REGISTRY_AVRO_TOPIC);
-    assertThat(response).isNotNull();
-    assertThat(response).contains("id");
+    assertThat(avroSchemaResponse).isNotNull();
+    assertThat(avroSchemaResponse).contains("id");
     var subjects =
         SCHEMA_REGISTRY_CLIENT.getSubjects(
             SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort());

@@ -8,6 +8,8 @@
 package io.camunda.connector.kafka.integration;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
@@ -22,6 +24,15 @@ import org.slf4j.LoggerFactory;
 
 public class SchemaRegistryClient {
   private static final Logger LOG = LoggerFactory.getLogger(SchemaRegistryClient.class);
+
+  public List<String> registerAll(
+      List<SchemaWithTopic> schemaWithTopicList, String schemaRegistryHost) {
+    return schemaWithTopicList.stream()
+        .map(
+            schemaWithTopic ->
+                register(schemaWithTopic.schema(), schemaRegistryHost, schemaWithTopic.topic()))
+        .toList();
+  }
 
   public String register(String schemaJson, String schemaRegistryHost, String topic) {
     String schemaRegistryUrl =
@@ -77,6 +88,16 @@ public class SchemaRegistryClient {
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  record SchemaWithTopic(String schemaFilePath, String topic) {
+    public String schema() {
+      try (InputStream is = getClass().getClassLoader().getResourceAsStream(schemaFilePath)) {
+        return new String(is.readAllBytes());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }
