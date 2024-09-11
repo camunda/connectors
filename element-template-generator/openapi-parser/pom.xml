@@ -29,6 +29,10 @@
       <artifactId>swagger-parser</artifactId>
       <version>${version.swagger-parser}</version>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>

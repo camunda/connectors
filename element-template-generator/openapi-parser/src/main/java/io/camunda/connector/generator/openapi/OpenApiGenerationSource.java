@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.openapi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import java.io.IOException;
@@ -53,7 +54,7 @@ public record OpenApiGenerationSource(
     var openApiPathOrContent = cliParams.get(0);
     var openApiParser = new OpenAPIV3Parser();
     try {
-      if (isValidJSON(openApiPathOrContent)) {
+      if (isValidJSON(openApiPathOrContent) || isValidYAML(openApiPathOrContent)) {
         return openApiParser.readContents(openApiPathOrContent).getOpenAPI();
       }
       return openApiParser.read(openApiPathOrContent);
@@ -71,6 +72,16 @@ public record OpenApiGenerationSource(
       final ObjectMapper mapper = new ObjectMapper();
       mapper.readTree(jsonInString);
       return true;
+    } catch (IOException e) {
+      return false;
+    }
+  }
+
+  public static boolean isValidYAML(String yamlString) {
+    try {
+      final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+      mapper.readTree(yamlString);
+      return yamlString.contains("\n");
     } catch (IOException e) {
       return false;
     }

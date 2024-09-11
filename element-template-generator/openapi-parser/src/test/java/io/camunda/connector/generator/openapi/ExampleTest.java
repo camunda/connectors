@@ -69,6 +69,27 @@ public class ExampleTest {
   }
 
   @Test
+  void generateFromRawYamlContent() {
+    // given
+    try (var openApiYamlContent = new FileInputStream("src/test/resources/example.yaml")) {
+      byte[] b = new byte[openApiYamlContent.available()];
+      if (openApiYamlContent.read(b) == -1) {
+        throw new RuntimeException("Failed to read yaml file!");
+      }
+      var source = new OpenApiGenerationSource(List.of(new String(b)));
+      var generator = new OpenApiOutboundTemplateGenerator();
+
+      // when
+      var templates = generator.generate(source);
+
+      // then
+      System.out.println(mapper.writeValueAsString(templates));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
   void scan() {
     var parser = new OpenAPIV3Parser();
     var openApi = parser.read("web-modeler-rest-api.json");
@@ -87,6 +108,24 @@ public class ExampleTest {
       String openApiCollectionsJsonContent =
           mapper.readValue(openApiJsonContent, JsonNode.class).toString();
       var source = new OpenApiGenerationSource(List.of(openApiCollectionsJsonContent));
+      var generator = new OpenApiOutboundTemplateGenerator();
+
+      var scanResult = generator.scan(source);
+
+      System.out.println(scanResult);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  void scanFromRawYamlContent() {
+    try (var openApiYamlContent = new FileInputStream("src/test/resources/example.yaml")) {
+      byte[] b = new byte[openApiYamlContent.available()];
+      if (openApiYamlContent.read(b) == -1) {
+        throw new RuntimeException("Failed to read yaml file!");
+      }
+      var source = new OpenApiGenerationSource(List.of(new String(b)));
       var generator = new OpenApiOutboundTemplateGenerator();
 
       var scanResult = generator.scan(source);

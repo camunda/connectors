@@ -65,38 +65,58 @@ public class PostmanCollectionsGeneratorDryRunExampleTest {
   }
 
   private static Stream<Arguments> commandLineArguments() {
+    String postmanCollectionsJsonContent = getJsonContent();
+    String postmanCollectionsYamlContent = getYamlContent();
+
+    return Stream.of(
+        // Test case 1: generate all methods
+        Arguments.of(List.of("src/test/resources/operate-api-saas-bearer.json")),
+
+        // Test case 2: generate specific methods
+        Arguments.of(
+            List.of(
+                "src/test/resources/postman-books.json",
+                "/1. Sending requests & inspecting responses/books",
+                "/1. Sending requests & inspecting responses/book",
+                "/1. Sending requests & inspecting responses/add book")),
+
+        // Test case 3: fetch from internet
+        Arguments.of(
+            List.of(
+                "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json")),
+
+        // Test case 4: from internet with operations
+        Arguments.of(
+            List.of(
+                "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json",
+                "/Process instances/Search for process instances",
+                "/Process instances/Get process instance by key")),
+
+        // Test case 5: from raw json content
+        Arguments.of(List.of(postmanCollectionsJsonContent)),
+
+        // Test case 6: from raw yaml content
+        Arguments.of(List.of(postmanCollectionsYamlContent)));
+  }
+
+  private static String getJsonContent() {
     try (var openApiJsonContent =
         new FileInputStream("src/test/resources/operate-api-saas-bearer.json")) {
-      String postmanCollectionsJsonContent =
-          ObjectMapperProvider.getInstance()
-              .readValue(openApiJsonContent, JsonNode.class)
-              .toString();
-      return Stream.of(
-          // Test case 1: generate all methods
-          Arguments.of(List.of("src/test/resources/operate-api-saas-bearer.json")),
+      return ObjectMapperProvider.getInstance()
+          .readValue(openApiJsonContent, JsonNode.class)
+          .toString();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
-          // Test case 2: generate specific methods
-          Arguments.of(
-              List.of(
-                  "src/test/resources/postman-books.json",
-                  "/1. Sending requests & inspecting responses/books",
-                  "/1. Sending requests & inspecting responses/book",
-                  "/1. Sending requests & inspecting responses/add book")),
-
-          // Test case 3: fetch from internet
-          Arguments.of(
-              List.of(
-                  "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json")),
-
-          // Test case 4: from internet with operations
-          Arguments.of(
-              List.of(
-                  "https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json",
-                  "/Process instances/Search for process instances",
-                  "/Process instances/Get process instance by key")),
-
-          // Test case 5: from raw content
-          Arguments.of(List.of(postmanCollectionsJsonContent)));
+  private static String getYamlContent() {
+    try (var openApiYamlContent = new FileInputStream("src/test/resources/example.yaml")) {
+      byte[] b = new byte[openApiYamlContent.available()];
+      if (openApiYamlContent.read(b) == -1) {
+        throw new RuntimeException("Failed to read yaml file!");
+      }
+      return new String(b);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
