@@ -136,6 +136,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
+    LOG.debug("{}", log);
     this.logs.add(log);
   }
 
