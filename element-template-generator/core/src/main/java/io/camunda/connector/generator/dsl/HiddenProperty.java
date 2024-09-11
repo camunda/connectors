@@ -45,6 +45,7 @@ public final class HiddenProperty extends Property {
         binding,
         condition,
         null,
+        null,
         TYPE);
   }
 

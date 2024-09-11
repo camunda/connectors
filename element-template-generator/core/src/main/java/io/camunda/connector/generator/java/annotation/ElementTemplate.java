@@ -39,6 +39,8 @@ public @interface ElementTemplate {
    */
   Class<?> inputDataClass();
 
+  Class<?> outputDataClass() default Void.class;
+
   /**
    * Element template version. The version should be incremented every time the template is changed
    * to make use of the version upgrade mechanism in Camunda Modeler.

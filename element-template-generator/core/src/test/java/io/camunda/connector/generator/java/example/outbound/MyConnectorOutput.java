@@ -14,22 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.base.model;
+package io.camunda.connector.generator.java.example.outbound;
 
-import io.camunda.connector.generator.java.annotation.DataExample;
-import java.util.Map;
+import java.util.List;
 
-public record HttpCommonResult(
-    int status, Map<String, Object> headers, Object body, String reason) {
-
-  public HttpCommonResult(int status, Map<String, Object> headers, Object body) {
-    this(status, headers, body, null);
-  }
-
-  @DataExample(id = "basic", feel = "= body.order.id")
-  public static HttpCommonResult exampleResult() {
-    Map<String, Object> headers = Map.of("Content-Type", "application/json");
-    var body = Map.of("order", Map.of("id", "123", "total", "100.00€"));
-    return new HttpCommonResult(200, headers, body);
-  }
-}
+public record MyConnectorOutput(List<String> myListOutputProperty) {}

@@ -91,8 +91,8 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>5.6.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.8</version.logback>
 
-    <version.aws-java-sdk>1.12.771</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.27.22</version.software-aws-java-sdk>
+    <version.aws-java-sdk>1.12.772</version.aws-java-sdk>
+    <version.software-aws-java-sdk>2.27.23</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.13.0</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
@@ -129,7 +129,7 @@ limitations under the License.</license.inlineheader>
     <version.awaitility>4.2.2</version.awaitility>
     <version.json-path>2.9.0</version.json-path>
 
-    <version.snappy-java>1.1.10.6</version.snappy-java>
+    <version.snappy-java>1.1.10.7</version.snappy-java>
     <version.commons-codec>1.17.1</version.commons-codec>
     <version.guava>33.3.0-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>

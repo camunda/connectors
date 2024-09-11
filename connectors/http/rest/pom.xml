@@ -74,6 +74,8 @@ limitations under the License.</license.inlineheader>
                 <file>
                   <templateId>io.camunda.connectors.HttpJson.v2</templateId>
                   <templateFileName>http-json-connector.json</templateFileName>
+                  <docTemplatePath>README.peb</docTemplatePath>
+                  <docOutputPath>README.md</docOutputPath>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>

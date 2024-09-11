@@ -14,22 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.base.model;
+package io.camunda.connector.generator.java.annotation;
 
-import io.camunda.connector.generator.java.annotation.DataExample;
-import java.util.Map;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public record HttpCommonResult(
-    int status, Map<String, Object> headers, Object body, String reason) {
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD})
+public @interface DataExample {
 
-  public HttpCommonResult(int status, Map<String, Object> headers, Object body) {
-    this(status, headers, body, null);
-  }
+  /**
+   * @return ID of the example which can be used when generating documentation.
+   */
+  String id() default "";
 
-  @DataExample(id = "basic", feel = "= body.order.id")
-  public static HttpCommonResult exampleResult() {
-    Map<String, Object> headers = Map.of("Content-Type", "application/json");
-    var body = Map.of("order", Map.of("id", "123", "total", "100.00€"));
-    return new HttpCommonResult(200, headers, body);
-  }
+  /**
+   * @return FEEL expression that will be evaluated against the result of the annotated method.
+   */
+  String feel() default "";
 }
