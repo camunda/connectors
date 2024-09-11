@@ -15,35 +15,40 @@ import io.camunda.connector.email.outbound.protocols.actions.SortFieldImap;
 import io.camunda.connector.email.outbound.protocols.actions.SortFieldPop3;
 import io.camunda.connector.email.outbound.protocols.actions.SortOrder;
 import jakarta.mail.*;
+import jakarta.mail.internet.MimeMultipart;
 import jakarta.validation.constraints.NotNull;
-import java.util.Comparator;
-import java.util.Properties;
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JakartaUtils {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JakartaUtils.class);
+
   public Session createSession(Configuration configuration, Authentication authentication) {
     return Session.getInstance(
         switch (configuration) {
-          case ImapConfig imap -> createProperties(imap, authentication.isSecuredAuth());
-          case Pop3Config pop3 -> createProperties(pop3, authentication.isSecuredAuth());
-          case SmtpConfig smtp -> createProperties(smtp, authentication.isSecuredAuth());
+          case ImapConfig imap -> createProperties(imap);
+          case Pop3Config pop3 -> createProperties(pop3);
+          case SmtpConfig smtp -> createProperties(smtp);
         });
   }
 
   public void connectStore(Store store, Authentication authentication) throws MessagingException {
-    if (authentication.isSecuredAuth())
-      store.connect(
-          authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
-          authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
-    else store.connect();
+    store.connect(
+        authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
+        authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
   }
 
   public void connectTransport(Transport transport, Authentication authentication)
       throws MessagingException {
-    if (authentication.isSecuredAuth())
-      transport.connect(
-          authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
-          authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
-    else transport.connect();
+    transport.connect(
+        authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
+        authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
   }
 
   public void markAsDeleted(Message message) {
@@ -62,12 +67,12 @@ public class JakartaUtils {
     }
   }
 
-  private Properties createProperties(SmtpConfig smtp, Boolean securedAuth) {
+  private Properties createProperties(SmtpConfig smtp) {
     Properties properties = new Properties();
     properties.put("mail.transport.protocol", "smtp");
     properties.put("mail.smtp.host", smtp.smtpHost());
     properties.put("mail.smtp.port", smtp.smtpPort().toString());
-    properties.put("mail.smtp.auth", securedAuth);
+    properties.put("mail.smtp.auth", true);
     switch (smtp.smtpCryptographicProtocol()) {
       case NONE -> {}
       case TLS -> properties.put("mail.smtp.starttls.enable", true);
@@ -76,7 +81,7 @@ public class JakartaUtils {
     return properties;
   }
 
-  private Properties createProperties(Pop3Config pop3, Boolean securedAuth) {
+  private Properties createProperties(Pop3Config pop3) {
     Properties properties = new Properties();
 
     switch (pop3.pop3CryptographicProtocol()) {
@@ -84,27 +89,27 @@ public class JakartaUtils {
         properties.put("mail.store.protocol", "pop3");
         properties.put("mail.pop3.host", pop3.pop3Host());
         properties.put("mail.pop3.port", pop3.pop3Port().toString());
-        properties.put("mail.pop3.auth", securedAuth);
+        properties.put("mail.pop3.auth", true);
       }
       case TLS -> {
         properties.put("mail.store.protocol", "pop3s");
         properties.put("mail.pop3s.host", pop3.pop3Host());
         properties.put("mail.pop3s.port", pop3.pop3Port().toString());
-        properties.put("mail.pop3s.auth", securedAuth);
+        properties.put("mail.pop3s.auth", true);
         properties.put("mail.pop3s.starttls.enable", true);
       }
       case SSL -> {
         properties.put("mail.store.protocol", "pop3s");
         properties.put("mail.pop3s.host", pop3.pop3Host());
         properties.put("mail.pop3s.port", pop3.pop3Port().toString());
-        properties.put("mail.pop3s.auth", securedAuth);
+        properties.put("mail.pop3s.auth", true);
         properties.put("mail.pop3s.ssl.enable", true);
       }
     }
     return properties;
   }
 
-  private Properties createProperties(ImapConfig imap, Boolean securedAuth) {
+  private Properties createProperties(ImapConfig imap) {
     Properties properties = new Properties();
 
     switch (imap.imapCryptographicProtocol()) {
@@ -112,13 +117,13 @@ public class JakartaUtils {
         properties.put("mail.store.protocol", "imap");
         properties.put("mail.imap.host", imap.imapHost());
         properties.put("mail.imap.port", imap.imapPort().toString());
-        properties.put("mail.imap.auth", securedAuth);
+        properties.put("mail.imap.auth", true);
       }
       case TLS -> {
         properties.put("mail.store.protocol", "imaps");
         properties.put("mail.imaps.host", imap.imapHost());
         properties.put("mail.imaps.port", imap.imapPort().toString());
-        properties.put("mail.imaps.auth", securedAuth);
+        properties.put("mail.imaps.auth", true);
         properties.put("mail.imaps.starttls.enable", true);
         properties.put("mail.imaps.usesocketchannels", true);
       }
@@ -126,7 +131,7 @@ public class JakartaUtils {
         properties.put("mail.store.protocol", "imaps");
         properties.put("mail.imaps.host", imap.imapHost());
         properties.put("mail.imaps.port", imap.imapPort().toString());
-        properties.put("mail.imaps.auth", securedAuth);
+        properties.put("mail.imaps.auth", true);
         properties.put("mail.imaps.ssl.enable", true);
         properties.put("mail.imaps.usesocketchannel", true);
       }
@@ -138,8 +143,8 @@ public class JakartaUtils {
       @NotNull SortFieldPop3 sortFieldPop3, @NotNull SortOrder sortOrder) {
     return (email1, email2) ->
         switch (sortFieldPop3) {
-          case SENT_DATE -> sortOrder.order(email1.getSentAt().compareTo(email2.getSentAt()));
-          case SIZE -> sortOrder.order(email1.getSize().compareTo(email2.getSize()));
+          case SENT_DATE -> sortOrder.order(email1.sentAt().compareTo(email2.sentAt()));
+          case SIZE -> sortOrder.order(email1.size().compareTo(email2.size()));
         };
   }
 
@@ -147,10 +152,9 @@ public class JakartaUtils {
       @NotNull SortFieldImap sortFieldImap, @NotNull SortOrder sortOrder) {
     return (email1, email2) ->
         switch (sortFieldImap) {
-          case RECEIVED_DATE ->
-              sortOrder.order(email1.getReceivedAt().compareTo(email2.getReceivedAt()));
-          case SENT_DATE -> sortOrder.order(email1.getSentAt().compareTo(email2.getSentAt()));
-          case SIZE -> sortOrder.order(email1.getSize().compareTo(email2.getSize()));
+          case RECEIVED_DATE -> sortOrder.order(email1.receivedAt().compareTo(email2.receivedAt()));
+          case SENT_DATE -> sortOrder.order(email1.sentAt().compareTo(email2.sentAt()));
+          case SIZE -> sortOrder.order(email1.size().compareTo(email2.size()));
         };
   }
 
@@ -179,5 +183,114 @@ public class JakartaUtils {
       return folder;
     }
     throw new MessagingException("Unable to find IMAP folder");
+  }
+
+  public Email createBodylessEmail(Message message) {
+    try {
+      List<String> from =
+          Arrays.stream(Optional.ofNullable(message.getFrom()).orElse(new Address[0]))
+              .map(Address::toString)
+              .map(address -> address.replaceAll(".*<|>.*", ""))
+              .toList();
+      List<String> to =
+          Arrays.stream(
+                  Optional.ofNullable(message.getRecipients(Message.RecipientType.TO))
+                      .orElse(new Address[0]))
+              .map(Address::toString)
+              .map(address -> address.replaceAll(".*<|>.*", ""))
+              .toList();
+      List<String> cc =
+          Arrays.stream(
+                  Optional.ofNullable(message.getRecipients(Message.RecipientType.CC))
+                      .orElse(new Address[0]))
+              .map(Address::toString)
+              .map(address -> address.replaceAll(".*<|>.*", ""))
+              .toList();
+      OffsetDateTime sentAt =
+          Optional.ofNullable(message.getSentDate())
+              .map(Date::toInstant)
+              .map(instant -> instant.atOffset(ZoneOffset.UTC))
+              .orElse(null);
+      OffsetDateTime receivedAt =
+          Optional.ofNullable(message.getReceivedDate())
+              .map(Date::toInstant)
+              .map(instant -> instant.atOffset(ZoneOffset.UTC))
+              .orElse(null);
+      String messageId = stripMessageId(message.getHeader("Message-ID")[0]);
+      return new Email(
+          null,
+          messageId,
+          message.getSubject(),
+          from,
+          to,
+          cc,
+          sentAt,
+          receivedAt,
+          message.getSize());
+
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public Email createEmail(Message message) {
+    try {
+      Object bodyObject = message.getContent();
+      Email email = this.createBodylessEmail(message);
+      EmailBody emailBody =
+          switch (bodyObject) {
+            case MimeMultipart multipart -> processMultipart(multipart, EmailBody.createBuilder());
+            case String bodyAsPlainText when message.isMimeType("text/plain") ->
+                EmailBody.createBuilder().withBodyAsPlainText(bodyAsPlainText).build();
+            case String bodyAsHtml when message.isMimeType("text/html") ->
+                EmailBody.createBuilder().withBodyAsHtml(bodyAsHtml).build();
+            default -> throw new IllegalStateException("Unexpected part: " + bodyObject);
+          };
+      return new Email(
+          emailBody,
+          email.messageId(),
+          email.subject(),
+          email.from(),
+          email.to(),
+          email.cc(),
+          email.sentAt(),
+          email.receivedAt(),
+          email.size());
+    } catch (IOException | MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private EmailBody processMultipart(
+      MimeMultipart multipart, EmailBody.EmailBodyBuilder emailBodyBuilder) {
+    try {
+      for (int i = 0; i < multipart.getCount(); i++) {
+        BodyPart bodyPart = multipart.getBodyPart(i);
+        switch (bodyPart.getContent()) {
+          case InputStream attachment when bodyPart
+                  .getDisposition()
+                  .equalsIgnoreCase(Part.ATTACHMENT) ->
+              emailBodyBuilder.withAttachment(attachment);
+          case String plainText when bodyPart.isMimeType("text/plain") ->
+              emailBodyBuilder.withBodyAsPlainText(plainText);
+          case String html when bodyPart.isMimeType("text/html") ->
+              emailBodyBuilder.withBodyAsHtml(html);
+          case MimeMultipart nestedMultipart -> processMultipart(nestedMultipart, emailBodyBuilder);
+          default ->
+              LOGGER.warn(
+                  "This part is not yet managed. Mime : {}, disposition: {}",
+                  bodyPart.getContentType(),
+                  bodyPart.getDisposition());
+        }
+      }
+      return emailBodyBuilder.build();
+    } catch (MessagingException | IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private String stripMessageId(String messageId) {
+    if (messageId == null) return null;
+    return messageId.trim().replaceAll("[<>]", "");
   }
 }

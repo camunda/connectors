@@ -56,31 +56,9 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "No authentication",
-      "value" : "none"
-    }, {
       "name" : "Simple",
       "value" : "simple"
     } ]
-  }, {
-    "id" : "authentication.noAuthenticationMail",
-    "label" : "Email address",
-    "description" : "Provide email",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.noAuthenticationMail",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "none",
-      "type" : "simple"
-    },
-    "type" : "String"
   }, {
     "id" : "authentication.simpleAuthenticationMail",
     "label" : "Email address",

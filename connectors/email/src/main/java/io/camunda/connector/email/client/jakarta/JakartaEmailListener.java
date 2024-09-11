@@ -9,7 +9,7 @@ package io.camunda.connector.email.client.jakarta;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.EmailListener;
-import io.camunda.connector.email.inbound.model.EmailProperties;
+import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
 import jakarta.mail.event.MessageCountEvent;
@@ -22,8 +22,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.eclipse.angus.mail.imap.IdleManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JakartaEmailListener implements EmailListener {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JakartaEmailListener.class);
 
   private final JakartaUtils jakartaUtils;
   private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
@@ -41,78 +45,82 @@ public class JakartaEmailListener implements EmailListener {
   }
 
   public void startListener(InboundConnectorContext context) {
-    EmailProperties emailProperties = context.bindProperties(EmailProperties.class);
-    Authentication authentication = emailProperties.getAuthentication();
+    EmailInboundConnectorProperties emailInboundConnectorProperties =
+        context.bindProperties(EmailInboundConnectorProperties.class);
+    Authentication authentication = emailInboundConnectorProperties.authentication();
     Session session =
         this.jakartaUtils.createSession(
-            emailProperties.getData().getImapConfig(), emailProperties.getAuthentication());
+            emailInboundConnectorProperties.data().imapConfig(),
+            emailInboundConnectorProperties.authentication());
     try {
       this.store = session.getStore();
       this.imapFolders = new ArrayList<>();
       this.idleManager = new IdleManager(session, this.executorService);
 
       this.jakartaUtils.connectStore(this.store, authentication);
-      List<String> inboxes = createInboxList(emailProperties.getData().getFolderToListen());
+      List<String> inboxes =
+          createInboxList(emailInboundConnectorProperties.data().folderToListen());
       for (String inbox : inboxes) {
         IMAPFolder folder = (IMAPFolder) store.getFolder(inbox);
         folder.open(Folder.READ_WRITE);
         folder.addMessageCountListener(
             new MessageCountListener() {
               @Override
-              public void messagesAdded(MessageCountEvent e) {
+              public void messagesAdded(MessageCountEvent event) {
                 processNewEvent(
-                    e,
+                    event,
                     context,
-                    emailProperties.getData().isTriggerAdded(),
-                    emailProperties.getData().isMarkAsRead());
+                    emailInboundConnectorProperties.data().triggerAdded(),
+                    emailInboundConnectorProperties.data().markAsRead());
               }
 
               @Override
-              public void messagesRemoved(MessageCountEvent e) {
+              public void messagesRemoved(MessageCountEvent event) {
                 processNewEvent(
-                    e,
+                    event,
                     context,
-                    emailProperties.getData().isTriggerRemoved(),
-                    emailProperties.getData().isMarkAsRead());
+                    emailInboundConnectorProperties.data().triggerRemoved(),
+                    emailInboundConnectorProperties.data().markAsRead());
               }
             });
         this.imapFolders.add(folder);
         idleManager.watch(folder);
       }
     } catch (MessagingException | IOException e) {
+      LOGGER.error(e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }
 
   private void processNewEvent(
-      MessageCountEvent e,
+      MessageCountEvent event,
       InboundConnectorContext connectorContext,
       boolean triggerAdded,
       boolean markAsRead) {
-    IMAPFolder imapFolder = (IMAPFolder) e.getSource();
+    IMAPFolder imapFolder = (IMAPFolder) event.getSource();
     if (triggerAdded) {
-      Arrays.stream(e.getMessages())
-          .peek(
-              message -> {
-                if (markAsRead) this.jakartaUtils.markAsSeen(message);
-              })
-          .map(Email::createEmail)
-          .forEach(
-              email ->
-                  connectorContext.correlateWithResult(
-                      new ReadEmailResponse(
-                          email.getMessageId(),
-                          email.getFrom(),
-                          email.getSubject(),
-                          email.getSize(),
-                          email.getBody().getBodyAsPlainText(),
-                          email.getBody().getBodyAsHtml())));
+      Arrays.stream(event.getMessages())
+          .forEach(message -> this.correlateEmail(message, markAsRead, connectorContext));
     }
     try {
       idleManager.watch(imapFolder);
     } catch (MessagingException ex) {
       throw new RuntimeException(ex);
     }
+  }
+
+  private void correlateEmail(
+      Message message, boolean markAsRead, InboundConnectorContext connectorContext) {
+    Email email = this.jakartaUtils.createEmail(message);
+    connectorContext.correlateWithResult(
+        new ReadEmailResponse(
+            email.messageId(),
+            email.from(),
+            email.subject(),
+            email.size(),
+            email.body().bodyAsPlainText(),
+            email.body().bodyAsHtml()));
+    if (markAsRead) this.jakartaUtils.markAsSeen(message);
   }
 
   private List<String> createInboxList(Object folderToListen) {
@@ -134,6 +142,7 @@ public class JakartaEmailListener implements EmailListener {
       }
       this.store.close();
     } catch (MessagingException e) {
+      LOGGER.error(e.getMessage(), e);
       throw new RuntimeException(e);
     }
   }

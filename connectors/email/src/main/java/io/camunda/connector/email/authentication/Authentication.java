@@ -11,26 +11,22 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import java.util.Optional;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = NoAuthentication.class)
-@JsonSubTypes({
-  @JsonSubTypes.Type(value = SimpleAuthentication.class, name = "simple"),
-  @JsonSubTypes.Type(value = NoAuthentication.class, name = "oauth"),
-})
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    property = "type",
+    defaultImpl = SimpleAuthentication.class)
+@JsonSubTypes({@JsonSubTypes.Type(value = SimpleAuthentication.class, name = "simple")})
 @TemplateDiscriminatorProperty(
     label = "Authentication",
     group = "authentication",
     name = "type",
     defaultValue = "simple",
     description = "")
-public sealed interface Authentication permits NoAuthentication, SimpleAuthentication {
+public sealed interface Authentication permits SimpleAuthentication {
 
-  String getSender();
+  String getAuthenticatedEmailAddress();
 
   Optional<String> getUser();
 
   Optional<String> getSecret();
-
-  default boolean isSecuredAuth() {
-    return getUser().isPresent() && getSecret().isPresent();
-  }
 }

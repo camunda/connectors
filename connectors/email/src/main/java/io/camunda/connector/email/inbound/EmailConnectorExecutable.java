@@ -13,7 +13,7 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.email.client.EmailListener;
 import io.camunda.connector.email.client.jakarta.JakartaEmailListener;
 import io.camunda.connector.email.client.jakarta.JakartaUtils;
-import io.camunda.connector.email.inbound.model.EmailProperties;
+import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
@@ -23,7 +23,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     name = "Email Event Connector",
     icon = "icon.svg",
     version = 1,
-    inputDataClass = EmailProperties.class,
+    inputDataClass = EmailInboundConnectorProperties.class,
     description = "Consume emails",
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",

@@ -26,6 +26,7 @@ import jakarta.mail.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
 import java.util.*;
 import org.eclipse.angus.mail.pop3.POP3Folder;
 import org.junit.jupiter.api.Assertions;
@@ -38,8 +39,8 @@ class JakartaExecutorTest {
 
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
@@ -49,7 +50,6 @@ class JakartaExecutorTest {
     Transport transport = mock(Transport.class);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(transport).connect(any(), any());
@@ -62,7 +62,7 @@ class JakartaExecutorTest {
     when(smtpSendEmail.to()).thenReturn(List.of("to"));
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.cci()).thenReturn(List.of("bcc"));
-    when(simpleAuthentication.getSender()).thenReturn("myself");
+    when(simpleAuthentication.getAuthenticatedEmailAddress()).thenReturn("myself");
     when(smtpSendEmail.body()).thenReturn("body");
     when(session.getTransport()).thenReturn(transport);
 
@@ -92,8 +92,8 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3ListEmails pop3ListEmails = mock(Pop3ListEmails.class);
@@ -105,7 +105,6 @@ class JakartaExecutorTest {
     Message message = mock(Message.class);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
@@ -126,6 +125,18 @@ class JakartaExecutorTest {
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(pop3ListEmails);
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
+    when(sessionFactory.createBodylessEmail(any()))
+        .thenReturn(
+            new Email(
+                null,
+                "1",
+                "",
+                List.of(""),
+                List.of(""),
+                List.of(""),
+                OffsetDateTime.now(),
+                OffsetDateTime.now(),
+                1));
     doNothing().when(store).connect(any(), any());
 
     Object object = actionExecutor.execute(emailRequest);
@@ -139,8 +150,8 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapListEmails imapListEmails = mock(ImapListEmails.class);
@@ -152,7 +163,6 @@ class JakartaExecutorTest {
     Message message = mock(Message.class);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
@@ -172,6 +182,18 @@ class JakartaExecutorTest {
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapListEmails);
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
+    when(sessionFactory.createBodylessEmail(any()))
+        .thenReturn(
+            new Email(
+                null,
+                "1",
+                "",
+                List.of(""),
+                List.of(""),
+                List.of(""),
+                OffsetDateTime.now(),
+                OffsetDateTime.now(),
+                1));
     doNothing().when(store).connect(any(), any());
 
     Object object = actionExecutor.execute(emailRequest);
@@ -185,8 +207,8 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3ReadEmail pop3ReadEmail = mock(Pop3ReadEmail.class);
@@ -200,7 +222,6 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
@@ -216,6 +237,18 @@ class JakartaExecutorTest {
     when(session.getStore()).thenReturn(store);
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(pop3ReadEmail);
+    when(sessionFactory.createEmail(any()))
+        .thenReturn(
+            new Email(
+                new EmailBody("", "", List.of()),
+                "1",
+                "",
+                List.of(""),
+                List.of(""),
+                List.of(""),
+                OffsetDateTime.now(),
+                OffsetDateTime.now(),
+                1));
     doNothing().when(store).connect(any(), any());
 
     Object object = actionExecutor.execute(emailRequest);
@@ -228,8 +261,8 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapReadEmail imapReadEmail = mock(ImapReadEmail.class);
@@ -243,7 +276,6 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
@@ -259,6 +291,18 @@ class JakartaExecutorTest {
     when(session.getStore()).thenReturn(store);
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapReadEmail);
+    when(sessionFactory.createEmail(any()))
+        .thenReturn(
+            new Email(
+                EmailBody.createBuilder().build(),
+                "1",
+                "",
+                List.of(""),
+                List.of(""),
+                List.of(""),
+                OffsetDateTime.now(),
+                OffsetDateTime.now(),
+                1));
     doNothing().when(store).connect(any(), any());
 
     Object object = actionExecutor.execute(emailRequest);
@@ -271,8 +315,8 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3DeleteEmail pop3DeleteEmail = mock(Pop3DeleteEmail.class);
@@ -286,7 +330,6 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
@@ -314,8 +357,8 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapDeleteEmail imapDeleteEmail = mock(ImapDeleteEmail.class);
@@ -329,7 +372,6 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
@@ -357,8 +399,8 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = new ObjectMapper();
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3SearchEmails pop3SearchEmails = mock(Pop3SearchEmails.class);
@@ -372,7 +414,6 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
@@ -389,6 +430,18 @@ class JakartaExecutorTest {
     when(session.getStore()).thenReturn(store);
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(pop3SearchEmails);
+    when(sessionFactory.createBodylessEmail(any()))
+        .thenReturn(
+            new Email(
+                null,
+                "1",
+                "",
+                List.of(""),
+                List.of(""),
+                List.of(""),
+                OffsetDateTime.now(),
+                OffsetDateTime.now(),
+                1));
     doNothing().when(store).connect(any(), any());
 
     Object object = actionExecutor.execute(emailRequest);
@@ -401,8 +454,8 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = new ObjectMapper();
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
@@ -416,7 +469,6 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
     doNothing().when(store).connect(any(), any());
@@ -433,6 +485,18 @@ class JakartaExecutorTest {
     when(session.getStore()).thenReturn(store);
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
+    when(sessionFactory.createBodylessEmail(any()))
+        .thenReturn(
+            new Email(
+                null,
+                "1",
+                "",
+                List.of(""),
+                List.of(""),
+                List.of(""),
+                OffsetDateTime.now(),
+                OffsetDateTime.now(),
+                1));
     doNothing().when(store).connect(any(), any());
 
     Object object = actionExecutor.execute(emailRequest);
@@ -441,12 +505,12 @@ class JakartaExecutorTest {
   }
 
   @Test
-  void executeImapSearchEmailsCriteriaSpecification() throws MessagingException, IOException {
+  void executeImapSearchEmailsCriteriaSpecification() throws MessagingException {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = new ObjectMapper();
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
@@ -456,9 +520,9 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(sessionFactory.createBodylessEmail(any())).thenCallRealMethod();
 
     Message message =
         TestMessage.builder()
@@ -502,8 +566,8 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = new ObjectMapper();
 
-    JakartaActionExecutor actionExecutor =
-        JakartaActionExecutor.create(sessionFactory, objectMapper);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
@@ -513,7 +577,6 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.isSecuredAuth()).thenReturn(true);
     when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
     when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
 
@@ -549,6 +612,7 @@ class JakartaExecutorTest {
     when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
+    when(sessionFactory.createBodylessEmail(any())).thenCallRealMethod();
 
     List<SearchEmailsResponse> searchEmailsResponses =
         (List<SearchEmailsResponse>) actionExecutor.execute(emailRequest);

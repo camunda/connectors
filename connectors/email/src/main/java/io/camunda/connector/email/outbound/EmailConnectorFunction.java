@@ -10,8 +10,8 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.email.client.ActionExecutor;
-import io.camunda.connector.email.client.jakarta.JakartaActionExecutor;
+import io.camunda.connector.email.client.EmailActionExecutor;
+import io.camunda.connector.email.client.jakarta.JakartaEmailActionExecutor;
 import io.camunda.connector.email.client.jakarta.JakartaUtils;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -48,20 +48,21 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     icon = "icon.svg")
 public class EmailConnectorFunction implements OutboundConnectorFunction {
 
-  private final ActionExecutor actionExecutor;
+  private final EmailActionExecutor emailActionExecutor;
 
   public EmailConnectorFunction() {
     this(
-        JakartaActionExecutor.create(new JakartaUtils(), ConnectorsObjectMapperSupplier.getCopy()));
+        JakartaEmailActionExecutor.create(
+            new JakartaUtils(), ConnectorsObjectMapperSupplier.getCopy()));
   }
 
-  public EmailConnectorFunction(ActionExecutor actionExecutor) {
-    this.actionExecutor = actionExecutor;
+  public EmailConnectorFunction(EmailActionExecutor emailActionExecutor) {
+    this.emailActionExecutor = emailActionExecutor;
   }
 
   @Override
   public Object execute(OutboundConnectorContext context) {
     EmailRequest emailRequest = context.bindVariables(EmailRequest.class);
-    return actionExecutor.execute(emailRequest);
+    return emailActionExecutor.execute(emailRequest);
   }
 }

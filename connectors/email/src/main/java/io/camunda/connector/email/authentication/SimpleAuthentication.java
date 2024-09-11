@@ -44,7 +44,7 @@ public final class SimpleAuthentication implements Authentication {
   }
 
   @Override
-  public String getSender() {
+  public String getAuthenticatedEmailAddress() {
     return this.simpleAuthenticationMail;
   }
 

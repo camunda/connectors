@@ -9,7 +9,7 @@ package io.camunda.connector.email.client.jakarta;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.email.authentication.Authentication;
-import io.camunda.connector.email.client.ActionExecutor;
+import io.camunda.connector.email.client.EmailActionExecutor;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
@@ -21,19 +21,19 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.search.*;
 import java.util.*;
 
-public class JakartaActionExecutor implements ActionExecutor {
+public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private final JakartaUtils jakartaUtils;
   private final ObjectMapper objectMapper;
 
-  private JakartaActionExecutor(JakartaUtils jakartaUtils, ObjectMapper objectMapper) {
+  private JakartaEmailActionExecutor(JakartaUtils jakartaUtils, ObjectMapper objectMapper) {
     this.jakartaUtils = jakartaUtils;
     this.objectMapper = objectMapper;
   }
 
-  public static JakartaActionExecutor create(
+  public static JakartaEmailActionExecutor create(
       JakartaUtils sessionFactory, ObjectMapper objectMapper) {
-    return new JakartaActionExecutor(sessionFactory, objectMapper);
+    return new JakartaEmailActionExecutor(sessionFactory, objectMapper);
   }
 
   public Object execute(EmailRequest emailRequest) {
@@ -84,16 +84,16 @@ public class JakartaActionExecutor implements ActionExecutor {
         Message[] messages = imapFolder.search(new MessageIDTerm(imapReadEmail.messageId()));
         return Arrays.stream(messages)
             .findFirst()
-            .map(Email::createEmail)
+            .map(this.jakartaUtils::createEmail)
             .map(
                 email ->
                     new ReadEmailResponse(
-                        email.getMessageId(),
-                        email.getFrom(),
-                        email.getSubject(),
-                        email.getSize(),
-                        email.getBody().getBodyAsPlainText(),
-                        email.getBody().getBodyAsHtml()))
+                        email.messageId(),
+                        email.from(),
+                        email.subject(),
+                        email.size(),
+                        email.body().bodyAsPlainText(),
+                        email.body().bodyAsHtml()))
             .orElseThrow(() -> new MessagingException("Could not find an email ID"));
       }
     } catch (MessagingException e) {
@@ -160,14 +160,14 @@ public class JakartaActionExecutor implements ActionExecutor {
       try (Folder imapFolder = this.jakartaUtils.findImapFolder(rootFolder, targetFolder)) {
         imapFolder.open(Folder.READ_ONLY);
         return Arrays.stream(imapFolder.getMessages())
-            .map(Email::createBodylessEmail)
+            .map(this.jakartaUtils::createBodylessEmail)
             .sorted(
                 this.jakartaUtils.retrieveEmailComparator(
                     imapListEmails.sortField(), imapListEmails.sortOrder()))
             .map(
                 email ->
                     new ListEmailsResponse(
-                        email.getMessageId(), email.getFrom(), email.getSubject(), email.getSize()))
+                        email.messageId(), email.from(), email.subject(), email.size()))
             .limit(imapListEmails.maxToBeRead())
             .toList();
       }
@@ -198,16 +198,16 @@ public class JakartaActionExecutor implements ActionExecutor {
           Message[] messages = folder.search(new MessageIDTerm(pop3ReadEmail.getMessageId()));
           return Arrays.stream(messages)
               .findFirst()
-              .map(Email::createEmail)
+              .map(this.jakartaUtils::createEmail)
               .map(
                   email ->
                       new ReadEmailResponse(
-                          email.getMessageId(),
-                          email.getFrom(),
-                          email.getSubject(),
-                          email.getSize(),
-                          email.getBody().getBodyAsPlainText(),
-                          email.getBody().getBodyAsHtml()))
+                          email.messageId(),
+                          email.from(),
+                          email.subject(),
+                          email.size(),
+                          email.body().bodyAsPlainText(),
+                          email.body().bodyAsHtml()))
               .orElseThrow(() -> new MessagingException("No emails have been found with this ID"));
         }
       }
@@ -224,17 +224,14 @@ public class JakartaActionExecutor implements ActionExecutor {
         try (Folder folder = store.getFolder("INBOX")) {
           folder.open(Folder.READ_ONLY);
           return Arrays.stream(folder.getMessages())
-              .map(Email::createBodylessEmail)
+              .map(this.jakartaUtils::createBodylessEmail)
               .sorted(
                   this.jakartaUtils.retrieveEmailComparator(
                       pop3ListEmails.sortField(), pop3ListEmails.sortOrder()))
               .map(
                   email ->
                       new ListEmailsResponse(
-                          email.getMessageId(),
-                          email.getFrom(),
-                          email.getSubject(),
-                          email.getSize()))
+                          email.messageId(), email.from(), email.subject(), email.size()))
               .limit(pop3ListEmails.maxToBeRead())
               .toList();
         }
@@ -263,7 +260,7 @@ public class JakartaActionExecutor implements ActionExecutor {
       Optional<InternetAddress[]> cc = createParsedInternetAddresses(smtpSendEmail.cc());
       Optional<InternetAddress[]> cci = createParsedInternetAddresses(smtpSendEmail.cci());
       Message message = new MimeMessage(session);
-      message.setFrom(new InternetAddress(authentication.getSender()));
+      message.setFrom(new InternetAddress(authentication.getAuthenticatedEmailAddress()));
       if (to.isPresent()) message.setRecipients(Message.RecipientType.TO, to.get());
       if (cc.isPresent()) message.setRecipients(Message.RecipientType.CC, cc.get());
       if (cci.isPresent()) message.setRecipients(Message.RecipientType.BCC, cci.get());
@@ -307,8 +304,8 @@ public class JakartaActionExecutor implements ActionExecutor {
     JsonNode jsonNode = this.objectMapper.convertValue(criteria, JsonNode.class);
     SearchTerm searchTerm = createSearchTerms(jsonNode);
     return Arrays.stream(folder.search(searchTerm))
-        .map(Email::createBodylessEmail)
-        .map(email -> new SearchEmailsResponse(email.getMessageId(), email.getSubject()))
+        .map(this.jakartaUtils::createBodylessEmail)
+        .map(email -> new SearchEmailsResponse(email.messageId(), email.subject()))
         .toList();
   }
 

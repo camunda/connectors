@@ -8,10 +8,8 @@ package io.camunda.connector.email.client.jakarta;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import io.camunda.connector.email.authentication.Authentication;
-import io.camunda.connector.email.authentication.NoAuthentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.config.CryptographicProtocol;
 import io.camunda.connector.email.config.ImapConfig;
@@ -29,7 +27,6 @@ class JakartaUtilsTest {
     SmtpConfig smtpConfig = new SmtpConfig("smtp.example.com", 587, CryptographicProtocol.TLS);
     Smtp smtp = new Smtp(null, smtpConfig);
     Authentication auth = mock(SimpleAuthentication.class);
-    when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
 
@@ -50,7 +47,6 @@ class JakartaUtilsTest {
     SmtpConfig smtpConfig = new SmtpConfig("smtp.example.com", 25, CryptographicProtocol.NONE);
     Smtp smtp = new Smtp(null, smtpConfig);
     Authentication auth = mock(SimpleAuthentication.class);
-    when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
 
@@ -67,34 +63,11 @@ class JakartaUtilsTest {
   }
 
   @Test
-  void testCreateSessionWithSmtpWithoutAuthentication() {
-    // Given
-    SmtpConfig smtpConfig = new SmtpConfig("smtp.example.com", 25, CryptographicProtocol.NONE);
-    Smtp smtp = new Smtp(null, smtpConfig);
-    Authentication auth = mock(NoAuthentication.class);
-    when(auth.isSecuredAuth()).thenReturn(false);
-
-    JakartaUtils factory = new JakartaUtils();
-
-    // When
-    Session session = factory.createSession(smtp.smtpConfig(), auth);
-
-    // Then
-    assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
-    assertEquals("smtp.example.com", session.getProperties().get("mail.smtp.host"));
-    assertEquals("25", session.getProperties().get("mail.smtp.port"));
-    assertEquals("false", session.getProperties().get("mail.smtp.auth").toString());
-    assertNull(session.getProperties().get("mail.smtp.starttls.enable"));
-    assertNull(session.getProperties().get("mail.smtp.ssl.enable"));
-  }
-
-  @Test
   void testCreateSessionWithSmtpAndSSL() {
     // Given
     SmtpConfig smtpConfig = new SmtpConfig("smtp.ssl-example.com", 465, CryptographicProtocol.SSL);
     Smtp smtp = new Smtp(null, smtpConfig);
     Authentication auth = mock(SimpleAuthentication.class);
-    when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
 
@@ -115,7 +88,6 @@ class JakartaUtilsTest {
     // Given
     Pop3Config pop3Config = new Pop3Config("pop3.example.com", 110, CryptographicProtocol.NONE);
     Authentication auth = mock(SimpleAuthentication.class);
-    when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
     // When
@@ -136,7 +108,6 @@ class JakartaUtilsTest {
     Pop3Config pop3Config = new Pop3Config("pop3.example.com", 995, CryptographicProtocol.TLS);
 
     Authentication auth = mock(SimpleAuthentication.class);
-    when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
     // When
@@ -156,7 +127,6 @@ class JakartaUtilsTest {
     ImapConfig imapConfig = new ImapConfig("imap.example.com", 143, CryptographicProtocol.NONE);
 
     Authentication auth = mock(SimpleAuthentication.class);
-    when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
 
@@ -177,7 +147,6 @@ class JakartaUtilsTest {
     ImapConfig imapConfig = new ImapConfig("imap.tls-example.com", 993, CryptographicProtocol.TLS);
     // When
     Authentication auth = mock(SimpleAuthentication.class);
-    when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
 
@@ -199,7 +168,6 @@ class JakartaUtilsTest {
 
     // When
     Authentication auth = mock(SimpleAuthentication.class);
-    when(auth.isSecuredAuth()).thenReturn(true);
 
     JakartaUtils factory = new JakartaUtils();
 

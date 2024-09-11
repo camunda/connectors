@@ -12,30 +12,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-public class EmailProperties {
-
-  @TemplateProperty(group = "authentication", id = "type")
-  @Valid
-  @NotNull
-  private Authentication authentication;
-
-  @Valid
-  @NestedProperties(addNestedPath = false)
-  private EmailListenerData data;
-
-  public @Valid @NotNull Authentication getAuthentication() {
-    return authentication;
-  }
-
-  public void setAuthentication(@Valid @NotNull Authentication authentication) {
-    this.authentication = authentication;
-  }
-
-  public EmailListenerData getData() {
-    return data;
-  }
-
-  public void setData(EmailListenerData data) {
-    this.data = data;
-  }
-}
+public record EmailInboundConnectorProperties(
+    @TemplateProperty(group = "authentication", id = "type") @Valid @NotNull
+        Authentication authentication,
+    @NestedProperties(addNestedPath = false) @Valid EmailListenerConfig data) {}
