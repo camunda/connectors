@@ -6,18 +6,18 @@
  */
 package io.camunda.connector.email.client.jakarta;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public record EmailBody(String bodyAsPlainText, String bodyAsHtml, List<InputStream> attachments) {
+public record EmailBody(
+    String bodyAsPlainText, String bodyAsHtml, List<EmailAttachment> attachments) {
 
   public static EmailBodyBuilder createBuilder() {
     return new EmailBodyBuilder();
   }
 
   public static final class EmailBodyBuilder {
-    private final List<InputStream> attachments = new ArrayList<>();
+    private final List<EmailAttachment> attachments = new ArrayList<>();
     private String bodyAsPlainText;
     private String bodyAsHtml;
 
@@ -31,23 +31,18 @@ public record EmailBody(String bodyAsPlainText, String bodyAsHtml, List<InputStr
       return this;
     }
 
-    public EmailBodyBuilder addAttachment(InputStream attachment) {
+    public EmailBodyBuilder addAttachment(EmailAttachment attachment) {
       this.attachments.add(attachment);
       return this;
     }
 
-    public EmailBodyBuilder withAttachments(List<InputStream> attachments) {
+    public EmailBodyBuilder withAttachments(List<EmailAttachment> attachments) {
       this.attachments.addAll(attachments);
       return this;
     }
 
     public EmailBody build() {
       return new EmailBody(bodyAsPlainText, bodyAsHtml, attachments);
-    }
-
-    public EmailBodyBuilder withAttachment(InputStream attachment) {
-      this.attachments.add(attachment);
-      return this;
     }
   }
 }

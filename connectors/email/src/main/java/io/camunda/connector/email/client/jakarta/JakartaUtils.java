@@ -270,7 +270,9 @@ public class JakartaUtils {
           case InputStream attachment when bodyPart
                   .getDisposition()
                   .equalsIgnoreCase(Part.ATTACHMENT) ->
-              emailBodyBuilder.withAttachment(attachment);
+              emailBodyBuilder.addAttachment(
+                  new EmailAttachment(
+                      attachment, bodyPart.getFileName(), bodyPart.getContentType()));
           case String plainText when bodyPart.isMimeType("text/plain") ->
               emailBodyBuilder.withBodyAsPlainText(plainText);
           case String html when bodyPart.isMimeType("text/html") ->
