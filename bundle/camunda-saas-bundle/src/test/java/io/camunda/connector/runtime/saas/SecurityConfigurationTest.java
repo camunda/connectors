@@ -144,6 +144,7 @@ public class SecurityConfigurationTest {
         restTemplateBuilder
             .rootUri("http://localhost:" + managementPort + "/actuator")
             .setConnectTimeout(Duration.ofSeconds(60))
+            .setReadTimeout(Duration.ofSeconds(60))
             .build()
             .exchange("/metrics", HttpMethod.GET, new HttpEntity<>(null), String.class);
 
