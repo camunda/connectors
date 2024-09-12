@@ -27,6 +27,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.operate.CamundaOperateClient;
+import io.camunda.zeebe.spring.test.ZeebeSpringTest;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -59,6 +61,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @DirtiesContext
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
+@ZeebeSpringTest
 public class SecurityConfigurationTest {
 
   @Autowired private MockMvc mvc;
@@ -142,6 +145,8 @@ public class SecurityConfigurationTest {
     ResponseEntity<String> response =
         restTemplateBuilder
             .rootUri("http://localhost:" + managementPort + "/actuator")
+            .setConnectTimeout(Duration.ofSeconds(60))
+            .setReadTimeout(Duration.ofSeconds(60))
             .build()
             .exchange("/metrics", HttpMethod.GET, new HttpEntity<>(null), String.class);
 
