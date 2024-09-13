@@ -74,6 +74,7 @@ limitations under the License.</license.inlineheader>
     <version.zeebe>8.5.5</version.zeebe>
     <version.feel-engine>1.18.1</version.feel-engine>
     <version.spring-zeebe>8.5.7</version.spring-zeebe>
+    <version.identity-sdk>8.5.5</version.identity-sdk>
 
     <!-- Third party dependencies -->
 
@@ -300,6 +301,12 @@ limitations under the License.</license.inlineheader>
         <groupId>io.camunda.spring</groupId>
         <artifactId>spring-client-zeebe</artifactId>
         <version>${version.spring-zeebe}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>identity-sdk</artifactId>
+        <version>${version.identity-sdk}</version>
       </dependency>
 
       <dependency>

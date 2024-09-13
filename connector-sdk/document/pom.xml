@@ -15,5 +15,11 @@
   <packaging>jar</packaging>
 
 
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>identity-sdk</artifactId>
+    </dependency>
+  </dependencies>
 
 </project>

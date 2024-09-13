@@ -16,6 +16,7 @@
  */
 package io.camunda.document.store;
 
+import io.camunda.document.DocumentLink;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.InputStream;
 
@@ -26,4 +27,6 @@ public interface CamundaDocumentStore {
   InputStream getDocumentContent(CamundaDocumentReference reference);
 
   void deleteDocument(CamundaDocumentReference reference);
+
+  DocumentLink createLink(CamundaDocumentReference reference);
 }
