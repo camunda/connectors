@@ -60,16 +60,16 @@
       "value" : "simple"
     } ]
   }, {
-    "id" : "authentication.simpleAuthenticationMail",
-    "label" : "Email address",
-    "description" : "Provide email",
+    "id" : "authentication.simpleAuthenticationUsername",
+    "label" : "Username",
+    "description" : "Provide User",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "group" : "authentication",
     "binding" : {
-      "name" : "authentication.simpleAuthenticationMail",
+      "name" : "authentication.username",
       "type" : "zeebe:property"
     },
     "condition" : {
@@ -88,7 +88,7 @@
     },
     "group" : "authentication",
     "binding" : {
-      "name" : "authentication.simpleAuthenticationPassword",
+      "name" : "authentication.password",
       "type" : "zeebe:property"
     },
     "condition" : {
@@ -163,38 +163,73 @@
     },
     "type" : "String"
   }, {
-    "id" : "triggerAdded",
-    "label" : "Trigger on new message",
+    "id" : "data.initialPollingConfig",
+    "label" : "Sync strategy",
+    "description" : "Chose the desired polling strategy",
     "optional" : false,
-    "value" : true,
+    "value" : "UNSEEN",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "listenerInfos",
     "binding" : {
-      "name" : "data.triggerAdded",
+      "name" : "data.initialPollingConfig",
       "type" : "zeebe:property"
     },
-    "type" : "Boolean"
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Unseen",
+      "value" : "UNSEEN"
+    }, {
+      "name" : "No initial sync. Only new mails",
+      "value" : "NONE"
+    }, {
+      "name" : "All",
+      "value" : "ALL"
+    } ]
   }, {
-    "id" : "triggerRemoved",
-    "label" : "Trigger on deleted message",
-    "optional" : false,
-    "value" : false,
+    "id" : "data.handlingStrategyDiscriminator",
+    "label" : "Handling strategy",
+    "value" : "readHandlingStrategy",
     "group" : "listenerInfos",
     "binding" : {
-      "name" : "data.triggerRemoved",
+      "name" : "data.handlingStrategyDiscriminator",
       "type" : "zeebe:property"
     },
-    "type" : "Boolean"
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "delete email after processed",
+      "value" : "deleteHandlingStrategy"
+    }, {
+      "name" : "read email after processed",
+      "value" : "readHandlingStrategy"
+    }, {
+      "name" : "move email after processed",
+      "value" : "moveHandlingStrategy"
+    }, {
+      "name" : "do nothing after processed",
+      "value" : "noHandlingStrategy"
+    } ]
   }, {
-    "id" : "markAsRead",
-    "label" : "Mark as read",
+    "id" : "moveHandlingStrategyFolder",
+    "label" : "Folder",
+    "description" : "Folder to move processed email into",
     "optional" : false,
-    "value" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
     "group" : "listenerInfos",
     "binding" : {
-      "name" : "data.markAsRead",
+      "name" : "data.handlingStrategy.folder",
       "type" : "zeebe:property"
     },
-    "type" : "Boolean"
+    "condition" : {
+      "property" : "data.handlingStrategyDiscriminator",
+      "equals" : "moveHandlingStrategy",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "activationCondition",
     "label" : "Activation condition",

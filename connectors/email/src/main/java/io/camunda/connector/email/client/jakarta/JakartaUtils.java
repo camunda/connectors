@@ -7,6 +7,7 @@
 package io.camunda.connector.email.client.jakarta;
 
 import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.config.Configuration;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;
@@ -22,6 +23,7 @@ import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,16 +41,18 @@ public class JakartaUtils {
   }
 
   public void connectStore(Store store, Authentication authentication) throws MessagingException {
-    store.connect(
-        authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
-        authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
+    switch (authentication) {
+      case SimpleAuthentication simpleAuthentication ->
+          store.connect(simpleAuthentication.username(), simpleAuthentication.password());
+    }
   }
 
   public void connectTransport(Transport transport, Authentication authentication)
       throws MessagingException {
-    transport.connect(
-        authentication.getUser().orElseThrow(() -> new RuntimeException("Unexpected Error")),
-        authentication.getSecret().orElseThrow(() -> new RuntimeException("Unexpected Error")));
+    switch (authentication) {
+      case SimpleAuthentication simpleAuthentication ->
+          transport.connect(simpleAuthentication.username(), simpleAuthentication.password());
+    }
   }
 
   public void markAsDeleted(Message message) {
@@ -265,25 +269,7 @@ public class JakartaUtils {
       MimeMultipart multipart, EmailBody.EmailBodyBuilder emailBodyBuilder) {
     try {
       for (int i = 0; i < multipart.getCount(); i++) {
-        BodyPart bodyPart = multipart.getBodyPart(i);
-        switch (bodyPart.getContent()) {
-          case InputStream attachment when bodyPart
-                  .getDisposition()
-                  .equalsIgnoreCase(Part.ATTACHMENT) ->
-              emailBodyBuilder.addAttachment(
-                  new EmailAttachment(
-                      attachment, bodyPart.getFileName(), bodyPart.getContentType()));
-          case String plainText when bodyPart.isMimeType("text/plain") ->
-              emailBodyBuilder.withBodyAsPlainText(plainText);
-          case String html when bodyPart.isMimeType("text/html") ->
-              emailBodyBuilder.withBodyAsHtml(html);
-          case MimeMultipart nestedMultipart -> processMultipart(nestedMultipart, emailBodyBuilder);
-          default ->
-              LOGGER.warn(
-                  "This part is not yet managed. Mime : {}, disposition: {}",
-                  bodyPart.getContentType(),
-                  bodyPart.getDisposition());
-        }
+        processBodyPart(multipart, emailBodyBuilder, i);
       }
       return emailBodyBuilder.build();
     } catch (MessagingException | IOException e) {
@@ -291,8 +277,32 @@ public class JakartaUtils {
     }
   }
 
+  private void processBodyPart(
+      MimeMultipart multipart, EmailBody.EmailBodyBuilder emailBodyBuilder, int i)
+      throws MessagingException, IOException {
+    BodyPart bodyPart = multipart.getBodyPart(i);
+    switch (bodyPart.getContent()) {
+      case InputStream attachment when bodyPart
+              .getDisposition()
+              .equalsIgnoreCase(Part.ATTACHMENT) ->
+          emailBodyBuilder.addAttachment(
+              new EmailAttachment(attachment, bodyPart.getFileName(), bodyPart.getContentType()));
+      case String plainText when bodyPart.isMimeType("text/plain") ->
+          emailBodyBuilder.withBodyAsPlainText(plainText);
+      case String html when bodyPart.isMimeType("text/html") ->
+          emailBodyBuilder.withBodyAsHtml(html);
+      case MimeMultipart nestedMultipart -> processMultipart(nestedMultipart, emailBodyBuilder);
+      default ->
+          LOGGER.warn(
+              "This part is not yet managed. Mime : {}, disposition: {}",
+              bodyPart.getContentType(),
+              bodyPart.getDisposition());
+    }
+  }
+
   private String stripMessageId(String messageId) {
     if (messageId == null) return null;
     return messageId.trim().replaceAll("[<>]", "");
   }
+
 }

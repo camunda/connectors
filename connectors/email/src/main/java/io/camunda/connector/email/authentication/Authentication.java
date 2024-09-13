@@ -9,7 +9,6 @@ package io.camunda.connector.email.authentication;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
-import java.util.Optional;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -22,11 +21,4 @@ import java.util.Optional;
     name = "type",
     defaultValue = "simple",
     description = "")
-public sealed interface Authentication permits SimpleAuthentication {
-
-  String getAuthenticatedEmailAddress();
-
-  Optional<String> getUser();
-
-  Optional<String> getSecret();
-}
+public sealed interface Authentication permits SimpleAuthentication {}

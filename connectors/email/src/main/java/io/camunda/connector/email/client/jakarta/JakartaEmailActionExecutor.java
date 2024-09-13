@@ -126,8 +126,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       if (!sourceImapFolder.exists()) throw new MessagingException("Source folder does not exist");
       sourceImapFolder.open(Folder.READ_WRITE);
       Folder targetImapFolder =
-          store.getFolder(
-              String.join(String.valueOf(rootFolder.getSeparator()), toFolder.split("/")));
+          store.getFolder(String.join(String.valueOf(rootFolder.getSeparator()), toFolder.split("\\.")));
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
       targetImapFolder.open(Folder.READ_WRITE);
 
@@ -256,14 +255,15 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
   private SendEmailResponse smtpSendEmail(
       SmtpSendEmail smtpSendEmail, Authentication authentication, Session session) {
     try {
+      Optional<InternetAddress[]> from = createParsedInternetAddresses(smtpSendEmail.from());
       Optional<InternetAddress[]> to = createParsedInternetAddresses(smtpSendEmail.to());
       Optional<InternetAddress[]> cc = createParsedInternetAddresses(smtpSendEmail.cc());
-      Optional<InternetAddress[]> cci = createParsedInternetAddresses(smtpSendEmail.cci());
+      Optional<InternetAddress[]> bcc = createParsedInternetAddresses(smtpSendEmail.bcc());
       Message message = new MimeMessage(session);
-      message.setFrom(new InternetAddress(authentication.getAuthenticatedEmailAddress()));
+      if (from.isPresent()) message.addFrom(from.get());
       if (to.isPresent()) message.setRecipients(Message.RecipientType.TO, to.get());
       if (cc.isPresent()) message.setRecipients(Message.RecipientType.CC, cc.get());
-      if (cci.isPresent()) message.setRecipients(Message.RecipientType.BCC, cci.get());
+      if (bcc.isPresent()) message.setRecipients(Message.RecipientType.BCC, bcc.get());
       message.setSubject(smtpSendEmail.subject());
       message.setText(smtpSendEmail.body());
       try (Transport transport = session.getTransport()) {

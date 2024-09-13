@@ -15,6 +15,17 @@ import jakarta.validation.constraints.NotNull;
 @TemplateSubType(id = "sendEmailSmtp", label = "Send Email using SMTP")
 public record SmtpSendEmail(
     @TemplateProperty(
+            label = "FROM",
+            group = "sendEmailSmtp",
+            id = "smtpFrom",
+            description =
+                "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.from"))
+        @Valid
+        @NotNull
+        Object from,
+    @TemplateProperty(
             label = "TO",
             group = "sendEmailSmtp",
             id = "smtpTo",
@@ -37,16 +48,16 @@ public record SmtpSendEmail(
         @Valid
         Object cc,
     @TemplateProperty(
-            label = "CCI",
+            label = "BCC",
             group = "sendEmailSmtp",
-            id = "smtpCci",
+            id = "smtpBcc",
             description =
                 "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
             feel = Property.FeelMode.optional,
-            binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.cci"),
+            binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.bcc"),
             optional = true)
         @Valid
-        Object cci,
+        Object bcc,
     @TemplateProperty(
             label = "subject",
             group = "sendEmailSmtp",

@@ -95,9 +95,9 @@
       "value" : "simple"
     } ]
   }, {
-    "id" : "authentication.simpleAuthenticationMail",
-    "label" : "Email address",
-    "description" : "Provide email",
+    "id" : "authentication.simpleAuthenticationUsername",
+    "label" : "Username",
+    "description" : "Provide User",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -105,7 +105,7 @@
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
-      "name" : "authentication.simpleAuthenticationMail",
+      "name" : "authentication.username",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -125,7 +125,7 @@
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
-      "name" : "authentication.simpleAuthenticationPassword",
+      "name" : "authentication.password",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -440,6 +440,32 @@
       "value" : "searchEmailsImap"
     } ]
   }, {
+    "id" : "smtpFrom",
+    "label" : "FROM",
+    "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.from",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.smtpActionDiscriminator",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
     "id" : "smtpTo",
     "label" : "TO",
     "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
@@ -489,14 +515,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "smtpCci",
-    "label" : "CCI",
+    "id" : "smtpBcc",
+    "label" : "BCC",
     "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
     "optional" : true,
     "feel" : "optional",
     "group" : "sendEmailSmtp",
     "binding" : {
-      "name" : "data.smtpAction.cci",
+      "name" : "data.smtpAction.bcc",
       "type" : "zeebe:input"
     },
     "condition" : {

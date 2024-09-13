@@ -10,7 +10,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Imap;
@@ -44,14 +43,14 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Smtp.class);
     Session session = mock(Session.class);
     Transport transport = mock(Transport.class);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(transport).connect(any(), any());
 
     when(emailRequest.authentication()).thenReturn(simpleAuthentication);
@@ -61,8 +60,8 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
     when(smtpSendEmail.to()).thenReturn(List.of("to"));
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
-    when(smtpSendEmail.cci()).thenReturn(List.of("bcc"));
-    when(simpleAuthentication.getAuthenticatedEmailAddress()).thenReturn("myself");
+    when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
+    when(smtpSendEmail.from()).thenReturn("myself");
     when(smtpSendEmail.body()).thenReturn("body");
     when(session.getTransport()).thenReturn(transport);
 
@@ -97,7 +96,7 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3ListEmails pop3ListEmails = mock(Pop3ListEmails.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Pop3.class);
     Session session = mock(Session.class);
     Store store = mock(Store.class);
@@ -105,8 +104,8 @@ class JakartaExecutorTest {
     Message message = mock(Message.class);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
@@ -155,7 +154,7 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapListEmails imapListEmails = mock(ImapListEmails.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
     Store store = mock(Store.class);
@@ -163,8 +162,8 @@ class JakartaExecutorTest {
     Message message = mock(Message.class);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
     doNothing().when(folder).open(Folder.READ_ONLY);
@@ -212,7 +211,7 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3ReadEmail pop3ReadEmail = mock(Pop3ReadEmail.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Pop3.class);
     Session session = mock(Session.class);
     Store store = mock(Store.class);
@@ -222,8 +221,8 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
@@ -266,7 +265,7 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapReadEmail imapReadEmail = mock(ImapReadEmail.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
     Store store = mock(Store.class);
@@ -276,8 +275,8 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
@@ -320,7 +319,7 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3DeleteEmail pop3DeleteEmail = mock(Pop3DeleteEmail.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Pop3.class);
     Session session = mock(Session.class);
     Store store = mock(Store.class);
@@ -330,8 +329,8 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
@@ -362,7 +361,7 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapDeleteEmail imapDeleteEmail = mock(ImapDeleteEmail.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
     Store store = mock(Store.class);
@@ -372,8 +371,8 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
@@ -404,7 +403,7 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3SearchEmails pop3SearchEmails = mock(Pop3SearchEmails.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Pop3.class);
     Session session = mock(Session.class);
     Store store = mock(Store.class);
@@ -414,8 +413,8 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
@@ -459,7 +458,7 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
     Store store = mock(Store.class);
@@ -469,8 +468,8 @@ class JakartaExecutorTest {
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
@@ -514,14 +513,14 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
     when(sessionFactory.createBodylessEmail(any())).thenCallRealMethod();
 
     Message message =
@@ -571,14 +570,14 @@ class JakartaExecutorTest {
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
-    Authentication simpleAuthentication = mock(SimpleAuthentication.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
     when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
-    when(simpleAuthentication.getUser()).thenReturn(Optional.of("user"));
-    when(simpleAuthentication.getSecret()).thenReturn(Optional.of("secret"));
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
 
     Message message =
         TestMessage.builder()
