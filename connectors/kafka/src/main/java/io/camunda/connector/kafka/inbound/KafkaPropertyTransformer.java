@@ -12,10 +12,13 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.kafka.converter.GenericRecordEncoder;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
-import io.camunda.connector.kafka.model.SerializationType;
+import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
+import io.camunda.connector.kafka.model.schema.InboundSchemaRegistryStrategy;
+import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Properties;
@@ -42,12 +45,10 @@ public class KafkaPropertyTransformer {
       KafkaConnectorProperties props, InboundConnectorContext context) {
     KafkaConnectorRequest connectorRequest =
         new KafkaConnectorRequest(
-            SerializationType.JSON,
-            null,
             props.authentication(),
             props.topic(),
             null,
-            null,
+            new NoSchemaStrategy(),
             null,
             props.additionalProperties() == null ? new HashMap<>() : props.additionalProperties());
     final Properties kafkaProps =
@@ -63,26 +64,22 @@ public class KafkaPropertyTransformer {
     kafkaProps.put(TopicConfig.RETENTION_MS_CONFIG, -1);
 
     kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
-
-    kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
-    if (props.avro() != null) {
-      kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, BYTE_ARRAY_DESERIALIZER);
-    }
-    if (props.schemaRegistryUrl() != null) {
-      kafkaProps.put("schema.registry.url", props.schemaRegistryUrl());
-      switch (props.serializationType()) {
-        case AVRO:
-          kafkaProps.put(
-              ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
-          break;
-        case JSON:
-          kafkaProps.put(
-              ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaJsonSchemaDeserializer.class);
-          break;
-        default:
-          throw new IllegalArgumentException(
-              "Unsupported serialization type: " + props.serializationType());
-      }
+    switch (props.schemaStrategy()) {
+      case AvroInlineSchemaStrategy ignored:
+        kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, BYTE_ARRAY_DESERIALIZER);
+        break;
+      case InboundSchemaRegistryStrategy strategy:
+        kafkaProps.put("schema.registry.url", strategy.getSchemaRegistryUrl());
+        var serializer =
+            switch (strategy.getSchemaType()) {
+              case AVRO -> KafkaAvroDeserializer.class;
+              case JSON -> KafkaJsonSchemaDeserializer.class;
+            };
+        kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, serializer);
+        kafkaProps.put(KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class);
+        break;
+      default:
+        kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
     }
 
     return kafkaProps;

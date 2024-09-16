@@ -7,6 +7,8 @@
 package io.camunda.connector.kafka.model;
 
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
+import io.camunda.connector.kafka.model.schema.OutboundSchemaRegistryStrategy;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
@@ -60,25 +62,21 @@ public final class KafkaPropertiesUtil {
     if (request.message() != null) { // can be valid in case of inbound
       Properties messageProps = new Properties();
       messageProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
-      messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
-      if (request.avro() != null) {
-        messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, BYTE_ARRAY_SERIALIZER);
-      }
-      if (request.schemaRegistryUrl() != null) {
-        messageProps.put("schema.registry.url", request.schemaRegistryUrl());
-        switch (request.serializationType()) {
-          case AVRO:
-            messageProps.put(
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
-            break;
-          case JSON:
-            messageProps.put(
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaJsonSchemaSerializer.class);
-            break;
-          default:
-            throw new IllegalArgumentException(
-                "Unsupported serialization type: " + request.serializationType());
-        }
+      switch (request.schemaStrategy()) {
+        case AvroInlineSchemaStrategy ignored:
+          messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, BYTE_ARRAY_SERIALIZER);
+          break;
+        case OutboundSchemaRegistryStrategy strategy:
+          messageProps.put("schema.registry.url", strategy.getSchemaRegistryUrl());
+          var serializer =
+              switch (strategy.getSchemaType()) {
+                case AVRO -> KafkaAvroSerializer.class;
+                case JSON -> KafkaJsonSchemaSerializer.class;
+              };
+          messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, serializer);
+          break;
+        default:
+          messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
       }
       props.putAll(messageProps);
     }

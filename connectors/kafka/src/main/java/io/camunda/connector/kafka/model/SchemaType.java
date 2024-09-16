@@ -8,7 +8,7 @@ package io.camunda.connector.kafka.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public enum SerializationType {
+public enum SchemaType {
   @JsonProperty("json")
   JSON,
   @JsonProperty("avro")

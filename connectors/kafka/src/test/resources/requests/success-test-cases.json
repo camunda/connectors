@@ -12,6 +12,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -31,6 +34,9 @@
     "headers": {
       "headerKey1": "headerValue",
       "headerKey2": "headerValue2"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -54,7 +60,8 @@
         ]
       }
     },
-    "avro": {
+    "schemaStrategy": {
+      "type": "inlineSchema",
       "schema": "{\"type\": \"record\",\"name\": \"Employee\",\"fields\": [{\"name\": \"name\", \"type\": \"string\"},{\"name\": \"age\", \"type\": \"int\"},{\"name\": \"emails\", \"type\": {\"type\": \"array\", \"items\": \"string\"}},{\"name\": \"boss\", \"type\": [\"Employee\",\"null\"]}]}"
     }
   },
@@ -74,6 +81,9 @@
     },
     "additionalProperties": {
       "transaction.timeout.ms": "20000"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -94,6 +104,9 @@
     "additionalProperties": {
       "delivery.timeout.ms": "20000",
       "value.serializer": "org.apache.kafka.common.serialization.StringSerializer"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -114,6 +127,9 @@
         "contentBase64": "QXQgbGVhc3Qgc29tZWJvZHkgcmVhZHMgdGhlIHRlc3RzLiBHcmVhdCBqb2Ih"
       }
     },
+    "schemaStrategy": {
+      "type": "noSchema"
+    },
     "additionalProperties": {
       "delivery.timeout.ms": "20000"
     }
@@ -131,6 +147,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -146,6 +165,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -161,6 +183,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -176,6 +201,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -191,6 +219,9 @@
     "message": {
       "key": "Happy \"birthday\"",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   }
 ]

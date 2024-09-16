@@ -9,36 +9,17 @@ package io.camunda.connector.kafka.inbound;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.kafka.model.Avro;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
-import io.camunda.connector.kafka.model.SerializationType;
+import io.camunda.connector.kafka.model.schema.InboundSchemaStrategy;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 
 public record KafkaConnectorProperties(
-    @TemplateProperty(
-            group = "kafka",
-            label = "Deserialization type",
-            id = "serializationType",
-            defaultValue = "json",
-            type = TemplateProperty.PropertyType.Dropdown,
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(value = "json", label = "Default (JSON)"),
-              @TemplateProperty.DropdownPropertyChoice(value = "avro", label = "Avro (alpha)")
-            },
-            description =
-                "Select the deserialization type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>")
-        SerializationType serializationType,
-    @TemplateProperty(
-            group = "kafka",
-            label = "Schema registry URL (alpha)",
-            id = "schemaRegistry",
-            description = "Provide the schema registry URL")
-        String schemaRegistryUrl,
     @NotNull
         @TemplateProperty(
             group = "authentication",
@@ -92,7 +73,7 @@ public record KafkaConnectorProperties(
             description =
                 "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets")
         AutoOffsetReset autoOffsetReset, // = AutoOffsetReset.NONE;
-    @Valid Avro avro) {
+    @Valid @NestedProperties(addNestedPath = false) InboundSchemaStrategy schemaStrategy) {
 
   public enum AutoOffsetReset {
     @JsonProperty("none")

@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.failsafe.RetryPolicy;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
-import io.camunda.connector.kafka.model.SerializationType;
+import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -84,8 +84,6 @@ public class KafkaExecutableTest {
     KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
     kafkaConnectorProperties =
         new KafkaConnectorProperties(
-            SerializationType.JSON,
-            null,
             KafkaConnectorProperties.AuthenticationType.custom,
             kafkaAuthentication,
             kafkaTopic,
@@ -93,7 +91,7 @@ public class KafkaExecutableTest {
             null,
             null,
             KafkaConnectorProperties.AutoOffsetReset.NONE,
-            null);
+            new NoSchemaStrategy());
 
     context =
         InboundConnectorContextBuilder.create()
@@ -204,8 +202,6 @@ public class KafkaExecutableTest {
     KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
     KafkaConnectorProperties kafkaConnectorProperties =
         new KafkaConnectorProperties(
-            SerializationType.JSON,
-            null,
             KafkaConnectorProperties.AuthenticationType.custom,
             kafkaAuthentication,
             kafkaTopic,
@@ -213,7 +209,7 @@ public class KafkaExecutableTest {
             null,
             List.of(0L, 0L),
             KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
-            null);
+            new NoSchemaStrategy());
     Properties properties =
         KafkaPropertyTransformer.getKafkaProperties(kafkaConnectorProperties, context);
     // Then

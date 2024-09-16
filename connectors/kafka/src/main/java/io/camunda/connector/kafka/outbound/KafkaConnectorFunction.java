@@ -18,8 +18,10 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.kafka.converter.GenericRecordDecoder;
+import io.camunda.connector.kafka.converter.JsonEnvelopeDecoder;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
-import io.camunda.connector.kafka.model.SerializationType;
+import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
+import io.camunda.connector.kafka.model.schema.OutboundSchemaRegistryStrategy;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import java.nio.charset.StandardCharsets;
@@ -30,8 +32,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -65,6 +65,8 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
   private static final GenericRecordDecoder GENERIC_RECORD_DECODER = new GenericRecordDecoder();
+  private static final JsonEnvelopeDecoder JSON_ENVELOPE_DECODER = new JsonEnvelopeDecoder();
+
   private static final ObjectMapper objectMapper =
       ConnectorsObjectMapperSupplier.getCopy().enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
   private final Function<Properties, Producer<String, Object>> producerCreatorFunction;
@@ -78,44 +80,39 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
     this.producerCreatorFunction = producerCreatorFunction;
   }
 
-  public static byte[] produceAvroMessage(final KafkaConnectorRequest request) throws Exception {
-    var schemaString = request.avro().schema();
+  private String transformData(Object data) throws JsonProcessingException {
+    return data instanceof String ? (String) data : objectMapper.writeValueAsString(data);
+  }
+
+  private byte[] produceAvroMessage(AvroInlineSchemaStrategy strategy, Object messageValue)
+      throws Exception {
+    var schemaString = strategy.schema();
     Schema raw = new Schema.Parser().parse(schemaString);
     AvroSchema schema = new AvroSchema(raw);
     AvroMapper avroMapper = new AvroMapper();
-    Object messageValue = request.message().value();
     if (messageValue instanceof String messageValueAsString) {
       messageValue = objectMapper.readTree(messageValueAsString);
     }
     return avroMapper.writer(schema).writeValueAsBytes(messageValue);
   }
 
-  public static String transformData(Object data) throws JsonProcessingException {
-    return data instanceof String ? (String) data : objectMapper.writeValueAsString(data);
-  }
-
-  public Object produceSchemaRegistryMessage(final KafkaConnectorRequest request)
-      throws JsonProcessingException {
-    if (request.serializationType() == SerializationType.AVRO
-        && (request.avro() == null || request.avro().schema() == null)) {
-      throw new ConnectorException("FAIL", "Avro schema is required for schema registry message");
+  private Object produceSchemaRegistryMessage(
+      OutboundSchemaRegistryStrategy strategy, Object messageValue) throws JsonProcessingException {
+    if (messageValue instanceof String messageValueAsString) {
+      messageValue = objectMapper.readValue(messageValueAsString, Map.class);
+    }
+    if (!(messageValue instanceof Map)) {
+      throw new ConnectorException(
+          "FAIL", "Message value must be a map for a schema based message");
     }
 
-    if (request.serializationType() == SerializationType.AVRO) {
-      var schemaString = request.avro().schema();
-      Schema raw = new Schema.Parser().parse(schemaString);
-      GenericRecord record = new GenericData.Record(raw);
-      var messageValue = request.message().value();
-      if (messageValue instanceof String messageValueAsString) {
-        messageValue = objectMapper.readValue(messageValueAsString, Map.class);
-      }
-      if (!(messageValue instanceof Map)) {
-        throw new ConnectorException("FAIL", "Message value must be a map for AVRO message");
-      }
-      record = GENERIC_RECORD_DECODER.decode(raw, (Map) messageValue);
-      return record;
-    }
-    return transformData(request.message().value());
+    var schemaString = strategy.getSchema();
+    return switch (strategy.getSchemaType()) {
+      case AVRO ->
+          GENERIC_RECORD_DECODER.decode(
+              new Schema.Parser().parse(schemaString), (Map) messageValue);
+      case JSON -> JSON_ENVELOPE_DECODER.decode(schemaString, (Map) messageValue);
+    };
   }
 
   @Override
@@ -141,7 +138,7 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
-  private ProducerRecord<String, Object> createProducerRecord(final KafkaConnectorRequest request)
+  ProducerRecord<String, Object> createProducerRecord(final KafkaConnectorRequest request)
       throws Exception {
     Object transformedValue = createMessage(request);
     String transformedKey = transformData(request.message().key());
@@ -150,13 +147,13 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   }
 
   private Object createMessage(final KafkaConnectorRequest request) throws Exception {
-    if (request.schemaRegistryUrl() != null) {
-      return produceSchemaRegistryMessage(request);
-    } else if (request.serializationType() == SerializationType.AVRO) {
-      return produceAvroMessage(request);
-    } else {
-      return transformData(request.message().value());
-    }
+    var value = request.message().value();
+    var strategy = request.schemaStrategy();
+    return switch (strategy) {
+      case AvroInlineSchemaStrategy s -> produceAvroMessage(s, value);
+      case OutboundSchemaRegistryStrategy s -> produceSchemaRegistryMessage(s, value);
+      default -> transformData(request.message().value());
+    };
   }
 
   private void addHeadersToProducerRecord(

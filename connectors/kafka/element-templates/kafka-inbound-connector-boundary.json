@@ -90,36 +90,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "serializationType",
-    "label" : "Deserialization type",
-    "description" : "Select the deserialization type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
-    "optional" : false,
-    "value" : "json",
-    "group" : "kafka",
-    "binding" : {
-      "name" : "serializationType",
-      "type" : "zeebe:property"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Default (JSON)",
-      "value" : "json"
-    }, {
-      "name" : "Avro (alpha)",
-      "value" : "avro"
-    } ]
-  }, {
-    "id" : "schemaRegistry",
-    "label" : "Schema registry URL (alpha)",
-    "description" : "Provide the schema registry URL",
-    "optional" : false,
-    "group" : "kafka",
-    "binding" : {
-      "name" : "schemaRegistryUrl",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
     "id" : "topic.bootstrapServers",
     "label" : "Bootstrap servers",
     "description" : "Provide bootstrap server(s), comma-delimited if there are multiple",
@@ -208,9 +178,69 @@
       "value" : "earliest"
     } ]
   }, {
+    "id" : "type",
+    "label" : "Schema strategy",
+    "value" : "noSchema",
+    "group" : "kafka",
+    "binding" : {
+      "name" : "type",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "No schema",
+      "value" : "noSchema"
+    }, {
+      "name" : "Inline schema",
+      "value" : "inlineSchema"
+    }, {
+      "name" : "Schema registry",
+      "value" : "schemaRegistry"
+    } ]
+  }, {
+    "id" : "schemaType",
+    "label" : "Schema type",
+    "description" : "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "value" : "avro",
+    "group" : "kafka",
+    "binding" : {
+      "name" : "schemaType",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "type",
+      "equals" : "schemaRegistry",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "JSON",
+      "value" : "json"
+    }, {
+      "name" : "Avro (alpha)",
+      "value" : "avro"
+    } ]
+  }, {
+    "id" : "schemaRegistryUrl",
+    "label" : "Schema registry URL",
+    "description" : "Provide the schema registry URL",
+    "optional" : false,
+    "group" : "kafka",
+    "binding" : {
+      "name" : "schemaRegistryUrl",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "type",
+      "equals" : "schemaRegistry",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "avro.schema",
-    "label" : "Avro schema",
-    "description" : "Avro schema for the message value",
+    "label" : "Schema",
+    "description" : "Inline schema (JSON or AVRO) for the message value",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -222,8 +252,8 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "serializationType",
-      "equals" : "avro",
+      "property" : "type",
+      "equals" : "inlineSchema",
       "type" : "simple"
     },
     "type" : "Text"

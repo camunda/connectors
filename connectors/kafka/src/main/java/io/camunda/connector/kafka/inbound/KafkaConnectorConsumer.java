@@ -32,7 +32,7 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
-import io.camunda.connector.kafka.model.SerializationType;
+import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -86,8 +86,8 @@ public class KafkaConnectorConsumer {
   }
 
   public void startConsumer() {
-    if (elementProps.serializationType() == SerializationType.AVRO) {
-      Schema schema = new Schema.Parser().parse(elementProps.avro().schema());
+    if (elementProps.schemaStrategy() instanceof AvroInlineSchemaStrategy strategy) {
+      Schema schema = new Schema.Parser().parse(strategy.schema());
       AvroSchema avroSchema = new AvroSchema(schema);
       AvroMapper avroMapper = new AvroMapper();
       avroObjectReader = avroMapper.reader(avroSchema);

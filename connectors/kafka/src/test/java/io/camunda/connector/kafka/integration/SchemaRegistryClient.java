@@ -8,7 +8,6 @@
 package io.camunda.connector.kafka.integration;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -42,8 +41,14 @@ public class SchemaRegistryClient {
       HttpPost request = new HttpPost(schemaRegistryUrl);
       request.setHeader("Content-Type", "application/vnd.schemaregistry.v1+json");
 
+      String schemaType = schemaJson.contains("record") ? "AVRO" : "JSON";
       StringEntity entity =
-          new StringEntity("{\"schema\": \"" + StringEscapeUtils.escapeJson(schemaJson) + "\"}");
+          new StringEntity(
+              "{\"schemaType\":\""
+                  + schemaType
+                  + "\", \"schema\": \""
+                  + StringEscapeUtils.escapeJson(schemaJson)
+                  + "\"}");
       request.setEntity(entity);
 
       try (CloseableHttpResponse response = httpClient.execute(request)) {
@@ -91,13 +96,5 @@ public class SchemaRegistryClient {
     }
   }
 
-  record SchemaWithTopic(String schemaFilePath, String topic) {
-    public String schema() {
-      try (InputStream is = getClass().getClassLoader().getResourceAsStream(schemaFilePath)) {
-        return new String(is.readAllBytes());
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
+  record SchemaWithTopic(String schema, String topic) {}
 }

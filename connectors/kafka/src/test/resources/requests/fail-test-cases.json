@@ -8,6 +8,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -19,6 +22,9 @@
     "topic": {
       "bootstrapServers": "kafka-stub.kafka.cloud:1234",
       "topicName": "some-awesome-topic"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -33,6 +39,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -47,6 +56,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -61,6 +73,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -75,6 +90,9 @@
     "message": {
       "key": "Happy",
       "value": "Case"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   },
   {
@@ -89,6 +107,9 @@
     },
     "message": {
       "key": "Happy"
+    },
+    "schemaStrategy": {
+      "type": "noSchema"
     }
   }
 ]
