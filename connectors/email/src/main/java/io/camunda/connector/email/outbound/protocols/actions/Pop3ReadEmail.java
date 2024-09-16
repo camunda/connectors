@@ -12,41 +12,26 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "readEmailPop3", label = "Read Email using POP3")
-public final class Pop3ReadEmail implements Pop3Action {
-  @TemplateProperty(
-      label = "UIDL of email to read",
-      group = "readEmailPop3",
-      id = "pop3MessageIdRead",
-      description = "",
-      feel = Property.FeelMode.required,
-      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
-  @Valid
-  @NotNull
-  private String messageId;
-
-  @TemplateProperty(
-      label = "Delete after reading",
-      group = "readEmailPop3",
-      type = TemplateProperty.PropertyType.Boolean,
-      defaultValue = "false",
-      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-      binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.deleteOnRead"))
-  private boolean deleteOnRead = false;
-
-  public boolean isDeleteOnRead() {
-    return deleteOnRead;
-  }
-
-  public void setDeleteOnRead(boolean deleteOnRead) {
-    this.deleteOnRead = deleteOnRead;
-  }
-
-  public @Valid @NotNull String getMessageId() {
-    return messageId;
-  }
-
-  public void setMessageId(@Valid @NotNull String messageId) {
-    this.messageId = messageId;
-  }
-}
+@TemplateSubType(id = "readEmailPop3", label = "Read Email")
+public record Pop3ReadEmail(
+    @TemplateProperty(
+            label = "Message ID",
+            group = "readEmailPop3",
+            id = "pop3MessageIdRead",
+            tooltip = "The ID of the message, typically returned by a previous email task.",
+            feel = Property.FeelMode.required,
+            binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
+        @Valid
+        @NotNull
+        String messageId,
+    @TemplateProperty(
+            label = "Delete after reading",
+            group = "readEmailPop3",
+            tooltip =
+                "Enable this option if you want the email to be automatically deleted from the server after it is read. By default, this option is turned off to retain emails on the server.",
+            type = TemplateProperty.PropertyType.Boolean,
+            defaultValue = "false",
+            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+            binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.deleteOnRead"))
+        boolean deleteOnRead)
+    implements Pop3Action {}

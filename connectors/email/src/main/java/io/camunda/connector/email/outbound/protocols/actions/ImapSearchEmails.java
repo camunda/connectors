@@ -10,13 +10,14 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
-@TemplateSubType(id = "searchEmailsImap", label = "Search an email using IMAP")
+@TemplateSubType(id = "searchEmailsImap", label = "Search emails")
 public record ImapSearchEmails(
     @TemplateProperty(
             label = "Search criteria",
             group = "searchEmailsImap",
             id = "searchStringEmailImap",
-            description = "",
+            tooltip =
+                "Define the search criteria using supported keywords and syntax to filter emails. Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
             type = TemplateProperty.PropertyType.Text,
             feel = Property.FeelMode.required,
             optional = true,
@@ -26,7 +27,8 @@ public record ImapSearchEmails(
             label = "Folder",
             group = "searchEmailsImap",
             id = "searchEmailFolder",
-            description = "",
+            tooltip =
+                "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
             optional = true,
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.searchEmailFolder"))

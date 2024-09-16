@@ -126,7 +126,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       if (!sourceImapFolder.exists()) throw new MessagingException("Source folder does not exist");
       sourceImapFolder.open(Folder.READ_WRITE);
       Folder targetImapFolder =
-          store.getFolder(String.join(String.valueOf(rootFolder.getSeparator()), toFolder.split("\\.")));
+          store.getFolder(
+              String.join(String.valueOf(rootFolder.getSeparator()), toFolder.split("\\.")));
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
       targetImapFolder.open(Folder.READ_WRITE);
 
@@ -194,7 +195,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         this.jakartaUtils.connectStore(store, authentication);
         try (Folder folder = store.getFolder("INBOX")) {
           folder.open(Folder.READ_WRITE);
-          Message[] messages = folder.search(new MessageIDTerm(pop3ReadEmail.getMessageId()));
+          Message[] messages = folder.search(new MessageIDTerm(pop3ReadEmail.messageId()));
           return Arrays.stream(messages)
               .findFirst()
               .map(this.jakartaUtils::createEmail)

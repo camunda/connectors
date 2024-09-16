@@ -228,7 +228,7 @@ class JakartaExecutorTest {
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
     when(pop3Folder.search(any())).thenReturn(new Message[] {message});
     when(message.getHeader(any())).thenReturn(new String[] {"10"});
-    when(pop3ReadEmail.getMessageId()).thenReturn("10");
+    when(pop3ReadEmail.messageId()).thenReturn("10");
     when(message.getContent()).thenReturn("string");
     when(message.isMimeType("text/plain")).thenReturn(true);
     when(emailRequest.authentication()).thenReturn(simpleAuthentication);

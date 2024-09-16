@@ -20,5 +20,5 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     group = "authentication",
     name = "type",
     defaultValue = "simple",
-    description = "")
+    description = "Specify the Email authentication strategy.")
 public sealed interface Authentication permits SimpleAuthentication {}

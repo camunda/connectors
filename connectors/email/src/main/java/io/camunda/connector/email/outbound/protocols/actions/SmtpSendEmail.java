@@ -12,13 +12,13 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "sendEmailSmtp", label = "Send Email using SMTP")
+@TemplateSubType(id = "sendEmailSmtp", label = "Send Email")
 public record SmtpSendEmail(
     @TemplateProperty(
-            label = "FROM",
+            label = "From",
             group = "sendEmailSmtp",
             id = "smtpFrom",
-            description =
+            tooltip =
                 "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.from"))
@@ -26,10 +26,10 @@ public record SmtpSendEmail(
         @NotNull
         Object from,
     @TemplateProperty(
-            label = "TO",
+            label = "To",
             group = "sendEmailSmtp",
             id = "smtpTo",
-            description =
+            tooltip =
                 "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.to"))
@@ -37,10 +37,10 @@ public record SmtpSendEmail(
         @NotNull
         Object to,
     @TemplateProperty(
-            label = "CC",
+            label = "Cc",
             group = "sendEmailSmtp",
             id = "smtpCc",
-            description =
+            tooltip =
                 "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.cc"),
@@ -48,10 +48,10 @@ public record SmtpSendEmail(
         @Valid
         Object cc,
     @TemplateProperty(
-            label = "BCC",
+            label = "Bcc",
             group = "sendEmailSmtp",
             id = "smtpBcc",
-            description =
+            tooltip =
                 "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.bcc"),
@@ -59,22 +59,22 @@ public record SmtpSendEmail(
         @Valid
         Object bcc,
     @TemplateProperty(
-            label = "subject",
+            label = "Subject",
             group = "sendEmailSmtp",
             id = "smtpSubject",
             type = TemplateProperty.PropertyType.String,
-            description = "Subject of the mail",
+            tooltip = "Email's subject",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.subject"),
             feel = Property.FeelMode.optional)
         @Valid
         @NotNull
         String subject,
     @TemplateProperty(
-            label = "Body",
+            label = "Email Content",
             group = "sendEmailSmtp",
             id = "smtpBody",
             type = TemplateProperty.PropertyType.Text,
-            description = "Body of the mail",
+            tooltip = "Email's content",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.body"),
             feel = Property.FeelMode.optional)
         @Valid

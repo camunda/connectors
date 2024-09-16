@@ -16,7 +16,8 @@ public record Pop3Config(
             label = "POP3 Host",
             group = "protocol",
             id = "data.pop3Host",
-            description = "",
+            tooltip =
+                "Enter the address of the POP3 server if you want to download your emails to a single device. This server is typically used for retrieving emails without syncing. (e.g., pop.example.com)",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Config.pop3Host"))
         @Valid
@@ -26,7 +27,8 @@ public record Pop3Config(
             label = "POP3 Port",
             group = "protocol",
             id = "data.pop3Port",
-            description = "",
+            tooltip =
+                "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
             defaultValue = "995",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Config.pop3Port"))
@@ -35,7 +37,7 @@ public record Pop3Config(
         Integer pop3Port,
     @TemplateProperty(
             label = "Cryptographic protocol",
-            description = "Chose the desired cryptographic protocol",
+            tooltip = "Select the encryption protocol for email security.",
             group = "protocol",
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,

@@ -16,7 +16,8 @@ public record ImapConfig(
             label = "IMAP Host",
             group = "protocol",
             id = "data.imapHost",
-            description = "",
+            tooltip =
+                "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapHost"))
         @Valid
@@ -26,7 +27,8 @@ public record ImapConfig(
             label = "IMAP Port",
             group = "protocol",
             id = "data.imapPort",
-            description = "",
+            tooltip =
+                "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
             defaultValue = "993",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapPort"))
@@ -34,8 +36,8 @@ public record ImapConfig(
         @NotNull
         Integer imapPort,
     @TemplateProperty(
-            label = "Cryptographic protocol",
-            description = "Chose the desired cryptographic protocol",
+            label = "Encryption protocol",
+            tooltip = "Select the encryption protocol for email security.",
             group = "protocol",
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,

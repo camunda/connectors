@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.email.client.jakarta;
 
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
@@ -62,9 +63,10 @@ public class JakartaEmailListener implements EmailListener {
       List<String> inboxes =
           createInboxList(emailInboundConnectorProperties.data().folderToListen());
       for (String inbox : inboxes) {
-        IMAPFolder folder = (IMAPFolder) store.getFolder(inbox);
-        folder.open(Folder.READ_WRITE);
+        IMAPFolder folder =
+            (IMAPFolder) this.jakartaUtils.findImapFolder(store.getDefaultFolder(), inbox);
         EmailListenerConfig emailListenerConfig = emailInboundConnectorProperties.data();
+        folder.open(Folder.READ_WRITE);
         folder.addMessageCountListener(
             new MessageCountListener() {
               @Override
@@ -75,16 +77,39 @@ public class JakartaEmailListener implements EmailListener {
               @Override
               public void messagesRemoved(MessageCountEvent event) {}
             });
-        this.imapFolders.add(folder);
-        this.idleManager.watch(folder);
-        switch (emailInboundConnectorProperties.data().initialPollingConfig()) {
-          // case UNSEEN -> this.processUnseen(folder, context, emailListenerConfig);
-          // case ALL -> this.processAll(folder, context, emailListenerConfig);
+        switch (emailListenerConfig.initialPollingConfig()) {
+          case UNSEEN -> pollUnseenAndProcess(folder, emailListenerConfig, context);
+          case ALL -> pollAllAndProcess(folder, emailListenerConfig, context);
           case NONE -> {}
         }
+        this.imapFolders.add(folder);
+        idleManager.watch(folder);
       }
     } catch (MessagingException | IOException e) {
       LOGGER.error(e.getMessage(), e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void pollAllAndProcess(
+      IMAPFolder folder, EmailListenerConfig emailListenerConfig, InboundConnectorContext context) {
+    try {
+      Message[] messages = folder.getMessages();
+      Arrays.stream(messages)
+          .forEach(message -> processMail(folder, message, context, emailListenerConfig));
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void pollUnseenAndProcess(
+      IMAPFolder folder, EmailListenerConfig emailListenerConfig, InboundConnectorContext context) {
+    try {
+      FlagTerm unseenFlagTerm = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
+      Message[] unseenMessages = folder.search(unseenFlagTerm);
+      Arrays.stream(unseenMessages)
+          .forEach(message -> processMail(folder, message, context, emailListenerConfig));
+    } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
   }
@@ -95,19 +120,42 @@ public class JakartaEmailListener implements EmailListener {
       EmailListenerConfig emailListenerConfig) {
     IMAPFolder imapFolder = (IMAPFolder) event.getSource();
     for (Message message : event.getMessages()) {
-      CorrelationResult correlationResult = this.correlateEmail(message, connectorContext);
-      switch (emailListenerConfig.handlingStrategy()) {
-        case DeleteHandlingStrategy deleteHandlingStrategy ->
-            this.jakartaUtils.markAsDeleted(message);
-        case MoveHandlingStrategy moveHandlingStrategy -> {}
-        case NoHandlingStrategy noHandlingStrategy -> {}
-        case ReadHandlingStrategy readHandlingStrategy -> {}
+      processMail(imapFolder, message, connectorContext, emailListenerConfig);
+      try {
+        idleManager.watch(imapFolder);
+      } catch (MessagingException ex) {
+        throw new RuntimeException(ex);
       }
     }
-    try {
-      idleManager.watch(imapFolder);
-    } catch (MessagingException ex) {
-      throw new RuntimeException(ex);
+  }
+
+  private void processMail(
+      IMAPFolder imapFolder,
+      Message message,
+      InboundConnectorContext connectorContext,
+      EmailListenerConfig emailListenerConfig) {
+    CorrelationResult correlationResult = this.correlateEmail(message, connectorContext);
+
+    Runnable postProcess =
+        switch (emailListenerConfig.handlingStrategy()) {
+          case READ -> () -> this.jakartaUtils.markAsSeen(message);
+          case DELETE -> () -> this.jakartaUtils.markAsDeleted(message);
+          case NO_HANDLING -> () -> {};
+          case MOVE ->
+              () ->
+                  this.jakartaUtils.moveMessage(
+                      this.store, message, imapFolder, emailListenerConfig.targetFolder());
+        };
+
+    switch (correlationResult) {
+      case CorrelationResult.Failure failure -> {
+        switch (failure.handlingStrategy()) {
+          case CorrelationFailureHandlingStrategy.ForwardErrorToUpstream
+                  forwardErrorToUpstream -> {}
+          case CorrelationFailureHandlingStrategy.Ignore ignore -> postProcess.run();
+        }
+      }
+      case CorrelationResult.Success success -> postProcess.run();
     }
   }
 

@@ -6,17 +6,9 @@
  */
 package io.camunda.connector.email.inbound.model;
 
-import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
-import io.camunda.connector.generator.java.annotation.TemplateSubType;
-
-@TemplateDiscriminatorProperty(
-    label = "Handling strategy",
-    group = "listenerInfos",
-    name = "data.handlingStrategyDiscriminator",
-    defaultValue = "readHandlingStrategy")
-@TemplateSubType(id = "data.handlingStrategyDiscriminator", label = "Handling Strategy")
-public sealed interface HandlingStrategy
-    permits DeleteHandlingStrategy,
-        ReadHandlingStrategy,
-        MoveHandlingStrategy,
-        NoHandlingStrategy {}
+public enum HandlingStrategy {
+  READ,
+  DELETE,
+  NO_HANDLING,
+  MOVE;
+}

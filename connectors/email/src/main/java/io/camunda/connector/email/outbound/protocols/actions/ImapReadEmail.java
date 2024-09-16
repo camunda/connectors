@@ -12,13 +12,13 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "readEmailImap", label = "Read an email using IMAP")
+@TemplateSubType(id = "readEmailImap", label = "Read an email")
 public record ImapReadEmail(
     @TemplateProperty(
-            label = "Imap UID",
+            label = "Message ID",
             group = "readEmailImap",
             id = "imapMessageIdRead",
-            description = "",
+            tooltip = "The ID of the message, typically returned by a previous email task.",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.messageId"))
         @Valid
@@ -28,7 +28,8 @@ public record ImapReadEmail(
             label = "Folder",
             group = "readEmailImap",
             id = "readEmailFolder",
-            description = "",
+            tooltip =
+                "Enter the name of the folder from which you wish to read emails. If left blank, emails will be read from the default 'INBOX' folder.",
             optional = true,
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.readEmailFolder"))

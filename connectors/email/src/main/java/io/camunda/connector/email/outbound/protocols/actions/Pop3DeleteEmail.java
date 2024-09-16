@@ -11,13 +11,13 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "deleteEmailPop3", label = "Delete Email using POP3")
+@TemplateSubType(id = "deleteEmailPop3", label = "Delete Email")
 public record Pop3DeleteEmail(
     @TemplateProperty(
-            label = "UIDL of email to delete",
+            label = "Message ID",
             group = "deleteEmailPop3",
             id = "pop3MessageIdDelete",
-            description = "",
+            tooltip = "The ID of the message, typically returned by a previous email task.",
             feel = Property.FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
         @NotNull

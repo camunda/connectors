@@ -12,11 +12,11 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateDiscriminatorProperty(
-    label = "Protocol",
+    label = "Email Protocol",
     group = "protocol",
     name = "protocol",
     defaultValue = "smtp")
-@TemplateSubType(id = "protocol", label = "Protocol")
+@TemplateSubType(id = "protocol", label = "Email Protocol")
 public sealed interface Protocol permits Imap, Pop3, Smtp {
   Action getProtocolAction();
 

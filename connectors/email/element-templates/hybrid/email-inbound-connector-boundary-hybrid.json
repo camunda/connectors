@@ -53,6 +53,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
+    "description" : "Specify the Email authentication strategy.",
     "value" : "simple",
     "group" : "authentication",
     "binding" : {
@@ -67,7 +68,7 @@
   }, {
     "id" : "authentication.simpleAuthenticationUsername",
     "label" : "Username",
-    "description" : "Provide User",
+    "description" : "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -86,7 +87,7 @@
   }, {
     "id" : "authentication.simpleAuthenticationPassword",
     "label" : "Email password",
-    "description" : "Provide password",
+    "description" : "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -101,7 +102,7 @@
       "equals" : "simple",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "data.imapHost",
     "label" : "IMAP Host",
@@ -115,6 +116,7 @@
       "name" : "data.imapConfig.imapHost",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
     "type" : "String"
   }, {
     "id" : "data.imapPort",
@@ -130,11 +132,11 @@
       "name" : "data.imapConfig.imapPort",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
     "type" : "String"
   }, {
     "id" : "imapCryptographicProtocol",
-    "label" : "Cryptographic protocol",
-    "description" : "Chose the desired cryptographic protocol",
+    "label" : "Encryption protocol",
     "optional" : false,
     "value" : "TLS",
     "constraints" : {
@@ -145,6 +147,7 @@
       "name" : "data.imapConfig.imapCryptographicProtocol",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Select the encryption protocol for email security.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "TLS",
@@ -193,45 +196,49 @@
       "value" : "ALL"
     } ]
   }, {
-    "id" : "data.handlingStrategyDiscriminator",
+    "id" : "data.handlingStrategy",
     "label" : "Handling strategy",
-    "value" : "readHandlingStrategy",
+    "description" : "Chose the desired handling strategy",
+    "optional" : false,
+    "value" : "READ",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "listenerInfos",
     "binding" : {
-      "name" : "data.handlingStrategyDiscriminator",
+      "name" : "data.handlingStrategy",
       "type" : "zeebe:property"
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "delete email after processed",
-      "value" : "deleteHandlingStrategy"
+      "name" : "Read",
+      "value" : "READ"
     }, {
-      "name" : "read email after processed",
-      "value" : "readHandlingStrategy"
+      "name" : "None",
+      "value" : "NO_HANDLING"
     }, {
-      "name" : "move email after processed",
-      "value" : "moveHandlingStrategy"
+      "name" : "Delete",
+      "value" : "DELETE"
     }, {
-      "name" : "do nothing after processed",
-      "value" : "noHandlingStrategy"
+      "name" : "Move",
+      "value" : "MOVE"
     } ]
   }, {
-    "id" : "moveHandlingStrategyFolder",
-    "label" : "Folder",
-    "description" : "Folder to move processed email into",
+    "id" : "data.targetFolder",
+    "label" : "Choose the target folder",
+    "description" : "Chose the target folder",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "listenerInfos",
     "binding" : {
-      "name" : "data.handlingStrategy.folder",
+      "name" : "data.targetFolder",
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "data.handlingStrategyDiscriminator",
-      "equals" : "moveHandlingStrategy",
+      "property" : "data.handlingStrategy",
+      "equals" : "MOVE",
       "type" : "simple"
     },
     "type" : "String"

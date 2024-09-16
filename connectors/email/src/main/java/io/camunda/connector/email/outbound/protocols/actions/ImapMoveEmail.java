@@ -18,7 +18,7 @@ public record ImapMoveEmail(
             label = "Message ID",
             group = "moveEmailImap",
             id = "imapMessageIdMove",
-            description = "",
+            tooltip = "The ID of the message, typically returned by a previous email task.",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.messageId"))
         @Valid
@@ -28,7 +28,8 @@ public record ImapMoveEmail(
             label = "Source folder",
             group = "moveEmailImap",
             id = "data.fromFolder",
-            description = "",
+            tooltip =
+                "Enter the name of the folder from which the emails will be moved. This field is required. For example, enter 'INBOX' to move emails from your Inbox.",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.fromFolder"))
         @Valid
@@ -38,7 +39,8 @@ public record ImapMoveEmail(
             label = "Target folder",
             group = "moveEmailImap",
             id = "data.toFolder",
-            description = "",
+            tooltip =
+                "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.toFolder"))
         @Valid

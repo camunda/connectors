@@ -83,6 +83,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
+    "description" : "Specify the Email authentication strategy.",
     "value" : "simple",
     "group" : "authentication",
     "binding" : {
@@ -97,7 +98,7 @@
   }, {
     "id" : "authentication.simpleAuthenticationUsername",
     "label" : "Username",
-    "description" : "Provide User",
+    "description" : "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -117,12 +118,11 @@
   }, {
     "id" : "authentication.simpleAuthenticationPassword",
     "label" : "Email password",
-    "description" : "Provide password",
+    "description" : "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.password",
@@ -133,10 +133,10 @@
       "equals" : "simple",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "protocol",
-    "label" : "Protocol",
+    "label" : "Email Protocol",
     "value" : "smtp",
     "group" : "protocol",
     "binding" : {
@@ -172,6 +172,7 @@
       "equals" : "imap",
       "type" : "simple"
     },
+    "tooltip" : "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
     "type" : "String"
   }, {
     "id" : "data.imapPort",
@@ -192,11 +193,11 @@
       "equals" : "imap",
       "type" : "simple"
     },
+    "tooltip" : "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
     "type" : "String"
   }, {
     "id" : "imapCryptographicProtocol",
-    "label" : "Cryptographic protocol",
-    "description" : "Chose the desired cryptographic protocol",
+    "label" : "Encryption protocol",
     "optional" : false,
     "value" : "TLS",
     "constraints" : {
@@ -212,6 +213,7 @@
       "equals" : "imap",
       "type" : "simple"
     },
+    "tooltip" : "Select the encryption protocol for email security.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "TLS",
@@ -241,6 +243,7 @@
       "equals" : "pop3",
       "type" : "simple"
     },
+    "tooltip" : "Enter the address of the POP3 server if you want to download your emails to a single device. This server is typically used for retrieving emails without syncing. (e.g., pop.example.com)",
     "type" : "String"
   }, {
     "id" : "data.pop3Port",
@@ -261,11 +264,11 @@
       "equals" : "pop3",
       "type" : "simple"
     },
+    "tooltip" : "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
     "type" : "String"
   }, {
     "id" : "pop3CryptographicProtocol",
     "label" : "Cryptographic protocol",
-    "description" : "Chose the desired cryptographic protocol",
     "optional" : false,
     "value" : "TLS",
     "constraints" : {
@@ -281,6 +284,7 @@
       "equals" : "pop3",
       "type" : "simple"
     },
+    "tooltip" : "Select the encryption protocol for email security.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "TLS",
@@ -310,6 +314,7 @@
       "equals" : "smtp",
       "type" : "simple"
     },
+    "tooltip" : "Provide the address of the SMTP server used for sending emails. This server handles the delivery of your outgoing messages. (e.g., smtp.example.com)",
     "type" : "String"
   }, {
     "id" : "data.smtpPort",
@@ -330,11 +335,11 @@
       "equals" : "smtp",
       "type" : "simple"
     },
+    "tooltip" : "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
     "type" : "String"
   }, {
     "id" : "smtpCryptographicProtocol",
     "label" : "Cryptographic protocol",
-    "description" : "Chose the desired cryptographic protocol",
     "optional" : false,
     "value" : "TLS",
     "constraints" : {
@@ -350,6 +355,7 @@
       "equals" : "smtp",
       "type" : "simple"
     },
+    "tooltip" : "Select the encryption protocol for email security.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "tls",
@@ -441,8 +447,7 @@
     } ]
   }, {
     "id" : "smtpFrom",
-    "label" : "FROM",
-    "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+    "label" : "From",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -464,11 +469,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
     "type" : "String"
   }, {
     "id" : "smtpTo",
-    "label" : "TO",
-    "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+    "label" : "To",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -490,11 +495,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
     "type" : "String"
   }, {
     "id" : "smtpCc",
-    "label" : "CC",
-    "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+    "label" : "Cc",
     "optional" : true,
     "feel" : "optional",
     "group" : "sendEmailSmtp",
@@ -513,11 +518,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
     "type" : "String"
   }, {
     "id" : "smtpBcc",
-    "label" : "BCC",
-    "description" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+    "label" : "Bcc",
     "optional" : true,
     "feel" : "optional",
     "group" : "sendEmailSmtp",
@@ -536,11 +541,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
     "type" : "String"
   }, {
     "id" : "smtpSubject",
-    "label" : "subject",
-    "description" : "Subject of the mail",
+    "label" : "Subject",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -562,11 +567,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Email's subject",
     "type" : "String"
   }, {
     "id" : "smtpBody",
-    "label" : "Body",
-    "description" : "Body of the mail",
+    "label" : "Email Content",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -588,10 +593,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Email's content",
     "type" : "Text"
   }, {
     "id" : "pop3maxToBeRead",
-    "label" : "Max email to read",
+    "label" : "Maximum number of emails to be read",
     "optional" : false,
     "value" : "100",
     "constraints" : {
@@ -613,6 +619,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
     "type" : "String"
   }, {
     "id" : "pop3SortField",
@@ -638,6 +645,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Sent Date'.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Sent Date",
@@ -670,6 +678,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "ASC",
@@ -699,10 +708,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "type" : "Text"
   }, {
     "id" : "pop3MessageIdDelete",
-    "label" : "UIDL of email to delete",
+    "label" : "Message ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -724,10 +734,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The ID of the message, typically returned by a previous email task.",
     "type" : "String"
   }, {
     "id" : "pop3MessageIdRead",
-    "label" : "UIDL of email to read",
+    "label" : "Message ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -749,6 +760,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The ID of the message, typically returned by a previous email task.",
     "type" : "String"
   }, {
     "id" : "deleteOnRead",
@@ -772,10 +784,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Enable this option if you want the email to be automatically deleted from the server after it is read. By default, this option is turned off to retain emails on the server.",
     "type" : "Boolean"
   }, {
     "id" : "imapMaxToBeRead",
-    "label" : "Max email to read",
+    "label" : "Maximum number of emails to be read",
     "optional" : false,
     "value" : "100",
     "constraints" : {
@@ -797,6 +810,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
     "type" : "String"
   }, {
     "id" : "imapListEmailsFolder",
@@ -819,6 +833,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Specify the folder from which you want to list emails (e.g., 'INBOX', 'Sent', 'Drafts'). If left blank, emails will be listed from the default 'INBOX' folder.",
     "type" : "String"
   }, {
     "id" : "imapSortField",
@@ -844,6 +859,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Received Date'.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Received Date",
@@ -879,6 +895,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "ASC",
@@ -908,6 +925,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "type" : "Text"
   }, {
     "id" : "searchEmailFolder",
@@ -930,10 +948,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
     "type" : "String"
   }, {
     "id" : "imapMessageIdRead",
-    "label" : "Imap UID",
+    "label" : "Message ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -955,6 +974,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The ID of the message, typically returned by a previous email task.",
     "type" : "String"
   }, {
     "id" : "readEmailFolder",
@@ -977,10 +997,11 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Enter the name of the folder from which you wish to read emails. If left blank, emails will be read from the default 'INBOX' folder.",
     "type" : "String"
   }, {
     "id" : "imapMessageIdDelete",
-    "label" : "Imap UID",
+    "label" : "Message ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -1002,6 +1023,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The ID of the message, typically returned by a previous email task.",
     "type" : "String"
   }, {
     "id" : "deleteEmailFolder",
@@ -1024,6 +1046,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Specify the name of the folder from which you want to delete emails. If left blank, the default 'INBOX' will be used. For example, you can enter 'Trash' to delete emails from the Trash folder.",
     "type" : "String"
   }, {
     "id" : "imapMessageIdMove",
@@ -1049,6 +1072,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "The ID of the message, typically returned by a previous email task.",
     "type" : "String"
   }, {
     "id" : "data.fromFolder",
@@ -1074,6 +1098,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Enter the name of the folder from which the emails will be moved. This field is required. For example, enter 'INBOX' to move emails from your Inbox.",
     "type" : "String"
   }, {
     "id" : "data.toFolder",
@@ -1099,6 +1124,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
     "type" : "String"
   }, {
     "id" : "resultVariable",

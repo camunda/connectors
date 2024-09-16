@@ -16,7 +16,8 @@ public record SmtpConfig(
             label = "SMTP Host",
             group = "protocol",
             id = "data.smtpHost",
-            description = "",
+            tooltip =
+                "Provide the address of the SMTP server used for sending emails. This server handles the delivery of your outgoing messages. (e.g., smtp.example.com)",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpConfig.smtpHost"))
         @Valid
@@ -26,7 +27,8 @@ public record SmtpConfig(
             label = "SMTP Port",
             group = "protocol",
             id = "data.smtpPort",
-            description = "",
+            tooltip =
+                "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
             defaultValue = "587",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpConfig.smtpPort"))
@@ -35,7 +37,7 @@ public record SmtpConfig(
         Integer smtpPort,
     @TemplateProperty(
             label = "Cryptographic protocol",
-            description = "Chose the desired cryptographic protocol",
+            tooltip = "Select the encryption protocol for email security.",
             group = "protocol",
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,

@@ -10,13 +10,14 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
-@TemplateSubType(id = "searchEmailsPop3", label = "Search an email using POP3")
+@TemplateSubType(id = "searchEmailsPop3", label = "Search emails")
 public record Pop3SearchEmails(
     @TemplateProperty(
             label = "Search criteria",
             group = "searchEmailsPop3",
             id = "searchStringEmailPop3",
-            description = "",
+            tooltip =
+                "Define the search criteria using supported keywords and syntax to filter emails. Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
             type = TemplateProperty.PropertyType.Text,
             feel = Property.FeelMode.required,
             optional = true,

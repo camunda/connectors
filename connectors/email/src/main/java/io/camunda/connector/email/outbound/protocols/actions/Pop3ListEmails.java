@@ -12,14 +12,15 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "listEmailsPop3", label = "List Emails using POP3")
+@TemplateSubType(id = "listEmailsPop3", label = "List Emails")
 public record Pop3ListEmails(
     @TemplateProperty(
-            label = "Max email to read",
+            label = "Maximum number of emails to be read",
             group = "listEmailsPop3",
             id = "pop3maxToBeRead",
             defaultValue = "100",
-            description = "",
+            tooltip =
+                "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
             feel = Property.FeelMode.disabled,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.maxToBeRead"))
         @Valid
@@ -27,7 +28,8 @@ public record Pop3ListEmails(
         Integer maxToBeRead,
     @TemplateProperty(
             label = "Sort emails by",
-            description = "",
+            tooltip =
+                "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Sent Date'.",
             group = "listEmailsPop3",
             id = "pop3SortField",
             feel = Property.FeelMode.required,
@@ -43,7 +45,8 @@ public record Pop3ListEmails(
         SortFieldPop3 sortField,
     @TemplateProperty(
             label = "Sort order",
-            description = "",
+            tooltip =
+                "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
             id = "pop3SortOrder",
             group = "listEmailsPop3",
             feel = Property.FeelMode.required,
