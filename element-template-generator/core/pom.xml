@@ -58,6 +58,12 @@
       <groupId>uk.co.jemos.podam</groupId>
       <artifactId>podam</artifactId>
       <version>8.0.2.RELEASE</version>
+      <exclusions>
+        <exclusion>
+          <groupId>net.jcip</groupId>
+          <artifactId>jcip-annotations</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Test dependencies -->
