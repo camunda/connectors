@@ -44,9 +44,9 @@ public record SmtpConfig(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "TLS",
             choices = {
-              @TemplateProperty.DropdownPropertyChoice(label = "tls", value = "TLS"),
-              @TemplateProperty.DropdownPropertyChoice(label = "none", value = "NONE"),
-              @TemplateProperty.DropdownPropertyChoice(label = "ssl", value = "SSL")
+              @TemplateProperty.DropdownPropertyChoice(label = "TLS", value = "TLS"),
+              @TemplateProperty.DropdownPropertyChoice(label = "None", value = "NONE"),
+              @TemplateProperty.DropdownPropertyChoice(label = "SSL", value = "SSL")
             },
             binding =
                 @TemplateProperty.PropertyBinding(

@@ -16,7 +16,7 @@ public record SimpleAuthentication(
     @TemplateProperty(
             group = "authentication",
             label = "Username",
-            description =
+            tooltip =
                 "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
             id = "simpleAuthenticationUsername")
         @NotBlank
@@ -24,9 +24,8 @@ public record SimpleAuthentication(
     @TemplateProperty(
             group = "authentication",
             label = "Email password",
-            type = TemplateProperty.PropertyType.Hidden,
             feel = Property.FeelMode.disabled,
-            description =
+            tooltip =
                 "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
             id = "simpleAuthenticationPassword")
         @NotBlank

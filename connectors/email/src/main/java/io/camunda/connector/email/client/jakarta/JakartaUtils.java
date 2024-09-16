@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
-import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +30,7 @@ public class JakartaUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JakartaUtils.class);
 
-  public Session createSession(Configuration configuration, Authentication authentication) {
+  public Session createSession(Configuration configuration) {
     return Session.getInstance(
         switch (configuration) {
           case ImapConfig imap -> createProperties(imap);
@@ -305,9 +304,9 @@ public class JakartaUtils {
     return messageId.trim().replaceAll("[<>]", "");
   }
 
-  public void moveMessage(
-      Store store, Message message, IMAPFolder imapFolder, String targetFolder) {
+  public void moveMessage(Store store, Message message, String targetFolder) {
     try {
+      Folder imapFolder = message.getFolder();
       Folder targetImapFolder =
           store.getFolder(
               String.join(String.valueOf(imapFolder.getSeparator()), targetFolder.split("\\.")));

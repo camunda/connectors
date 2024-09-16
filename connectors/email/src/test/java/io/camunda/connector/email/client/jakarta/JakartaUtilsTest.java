@@ -31,7 +31,7 @@ class JakartaUtilsTest {
     JakartaUtils factory = new JakartaUtils();
 
     // When
-    Session session = factory.createSession(smtp.smtpConfig(), auth);
+    Session session = factory.createSession(smtp.smtpConfig());
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -51,7 +51,7 @@ class JakartaUtilsTest {
     JakartaUtils factory = new JakartaUtils();
 
     // When
-    Session session = factory.createSession(smtp.smtpConfig(), auth);
+    Session session = factory.createSession(smtp.smtpConfig());
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -72,7 +72,7 @@ class JakartaUtilsTest {
     JakartaUtils factory = new JakartaUtils();
 
     // When
-    Session session = factory.createSession(smtp.smtpConfig(), auth);
+    Session session = factory.createSession(smtp.smtpConfig());
 
     // Then
     assertEquals("smtp", session.getProperties().get("mail.transport.protocol"));
@@ -91,7 +91,7 @@ class JakartaUtilsTest {
 
     JakartaUtils factory = new JakartaUtils();
     // When
-    Session session = factory.createSession(pop3Config, auth);
+    Session session = factory.createSession(pop3Config);
 
     // Then
     assertEquals("pop3", session.getProperties().get("mail.store.protocol"));
@@ -111,7 +111,7 @@ class JakartaUtilsTest {
 
     JakartaUtils factory = new JakartaUtils();
     // When
-    Session session = factory.createSession(pop3Config, auth);
+    Session session = factory.createSession(pop3Config);
 
     // Then
     assertEquals("pop3s", session.getProperties().get("mail.store.protocol"));
@@ -130,7 +130,7 @@ class JakartaUtilsTest {
 
     JakartaUtils factory = new JakartaUtils();
 
-    Session session = factory.createSession(imapConfig, auth);
+    Session session = factory.createSession(imapConfig);
 
     // Then
     assertEquals("imap", session.getProperties().get("mail.store.protocol"));
@@ -150,7 +150,7 @@ class JakartaUtilsTest {
 
     JakartaUtils factory = new JakartaUtils();
 
-    Session session = factory.createSession(imapConfig, auth);
+    Session session = factory.createSession(imapConfig);
 
     // Then
     assertEquals("imaps", session.getProperties().get("mail.store.protocol"));
@@ -171,7 +171,7 @@ class JakartaUtilsTest {
 
     JakartaUtils factory = new JakartaUtils();
 
-    Session session = factory.createSession(imapConfig, auth);
+    Session session = factory.createSession(imapConfig);
 
     // Then
     assertEquals("imaps", session.getProperties().get("mail.store.protocol"));

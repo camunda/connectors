@@ -68,7 +68,6 @@
   }, {
     "id" : "authentication.simpleAuthenticationUsername",
     "label" : "Username",
-    "description" : "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -83,11 +82,11 @@
       "equals" : "simple",
       "type" : "simple"
     },
+    "tooltip" : "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
     "type" : "String"
   }, {
     "id" : "authentication.simpleAuthenticationPassword",
     "label" : "Email password",
-    "description" : "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -102,7 +101,8 @@
       "equals" : "simple",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "tooltip" : "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
+    "type" : "String"
   }, {
     "id" : "data.imapHost",
     "label" : "IMAP Host",
@@ -169,11 +169,11 @@
       "name" : "data.folderToListen",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Enter the names of the folders you wish to monitor, separated by commas, for new emails or changes (e.g., 'INBOX, Sent, Archive'). If left blank, the listener will default to monitoring the 'INBOX' folder.",
     "type" : "String"
   }, {
     "id" : "data.initialPollingConfig",
     "label" : "Sync strategy",
-    "description" : "Chose the desired polling strategy",
     "optional" : false,
     "value" : "UNSEEN",
     "constraints" : {
@@ -184,21 +184,21 @@
       "name" : "data.initialPollingConfig",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Chose the desired polling strategy",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Unseen",
+      "name" : "Unseen emails will be sync",
       "value" : "UNSEEN"
     }, {
-      "name" : "No initial sync. Only new mails",
+      "name" : "No initial sync. Only new emails",
       "value" : "NONE"
     }, {
-      "name" : "All",
+      "name" : "All emails will be sync",
       "value" : "ALL"
     } ]
   }, {
     "id" : "data.handlingStrategy",
     "label" : "Handling strategy",
-    "description" : "Chose the desired handling strategy",
     "optional" : false,
     "value" : "READ",
     "constraints" : {
@@ -209,24 +209,24 @@
       "name" : "data.handlingStrategy",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Chose the desired handling strategy",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Read",
+      "name" : "Mark as read after processing",
       "value" : "READ"
     }, {
-      "name" : "None",
+      "name" : "Do nothing",
       "value" : "NO_HANDLING"
     }, {
-      "name" : "Delete",
+      "name" : "Delete after processing",
       "value" : "DELETE"
     }, {
-      "name" : "Move",
+      "name" : "Move to another folder after processing",
       "value" : "MOVE"
     } ]
   }, {
     "id" : "data.targetFolder",
     "label" : "Choose the target folder",
-    "description" : "Chose the target folder",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -241,6 +241,7 @@
       "equals" : "MOVE",
       "type" : "simple"
     },
+    "tooltip" : "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
     "type" : "String"
   }, {
     "id" : "activationCondition",
@@ -418,6 +419,6 @@
     "type" : "Text"
   } ],
   "icon" : {
-    "contents" : "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IS0tIFVwbG9hZGVkIHRvOiBTVkcgUmVwbywgd3d3LnN2Z3JlcG8uY29tLCBHZW5lcmF0b3I6IFNWRyBSZXBvIE1peGVyIFRvb2xzIC0tPg0KPHN2ZyB3aWR0aD0iODAwcHgiIGhlaWdodD0iODAwcHgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMy43NSA1LjI1TDMgNlYxOEwzLjc1IDE4Ljc1SDIwLjI1TDIxIDE4VjZMMjAuMjUgNS4yNUgzLjc1Wk00LjUgNy42OTU1VjE3LjI1SDE5LjVWNy42OTUyNUwxMS45OTk5IDE0LjUxMzZMNC41IDcuNjk1NVpNMTguMzA5OSA2Ljc1SDUuNjg5ODZMMTEuOTk5OSAxMi40ODY0TDE4LjMwOTkgNi43NVoiIGZpbGw9IiMwODAzNDEiLz4NCjwvc3ZnPg=="
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzkwXzI0MjApIj4KPHBhdGggZD0iTTguMzM4MzUgOS45NTM2NUwxMC4zODk0IDEyLjAxMDRMOC4zMzI2MiAxNC4wNjcyTDkuMTQ2MTYgMTQuODc1TDEyLjAxMDcgMTIuMDEwNEw5LjE0NjE2IDkuMTQ1ODNMOC4zMzgzNSA5Ljk1MzY1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTEyLjM0ODggOS45NTM2NUwxNC4zOTk4IDEyLjAxMDRMMTIuMzQzIDE0LjA2NzJMMTMuMTU2NiAxNC44NzVMMTYuMDIxMiAxMi4wMTA0TDEzLjE1NjYgOS4xNDU4M0wxMi4zNDg4IDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMy45NzIgMTEuNDM3NUgxLjEyNTMzVjIuNzkyMTlMNy42NzM3NiA3LjMyMzk2QzcuNzY5NjcgNy4zOTA0OSA3Ljg4MzYgNy40MjYxNCA4LjAwMDMyIDcuNDI2MTRDOC4xMTcwNSA3LjQyNjE0IDguMjMwOTggNy4zOTA0OSA4LjMyNjg5IDcuMzIzOTZMMTQuODc1MyAyLjc5MjE5VjhIMTYuMDIxMlYyLjI3MDgzQzE2LjAyMTIgMS45NjY5NCAxNS45MDA0IDEuNjc1NDkgMTUuNjg1NiAxLjQ2MDYxQzE1LjQ3MDcgMS4yNDU3MiAxNS4xNzkyIDEuMTI1IDE0Ljg3NTMgMS4xMjVIMS4xMjUzM0MwLjgyMTQzMiAxLjEyNSAwLjUyOTk4NCAxLjI0NTcyIDAuMzE1MDk5IDEuNDYwNjFDMC4xMDAyMTQgMS42NzU0OSAtMC4wMjA1MDc4IDEuOTY2OTQgLTAuMDIwNTA3OCAyLjI3MDgzVjExLjQzNzVDLTAuMDIwNTA3OCAxMS43NDE0IDAuMTAwMjE0IDEyLjAzMjggMC4zMTUwOTkgMTIuMjQ3N0MwLjUyOTk4NCAxMi40NjI2IDAuODIxNDMyIDEyLjU4MzMgMS4xMjUzMyAxMi41ODMzSDMuOTcyVjExLjQzNzVaTTEzLjYxNDkgMi4yNzA4M0w4LjAwMDMyIDYuMTU1MjFMMi4zODU3NCAyLjI3MDgzSDEzLjYxNDlaIiBmaWxsPSIjRkM1RDBEIi8+CjxwYXRoIGQ9Ik00LjI4MjEgOS45NTM2NUw2LjMzMzE0IDEyLjAxMDRMNC4yNzYzNyAxNC4wNjcyTDUuMDg5OTEgMTQuODc1TDcuOTU0NDkgMTIuMDEwNEw1LjA4OTkxIDkuMTQ1ODNMNC4yODIxIDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzkwXzI0MjAiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg=="
   }
 }

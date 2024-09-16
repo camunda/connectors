@@ -28,8 +28,6 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 /** Default ObjectMapper supplier to be used by the connector runtime. */
 public class ConnectorsObjectMapperSupplier {
 
-  private ConnectorsObjectMapperSupplier() {}
-
   public static ObjectMapper DEFAULT_MAPPER =
       JsonMapper.builder()
           .addModules(new JacksonModuleFeelFunction(), new Jdk8Module(), new JavaTimeModule())
@@ -39,6 +37,8 @@ public class ConnectorsObjectMapperSupplier {
           .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
           .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
           .build();
+
+  private ConnectorsObjectMapperSupplier() {}
 
   public static ObjectMapper getCopy() {
     return DEFAULT_MAPPER.copy();
