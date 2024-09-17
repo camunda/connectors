@@ -10,9 +10,11 @@ import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.failsafe.RetryPolicy;
@@ -621,6 +623,8 @@ public class KafkaIntegrationTest {
     KafkaInboundMessage castedResult1 = (KafkaInboundMessage) inboundMessage;
 
     Object value1 = castedResult1.getValue();
+    var rawValue = castedResult1.getRawValue();
+    assertNull(rawValue);
     assertInstanceOf(ObjectNode.class, value1);
     String json = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(value1);
     Map map = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(json, Map.class);
@@ -725,9 +729,12 @@ public class KafkaIntegrationTest {
     KafkaInboundMessage castedResult1 = (KafkaInboundMessage) inboundMessage;
 
     Object value1 = castedResult1.getValue();
-    assertInstanceOf(ObjectNode.class, value1);
+    var rawValue = castedResult1.getRawValue();
+    assertInstanceOf(JsonNode.class, value1);
+    assertInstanceOf(String.class, rawValue);
     String json = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(value1);
     Map map = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(json, Map.class);
+    assertEquals(json, rawValue);
     assertEquals("Test", map.get("name").toString());
     assertEquals(40, map.get("age"));
     assertEquals("test@camunda.com", ((List) map.get("emails")).get(0));
