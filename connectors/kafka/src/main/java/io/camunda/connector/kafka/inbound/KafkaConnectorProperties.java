@@ -14,10 +14,12 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
 import io.camunda.connector.kafka.model.schema.InboundSchemaStrategy;
+import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public record KafkaConnectorProperties(
     @NotNull
@@ -74,6 +76,11 @@ public record KafkaConnectorProperties(
                 "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets")
         AutoOffsetReset autoOffsetReset, // = AutoOffsetReset.NONE;
     @Valid @NestedProperties(addNestedPath = false) InboundSchemaStrategy schemaStrategy) {
+
+  @Override
+  public @Valid InboundSchemaStrategy schemaStrategy() {
+    return Optional.ofNullable(schemaStrategy).orElse(new NoSchemaStrategy());
+  }
 
   public enum AutoOffsetReset {
     @JsonProperty("none")

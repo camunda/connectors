@@ -11,10 +11,12 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
+import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
 import io.camunda.connector.kafka.model.schema.OutboundSchemaStrategy;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
+import java.util.Optional;
 
 public record KafkaConnectorRequest(
     @Valid KafkaAuthentication authentication,
@@ -34,4 +36,9 @@ public record KafkaConnectorRequest(
             optional = true,
             feel = Property.FeelMode.required,
             description = "Provide additional Kafka producer properties in JSON")
-        Map<String, Object> additionalProperties) {}
+        Map<String, Object> additionalProperties) {
+  @Override
+  public @Valid OutboundSchemaStrategy schemaStrategy() {
+    return Optional.ofNullable(schemaStrategy).orElse(new NoSchemaStrategy());
+  }
+}
