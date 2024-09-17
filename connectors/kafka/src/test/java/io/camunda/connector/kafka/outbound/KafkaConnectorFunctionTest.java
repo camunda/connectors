@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
+import io.camunda.connector.kafka.outbound.model.ProducerRecordFactory;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
@@ -113,7 +114,7 @@ class KafkaConnectorFunctionTest {
     Mockito.verify(producer).send(producerRecordCaptor.capture());
     ProducerRecord<String, Object> recordActual = producerRecordCaptor.getValue();
 
-    Object expectedValue = objectUnderTest.createProducerRecord(request).value();
+    Object expectedValue = new ProducerRecordFactory().createProducerRecord(request).value();
     var recordExpected =
         new ProducerRecord<>(request.topic().topicName(), request.message().key(), expectedValue);
     assertThat(recordActual.topic()).isEqualTo(recordExpected.topic());
