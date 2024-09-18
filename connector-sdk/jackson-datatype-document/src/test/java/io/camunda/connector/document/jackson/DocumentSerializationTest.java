@@ -27,7 +27,6 @@ import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.document.Document;
 import io.camunda.document.DocumentMetadata;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import java.util.Map;
 import java.util.Optional;
@@ -39,11 +38,10 @@ import org.skyscreamer.jsonassert.JSONAssert;
 public class DocumentSerializationTest {
 
   @Mock private DocumentFactory factory;
-  @Mock private DocumentOperationExecutor operationExecutor;
 
   private final ObjectMapper objectMapper =
       new ObjectMapper()
-          .registerModule(new JacksonModuleDocument(factory, operationExecutor))
+          .registerModule(new JacksonModuleDocument(factory))
           .registerModule(new Jdk8Module());
 
   @Test

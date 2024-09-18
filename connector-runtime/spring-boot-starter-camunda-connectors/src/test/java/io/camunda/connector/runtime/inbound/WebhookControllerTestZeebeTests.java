@@ -45,6 +45,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
@@ -85,6 +86,8 @@ class WebhookControllerTestZeebeTests {
 
   @Autowired @InjectMocks private InboundWebhookRestController controller;
 
+  @Autowired private DocumentFactory documentFactory;
+
   @BeforeEach
   public void beforeEach() {
     webhookConnectorRegistry.reset();
@@ -103,6 +106,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandler,
             (e) -> {},
@@ -144,6 +148,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandler,
             (e) -> {},
@@ -191,6 +196,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandlerMock,
             (e) -> {},
@@ -232,6 +238,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandlerMock,
             (e) -> {},
@@ -281,6 +288,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandlerMock,
             (e) -> {},
@@ -319,6 +327,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandler,
             (e) -> {},
@@ -357,6 +366,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDefinition,
             correlationHandler,
             (e) -> {},
@@ -390,6 +400,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandler,
             (e) -> {},
@@ -425,6 +436,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandler,
             (e) -> {},
@@ -472,6 +484,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandler,
             (e) -> {},
@@ -530,6 +543,7 @@ class WebhookControllerTestZeebeTests {
         new InboundConnectorContextImpl(
             secretProvider,
             v -> {},
+            documentFactory,
             webhookDef,
             correlationHandlerMock,
             (e) -> {},

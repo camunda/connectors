@@ -20,14 +20,12 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.InputStream;
 
 public class InputStreamDocumentDeserializer extends DocumentDeserializerBase<InputStream> {
 
-  public InputStreamDocumentDeserializer(
-      DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory) {
-    super(operationExecutor, documentFactory);
+  public InputStreamDocumentDeserializer(DocumentFactory documentFactory) {
+    super(documentFactory);
   }
 
   @Override

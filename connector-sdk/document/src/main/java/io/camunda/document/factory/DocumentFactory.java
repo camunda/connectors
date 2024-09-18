@@ -17,6 +17,7 @@
 package io.camunda.document.factory;
 
 import io.camunda.document.Document;
+import io.camunda.document.operation.DocumentOperationExecutor;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 
@@ -30,4 +31,7 @@ public interface DocumentFactory {
    * Document object
    */
   Document create(DocumentCreationRequest request);
+
+  /** Get the environment-specific document operation executor */
+  DocumentOperationExecutor getDocumentOperationExecutor();
 }

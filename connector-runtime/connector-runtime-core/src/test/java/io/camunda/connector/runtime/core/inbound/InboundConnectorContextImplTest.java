@@ -30,6 +30,10 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.operation.AggregatingOperationExecutor;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +44,8 @@ import org.junit.jupiter.api.Test;
 class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
   private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final DocumentFactory documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE, new AggregatingOperationExecutor());
 
   @Test
   void bindProperties_shouldThrowExceptionWhenWrongFormat() {
@@ -49,6 +55,7 @@ class InboundConnectorContextImplTest {
         new InboundConnectorContextImpl(
             secretProvider,
             (e) -> {},
+            documentFactory,
             definition,
             null,
             (e) -> {},
@@ -70,6 +77,7 @@ class InboundConnectorContextImplTest {
         new InboundConnectorContextImpl(
             secretProvider,
             (e) -> {},
+            documentFactory,
             definition,
             null,
             (e) -> {},
@@ -95,6 +103,7 @@ class InboundConnectorContextImplTest {
         new InboundConnectorContextImpl(
             secretProvider,
             (e) -> {},
+            documentFactory,
             definition,
             null,
             (e) -> {},
@@ -153,6 +162,7 @@ class InboundConnectorContextImplTest {
         new InboundConnectorContextImpl(
             secretProvider,
             (e) -> {},
+            documentFactory,
             definition,
             null,
             (e) -> {},
@@ -174,6 +184,7 @@ class InboundConnectorContextImplTest {
         new InboundConnectorContextImpl(
             secretProvider,
             (e) -> {},
+            documentFactory,
             definition,
             null,
             (e) -> {},

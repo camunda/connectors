@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.PrimitiveArrayDeserializers;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
 
 public class ByteArrayDocumentDeserializer extends DocumentDeserializerBase<byte[]> {
@@ -30,9 +29,8 @@ public class ByteArrayDocumentDeserializer extends DocumentDeserializerBase<byte
   private final JsonDeserializer<?> fallbackDeserializer =
       PrimitiveArrayDeserializers.forType(byte.class);
 
-  public ByteArrayDocumentDeserializer(
-      DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory) {
-    super(operationExecutor, documentFactory);
+  public ByteArrayDocumentDeserializer(DocumentFactory documentFactory) {
+    super(documentFactory);
   }
 
   @Override

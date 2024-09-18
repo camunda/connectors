@@ -42,6 +42,10 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.operation.AggregatingOperationExecutor;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -56,6 +60,8 @@ import org.mockito.quality.Strictness;
 public class WebhookControllerPlainJavaTests {
 
   private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private static final DocumentFactory documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE, new AggregatingOperationExecutor());
 
   @Test
   public void multipleWebhooksOnSameContextPathAreNotSupported() {
@@ -156,6 +162,7 @@ public class WebhookControllerPlainJavaTests {
         new InboundConnectorContextImpl(
             name -> null,
             new DefaultValidationProvider(),
+            documentFactory,
             def,
             mock(InboundCorrelationHandler.class),
             e -> {},

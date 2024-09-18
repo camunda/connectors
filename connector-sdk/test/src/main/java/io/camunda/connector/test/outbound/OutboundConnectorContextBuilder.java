@@ -29,6 +29,7 @@ import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.operation.AggregatingOperationExecutor;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
@@ -43,7 +44,7 @@ public class OutboundConnectorContextBuilder {
   protected ValidationProvider validationProvider;
   protected Map<String, Object> variables;
   protected DocumentFactory documentFactory =
-      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE, new AggregatingOperationExecutor());
   private ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   /**

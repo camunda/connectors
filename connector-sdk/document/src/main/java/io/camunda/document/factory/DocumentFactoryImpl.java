@@ -18,6 +18,7 @@ package io.camunda.document.factory;
 
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
+import io.camunda.document.operation.DocumentOperationExecutor;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import io.camunda.document.reference.DocumentReference.ExternalDocumentReference;
@@ -27,9 +28,12 @@ import io.camunda.document.store.DocumentCreationRequest;
 public class DocumentFactoryImpl implements DocumentFactory {
 
   private final CamundaDocumentStore documentStore;
+  private final DocumentOperationExecutor documentOperationExecutor;
 
-  public DocumentFactoryImpl(CamundaDocumentStore documentStore) {
+  public DocumentFactoryImpl(
+      CamundaDocumentStore documentStore, DocumentOperationExecutor documentOperationExecutor) {
     this.documentStore = documentStore;
+    this.documentOperationExecutor = documentOperationExecutor;
   }
 
   @Override
@@ -52,5 +56,10 @@ public class DocumentFactoryImpl implements DocumentFactory {
   public Document create(DocumentCreationRequest request) {
     var reference = documentStore.createDocument(request);
     return resolve(reference);
+  }
+
+  @Override
+  public DocumentOperationExecutor getDocumentOperationExecutor() {
+    return documentOperationExecutor;
   }
 }

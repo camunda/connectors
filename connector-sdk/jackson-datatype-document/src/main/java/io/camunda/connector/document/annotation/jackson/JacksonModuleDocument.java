@@ -27,27 +27,20 @@ import io.camunda.connector.document.annotation.jackson.deserializer.StringDocum
 import io.camunda.connector.document.annotation.jackson.serializer.DocumentSerializer;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.InputStream;
 
 public class JacksonModuleDocument extends SimpleModule {
 
   private final DocumentFactory documentFactory;
-  private final DocumentOperationExecutor operationExecutor;
   private final DocumentModuleSettings settings;
 
-  public JacksonModuleDocument(
-      DocumentFactory documentFactory,
-      DocumentOperationExecutor operationExecutor,
-      DocumentModuleSettings settings) {
+  public JacksonModuleDocument(DocumentFactory documentFactory, DocumentModuleSettings settings) {
     this.documentFactory = documentFactory;
-    this.operationExecutor = operationExecutor;
     this.settings = settings;
   }
 
-  public JacksonModuleDocument(
-      DocumentFactory documentFactory, DocumentOperationExecutor operationExecutor) {
-    this(documentFactory, operationExecutor, DocumentModuleSettings.create());
+  public JacksonModuleDocument(DocumentFactory documentFactory) {
+    this(documentFactory, DocumentModuleSettings.create());
   }
 
   @Override
@@ -63,24 +56,19 @@ public class JacksonModuleDocument extends SimpleModule {
 
   @Override
   public void setupModule(SetupContext context) {
-    addDeserializer(Document.class, new DocumentDeserializer(operationExecutor, documentFactory));
+    addDeserializer(Document.class, new DocumentDeserializer(documentFactory));
     addDeserializer(
-        DocumentOperationResult.class,
-        new DocumentOperationResultDeserializer(operationExecutor, documentFactory));
-    addDeserializer(
-        byte[].class, new ByteArrayDocumentDeserializer(operationExecutor, documentFactory));
-    addDeserializer(
-        InputStream.class, new InputStreamDocumentDeserializer(operationExecutor, documentFactory));
+        DocumentOperationResult.class, new DocumentOperationResultDeserializer(documentFactory));
+    addDeserializer(byte[].class, new ByteArrayDocumentDeserializer(documentFactory));
+    addDeserializer(InputStream.class, new InputStreamDocumentDeserializer(documentFactory));
     if (settings.enableObject) {
-      addDeserializer(
-          Object.class,
-          new ObjectDocumentDeserializer(operationExecutor, documentFactory, settings.lazy));
+      addDeserializer(Object.class, new ObjectDocumentDeserializer(documentFactory, settings.lazy));
     }
     if (settings.enableString) {
-      addDeserializer(
-          String.class, new StringDocumentDeserializer(operationExecutor, documentFactory));
+      addDeserializer(String.class, new StringDocumentDeserializer(documentFactory));
     }
-    addSerializer(Document.class, new DocumentSerializer(operationExecutor));
+    addSerializer(
+        Document.class, new DocumentSerializer(documentFactory.getDocumentOperationExecutor()));
     super.setupModule(context);
   }
 

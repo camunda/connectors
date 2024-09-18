@@ -30,6 +30,13 @@ import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfigurati
 import io.camunda.connector.runtime.secret.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.operation.AggregatingOperationExecutor;
+import io.camunda.document.operation.DocumentOperationExecutor;
+import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.document.store.CamundaDocumentStoreImpl;
+import io.camunda.zeebe.client.ZeebeClient;
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
@@ -133,8 +140,28 @@ public class OutboundConnectorsAutoConfiguration {
   }
 
   @Bean
+  public DocumentFactory documentFactory(
+      CamundaDocumentStore documentStore, DocumentOperationExecutor operationExecutor) {
+    return new DocumentFactoryImpl(documentStore, operationExecutor);
+  }
+
+  @Bean
   @ConditionalOnMissingBean
-  public ObjectMapper objectMapper() {
-    return ConnectorsObjectMapperSupplier.getCopy();
+  public CamundaDocumentStore documentStore(
+      Authentication authentication) {
+    final var endpoint = "localhost:8080";
+    return new CamundaDocumentStoreImpl(authentication, endpoint, ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public DocumentOperationExecutor documentOperationExecutor() {
+    return new AggregatingOperationExecutor();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ObjectMapper objectMapper(DocumentFactory documentFactory) {
+    return ConnectorsObjectMapperSupplier.getDocumentAwareCopy(documentFactory);
   }
 }

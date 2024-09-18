@@ -20,9 +20,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Configuration properties for Camunda Connectors. */
 @ConfigurationProperties(prefix = "camunda.connector")
-public record ConnectorProperties(Polling polling, Webhook webhook, SecretProvider secretProvider) {
-  // NOTE: this class is not used in directly in the code, but is used by Spring Boot
-  // configuration annotation processor to generate the configuration properties metadata
+public record ConnectorProperties(
+    Polling polling, Webhook webhook, SecretProvider secretProvider, DocumentStore documentStore) {
+  // NOTE: some of these properties are not used in directly in the code (i.e. autowired directly
+  // with @Value, but the class is also used by Spring Boot configuration annotation processor to
+  // generate the configuration properties metadata
 
   /** Configuration for the inbound webhook connector. */
   public record Webhook(boolean enabled) {}
@@ -42,4 +44,6 @@ public record ConnectorProperties(Polling polling, Webhook webhook, SecretProvid
   public record Environment(boolean enabled, String prefix) {}
 
   public record ConsoleSecretProvider(boolean enabled, String endpoint, String audience) {}
+
+  public record DocumentStore(String endpoint, String audience) {}
 }

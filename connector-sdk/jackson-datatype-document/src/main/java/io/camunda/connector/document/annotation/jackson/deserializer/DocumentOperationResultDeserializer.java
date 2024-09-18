@@ -25,24 +25,19 @@ import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import io.camunda.connector.document.annotation.jackson.DocumentOperationResult;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
 
 public class DocumentOperationResultDeserializer
     extends DocumentDeserializerBase<DocumentOperationResult<?>> implements ContextualDeserializer {
 
   private final JavaType valueType;
 
-  public DocumentOperationResultDeserializer(
-      DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory) {
-    super(operationExecutor, documentFactory);
+  public DocumentOperationResultDeserializer(DocumentFactory documentFactory) {
+    super(documentFactory);
     this.valueType = null;
   }
 
-  public DocumentOperationResultDeserializer(
-      DocumentOperationExecutor operationExecutor,
-      DocumentFactory documentFactory,
-      JavaType valueType) {
-    super(operationExecutor, documentFactory);
+  public DocumentOperationResultDeserializer(DocumentFactory documentFactory, JavaType valueType) {
+    super(documentFactory);
     this.valueType = valueType;
   }
 
@@ -86,6 +81,6 @@ public class DocumentOperationResultDeserializer
   @Override
   public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
     var valueType = property.getType();
-    return new DocumentOperationResultDeserializer(operationExecutor, documentFactory, valueType);
+    return new DocumentOperationResultDeserializer(documentFactory, valueType);
   }
 }

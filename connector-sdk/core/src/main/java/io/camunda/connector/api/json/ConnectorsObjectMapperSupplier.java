@@ -26,22 +26,14 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument.DocumentModuleSettings;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.document.factory.DocumentFactory;
 
 /** Default ObjectMapper supplier to be used by the connector runtime. */
 public class ConnectorsObjectMapperSupplier {
 
   public static ObjectMapper DEFAULT_MAPPER =
       JsonMapper.builder()
-          .addModules(
-              new JacksonModuleFeelFunction(),
-              new JacksonModuleDocument(
-                  new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
-                  null,
-                  DocumentModuleSettings.create()),
-              new Jdk8Module(),
-              new JavaTimeModule())
+          .addModules(new JacksonModuleFeelFunction(), new Jdk8Module(), new JavaTimeModule())
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
           .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
@@ -53,5 +45,12 @@ public class ConnectorsObjectMapperSupplier {
 
   public static ObjectMapper getCopy() {
     return DEFAULT_MAPPER.copy();
+  }
+
+  public static ObjectMapper getDocumentAwareCopy(DocumentFactory documentFactory) {
+    return DEFAULT_MAPPER
+        .copy()
+        .registerModule(
+            new JacksonModuleDocument(documentFactory, DocumentModuleSettings.create()));
   }
 }

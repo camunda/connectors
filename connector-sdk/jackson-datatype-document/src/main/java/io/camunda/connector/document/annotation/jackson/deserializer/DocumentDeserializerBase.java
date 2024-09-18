@@ -25,17 +25,13 @@ import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperation;
-import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
 
 public abstract class DocumentDeserializerBase<T> extends JsonDeserializer<T> {
 
-  protected final DocumentOperationExecutor operationExecutor;
   protected final DocumentFactory documentFactory;
 
-  public DocumentDeserializerBase(
-      DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory) {
-    this.operationExecutor = operationExecutor;
+  public DocumentDeserializerBase(DocumentFactory documentFactory) {
     this.documentFactory = documentFactory;
   }
 
@@ -91,6 +87,9 @@ public abstract class DocumentDeserializerBase<T> extends JsonDeserializer<T> {
 
   protected DocumentOperationResult<?> deserializeOperation(
       DocumentReferenceModel reference, DocumentOperation operation) {
-    return () -> operationExecutor.execute(operation, createDocument(reference));
+    return () ->
+        documentFactory
+            .getDocumentOperationExecutor()
+            .execute(operation, createDocument(reference));
   }
 }

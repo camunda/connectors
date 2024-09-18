@@ -33,9 +33,7 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.DocumentCreationRequest;
-import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -80,25 +78,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
     this.logs = logs;
-  }
-
-  public InboundConnectorContextImpl(
-      SecretProvider secretProvider,
-      ValidationProvider validationProvider,
-      ValidInboundConnectorDetails connectorDetails,
-      InboundCorrelationHandler correlationHandler,
-      Consumer<Throwable> cancellationCallback,
-      ObjectMapper objectMapper,
-      EvictingQueue logs) {
-    this(
-        secretProvider,
-        validationProvider,
-        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
-        connectorDetails,
-        correlationHandler,
-        cancellationCallback,
-        objectMapper,
-        logs);
   }
 
   @Override

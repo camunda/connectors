@@ -39,6 +39,7 @@ import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.operation.AggregatingOperationExecutor;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.ArrayList;
@@ -64,7 +65,7 @@ public class InboundConnectorContextBuilder {
   protected CorrelationResult result;
 
   protected DocumentFactory documentFactory =
-      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE, new AggregatingOperationExecutor());
 
   public static InboundConnectorContextBuilder create() {
     return new InboundConnectorContextBuilder();

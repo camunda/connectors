@@ -21,16 +21,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.IOException;
 
 public class StringDocumentDeserializer extends DocumentDeserializerBase<String> {
 
   private final StringDeserializer fallbackDeserializer = new StringDeserializer();
 
-  public StringDocumentDeserializer(
-      DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory) {
-    super(operationExecutor, documentFactory);
+  public StringDocumentDeserializer(DocumentFactory documentFactory) {
+    super(documentFactory);
   }
 
   @Override

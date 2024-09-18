@@ -16,6 +16,7 @@
  */
 package io.camunda.document.store;
 
+import io.camunda.document.DocumentLink;
 import io.camunda.document.DocumentMetadata;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
@@ -63,6 +64,12 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   @Override
   public void deleteDocument(CamundaDocumentReference reference) {
     documents.remove(reference.documentId());
+  }
+
+  @Override
+  public DocumentLink createLink(CamundaDocumentReference reference) {
+    throw new UnsupportedOperationException(
+        "Document links are not supported in the in-memory store");
   }
 
   public void clear() {

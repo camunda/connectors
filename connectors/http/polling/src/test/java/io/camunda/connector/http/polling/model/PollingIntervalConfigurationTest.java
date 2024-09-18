@@ -14,6 +14,10 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.operation.AggregatingOperationExecutor;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -30,6 +34,8 @@ public class PollingIntervalConfigurationTest {
 
   private InboundConnectorContextImpl inboundConnectorContext;
   private Map<String, String> properties;
+  private DocumentFactory documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE, new AggregatingOperationExecutor());
 
   @Mock
   private ValidInboundConnectorDetails connectorData; // Initialize or mock the connector definition
@@ -43,6 +49,7 @@ public class PollingIntervalConfigurationTest {
         new InboundConnectorContextImpl(
             secretProvider,
             (e) -> {},
+            documentFactory,
             connectorData,
             null,
             (e) -> {},

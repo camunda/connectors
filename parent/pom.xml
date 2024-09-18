@@ -302,6 +302,11 @@ limitations under the License.</license.inlineheader>
         <artifactId>spring-client-zeebe</artifactId>
         <version>${version.spring-zeebe}</version>
       </dependency>
+      <dependency>
+        <groupId>io.camunda.spring</groupId>
+        <artifactId>java-common</artifactId>
+        <version>${version.spring-zeebe}</version>
+      </dependency>
 
       <dependency>
         <groupId>io.camunda</groupId>

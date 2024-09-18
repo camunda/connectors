@@ -29,7 +29,6 @@ import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.C
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,7 +47,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class DocumentDeserializationTest {
 
   @Mock private DocumentFactory factory;
-  @Mock private DocumentOperationExecutor operationExecutor;
 
   private ObjectMapper objectMapper;
 
@@ -56,7 +54,7 @@ public class DocumentDeserializationTest {
   public void initialize() {
     objectMapper =
         new ObjectMapper()
-            .registerModule(new JacksonModuleDocument(factory, operationExecutor))
+            .registerModule(new JacksonModuleDocument(factory))
             .registerModule(new Jdk8Module());
   }
 
