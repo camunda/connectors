@@ -135,20 +135,22 @@ public class KafkaPropertyTransformer {
       ObjectReader objectReader,
       KafkaInboundMessage kafkaInboundMessage) {
     try {
-      if (consumerRecord.value() instanceof byte[]) {
-        kafkaInboundMessage.setValue(objectReader.readTree((byte[]) consumerRecord.value()));
-      } else if (consumerRecord.value() instanceof GenericRecord record) {
-        kafkaInboundMessage.setValue(GENERIC_RECORD_ENCODER.encode(record));
-      } else if (consumerRecord.value() instanceof JsonNode) {
-        kafkaInboundMessage.setRawValue(
-            ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(
-                consumerRecord.value()));
-        kafkaInboundMessage.setValue(consumerRecord.value());
-      } else {
-        String value = (String) consumerRecord.value();
-        kafkaInboundMessage.setRawValue(value);
-        kafkaInboundMessage.setValue(objectReader.readTree(value));
-      }
+      var value =
+          switch (consumerRecord.value()) {
+            case byte[] bytes -> objectReader.readTree(bytes);
+            case GenericRecord record -> GENERIC_RECORD_ENCODER.encode(record);
+            case JsonNode jsonNode -> {
+              kafkaInboundMessage.setRawValue(
+                  ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(jsonNode));
+              yield jsonNode;
+            }
+            case String string -> {
+              kafkaInboundMessage.setRawValue(string);
+              yield objectReader.readTree(string);
+            }
+            default -> consumerRecord.value();
+          };
+      kafkaInboundMessage.setValue(value);
     } catch (Exception e) {
       LOG.error("Cannot parse value to json object -> use the raw value", e);
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());
