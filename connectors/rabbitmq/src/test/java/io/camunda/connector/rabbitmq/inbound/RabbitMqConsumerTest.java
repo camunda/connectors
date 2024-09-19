@@ -290,7 +290,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
   }
 
   @Test
-  void consumer_shouldHandleShutdown() {
+  void consumer_shouldNotHandleShutdown() {
     // Given
     String consumerTag = "consumerTag";
     ShutdownSignalException cause = new ShutdownSignalException(true, false, null, null);
@@ -301,7 +301,8 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     consumer.handleShutdownSignal(consumerTag, cause);
 
     // Then
-    verify(spyContext, times(1)).cancel(cause);
+    verify(spyContext, times(0)).cancel(cause);
+    verify(spyContext, times(1)).log(any());
   }
 
   @Test
