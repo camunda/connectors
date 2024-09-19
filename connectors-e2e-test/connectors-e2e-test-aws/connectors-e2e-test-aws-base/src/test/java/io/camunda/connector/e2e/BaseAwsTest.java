@@ -25,8 +25,8 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.operate.CamundaOperateClient;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.util.Collections;
 import org.junit.jupiter.api.AfterAll;
@@ -49,7 +49,7 @@ import org.testcontainers.utility.DockerImageName;
       "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public abstract class BaseAwsTest {
   private static final DockerImageName localstackImage =

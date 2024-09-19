@@ -26,6 +26,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.model.ProcessDefinition;
+import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Map;
@@ -46,7 +47,6 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 public class InboundKafkaTests extends BaseKafkaTest {
 
@@ -98,10 +98,10 @@ public class InboundKafkaTests extends BaseKafkaTest {
 
     kafkaProducerThreadRun.set(false);
 
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("keyResult", "keyJsonValue");
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("allResult", expectedJsonResponse);
+    CamundaAssert.assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariable("keyResult", "keyJsonValue");
+    CamundaAssert.assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariable("allResult", expectedJsonResponse);
   }
 
   @Test
@@ -141,8 +141,8 @@ public class InboundKafkaTests extends BaseKafkaTest {
 
     kafkaProducerThreadRun.set(false);
 
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("allResult", expectedJsonResponse);
+    CamundaAssert.assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariable("allResult", expectedJsonResponse);
   }
 
   private void mockProcessDefinition(BpmnModelInstance model) throws OperateException {

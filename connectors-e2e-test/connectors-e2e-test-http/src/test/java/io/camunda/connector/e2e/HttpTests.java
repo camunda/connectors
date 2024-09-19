@@ -45,6 +45,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.model.ProcessDefinition;
+import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -89,6 +90,8 @@ public class HttpTests {
   @Autowired ProcessStateStore stateStore;
 
   @MockBean CamundaOperateClient camundaOperateClient;
+
+  @Autowired CamundaProcessTestContext context;
 
   @LocalServerPort int serverPort;
 
@@ -538,6 +541,7 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
+    var pi = zeebeClient.newProcessInstanceQuery().filter((filter) -> filter.processInstanceKeys(bpmnTest.getProcessInstanceEvent().getProcessInstanceKey()));
     assertThat(bpmnTest.getProcessInstanceEvent())
         .hasVariable("temp", 36)
         .hasVariable("booleanField", true)

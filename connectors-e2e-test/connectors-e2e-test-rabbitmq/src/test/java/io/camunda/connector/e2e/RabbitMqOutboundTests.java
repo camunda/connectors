@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -26,9 +26,9 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +51,7 @@ import org.testcontainers.utility.DockerImageName;
       "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class RabbitMqOutboundTests extends BaseRabbitMqTest {
   private static final String QUEUE_NAME = "testQueue";
@@ -117,7 +117,7 @@ public class RabbitMqOutboundTests extends BaseRabbitMqTest {
     ZeebeTest bpmnTest = setupTestWithBpmnModel(elementTemplate);
 
     RabbitMqResult result = RabbitMqResult.success();
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("result", result);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("result", result);
 
     String receivedMessage = consumeMessage();
 
@@ -152,7 +152,7 @@ public class RabbitMqOutboundTests extends BaseRabbitMqTest {
     ZeebeTest bpmnTest = setupTestWithBpmnModel(elementTemplate);
 
     RabbitMqResult result = RabbitMqResult.success();
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("result", result);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("result", result);
 
     String receivedMessage = consumeMessage();
     if (receivedMessage == null) {
