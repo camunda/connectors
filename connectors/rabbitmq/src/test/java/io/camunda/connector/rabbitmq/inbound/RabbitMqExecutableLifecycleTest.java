@@ -9,12 +9,15 @@ package io.camunda.connector.rabbitmq.inbound;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.ShutdownListener;
+import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.rabbitmq.common.model.UriAuthentication;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
@@ -28,6 +31,8 @@ import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,6 +41,7 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
   RabbitMqInboundProperties properties;
 
   ConnectionFactorySupplier connectionFactorySupplier;
+  Connection connection;
   Channel channel;
 
   @BeforeEach
@@ -48,12 +54,12 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
     channel = mock(Channel.class);
     connectionFactorySupplier = mock(ConnectionFactorySupplier.class);
     ConnectionFactory connectionFactoryMock = mock(ConnectionFactory.class);
-    Connection connectionMock = mock(Connection.class);
+    connection = mock(Connection.class);
 
     when(connectionFactorySupplier.createFactory(any(), any())).thenReturn(connectionFactoryMock);
 
-    when(connectionFactoryMock.newConnection()).thenReturn(connectionMock);
-    when(connectionMock.createChannel()).thenReturn(channel);
+    when(connectionFactoryMock.newConnection()).thenReturn(connection);
+    when(connection.createChannel()).thenReturn(channel);
 
     properties = new RabbitMqInboundProperties();
     properties.setQueueName(SecretsConstant.SECRETS + SecretsConstant.QUEUE_NAME);
@@ -103,5 +109,37 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
 
     // Then
     verify(channel).basicCancel(any());
+  }
+
+  @Test
+  void executable_shouldHandleShutdown() throws Exception {
+    // given
+    InboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .properties(properties)
+            .build();
+
+    var rabbitMqExecutable = Mockito.spy(new RabbitMqExecutable(connectionFactorySupplier));
+
+    // when
+    rabbitMqExecutable.activate(context);
+
+    // then
+    ArgumentCaptor<ShutdownListener> shutdownListenerCaptor =
+        ArgumentCaptor.forClass(ShutdownListener.class);
+    verify(connection).addShutdownListener(shutdownListenerCaptor.capture());
+
+    // Simulate a shutdown signal (non-application-initiated)
+    ShutdownSignalException shutdownSignal = mock(ShutdownSignalException.class);
+    when(shutdownSignal.isInitiatedByApplication())
+        .thenReturn(false); // Simulate non-application shutdown
+
+    // Manually trigger the captured ShutdownListener
+    ShutdownListener capturedListener = shutdownListenerCaptor.getValue();
+    capturedListener.shutdownCompleted(shutdownSignal);
+
+    // first invocation is the initial call, second is the retry
+    verify(rabbitMqExecutable, times(2)).initializeConsumer(any(), any());
   }
 }
