@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -109,6 +109,6 @@ public class AwsLambdaTest extends BaseAwsTest {
             .readValue(
                 "{\"statusCode\":200,\"body\":\"{\\\"message\\\": \\\"Hello from your Python Lambda function!\\\", \\\"receivedEvent\\\": \\\"str\\\"}\"}",
                 Object.class);
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("response", expectedResult);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("response", expectedResult);
   }
 }

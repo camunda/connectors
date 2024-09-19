@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -135,7 +135,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("result");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableNames("result");
     // Poll the SQS queue to check for the event
     List<Message> messages = AwsTestHelper.receiveMessages(sqsClient, queueUrl);
     // Assert that the queue received the message

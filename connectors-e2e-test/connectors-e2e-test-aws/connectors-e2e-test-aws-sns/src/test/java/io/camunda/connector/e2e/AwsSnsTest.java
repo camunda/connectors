@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.SQS;
@@ -135,7 +135,7 @@ public class AwsSnsTest extends BaseAwsTest {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("result");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableNames("result");
 
     // Retrieve and validate messages from the SQS queue
     List<Message> messages = AwsTestHelper.receiveMessages(sqsClient, sqsQueueUrl);
@@ -195,7 +195,7 @@ public class AwsSnsTest extends BaseAwsTest {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("result");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableNames("result");
 
     // Retrieve and validate messages from the SQS queue
     List<Message> messages = AwsTestHelper.receiveMessages(sqsClient, sqsFifoQueueUrl);
