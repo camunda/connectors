@@ -541,7 +541,13 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    var pi = zeebeClient.newProcessInstanceQuery().filter((filter) -> filter.processInstanceKeys(bpmnTest.getProcessInstanceEvent().getProcessInstanceKey()));
+    var pi =
+        zeebeClient
+            .newProcessInstanceQuery()
+            .filter(
+                (filter) ->
+                    filter.processInstanceKeys(
+                        bpmnTest.getProcessInstanceEvent().getProcessInstanceKey()));
     assertThat(bpmnTest.getProcessInstanceEvent())
         .hasVariable("temp", 36)
         .hasVariable("booleanField", true)
