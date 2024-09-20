@@ -30,9 +30,9 @@ import org.apache.kafka.clients.producer.RecordMetadata;
       "authentication",
       "topic",
       "message",
+      "schemaStrategy",
       "additionalProperties",
-      "headers",
-      "avro"
+      "headers"
     },
     type = "io.camunda:connector-kafka:1")
 @ElementTemplate(

@@ -9,7 +9,6 @@ package io.camunda.connector.kafka.inbound;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
@@ -75,7 +74,7 @@ public record KafkaConnectorProperties(
             description =
                 "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets")
         AutoOffsetReset autoOffsetReset, // = AutoOffsetReset.NONE;
-    @Valid @NestedProperties(addNestedPath = false) InboundSchemaStrategy schemaStrategy) {
+    @Valid InboundSchemaStrategy schemaStrategy) {
 
   @Override
   public @Valid InboundSchemaStrategy schemaStrategy() {

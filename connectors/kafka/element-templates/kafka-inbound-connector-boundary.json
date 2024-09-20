@@ -178,12 +178,12 @@
       "value" : "earliest"
     } ]
   }, {
-    "id" : "type",
+    "id" : "schemaStrategy.type",
     "label" : "Schema strategy",
     "value" : "noSchema",
     "group" : "kafka",
     "binding" : {
-      "name" : "type",
+      "name" : "schemaStrategy.type",
       "type" : "zeebe:property"
     },
     "type" : "Dropdown",
@@ -198,18 +198,18 @@
       "value" : "schemaRegistry"
     } ]
   }, {
-    "id" : "schemaType",
+    "id" : "schemaStrategy.schemaType",
     "label" : "Schema type",
     "description" : "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "value" : "avro",
     "group" : "kafka",
     "binding" : {
-      "name" : "schemaType",
+      "name" : "schemaStrategy.schemaType",
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "type",
+      "property" : "schemaStrategy.type",
       "equals" : "schemaRegistry",
       "type" : "simple"
     },
@@ -222,25 +222,28 @@
       "value" : "avro"
     } ]
   }, {
-    "id" : "schemaRegistryUrl",
+    "id" : "schemaStrategy.schemaRegistryUrl",
     "label" : "Schema registry URL",
     "description" : "Provide the schema registry URL",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "kafka",
     "binding" : {
-      "name" : "schemaRegistryUrl",
+      "name" : "schemaStrategy.schemaRegistryUrl",
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "type",
+      "property" : "schemaStrategy.type",
       "equals" : "schemaRegistry",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "avro.schema",
+    "id" : "schemaStrategy.avro.schema",
     "label" : "Schema",
-    "description" : "Inline schema (JSON or AVRO) for the message value",
+    "description" : "Inline schema (Avro) for the message value",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -248,11 +251,11 @@
     "feel" : "required",
     "group" : "message",
     "binding" : {
-      "name" : "avro.schema",
+      "name" : "schemaStrategy.avro.schema",
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "type",
+      "property" : "schemaStrategy.type",
       "equals" : "inlineSchema",
       "type" : "simple"
     },
