@@ -36,7 +36,6 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
   RabbitMqInboundProperties properties;
 
   ConnectionFactorySupplier connectionFactorySupplier;
-  Connection connection;
   Channel channel;
 
   @BeforeEach
@@ -49,12 +48,12 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
     channel = mock(Channel.class);
     connectionFactorySupplier = mock(ConnectionFactorySupplier.class);
     ConnectionFactory connectionFactoryMock = mock(ConnectionFactory.class);
-    connection = mock(Connection.class);
+    Connection connectionMock = mock(Connection.class);
 
     when(connectionFactorySupplier.createFactory(any(), any())).thenReturn(connectionFactoryMock);
 
-    when(connectionFactoryMock.newConnection()).thenReturn(connection);
-    when(connection.createChannel()).thenReturn(channel);
+    when(connectionFactoryMock.newConnection()).thenReturn(connectionMock);
+    when(connectionMock.createChannel()).thenReturn(channel);
 
     properties = new RabbitMqInboundProperties();
     properties.setQueueName(SecretsConstant.SECRETS + SecretsConstant.QUEUE_NAME);
