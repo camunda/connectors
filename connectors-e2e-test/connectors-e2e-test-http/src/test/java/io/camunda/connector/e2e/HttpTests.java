@@ -517,6 +517,9 @@ public class HttpTests {
             .serviceTask("restTask")
             .boundaryEvent("errorId")
             .error()
+            .zeebeOutput("=temp", "temp")
+            .zeebeOutput("=message", "message")
+            .zeebeOutput("=booleanField", "booleanField")
             .endEvent()
             .done();
 
@@ -524,10 +527,10 @@ public class HttpTests {
         ElementTemplate.from(
                 "../../connectors/http/rest/element-templates/http-json-connector.json")
             .property("url", mockUrl)
-            .property("method", "post")
+            .property("method", "POST")
             .property(
                 "errorExpression",
-                "if matches(error.code, \"400\") and error.variables.response.body.temp = 36 then bpmnError(\"Too hot\", error.variables.response.body.message, error.variables.response.body) else bpmnError(\"Not too hot\", \"The message default\",{fake: \"fakeValue\"})")
+                "=if matches(error.code, \"400\") and error.variables.response.body.temp = 36 then bpmnError(\"Too hot\", error.variables.response.body.message, error.variables.response.body) else bpmnError(\"Not too hot\", \"The message default\",{fake: \"fakeValue\"})")
             .writeTo(new File(tempDir, "template.json"));
 
     var updatedModel =
@@ -541,13 +544,6 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    var pi =
-        zeebeClient
-            .newProcessInstanceQuery()
-            .filter(
-                (filter) ->
-                    filter.processInstanceKeys(
-                        bpmnTest.getProcessInstanceEvent().getProcessInstanceKey()));
     assertThat(bpmnTest.getProcessInstanceEvent())
         .hasVariable("temp", 36)
         .hasVariable("booleanField", true)
