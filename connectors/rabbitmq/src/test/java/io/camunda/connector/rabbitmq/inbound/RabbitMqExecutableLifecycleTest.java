@@ -42,10 +42,10 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
   @BeforeEach
   void init()
       throws URISyntaxException,
-          NoSuchAlgorithmException,
-          KeyManagementException,
-          IOException,
-          TimeoutException {
+      NoSuchAlgorithmException,
+      KeyManagementException,
+      IOException,
+      TimeoutException {
     channel = mock(Channel.class);
     connectionFactorySupplier = mock(ConnectionFactorySupplier.class);
     ConnectionFactory connectionFactoryMock = mock(ConnectionFactory.class);
