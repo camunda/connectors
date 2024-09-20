@@ -26,6 +26,7 @@
   <properties>
     <!-- Pins avro version, as jackson-dataformat-avro transitively imports the outdated one -->
     <version.avro>1.12.0</version.avro>
+    <version.schema-registry>7.7.0</version.schema-registry>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
@@ -52,6 +53,25 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
 
     <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-avro-serializer</artifactId>
+      <version>${version.schema-registry}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-json-schema-serializer</artifactId>
+      <version>${version.schema-registry}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-schema-serializer</artifactId>
+      <version>${version.schema-registry}</version>
+    </dependency>
+
+
+    <dependency>
       <groupId>org.xerial.snappy</groupId>
       <artifactId>snappy-java</artifactId>
       <version>${version.snappy-java}</version>
@@ -71,6 +91,20 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>org.testcontainers</groupId>
       <artifactId>kafka</artifactId>
       <version>${version.testcontainers}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents.client5</groupId>
+      <artifactId>httpclient5</artifactId>
+      <version>${version.httpclient5}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents.core5</groupId>
+      <artifactId>httpcore5</artifactId>
+      <version>${version.httpcore5}</version>
       <scope>test</scope>
     </dependency>
 

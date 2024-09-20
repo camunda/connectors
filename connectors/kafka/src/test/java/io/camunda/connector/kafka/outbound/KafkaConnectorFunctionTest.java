@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.kafka.outbound;
 
-import static io.camunda.connector.kafka.outbound.KafkaConnectorFunction.produceAvroMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -16,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
+import io.camunda.connector.kafka.outbound.model.ProducerRecordFactory;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
@@ -65,6 +65,21 @@ class KafkaConnectorFunctionTest {
   @Captor private ArgumentCaptor<ProducerRecord<String, Object>> producerRecordCaptor;
   private KafkaConnectorFunction objectUnderTest;
 
+  private static Stream<String> successRequestCases() throws IOException {
+    return loadRequestCasesFromFile(SUCCESS_CASES_RESOURCE_PATH);
+  }
+
+  private static Stream<String> failRequestCases() throws IOException {
+    return loadRequestCasesFromFile(FAIL_CASES_RESOURCE_PATH);
+  }
+
+  private static Stream<String> loadRequestCasesFromFile(final String fileName) throws IOException {
+    return objectMapper
+        .readValue(new File(fileName), new TypeReference<List<JsonNode>>() {})
+        .stream()
+        .map(JsonNode::toString);
+  }
+
   @BeforeEach
   public void before() {
     objectUnderTest = new KafkaConnectorFunction(properties -> producer);
@@ -99,15 +114,7 @@ class KafkaConnectorFunctionTest {
     Mockito.verify(producer).send(producerRecordCaptor.capture());
     ProducerRecord<String, Object> recordActual = producerRecordCaptor.getValue();
 
-    Object expectedValue;
-    if (request.avro() != null) {
-      expectedValue = produceAvroMessage(request);
-    } else {
-      expectedValue =
-          request.message().value() instanceof String
-              ? (String) request.message().value()
-              : objectMapper.writeValueAsString(request.message().value());
-    }
+    Object expectedValue = new ProducerRecordFactory().createProducerRecord(request).value();
     var recordExpected =
         new ProducerRecord<>(request.topic().topicName(), request.message().key(), expectedValue);
     assertThat(recordActual.topic()).isEqualTo(recordExpected.topic());
@@ -145,6 +152,9 @@ class KafkaConnectorFunctionTest {
                         "message":{
                           "key":"Happy",
                           "value":"Case"
+                        },
+                        "schemaStrategy":{
+                          "type":"noSchema"
                         }
                       }""";
     CompletableFuture<RecordMetadata> completedKafkaResult = new CompletableFuture<>();
@@ -170,20 +180,5 @@ class KafkaConnectorFunctionTest {
     assertThat(req.authentication()).isNull();
     assertThat(req.topic().bootstrapServers()).isEqualTo(SECRET_BOOTSTRAP_SERVER);
     assertThat(req.topic().topicName()).isEqualTo(SECRET_TOPIC_NAME);
-  }
-
-  private static Stream<String> successRequestCases() throws IOException {
-    return loadRequestCasesFromFile(SUCCESS_CASES_RESOURCE_PATH);
-  }
-
-  private static Stream<String> failRequestCases() throws IOException {
-    return loadRequestCasesFromFile(FAIL_CASES_RESOURCE_PATH);
-  }
-
-  private static Stream<String> loadRequestCasesFromFile(final String fileName) throws IOException {
-    return objectMapper
-        .readValue(new File(fileName), new TypeReference<List<JsonNode>>() {})
-        .stream()
-        .map(JsonNode::toString);
   }
 }

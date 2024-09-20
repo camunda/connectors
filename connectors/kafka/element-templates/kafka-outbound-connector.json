@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.KAFKA.v1",
   "description" : "Produce Kafka message",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -64,25 +64,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "serializationType",
-    "label" : "Serialization type",
-    "description" : "Select the serialization type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound\" target=\"_blank\">documentation</a>",
-    "optional" : false,
-    "value" : "json",
-    "group" : "kafka",
-    "binding" : {
-      "name" : "serializationType",
-      "type" : "zeebe:input"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Default (JSON)",
-      "value" : "json"
-    }, {
-      "name" : "Avro (experimental)",
-      "value" : "avro"
-    } ]
-  }, {
     "id" : "topic.bootstrapServers",
     "label" : "Bootstrap servers",
     "description" : "Provide bootstrap server(s), comma-delimited if there are multiple",
@@ -110,6 +91,67 @@
     "binding" : {
       "name" : "topic.topicName",
       "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "type",
+    "label" : "Schema strategy",
+    "value" : "noSchema",
+    "group" : "kafka",
+    "binding" : {
+      "name" : "type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "No schema",
+      "value" : "noSchema"
+    }, {
+      "name" : "Inline schema",
+      "value" : "inlineSchema"
+    }, {
+      "name" : "Schema registry",
+      "value" : "schemaRegistry"
+    } ]
+  }, {
+    "id" : "schemaType",
+    "label" : "Schema type",
+    "description" : "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "value" : "avro",
+    "group" : "kafka",
+    "binding" : {
+      "name" : "schemaType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "type",
+      "equals" : "schemaRegistry",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "JSON",
+      "value" : "json"
+    }, {
+      "name" : "Avro (alpha)",
+      "value" : "avro"
+    } ]
+  }, {
+    "id" : "schemaRegistryUrl",
+    "label" : "Schema registry URL",
+    "description" : "Provide the schema registry URL",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "kafka",
+    "binding" : {
+      "name" : "schemaRegistryUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "type",
+      "equals" : "schemaRegistry",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -141,9 +183,6 @@
     "label" : "Key",
     "description" : "Provide message key",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "message",
     "binding" : {
@@ -168,8 +207,8 @@
     "type" : "String"
   }, {
     "id" : "avro.schema",
-    "label" : "Avro schema",
-    "description" : "Avro schema for the message value",
+    "label" : "Schema",
+    "description" : "Inline schema (JSON or AVRO) for the message value",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -181,8 +220,28 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "serializationType",
-      "equals" : "avro",
+      "property" : "type",
+      "equals" : "inlineSchema",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "schema",
+    "label" : "Schema",
+    "description" : "Schema (JSON or AVRO) for the message value",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "message",
+    "binding" : {
+      "name" : "schema",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "type",
+      "equals" : "schemaRegistry",
       "type" : "simple"
     },
     "type" : "Text"

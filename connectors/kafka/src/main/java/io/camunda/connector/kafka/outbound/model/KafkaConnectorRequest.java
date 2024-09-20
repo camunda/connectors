@@ -7,35 +7,22 @@
 package io.camunda.connector.kafka.outbound.model;
 
 import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.kafka.model.Avro;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
-import io.camunda.connector.kafka.model.SerializationType;
+import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
+import io.camunda.connector.kafka.model.schema.OutboundSchemaStrategy;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
+import java.util.Optional;
 
 public record KafkaConnectorRequest(
-    @TemplateProperty(
-            group = "kafka",
-            label = "Serialization type",
-            id = "serializationType",
-            defaultValue = "json",
-            type = TemplateProperty.PropertyType.Dropdown,
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(value = "json", label = "Default (JSON)"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "avro",
-                  label = "Avro (experimental)")
-            },
-            description =
-                "Select the serialization type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound\" target=\"_blank\">documentation</a>")
-        SerializationType serializationType,
     @Valid KafkaAuthentication authentication,
     @Valid @NotNull KafkaTopic topic,
     @Valid @NotNull KafkaMessage message,
-    @Valid Avro avro,
+    @Valid @NestedProperties(addNestedPath = false) OutboundSchemaStrategy schemaStrategy,
     @TemplateProperty(
             group = "kafka",
             label = "Headers",
@@ -49,4 +36,9 @@ public record KafkaConnectorRequest(
             optional = true,
             feel = Property.FeelMode.required,
             description = "Provide additional Kafka producer properties in JSON")
-        Map<String, Object> additionalProperties) {}
+        Map<String, Object> additionalProperties) {
+  @Override
+  public @Valid OutboundSchemaStrategy schemaStrategy() {
+    return Optional.ofNullable(schemaStrategy).orElse(new NoSchemaStrategy());
+  }
+}

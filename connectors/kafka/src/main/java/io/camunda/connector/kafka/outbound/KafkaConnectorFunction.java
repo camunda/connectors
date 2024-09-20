@@ -6,28 +6,19 @@
  */
 package io.camunda.connector.kafka.outbound;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.avro.AvroMapper;
-import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import io.camunda.connector.kafka.outbound.model.ProducerRecordFactory;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import org.apache.avro.Schema;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -49,7 +40,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     name = "Kafka Outbound Connector",
     description = "Produce Kafka message",
     inputDataClass = KafkaConnectorRequest.class,
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
@@ -60,9 +51,9 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     icon = "icon.svg")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
-  private static final ObjectMapper objectMapper =
-      ConnectorsObjectMapperSupplier.getCopy().enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
   private final Function<Properties, Producer<String, Object>> producerCreatorFunction;
+
+  private final ProducerRecordFactory producerRecordFactory = new ProducerRecordFactory();
 
   public KafkaConnectorFunction() {
     this(KafkaProducer::new);
@@ -71,22 +62,6 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   public KafkaConnectorFunction(
       final Function<Properties, Producer<String, Object>> producerCreatorFunction) {
     this.producerCreatorFunction = producerCreatorFunction;
-  }
-
-  public static byte[] produceAvroMessage(final KafkaConnectorRequest request) throws Exception {
-    var schemaString = request.avro().schema();
-    Schema raw = new Schema.Parser().parse(schemaString);
-    AvroSchema schema = new AvroSchema(raw);
-    AvroMapper avroMapper = new AvroMapper();
-    Object messageValue = request.message().value();
-    if (messageValue instanceof String messageValueAsString) {
-      messageValue = objectMapper.readTree(messageValueAsString);
-    }
-    return avroMapper.writer(schema).writeValueAsBytes(messageValue);
-  }
-
-  public static String transformData(Object data) throws JsonProcessingException {
-    return data instanceof String ? (String) data : objectMapper.writeValueAsString(data);
   }
 
   @Override
@@ -98,10 +73,8 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   private KafkaConnectorResponse executeConnector(final KafkaConnectorRequest request) {
     Properties props = KafkaPropertiesUtil.assembleKafkaClientProperties(request);
     try (Producer<String, Object> producer = producerCreatorFunction.apply(props)) {
-      Map<String, String> headers =
-          (request.headers() != null) ? request.headers() : new HashMap<>();
-      ProducerRecord<String, Object> producerRecord = createProducerRecord(request);
-      addHeadersToProducerRecord(producerRecord, headers);
+      ProducerRecord<String, Object> producerRecord =
+          producerRecordFactory.createProducerRecord(request);
       Future<RecordMetadata> kafkaResponse = producer.send(producerRecord);
       return constructKafkaConnectorResponse(kafkaResponse.get(45, TimeUnit.SECONDS));
     } catch (Exception e) {
@@ -109,30 +82,6 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
           "FAIL",
           "Error during Kafka Producer execution; error message: [" + e.getMessage() + "]",
           e);
-    }
-  }
-
-  private ProducerRecord<String, Object> createProducerRecord(final KafkaConnectorRequest request)
-      throws Exception {
-    Object transformedValue;
-    if (request.avro() != null) {
-      transformedValue = produceAvroMessage(request);
-    } else {
-      transformedValue = transformData(request.message().value());
-    }
-    String transformedKey = transformData(request.message().key());
-    return new ProducerRecord<>(
-        request.topic().topicName(), null, null, transformedKey, transformedValue);
-  }
-
-  private void addHeadersToProducerRecord(
-      ProducerRecord<String, Object> producerRecord, Map<String, String> headers) {
-    if (headers != null) {
-      for (Map.Entry<String, String> header : headers.entrySet()) {
-        producerRecord
-            .headers()
-            .add(header.getKey(), header.getValue().getBytes(StandardCharsets.UTF_8));
-      }
     }
   }
 

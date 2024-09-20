@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Kafka Event Connector",
     icon = "icon.svg",
-    version = 5,
+    version = 6,
     inputDataClass = KafkaConnectorProperties.class,
     description = "Consume Kafka messages",
     documentationRef =
@@ -57,10 +57,10 @@ import org.slf4j.LoggerFactory;
     })
 public class KafkaExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaExecutable.class);
+  private static final int INFINITE_RETRIES = -1;
   private final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction;
-  public KafkaConnectorConsumer kafkaConnectorConsumer;
-
   private final RetryPolicy<Object> retryPolicy;
+  public KafkaConnectorConsumer kafkaConnectorConsumer;
 
   public KafkaExecutable(
       final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction,
@@ -68,8 +68,6 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
     this.consumerCreatorFunction = consumerCreatorFunction;
     this.retryPolicy = retryConfig;
   }
-
-  private static final int INFINITE_RETRIES = -1;
 
   public KafkaExecutable() {
     this(

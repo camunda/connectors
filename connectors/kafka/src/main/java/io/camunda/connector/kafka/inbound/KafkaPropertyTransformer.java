@@ -6,14 +6,23 @@
  */
 package io.camunda.connector.kafka.inbound;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.kafka.converter.GenericRecordEncoder;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
-import io.camunda.connector.kafka.model.SerializationType;
+import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
+import io.camunda.connector.kafka.model.schema.InboundSchemaRegistryStrategy;
+import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Properties;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.config.TopicConfig;
@@ -30,15 +39,16 @@ public class KafkaPropertyTransformer {
   static final String DEFAULT_GROUP_ID_PREFIX = "kafka-inbound-connector";
   private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
 
+  private static final GenericRecordEncoder GENERIC_RECORD_ENCODER = new GenericRecordEncoder();
+
   public static Properties getKafkaProperties(
       KafkaConnectorProperties props, InboundConnectorContext context) {
     KafkaConnectorRequest connectorRequest =
         new KafkaConnectorRequest(
-            SerializationType.JSON,
             props.authentication(),
             props.topic(),
             null,
-            null,
+            new NoSchemaStrategy(),
             null,
             props.additionalProperties() == null ? new HashMap<>() : props.additionalProperties());
     final Properties kafkaProps =
@@ -54,11 +64,22 @@ public class KafkaPropertyTransformer {
     kafkaProps.put(TopicConfig.RETENTION_MS_CONFIG, -1);
 
     kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
-
-    if (props.avro() == null) {
-      kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
-    } else {
-      kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, BYTE_ARRAY_DESERIALIZER);
+    switch (props.schemaStrategy()) {
+      case AvroInlineSchemaStrategy ignored:
+        kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, BYTE_ARRAY_DESERIALIZER);
+        break;
+      case InboundSchemaRegistryStrategy strategy:
+        kafkaProps.put("schema.registry.url", strategy.getSchemaRegistryUrl());
+        var serializer =
+            switch (strategy.getSchemaType()) {
+              case AVRO -> KafkaAvroDeserializer.class;
+              case JSON -> KafkaJsonSchemaDeserializer.class;
+            };
+        kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, serializer);
+        kafkaProps.put(KafkaJsonSchemaDeserializerConfig.JSON_VALUE_TYPE, JsonNode.class);
+        break;
+      default:
+        kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
     }
 
     return kafkaProps;
@@ -114,13 +135,22 @@ public class KafkaPropertyTransformer {
       ObjectReader objectReader,
       KafkaInboundMessage kafkaInboundMessage) {
     try {
-      if (consumerRecord.value() instanceof byte[]) {
-        kafkaInboundMessage.setValue(objectReader.readTree((byte[]) consumerRecord.value()));
-      } else {
-        String value = (String) consumerRecord.value();
-        kafkaInboundMessage.setRawValue(value);
-        kafkaInboundMessage.setValue(objectReader.readTree(value));
-      }
+      var value =
+          switch (consumerRecord.value()) {
+            case byte[] bytes -> objectReader.readTree(bytes);
+            case GenericRecord record -> GENERIC_RECORD_ENCODER.encode(record);
+            case JsonNode jsonNode -> {
+              kafkaInboundMessage.setRawValue(
+                  ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(jsonNode));
+              yield jsonNode;
+            }
+            case String string -> {
+              kafkaInboundMessage.setRawValue(string);
+              yield objectReader.readTree(string);
+            }
+            default -> consumerRecord.value();
+          };
+      kafkaInboundMessage.setValue(value);
     } catch (Exception e) {
       LOG.error("Cannot parse value to json object -> use the raw value", e);
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());
