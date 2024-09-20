@@ -9,6 +9,8 @@ package io.camunda.connector.rabbitmq.inbound;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.Recoverable;
+import com.rabbitmq.client.RecoveryListener;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
@@ -59,6 +61,7 @@ import org.slf4j.LoggerFactory;
           templateNameOverride = "RabbitMQ Boundary Event Connector")
     })
 public class RabbitMqExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqExecutable.class);
   private static final int CLOSE_TIMEOUT_MILLIS = 3000;
   private final ConnectionFactorySupplier connectionFactorySupplier;
@@ -84,7 +87,55 @@ public class RabbitMqExecutable implements InboundConnectorExecutable<InboundCon
             .tag("Subscription activation")
             .message(
                 "Subscription activation requested for queue name :" + properties.getQueueName()));
+
+    initializeConsumer(context, properties);
+  }
+
+  @Override
+  public void deactivate() throws Exception {
+    LOGGER.info("Subscription deactivation requested by the Connector runtime");
+    try {
+      channel.basicCancel(consumerTag);
+    } catch (Exception e) {
+      LOGGER.warn("Failed to cancel consumer", e);
+    } finally {
+      if (connection != null) {
+        connection.close(CLOSE_TIMEOUT_MILLIS);
+      }
+    }
+  }
+
+  void initializeConsumer(InboundConnectorContext context, RabbitMqInboundProperties properties)
+      throws Exception {
+
     connection = openConnection(properties);
+
+    if (connection instanceof Recoverable recoverable) {
+      final var recoveryListener =
+          new RecoveryListener() {
+            @Override
+            public void handleRecovery(Recoverable recoverable) {
+              LOGGER.info("Connection recovered successfully: {}", recoverable);
+              context.log(
+                  Activity.level(Severity.INFO)
+                      .tag("Connection recovery")
+                      .message("Connection recovered successfully: " + recoverable));
+              context.reportHealth(Health.up());
+            }
+
+            @Override
+            public void handleRecoveryStarted(Recoverable recoverable) {
+              LOGGER.info("Connection recovery started: {}", recoverable);
+              context.log(
+                  Activity.level(Severity.INFO)
+                      .tag("Connection recovery")
+                      .message("Connection recovery started: " + recoverable));
+              context.reportHealth(Health.down());
+            }
+          };
+      recoverable.addRecoveryListener(recoveryListener);
+    }
+
     channel = connection.createChannel();
     Consumer consumer = new RabbitMqConsumer(channel, context);
 
@@ -104,21 +155,7 @@ public class RabbitMqExecutable implements InboundConnectorExecutable<InboundCon
     context.reportHealth(Health.up());
   }
 
-  @Override
-  public void deactivate() throws Exception {
-    LOGGER.info("Subscription deactivation requested by the Connector runtime");
-    try {
-      channel.basicCancel(consumerTag);
-    } catch (Exception e) {
-      LOGGER.warn("Failed to cancel consumer", e);
-    } finally {
-      if (connection != null) {
-        connection.close(CLOSE_TIMEOUT_MILLIS);
-      }
-    }
-  }
-
-  private Connection openConnection(RabbitMqInboundProperties properties) throws Exception {
+  Connection openConnection(RabbitMqInboundProperties properties) throws Exception {
     return connectionFactorySupplier
         .createFactory(properties.getAuthentication(), properties.getRouting())
         .newConnection();
