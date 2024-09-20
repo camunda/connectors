@@ -59,6 +59,10 @@ public class RabbitMqConsumer extends DefaultConsumer {
   public void handleCancel(String consumerTag) {
     LOGGER.info("Consumer cancelled: {}", consumerTag);
     try {
+      context.log(
+          Activity.level(Severity.WARNING)
+              .tag("Subscription")
+              .message("Consumer cancelled: " + consumerTag));
       context.cancel(null);
     } catch (Exception e) {
       context.reportHealth(Health.down(e));
@@ -69,11 +73,10 @@ public class RabbitMqConsumer extends DefaultConsumer {
   @Override
   public void handleShutdownSignal(String consumerTag, ShutdownSignalException sig) {
     LOGGER.error("Consumer shutdown: {}", consumerTag, sig);
-    try {
-      context.cancel(sig);
-    } catch (Exception e) {
-      LOGGER.error("Failed to cancel Connector execution: {}", e.getMessage());
-    }
+    context.log(
+        Activity.level(Severity.ERROR)
+            .tag("Subscription")
+            .message("Consumer shutdown: " + consumerTag + sig));
   }
 
   private RabbitMqInboundResult prepareVariables(

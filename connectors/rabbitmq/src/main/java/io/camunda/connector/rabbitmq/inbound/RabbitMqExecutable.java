@@ -9,6 +9,8 @@ package io.camunda.connector.rabbitmq.inbound;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.Recoverable;
+import com.rabbitmq.client.RecoveryListener;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -46,20 +48,13 @@ public class RabbitMqExecutable implements InboundConnectorExecutable {
     RabbitMqInboundProperties properties = context.bindProperties(RabbitMqInboundProperties.class);
 
     LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Subscription activation")
+            .message(
+                "Subscription activation requested for queue name :" + properties.getQueueName()));
 
-    connection = openConnection(properties);
-    channel = connection.createChannel();
-    Consumer consumer = new RabbitMqConsumer(channel, context);
-
-    var data = new HashMap<String, Object>();
-    data.put("connection-id", connection.getId());
-    data.put("connection-name", connection.getClientProvidedName());
-    data.put("connection-address", connection.getAddress());
-    data.put("connection-port", connection.getPort());
-    context.reportHealth(Health.up(data));
-
-    consumerTag = startConsumer(properties, consumer);
-    LOGGER.info("Started RabbitMQ consumer for queue {}", properties.getQueueName());
+    initializeConsumer(context, properties);
   }
 
   @Override
@@ -76,7 +71,52 @@ public class RabbitMqExecutable implements InboundConnectorExecutable {
     }
   }
 
-  private Connection openConnection(RabbitMqInboundProperties properties) throws Exception {
+  void initializeConsumer(InboundConnectorContext context, RabbitMqInboundProperties properties)
+      throws Exception {
+
+    connection = openConnection(properties);
+
+    if (connection instanceof Recoverable recoverable) {
+      final var recoveryListener =
+          new RecoveryListener() {
+            @Override
+            public void handleRecovery(Recoverable recoverable) {
+              LOGGER.info("Connection recovered successfully: {}", recoverable);
+              context.log(
+                  Activity.level(Severity.INFO)
+                      .tag("Connection recovery")
+                      .message("Connection recovered successfully: " + recoverable));
+              context.reportHealth(Health.up());
+            }
+
+            @Override
+            public void handleRecoveryStarted(Recoverable recoverable) {
+              LOGGER.info("Connection recovery started: {}", recoverable);
+              context.log(
+                  Activity.level(Severity.INFO)
+                      .tag("Connection recovery")
+                      .message("Connection recovery started: " + recoverable));
+              context.reportHealth(Health.down());
+            }
+          };
+      recoverable.addRecoveryListener(recoveryListener);
+    }
+
+    channel = connection.createChannel();
+    Consumer consumer = new RabbitMqConsumer(channel, context);
+
+    var data = new HashMap<String, Object>();
+    data.put("connection-id", connection.getId());
+    data.put("connection-name", connection.getClientProvidedName());
+    data.put("connection-address", connection.getAddress());
+    data.put("connection-port", connection.getPort());
+    context.reportHealth(Health.up(data));
+
+    consumerTag = startConsumer(properties, consumer);
+    LOGGER.info("Started RabbitMQ consumer for queue {}", properties.getQueueName());
+  }
+
+  Connection openConnection(RabbitMqInboundProperties properties) throws Exception {
     return connectionFactorySupplier
         .createFactory(properties.getAuthentication(), properties.getRouting())
         .newConnection();
