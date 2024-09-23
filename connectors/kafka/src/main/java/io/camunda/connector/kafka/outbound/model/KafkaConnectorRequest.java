@@ -7,7 +7,6 @@
 package io.camunda.connector.kafka.outbound.model;
 
 import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
@@ -22,7 +21,7 @@ public record KafkaConnectorRequest(
     @Valid KafkaAuthentication authentication,
     @Valid @NotNull KafkaTopic topic,
     @Valid @NotNull KafkaMessage message,
-    @Valid @NestedProperties(addNestedPath = false) OutboundSchemaStrategy schemaStrategy,
+    @Valid OutboundSchemaStrategy schemaStrategy,
     @TemplateProperty(
             group = "kafka",
             label = "Headers",
