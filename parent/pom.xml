@@ -121,7 +121,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-identity>1.13.3</version.azure-identity>
 
     <version.bouncycastle>1.78.1</version.bouncycastle>
-    <version.sendGrid>4.10.2</version.sendGrid>
+    <version.sendGrid>4.10.3</version.sendGrid>
 
     <version.slack>1.43.0</version.slack>
 
