@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +63,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @DirtiesContext
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 public class SecurityConfigurationTest {
 
   @Autowired private MockMvc mvc;

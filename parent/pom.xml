@@ -111,6 +111,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.3</version.httpcore5>
     <version.httpclient5>5.3.1</version.httpclient5>
+    <version.collections4>4.5.0-M2</version.collections4>
 
     <version.commons-io>2.16.1</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
@@ -402,6 +403,12 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.httpcomponents.core5</groupId>
         <artifactId>httpcore5</artifactId>
         <version>${version.httpcore5}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>${version.collections4}</version>
       </dependency>
 
       <dependency>
