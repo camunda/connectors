@@ -37,7 +37,7 @@ public class ProcessDefinitionImporter {
   private final ProcessDefinitionSearch search;
   private final MetricsRecorder metricsRecorder;
 
-  private boolean ready = false;
+  private boolean ready = true;
 
   @Autowired
   public ProcessDefinitionImporter(
