@@ -91,4 +91,14 @@ public class CreateCommandDummy
     future.complete(new ProcessInstanceEventDummy());
     return future;
   }
+
+  @Override
+  public CreateProcessInstanceCommandStep1 useRest() {
+    return this;
+  }
+
+  @Override
+  public CreateProcessInstanceCommandStep1 useGrpc() {
+    return this;
+  }
 }
