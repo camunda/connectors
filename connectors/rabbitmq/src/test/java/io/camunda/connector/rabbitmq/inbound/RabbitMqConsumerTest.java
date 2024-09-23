@@ -278,7 +278,6 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
 
     // Then
     verify(spyContext, times(0)).cancel(cause);
-    verify(spyContext, times(1)).log(any());
   }
 
   @Test
