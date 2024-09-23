@@ -46,7 +46,8 @@ import org.testcontainers.utility.DockerImageName;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=true"
+      "camunda.connector.polling.enabled=true",
+      "operate.client.profile=simple"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
