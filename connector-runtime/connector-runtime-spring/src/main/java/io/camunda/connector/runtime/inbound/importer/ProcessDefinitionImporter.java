@@ -34,6 +34,9 @@ public class ProcessDefinitionImporter {
   private final ProcessDefinitionSearch search;
   private final MetricsRecorder metricsRecorder;
 
+  private final Set<Long> registeredProcessDefinitionKeys = new HashSet<>();
+  private final Map<String, ProcessDefinition> versionByBpmnProcessId = new HashMap<>();
+
   private boolean ready = true;
 
   @Autowired
