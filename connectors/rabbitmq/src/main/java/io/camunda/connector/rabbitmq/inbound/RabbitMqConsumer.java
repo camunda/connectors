@@ -69,11 +69,6 @@ public class RabbitMqConsumer extends DefaultConsumer {
   @Override
   public void handleShutdownSignal(String consumerTag, ShutdownSignalException sig) {
     LOGGER.error("Consumer shutdown: {}", consumerTag, sig);
-    try {
-      context.cancel(sig);
-    } catch (Exception e) {
-      LOGGER.error("Failed to cancel Connector execution: {}", e.getMessage());
-    }
   }
 
   private RabbitMqInboundResult prepareVariables(
