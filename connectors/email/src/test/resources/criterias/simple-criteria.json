@@ -1,0 +1,22 @@
+{
+  "operator":"AND",
+  "criteria":[
+    {
+      "field":"FROM",
+      "value":"camundi@camunda.com"
+    },
+    {
+      "operator":"OR",
+      "criteria":[
+        {
+          "field":"SUBJECT",
+          "value":"urgent"
+        },
+        {
+          "field":"SUBJECT",
+          "value":"important"
+        }
+      ]
+    }
+  ]
+}
