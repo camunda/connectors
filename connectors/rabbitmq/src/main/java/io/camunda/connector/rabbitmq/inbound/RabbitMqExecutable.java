@@ -12,9 +12,11 @@ import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 import java.io.IOException;
@@ -25,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "RabbitMQ Consumer", type = "io.camunda:connector-rabbitmq-inbound:1")
-public class RabbitMqExecutable implements InboundConnectorExecutable {
+public class RabbitMqExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
   private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqExecutable.class);
   private static final int CLOSE_TIMEOUT_MILLIS = 3000;
 
