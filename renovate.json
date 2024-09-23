@@ -2,7 +2,7 @@
   "extends": [
     "config:base"
   ],
-  "labels": ["dependencies"],
+  "labels": ["dependencies", "no milestone"],
   "packageRules": [
     {
       "matchManagers": ["maven"],
