@@ -59,7 +59,10 @@ public class PostmanPathUtil {
     var host = String.join(".", endpoint.request().url().host());
     pathSegments.add(host);
 
-    pathSegments.addAll(endpoint.request().url().path());
+    // fixes https://github.com/camunda/connectors/issues/3322
+    List<String> path =
+        endpoint.request().url().path() == null ? List.of() : endpoint.request().url().path();
+    pathSegments.addAll(path);
     return pathSegments.stream()
         .map(s -> s.replace("+", "_"))
         .map(
