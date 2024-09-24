@@ -248,7 +248,7 @@ jobs:
       - name: Commit and tag
         run: |
           git commit -am "ci: release version ${RELEASE_VERSION}"
-          git push origin ${RELEASE_BRANCH}
+          git push --force origin ${RELEASE_BRANCH}
           git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
           git push --force origin ${RELEASE_VERSION}
 
