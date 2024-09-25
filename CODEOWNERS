@@ -2,3 +2,5 @@
 * @camunda/connectors 
 
 renovate.json5
+.ci/preview-environments/charts/c8sm/Chart.yaml
+**/pom.xml
