@@ -256,7 +256,7 @@
     "feel" : "required",
     "group" : "message",
     "binding" : {
-      "name" : "schemaStrategy.avro.schema",
+      "name" : "schemaStrategy.schema",
       "type" : "zeebe:property"
     },
     "condition" : {

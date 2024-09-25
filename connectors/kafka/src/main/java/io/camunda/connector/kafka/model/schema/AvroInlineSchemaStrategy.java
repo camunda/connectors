@@ -19,7 +19,6 @@ public record AvroInlineSchemaStrategy(
     @FEEL
         @TemplateProperty(
             id = "avro.schema",
-            binding = @TemplateProperty.PropertyBinding(name = "avro.schema"),
             group = "message",
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Text,
