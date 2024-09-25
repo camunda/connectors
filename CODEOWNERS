@@ -1,4 +1,4 @@
 # These owners will be the default owners for everything in the repo.
 * @camunda/connectors 
 
-.github/renovate.json5
+renovate.json5
