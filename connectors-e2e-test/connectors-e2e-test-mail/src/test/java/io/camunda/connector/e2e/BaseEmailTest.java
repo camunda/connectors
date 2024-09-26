@@ -16,80 +16,47 @@
  */
 package io.camunda.connector.e2e;
 
+import com.icegreen.greenmail.util.GreenMail;
 import io.camunda.zeebe.client.ZeebeClient;
+import jakarta.mail.Message;
 import java.io.File;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.testcontainers.containers.DockerComposeContainer;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.utility.DockerImageName;
 
 public class BaseEmailTest {
 
-  private static final String inbucketDockerImage = "inbucket/inbucket";
-  private static final String imapDevelDockerComposeFile =
-      "src/test/resources/docker-compose/docker-compose.yml";
-  static GenericContainer<?> emailPOP3AndSMTPContainer;
-  static DockerComposeContainer<?> emailIMAPContainer;
+  protected static final String LOCALHOST = "localhost";
+  private static final GreenMail greenMail = new GreenMail();
   @TempDir File tempDir;
 
   @Autowired ZeebeClient zeebeClient;
 
   @BeforeAll
   static void setup() {
-    emailPOP3AndSMTPContainer =
-        new GenericContainer<>(DockerImageName.parse(inbucketDockerImage))
-            .withExposedPorts(2500, 1100, 9000);
-    emailIMAPContainer =
-        new DockerComposeContainer<>(new File(imapDevelDockerComposeFile))
-            .withExposedService("imap", 993)
-            .withExposedService("imap", 25)
-            .withExposedService("imap", 143);
-    emailIMAPContainer.start();
-    emailPOP3AndSMTPContainer.start();
+    greenMail.setUser("test@camunda.com", "password");
+    greenMail.start();
   }
 
   @AfterAll
   static void tearDown() {
-    if (emailPOP3AndSMTPContainer != null) {
-      emailPOP3AndSMTPContainer.stop();
-    }
-    if (emailIMAPContainer != null) {
-      emailIMAPContainer.stop();
-    }
+    greenMail.stop();
   }
 
-  public String getSmtpInbucketHost() {
-    return emailPOP3AndSMTPContainer.getHost();
+  protected Message[] getLastReceivedEmails() {
+    return greenMail.getReceivedMessages();
   }
 
-  public Integer getSmtpInbucketPort() {
-    return emailPOP3AndSMTPContainer.getMappedPort(2500);
+  protected String getUnsecurePop3Port() {
+    return String.valueOf(greenMail.getPop3().getPort());
   }
 
-  public String getSmtpDevelHost() {
-    return emailIMAPContainer.getServiceHost("imap", 25);
+  protected String getUnsecureImapPort() {
+    return String.valueOf(greenMail.getImap().getPort());
   }
 
-  public Integer getSmtpDevelPort() {
-    return emailIMAPContainer.getServicePort("imap", 25);
-  }
-
-  public String getPop3Host() {
-    return emailPOP3AndSMTPContainer.getHost();
-  }
-
-  public Integer getPop3Port() {
-    return emailPOP3AndSMTPContainer.getMappedPort(1100);
-  }
-
-  public String getImapHost() {
-    return emailIMAPContainer.getServiceHost("imap", 993);
-  }
-
-  public Integer getImapPort() {
-    return emailIMAPContainer.getServicePort("imap", 993);
+  protected String getUnsecureSmtpPort() {
+    return String.valueOf(greenMail.getSmtp().getPort());
   }
 }

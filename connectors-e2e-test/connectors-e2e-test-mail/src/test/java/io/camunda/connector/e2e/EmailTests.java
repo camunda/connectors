@@ -26,6 +26,7 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import jakarta.mail.Message;
 import java.io.File;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -63,14 +64,14 @@ public class EmailTests extends BaseEmailTest {
     File elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
             .property("authentication.type", "simple")
-            .property("authentication.simpleAuthenticationUsername", "username")
+            .property("authentication.simpleAuthenticationUsername", "test@camunda.com")
             .property("authentication.simpleAuthenticationPassword", "password")
             .property("protocol", "smtp")
-            .property("data.smtpPort", String.valueOf(getSmtpInbucketPort()))
-            .property("data.smtpHost", getSmtpInbucketHost())
+            .property("data.smtpPort", getUnsecureSmtpPort())
+            .property("data.smtpHost", LOCALHOST)
             .property("smtpCryptographicProtocol", "NONE")
             .property("data.smtpActionDiscriminator", "sendEmailSmtp")
-            .property("smtpFrom", "sender@test.com")
+            .property("smtpFrom", "test@camunda.com")
             .property("smtpTo", "receiver@test.com")
             .property("smtpSubject", "subject")
             .property("smtpBody", "content")
@@ -84,18 +85,16 @@ public class EmailTests extends BaseEmailTest {
     assertThat(result).isNotNull();
     assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("sent", true);
 
-    Message message =
-        EmailTestHelper.getLastEmailFromInbucket(
-            getPop3Host(), String.valueOf(getPop3Port()), "receiver");
+    List<Message> message = List.of(super.getLastReceivedEmails());
 
     assertThat(message).isNotNull();
-    assertThat(EmailTestHelper.getSenders(message)).hasSize(1).first().isEqualTo("sender@test.com");
-    assertThat(EmailTestHelper.getReceivers(message))
+    assertThat(EmailTestHelper.getSenders(message.getFirst())).hasSize(1).first().isEqualTo("sender@test.com");
+    assertThat(EmailTestHelper.getReceivers(message.getFirst()))
         .hasSize(1)
         .first()
         .isEqualTo("receiver@test.com");
-    assertThat(EmailTestHelper.getSubject(message)).isEqualTo("subject");
-    assertThat(EmailTestHelper.getPlainTextBody(message)).isEqualTo("content");
+    assertThat(EmailTestHelper.getSubject(message.getFirst())).isEqualTo("subject");
+    assertThat(EmailTestHelper.getPlainTextBody(message.getFirst())).isEqualTo("content");
   }
 
   @Test
@@ -107,8 +106,8 @@ public class EmailTests extends BaseEmailTest {
             .property("authentication.simpleAuthenticationUsername", "receiver")
             .property("authentication.simpleAuthenticationPassword", "password")
             .property("protocol", "pop3")
-            .property("data.pop3Port", String.valueOf(getPop3Port()))
-            .property("data.pop3Host", getPop3Host())
+            .property("data.pop3Port", getUnsecurePop3Port())
+            .property("data.pop3Host", LOCALHOST)
             .property("pop3CryptographicProtocol", "NONE")
             .property("data.pop3ActionDiscriminator", "listEmailsPop3")
             .property("pop3maxToBeRead", "100")
@@ -118,21 +117,13 @@ public class EmailTests extends BaseEmailTest {
             .writeTo(new File(tempDir, "template.json"));
 
     EmailTestHelper.sendEmail(
-        getSmtpInbucketHost(),
-        String.valueOf(getSmtpInbucketPort()),
-        "subject1",
-        "body1",
-        "receiver@test.com");
+        LOCALHOST, getUnsecureSmtpPort(), "subject1", "body1", "receiver@test.com");
 
     // To verify the sorting as only seconds are used
     Thread.sleep(1000);
 
     EmailTestHelper.sendEmail(
-        getSmtpInbucketHost(),
-        String.valueOf(getSmtpInbucketPort()),
-        "subject2",
-        "body2",
-        "receiver@test.com");
+        LOCALHOST, getUnsecureSmtpPort(), "subject2", "body2", "receiver@test.com");
 
     BpmnModelInstance model = getBpmnModelInstance("listEmailsTask");
     BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, "listEmailsTask");
@@ -154,8 +145,8 @@ public class EmailTests extends BaseEmailTest {
             .property("authentication.simpleAuthenticationUsername", "address@example.org")
             .property("authentication.simpleAuthenticationPassword", "pass")
             .property("protocol", "imap")
-            .property("data.imapPort", String.valueOf(getImapPort()))
-            .property("data.imapHost", getImapHost())
+            .property("data.imapPort", getUnsecureImapPort())
+            .property("data.imapHost", LOCALHOST)
             .property("imapCryptographicProtocol", "SSL")
             .property("data.imapActionDiscriminator", "listEmailsImap")
             .property("imapMaxToBeRead", "100")
@@ -165,21 +156,13 @@ public class EmailTests extends BaseEmailTest {
             .writeTo(new File(tempDir, "template.json"));
 
     EmailTestHelper.sendEmail(
-        getSmtpDevelHost(),
-        String.valueOf(getSmtpDevelPort()),
-        "subject1",
-        "body1",
-        "address@example.org");
+        LOCALHOST, getUnsecureSmtpPort(), "subject1", "body1", "address@example.org");
 
     // To verify the sorting as only seconds are used
     Thread.sleep(1000);
 
     EmailTestHelper.sendEmail(
-        getSmtpDevelHost(),
-        String.valueOf(getSmtpDevelPort()),
-        "subject2",
-        "body2",
-        "address@example.org");
+        LOCALHOST, getUnsecureSmtpPort(), "subject2", "body2", "address@example.org");
 
     BpmnModelInstance model = getBpmnModelInstance("listEmailsTask");
     BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, "listEmailsTask");
