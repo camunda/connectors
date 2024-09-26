@@ -16,14 +16,14 @@
  */
 package io.camunda.connector.e2e;
 
+import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.DeploymentEvent;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
-import io.camunda.zeebe.spring.test.ZeebeTestThreadSupport;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 
 public class ZeebeTest {
@@ -66,8 +66,11 @@ public class ZeebeTest {
   }
 
   public ZeebeTest waitForProcessCompletion() {
-    ZeebeTestThreadSupport.waitForProcessInstanceCompleted(
-        processInstanceEvent, Duration.of(10, ChronoUnit.SECONDS));
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(10, TimeUnit.SECONDS)
+        .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).isCompleted());
     return this;
   }
 

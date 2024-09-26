@@ -16,15 +16,15 @@
  */
 package io.camunda.connector.e2e;
 
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.e2e.helper.KafkaTestConsumer;
 import io.camunda.connector.kafka.inbound.KafkaInboundMessage;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class OutboundKafkaTests extends BaseKafkaTest {
   private static final String ELEMENT_TEMPLATE_PATH =
@@ -91,8 +91,9 @@ public class OutboundKafkaTests extends BaseKafkaTest {
     assertThat(kafkaMessage.getValue().toString()).isEqualTo(MESSAGE_VALUE);
     assertThat(kafkaMessage.getRawValue()).isEqualTo(MESSAGE_VALUE);
     // validate process variables
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("partitionResponse", 0);
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("topicResult", TOPIC);
+    CamundaAssert.assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariable("partitionResponse", 0);
+    CamundaAssert.assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("topicResult", TOPIC);
   }
 
   private static BpmnModelInstance getBpmnModelInstance(final String serviceTaskName) {

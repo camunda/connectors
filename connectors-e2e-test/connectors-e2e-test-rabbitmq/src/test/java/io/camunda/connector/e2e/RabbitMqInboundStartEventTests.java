@@ -29,10 +29,10 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.exception.OperateException;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
-import io.camunda.zeebe.process.test.assertions.BpmnAssert;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -55,7 +55,7 @@ import org.testcontainers.utility.DockerImageName;
       "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
 
@@ -142,11 +142,11 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
     postMessage();
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("allResult", expectedJsonResponse);
+    CamundaAssert.assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariable("allResult", expectedJsonResponse);
 
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("partialResult", "barValue");
+    CamundaAssert.assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariable("partialResult", "barValue");
   }
 
   private void postMessage() throws Exception {

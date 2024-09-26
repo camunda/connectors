@@ -16,24 +16,21 @@
  */
 package io.camunda.connector.runtime;
 
-import io.camunda.common.auth.Authentication;
 import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
-import io.camunda.operate.CamundaOperateClient;
-import io.camunda.zeebe.spring.client.CamundaAutoConfiguration;
-import io.camunda.zeebe.spring.client.configuration.OperateClientConfiguration;
-import io.camunda.zeebe.spring.client.properties.CamundaClientProperties;
-import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
+import io.camunda.operate.spring.OperateClientConfiguration;
+import io.camunda.zeebe.spring.client.configuration.CamundaAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @AutoConfiguration
-@AutoConfigureAfter({CamundaAutoConfiguration.class, OutboundConnectorsAutoConfiguration.class})
+@AutoConfigureAfter({
+  CamundaAutoConfiguration.class,
+  OutboundConnectorsAutoConfiguration.class,
+  OperateClientConfiguration.class
+})
 @ConditionalOnProperty(
     prefix = "camunda.connector.polling",
     name = "enabled",
@@ -41,21 +38,4 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     matchIfMissing = true)
 @Import(InboundConnectorRuntimeConfiguration.class)
 @EnableScheduling
-@EnableConfigurationProperties(OperateClientConfigurationProperties.class)
-public class InboundConnectorsAutoConfiguration {
-
-  @Bean
-  @ConditionalOnMissingBean
-  public CamundaOperateClient myOperateClient(OperateClientConfiguration configuration) {
-    return configuration.camundaOperateClient();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public OperateClientConfiguration operateClientProdAutoConfiguration(
-      OperateClientConfigurationProperties legacyProperties,
-      CamundaClientProperties properties,
-      Authentication authentication) {
-    return new OperateClientConfiguration(legacyProperties, properties, authentication);
-  }
-}
+public class InboundConnectorsAutoConfiguration {}

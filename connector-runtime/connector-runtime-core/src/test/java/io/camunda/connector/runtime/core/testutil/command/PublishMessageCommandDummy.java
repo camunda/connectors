@@ -98,4 +98,14 @@ public class PublishMessageCommandDummy
     future.complete(new PublishMessageResponseDummy());
     return future;
   }
+
+  @Override
+  public PublishMessageCommandStep1 useRest() {
+    return this;
+  }
+
+  @Override
+  public PublishMessageCommandStep1 useGrpc() {
+    return this;
+  }
 }

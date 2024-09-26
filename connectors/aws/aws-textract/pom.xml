@@ -44,6 +44,11 @@ except in compliance with the proprietary license.</license.inlineheader>
       <version>${version.aws-java-sdk}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-collections4</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>

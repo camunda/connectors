@@ -50,11 +50,10 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-      <dependency>
-          <groupId>io.camunda.spring</groupId>
-          <artifactId>spring-boot-starter-camunda-test</artifactId>
-          <scope>test</scope>
-      </dependency>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>camunda-process-test-spring</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
