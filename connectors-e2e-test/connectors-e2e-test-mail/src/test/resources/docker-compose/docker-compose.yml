@@ -1,0 +1,13 @@
+version: '2'
+
+services:
+  imap:
+    image: antespi/docker-imap-devel:latest
+    ports:
+      - "25:25"
+      - "143:143"
+      - "993:993"
+    environment:
+      - MAILNAME=example.org
+      - MAIL_ADDRESS=address@example.org
+      - MAIL_PASS=pass
