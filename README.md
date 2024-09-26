@@ -14,6 +14,7 @@ For more information on Connectors, refer to the
 ## Contents
 
 * [License](#license)
+* [Setup](#setup)
 * [Create a Connector](#create-a-connector)
     * [Outbound Connector](#outbound-connector)
     * [Inbound Connector](#inbound-connector)
@@ -40,6 +41,15 @@ This is a multi-module project with different licenses applied to different modu
 * [Docker images](bundle) of the out-of-the-box Connectors for Camunda, bundled with a runtime
 
 When in doubt, refer to the `LICENSE` file in the respective module.
+
+## Setup
+
+Download these utilities:
+
+* [`make`](https://www.gnu.org/software/make/) for building
+* [`asdf`](https://asdf-vm.com/) for managing Java and Maven versions
+
+The [Connector SDK](connector-sdk) uses Java 17, unlike the rest of this repository.
 
 ## Create a Connector
 
