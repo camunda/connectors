@@ -8,12 +8,16 @@ package io.camunda.connector.email.client.jakarta;
 
 import jakarta.activation.DataHandler;
 import jakarta.mail.*;
+import jakarta.mail.Header;
 import jakarta.mail.internet.InternetAddress;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Random;
 import java.util.random.RandomGenerator;
 
 public class TestMessage extends Message {
@@ -204,7 +208,7 @@ public class TestMessage extends Message {
   public void removeHeader(String header_name) throws MessagingException {}
 
   @Override
-  public Enumeration<jakarta.mail.Header> getAllHeaders() throws MessagingException {
+  public Enumeration<Header> getAllHeaders() throws MessagingException {
     return new Enumeration<>() {
       @Override
       public boolean hasMoreElements() {

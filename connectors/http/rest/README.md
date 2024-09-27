@@ -229,9 +229,9 @@ leading to the following result
 ```
 
 
-| Connector Info            |                                                                       |
-| ---                       | ---                                                                   |
-| Type                      | io.camunda:http-json:1                                                            |
-| Version                   | 8                                                         |
-| Supported element types   |     |
+| Connector Info          |                        |
+|-------------------------|------------------------|
+| Type                    | io.camunda:http-json:1 |
+| Version                 | 8                      |
+| Supported element types |                        |
 
