@@ -13,10 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.OffsetDateTime;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
 public class TestMessage extends Message {
@@ -207,17 +204,28 @@ public class TestMessage extends Message {
   public void removeHeader(String header_name) throws MessagingException {}
 
   @Override
-  public Enumeration<Header> getAllHeaders() throws MessagingException {
+  public Enumeration<jakarta.mail.Header> getAllHeaders() throws MessagingException {
+    return new Enumeration<>() {
+      @Override
+      public boolean hasMoreElements() {
+        return false;
+      }
+
+      @Override
+      public jakarta.mail.Header nextElement() {
+        return null;
+      }
+    };
+  }
+
+  @Override
+  public Enumeration<jakarta.mail.Header> getMatchingHeaders(String[] header_names)
+      throws MessagingException {
     return null;
   }
 
   @Override
-  public Enumeration<Header> getMatchingHeaders(String[] header_names) throws MessagingException {
-    return null;
-  }
-
-  @Override
-  public Enumeration<Header> getNonMatchingHeaders(String[] header_names)
+  public Enumeration<jakarta.mail.Header> getNonMatchingHeaders(String[] header_names)
       throws MessagingException {
     return null;
   }

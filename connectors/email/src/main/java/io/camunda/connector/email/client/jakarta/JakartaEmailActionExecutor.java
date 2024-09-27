@@ -90,10 +90,12 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                     new ReadEmailResponse(
                         email.messageId(),
                         email.from(),
+                        email.headers(),
                         email.subject(),
                         email.size(),
                         email.body().bodyAsPlainText(),
-                        email.body().bodyAsHtml()))
+                        email.body().bodyAsHtml(),
+                        email.sentAt()))
             .orElseThrow(() -> new MessagingException("Could not find an email ID"));
       }
     } catch (MessagingException e) {
@@ -204,10 +206,12 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                       new ReadEmailResponse(
                           email.messageId(),
                           email.from(),
+                          email.headers(),
                           email.subject(),
                           email.size(),
                           email.body().bodyAsPlainText(),
-                          email.body().bodyAsHtml()))
+                          email.body().bodyAsHtml(),
+                          email.sentAt()))
               .orElseThrow(() -> new MessagingException("No emails have been found with this ID"));
         }
       }
@@ -256,12 +260,11 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
   private SendEmailResponse smtpSendEmail(
       SmtpSendEmail smtpSendEmail, Authentication authentication, Session session) {
     try {
-      Optional<InternetAddress[]> from = createParsedInternetAddresses(smtpSendEmail.from());
       Optional<InternetAddress[]> to = createParsedInternetAddresses(smtpSendEmail.to());
       Optional<InternetAddress[]> cc = createParsedInternetAddresses(smtpSendEmail.cc());
       Optional<InternetAddress[]> bcc = createParsedInternetAddresses(smtpSendEmail.bcc());
       Message message = new MimeMessage(session);
-      if (from.isPresent()) message.addFrom(from.get());
+      message.setFrom(new InternetAddress(smtpSendEmail.from()));
       if (to.isPresent()) message.setRecipients(Message.RecipientType.TO, to.get());
       if (cc.isPresent()) message.setRecipients(Message.RecipientType.CC, cc.get());
       if (bcc.isPresent()) message.setRecipients(Message.RecipientType.BCC, bcc.get());

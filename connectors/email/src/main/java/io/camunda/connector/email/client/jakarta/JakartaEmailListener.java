@@ -181,10 +181,12 @@ public class JakartaEmailListener implements EmailListener {
         new ReadEmailResponse(
             email.messageId(),
             email.from(),
+            email.headers(),
             email.subject(),
             email.size(),
             email.body().bodyAsPlainText(),
-            email.body().bodyAsHtml()));
+            email.body().bodyAsHtml(),
+            email.sentAt()));
   }
 
   private List<String> createInboxList(Object folderToListen) {

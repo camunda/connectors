@@ -190,11 +190,12 @@ public class JakartaUtils {
 
   public Email createBodylessEmail(Message message) {
     try {
-      List<String> from =
+      String from =
           Arrays.stream(Optional.ofNullable(message.getFrom()).orElse(new Address[0]))
               .map(Address::toString)
               .map(address -> address.replaceAll(".*<|>.*", ""))
-              .toList();
+              .toList()
+              .getFirst();
       List<String> to =
           Arrays.stream(
                   Optional.ofNullable(message.getRecipients(Message.RecipientType.TO))
@@ -219,11 +220,16 @@ public class JakartaUtils {
               .map(Date::toInstant)
               .map(instant -> instant.atOffset(ZoneOffset.UTC))
               .orElse(null);
+      List<Header> headers =
+          Collections.list(message.getAllHeaders()).stream()
+              .map(header -> new Header(header.getName(), header.getValue()))
+              .toList();
       String messageId = stripMessageId(message.getHeader("Message-ID")[0]);
       return new Email(
           null,
           messageId,
           message.getSubject(),
+          headers,
           from,
           to,
           cc,
@@ -253,6 +259,7 @@ public class JakartaUtils {
           emailBody,
           email.messageId(),
           email.subject(),
+          email.headers(),
           email.from(),
           email.to(),
           email.cc(),

@@ -6,12 +6,16 @@
  */
 package io.camunda.connector.email.response;
 
+import io.camunda.connector.email.client.jakarta.Header;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public record ReadEmailResponse(
     String messageId,
-    List<String> fromAddresses,
+    String fromAddress,
+    List<Header> headers,
     String subject,
     Integer size,
     String plainTextBody,
-    String htmlBody) {}
+    String htmlBody,
+    OffsetDateTime sentDate) {}

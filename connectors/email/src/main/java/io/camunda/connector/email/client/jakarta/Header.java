@@ -6,17 +6,4 @@
  */
 package io.camunda.connector.email.client.jakarta;
 
-import java.time.OffsetDateTime;
-import java.util.*;
-
-public record Email(
-    EmailBody body,
-    String messageId,
-    String subject,
-    List<Header> headers,
-    String from,
-    List<String> to,
-    List<String> cc,
-    OffsetDateTime sentAt,
-    OffsetDateTime receivedAt,
-    Integer size) {}
+public record Header(String header, String value) {}
