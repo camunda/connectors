@@ -95,7 +95,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                         email.size(),
                         email.body().bodyAsPlainText(),
                         email.body().bodyAsHtml(),
-                        email.sentAt()))
+                        email.receivedAt()))
             .orElseThrow(() -> new MessagingException("Could not find an email ID"));
       }
     } catch (MessagingException e) {
@@ -211,7 +211,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                           email.size(),
                           email.body().bodyAsPlainText(),
                           email.body().bodyAsHtml(),
-                          email.sentAt()))
+                          email.receivedAt()))
               .orElseThrow(() -> new MessagingException("No emails have been found with this ID"));
         }
       }

@@ -234,4 +234,3 @@ leading to the following result
 | Type                    | io.camunda:http-json:1 |
 | Version                 | 8                      |
 | Supported element types |                        |
-

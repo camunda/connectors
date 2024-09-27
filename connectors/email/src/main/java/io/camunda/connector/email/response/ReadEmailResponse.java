@@ -18,4 +18,4 @@ public record ReadEmailResponse(
     Integer size,
     String plainTextBody,
     String htmlBody,
-    OffsetDateTime sentDate) {}
+    OffsetDateTime receivedDate) {}
