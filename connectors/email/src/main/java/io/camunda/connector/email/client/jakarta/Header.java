@@ -6,4 +6,4 @@
  */
 package io.camunda.connector.email.client.jakarta;
 
-public record Header(String header, String value) {}
+public record Header(String key, String value) {}
