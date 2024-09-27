@@ -149,13 +149,13 @@
   }, {
     "id" : "queue.queue.pollingWaitTime",
     "label" : "Polling wait time",
-    "description" : "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+    "description" : "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details. A value of 0 will automatically be overridden to 1",
     "optional" : false,
     "value" : "20",
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^([1-9]?|1[0-9]|20|secrets\\..+)$"
+        "value" : "^([0-9]?|1[0-9]|20|secrets\\..+)$"
       }
     },
     "group" : "messagePollingProperties",

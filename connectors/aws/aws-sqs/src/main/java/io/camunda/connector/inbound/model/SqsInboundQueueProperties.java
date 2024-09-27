@@ -44,8 +44,8 @@ public record SqsInboundQueueProperties(
             group = "messagePollingProperties",
             defaultValue = "20",
             description =
-                "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+                "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details. A value of 0 will automatically be overridden to 1",
             feel = FeelMode.disabled)
-        @Pattern(regexp = "^([1-9]?|1[0-9]|20|secrets\\..+)$")
+        @Pattern(regexp = "^([0-9]?|1[0-9]|20|secrets\\..+)$")
         @NotBlank
         String pollingWaitTime) {}
