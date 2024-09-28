@@ -685,6 +685,7 @@
   }, {
     "id" : "searchStringEmailPop3",
     "label" : "Search criteria",
+    "description" : "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "optional" : true,
     "feel" : "required",
     "group" : "searchEmailsPop3",
@@ -703,7 +704,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails.",
     "type" : "Text"
   }, {
     "id" : "pop3MessageIdDelete",
@@ -902,6 +903,7 @@
   }, {
     "id" : "searchStringEmailImap",
     "label" : "Search criteria",
+    "description" : "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "optional" : true,
     "feel" : "required",
     "group" : "searchEmailsImap",
@@ -920,7 +922,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails.",
     "type" : "Text"
   }, {
     "id" : "searchEmailFolder",

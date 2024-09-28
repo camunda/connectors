@@ -187,13 +187,13 @@
     "tooltip" : "Chose the desired polling strategy",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Unseen emails will be sync",
+      "name" : "Unseen emails will be synced",
       "value" : "UNSEEN"
     }, {
       "name" : "No initial sync. Only new emails",
       "value" : "NONE"
     }, {
-      "name" : "All emails will be sync",
+      "name" : "All emails will be synced",
       "value" : "ALL"
     } ]
   }, {
