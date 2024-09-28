@@ -73,7 +73,7 @@ public class JakartaUtils {
   private Properties createProperties(SmtpConfig smtp) {
     Properties properties = new Properties();
     properties.put("mail.transport.protocol", "smtp");
-    properties.put("mail.smtp.host", smtp.smtpHost());
+    properties.put("mail.smtp.host", smtp.smtpHost().trim());
     properties.put("mail.smtp.port", smtp.smtpPort().toString());
     properties.put("mail.smtp.auth", true);
     switch (smtp.smtpCryptographicProtocol()) {
@@ -90,20 +90,20 @@ public class JakartaUtils {
     switch (pop3.pop3CryptographicProtocol()) {
       case NONE -> {
         properties.put("mail.store.protocol", "pop3");
-        properties.put("mail.pop3.host", pop3.pop3Host());
+        properties.put("mail.pop3.host", pop3.pop3Host().trim());
         properties.put("mail.pop3.port", pop3.pop3Port().toString());
         properties.put("mail.pop3.auth", true);
       }
       case TLS -> {
         properties.put("mail.store.protocol", "pop3s");
-        properties.put("mail.pop3s.host", pop3.pop3Host());
+        properties.put("mail.pop3s.host", pop3.pop3Host().trim());
         properties.put("mail.pop3s.port", pop3.pop3Port().toString());
         properties.put("mail.pop3s.auth", true);
         properties.put("mail.pop3s.starttls.enable", true);
       }
       case SSL -> {
         properties.put("mail.store.protocol", "pop3s");
-        properties.put("mail.pop3s.host", pop3.pop3Host());
+        properties.put("mail.pop3s.host", pop3.pop3Host().trim());
         properties.put("mail.pop3s.port", pop3.pop3Port().toString());
         properties.put("mail.pop3s.auth", true);
         properties.put("mail.pop3s.ssl.enable", true);
@@ -118,13 +118,13 @@ public class JakartaUtils {
     switch (imap.imapCryptographicProtocol()) {
       case NONE -> {
         properties.put("mail.store.protocol", "imap");
-        properties.put("mail.imap.host", imap.imapHost());
+        properties.put("mail.imap.host", imap.imapHost().trim());
         properties.put("mail.imap.port", imap.imapPort().toString());
         properties.put("mail.imap.auth", true);
       }
       case TLS -> {
         properties.put("mail.store.protocol", "imaps");
-        properties.put("mail.imaps.host", imap.imapHost());
+        properties.put("mail.imaps.host", imap.imapHost().trim());
         properties.put("mail.imaps.port", imap.imapPort().toString());
         properties.put("mail.imaps.auth", true);
         properties.put("mail.imaps.starttls.enable", true);
@@ -132,7 +132,7 @@ public class JakartaUtils {
       }
       case SSL -> {
         properties.put("mail.store.protocol", "imaps");
-        properties.put("mail.imaps.host", imap.imapHost());
+        properties.put("mail.imaps.host", imap.imapHost().trim());
         properties.put("mail.imaps.port", imap.imapPort().toString());
         properties.put("mail.imaps.auth", true);
         properties.put("mail.imaps.ssl.enable", true);
@@ -190,11 +190,12 @@ public class JakartaUtils {
 
   public Email createBodylessEmail(Message message) {
     try {
-      List<String> from =
+      String from =
           Arrays.stream(Optional.ofNullable(message.getFrom()).orElse(new Address[0]))
               .map(Address::toString)
               .map(address -> address.replaceAll(".*<|>.*", ""))
-              .toList();
+              .toList()
+              .getFirst();
       List<String> to =
           Arrays.stream(
                   Optional.ofNullable(message.getRecipients(Message.RecipientType.TO))
@@ -219,11 +220,16 @@ public class JakartaUtils {
               .map(Date::toInstant)
               .map(instant -> instant.atOffset(ZoneOffset.UTC))
               .orElse(null);
+      List<Header> headers =
+          Collections.list(message.getAllHeaders()).stream()
+              .map(header -> new Header(header.getName(), header.getValue()))
+              .toList();
       String messageId = stripMessageId(message.getHeader("Message-ID")[0]);
       return new Email(
           null,
           messageId,
           message.getSubject(),
+          headers,
           from,
           to,
           cc,
@@ -253,6 +259,7 @@ public class JakartaUtils {
           emailBody,
           email.messageId(),
           email.subject(),
+          email.headers(),
           email.from(),
           email.to(),
           email.cc(),

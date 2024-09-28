@@ -469,7 +469,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+    "tooltip" : "Address the email will be sent from",
     "type" : "String"
   }, {
     "id" : "smtpTo",

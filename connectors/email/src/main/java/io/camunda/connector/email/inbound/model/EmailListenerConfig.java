@@ -36,13 +36,13 @@ public record EmailListenerConfig(
             defaultValue = "UNSEEN",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(
-                  label = "Unseen emails will be sync",
+                  label = "Unseen emails will be synced",
                   value = "UNSEEN"),
               @TemplateProperty.DropdownPropertyChoice(
                   label = "No initial sync. Only new emails",
                   value = "NONE"),
               @TemplateProperty.DropdownPropertyChoice(
-                  label = "All emails will be sync",
+                  label = "All emails will be synced",
                   value = "ALL")
             },
             binding = @TemplateProperty.PropertyBinding(name = "data.initialPollingConfig"))
