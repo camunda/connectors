@@ -18,13 +18,12 @@ public record SmtpSendEmail(
             label = "From",
             group = "sendEmailSmtp",
             id = "smtpFrom",
-            tooltip =
-                "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+            tooltip = "Address the email will be sent from",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.from"))
         @Valid
         @NotNull
-        Object from,
+        String from,
     @TemplateProperty(
             label = "To",
             group = "sendEmailSmtp",
