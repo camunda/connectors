@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.eclipse.angus.mail.imap.IMAPFolder;
+import org.eclipse.angus.mail.imap.IMAPMessage;
 import org.eclipse.angus.mail.imap.IdleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +98,7 @@ public class JakartaEmailListener implements EmailListener {
       InboundConnectorContext connectorContext,
       EmailListenerConfig emailListenerConfig) {
     IMAPFolder imapFolder = (IMAPFolder) event.getSource();
-    Message message = event.getMessage();
+    IMAPMessage message = (IMAPMessage) event.getMessage();
     try {
       if (!message.isSet(Flags.Flag.SEEN))
         processMail(message, connectorContext, emailListenerConfig);
@@ -112,7 +113,7 @@ public class JakartaEmailListener implements EmailListener {
     try {
       Message[] messages = folder.getMessages();
       Arrays.stream(messages)
-          .forEach(message -> processMail(message, context, emailListenerConfig));
+          .forEach(message -> processMail((IMAPMessage) message, context, emailListenerConfig));
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
@@ -124,7 +125,7 @@ public class JakartaEmailListener implements EmailListener {
       FlagTerm unseenFlagTerm = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
       Message[] unseenMessages = folder.search(unseenFlagTerm);
       Arrays.stream(unseenMessages)
-          .forEach(message -> processMail(message, context, emailListenerConfig));
+          .forEach(message -> processMail((IMAPMessage) message, context, emailListenerConfig));
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
@@ -136,7 +137,7 @@ public class JakartaEmailListener implements EmailListener {
       EmailListenerConfig emailListenerConfig) {
     IMAPFolder imapFolder = (IMAPFolder) event.getSource();
     for (Message message : event.getMessages()) {
-      processMail(message, connectorContext, emailListenerConfig);
+      processMail((IMAPMessage) message, connectorContext, emailListenerConfig);
     }
     try {
       idleManager.watch(imapFolder);
@@ -146,12 +147,13 @@ public class JakartaEmailListener implements EmailListener {
   }
 
   private void processMail(
-      Message message,
+      IMAPMessage message,
       InboundConnectorContext connectorContext,
       EmailListenerConfig emailListenerConfig) {
 
+    message.setPeek(true);
     CorrelationResult correlationResult = this.correlateEmail(message, connectorContext);
-
+    message.setPeek(false);
     switch (correlationResult) {
       case CorrelationResult.Failure failure -> {
         switch (failure.handlingStrategy()) {
@@ -181,10 +183,12 @@ public class JakartaEmailListener implements EmailListener {
         new ReadEmailResponse(
             email.messageId(),
             email.from(),
+            email.headers(),
             email.subject(),
             email.size(),
             email.body().bodyAsPlainText(),
-            email.body().bodyAsHtml()));
+            email.body().bodyAsHtml(),
+            email.receivedAt()));
   }
 
   private List<String> createInboxList(Object folderToListen) {
