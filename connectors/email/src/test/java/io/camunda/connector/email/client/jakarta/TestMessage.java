@@ -7,7 +7,12 @@
 package io.camunda.connector.email.client.jakarta;
 
 import jakarta.activation.DataHandler;
-import jakarta.mail.*;
+import jakarta.mail.Address;
+import jakarta.mail.Flags;
+import jakarta.mail.Header;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
 import jakarta.mail.internet.InternetAddress;
 import java.io.IOException;
 import java.io.InputStream;
@@ -208,7 +213,17 @@ public class TestMessage extends Message {
 
   @Override
   public Enumeration<Header> getAllHeaders() throws MessagingException {
-    return null;
+    return new Enumeration<>() {
+      @Override
+      public boolean hasMoreElements() {
+        return false;
+      }
+
+      @Override
+      public Header nextElement() {
+        return null;
+      }
+    };
   }
 
   @Override

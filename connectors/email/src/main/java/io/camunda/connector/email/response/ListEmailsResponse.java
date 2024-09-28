@@ -6,7 +6,5 @@
  */
 package io.camunda.connector.email.response;
 
-import java.util.List;
-
 public record ListEmailsResponse(
-    String messageId, List<String> fromAddresses, String subject, Integer size) {}
+    String messageId, String fromAddress, String subject, Integer size) {}
