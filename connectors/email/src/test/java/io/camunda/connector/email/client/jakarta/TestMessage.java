@@ -227,8 +227,7 @@ public class TestMessage extends Message {
   }
 
   @Override
-  public Enumeration<Header> getMatchingHeaders(String[] header_names)
-      throws MessagingException {
+  public Enumeration<Header> getMatchingHeaders(String[] header_names) throws MessagingException {
     return null;
   }
 
