@@ -275,8 +275,6 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         transport.sendMessage(message, message.getAllRecipients());
       }
       return new SendEmailResponse(smtpSendEmail.subject(), true);
-    } catch (SendFailedException e) {
-      return new SendEmailResponse(smtpSendEmail.subject(), false);
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
