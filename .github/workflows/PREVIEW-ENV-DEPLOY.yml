@@ -9,7 +9,7 @@ jobs:
   deploy-preview:
     # checks that the PR isn't closed AND check whether the labeled event contains deploy-preview as substring || check whether on new commit of PR the label deploy-preview is part of label array
     if: github.event.pull_request.state != 'closed' && (contains( github.event.label.name, 'deploy-preview') || contains( github.event.pull_request.labels.*.name, 'deploy-preview'))
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     name: deploy-preview-env-${{ matrix.product_context }}
     env:
@@ -80,7 +80,7 @@ jobs:
         argocd_server: argocd.int.camunda.com
   conflicts:
     if: always() && github.event_name == 'pull_request' && (contains( github.event.label.name, 'deploy-preview') || contains( github.event.pull_request.labels.*.name, 'deploy-preview'))
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Check PR for merge conflicts
       uses: camunda/infra-global-github-actions/preview-env/conflicts@main
@@ -96,7 +96,7 @@ jobs:
   comment:
     if: always() && github.event_name == 'pull_request' && needs.deploy-preview.result != 'skipped'
     name: create-deployment-result-summary
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [deploy-preview]
     steps:
     - uses: camunda/infra-global-github-actions/preview-env/comment@main
