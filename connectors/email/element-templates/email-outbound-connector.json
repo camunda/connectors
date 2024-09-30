@@ -685,6 +685,7 @@
   }, {
     "id" : "searchStringEmailPop3",
     "label" : "Search criteria",
+    "description" : "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "optional" : true,
     "feel" : "required",
     "group" : "searchEmailsPop3",
@@ -703,7 +704,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails.",
     "type" : "Text"
   }, {
     "id" : "pop3MessageIdDelete",
@@ -757,30 +758,6 @@
     },
     "tooltip" : "The ID of the message, typically returned by a previous email task.",
     "type" : "String"
-  }, {
-    "id" : "deleteOnRead",
-    "label" : "Delete after reading",
-    "optional" : false,
-    "value" : false,
-    "feel" : "optional",
-    "group" : "readEmailPop3",
-    "binding" : {
-      "name" : "data.pop3Action.deleteOnRead",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.pop3ActionDiscriminator",
-        "equals" : "readEmailPop3",
-        "type" : "simple"
-      }, {
-        "property" : "protocol",
-        "equals" : "pop3",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Enable this option if you want the email to be automatically deleted from the server after it is read. By default, this option is turned off to retain emails on the server.",
-    "type" : "Boolean"
   }, {
     "id" : "imapMaxToBeRead",
     "label" : "Maximum number of emails to be read",
@@ -902,6 +879,7 @@
   }, {
     "id" : "searchStringEmailImap",
     "label" : "Search criteria",
+    "description" : "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
     "optional" : true,
     "feel" : "required",
     "group" : "searchEmailsImap",
@@ -920,7 +898,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails. Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+    "tooltip" : "Define the search criteria using supported keywords and syntax to filter emails.",
     "type" : "Text"
   }, {
     "id" : "searchEmailFolder",
