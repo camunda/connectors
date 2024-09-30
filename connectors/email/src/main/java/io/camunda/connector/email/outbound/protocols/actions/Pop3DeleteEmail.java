@@ -18,7 +18,7 @@ public record Pop3DeleteEmail(
             group = "deleteEmailPop3",
             id = "pop3MessageIdDelete",
             tooltip = "The ID of the message, typically returned by a previous email task.",
-            feel = Property.FeelMode.required,
+            feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
         @NotNull
         String messageId)

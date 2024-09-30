@@ -18,20 +18,11 @@ public record Pop3ReadEmail(
             label = "Message ID",
             group = "readEmailPop3",
             id = "pop3MessageIdRead",
-            tooltip = "The ID of the message, typically returned by a previous email task.",
-            feel = Property.FeelMode.required,
+            tooltip =
+                "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
+            feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
         @Valid
         @NotNull
-        String messageId,
-    @TemplateProperty(
-            label = "Delete after reading",
-            group = "readEmailPop3",
-            tooltip =
-                "Enable this option if you want the email to be automatically deleted from the server after it is read. By default, this option is turned off to retain emails on the server.",
-            type = TemplateProperty.PropertyType.Boolean,
-            defaultValue = "false",
-            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-            binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.deleteOnRead"))
-        boolean deleteOnRead)
+        String messageId)
     implements Pop3Action {}

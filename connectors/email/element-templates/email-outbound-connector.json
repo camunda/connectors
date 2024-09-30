@@ -713,7 +713,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "required",
+    "feel" : "optional",
     "group" : "deleteEmailPop3",
     "binding" : {
       "name" : "data.pop3Action.messageId",
@@ -739,7 +739,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "required",
+    "feel" : "optional",
     "group" : "readEmailPop3",
     "binding" : {
       "name" : "data.pop3Action.messageId",
@@ -756,32 +756,8 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The ID of the message, typically returned by a previous email task.",
+    "tooltip" : "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
     "type" : "String"
-  }, {
-    "id" : "deleteOnRead",
-    "label" : "Delete after reading",
-    "optional" : false,
-    "value" : false,
-    "feel" : "optional",
-    "group" : "readEmailPop3",
-    "binding" : {
-      "name" : "data.pop3Action.deleteOnRead",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.pop3ActionDiscriminator",
-        "equals" : "readEmailPop3",
-        "type" : "simple"
-      }, {
-        "property" : "protocol",
-        "equals" : "pop3",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Enable this option if you want the email to be automatically deleted from the server after it is read. By default, this option is turned off to retain emails on the server.",
-    "type" : "Boolean"
   }, {
     "id" : "imapMaxToBeRead",
     "label" : "Maximum number of emails to be read",
