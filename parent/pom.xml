@@ -673,7 +673,6 @@ limitations under the License.</license.inlineheader>
             <formats>
               <format>
                 <includes>
-                  <include>*.md</include>
                   <include>.gitignore</include>
                 </includes>
                 <trimTrailingWhitespace/>
