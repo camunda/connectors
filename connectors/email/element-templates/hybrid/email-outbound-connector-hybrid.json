@@ -718,7 +718,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "required",
+    "feel" : "optional",
     "group" : "deleteEmailPop3",
     "binding" : {
       "name" : "data.pop3Action.messageId",
@@ -744,7 +744,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "required",
+    "feel" : "optional",
     "group" : "readEmailPop3",
     "binding" : {
       "name" : "data.pop3Action.messageId",
@@ -761,7 +761,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "The ID of the message, typically returned by a previous email task.",
+    "tooltip" : "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
     "type" : "String"
   }, {
     "id" : "imapMaxToBeRead",
