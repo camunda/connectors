@@ -43,8 +43,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -71,9 +69,9 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -90,6 +88,11 @@ import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 
 @WireMockTest
 public class CustomApacheHttpClientTest {
+
+  static {
+    System.setProperty("http.proxyHost", "httdsdssdp://localhost");
+    System.setProperty("http.proxyPort", "8090");
+  }
 
   private final CustomApacheHttpClient customApacheHttpClient = CustomApacheHttpClient.getDefault();
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
@@ -146,6 +149,9 @@ public class CustomApacheHttpClientTest {
 
     private static final WireMockServer proxy = new WireMockServer(8090);
 
+    private final CustomApacheHttpClient proxiedApacheHttpClient =
+        CustomApacheHttpClient.create(HttpClients.custom());
+
     @BeforeAll
     public static void startProxy() {
       proxy.start();
@@ -165,8 +171,6 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn200_whenGetAndProxySet(WireMockRuntimeInfo wmRuntimeInfo)
         throws Exception {
       stubFor(get("/path").willReturn(ok().withBody("Hello, world!")));
-      var spied = spy(customApacheHttpClient);
-      when(spied.getProxyConfig()).thenReturn(HttpHost.create("http://localhost:8090"));
       proxy.stubFor(
           get(urlMatching(".*"))
               .willReturn(
@@ -175,7 +179,7 @@ public class CustomApacheHttpClientTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
-      HttpCommonResult result = spied.execute(request);
+      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo("Hello, world!");
@@ -187,8 +191,6 @@ public class CustomApacheHttpClientTest {
         throws URISyntaxException {
       stubFor(
           post("/path").willReturn(created().withJsonBody(new POJONode(Map.of("key1", "value1")))));
-      var spied = spy(customApacheHttpClient);
-      when(spied.getProxyConfig()).thenReturn(HttpHost.create("http://localhost:8090"));
       proxy.stubFor(
           post(urlMatching(".*"))
               .willReturn(
@@ -197,7 +199,7 @@ public class CustomApacheHttpClientTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
       request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
-      HttpCommonResult result = spied.execute(request);
+      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
       assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
@@ -208,8 +210,6 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn200_whenPutAndProxySet(WireMockRuntimeInfo wmRuntimeInfo)
         throws URISyntaxException {
       stubFor(put("/path").willReturn(ok().withJsonBody(new POJONode(Map.of("key1", "value1")))));
-      var spied = spy(customApacheHttpClient);
-      when(spied.getProxyConfig()).thenReturn(HttpHost.create("http://localhost:8090"));
       proxy.stubFor(
           put(urlMatching(".*"))
               .willReturn(
@@ -218,7 +218,7 @@ public class CustomApacheHttpClientTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.PUT);
       request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
-      HttpCommonResult result = spied.execute(request);
+      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
@@ -229,8 +229,6 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn200_whenDeleteAndProxySet(WireMockRuntimeInfo wmRuntimeInfo)
         throws URISyntaxException {
       stubFor(delete("/path").willReturn(noContent()));
-      var spied = spy(customApacheHttpClient);
-      when(spied.getProxyConfig()).thenReturn(HttpHost.create("http://localhost:8090"));
       proxy.stubFor(
           delete(urlMatching(".*"))
               .willReturn(
@@ -239,7 +237,7 @@ public class CustomApacheHttpClientTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.DELETE);
       request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
-      HttpCommonResult result = spied.execute(request);
+      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(204);
       proxy.verify(deleteRequestedFor(urlEqualTo("/path")));
