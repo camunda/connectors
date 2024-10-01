@@ -7,6 +7,8 @@
 package io.camunda.connector.inbound;
 
 import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.QueueAttributeName;
+import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -15,6 +17,7 @@ import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "AWS SQS Inbound", type = "io.camunda:aws-sqs-inbound:1")
 public class SqsExecutable implements InboundConnectorExecutable {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
   private final AmazonSQSClientSupplier sqsClientSupplier;
   private final ExecutorService executorService;
@@ -54,6 +58,16 @@ public class SqsExecutable implements InboundConnectorExecutable {
     amazonSQS =
         sqsClientSupplier.sqsClient(
             CredentialsProviderSupport.credentialsProvider(properties), region);
+
+    try {
+      amazonSQS.getQueueAttributes(
+          properties.getQueue().getUrl(),
+          List.of(QueueAttributeName.ApproximateNumberOfMessages.toString()));
+    } catch (QueueDoesNotExistException e) {
+      LOGGER.error("Queue does not exist, failing subscription activation");
+      throw new RuntimeException("Queue does not exist: " + properties.getQueue().getUrl());
+    }
+
     LOGGER.debug("SQS client created successfully");
     if (sqsQueueConsumer == null) {
       sqsQueueConsumer = new SqsQueueConsumer(amazonSQS, properties, context);
