@@ -9,6 +9,7 @@ package io.camunda.connector.inbound;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.when;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -115,6 +117,30 @@ class SqsExecutableTest {
     // Then
     assertThat(consumer.isQueueConsumerActive()).isFalse();
     assertThat(executorService.isShutdown()).isTrue();
+  }
+
+  @Test
+  public void nonExistingQueueTest() {
+    // Given
+    when(sqsClient.getQueueAttributes(any(), any())).thenThrow(new QueueDoesNotExistException(""));
+    when(supplier.sqsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+        .thenReturn(sqsClient);
+    Map<String, Object> properties =
+        Map.of(
+            "authentication",
+            Map.of(
+                "secretKey", ACTUAL_SECRET_KEY,
+                "accessKey", ACTUAL_ACCESS_KEY),
+            "configuration",
+            Map.of("region", "us-east-1"),
+            "queue",
+            Map.of("url", ACTUAL_QUEUE_URL, "pollingWaitTime", "1"));
+    var context = createConnectorContext(properties, createDefinition());
+    consumer = new SqsQueueConsumer(sqsClient, new SqsInboundProperties(), context);
+    consumer.setQueueConsumerActive(true);
+    SqsExecutable sqsExecutable = new SqsExecutable(supplier, executorService, consumer);
+    // When & then
+    assertThrows(RuntimeException.class, () -> sqsExecutable.activate(context));
   }
 
   private InboundConnectorDefinition createDefinition() {
