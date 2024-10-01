@@ -61,11 +61,11 @@ public class SqsExecutable implements InboundConnectorExecutable {
 
     try {
       amazonSQS.getQueueAttributes(
-          properties.getQueue().url(),
+          properties.getQueue().getUrl(),
           List.of(QueueAttributeName.ApproximateNumberOfMessages.toString()));
     } catch (QueueDoesNotExistException e) {
       LOGGER.error("Queue does not exist, failing subscription activation");
-      throw new RuntimeException("Queue does not exist: " + properties.getQueue().url());
+      throw new RuntimeException("Queue does not exist: " + properties.getQueue().getUrl());
     }
 
     LOGGER.debug("SQS client created successfully");
