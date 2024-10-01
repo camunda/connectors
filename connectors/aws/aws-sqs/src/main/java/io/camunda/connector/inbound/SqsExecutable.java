@@ -7,6 +7,8 @@
 package io.camunda.connector.inbound;
 
 import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.QueueAttributeName;
+import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
@@ -22,6 +24,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -63,6 +66,7 @@ import org.slf4j.LoggerFactory;
           templateNameOverride = "Amazon SQS Boundary Event Connector")
     })
 public class SqsExecutable implements InboundConnectorExecutable {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
   private final AmazonSQSClientSupplier sqsClientSupplier;
   private final ExecutorService executorService;
@@ -100,6 +104,16 @@ public class SqsExecutable implements InboundConnectorExecutable {
     amazonSQS =
         sqsClientSupplier.sqsClient(
             CredentialsProviderSupport.credentialsProvider(properties), region);
+
+    try {
+      amazonSQS.getQueueAttributes(
+          properties.getQueue().url(),
+          List.of(QueueAttributeName.ApproximateNumberOfMessages.toString()));
+    } catch (QueueDoesNotExistException e) {
+      LOGGER.error("Queue does not exist, failing subscription activation");
+      throw new RuntimeException("Queue does not exist: " + properties.getQueue().url());
+    }
+
     LOGGER.debug("SQS client created successfully");
     if (sqsQueueConsumer == null) {
       sqsQueueConsumer = new SqsQueueConsumer(amazonSQS, properties, context);

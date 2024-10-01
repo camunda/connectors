@@ -54,6 +54,11 @@ public class SqsQueueConsumer implements Runnable {
     do {
       try {
         receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
+      } catch (Exception e) {
+        LOGGER.error("Failed to receive messages from SQS queue", e);
+        continue;
+      }
+      try {
         List<Message> messages = receiveMessageResult.getMessages();
         for (Message message : messages) {
           context.log(
