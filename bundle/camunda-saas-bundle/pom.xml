@@ -28,13 +28,6 @@
       <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
     </dependency>
 
-    <!-- Fix CVE-2024-7254 -->
-    <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java-util</artifactId>
-      <version>3.25.5</version>
-    </dependency>
-
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-gcp-secret-provider</artifactId>
