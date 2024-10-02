@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.client.jakarta;
+package io.camunda.connector.email.client.jakarta.utils;
 
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
@@ -128,7 +128,7 @@ public class JakartaUtils {
         properties.put("mail.imaps.port", imap.imapPort().toString());
         properties.put("mail.imaps.auth", true);
         properties.put("mail.imaps.starttls.enable", true);
-        properties.put("mail.imaps.usesocketchannels", true);
+        properties.put("mail.imaps.timeout", "10000");
       }
       case SSL -> {
         properties.put("mail.store.protocol", "imaps");
@@ -136,7 +136,7 @@ public class JakartaUtils {
         properties.put("mail.imaps.port", imap.imapPort().toString());
         properties.put("mail.imaps.auth", true);
         properties.put("mail.imaps.ssl.enable", true);
-        properties.put("mail.imaps.usesocketchannel", true);
+        properties.put("mail.imaps.timeout", "10000");
       }
     }
     return properties;

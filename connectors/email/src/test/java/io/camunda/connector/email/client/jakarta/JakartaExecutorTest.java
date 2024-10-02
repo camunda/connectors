@@ -11,6 +11,10 @@ import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
+import io.camunda.connector.email.client.jakarta.outbound.JakartaEmailActionExecutor;
+import io.camunda.connector.email.client.jakarta.utils.Email;
+import io.camunda.connector.email.client.jakarta.utils.EmailBody;
+import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Imap;
 import io.camunda.connector.email.outbound.protocols.Pop3;
