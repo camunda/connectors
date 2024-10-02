@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.api.inbound;
 
+import io.camunda.document.Document;
+import io.camunda.document.store.DocumentCreationRequest;
 import java.util.Map;
 
 /**
@@ -54,7 +56,7 @@ public interface InboundConnectorContext {
 
   /**
    * Low-level properties access method. Allows to perform custom deserialization. For a simpler
-   * property access, consider using {@link #bindProperties(Class)} (Class)}.
+   * property access, consider using {@link #bindProperties(Class)}.
    *
    * <p>Note: this method doesn't perform validation or FEEl expression evaluation. Secret
    * replacement is performed using the {@link io.camunda.connector.api.secret.SecretProvider}
@@ -112,4 +114,7 @@ public interface InboundConnectorContext {
    * implementation requires it.
    */
   void log(Activity activity);
+
+  /** Creates a new document in the Camunda Document Store. */
+  Document createDocument(DocumentCreationRequest request);
 }

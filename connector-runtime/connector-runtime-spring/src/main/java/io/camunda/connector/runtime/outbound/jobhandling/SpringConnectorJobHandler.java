@@ -26,6 +26,7 @@ import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Outbound;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
@@ -52,10 +53,16 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
       OutboundConnectorConfiguration connectorConfiguration) {
-    super(connectorFunction, secretProviderAggregator, validationProvider, objectMapper);
+    super(
+        connectorFunction,
+        secretProviderAggregator,
+        validationProvider,
+        documentFactory,
+        objectMapper);
     this.metricsRecorder = metricsRecorder;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.connectorConfiguration = connectorConfiguration;

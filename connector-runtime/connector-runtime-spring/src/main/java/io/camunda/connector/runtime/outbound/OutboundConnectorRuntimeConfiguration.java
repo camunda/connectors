@@ -24,6 +24,9 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
@@ -41,12 +44,18 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  public DocumentFactory documentFactory() {
+    return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+  }
+
+  @Bean
   public OutboundConnectorManager outboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
+      DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder) {
     return new OutboundConnectorManager(
@@ -55,6 +64,7 @@ public class OutboundConnectorRuntimeConfiguration {
         commandExceptionHandlingStrategy,
         secretProviderAggregator,
         validationProvider,
+        documentFactory,
         objectMapper,
         metricsRecorder);
   }

@@ -33,6 +33,7 @@ import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.response.CompleteJobResponse;
@@ -58,6 +59,8 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected ValidationProvider validationProvider;
 
+  protected DocumentFactory documentFactory;
+
   protected ObjectMapper objectMapper;
 
   /**
@@ -80,10 +83,12 @@ public class ConnectorJobHandler implements JobHandler {
       final OutboundConnectorFunction call,
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
+      final DocumentFactory documentFactory,
       final ObjectMapper objectMapper) {
     this.call = call;
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
+    this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
   }
 
@@ -180,7 +185,8 @@ public class ConnectorJobHandler implements JobHandler {
 
     try {
       var context =
-          new JobHandlerContext(job, getSecretProvider(), validationProvider, objectMapper);
+          new JobHandlerContext(
+              job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
       var response = call.execute(context);
       var responseVariables =
           ConnectorHelper.createOutputVariables(

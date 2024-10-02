@@ -27,6 +27,8 @@ import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
+import io.camunda.document.Document;
+import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.operate.model.FlowNodeInstance;
 import java.util.List;
 import java.util.Map;
@@ -129,6 +131,11 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public Queue<Activity> getLogs() {
     return inboundContext.getLogs();
+  }
+
+  @Override
+  public Document createDocument(DocumentCreationRequest request) {
+    return inboundContext.createDocument(request);
   }
 
   @Override

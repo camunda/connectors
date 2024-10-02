@@ -26,6 +26,11 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
+import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,14 +38,12 @@ import java.util.Map;
 public class OutboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
-  protected SecretProvider secretProvider = secrets::get;
-
-  protected ValidationProvider validationProvider;
-
-  protected Map<String, Object> variables;
-
   protected final Map<String, String> headers = new HashMap<>();
-
+  protected SecretProvider secretProvider = secrets::get;
+  protected ValidationProvider validationProvider;
+  protected Map<String, Object> variables;
+  protected DocumentFactory documentFactory =
+      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   private ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   /**
@@ -207,6 +210,11 @@ public class OutboundConnectorContextBuilder {
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }
+    }
+
+    @Override
+    public Document createDocument(DocumentCreationRequest request) {
+      return documentFactory.create(request);
     }
   }
 }

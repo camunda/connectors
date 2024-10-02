@@ -62,6 +62,11 @@ import io.camunda.connector.http.base.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
+import io.camunda.document.CamundaDocument;
+import io.camunda.document.DocumentMetadata;
+import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
@@ -88,9 +93,52 @@ public class CustomApacheHttpClientTest {
 
   private final CustomApacheHttpClient customApacheHttpClient = CustomApacheHttpClient.getDefault();
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final CamundaDocumentStore store = InMemoryDocumentStore.INSTANCE;
 
   private String getHostAndPort(WireMockRuntimeInfo wmRuntimeInfo) {
     return "http://localhost:" + wmRuntimeInfo.getHttpPort();
+  }
+
+  @Nested
+  class DocumentUploadTests {
+
+    @Test
+    public void shouldReturn201_whenUploadDocument(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
+      var ref =
+          store.createDocument(
+              DocumentCreationRequest.from("The content of this file".getBytes())
+                  .metadata(new DocumentMetadata(Map.of(DocumentMetadata.FILE_NAME, "file.txt")))
+                  .build());
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      request.setBody(
+          Map.of(
+              "otherField",
+              "otherValue",
+              "document",
+              new CamundaDocument(ref.metadata(), ref, store)));
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(201);
+
+      verify(
+          postRequestedFor(urlEqualTo("/path"))
+              .withHeader(
+                  "Content-Type", and(containing("multipart/form-data"), containing("boundary=")))
+              .withRequestBodyPart(
+                  new MultipartValuePatternBuilder()
+                      .withName("otherField")
+                      .withBody(equalTo("otherValue"))
+                      .build())
+              .withRequestBodyPart(
+                  new MultipartValuePatternBuilder()
+                      .withName("document")
+                      .withBody(equalTo("The content of this file"))
+                      .build()));
+    }
   }
 
   @Nested
