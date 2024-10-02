@@ -4,12 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.client.jakarta;
+package io.camunda.connector.email.client.jakarta.outbound;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.EmailActionExecutor;
+import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
