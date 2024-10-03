@@ -11,9 +11,12 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.event.ConnectionEvent;
 import jakarta.mail.event.ConnectionListener;
 import org.eclipse.angus.mail.imap.IMAPFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CustomConnectionListener implements ConnectionListener {
 
+  private static final Logger log = LoggerFactory.getLogger(CustomConnectionListener.class);
   private final IMAPFolder folder;
   private final Runnable runnable;
 
@@ -28,7 +31,8 @@ public class CustomConnectionListener implements ConnectionListener {
 
   @Override
   public void opened(ConnectionEvent e) {
-    System.out.println("OPENED");
+    log.debug("The folder is successfully opened.");
+    log.debug("Starting the email consumer...");
     this.runnable.run();
   }
 
@@ -37,7 +41,7 @@ public class CustomConnectionListener implements ConnectionListener {
 
   @Override
   public void closed(ConnectionEvent e) {
-    System.out.println("CLOSED");
+    log.debug("The folder has been closed. Reopening it...");
     try {
       this.folder.open(Folder.READ_WRITE);
     } catch (MessagingException ex) {
