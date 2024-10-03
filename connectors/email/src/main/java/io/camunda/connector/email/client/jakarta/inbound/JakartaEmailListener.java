@@ -106,12 +106,16 @@ public class JakartaEmailListener implements EmailListener {
     try {
       if (!Objects.isNull(this.folder)) this.folder.close();
       if (!Objects.isNull(this.store)) this.store.close();
-      if (!Objects.isNull(this.executorService)) this.executorService.shutdown();
-      if (!Objects.isNull(this.scheduledExecutorService)) this.scheduledExecutorService.shutdown();
-      if (!this.executorService.awaitTermination(1, TimeUnit.SECONDS))
-        this.executorService.shutdownNow();
-      if (!this.scheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS))
-        this.scheduledExecutorService.shutdownNow();
+      if (!Objects.isNull(this.executorService)) {
+        this.executorService.shutdown();
+        if (!this.executorService.awaitTermination(1, TimeUnit.SECONDS))
+          this.executorService.shutdownNow();
+      }
+      if (!Objects.isNull(this.scheduledExecutorService)) {
+        this.scheduledExecutorService.shutdown();
+        if (!this.scheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS))
+          this.scheduledExecutorService.shutdownNow();
+      }
     } catch (MessagingException | InterruptedException e) {
       throw new RuntimeException(e);
     }
