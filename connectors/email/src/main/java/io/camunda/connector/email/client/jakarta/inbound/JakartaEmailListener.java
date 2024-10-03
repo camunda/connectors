@@ -79,6 +79,7 @@ public class JakartaEmailListener implements EmailListener {
   private void keepAlive() {
     try {
       if (!this.folder.isOpen()) folder.open(Folder.READ_WRITE);
+      log.debug("Sending `NOOP` operation to the email server");
       folder.doCommand(
           protocol -> {
             protocol.simpleCommand("NOOP", null);
@@ -92,6 +93,7 @@ public class JakartaEmailListener implements EmailListener {
   private synchronized void startIdle() {
     try {
       while (this.folder.isOpen()) {
+        log.debug("Listening to new email...");
         this.folder.idle();
       }
     } catch (MessagingException e) {
