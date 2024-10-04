@@ -57,6 +57,11 @@ import io.camunda.connector.http.base.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
+import io.camunda.document.CamundaDocument;
+import io.camunda.document.DocumentMetadata;
+import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
@@ -100,7 +105,7 @@ public class CustomApacheHttpClientTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
-      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setBody(
           Map.of(
               "otherField",
