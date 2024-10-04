@@ -49,7 +49,8 @@
       "type": "Hidden",
       "value": "io.camunda:http-json:1",
       "binding": {
-        "type": "zeebe:taskDefinition:type"
+        "type": "zeebe:taskDefinition",
+        "property": "type"
       }
     },
     {
@@ -281,7 +282,7 @@
       "description": "Map of query parameters to add to the request URL",
       "group": "input",
       "type": "String",
-      "feel":"required",
+      "feel": "required",
       "binding": {
         "type": "zeebe:input",
         "name": "queryParameters"
