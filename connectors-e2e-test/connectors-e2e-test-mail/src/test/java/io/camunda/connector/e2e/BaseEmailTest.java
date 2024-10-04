@@ -16,26 +16,32 @@
  */
 package io.camunda.connector.e2e;
 
+import com.icegreen.greenmail.store.FolderException;
+import com.icegreen.greenmail.user.GreenMailUser;
 import com.icegreen.greenmail.util.GreenMail;
-import io.camunda.zeebe.client.ZeebeClient;
+import com.icegreen.greenmail.util.GreenMailUtil;
+import jakarta.mail.Address;
 import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class BaseEmailTest {
 
   protected static final String LOCALHOST = "localhost";
   private static final GreenMail greenMail = new GreenMail();
   @TempDir File tempDir;
-
-  @Autowired ZeebeClient zeebeClient;
+  private GreenMailUser greenMailUser = greenMail.setUser("test@camunda.com", "password");
+  ;
 
   @BeforeAll
   static void setup() {
-    greenMail.setUser("test@camunda.com", "password");
     greenMail.start();
   }
 
@@ -44,8 +50,61 @@ public class BaseEmailTest {
     greenMail.stop();
   }
 
+  protected static List<String> getSenders(Message message) {
+    try {
+      return Arrays.stream(message.getFrom()).map(Address::toString).toList();
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected static List<String> getReceivers(Message message) {
+    try {
+      return Arrays.stream(message.getAllRecipients()).map(Address::toString).toList();
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected static String getPlainTextBody(Message message) {
+    try {
+      return message.getContent().toString().trim();
+    } catch (MessagingException | IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected static String getSubject(Message message) {
+    try {
+      return message.getSubject();
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   protected Message[] getLastReceivedEmails() {
     return greenMail.getReceivedMessages();
+  }
+
+  protected boolean waitForNewEmails(long timeout, int numberOfEmails) {
+    return greenMail.waitForIncomingEmail(timeout, numberOfEmails);
+  }
+
+  protected void sendEmail(String to, String subject, String body) {
+    MimeMessage mimeMessage =
+        GreenMailUtil.createTextEmail(
+            to, "test@camunda.com", subject, body, greenMail.getImap().getServerSetup());
+    greenMailUser.deliver(mimeMessage);
+  }
+
+  protected String getLastEmailMessageId() {
+    Message message = getLastReceivedEmails()[0];
+    try {
+      String messageId = message.getHeader("Message-ID")[0];
+      return messageId.trim().replaceAll("[<>]", "");
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   protected String getUnsecurePop3Port() {
@@ -58,5 +117,13 @@ public class BaseEmailTest {
 
   protected String getUnsecureSmtpPort() {
     return String.valueOf(greenMail.getSmtp().getPort());
+  }
+
+  protected void reset() {
+    try {
+      greenMail.purgeEmailFromAllMailboxes();
+    } catch (FolderException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
