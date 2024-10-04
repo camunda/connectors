@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.HuggingFace.v1",
   "version": 1,
   "description": "Interact with Hugging Face inference API",
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/hugging-face/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/hugging-face/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -38,7 +38,8 @@
       "type": "Hidden",
       "value": "io.camunda:http-json:1",
       "binding": {
-        "type": "zeebe:taskDefinition:type"
+        "type": "zeebe:taskDefinition",
+        "property": "type"
       }
     },
     {
