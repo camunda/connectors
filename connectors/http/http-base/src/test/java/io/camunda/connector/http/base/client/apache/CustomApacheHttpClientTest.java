@@ -57,7 +57,6 @@ import io.camunda.connector.http.base.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
