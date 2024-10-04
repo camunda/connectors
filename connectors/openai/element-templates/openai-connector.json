@@ -41,7 +41,8 @@
       "type": "Hidden",
       "value": "io.camunda:http-json:1",
       "binding": {
-        "type": "zeebe:taskDefinition:type"
+        "type": "zeebe:taskDefinition",
+        "property": "type"
       }
     },
     {
