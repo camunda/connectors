@@ -32,6 +32,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -46,7 +47,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
 import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 
-@WireMockTest(httpPort = 28090)
+@WireMockTest
 public class CustomApacheHttpClientProxyTest {
 
   private static CustomApacheHttpClient proxiedApacheHttpClient;
@@ -85,12 +86,12 @@ public class CustomApacheHttpClientProxyTest {
   }
 
   @Test
-  public void shouldReturn200_whenGetAndProxySet() {
+  public void shouldReturn200_whenGetAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
     stubFor(get("/path").willReturn(ok().withBody("Hello, world!")));
 
     HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.GET);
-    request.setUrl("http://host.docker.internal:28090/path");
+    request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
     HttpCommonResult result = proxiedApacheHttpClient.execute(request);
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
@@ -100,13 +101,13 @@ public class CustomApacheHttpClientProxyTest {
   }
 
   @Test
-  public void shouldReturn200_whenPostAndProxySet() {
+  public void shouldReturn200_whenPostAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
     stubFor(
         post("/path").willReturn(created().withJsonBody(new POJONode(Map.of("key1", "value1")))));
 
     HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.POST);
-    request.setUrl("http://host.docker.internal:28090/path");
+    request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
     HttpCommonResult result = proxiedApacheHttpClient.execute(request);
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(201);
@@ -116,12 +117,12 @@ public class CustomApacheHttpClientProxyTest {
   }
 
   @Test
-  public void shouldReturn200_whenPutAndProxySet() {
+  public void shouldReturn200_whenPutAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
     stubFor(put("/path").willReturn(ok().withJsonBody(new POJONode(Map.of("key1", "value1")))));
 
     HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.PUT);
-    request.setUrl("http://host.docker.internal:28090/path");
+    request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
     HttpCommonResult result = proxiedApacheHttpClient.execute(request);
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
@@ -131,16 +132,20 @@ public class CustomApacheHttpClientProxyTest {
   }
 
   @Test
-  public void shouldReturn200_whenDeleteAndProxySet() {
+  public void shouldReturn200_whenDeleteAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
     stubFor(delete("/path").willReturn(noContent()));
 
     HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.DELETE);
-    request.setUrl("http://host.docker.internal:28090/path");
+    request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
     HttpCommonResult result = proxiedApacheHttpClient.execute(request);
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(204);
     assertThat(result.headers().get("Via")).asString().contains("squid");
     verify(deleteRequestedFor(urlEqualTo("/path")));
+  }
+
+  private String getWireMockBaseUrlWithPath(WireMockRuntimeInfo wmRuntimeInfo, String path) {
+    return "http://host.docker.internal:" + wmRuntimeInfo.getHttpPort() + path;
   }
 }
