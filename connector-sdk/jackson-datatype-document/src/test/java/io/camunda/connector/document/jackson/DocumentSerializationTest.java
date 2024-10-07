@@ -32,12 +32,14 @@ import java.util.Map;
 import java.util.Optional;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.skyscreamer.jsonassert.JSONAssert;
 
+@ExtendWith(MockitoExtension.class)
 public class DocumentSerializationTest {
 
-  @Mock private DocumentFactory factory;
+  private final DocumentFactory factory = mock(DocumentFactory.class);
 
   private final ObjectMapper objectMapper =
       new ObjectMapper()
