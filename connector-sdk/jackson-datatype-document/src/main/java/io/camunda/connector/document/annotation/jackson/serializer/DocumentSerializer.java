@@ -51,7 +51,7 @@ public class DocumentSerializer extends JsonSerializer<Document> {
           new CamundaDocumentReferenceModel(
               camundaReference.storeId(),
               camundaReference.documentId(),
-              camundaReference.metadata().getKeys(),
+              camundaReference.metadata().keys(),
               Optional.empty());
     }
     jsonGenerator.writeObject(model);

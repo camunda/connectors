@@ -35,6 +35,7 @@
     <module>connectors</module>
     <module>bundle</module>
     <module>connectors-e2e-test</module>
+    <module>connectors/document</module>
   </modules>
 
 </project>

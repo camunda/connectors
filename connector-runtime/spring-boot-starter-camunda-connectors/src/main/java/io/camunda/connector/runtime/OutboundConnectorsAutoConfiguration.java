@@ -36,7 +36,6 @@ import io.camunda.document.operation.AggregatingOperationExecutor;
 import io.camunda.document.operation.DocumentOperationExecutor;
 import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.CamundaDocumentStoreImpl;
-import io.camunda.zeebe.client.ZeebeClient;
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
@@ -147,10 +146,8 @@ public class OutboundConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public CamundaDocumentStore documentStore(
-      Authentication authentication) {
-    final var endpoint = "localhost:8080";
-    return new CamundaDocumentStoreImpl(authentication, endpoint, ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
+  public CamundaDocumentStore documentStore() {
+    return new CamundaDocumentStoreImpl(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
   }
 
   @Bean

@@ -18,21 +18,11 @@ package io.camunda.document;
 
 import java.util.Map;
 
-public class DocumentMetadata {
+public record DocumentMetadata(Map<String, Object> keys) {
 
   public static final String CONTENT_TYPE = "contentType";
   public static final String FILE_NAME = "fileName";
   public static final String DESCRIPTION = "description";
-
-  private final Map<String, Object> keys;
-
-  public DocumentMetadata(Map<String, Object> keys) {
-    this.keys = keys;
-  }
-
-  public Map<String, Object> getKeys() {
-    return keys;
-  }
 
   public Object getKey(String key) {
     return keys.get(key);

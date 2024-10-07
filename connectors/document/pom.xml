@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connectors-parent</artifactId>
+      <version>8.6.0-SNAPSHOT</version>
+      <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <name>connector-document-function</name>
+      <description>Camunda Document connector</description>
+    <artifactId>connector-document-function</artifactId>
+    <packaging>jar</packaging>
+
+    <licenses>
+      <license>
+        <name>Camunda Self-Managed Free Edition license</name>
+        <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
+      </license>
+      <license>
+        <name>Camunda Self-Managed Enterprise Edition license</name>
+      </license>
+    </licenses>
+
+    <dependencies>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-document</artifactId>
+        <version>8.6.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-core</artifactId>
+      </dependency>
+    </dependencies>
+
+    <build>
+      <plugins>
+        <plugin>
+          <groupId>io.camunda.connector</groupId>
+          <artifactId>element-template-generator-maven-plugin</artifactId>
+          <version>${project.version}</version>
+          <configuration>
+            <connectors>
+              <connector>
+                <connectorClass>io.camunda.connector.document.DocumentConnectorFunction</connectorClass>
+                <files>
+                  <file>
+                    <templateId>io.camunda.connectors.Document.v1</templateId>
+                    <templateFileName>document-connector.json</templateFileName>
+                  </file>
+                </files>
+              </connector>
+            </connectors>
+          </configuration>
+        </plugin>
+      </plugins>
+    </build>
+
+</project>
