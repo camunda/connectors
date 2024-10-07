@@ -163,6 +163,12 @@ public class CustomApacheHttpClientTest {
     @AfterAll
     public static void tearDown() {
       proxyContainer.stop();
+      System.setProperty("http.proxyHost", "");
+      System.setProperty("http.proxyPort", "");
+      System.setProperty("http.nonProxyHosts", "");
+      System.setProperty("https.proxyHost", "");
+      System.setProperty("https.proxyPort", "");
+      System.setProperty("https.nonProxyHosts", "");
     }
 
     @Test

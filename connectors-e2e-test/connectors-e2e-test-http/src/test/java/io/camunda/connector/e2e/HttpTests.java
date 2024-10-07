@@ -123,6 +123,7 @@ public class HttpTests {
             .property("authentication.type", BasicAuthentication.TYPE)
             .property("authentication.username", "username")
             .property("authentication.password", "password")
+            .property("body", "={\"order\": {\"status\": \"processing\", \"id\": string(42+3)}}")
             .property("resultExpression", "={orderStatus: response.body.order.status}")
             .writeTo(new File(tempDir, "template.json"));
 
