@@ -31,6 +31,7 @@ import java.util.Set;
   "name",
   "id",
   "description",
+  "metadata",
   "documentationRef",
   "version",
   "category",
@@ -46,6 +47,7 @@ public record ElementTemplate(
     int version,
     String documentationRef,
     String description,
+    Metadata metadata,
     Set<String> appliesTo,
     ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
@@ -115,6 +117,14 @@ public record ElementTemplate(
   @JsonProperty(SCHEMA_FIELD_NAME)
   public String schema() {
     return SCHEMA_URL;
+  }
+
+  public static class Metadata {
+    List<String> keywords;
+
+    public Metadata(List<String> keywords) {
+      this.keywords = keywords;
+    }
   }
 
   @JsonInclude(Include.NON_NULL)
