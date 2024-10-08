@@ -58,15 +58,18 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ steps.set-snapshot-version.outputs.branchName }}
-          commit-message: "ci: set next snapshot version"
+          commit-message: "chore(snapshot): set next snapshot version"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           delete-branch: true
           base: main
-          title: "ci: set next snapshot version"
+          title: "chore(snapshot): set next snapshot version"
+          labels: "no milestone"
           body: |
             This PR sets the next snapshot version on the main branch.
             
             Checklist:
+            - [ ] checkout this branch locally
+            - [ ] run this command locally: `$ git commit --amend --no-edit && git push --force-with-lease`. This will trigger the CI checks.
             - [ ] the PR should be accepted via the "Rebase and merge" option
             - [ ] this temporary branch can be safely deleted after merging
             - [ ] the PR contains exactly one commit with the version change
