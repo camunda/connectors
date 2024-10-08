@@ -15,6 +15,7 @@ import io.camunda.connector.email.config.SmtpConfig;
 import io.camunda.connector.email.outbound.protocols.actions.SortFieldImap;
 import io.camunda.connector.email.outbound.protocols.actions.SortFieldPop3;
 import io.camunda.connector.email.outbound.protocols.actions.SortOrder;
+import io.camunda.document.Document;
 import jakarta.mail.*;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.validation.constraints.NotNull;
@@ -23,6 +24,7 @@ import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -325,5 +327,10 @@ public class JakartaUtils {
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public List<Document> getDocumentList(
+      Email email, Function<EmailAttachment, Document> documentFunction) {
+    return email.body().attachments().stream().map(documentFunction).toList();
   }
 }

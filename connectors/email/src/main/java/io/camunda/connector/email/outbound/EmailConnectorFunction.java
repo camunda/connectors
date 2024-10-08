@@ -63,6 +63,6 @@ public class EmailConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) {
     EmailRequest emailRequest = context.bindVariables(EmailRequest.class);
-    return emailActionExecutor.execute(emailRequest);
+    return emailActionExecutor.execute(emailRequest, context);
   }
 }

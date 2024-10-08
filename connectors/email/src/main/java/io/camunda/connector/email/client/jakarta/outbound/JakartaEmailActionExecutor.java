@@ -6,26 +6,37 @@
  */
 package io.camunda.connector.email.client.jakarta.outbound;
 
+import static io.camunda.document.DocumentMetadata.CONTENT_TYPE;
+import static io.camunda.document.DocumentMetadata.FILE_NAME;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.EmailActionExecutor;
+import io.camunda.connector.email.client.jakarta.utils.EmailAttachment;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.email.response.*;
+import io.camunda.document.Document;
+import io.camunda.document.store.DocumentCreationRequest;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
 import jakarta.mail.*;
-import jakarta.mail.internet.AddressException;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.*;
 import jakarta.mail.search.*;
+import jakarta.mail.util.ByteArrayDataSource;
+import java.io.IOException;
 import java.util.*;
+import java.util.function.Function;
 
 public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private final JakartaUtils jakartaUtils;
   private final ObjectMapper objectMapper;
+  private Function<EmailAttachment, Document> documentFunction;
 
   private JakartaEmailActionExecutor(JakartaUtils jakartaUtils, ObjectMapper objectMapper) {
     this.jakartaUtils = jakartaUtils;
@@ -37,7 +48,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
     return new JakartaEmailActionExecutor(sessionFactory, objectMapper);
   }
 
-  public Object execute(EmailRequest emailRequest) {
+  public Object execute(EmailRequest emailRequest, OutboundConnectorContext context) {
+    this.documentFunction = this.createDocumentFunction(context);
     Authentication authentication = emailRequest.authentication();
     Protocol protocol = emailRequest.data();
     Action action = protocol.getProtocolAction();
@@ -58,6 +70,20 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       case Pop3SearchEmails pop3SearchEmails ->
           pop3SearchEmails(pop3SearchEmails, authentication, session);
     };
+  }
+
+  private Function<EmailAttachment, Document> createDocumentFunction(
+      OutboundConnectorContext context) {
+    return emailAttachment ->
+        context.createDocument(
+            DocumentCreationRequest.from(emailAttachment.inputStream())
+                .metadata(
+                    Map.of(
+                        CONTENT_TYPE,
+                        emailAttachment.contentType(),
+                        FILE_NAME,
+                        emailAttachment.name()))
+                .build());
   }
 
   private List<SearchEmailsResponse> imapSearchEmails(
@@ -91,6 +117,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                     new ReadEmailResponse(
                         email.messageId(),
                         email.from(),
+                        this.jakartaUtils.getDocumentList(email, this.documentFunction),
                         email.headers(),
                         email.subject(),
                         email.size(),
@@ -207,6 +234,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                       new ReadEmailResponse(
                           email.messageId(),
                           email.from(),
+                          this.jakartaUtils.getDocumentList(email, this.documentFunction),
                           email.headers(),
                           email.subject(),
                           email.size(),
@@ -270,13 +298,29 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       if (cc.isPresent()) message.setRecipients(Message.RecipientType.CC, cc.get());
       if (bcc.isPresent()) message.setRecipients(Message.RecipientType.BCC, bcc.get());
       message.setSubject(smtpSendEmail.subject());
-      message.setText(smtpSendEmail.body());
+
+      Multipart multipart = new MimeMultipart();
+      MimeBodyPart textContent = new MimeBodyPart();
+      textContent.setText(smtpSendEmail.body());
+      multipart.addBodyPart(textContent);
+      if (!Objects.isNull(smtpSendEmail.attachment())) {
+        BodyPart attachment = new MimeBodyPart();
+        DataSource dataSource =
+            new ByteArrayDataSource(
+                smtpSendEmail.attachment().asInputStream(),
+                smtpSendEmail.attachment().metadata().getContentType());
+        attachment.setDataHandler(new DataHandler(dataSource));
+        attachment.setFileName(smtpSendEmail.attachment().metadata().getFileName());
+        multipart.addBodyPart(attachment);
+      }
+      message.setContent(multipart);
+
       try (Transport transport = session.getTransport()) {
         this.jakartaUtils.connectTransport(transport, authentication);
         transport.sendMessage(message, message.getAllRecipients());
       }
       return new SendEmailResponse(smtpSendEmail.subject(), true);
-    } catch (MessagingException e) {
+    } catch (MessagingException | IOException e) {
       throw new RuntimeException(e);
     }
   }

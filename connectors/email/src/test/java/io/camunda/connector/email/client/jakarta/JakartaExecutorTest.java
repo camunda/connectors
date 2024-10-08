@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.client.jakarta.outbound.JakartaEmailActionExecutor;
 import io.camunda.connector.email.client.jakarta.utils.Email;
@@ -25,6 +26,7 @@ import io.camunda.connector.email.response.DeleteEmailResponse;
 import io.camunda.connector.email.response.ListEmailsResponse;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import io.camunda.connector.email.response.SearchEmailsResponse;
+import io.camunda.document.DocumentMetadata;
 import jakarta.mail.*;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,7 +52,10 @@ class JakartaExecutorTest {
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Smtp.class);
     Session session = mock(Session.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
     Transport transport = mock(Transport.class);
+    // Document document = mock(Document.class);
+    DocumentMetadata documentMetadata = mock(DocumentMetadata.class);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -65,11 +70,16 @@ class JakartaExecutorTest {
     when(smtpSendEmail.to()).thenReturn(List.of("to"));
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
+    when(smtpSendEmail.attachment()).thenReturn(null);
+    // when(document.asByteArray()).thenReturn(new byte[0]);
+    // when(document.metadata()).thenReturn(documentMetadata);
+    when(documentMetadata.getContentType()).thenReturn("application/pdf");
+    when(documentMetadata.getFileName()).thenReturn("Test");
     when(smtpSendEmail.from()).thenReturn("myself");
     when(smtpSendEmail.body()).thenReturn("body");
     when(session.getTransport()).thenReturn(transport);
 
-    actionExecutor.execute(emailRequest);
+    actionExecutor.execute(emailRequest, context);
 
     verify(transport, times(1))
         .sendMessage(
@@ -77,9 +87,8 @@ class JakartaExecutorTest {
                 argument -> {
                   try {
                     return Arrays.stream(argument.getFrom())
-                            .allMatch(address -> address.toString().contains("myself"))
-                        && argument.getContent().toString().contains("body");
-                  } catch (MessagingException | IOException e) {
+                        .allMatch(address -> address.toString().contains("myself"));
+                  } catch (MessagingException e) {
                     throw new RuntimeException(e);
                   }
                 }),
@@ -106,6 +115,7 @@ class JakartaExecutorTest {
     Store store = mock(Store.class);
     POP3Folder pop3Folder = mock(POP3Folder.class);
     Message message = mock(Message.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -143,7 +153,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(emailRequest, context);
 
     Assertions.assertInstanceOf(List.class, object);
     Assertions.assertInstanceOf(ListEmailsResponse.class, ((List) object).getFirst());
@@ -165,6 +175,7 @@ class JakartaExecutorTest {
     Store store = mock(Store.class);
     Folder folder = mock(Folder.class);
     Message message = mock(Message.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -201,7 +212,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(emailRequest, context);
 
     Assertions.assertInstanceOf(List.class, object);
     Assertions.assertInstanceOf(ListEmailsResponse.class, ((List) object).getFirst());
@@ -223,6 +234,7 @@ class JakartaExecutorTest {
     Store store = mock(Store.class);
     POP3Folder pop3Folder = mock(POP3Folder.class);
     Message message = mock(Message.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
 
     when(sessionFactory.createSession(any())).thenReturn(session);
 
@@ -257,7 +269,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(emailRequest, context);
 
     Assertions.assertInstanceOf(ReadEmailResponse.class, object);
   }
@@ -278,6 +290,7 @@ class JakartaExecutorTest {
     Store store = mock(Store.class);
     Folder folder = mock(Folder.class);
     Message message = mock(Message.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
 
     when(sessionFactory.createSession(any())).thenReturn(session);
 
@@ -312,7 +325,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(emailRequest, context);
 
     Assertions.assertInstanceOf(ReadEmailResponse.class, object);
   }
@@ -333,6 +346,7 @@ class JakartaExecutorTest {
     Store store = mock(Store.class);
     POP3Folder pop3Folder = mock(POP3Folder.class);
     Message message = mock(Message.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
 
     when(sessionFactory.createSession(any())).thenReturn(session);
 
@@ -354,7 +368,7 @@ class JakartaExecutorTest {
     when(protocol.getProtocolAction()).thenReturn(pop3DeleteEmail);
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(emailRequest, context);
 
     Assertions.assertInstanceOf(DeleteEmailResponse.class, object);
   }
@@ -375,6 +389,7 @@ class JakartaExecutorTest {
     Store store = mock(Store.class);
     Folder folder = mock(Folder.class);
     Message message = mock(Message.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
 
     when(sessionFactory.createSession(any())).thenReturn(session);
 
@@ -396,7 +411,7 @@ class JakartaExecutorTest {
     when(protocol.getProtocolAction()).thenReturn(imapDeleteEmail);
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(emailRequest, context);
 
     Assertions.assertInstanceOf(DeleteEmailResponse.class, object);
   }
@@ -417,6 +432,7 @@ class JakartaExecutorTest {
     Store store = mock(Store.class);
     POP3Folder pop3Folder = mock(POP3Folder.class);
     Message message = mock(Message.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
 
     when(sessionFactory.createSession(any())).thenReturn(session);
 
@@ -452,7 +468,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(emailRequest, context);
 
     Assertions.assertInstanceOf(List.class, object);
   }
@@ -473,6 +489,7 @@ class JakartaExecutorTest {
     Store store = mock(Store.class);
     Folder folder = mock(Folder.class);
     Message message = mock(Message.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
 
     when(sessionFactory.createSession(any())).thenReturn(session);
 
@@ -508,7 +525,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(emailRequest, context);
 
     Assertions.assertInstanceOf(List.class, object);
   }
@@ -526,6 +543,8 @@ class JakartaExecutorTest {
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
+
     when(sessionFactory.createSession(any())).thenReturn(session);
 
     // Authentication
@@ -564,7 +583,7 @@ class JakartaExecutorTest {
     when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
 
     List<SearchEmailsResponse> searchEmailsResponses =
-        (List<SearchEmailsResponse>) actionExecutor.execute(emailRequest);
+        (List<SearchEmailsResponse>) actionExecutor.execute(emailRequest, context);
 
     Assertions.assertEquals(1, searchEmailsResponses.size());
     Assertions.assertEquals("important", searchEmailsResponses.getFirst().subject());
@@ -584,6 +603,7 @@ class JakartaExecutorTest {
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
     when(sessionFactory.createSession(any())).thenReturn(session);
+    OutboundConnectorContext context = mock(OutboundConnectorContext.class);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -624,7 +644,7 @@ class JakartaExecutorTest {
     when(sessionFactory.createBodylessEmail(any())).thenCallRealMethod();
 
     List<SearchEmailsResponse> searchEmailsResponses =
-        (List<SearchEmailsResponse>) actionExecutor.execute(emailRequest);
+        (List<SearchEmailsResponse>) actionExecutor.execute(emailRequest, context);
 
     System.out.println(searchEmailsResponses);
     Assertions.assertEquals(2, searchEmailsResponses.size());

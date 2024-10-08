@@ -7,12 +7,14 @@
 package io.camunda.connector.email.response;
 
 import io.camunda.connector.email.client.jakarta.utils.Header;
+import io.camunda.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 public record ReadEmailResponse(
     String messageId,
     String fromAddress,
+    List<Document> documents,
     List<Header> headers,
     String subject,
     Integer size,

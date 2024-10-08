@@ -67,7 +67,7 @@ public class JakartaEmailListener implements EmailListener {
       this.folder.addMessageCountListener(customMessageCountListener);
       this.folder.addMessageChangedListener(customMessageChangedListener);
       this.folder.open(Folder.READ_WRITE);
-      scheduledExecutorService.scheduleWithFixedDelay(this::keepAlive, 1, 5, TimeUnit.SECONDS);
+      // scheduledExecutorService.scheduleWithFixedDelay(this::keepAlive, 1, 5, TimeUnit.SECONDS);
       InitialPolling.create(context, emailListenerConfig, folder).poll();
     } catch (MessagingException e) {
       this.stopListener();
