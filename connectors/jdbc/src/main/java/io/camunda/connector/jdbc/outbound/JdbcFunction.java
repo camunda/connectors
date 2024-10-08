@@ -25,7 +25,7 @@ import io.camunda.connector.jdbc.model.response.JdbcResponse;
     version = 1,
     description =
         "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
-    metadata = {"relational database"},
+    metadata = @ElementTemplate.Metadata(keywords = {"relational", "database"}),
     icon = "icon.svg",
     documentationRef =
         "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql",

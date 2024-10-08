@@ -2,7 +2,10 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid SQL Database Connector",
   "id" : "io.camunda.connectors.Jdbc.v1-hybrid",
-  "description" : "Read and write data from a Camunda process directly to a SQL database(Microsoft SQL Server, MySQL, PostgreSQL)",
+  "description" : "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
+  "metadata" : {
+    "keywords" : [ "relational", "database" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql",
   "version" : 1,
   "category" : {
