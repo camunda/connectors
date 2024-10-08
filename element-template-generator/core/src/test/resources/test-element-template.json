@@ -3,6 +3,12 @@
   "name": "Template: Some Function",
   "id": "io.camunda.connector.Template.v1",
   "description": "Describe this connector",
+  "metadata": {
+    "keywords": [
+      "foo",
+      "bar"
+    ]
+  },
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/",
   "version": 1,
   "category": {

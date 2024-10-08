@@ -64,8 +64,6 @@ import uk.co.jemos.podam.api.PodamFactoryImpl;
 
 public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
-  private final ClassLoader classLoader;
-
   private static final ObjectWriter OBJECT_WRITER =
       ConnectorsObjectMapperSupplier.DEFAULT_MAPPER
           .copy()
@@ -73,8 +71,8 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
           .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
           .setSerializationInclusion(JsonInclude.Include.NON_NULL)
           .writerWithDefaultPrettyPrinter();
-
   private static final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+  private final ClassLoader classLoader;
 
   public ClassBasedDocsGenerator(ClassLoader classLoader) {
     this.classLoader = classLoader;
@@ -82,6 +80,57 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
   public ClassBasedDocsGenerator() {
     this(Thread.currentThread().getContextClassLoader());
+  }
+
+  public static Map<String, DataExampleModel> collectExampleData(Class<?> type) {
+    var methods = findAllDataExampleMethods(type);
+    return methods.stream()
+        .map(
+            pair -> {
+              var method = pair.getLeft();
+              var annotation = pair.getRight();
+              Object result;
+              String json;
+              Object feelResult = null;
+              String feelResultJson = null;
+              try {
+                result = method.invoke(new Arrays[0]);
+                json = OBJECT_WRITER.writeValueAsString(result);
+                if (StringUtils.isNotBlank(annotation.feel())) {
+                  feelResult = feelEngineWrapper.evaluate(annotation.feel(), result);
+                  feelResultJson = OBJECT_WRITER.writeValueAsString(feelResult);
+                }
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+              return new DataExampleModel(
+                  annotation.id(), result, json, annotation.feel(), feelResult, feelResultJson);
+            })
+        .collect(Collectors.toMap(DataExampleModel::id, v -> v));
+  }
+
+  public static List<Pair<Method, DataExample>> findAllDataExampleMethods(Class<?> type) {
+    return Arrays.stream(type.getDeclaredMethods())
+        .filter(m -> Modifier.isStatic(m.getModifiers()))
+        .filter(
+            m ->
+                Arrays.stream(m.getAnnotations())
+                    .anyMatch(a -> DataExample.class.equals(a.annotationType())))
+        .map(m -> Pair.of(m, m.getDeclaredAnnotation(DataExample.class)))
+        .toList();
+  }
+
+  public static String generateExampleData(Class<?> type) {
+    DataProviderStrategy strategy = new DocsDataProviderStrategy();
+    PodamFactory factory = new PodamFactoryImpl(strategy);
+    var exampleOutput = factory.manufacturePojo(type);
+    String exampleOutputJson;
+    try {
+      exampleOutputJson = OBJECT_WRITER.writeValueAsString(exampleOutput);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+    return exampleOutputJson;
   }
 
   @Override
@@ -115,6 +164,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
     model.put("id", elementTemplate.id());
     model.put("name", elementTemplate.name());
     model.put("description", elementTemplate.description());
+    model.put("keywords", elementTemplate.metadata().keywords());
     model.put("version", elementTemplate.version());
     model.put("type", templateGenerationContext.connectorType());
     model.put(
@@ -174,57 +224,6 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
         exampleValue,
         required,
         property);
-  }
-
-  public static Map<String, DataExampleModel> collectExampleData(Class<?> type) {
-    var methods = findAllDataExampleMethods(type);
-    return methods.stream()
-        .map(
-            pair -> {
-              var method = pair.getLeft();
-              var annotation = pair.getRight();
-              Object result;
-              String json;
-              Object feelResult = null;
-              String feelResultJson = null;
-              try {
-                result = method.invoke(new Arrays[0]);
-                json = OBJECT_WRITER.writeValueAsString(result);
-                if (StringUtils.isNotBlank(annotation.feel())) {
-                  feelResult = feelEngineWrapper.evaluate(annotation.feel(), result);
-                  feelResultJson = OBJECT_WRITER.writeValueAsString(feelResult);
-                }
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-              return new DataExampleModel(
-                  annotation.id(), result, json, annotation.feel(), feelResult, feelResultJson);
-            })
-        .collect(Collectors.toMap(DataExampleModel::id, v -> v));
-  }
-
-  public static List<Pair<Method, DataExample>> findAllDataExampleMethods(Class<?> type) {
-    return Arrays.stream(type.getDeclaredMethods())
-        .filter(m -> Modifier.isStatic(m.getModifiers()))
-        .filter(
-            m ->
-                Arrays.stream(m.getAnnotations())
-                    .anyMatch(a -> DataExample.class.equals(a.annotationType())))
-        .map(m -> Pair.of(m, m.getDeclaredAnnotation(DataExample.class)))
-        .toList();
-  }
-
-  public static String generateExampleData(Class<?> type) {
-    DataProviderStrategy strategy = new DocsDataProviderStrategy();
-    PodamFactory factory = new PodamFactoryImpl(strategy);
-    var exampleOutput = factory.manufacturePojo(type);
-    String exampleOutputJson;
-    try {
-      exampleOutputJson = OBJECT_WRITER.writeValueAsString(exampleOutput);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
-    return exampleOutputJson;
   }
 
   private String renderTemplate(Map<String, Object> model, PebbleTemplate pebbleTemplate) {
