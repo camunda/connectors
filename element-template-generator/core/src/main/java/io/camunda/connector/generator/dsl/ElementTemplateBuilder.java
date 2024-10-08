@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.dsl;
 
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
+import io.camunda.connector.generator.dsl.ElementTemplate.Metadata;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
@@ -47,6 +48,7 @@ public class ElementTemplateBuilder {
   protected ElementTemplateIcon icon;
   protected String documentationRef;
   protected String description;
+  protected Metadata metadata;
   protected Set<String> appliesTo;
   protected BpmnType elementType;
   protected final List<PropertyGroup> groups = new ArrayList<>();
@@ -146,6 +148,11 @@ public class ElementTemplateBuilder {
 
   public ElementTemplateBuilder description(String description) {
     this.description = description;
+    return this;
+  }
+
+  public ElementTemplateBuilder metadata(Metadata metadata) {
+    this.metadata = metadata;
     return this;
   }
 
