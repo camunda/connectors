@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
       <artifactId>connectors-parent</artifactId>
-      <version>8.6.0-SNAPSHOT-document-handling</version>
+      <version>8.6.0-SNAPSHOT-document-handling-gen2</version>
       <relativePath>../pom.xml</relativePath>
   </parent>
 
