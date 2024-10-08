@@ -44,8 +44,8 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
 
   public CamundaDocumentStoreImpl(ObjectMapper objectMapper) {
     String clusterId = System.getenv("ZEEBE_CLIENT_CLOUD_CLUSTER-ID");
-    this.documentApiBaseUrl = String.format("http://zeebe-service:8080/%s/v2/documents", clusterId);
-    // this.documentApiBaseUrl = "http://localhost:8088/v2/documents";
+    //this.documentApiBaseUrl = String.format("http://zeebe-service:8080/%s/v2/documents", clusterId);
+    this.documentApiBaseUrl = "http://localhost:8088/v2/documents";
     this.objectMapper = objectMapper;
   }
 
