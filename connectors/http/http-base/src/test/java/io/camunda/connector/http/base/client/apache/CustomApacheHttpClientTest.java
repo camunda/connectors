@@ -43,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
@@ -70,6 +71,7 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -78,6 +80,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -137,19 +140,22 @@ public class CustomApacheHttpClientTest {
   @Nested
   class ProxyTests {
 
+    private static final WireMockServer proxy = new WireMockServer();
     private static CustomApacheHttpClient proxiedApacheHttpClient;
     private static GenericContainer<?> proxyContainer;
 
     @BeforeAll
     public static void setUp() {
+      proxy.start();
       proxyContainer =
           new GenericContainer<>(DockerImageName.parse("sameersbn/squid:3.5.27-2"))
               .withExposedPorts(3128)
               .withClasspathResourceMapping(
                   "squid.conf", "/etc/squid/squid.conf", BindMode.READ_ONLY)
               .waitingFor(org.testcontainers.containers.wait.strategy.Wait.forListeningPort());
+      Testcontainers.exposeHostPorts(proxy.port());
+      proxyContainer.withAccessToHost(true);
       proxyContainer.start();
-
       // Set up the HttpClient to use the proxy
       String proxyHost = proxyContainer.getHost();
       Integer proxyPort = proxyContainer.getMappedPort(3128);
@@ -171,11 +177,17 @@ public class CustomApacheHttpClientTest {
       System.setProperty("https.proxyHost", "");
       System.setProperty("https.proxyPort", "");
       System.setProperty("https.nonProxyHosts", "");
+      proxy.stop();
+    }
+
+    @AfterEach
+    public void resetProxy() {
+      proxy.resetAll();
     }
 
     @Test
     public void shouldReturn200_whenGetAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(get("/path").willReturn(ok().withBody("Hello, world!")));
+      proxy.stubFor(get("/path").willReturn(ok().withBody("Hello, world!")));
 
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
@@ -185,12 +197,12 @@ public class CustomApacheHttpClientTest {
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo("Hello, world!");
       assertThat(result.headers().get("Via")).asString().contains("squid");
-      verify(getRequestedFor(urlEqualTo("/path")));
+      proxy.verify(getRequestedFor(urlEqualTo("/path")));
     }
 
     @Test
     public void shouldReturn200_whenPostAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(
+      proxy.stubFor(
           post("/path").willReturn(created().withJsonBody(new POJONode(Map.of("key1", "value1")))));
 
       HttpCommonRequest request = new HttpCommonRequest();
@@ -201,12 +213,13 @@ public class CustomApacheHttpClientTest {
       assertThat(result.status()).isEqualTo(201);
       assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
       assertThat(result.headers().get("Via")).asString().contains("squid");
-      verify(postRequestedFor(urlEqualTo("/path")));
+      proxy.verify(postRequestedFor(urlEqualTo("/path")));
     }
 
     @Test
     public void shouldReturn200_whenPutAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(put("/path").willReturn(ok().withJsonBody(new POJONode(Map.of("key1", "value1")))));
+      proxy.stubFor(
+          put("/path").willReturn(ok().withJsonBody(new POJONode(Map.of("key1", "value1")))));
 
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.PUT);
@@ -216,12 +229,12 @@ public class CustomApacheHttpClientTest {
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
       assertThat(result.headers().get("Via")).asString().contains("squid");
-      verify(putRequestedFor(urlEqualTo("/path")));
+      proxy.verify(putRequestedFor(urlEqualTo("/path")));
     }
 
     @Test
     public void shouldReturn200_whenDeleteAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(delete("/path").willReturn(noContent()));
+      proxy.stubFor(delete("/path").willReturn(noContent()));
 
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.DELETE);
@@ -230,11 +243,11 @@ public class CustomApacheHttpClientTest {
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(204);
       assertThat(result.headers().get("Via")).asString().contains("squid");
-      verify(deleteRequestedFor(urlEqualTo("/path")));
+      proxy.verify(deleteRequestedFor(urlEqualTo("/path")));
     }
 
     private String getWireMockBaseUrlWithPath(WireMockRuntimeInfo wmRuntimeInfo, String path) {
-      return "http://host.docker.internal:" + wmRuntimeInfo.getHttpPort() + path;
+      return "http://host.testcontainers.internal:" + proxy.port() + path;
     }
   }
 
