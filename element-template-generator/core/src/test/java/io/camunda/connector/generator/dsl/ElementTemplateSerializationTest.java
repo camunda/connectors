@@ -49,7 +49,7 @@ public class ElementTemplateSerializationTest {
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/")
             .description("Describe this connector")
-            .metadata(new Metadata(List.of("foo", "bar")))
+            .metadata(new Metadata(new String[] {"foo", "bar"}))
             .propertyGroups(
                 PropertyGroup.builder()
                     .id("authentication")

@@ -204,6 +204,7 @@ public class ElementTemplateBuilder {
         version,
         documentationRef,
         description,
+        metadata,
         appliesTo,
         ElementTypeWrapper.from(elementType),
         groups,

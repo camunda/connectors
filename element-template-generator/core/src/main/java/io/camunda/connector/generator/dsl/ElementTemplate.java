@@ -54,14 +54,6 @@ public record ElementTemplate(
     List<Property> properties,
     ElementTemplateIcon icon) {
 
-  public static ElementTemplateBuilder builderForOutbound() {
-    return ElementTemplateBuilder.createOutbound();
-  }
-
-  public static ElementTemplateBuilder builderForInbound() {
-    return ElementTemplateBuilder.createInbound();
-  }
-
   static final String SCHEMA_FIELD_NAME = "$schema";
   static final String SCHEMA_URL =
       "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
@@ -109,6 +101,14 @@ public record ElementTemplate(
     }
   }
 
+  public static ElementTemplateBuilder builderForOutbound() {
+    return ElementTemplateBuilder.createOutbound();
+  }
+
+  public static ElementTemplateBuilder builderForInbound() {
+    return ElementTemplateBuilder.createInbound();
+  }
+
   @JsonProperty
   public ElementTemplateCategory category() {
     return ElementTemplateCategory.CONNECTORS;
@@ -119,13 +119,7 @@ public record ElementTemplate(
     return SCHEMA_URL;
   }
 
-  public static class Metadata {
-    List<String> keywords;
-
-    public Metadata(List<String> keywords) {
-      this.keywords = keywords;
-    }
-  }
+  public record Metadata(String[] keywords) {}
 
   @JsonInclude(Include.NON_NULL)
   public record ElementTypeWrapper(
