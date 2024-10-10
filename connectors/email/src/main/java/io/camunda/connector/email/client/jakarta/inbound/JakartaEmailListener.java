@@ -12,11 +12,13 @@ import io.camunda.connector.email.client.EmailListener;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
 import io.camunda.connector.email.inbound.model.EmailListenerConfig;
+import io.camunda.connector.email.inbound.model.HandlingStrategy;
 import jakarta.mail.Folder;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +54,15 @@ public class JakartaEmailListener implements EmailListener {
               store.getDefaultFolder(), emailListenerConfig.folderToListen());
       folder.open(Folder.READ_WRITE);
       PollingManager pollingManager = PollingManager.create(context, folder, store);
-      scheduledExecutorService.scheduleWithFixedDelay(
-          () -> pollingManager.poll(emailListenerConfig), 0, 5, TimeUnit.SECONDS);
+      if (emailListenerConfig.pollingConfig().handlingStrategy().equals(HandlingStrategy.MOVE)
+          && (Objects.isNull(emailListenerConfig.pollingConfig().targetFolder())
+              || emailListenerConfig.pollingConfig().targetFolder().isBlank()))
+          throw new RuntimeException("If the post process action is `MOVE`, a target folder must be specified");
+        scheduledExecutorService.scheduleWithFixedDelay(
+            () -> pollingManager.poll(emailListenerConfig),
+            0,
+            Optional.of(emailListenerConfig.pollingWaitTime()).map(Long::parseLong).orElse(20L),
+            TimeUnit.SECONDS);
     } catch (MessagingException e) {
       this.stopListener();
       log.error("Error starting email listener", e);

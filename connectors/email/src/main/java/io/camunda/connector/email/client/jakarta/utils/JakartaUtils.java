@@ -314,9 +314,13 @@ public class JakartaUtils {
   public void moveMessage(Store store, Message message, String targetFolder) {
     try {
       Folder imapFolder = message.getFolder();
-      Folder targetImapFolder =
-          store.getFolder(
-              String.join(String.valueOf(imapFolder.getSeparator()), targetFolder.split("\\.")));
+      char separator = imapFolder.getSeparator();
+      String targetFolderFormatted =
+          Optional.ofNullable(targetFolder)
+              .map(string -> string.split("\\."))
+              .map(strings -> String.join(String.valueOf(separator), strings))
+              .orElse("temp");
+      Folder targetImapFolder = store.getFolder(targetFolderFormatted);
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
       targetImapFolder.open(Folder.READ_WRITE);
       imapFolder.copyMessages(new Message[] {message}, targetImapFolder);

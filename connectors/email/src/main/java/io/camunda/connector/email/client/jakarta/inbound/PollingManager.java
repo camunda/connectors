@@ -70,7 +70,7 @@ public class PollingManager {
     }
   }
 
-  public void processMail(IMAPMessage message, PollingConfig pollingConfig) {
+  private void processMail(IMAPMessage message, PollingConfig pollingConfig) {
     message.setPeek(true);
     this.correlateEmail(message, connectorContext);
     message.setPeek(false);
