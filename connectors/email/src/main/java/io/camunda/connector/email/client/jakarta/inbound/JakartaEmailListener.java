@@ -57,12 +57,13 @@ public class JakartaEmailListener implements EmailListener {
       if (emailListenerConfig.pollingConfig().handlingStrategy().equals(HandlingStrategy.MOVE)
           && (Objects.isNull(emailListenerConfig.pollingConfig().targetFolder())
               || emailListenerConfig.pollingConfig().targetFolder().isBlank()))
-          throw new RuntimeException("If the post process action is `MOVE`, a target folder must be specified");
-        scheduledExecutorService.scheduleWithFixedDelay(
-            () -> pollingManager.poll(emailListenerConfig),
-            0,
-            Optional.of(emailListenerConfig.pollingWaitTime()).map(Long::parseLong).orElse(20L),
-            TimeUnit.SECONDS);
+        throw new RuntimeException(
+            "If the post process action is `MOVE`, a target folder must be specified");
+      scheduledExecutorService.scheduleWithFixedDelay(
+          () -> pollingManager.poll(emailListenerConfig),
+          0,
+          Optional.of(emailListenerConfig.pollingWaitTime()).map(Long::parseLong).orElse(20L),
+          TimeUnit.SECONDS);
     } catch (MessagingException e) {
       this.stopListener();
       log.error("Error starting email listener", e);
