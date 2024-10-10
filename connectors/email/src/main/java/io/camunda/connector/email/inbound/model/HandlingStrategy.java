@@ -9,6 +9,5 @@ package io.camunda.connector.email.inbound.model;
 public enum HandlingStrategy {
   READ,
   DELETE,
-  NO_HANDLING,
   MOVE;
 }

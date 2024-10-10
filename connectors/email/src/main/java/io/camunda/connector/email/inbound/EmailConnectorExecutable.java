@@ -31,6 +31,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "protocol", label = "Imap Details"),
       @ElementTemplate.PropertyGroup(id = "listenerInfos", label = "Listener information"),
+      @ElementTemplate.PropertyGroup(id = "unseenPollingConfig", label = "After process"),
+      @ElementTemplate.PropertyGroup(id = "allPollingConfig", label = "After process"),
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(

@@ -426,7 +426,7 @@ class JakartaExecutorTest {
     doNothing().when(store).connect(any(), any());
 
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
-    when(pop3Folder.search(any())).thenReturn(new Message[] {message});
+    when(pop3Folder.search(any(), any())).thenReturn(new Message[] {message});
     when(pop3SearchEmails.criteria())
         .thenReturn(loadCriteria("src/test/resources/criterias/simple-criteria.json"));
     when(message.getContent()).thenReturn("string");
@@ -482,7 +482,7 @@ class JakartaExecutorTest {
     doNothing().when(store).connect(any(), any());
 
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
-    when(folder.search(any())).thenReturn(new Message[] {message});
+    when(folder.search(any(), any())).thenReturn(new Message[] {message});
     when(imapSearchEmails.criteria())
         .thenReturn(loadCriteria("src/test/resources/criterias/simple-criteria.json"));
     when(message.getContent()).thenReturn("string");

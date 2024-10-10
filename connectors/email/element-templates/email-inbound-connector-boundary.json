@@ -24,6 +24,12 @@
     "id" : "listenerInfos",
     "label" : "Listener information"
   }, {
+    "id" : "unseenPollingConfig",
+    "label" : "After process"
+  }, {
+    "id" : "allPollingConfig",
+    "label" : "After process"
+  }, {
     "id" : "activation",
     "label" : "Activation"
   }, {
@@ -167,51 +173,63 @@
     "tooltip" : "Enter the names of the folder you wish to monitor. If left blank, the listener will default to monitoring the 'INBOX' folder.",
     "type" : "String"
   }, {
-    "id" : "data.initialPollingConfig",
-    "label" : "Sync strategy",
+    "id" : "pollingWaitTime",
+    "label" : "Polling wait time",
     "optional" : false,
-    "value" : "UNSEEN",
+    "value" : "20",
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^([1-9][0-9]|1[0-9]{2}|2[0-9]{2}|300|secrets\\..+)$"
+      }
     },
     "group" : "listenerInfos",
     "binding" : {
-      "name" : "data.initialPollingConfig",
+      "name" : "data.pollingWaitTime",
       "type" : "zeebe:property"
     },
-    "tooltip" : "Chose the desired polling strategy",
+    "tooltip" : "The duration (in seconds) for which the call waits for a message to arrive in the mailbox before correlating",
+    "type" : "String"
+  }, {
+    "id" : "data.pollingConfigDiscriminator",
+    "label" : "Polling configuration",
+    "value" : "unseenPollingConfig",
+    "group" : "listenerInfos",
+    "binding" : {
+      "name" : "data.pollingConfigDiscriminator",
+      "type" : "zeebe:property"
+    },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Unseen emails will be synced",
-      "value" : "UNSEEN"
+      "name" : "Unseen polling config",
+      "value" : "unseenPollingConfig"
     }, {
-      "name" : "No initial sync. Only new emails",
-      "value" : "NONE"
-    }, {
-      "name" : "All emails will be synced",
-      "value" : "ALL"
+      "name" : "All polling config",
+      "value" : "allPollingConfig"
     } ]
   }, {
-    "id" : "data.handlingStrategy",
+    "id" : "data.pollingConfig.unseenHandlingStrategy",
     "label" : "Handling strategy",
     "optional" : false,
     "value" : "READ",
     "constraints" : {
       "notEmpty" : true
     },
-    "group" : "listenerInfos",
+    "group" : "unseenPollingConfig",
     "binding" : {
-      "name" : "data.handlingStrategy",
+      "name" : "data.pollingConfig.handlingStrategy",
       "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "data.pollingConfigDiscriminator",
+      "equals" : "unseenPollingConfig",
+      "type" : "simple"
     },
     "tooltip" : "Chose the desired handling strategy",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Mark as read after processing",
       "value" : "READ"
-    }, {
-      "name" : "Do nothing",
-      "value" : "NO_HANDLING"
     }, {
       "name" : "Delete after processing",
       "value" : "DELETE"
@@ -220,21 +238,79 @@
       "value" : "MOVE"
     } ]
   }, {
-    "id" : "data.targetFolder",
+    "id" : "unseenTargetFolder",
     "label" : "Choose the target folder",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "group" : "listenerInfos",
+    "group" : "unseenPollingConfig",
     "binding" : {
-      "name" : "data.targetFolder",
+      "name" : "data.pollingConfig.targetFolder",
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "data.handlingStrategy",
-      "equals" : "MOVE",
+      "allMatch" : [ {
+        "property" : "data.pollingConfig.unseenHandlingStrategy",
+        "equals" : "MOVE",
+        "type" : "simple"
+      }, {
+        "property" : "data.pollingConfigDiscriminator",
+        "equals" : "unseenPollingConfig",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
+    "type" : "String"
+  }, {
+    "id" : "data.pollingConfig.allHandlingStrategy",
+    "label" : "Handling strategy",
+    "optional" : false,
+    "value" : "DELETE",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "allPollingConfig",
+    "binding" : {
+      "name" : "data.pollingConfig.handlingStrategy",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "data.pollingConfigDiscriminator",
+      "equals" : "allPollingConfig",
       "type" : "simple"
+    },
+    "tooltip" : "Chose the desired handling strategy",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Delete after processing",
+      "value" : "DELETE"
+    }, {
+      "name" : "Move to another folder after processing",
+      "value" : "MOVE"
+    } ]
+  }, {
+    "id" : "allTargetFolder",
+    "label" : "Choose the target folder",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "allPollingConfig",
+    "binding" : {
+      "name" : "data.pollingConfig.targetFolder",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.pollingConfig.allHandlingStrategy",
+        "equals" : "MOVE",
+        "type" : "simple"
+      }, {
+        "property" : "data.pollingConfigDiscriminator",
+        "equals" : "allPollingConfig",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
     "type" : "String"

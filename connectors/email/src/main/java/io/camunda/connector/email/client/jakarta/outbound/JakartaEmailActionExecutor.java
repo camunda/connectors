@@ -306,7 +306,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
     folder.open(Folder.READ_ONLY);
     JsonNode jsonNode = this.objectMapper.convertValue(criteria, JsonNode.class);
     SearchTerm searchTerm = createSearchTerms(jsonNode);
-    return Arrays.stream(folder.search(searchTerm))
+    return Arrays.stream(folder.search(searchTerm, folder.getMessages()))
         .map(this.jakartaUtils::createBodylessEmail)
         .map(email -> new SearchEmailsResponse(email.messageId(), email.subject()))
         .toList();

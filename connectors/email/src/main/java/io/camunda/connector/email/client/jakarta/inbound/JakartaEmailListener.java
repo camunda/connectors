@@ -15,10 +15,9 @@ import io.camunda.connector.email.inbound.model.EmailListenerConfig;
 import jakarta.mail.Folder;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.Store;
 import java.util.Objects;
 import java.util.concurrent.*;
-import org.eclipse.angus.mail.imap.IMAPFolder;
-import org.eclipse.angus.mail.imap.IMAPStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,10 +25,7 @@ public class JakartaEmailListener implements EmailListener {
 
   private static final Logger log = LoggerFactory.getLogger(JakartaEmailListener.class);
   private final JakartaUtils jakartaUtils;
-  private ExecutorService executorService;
   private ScheduledExecutorService scheduledExecutorService;
-  private IMAPFolder folder;
-  private IMAPStore store;
 
   public JakartaEmailListener(JakartaUtils jakartaUtils) {
     this.jakartaUtils = jakartaUtils;
@@ -41,7 +37,6 @@ public class JakartaEmailListener implements EmailListener {
 
   @Override
   public void startListener(InboundConnectorContext context) {
-    this.executorService = Executors.newSingleThreadExecutor();
     this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     EmailInboundConnectorProperties emailInboundConnectorProperties =
         context.bindProperties(EmailInboundConnectorProperties.class);
@@ -50,25 +45,15 @@ public class JakartaEmailListener implements EmailListener {
     Session session =
         this.jakartaUtils.createSession(emailInboundConnectorProperties.data().imapConfig());
     try {
-      this.store = (IMAPStore) session.getStore();
+      Store store = session.getStore();
       this.jakartaUtils.connectStore(store, authentication);
-      this.folder =
-          (IMAPFolder)
-              this.jakartaUtils.findImapFolder(
-                  store.getDefaultFolder(), emailListenerConfig.folderToListen());
-      CustomMessageCountListener customMessageCountListener =
-          CustomMessageCountListener.create(context, emailListenerConfig);
-      CustomConnectionListener customConnectionListener =
-          CustomConnectionListener.create(
-              this.folder, () -> executorService.submit(this::startIdle));
-      CustomChangedListener customMessageChangedListener =
-          CustomChangedListener.create(context, emailListenerConfig);
-      this.folder.addConnectionListener(customConnectionListener);
-      this.folder.addMessageCountListener(customMessageCountListener);
-      this.folder.addMessageChangedListener(customMessageChangedListener);
-      this.folder.open(Folder.READ_WRITE);
-      scheduledExecutorService.scheduleWithFixedDelay(this::keepAlive, 1, 5, TimeUnit.SECONDS);
-      InitialPolling.create(context, emailListenerConfig, folder).poll();
+      Folder folder =
+          this.jakartaUtils.findImapFolder(
+              store.getDefaultFolder(), emailListenerConfig.folderToListen());
+      folder.open(Folder.READ_WRITE);
+      PollingManager pollingManager = PollingManager.create(context, folder, store);
+      scheduledExecutorService.scheduleWithFixedDelay(
+          () -> pollingManager.poll(emailListenerConfig), 0, 5, TimeUnit.SECONDS);
     } catch (MessagingException e) {
       this.stopListener();
       log.error("Error starting email listener", e);
@@ -76,47 +61,15 @@ public class JakartaEmailListener implements EmailListener {
     }
   }
 
-  private void keepAlive() {
-    try {
-      if (!this.folder.isOpen()) folder.open(Folder.READ_WRITE);
-      log.debug("Sending `NOOP` operation to the email server");
-      folder.doCommand(
-          protocol -> {
-            protocol.simpleCommand("NOOP", null);
-            return null;
-          });
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private synchronized void startIdle() {
-    try {
-      while (this.folder.isOpen()) {
-        log.debug("Listening to new email...");
-        this.folder.idle();
-      }
-    } catch (MessagingException e) {
-      log.error(e.getMessage(), e);
-    }
-  }
-
   @Override
   public void stopListener() {
     try {
-      if (!Objects.isNull(this.folder)) this.folder.close();
-      if (!Objects.isNull(this.store)) this.store.close();
-      if (!Objects.isNull(this.executorService)) {
-        this.executorService.shutdown();
-        if (!this.executorService.awaitTermination(1, TimeUnit.SECONDS))
-          this.executorService.shutdownNow();
-      }
       if (!Objects.isNull(this.scheduledExecutorService)) {
         this.scheduledExecutorService.shutdown();
         if (!this.scheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS))
           this.scheduledExecutorService.shutdownNow();
       }
-    } catch (MessagingException | InterruptedException e) {
+    } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
   }

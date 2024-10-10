@@ -6,12 +6,16 @@
  */
 package io.camunda.connector.email.inbound.model;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 public record EmailListenerConfig(
     @NestedProperties(addNestedPath = false) @Valid ImapConfig imapConfig,
@@ -26,62 +30,27 @@ public record EmailListenerConfig(
             binding = @TemplateProperty.PropertyBinding(name = "data.folderToListen"))
         String folderToListen,
     @TemplateProperty(
-            label = "Sync strategy",
-            tooltip = "Chose the desired polling strategy",
+            id = "pollingWaitTime",
+            label = "Polling wait time",
             group = "listenerInfos",
-            id = "data.initialPollingConfig",
-            feel = Property.FeelMode.required,
-            type = TemplateProperty.PropertyType.Dropdown,
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            defaultValue = "UNSEEN",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(
-                  label = "Unseen emails will be synced",
-                  value = "UNSEEN"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  label = "No initial sync. Only new emails",
-                  value = "NONE"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  label = "All emails will be synced",
-                  value = "ALL")
-            },
-            binding = @TemplateProperty.PropertyBinding(name = "data.initialPollingConfig"))
-        @NotNull
-        InitialPollingConfig initialPollingConfig,
-    @TemplateProperty(
-            label = "Handling strategy",
-            tooltip = "Chose the desired handling strategy",
-            group = "listenerInfos",
-            id = "data.handlingStrategy",
-            feel = Property.FeelMode.required,
-            type = TemplateProperty.PropertyType.Dropdown,
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            defaultValue = "READ",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(
-                  label = "Mark as read after processing",
-                  value = "READ"),
-              @TemplateProperty.DropdownPropertyChoice(label = "Do nothing", value = "NO_HANDLING"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  label = "Delete after processing",
-                  value = "DELETE"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  label = "Move to another folder after processing",
-                  value = "MOVE")
-            },
-            binding = @TemplateProperty.PropertyBinding(name = "data.handlingStrategy"))
-        @NotNull
-        HandlingStrategy handlingStrategy,
-    @TemplateProperty(
-            label = "Choose the target folder",
+            defaultValue = "20",
             tooltip =
-                "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
-            group = "listenerInfos",
-            id = "data.targetFolder",
-            binding = @TemplateProperty.PropertyBinding(name = "data.targetFolder"),
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            condition =
-                @TemplateProperty.PropertyCondition(
-                    property = "data.handlingStrategy",
-                    equals = "MOVE"))
-        String targetFolder) {}
+                "The duration (in seconds) for which the call waits for a message to arrive in the mailbox before correlating",
+            binding = @TemplateProperty.PropertyBinding(name = "data.pollingWaitTime"),
+            feel = Property.FeelMode.disabled)
+        @Pattern(regexp = "^([1-9][0-9]|1[0-9]{2}|2[0-9]{2}|300|secrets\\..+)$")
+        @NotBlank
+        String pollingWaitTime,
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+            property = "pollingConfigDiscriminator")
+        @JsonSubTypes(
+            value = {
+              @JsonSubTypes.Type(value = AllPollingConfig.class, name = "allPollingConfig"),
+              @JsonSubTypes.Type(value = UnseenPollingConfig.class, name = "unseenPollingConfig"),
+            })
+        @Valid
+        @NotNull
+        @NestedProperties(addNestedPath = false)
+        PollingConfig pollingConfig) {}
