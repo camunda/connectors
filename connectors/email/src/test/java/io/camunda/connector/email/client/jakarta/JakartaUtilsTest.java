@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
+import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.config.CryptographicProtocol;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;

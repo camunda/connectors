@@ -56,6 +56,28 @@
                             </files>
                             <generateHybridTemplates>true</generateHybridTemplates>
                         </connector>
+                        <connector>
+                            <connectorClass>io.camunda.connector.email.inbound.EmailConnectorExecutable</connectorClass>
+                            <files>
+                                <file>
+                                    <templateId>io.camunda.connectors.inbound.EmailMessageStartEvent.v1</templateId>
+                                    <templateFileName>email-inbound-connector-start-event.json</templateFileName>
+                                </file>
+                                <file>
+                                    <templateId>io.camunda.connectors.inbound.EmailIntermediate.v1</templateId>
+                                    <templateFileName>email-inbound-connector-intermediate.json</templateFileName>
+                                </file>
+                                <file>
+                                    <templateId>io.camunda.connectors.inbound.EmailBoundary.v1</templateId>
+                                    <templateFileName>email-inbound-connector-boundary.json</templateFileName>
+                                </file>
+                            </files>
+                            <generateHybridTemplates>true</generateHybridTemplates>
+                            <features>
+                                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+                                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
+                            </features>
+                        </connector>
                     </connectors>
                 </configuration>
             </plugin>
