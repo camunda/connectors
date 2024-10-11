@@ -11,7 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "unseenPollingConfig", label = "Unseen polling config")
+@TemplateSubType(id = "unseenPollingConfig", label = "Poll unseen emails")
 public record UnseenPollingConfig(
     @TemplateProperty(
             label = "Handling strategy",

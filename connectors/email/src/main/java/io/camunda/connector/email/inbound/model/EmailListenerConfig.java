@@ -9,13 +9,13 @@ package io.camunda.connector.email.inbound.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.email.config.ImapConfig;
+import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import java.time.Duration;
 
 public record EmailListenerConfig(
     @NestedProperties(addNestedPath = false) @Valid ImapConfig imapConfig,
@@ -33,14 +33,13 @@ public record EmailListenerConfig(
             id = "pollingWaitTime",
             label = "Polling wait time",
             group = "listenerInfos",
-            defaultValue = "20",
+            defaultValue = "PT20S",
             tooltip =
-                "The duration (in seconds) for which the call waits for a message to arrive in the mailbox before correlating",
+                "The duration for which the task will wait for a message to arrive in the mailbox before correlating",
             binding = @TemplateProperty.PropertyBinding(name = "data.pollingWaitTime"),
             feel = Property.FeelMode.disabled)
-        @Pattern(regexp = "^([1-9][0-9]|1[0-9]{2}|2[0-9]{2}|300|secrets\\..+)$")
-        @NotBlank
-        String pollingWaitTime,
+        @FEEL
+        Duration pollingWaitTime,
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
             include = JsonTypeInfo.As.EXTERNAL_PROPERTY,

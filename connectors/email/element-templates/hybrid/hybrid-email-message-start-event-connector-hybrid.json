@@ -181,19 +181,13 @@
     "id" : "pollingWaitTime",
     "label" : "Polling wait time",
     "optional" : false,
-    "value" : "20",
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^([1-9][0-9]|1[0-9]{2}|2[0-9]{2}|300|secrets\\..+)$"
-      }
-    },
+    "value" : "PT20S",
     "group" : "listenerInfos",
     "binding" : {
       "name" : "data.pollingWaitTime",
       "type" : "zeebe:property"
     },
-    "tooltip" : "The duration (in seconds) for which the call waits for a message to arrive in the mailbox before correlating",
+    "tooltip" : "The duration for which the task will wait for a message to arrive in the mailbox before correlating",
     "type" : "String"
   }, {
     "id" : "data.pollingConfigDiscriminator",
@@ -206,10 +200,10 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Unseen polling config",
+      "name" : "Poll unseen emails",
       "value" : "unseenPollingConfig"
     }, {
-      "name" : "All polling config",
+      "name" : "Poll all emails",
       "value" : "allPollingConfig"
     } ]
   }, {

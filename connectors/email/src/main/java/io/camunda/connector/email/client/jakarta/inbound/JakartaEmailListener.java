@@ -18,7 +18,6 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +61,7 @@ public class JakartaEmailListener implements EmailListener {
       scheduledExecutorService.scheduleWithFixedDelay(
           () -> pollingManager.poll(emailListenerConfig),
           0,
-          Optional.of(emailListenerConfig.pollingWaitTime()).map(Long::parseLong).orElse(20L),
+          emailListenerConfig.pollingWaitTime().getSeconds(),
           TimeUnit.SECONDS);
     } catch (MessagingException e) {
       this.stopListener();
