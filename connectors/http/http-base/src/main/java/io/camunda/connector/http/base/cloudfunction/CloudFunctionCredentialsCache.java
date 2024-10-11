@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class CloudFunctionCredentialsCache {
 
+  public static final int MAX_ATTEMPTS = 3;
   private static final Logger LOG = LoggerFactory.getLogger(CloudFunctionCredentialsCache.class);
   private OAuth2Credentials credentials;
 
@@ -35,7 +36,12 @@ public class CloudFunctionCredentialsCache {
    * @param credentialsSupplier Supplier to fetch new credentials
    * @return Optional of credentials
    */
-  public OAuth2Credentials get(Supplier<OAuth2Credentials> credentialsSupplier) {
+  public synchronized OAuth2Credentials get(Supplier<OAuth2Credentials> credentialsSupplier) {
+    return getWithRetries(credentialsSupplier, MAX_ATTEMPTS);
+  }
+
+  private OAuth2Credentials getWithRetries(
+      Supplier<OAuth2Credentials> credentialsSupplier, int attempts) {
     if (credentials == null) {
       LOG.debug("Credentials cache is empty, fetching new credentials");
       credentials = credentialsSupplier.get();
@@ -43,25 +49,27 @@ public class CloudFunctionCredentialsCache {
 
     try {
       refreshAccessTokenIfExpired(credentials);
-    } catch (Exception e) {
-      this.credentials = credentialsSupplier.get();
+    } catch (IOException e) {
+      if (attempts > 1) {
+        LOG.warn("Failed to refresh access token, retrying... Attempts left: {}", attempts - 1);
+        return getWithRetries(credentialsSupplier, attempts - 1);
+      } else {
+        LOG.error("Failed to refresh access token after retries", e);
+        throw new RuntimeException("Failed to refresh access token after retries", e);
+      }
     }
     return credentials;
   }
 
-  private void refreshAccessTokenIfExpired(OAuth2Credentials credentials) {
-    try {
-      AccessToken accessToken = credentials.getAccessToken();
-      if (accessToken == null || hasExpired(accessToken)) {
-        // Credentials are not initialized before calling refreshIfExpired
-        // See OAuth2Credentials#getAccessToken for more details
-        if (accessToken != null) {
-          LOG.debug("Access token expired, refreshing");
-        }
-        credentials.refreshIfExpired();
+  private void refreshAccessTokenIfExpired(OAuth2Credentials credentials) throws IOException {
+    AccessToken accessToken = credentials.getAccessToken();
+    if (accessToken == null || hasExpired(accessToken)) {
+      // Credentials are not initialized before calling refreshIfExpired
+      // See OAuth2Credentials#getAccessToken for more details
+      if (accessToken != null) {
+        LOG.debug("Access token expired, refreshing");
       }
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to refresh access token", e);
+      credentials.refreshIfExpired();
     }
   }
 
