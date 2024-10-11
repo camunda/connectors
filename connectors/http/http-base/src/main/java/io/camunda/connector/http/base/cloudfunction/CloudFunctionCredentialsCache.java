@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class CloudFunctionCredentialsCache {
 
+  public static final int MAX_ATTEMPTS = 3;
   private static final Logger LOG = LoggerFactory.getLogger(CloudFunctionCredentialsCache.class);
   private OAuth2Credentials credentials;
 
@@ -36,7 +37,7 @@ public class CloudFunctionCredentialsCache {
    * @return Optional of credentials
    */
   public synchronized OAuth2Credentials get(Supplier<OAuth2Credentials> credentialsSupplier) {
-    return getWithRetries(credentialsSupplier, 3);
+    return getWithRetries(credentialsSupplier, MAX_ATTEMPTS);
   }
 
   private OAuth2Credentials getWithRetries(
