@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.response;
 
-import io.camunda.connector.email.client.jakarta.Header;
+import io.camunda.connector.email.client.jakarta.models.Header;
 import java.time.OffsetDateTime;
 import java.util.List;
 
