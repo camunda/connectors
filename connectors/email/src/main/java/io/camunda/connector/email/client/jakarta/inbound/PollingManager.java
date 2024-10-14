@@ -7,43 +7,78 @@
 package io.camunda.connector.email.client.jakarta.inbound;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.email.client.jakarta.utils.Email;
+import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.client.jakarta.models.Email;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
-import io.camunda.connector.email.inbound.model.AllPollingConfig;
-import io.camunda.connector.email.inbound.model.EmailListenerConfig;
-import io.camunda.connector.email.inbound.model.PollingConfig;
-import io.camunda.connector.email.inbound.model.UnseenPollingConfig;
+import io.camunda.connector.email.inbound.model.*;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
 import jakarta.mail.search.FlagTerm;
 import java.util.Arrays;
+import java.util.Objects;
 import org.eclipse.angus.mail.imap.IMAPMessage;
 
 public class PollingManager {
 
   private final InboundConnectorContext connectorContext;
+  private final EmailListenerConfig emailListenerConfig;
   private final JakartaUtils jakartaUtils;
   private final Folder folder;
   private final Store store;
 
   public PollingManager(
       InboundConnectorContext connectorContext,
+      EmailListenerConfig emailListenerConfig,
       JakartaUtils jakartaUtils,
       Folder folder,
       Store store) {
     this.connectorContext = connectorContext;
+    this.emailListenerConfig = emailListenerConfig;
     this.jakartaUtils = jakartaUtils;
     this.folder = folder;
     this.store = store;
   }
 
   public static PollingManager create(
-      InboundConnectorContext connectorContext, Folder folder, Store store) {
-    return new PollingManager(connectorContext, new JakartaUtils(), folder, store);
+      InboundConnectorContext connectorContext, JakartaUtils jakartaUtils) {
+    Store store = null;
+    Folder folder = null;
+    try {
+      EmailInboundConnectorProperties emailInboundConnectorProperties =
+          connectorContext.bindProperties(EmailInboundConnectorProperties.class);
+      Authentication authentication = emailInboundConnectorProperties.authentication();
+      EmailListenerConfig emailListenerConfig = emailInboundConnectorProperties.data();
+      Session session =
+          jakartaUtils.createSession(emailInboundConnectorProperties.data().imapConfig());
+      store = session.getStore();
+      jakartaUtils.connectStore(store, authentication);
+      folder =
+          jakartaUtils.findImapFolder(
+              store.getDefaultFolder(), emailListenerConfig.folderToListen());
+      folder.open(Folder.READ_WRITE);
+      if (emailListenerConfig.pollingConfig().handlingStrategy().equals(HandlingStrategy.MOVE)
+          && (Objects.isNull(emailListenerConfig.pollingConfig().targetFolder())
+              || emailListenerConfig.pollingConfig().targetFolder().isBlank()))
+        throw new RuntimeException(
+            "If the post process action is `MOVE`, a target folder must be specified");
+      return new PollingManager(connectorContext, emailListenerConfig, jakartaUtils, folder, store);
+    } catch (MessagingException e) {
+      try {
+        if (folder != null && folder.isOpen()) {
+          folder.close();
+        }
+        if (store != null && store.isConnected()) {
+          store.close();
+        }
+      } catch (MessagingException ex) {
+        throw new RuntimeException(ex);
+      }
+      throw new RuntimeException(e);
+    }
   }
 
-  public void poll(EmailListenerConfig config) {
-    switch (config.pollingConfig()) {
+  public void poll() {
+    switch (this.emailListenerConfig.pollingConfig()) {
       case AllPollingConfig allPollingConfig -> pollAllAndProcess(allPollingConfig);
       case UnseenPollingConfig unseenPollingConfig -> pollUnseenAndProcess(unseenPollingConfig);
     }
@@ -71,6 +106,8 @@ public class PollingManager {
   }
 
   private void processMail(IMAPMessage message, PollingConfig pollingConfig) {
+    // Setting `peek` to true prevents the library to trigger any side effects when reading the
+    // message, such as marking it as read
     message.setPeek(true);
     this.correlateEmail(message, connectorContext);
     message.setPeek(false);
@@ -93,5 +130,18 @@ public class PollingManager {
             email.body().bodyAsPlainText(),
             email.body().bodyAsHtml(),
             email.receivedAt()));
+  }
+
+  public long delay() {
+    return this.emailListenerConfig.pollingWaitTime().getSeconds();
+  }
+
+  public void stop() {
+    try {
+      this.folder.close();
+      this.store.close();
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

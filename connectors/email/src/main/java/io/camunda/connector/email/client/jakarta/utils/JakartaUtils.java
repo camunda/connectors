@@ -8,6 +8,10 @@ package io.camunda.connector.email.client.jakarta.utils;
 
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
+import io.camunda.connector.email.client.jakarta.models.Email;
+import io.camunda.connector.email.client.jakarta.models.EmailAttachment;
+import io.camunda.connector.email.client.jakarta.models.EmailBody;
+import io.camunda.connector.email.client.jakarta.models.Header;
 import io.camunda.connector.email.config.Configuration;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;
@@ -220,7 +224,7 @@ public class JakartaUtils {
               .map(Date::toInstant)
               .map(instant -> instant.atOffset(ZoneOffset.UTC))
               .orElse(null);
-      List<Header> headers =
+      List<io.camunda.connector.email.client.jakarta.models.Header> headers =
           Collections.list(message.getAllHeaders()).stream()
               .map(header -> new Header(header.getName(), header.getValue()))
               .toList();
