@@ -90,6 +90,7 @@ public class PollingManager {
       Arrays.stream(messages)
           .forEach(message -> this.processMail((IMAPMessage) message, allPollingConfig));
     } catch (MessagingException e) {
+      this.connectorContext.cancel(e);
       throw new RuntimeException(e);
     }
   }
@@ -101,6 +102,7 @@ public class PollingManager {
       Arrays.stream(unseenMessages)
           .forEach(message -> this.processMail((IMAPMessage) message, unseenPollingConfig));
     } catch (MessagingException e) {
+      this.connectorContext.cancel(e);
       throw new RuntimeException(e);
     }
   }
