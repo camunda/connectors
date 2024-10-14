@@ -4,6 +4,8 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.client.jakarta;
+package io.camunda.connector.email.client.jakarta.models;
 
-public record Header(String key, String value) {}
+import java.io.InputStream;
+
+public record EmailAttachment(InputStream inputStream, String name, String contentType) {}
