@@ -4,10 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.client.jakarta;
+package io.camunda.connector.email.client.jakarta.utils;
 
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
+import io.camunda.connector.email.client.jakarta.models.Email;
+import io.camunda.connector.email.client.jakarta.models.EmailAttachment;
+import io.camunda.connector.email.client.jakarta.models.EmailBody;
+import io.camunda.connector.email.client.jakarta.models.Header;
 import io.camunda.connector.email.config.Configuration;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.config.Pop3Config;
@@ -128,7 +132,7 @@ public class JakartaUtils {
         properties.put("mail.imaps.port", imap.imapPort().toString());
         properties.put("mail.imaps.auth", true);
         properties.put("mail.imaps.starttls.enable", true);
-        properties.put("mail.imaps.usesocketchannels", true);
+        properties.put("mail.imaps.timeout", "10000");
       }
       case SSL -> {
         properties.put("mail.store.protocol", "imaps");
@@ -136,7 +140,7 @@ public class JakartaUtils {
         properties.put("mail.imaps.port", imap.imapPort().toString());
         properties.put("mail.imaps.auth", true);
         properties.put("mail.imaps.ssl.enable", true);
-        properties.put("mail.imaps.usesocketchannel", true);
+        properties.put("mail.imaps.timeout", "10000");
       }
     }
     return properties;
@@ -220,7 +224,7 @@ public class JakartaUtils {
               .map(Date::toInstant)
               .map(instant -> instant.atOffset(ZoneOffset.UTC))
               .orElse(null);
-      List<Header> headers =
+      List<io.camunda.connector.email.client.jakarta.models.Header> headers =
           Collections.list(message.getAllHeaders()).stream()
               .map(header -> new Header(header.getName(), header.getValue()))
               .toList();
@@ -314,9 +318,13 @@ public class JakartaUtils {
   public void moveMessage(Store store, Message message, String targetFolder) {
     try {
       Folder imapFolder = message.getFolder();
-      Folder targetImapFolder =
-          store.getFolder(
-              String.join(String.valueOf(imapFolder.getSeparator()), targetFolder.split("\\.")));
+      char separator = imapFolder.getSeparator();
+      String targetFolderFormatted =
+          Optional.ofNullable(targetFolder)
+              .map(string -> string.split("\\."))
+              .map(strings -> String.join(String.valueOf(separator), strings))
+              .orElse("temp");
+      Folder targetImapFolder = store.getFolder(targetFolderFormatted);
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
       targetImapFolder.open(Folder.READ_WRITE);
       imapFolder.copyMessages(new Message[] {message}, targetImapFolder);
