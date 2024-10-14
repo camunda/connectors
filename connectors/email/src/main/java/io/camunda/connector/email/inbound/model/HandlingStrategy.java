@@ -4,8 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.email.client.jakarta;
+package io.camunda.connector.email.inbound.model;
 
-import java.io.InputStream;
-
-public record EmailAttachment(InputStream inputStream, String name, String contentType) {}
+public enum HandlingStrategy {
+  READ,
+  DELETE,
+  MOVE;
+}
