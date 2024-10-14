@@ -46,8 +46,8 @@ public record EmailListenerConfig(
             property = "pollingConfigDiscriminator")
         @JsonSubTypes(
             value = {
-              @JsonSubTypes.Type(value = AllPollingConfig.class, name = "allPollingConfig"),
-              @JsonSubTypes.Type(value = UnseenPollingConfig.class, name = "unseenPollingConfig"),
+              @JsonSubTypes.Type(value = PollAll.class, name = "allPollingConfig"),
+              @JsonSubTypes.Type(value = PollUnseen.class, name = "unseenPollingConfig"),
             })
         @Valid
         @NotNull

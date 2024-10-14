@@ -15,7 +15,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     name = "data.pollingConfigDiscriminator",
     defaultValue = "unseenPollingConfig")
 @TemplateSubType(id = "data.pollingConfigDiscriminator", label = "Polling Configuration")
-public sealed interface PollingConfig permits UnseenPollingConfig, AllPollingConfig {
+public sealed interface PollingConfig permits PollUnseen, PollAll {
   HandlingStrategy handlingStrategy();
 
   String targetFolder();

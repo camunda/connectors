@@ -79,28 +79,27 @@ public class PollingManager {
 
   public void poll() {
     switch (this.emailListenerConfig.pollingConfig()) {
-      case AllPollingConfig allPollingConfig -> pollAllAndProcess(allPollingConfig);
-      case UnseenPollingConfig unseenPollingConfig -> pollUnseenAndProcess(unseenPollingConfig);
+      case PollAll pollAll -> pollAllAndProcess(pollAll);
+      case PollUnseen pollUnseen -> pollUnseenAndProcess(pollUnseen);
     }
   }
 
-  private void pollAllAndProcess(AllPollingConfig allPollingConfig) {
+  private void pollAllAndProcess(PollAll pollAll) {
     try {
       Message[] messages = this.folder.getMessages();
-      Arrays.stream(messages)
-          .forEach(message -> this.processMail((IMAPMessage) message, allPollingConfig));
+      Arrays.stream(messages).forEach(message -> this.processMail((IMAPMessage) message, pollAll));
     } catch (MessagingException e) {
       this.connectorContext.cancel(e);
       throw new RuntimeException(e);
     }
   }
 
-  private void pollUnseenAndProcess(UnseenPollingConfig unseenPollingConfig) {
+  private void pollUnseenAndProcess(PollUnseen pollUnseen) {
     try {
       FlagTerm unseenFlagTerm = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
       Message[] unseenMessages = this.folder.search(unseenFlagTerm, this.folder.getMessages());
       Arrays.stream(unseenMessages)
-          .forEach(message -> this.processMail((IMAPMessage) message, unseenPollingConfig));
+          .forEach(message -> this.processMail((IMAPMessage) message, pollUnseen));
     } catch (MessagingException e) {
       this.connectorContext.cancel(e);
       throw new RuntimeException(e);

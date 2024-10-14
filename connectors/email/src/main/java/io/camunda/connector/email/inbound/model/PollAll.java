@@ -12,7 +12,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "allPollingConfig", label = "Poll all emails")
-public record AllPollingConfig(
+public record PollAll(
     @TemplateProperty(
             label = "Handling strategy",
             tooltip = "Chose the desired handling strategy",

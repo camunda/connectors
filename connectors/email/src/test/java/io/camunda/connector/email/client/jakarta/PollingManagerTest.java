@@ -17,7 +17,7 @@ import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
 import io.camunda.connector.email.inbound.model.EmailListenerConfig;
 import io.camunda.connector.email.inbound.model.HandlingStrategy;
-import io.camunda.connector.email.inbound.model.UnseenPollingConfig;
+import io.camunda.connector.email.inbound.model.PollUnseen;
 import jakarta.mail.*;
 import java.util.List;
 import java.util.Objects;
@@ -35,7 +35,7 @@ class PollingManagerTest {
     Session session = mock(Session.class);
     Store store = mock(Store.class);
     EmailListenerConfig emailListenerConfig = mock(EmailListenerConfig.class);
-    UnseenPollingConfig unseenPollingConfig = mock(UnseenPollingConfig.class);
+    PollUnseen pollUnseen = mock(PollUnseen.class);
     JakartaUtils jakartaUtils = mock(JakartaUtils.class);
 
     TestImapMessage message =
@@ -53,8 +53,8 @@ class PollingManagerTest {
     when(jakartaUtils.createSession(any())).thenReturn(session);
     when(jakartaUtils.findImapFolder(any(), any())).thenReturn(folder);
     when(session.getStore()).thenReturn(store);
-    when(emailListenerConfig.pollingConfig()).thenReturn(unseenPollingConfig);
-    when(unseenPollingConfig.handlingStrategy()).thenReturn(HandlingStrategy.READ);
+    when(emailListenerConfig.pollingConfig()).thenReturn(pollUnseen);
+    when(pollUnseen.handlingStrategy()).thenReturn(HandlingStrategy.READ);
     PollingManager pollingManager = PollingManager.create(connectorContext, jakartaUtils);
 
     when(folder.getMessages()).thenReturn(new Message[] {message});
