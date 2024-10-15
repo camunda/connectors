@@ -72,6 +72,9 @@
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
+          <includeDependencies>
+            <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
+          </includeDependencies>
         </configuration>
       </plugin>
     </plugins>
