@@ -109,10 +109,6 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-email</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-idp-extraction</artifactId>
-    </dependency>
   </dependencies>
 
   <build>
