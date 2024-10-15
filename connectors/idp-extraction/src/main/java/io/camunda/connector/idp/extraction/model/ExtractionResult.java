@@ -6,5 +6,4 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-public record ExtractionResult(String response) {
-}
+public record ExtractionResult(String response) {}

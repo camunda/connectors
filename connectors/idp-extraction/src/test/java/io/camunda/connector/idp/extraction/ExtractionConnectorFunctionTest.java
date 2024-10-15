@@ -6,6 +6,10 @@
  */
 package io.camunda.connector.idp.extraction;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
@@ -17,46 +21,39 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class ExtractionConnectorFunctionTest {
 
-    @Mock
-    private PollingTextractCaller pollingTextractCaller;
+  @Mock private PollingTextractCaller pollingTextractCaller;
 
-    @Mock
-    private BedrockCaller bedrockCaller;
+  @Mock private BedrockCaller bedrockCaller;
 
-    @InjectMocks
-    private ExtractionConnectorFunction extractionConnectorFunction;
+  @InjectMocks private ExtractionConnectorFunction extractionConnectorFunction;
 
-    @Test
-    void executeExtractionReturnsCorrectResult() throws Exception {
-        var outBounderContext = prepareConnectorContext(ExtractionTestUtils.TEXTRACT_EXTRACTION_INPUT_JSON);
+  @Test
+  void executeExtractionReturnsCorrectResult() throws Exception {
+    var outBounderContext = prepareConnectorContext();
 
-        when(pollingTextractCaller.call(any(), any(), any(), any())).thenReturn("Test extracted text from test document.pdf");
-        when(bedrockCaller.call(any(), any(), any())).thenReturn(
-                """
+    when(pollingTextractCaller.call(any(), any(), any(), any()))
+        .thenReturn("Test extracted text from test document.pdf");
+    when(bedrockCaller.call(any(), any(), any()))
+        .thenReturn(
+            """
                         {
                         	"name": "John Smith",
                         	"age": 32
                         }
-                        """
-        );
+                        """);
 
-        var result = extractionConnectorFunction.execute(outBounderContext);
-        assertThat(result).isInstanceOf(ExtractionResult.class);
-    }
+    var result = extractionConnectorFunction.execute(outBounderContext);
+    assertThat(result).isInstanceOf(ExtractionResult.class);
+  }
 
-    private OutboundConnectorContextBuilder.TestConnectorContext prepareConnectorContext(
-            String json) {
-        return OutboundConnectorContextBuilder.create()
-                .secret("ACCESS_KEY", ExtractionTestUtils.ACTUAL_ACCESS_KEY)
-                .secret("SECRET_KEY", ExtractionTestUtils.ACTUAL_SECRET_KEY)
-                .variables(json)
-                .build();
-    }
+  private OutboundConnectorContextBuilder.TestConnectorContext prepareConnectorContext() {
+    return OutboundConnectorContextBuilder.create()
+        .secret("ACCESS_KEY", ExtractionTestUtils.ACTUAL_ACCESS_KEY)
+        .secret("SECRET_KEY", ExtractionTestUtils.ACTUAL_SECRET_KEY)
+        .variables(ExtractionTestUtils.TEXTRACT_EXTRACTION_INPUT_JSON)
+        .build();
+  }
 }

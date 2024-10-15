@@ -7,6 +7,6 @@
 package io.camunda.connector.idp.extraction.model;
 
 public enum TextExtractionEngineType {
-    AWS_TEXTRACT,
-    APACHE_PDFBOX
+  AWS_TEXTRACT,
+  APACHE_PDFBOX
 }

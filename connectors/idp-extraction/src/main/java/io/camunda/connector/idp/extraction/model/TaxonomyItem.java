@@ -10,22 +10,19 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 
 public record TaxonomyItem(
-        @TemplateProperty(
-                label = "Name",
-                id = "name",
-                description = "The name of the taxonomy item",
-                binding = @TemplateProperty.PropertyBinding(name = "name"),
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+    @TemplateProperty(
+            label = "Name",
+            id = "name",
+            description = "The name of the taxonomy item",
+            binding = @TemplateProperty.PropertyBinding(name = "name"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         String name,
-
-        @TemplateProperty(
-                label = "Prompt",
-                id = "prompt",
-                description = "The prompt for the taxonomy item",
-                binding = @TemplateProperty.PropertyBinding(name = "prompt"),
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+    @TemplateProperty(
+            label = "Prompt",
+            id = "prompt",
+            description = "The prompt for the taxonomy item",
+            binding = @TemplateProperty.PropertyBinding(name = "prompt"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
-        String prompt
-) {
-}
+        String prompt) {}

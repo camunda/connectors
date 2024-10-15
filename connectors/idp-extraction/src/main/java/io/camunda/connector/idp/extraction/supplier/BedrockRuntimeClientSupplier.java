@@ -13,10 +13,10 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class BedrockRuntimeClientSupplier {
 
-    public BedrockRuntimeClient getBedrockRuntimeClient(final ExtractionRequest request) {
-        return BedrockRuntimeClient.builder()
-                .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
-                .region(Region.of(request.getConfiguration().region()))
-                .build();
-    }
+  public BedrockRuntimeClient getBedrockRuntimeClient(final ExtractionRequest request) {
+    return BedrockRuntimeClient.builder()
+        .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
+        .region(Region.of(request.getConfiguration().region()))
+        .build();
+  }
 }

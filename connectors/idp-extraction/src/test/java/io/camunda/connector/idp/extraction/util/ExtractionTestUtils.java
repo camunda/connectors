@@ -6,20 +6,18 @@
  */
 package io.camunda.connector.idp.extraction.util;
 
-
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.TextExtractionEngineType;
-
 import java.util.List;
 
 public class ExtractionTestUtils {
 
-    public static final String ACTUAL_ACCESS_KEY = "DDDCCCBBBBAAAA";
-    public static final String ACTUAL_SECRET_KEY = "AAAABBBBCCCDDD";
-    public static final String TEXTRACT_EXTRACTION_INPUT_JSON =
-            """
+  public static final String ACTUAL_ACCESS_KEY = "DDDCCCBBBBAAAA";
+  public static final String ACTUAL_SECRET_KEY = "AAAABBBBCCCDDD";
+  public static final String TEXTRACT_EXTRACTION_INPUT_JSON =
+      """
                     {
                       "input": {
                         "extractionEngineType": "AWS_TEXTRACT",
@@ -50,15 +48,13 @@ public class ExtractionTestUtils {
                     }
                     """;
 
-    public static final ExtractionRequestData TEXTRACT_EXTRACTION_REQUEST_DATA =
-            new ExtractionRequestData(
-                    TextExtractionEngineType.AWS_TEXTRACT,
-                    "https://some-url-containing-your-document/documemt.pdf",
-                    "test-aws-s3-bucket-name",
-                    List.of(
-                            new TaxonomyItem("sum", "the total amount that was paid for this invoice"),
-                            new TaxonomyItem("supplier", "who provided the goods or services")
-                    ),
-                    new ConverseData("anthropic.claude-3-5-sonnet-20240620-v1:0", 512, 0.5f, 0.9f)
-            );
+  public static final ExtractionRequestData TEXTRACT_EXTRACTION_REQUEST_DATA =
+      new ExtractionRequestData(
+          TextExtractionEngineType.AWS_TEXTRACT,
+          "https://some-url-containing-your-document/documemt.pdf",
+          "test-aws-s3-bucket-name",
+          List.of(
+              new TaxonomyItem("sum", "the total amount that was paid for this invoice"),
+              new TaxonomyItem("supplier", "who provided the goods or services")),
+          new ConverseData("anthropic.claude-3-5-sonnet-20240620-v1:0", 512, 0.5f, 0.9f));
 }

@@ -13,10 +13,10 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 public class S3ClientSupplier {
 
-    public S3AsyncClient getAsyncS3Client(final ExtractionRequest request) {
-        return S3AsyncClient.builder()
-                .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
-                .region(Region.of(request.getConfiguration().region()))
-                .build();
-    }
+  public S3AsyncClient getAsyncS3Client(final ExtractionRequest request) {
+    return S3AsyncClient.builder()
+        .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
+        .region(Region.of(request.getConfiguration().region()))
+        .build();
+  }
 }

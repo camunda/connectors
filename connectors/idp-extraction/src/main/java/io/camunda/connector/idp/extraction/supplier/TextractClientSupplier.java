@@ -13,10 +13,10 @@ import software.amazon.awssdk.services.textract.TextractClient;
 
 public class TextractClientSupplier {
 
-    public TextractClient getTextractClient(final ExtractionRequest request) {
-        return TextractClient.builder()
-                .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
-                .region(Region.of(request.getConfiguration().region()))
-                .build();
-    }
+  public TextractClient getTextractClient(final ExtractionRequest request) {
+    return TextractClient.builder()
+        .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
+        .region(Region.of(request.getConfiguration().region()))
+        .build();
+  }
 }

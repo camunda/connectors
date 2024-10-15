@@ -6,6 +6,15 @@
  */
 package io.camunda.connector.idp.extraction.utils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
@@ -16,91 +25,73 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.textract.model.DocumentLocation;
 import software.amazon.awssdk.services.textract.model.S3Object;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 public class AwsS3Util {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AwsS3Util.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AwsS3Util.class);
 
-    private static String uploadNewFileFromUrl(
-            final String documentUrl,
-            final String bucketName,
-            final S3AsyncClient s3AsyncClient
-    ) throws IOException {
-        String documentKey = UUID.randomUUID().toString();
+  private static String uploadNewFileFromUrl(
+      final String documentUrl, final String bucketName, final S3AsyncClient s3AsyncClient)
+      throws IOException {
+    String documentKey = UUID.randomUUID().toString();
 
-        LOGGER.debug("Starting document upload to AWS S3 with key {}", documentKey);
+    LOGGER.debug("Starting document upload to AWS S3 with key {}", documentKey);
 
-        URL url = URI.create(documentUrl).toURL();
-        URLConnection urlConnection = url.openConnection();
-        long contentLength = urlConnection.getContentLength();
+    URL url = URI.create(documentUrl).toURL();
+    URLConnection urlConnection = url.openConnection();
+    long contentLength = urlConnection.getContentLength();
 
-        if (contentLength == -1) {
-            throw new IOException("Unable to determine file size for URL: " + documentUrl);
-        }
+    if (contentLength == -1) {
+      throw new IOException("Unable to determine file size for URL: " + documentUrl);
+    }
 
-        try (InputStream inputStream = urlConnection.getInputStream()) {
-            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(documentKey)
-                    .build();
+    try (InputStream inputStream = urlConnection.getInputStream()) {
+      PutObjectRequest putObjectRequest =
+          PutObjectRequest.builder().bucket(bucketName).key(documentKey).build();
 
-            try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
-                AsyncRequestBody asyncRequestBody = AsyncRequestBody.fromInputStream(body -> body
-                        .executor(executorService)
+      try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
+        AsyncRequestBody asyncRequestBody =
+            AsyncRequestBody.fromInputStream(
+                body ->
+                    body.executor(executorService)
                         .contentLength(contentLength)
                         .inputStream(inputStream)
-                        .build()
-                );
-                s3AsyncClient.putObject(putObjectRequest, asyncRequestBody).join();
-            }
-        }
-
-        LOGGER.debug("Document with key {} uploaded to AWS S3 successfully", documentKey);
-        return documentKey;
+                        .build());
+        s3AsyncClient.putObject(putObjectRequest, asyncRequestBody).join();
+      }
     }
 
-    public static void deleteS3ObjectFromBucketAsync(
-            final String key,
-            final String bucketName,
-            final S3AsyncClient s3AsyncClient
-    ) {
-        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .build();
+    LOGGER.debug("Document with key {} uploaded to AWS S3 successfully", documentKey);
+    return documentKey;
+  }
 
-        CompletableFuture<DeleteObjectResponse> response = s3AsyncClient.deleteObject(deleteObjectRequest);
-        response.whenComplete((deleteResult, exception) -> {
-            if (deleteResult != null) {
-                LOGGER.debug("Document with key {} was deleted successfully", key);
-            } else {
-                throw new RuntimeException("An S3 exception occurred during delete", exception);
-            }
+  public static void deleteS3ObjectFromBucketAsync(
+      final String key, final String bucketName, final S3AsyncClient s3AsyncClient) {
+    DeleteObjectRequest deleteObjectRequest =
+        DeleteObjectRequest.builder().bucket(bucketName).key(key).build();
+
+    CompletableFuture<DeleteObjectResponse> response =
+        s3AsyncClient.deleteObject(deleteObjectRequest);
+    response.whenComplete(
+        (deleteResult, exception) -> {
+          if (deleteResult != null) {
+            LOGGER.debug("Document with key {} was deleted successfully", key);
+          } else {
+            throw new RuntimeException("An S3 exception occurred during delete", exception);
+          }
         });
 
-        response.thenApply(r -> null);
-    }
+    response.thenApply(r -> null);
+  }
 
-    public static S3Object buildS3ObjectFromUrl(
-            final String documentUrl,
-            final String bucketName,
-            final S3AsyncClient s3AsyncClient
-    ) throws IOException {
-        return S3Object.builder()
-                .bucket(bucketName)
-                .name(uploadNewFileFromUrl(documentUrl, bucketName, s3AsyncClient))
-                .build();
-    }
+  public static S3Object buildS3ObjectFromUrl(
+      final String documentUrl, final String bucketName, final S3AsyncClient s3AsyncClient)
+      throws IOException {
+    return S3Object.builder()
+        .bucket(bucketName)
+        .name(uploadNewFileFromUrl(documentUrl, bucketName, s3AsyncClient))
+        .build();
+  }
 
-    public static DocumentLocation buildDocumentLocation(final S3Object s3Object) {
-        return DocumentLocation.builder().s3Object(s3Object).build();
-    }
+  public static DocumentLocation buildDocumentLocation(final S3Object s3Object) {
+    return DocumentLocation.builder().s3Object(s3Object).build();
+  }
 }
