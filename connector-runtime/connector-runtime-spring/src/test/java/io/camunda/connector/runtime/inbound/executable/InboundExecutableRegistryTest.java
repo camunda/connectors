@@ -123,7 +123,7 @@ public class InboundExecutableRegistryTest {
             new ProcessElement("id", 0, 0, elementId, "tenant"));
     var executable = mock(InboundConnectorExecutable.class);
     var context = mock(InboundConnectorContextImpl.class);
-    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+    when(contextFactory.createContext(any(), any(), any(), any(), any())).thenReturn(context);
 
     when(factory.getInstance(any())).thenReturn(executable);
 
@@ -148,7 +148,7 @@ public class InboundExecutableRegistryTest {
     doThrow(new RuntimeException("failed")).when(executable).activate(any());
 
     var mockContext = mock(InboundConnectorContextImpl.class);
-    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(mockContext);
+    when(contextFactory.createContext(any(), any(), any(), any(), any())).thenReturn(mockContext);
 
     doThrow(new RuntimeException("failed")).when(executable).activate(any());
 
@@ -185,7 +185,7 @@ public class InboundExecutableRegistryTest {
     when(mockContext.getDefinition())
         .thenReturn(new InboundConnectorDefinition("type", "tenant", "id", null));
     when(mockContext.getHealth()).thenReturn(Health.up());
-    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(mockContext);
+    when(contextFactory.createContext(any(), any(), any(), any(), any())).thenReturn(mockContext);
 
     doThrow(new RuntimeException("failed")).when(executable2).activate(mockContext);
 
@@ -232,7 +232,7 @@ public class InboundExecutableRegistryTest {
     when(mockContext.getDefinition())
         .thenReturn(new InboundConnectorDefinition("type", "tenant", "id", null));
     when(mockContext.getHealth()).thenReturn(Health.up());
-    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(mockContext);
+    when(contextFactory.createContext(any(), any(), any(), any(), any())).thenReturn(mockContext);
 
     // when
     registry.handleEvent(new Activated("tenant", 0, List.of(element1, element2)));

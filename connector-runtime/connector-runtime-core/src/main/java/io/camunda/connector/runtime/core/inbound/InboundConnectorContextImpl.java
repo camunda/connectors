@@ -28,6 +28,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.error.RestartException;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -36,6 +37,7 @@ import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,6 +58,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
 
   private final Consumer<Throwable> cancellationCallback;
+  private final Consumer<Duration> reactivationCallback;
   private final EvictingQueue<Activity> logs;
   private final DocumentFactory documentFactory;
   private Health health = Health.unknown();
@@ -68,8 +71,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ValidInboundConnectorDetails connectorDetails,
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
+      Consumer<Duration> reactivationCallback,
       ObjectMapper objectMapper,
-      EvictingQueue logs) {
+      EvictingQueue<Activity> logs) {
     super(secretProvider, validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
@@ -79,6 +83,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             connectorDetails.rawPropertiesWithoutKeywords());
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
+    this.reactivationCallback = reactivationCallback;
     this.logs = logs;
   }
 
@@ -88,6 +93,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       ValidInboundConnectorDetails connectorDetails,
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
+      Consumer<Duration> reactivationCallback,
       ObjectMapper objectMapper,
       EvictingQueue logs) {
     this(
@@ -97,6 +103,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         connectorDetails,
         correlationHandler,
         cancellationCallback,
+        reactivationCallback,
         objectMapper,
         logs);
   }
@@ -124,6 +131,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       cancellationCallback.accept(exception);
     } catch (Throwable e) {
       LOG.error("Failed to deliver the cancellation signal to the runtime", e);
+    }
+    if (Objects.requireNonNull(exception) instanceof RestartException restartException) {
+      reactivationCallback.accept(restartException.getBackoffTime());
     }
   }
 

@@ -41,6 +41,21 @@ class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
   private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
+  @NotNull
+  private static ValidInboundConnectorDetails getInboundConnectorDefinition(
+      Map<String, String> properties) {
+    properties = new HashMap<>(properties);
+    properties.put("inbound.type", "io.camunda:connector:1");
+    InboundConnectorElement element =
+        new InboundConnectorElement(
+            properties,
+            new StandaloneMessageCorrelationPoint("", "", null, null),
+            new ProcessElement("bool", 0, 0, "id", "<default>"));
+    var details = InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
+    assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
+    return (ValidInboundConnectorDetails) details;
+  }
+
   @Test
   void bindProperties_shouldThrowExceptionWhenWrongFormat() {
     // given
@@ -52,6 +67,7 @@ class InboundConnectorContextImplTest {
             definition,
             null,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
     // when and then
@@ -73,6 +89,7 @@ class InboundConnectorContextImplTest {
             definition,
             null,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
     // when
@@ -98,6 +115,7 @@ class InboundConnectorContextImplTest {
             definition,
             null,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
     // when
@@ -106,21 +124,6 @@ class InboundConnectorContextImplTest {
     // then
     assertThat(propertiesAsType.getMapWithStringListWithNumbers().get("key").getFirst())
         .isInstanceOf(String.class);
-  }
-
-  @NotNull
-  private static ValidInboundConnectorDetails getInboundConnectorDefinition(
-      Map<String, String> properties) {
-    properties = new HashMap<>(properties);
-    properties.put("inbound.type", "io.camunda:connector:1");
-    InboundConnectorElement element =
-        new InboundConnectorElement(
-            properties,
-            new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("bool", 0, 0, "id", "<default>"));
-    var details = InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
-    assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
-    return (ValidInboundConnectorDetails) details;
   }
 
   @Test
@@ -156,6 +159,7 @@ class InboundConnectorContextImplTest {
             definition,
             null,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
     // when
@@ -177,6 +181,7 @@ class InboundConnectorContextImplTest {
             definition,
             null,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -265,8 +270,6 @@ class InboundConnectorContextImplTest {
       this.bool = bool;
     }
 
-    public record InnerObject(List<String> stringList, boolean bool) {}
-
     @Override
     public boolean equals(final Object o) {
       if (this == o) return true;
@@ -325,5 +328,7 @@ class InboundConnectorContextImplTest {
           + bool
           + "}";
     }
+
+    public record InnerObject(List<String> stringList, boolean bool) {}
   }
 }

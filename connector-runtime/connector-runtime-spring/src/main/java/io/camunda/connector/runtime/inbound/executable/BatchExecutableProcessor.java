@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound.executable;
 
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
@@ -33,14 +34,15 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Inva
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,14 +51,13 @@ import org.springframework.beans.factory.annotation.Value;
 public class BatchExecutableProcessor {
 
   private static final Logger LOG = LoggerFactory.getLogger(BatchExecutableProcessor.class);
-
-  @Value("${camunda.connector.inbound.log.size:10}")
-  private int inboundLogsSize;
-
   private final InboundConnectorFactory connectorFactory;
   private final InboundConnectorContextFactory connectorContextFactory;
   private final MetricsRecorder metricsRecorder;
   private final WebhookConnectorRegistry webhookConnectorRegistry;
+
+  @Value("${camunda.connector.inbound.log.size:10}")
+  private int inboundLogsSize;
 
   public BatchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
@@ -76,7 +77,8 @@ public class BatchExecutableProcessor {
    */
   public Map<UUID, RegisteredExecutable> activateBatch(
       Map<UUID, InboundConnectorDetails> request,
-      BiConsumer<Throwable, UUID> cancellationCallback) {
+      Function<UUID, Consumer<Throwable>> cancellationCallbackMaker,
+      Function<UUID, Consumer<Duration>> reactivationCallbackMaker) {
 
     final Map<UUID, RegisteredExecutable> alreadyActivated = new HashMap<>();
 
@@ -94,7 +96,8 @@ public class BatchExecutableProcessor {
       }
 
       final RegisteredExecutable result =
-          activateSingle(data, e -> cancellationCallback.accept(e, id));
+          activateSingle(
+              data, cancellationCallbackMaker.apply(id), reactivationCallbackMaker.apply(id));
 
       switch (result) {
         case Activated activated -> alreadyActivated.put(id, activated);
@@ -138,14 +141,16 @@ public class BatchExecutableProcessor {
   }
 
   private RegisteredExecutable activateSingle(
-      InboundConnectorDetails data, Consumer<Throwable> cancellationCallback) {
+      InboundConnectorDetails data,
+      Consumer<Throwable> cancellationCallback,
+      Consumer<Duration> reactivationCallback) {
 
     if (data instanceof InvalidInboundConnectorDetails invalid) {
       return new InvalidDefinition(invalid, invalid.error().getMessage());
     }
     var validData = (ValidInboundConnectorDetails) data;
 
-    final InboundConnectorExecutable executable;
+    final InboundConnectorExecutable<InboundConnectorContext> executable;
     final InboundConnectorReportingContext context;
 
     try {
@@ -155,6 +160,7 @@ public class BatchExecutableProcessor {
               connectorContextFactory.createContext(
                   validData,
                   cancellationCallback,
+                  reactivationCallback,
                   executable.getClass(),
                   EvictingQueue.create(inboundLogsSize));
     } catch (NoSuchElementException e) {

@@ -28,18 +28,16 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Acti
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.BiConsumer;
+import java.util.concurrent.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,17 +45,71 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 public class InboundExecutableRegistryImpl implements InboundExecutableRegistry {
 
-  private final BlockingQueue<InboundExecutableEvent> eventQueue;
-  private final ExecutorService executorService;
-
-  private final BatchExecutableProcessor batchExecutableProcessor;
-
-  private final Map<ProcessElement, UUID> executablesByElement = new ConcurrentHashMap<>();
-  final Map<UUID, RegisteredExecutable> executables = new HashMap<>();
-
   private static final Logger LOG = LoggerFactory.getLogger(InboundExecutableRegistryImpl.class);
-
+  final Map<UUID, RegisteredExecutable> executables = new HashMap<>();
+  private final BlockingQueue<InboundExecutableEvent> eventQueue;
+  private final ScheduledExecutorService reactivationScheduler =
+      Executors.newSingleThreadScheduledExecutor();
+  private final ExecutorService executorService;
+  private final BatchExecutableProcessor batchExecutableProcessor;
+  private final Map<ProcessElement, UUID> executablesByElement = new ConcurrentHashMap<>();
   private final Map<String, List<String>> deduplicationScopesByType;
+
+  private final Function<UUID, Consumer<Throwable>> cancellationCallbackMaker =
+      id ->
+          (throwable) -> {
+            LOG.warn("Inbound connector executable has requested its cancellation", throwable);
+            var toCancel = executables.get(id);
+            if (toCancel == null) {
+              LOG.error("Inbound connector executable not found for the given ID: {}", id);
+              return;
+            }
+            if (toCancel instanceof Activated activated) {
+              activated.context().reportHealth(Health.down(throwable));
+              try {
+                activated.executable().deactivate();
+              } catch (Exception e) {
+                LOG.error("Failed to deactivate connector", e);
+              }
+            } else {
+              LOG.error(
+                  "Attempted to cancel an inbound connector executable that is not in the active state: {}",
+                  id);
+            }
+          };
+
+  private final Function<UUID, Consumer<Duration>> reactivationCallbackMaker =
+      (id) ->
+          (duration) -> {
+            LOG.warn(
+                "Inbound connector executable has requested its reactivation in {} {}",
+                duration.getSeconds(),
+                TimeUnit.SECONDS);
+            var toReactivate = executables.get(id);
+            if (toReactivate == null) {
+              LOG.error(
+                  "Inbound connector executable not found for reactivation, received ID: {}", id);
+              return;
+            }
+            if (toReactivate instanceof Activated activated) {
+              reactivationScheduler.schedule(
+                  () -> {
+                    try {
+                      activated.executable().activate(activated.context());
+                      activated.context().reportHealth(Health.up());
+                    } catch (Exception e) {
+                      LOG.error("Failed to reactivate connector {}", id, e);
+                    }
+                  },
+                  duration.getSeconds(),
+                  TimeUnit.SECONDS);
+
+            } else {
+              LOG.error(
+                  "Attempted to reactivate an inbound connector executable that has never been activated: {}",
+                  id);
+            }
+          };
 
   public InboundExecutableRegistryImpl(
       InboundConnectorFactory connectorFactory, BatchExecutableProcessor batchExecutableProcessor) {
@@ -91,28 +143,6 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     eventQueue.add(event);
     LOG.debug("Event added to the queue: {}", event);
   }
-
-  private final BiConsumer<Throwable, UUID> cancellationCallback =
-      (throwable, id) -> {
-        LOG.warn("Inbound connector executable has requested its cancellation", throwable);
-        var toCancel = executables.get(id);
-        if (toCancel == null) {
-          LOG.error("Inbound connector executable not found for the given ID: {}", id);
-          return;
-        }
-        if (toCancel instanceof Activated activated) {
-          activated.context().reportHealth(Health.down(throwable));
-          try {
-            activated.executable().deactivate();
-          } catch (Exception e) {
-            LOG.error("Failed to deactivate connector", e);
-          }
-        } else {
-          LOG.error(
-              "Attempted to cancel an inbound connector executable that is not in the active state: {}",
-              id);
-        }
-      };
 
   void handleEvent(InboundExecutableEvent event) {
     switch (event) {
@@ -148,7 +178,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                     .forEach(element -> executablesByElement.put(element.element(), id)));
 
         var activationResult =
-            batchExecutableProcessor.activateBatch(groupedConnectors, cancellationCallback);
+            batchExecutableProcessor.activateBatch(
+                groupedConnectors, cancellationCallbackMaker, reactivationCallbackMaker);
         executables.putAll(activationResult);
 
       } catch (Exception e) {

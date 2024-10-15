@@ -56,6 +56,54 @@ import org.mockito.quality.Strictness;
 public class WebhookControllerPlainJavaTests {
 
   private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private static long nextProcessDefinitionKey = 0L;
+
+  public static RegisteredExecutable.Activated buildConnector(
+      ValidInboundConnectorDetails connectorData) {
+    WebhookConnectorExecutable executable = mock(WebhookConnectorExecutable.class);
+    try {
+      Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
+          .thenReturn(mock(WebhookResult.class));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    return new RegisteredExecutable.Activated(executable, buildContext(connectorData));
+  }
+
+  public static InboundConnectorContextImpl buildContext(ValidInboundConnectorDetails def) {
+    var context =
+        new InboundConnectorContextImpl(
+            name -> null,
+            new DefaultValidationProvider(),
+            def,
+            mock(InboundCorrelationHandler.class),
+            e -> {},
+            (d) -> {},
+            mapper,
+            EvictingQueue.create(10));
+
+    return spy(context);
+  }
+
+  public static ValidInboundConnectorDetails webhookDefinition(
+      String bpmnProcessId, int version, String path) {
+    var details =
+        InboundConnectorDetails.of(
+            bpmnProcessId + version + path,
+            List.of(webhookElement(++nextProcessDefinitionKey, bpmnProcessId, version, path)));
+    assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
+    return (ValidInboundConnectorDetails) details;
+  }
+
+  public static InboundConnectorElement webhookElement(
+      long processDefinitionKey, String bpmnProcessId, int version, String path) {
+
+    return new InboundConnectorElement(
+        Map.of("inbound.type", "io.camunda:webhook:1", "inbound.context", path),
+        new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey),
+        new ProcessElement(
+            bpmnProcessId, version, processDefinitionKey, "testElement", "testTenantId"));
+  }
 
   @Test
   public void multipleWebhooksOnSameContextPathAreNotSupported() {
@@ -135,53 +183,5 @@ public class WebhookControllerPlainJavaTests {
     assertThrowsExactly(RuntimeException.class, () -> webhook.deregister(processA2));
     assertFalse(webhook.isRegistered(processA2));
     assertTrue(webhook.isRegistered(processA1));
-  }
-
-  private static long nextProcessDefinitionKey = 0L;
-
-  public static RegisteredExecutable.Activated buildConnector(
-      ValidInboundConnectorDetails connectorData) {
-    WebhookConnectorExecutable executable = mock(WebhookConnectorExecutable.class);
-    try {
-      Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
-          .thenReturn(mock(WebhookResult.class));
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-    return new RegisteredExecutable.Activated(executable, buildContext(connectorData));
-  }
-
-  public static InboundConnectorContextImpl buildContext(ValidInboundConnectorDetails def) {
-    var context =
-        new InboundConnectorContextImpl(
-            name -> null,
-            new DefaultValidationProvider(),
-            def,
-            mock(InboundCorrelationHandler.class),
-            e -> {},
-            mapper,
-            EvictingQueue.create(10));
-
-    return spy(context);
-  }
-
-  public static ValidInboundConnectorDetails webhookDefinition(
-      String bpmnProcessId, int version, String path) {
-    var details =
-        InboundConnectorDetails.of(
-            bpmnProcessId + version + path,
-            List.of(webhookElement(++nextProcessDefinitionKey, bpmnProcessId, version, path)));
-    assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
-    return (ValidInboundConnectorDetails) details;
-  }
-
-  public static InboundConnectorElement webhookElement(
-      long processDefinitionKey, String bpmnProcessId, int version, String path) {
-
-    return new InboundConnectorElement(
-        Map.of("inbound.type", "io.camunda:webhook:1", "inbound.context", path),
-        new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey),
-        new ProcessElement(
-            bpmnProcessId, version, processDefinitionKey, "testElement", "testTenantId"));
   }
 }

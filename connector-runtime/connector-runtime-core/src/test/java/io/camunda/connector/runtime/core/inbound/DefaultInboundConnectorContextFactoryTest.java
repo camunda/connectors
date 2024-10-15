@@ -28,6 +28,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.document.factory.DocumentFactory;
+import java.time.Duration;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,7 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private ValidationProvider validationProvider;
   @Mock private OperateClientAdapter operateClientAdapter;
   @Mock private Consumer<Throwable> cancellationCallback;
+  @Mock private Consumer<Duration> reactivationCallback;
   @Mock private ValidInboundConnectorDetails newConnector;
   @Mock private DocumentFactory documentFactory;
   private DefaultInboundConnectorContextFactory factory;
@@ -66,6 +68,7 @@ class DefaultInboundConnectorContextFactoryTest {
         factory.createContext(
             newConnector,
             cancellationCallback,
+            reactivationCallback,
             ExecutableWithInboundContext.class,
             EvictingQueue.create(10));
 
@@ -78,6 +81,7 @@ class DefaultInboundConnectorContextFactoryTest {
         factory.createContext(
             newConnector,
             cancellationCallback,
+            reactivationCallback,
             ExecutableWithEmptyParameterizedType.class,
             EvictingQueue.create(10));
 
@@ -91,6 +95,7 @@ class DefaultInboundConnectorContextFactoryTest {
         factory.createContext(
             newConnector,
             cancellationCallback,
+            reactivationCallback,
             ExecutableWithIntermediate.class,
             EvictingQueue.create(10));
 

@@ -46,6 +46,7 @@ public class PollingIntervalConfigurationTest {
             connectorData,
             null,
             (e) -> {},
+            (d) -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
             EvictingQueue.create(10));
   }

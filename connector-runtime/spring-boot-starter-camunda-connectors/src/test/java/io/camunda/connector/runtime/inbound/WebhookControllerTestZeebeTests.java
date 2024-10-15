@@ -106,6 +106,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandler,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -147,6 +148,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandler,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -194,6 +196,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandlerMock,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -235,6 +238,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandlerMock,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -284,6 +288,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandlerMock,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -322,6 +327,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandler,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -360,6 +366,7 @@ class WebhookControllerTestZeebeTests {
             webhookDefinition,
             correlationHandler,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -393,6 +400,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandler,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -428,6 +436,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandler,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -451,8 +460,6 @@ class WebhookControllerTestZeebeTests {
     assertEquals("expression", responseEntity.getBody().expression());
   }
 
-  interface MyVerifiableWebhook extends WebhookConnectorExecutable {}
-
   @Test
   @SuppressWarnings("unchecked")
   public void testSuccessfulProcessingWithVerification() throws Exception {
@@ -475,6 +482,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandler,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -533,6 +541,7 @@ class WebhookControllerTestZeebeTests {
             webhookDef,
             correlationHandlerMock,
             (e) -> {},
+            (d) -> {},
             mapper,
             EvictingQueue.create(10));
 
@@ -565,4 +574,6 @@ class WebhookControllerTestZeebeTests {
         .send()
         .join();
   }
+
+  interface MyVerifiableWebhook extends WebhookConnectorExecutable {}
 }
