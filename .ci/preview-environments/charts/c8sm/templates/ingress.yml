@@ -24,14 +24,14 @@ spec:
       paths:
       - backend:
           service:
-            name: {{ include "identity.keycloak.service" $camundaPlatform.Subcharts.identity }}
+            name: {{ include "identity.keycloak.service" $camundaPlatform }}
             port:
-              number: {{ include "identity.keycloak.port" $camundaPlatform.Subcharts.identity }}
-        path: {{ include "identity.keycloak.contextPath" $camundaPlatform.Subcharts.identity }}
+              number: {{ include "identity.keycloak.port" $camundaPlatform }}
+        path: {{ include "identity.keycloak.contextPath" $camundaPlatform }}
         pathType: Prefix
       - backend:
           service:
-            name: {{ template "identity.fullname" $camundaPlatform.Subcharts.identity }}
+            name: {{ template "identity.fullname" $camundaPlatform }}
             port:
               number: {{ .Values.camundaPlatform.identity.service.port }}
         path: {{ .Values.camundaPlatform.identity.contextPath }}

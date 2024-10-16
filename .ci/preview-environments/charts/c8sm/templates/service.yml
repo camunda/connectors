@@ -14,7 +14,7 @@ spec:
   type: ExternalName
   externalName: {{ include "zeebe.names.gateway" $camundaPlatform }}.{{ .Release.Namespace }}.svc.cluster.local
 ---
-{{- $identityKeyCloak := $camundaPlatform.Subcharts.identity.Subcharts.keycloak -}}
+{{- $identityKeyCloak := $camundaPlatform.Subcharts.identityKeycloak -}}
 apiVersion: v1
 kind: Service
 metadata:
