@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 
-public record ExtractionRequest(
-    @Valid @NotNull ExtractionRequestData input, BaseRequest baseRequest) {}
+public class BaseRequest extends AwsBaseRequest {}

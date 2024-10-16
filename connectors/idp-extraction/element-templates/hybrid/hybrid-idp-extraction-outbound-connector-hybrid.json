@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "IDP extraction outbound Connector",
-  "id" : "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
+  "name" : "Hybrid IDP extraction outbound Connector",
+  "id" : "io.camunda.connector.IdpExtractionOutBoundTemplate.v1-hybrid",
   "description" : "Execute IDP extraction requests",
   "documentationRef" : "https://docs.camunda.io/docs/guides/",
   "version" : 1,
@@ -16,12 +16,6 @@
   "groups" : [ {
     "id" : "taskDefinitionType",
     "label" : "Task definition type"
-  }, {
-    "id" : "authentication",
-    "label" : "Authentication"
-  }, {
-    "id" : "configuration",
-    "label" : "Configuration"
   }, {
     "id" : "input",
     "label" : "Input message data"
@@ -44,90 +38,6 @@
       "type" : "zeebe:taskDefinition"
     },
     "type" : "String"
-  }, {
-    "id" : "authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
-    "value" : "credentials",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.type",
-      "type" : "zeebe:input"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
-      "value" : "defaultCredentialsChain"
-    }, {
-      "name" : "Credentials",
-      "value" : "credentials"
-    } ]
-  }, {
-    "id" : "authentication.accessKey",
-    "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.accessKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "credentials",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.secretKey",
-    "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.secretKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "credentials",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "configuration.region",
-    "label" : "Region",
-    "description" : "Specify the AWS region",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "configuration",
-    "binding" : {
-      "name" : "configuration.region",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "configuration.endpoint",
-    "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use custom endpoint",
-    "optional" : true,
-    "group" : "configuration",
-    "binding" : {
-      "name" : "configuration.endpoint",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
   }, {
     "id" : "input.extractionEngineType",
     "label" : "Extraction engine type",
@@ -167,7 +77,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.s3BucketName",
@@ -183,7 +92,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "required",
     "group" : "input",
     "binding" : {
       "name" : "input.taxonomyItems",

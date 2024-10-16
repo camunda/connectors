@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "IDP extraction outbound Connector",
-    inputVariables = {"authentication", "configuration", "input"},
+    inputVariables = {"baseRequest", "input"},
     type = "io.camunda:idp-extraction-connector-template:1")
 @ElementTemplate(
     id = "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
@@ -38,11 +38,7 @@ import org.slf4j.LoggerFactory;
     description = "Execute IDP extraction requests",
     icon = "icon.svg",
     documentationRef = "https://docs.camunda.io/docs/guides/",
-    propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
-      @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
-      @ElementTemplate.PropertyGroup(id = "input", label = "Input message data")
-    },
+    propertyGroups = {@ElementTemplate.PropertyGroup(id = "input", label = "Input message data")},
     inputDataClass = ExtractionRequest.class)
 public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
@@ -81,7 +77,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
     try {
       String extractedText =
-          switch (extractionRequest.getInput().extractionEngineType()) {
+          switch (extractionRequest.input().extractionEngineType()) {
             case AWS_TEXTRACT -> extractTextUsingAwsTextract(extractionRequest);
             case APACHE_PDFBOX -> extractTextUsingApachePdf(extractionRequest);
           };
@@ -101,14 +97,14 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
   private String extractTextUsingAwsTextract(ExtractionRequest extractionRequest) throws Exception {
     return pollingTextractCaller.call(
-        extractionRequest.getInput().documentUrl(),
-        extractionRequest.getInput().s3BucketName(),
+        extractionRequest.input().documentUrl(),
+        extractionRequest.input().s3BucketName(),
         textractClientSupplier.getTextractClient(extractionRequest),
         s3ClientSupplier.getAsyncS3Client(extractionRequest));
   }
 
   private String extractTextUsingApachePdf(ExtractionRequest extractionRequest) throws Exception {
-    String documentUrl = extractionRequest.getInput().documentUrl();
+    String documentUrl = extractionRequest.input().documentUrl();
     URL url = URI.create(documentUrl).toURL();
     PDDocument document = Loader.loadPDF(IOUtils.toByteArray(url.openStream()));
     PDFTextStripper pdfStripper = new PDFTextStripper();

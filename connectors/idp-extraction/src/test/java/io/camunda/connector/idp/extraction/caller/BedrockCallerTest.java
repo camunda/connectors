@@ -6,13 +6,14 @@
  */
 package io.camunda.connector.idp.extraction.caller;
 
-import static io.camunda.connector.idp.extraction.util.ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.idp.extraction.model.BaseRequest;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
+import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,8 +43,9 @@ class BedrockCallerTest {
     when(converseResponse.output().message().content().getFirst().text())
         .thenReturn(expectedResponse);
 
-    ExtractionRequest extractionRequest = new ExtractionRequest();
-    extractionRequest.setInput(TEXTRACT_EXTRACTION_REQUEST_DATA);
+    BaseRequest baseRequest = new BaseRequest();
+    ExtractionRequest extractionRequest =
+        new ExtractionRequest(ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, baseRequest);
 
     String bedrockResponse = bedrockCaller.call(extractionRequest, "", bedrockRuntimeClient);
 

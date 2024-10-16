@@ -15,8 +15,9 @@ public class S3ClientSupplier {
 
   public S3AsyncClient getAsyncS3Client(final ExtractionRequest request) {
     return S3AsyncClient.builder()
-        .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
-        .region(Region.of(request.getConfiguration().region()))
+        .credentialsProvider(
+            CredentialsProviderSupportV2.credentialsProvider(request.baseRequest()))
+        .region(Region.of(request.baseRequest().getConfiguration().region()))
         .build();
   }
 }

@@ -60,7 +60,7 @@ public class BedrockCaller {
     LOGGER.debug("Calling AWS Bedrock model with extraction request: {}", extractionRequest);
 
     String taxonomyItems =
-        extractionRequest.getInput().taxonomyItems().stream()
+        extractionRequest.input().taxonomyItems().stream()
             .map(item -> String.format(SYSTEM_PROMPT_VARIABLE_TEMPLATE, item.name(), item.prompt()))
             .collect(Collectors.joining());
 
@@ -75,7 +75,7 @@ public class BedrockCaller {
             .role(ConversationRole.USER)
             .build();
 
-    ConverseData converseData = extractionRequest.getInput().converseData();
+    ConverseData converseData = extractionRequest.input().converseData();
     ConverseResponse response =
         bedrockRuntimeClient.converse(
             request ->

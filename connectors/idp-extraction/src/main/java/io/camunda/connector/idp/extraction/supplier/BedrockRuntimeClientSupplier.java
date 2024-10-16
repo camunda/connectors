@@ -15,8 +15,9 @@ public class BedrockRuntimeClientSupplier {
 
   public BedrockRuntimeClient getBedrockRuntimeClient(final ExtractionRequest request) {
     return BedrockRuntimeClient.builder()
-        .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
-        .region(Region.of(request.getConfiguration().region()))
+        .credentialsProvider(
+            CredentialsProviderSupportV2.credentialsProvider(request.baseRequest()))
+        .region(Region.of(request.baseRequest().getConfiguration().region()))
         .build();
   }
 }

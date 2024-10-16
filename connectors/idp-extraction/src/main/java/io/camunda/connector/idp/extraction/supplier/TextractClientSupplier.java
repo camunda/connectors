@@ -15,8 +15,9 @@ public class TextractClientSupplier {
 
   public TextractClient getTextractClient(final ExtractionRequest request) {
     return TextractClient.builder()
-        .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
-        .region(Region.of(request.getConfiguration().region()))
+        .credentialsProvider(
+            CredentialsProviderSupportV2.credentialsProvider(request.baseRequest()))
+        .region(Region.of(request.baseRequest().getConfiguration().region()))
         .build();
   }
 }
