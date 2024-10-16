@@ -34,7 +34,8 @@ global:
   # Camunda 8 Self-Managed global configurations
   elasticsearch:
     # necessary due to name override bugs
-    host: elasticsearch
+    url:
+      host: elasticsearch
   identity:
     auth:
       # Enable Camunda Identity-based authentication
@@ -368,7 +369,7 @@ camunda-platform:
         operator: "Exists"
         effect: "NoSchedule"
 
-  zeebe-gateway:
+  zeebeGateway:
     fullnameOverride: zeebe-cluster-gateway
     replicas: 1
     # image:
