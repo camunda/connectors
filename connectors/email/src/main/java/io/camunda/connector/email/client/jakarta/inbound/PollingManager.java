@@ -25,15 +25,18 @@ public class PollingManager {
   private final JakartaUtils jakartaUtils;
   private final Folder folder;
   private final Store store;
+  private final Authentication authentication;
 
   public PollingManager(
       InboundConnectorContext connectorContext,
       EmailListenerConfig emailListenerConfig,
+      Authentication authentication,
       JakartaUtils jakartaUtils,
       Folder folder,
       Store store) {
     this.connectorContext = connectorContext;
     this.emailListenerConfig = emailListenerConfig;
+    this.authentication = authentication;
     this.jakartaUtils = jakartaUtils;
     this.folder = folder;
     this.store = store;
@@ -61,7 +64,8 @@ public class PollingManager {
               || emailListenerConfig.pollingConfig().targetFolder().isBlank()))
         throw new RuntimeException(
             "If the post process action is `MOVE`, a target folder must be specified");
-      return new PollingManager(connectorContext, emailListenerConfig, jakartaUtils, folder, store);
+      return new PollingManager(
+          connectorContext, emailListenerConfig, authentication, jakartaUtils, folder, store);
     } catch (MessagingException e) {
       try {
         if (folder != null && folder.isOpen()) {
@@ -78,9 +82,27 @@ public class PollingManager {
   }
 
   public void poll() {
+    this.prepareForPolling();
     switch (this.emailListenerConfig.pollingConfig()) {
       case PollAll pollAll -> pollAllAndProcess(pollAll);
       case PollUnseen pollUnseen -> pollUnseenAndProcess(pollUnseen);
+    }
+  }
+
+  private void prepareForPolling() {
+    if (!this.store.isConnected()) {
+      try {
+        this.jakartaUtils.connectStore(store, authentication);
+      } catch (MessagingException e) {
+        throw new RuntimeException("Could not reconnect to store");
+      }
+    }
+    if (!this.folder.isOpen()) {
+      try {
+        this.folder.open(Folder.READ_WRITE);
+      } catch (MessagingException e) {
+        throw new RuntimeException("Could not reopen folder");
+      }
     }
   }
 
