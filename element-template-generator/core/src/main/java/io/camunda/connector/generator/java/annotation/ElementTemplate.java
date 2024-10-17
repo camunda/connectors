@@ -68,6 +68,8 @@ public @interface ElementTemplate {
    */
   String description() default "";
 
+  Metadata metadata() default @Metadata;
+
   /**
    * Manual configuration for the connector property groups.
    *
@@ -92,6 +94,12 @@ public @interface ElementTemplate {
   String icon() default "";
 
   ConnectorElementType[] elementTypes() default {};
+
+  /** Metadata tags for the connector. Will be used in Camunda Modeler. */
+  @interface Metadata {
+
+    String[] keywords() default {};
+  }
 
   @interface PropertyGroup {
 
