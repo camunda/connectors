@@ -69,7 +69,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      EvictingQueue logs) {
+      EvictingQueue<Activity> logs) {
     super(secretProvider, validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
@@ -89,7 +89,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      EvictingQueue logs) {
+      EvictingQueue<Activity> logs) {
     this(
         secretProvider,
         validationProvider,
