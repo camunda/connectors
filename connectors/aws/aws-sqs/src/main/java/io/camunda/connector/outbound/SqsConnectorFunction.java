@@ -33,7 +33,15 @@ import java.util.Optional;
 @ElementTemplate(
     id = "io.camunda.connectors.AWSSQS.v1",
     name = "Amazon SQS Outbound Connector",
-    description = "Send message to queue",
+    description = "Send messages to Amazon SQS.",
+    metadata =
+        @ElementTemplate.Metadata(
+            keywords = {
+              "send message",
+              "publish message",
+              "send message to queue",
+              "publish message to queue"
+            }),
     inputDataClass = SqsConnectorRequest.class,
     version = 10,
     propertyGroups = {
