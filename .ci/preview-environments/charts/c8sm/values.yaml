@@ -34,7 +34,8 @@ global:
   # Camunda 8 Self-Managed global configurations
   elasticsearch:
     # necessary due to name override bugs
-    host: elasticsearch
+    url:
+      host: elasticsearch
   identity:
     auth:
       # Enable Camunda Identity-based authentication
@@ -164,52 +165,53 @@ camunda-platform:
     - key: "previews"
       operator: "Exists"
       effect: "NoSchedule"
-    keycloak:
-      enabled: true
-      fullnameOverride: identity-keycloak
+
+  identityKeycloak:
+    enabled: true
+    fullnameOverride: identity-keycloak
+    auth:
+      adminUser: admin
+      adminPassword: admin
+    externalDatabase:
+      password: postgresql
+    extraEnvVars:
+    - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
+      value: "true"
+    resources:
+      limits:
+        cpu: 1
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    nodeSelector:
+      cloud.google.com/gke-nodepool: previews
+    tolerations:
+    - key: "previews"
+      operator: "Exists"
+      effect: "NoSchedule"
+    postgresql:
+      fullnameOverride: identity-keycloak-postgresql
       auth:
-        adminUser: admin
-        adminPassword: admin
-      externalDatabase:
+        # fixed secret, to avoid generating a random password each time
         password: postgresql
-      extraEnvVars:
-      - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
-        value: "true"
-      resources:
-        limits:
-          cpu: 1
-          memory: 1Gi
-        requests:
-          cpu: 500m
-          memory: 512Mi
-      nodeSelector:
-        cloud.google.com/gke-nodepool: previews
-      tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
-      postgresql:
-        fullnameOverride: identity-keycloak-postgresql
-        auth:
-          # fixed secret, to avoid generating a random password each time
-          password: postgresql
-        primary:
-          persistence:
-            enabled: true
-            size: 1Gi
-          resources:
-            limits:
-              cpu: 500m
-              memory: 512Mi
-            requests:
-              cpu: 250m
-              memory: 256Mi
-          nodeSelector:
-            cloud.google.com/gke-nodepool: previews
-          tolerations:
-          - key: "previews"
-            operator: "Exists"
-            effect: "NoSchedule"
+      primary:
+        persistence:
+          enabled: true
+          size: 1Gi
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        nodeSelector:
+          cloud.google.com/gke-nodepool: previews
+        tolerations:
+        - key: "previews"
+          operator: "Exists"
+          effect: "NoSchedule"
 
   operate:
     enabled: true
@@ -367,7 +369,7 @@ camunda-platform:
         operator: "Exists"
         effect: "NoSchedule"
 
-  zeebe-gateway:
+  zeebeGateway:
     fullnameOverride: zeebe-cluster-gateway
     replicas: 1
     # image:
