@@ -1,0 +1,176 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid IDP extraction outbound Connector",
+  "id" : "io.camunda.connector.IdpExtractionOutBoundTemplate.v1-hybrid",
+  "description" : "Execute IDP extraction requests",
+  "documentationRef" : "https://docs.camunda.io/docs/guides/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "input",
+    "label" : "Input message data"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:idp-extraction-connector-template:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.extractionEngineType",
+    "label" : "Extraction engine type",
+    "description" : "Specify extraction engine to be used",
+    "optional" : false,
+    "value" : "= input.extractionEngineType",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.extractionEngineType",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.documentUrl",
+    "label" : "Document URL",
+    "description" : "Specify the URL where the document is hosted",
+    "optional" : false,
+    "value" : "= input.documentUrl",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.documentUrl",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.s3BucketName",
+    "label" : "AWS S3 Bucket name",
+    "description" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
+    "optional" : false,
+    "value" : "idp-extraction-connector",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.s3BucketName",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "input.taxonomyItems",
+    "label" : "Taxonomy Items",
+    "description" : "Array of taxonomy items",
+    "optional" : false,
+    "value" : "= input.taxonomyItems",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.taxonomyItems",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.converseData",
+    "label" : "AWS Bedrock Converse Parameters",
+    "description" : "Specify the parameters for AWS Bedrock",
+    "optional" : false,
+    "value" : "= input.converseData",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.converseData",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon": {
+    "contents": "data:image/png;base64,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"
+  }
+}
