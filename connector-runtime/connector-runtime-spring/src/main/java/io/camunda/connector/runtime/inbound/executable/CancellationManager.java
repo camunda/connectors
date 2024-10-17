@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-import io.camunda.connector.api.error.RestartException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.Health;
 import java.time.Duration;
 import java.util.Map;
@@ -28,6 +28,11 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Handles exceptions thrown during the cancellation process of an {@link
+ * io.camunda.connector.api.inbound.InboundConnectorContext#cancel(Throwable) cancel} operation.
+ * This class determines the appropriate action to take based on the specific exception encountered.
+ */
 public class CancellationManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(CancellationManager.class);
@@ -46,19 +51,19 @@ public class CancellationManager {
   public Consumer<Throwable> createCancellationCallback(UUID uuid) {
     return (throwable) -> {
       switch (throwable) {
-        case RestartException restartException -> {
+        case ConnectorRetryException connectorRetryException -> {
           handleCancellation(uuid, throwable);
-          handleRestart(uuid, restartException.getDelay(), restartException.getRetryAttempts());
+          handleRestart(uuid, connectorRetryException);
         }
         default -> handleCancellation(uuid, throwable);
       }
     };
   }
 
-  private void handleRestart(UUID uuid, Duration delay, Integer retryAttempts) {
+  private void handleRestart(UUID uuid, ConnectorRetryException connectorRetryException) {
     LOG.warn(
         "Inbound connector executable has requested its reactivation in {} {}",
-        delay.getSeconds(),
+        connectorRetryException.getBackoffDuration().getSeconds(),
         TimeUnit.SECONDS);
     var toReactivate = executables.get(uuid);
     if (toReactivate == null) {
@@ -66,23 +71,28 @@ public class CancellationManager {
       return;
     }
     this.reactivationExecutor.schedule(
-        () -> tryRestart(uuid, toReactivate, delay, retryAttempts),
-        delay.getSeconds(),
+        () ->
+            tryRestart(
+                uuid,
+                toReactivate,
+                connectorRetryException.getBackoffDuration(),
+                connectorRetryException.getRetries()),
+        connectorRetryException.getBackoffDuration().getSeconds(),
         TimeUnit.SECONDS);
   }
 
   private void tryRestart(
       UUID uuid, RegisteredExecutable toReactivate, Duration delay, Integer retryAttempts) {
-    if (retryAttempts < 0) return;
     if (toReactivate instanceof RegisteredExecutable.Cancelled cancelled) {
       try {
         cancelled.executable().activate(cancelled.context());
-        executables.remove(uuid);
-        executables.put(
+        executables.replace(
             uuid, new RegisteredExecutable.Activated(cancelled.executable(), cancelled.context()));
         LOG.info("Activation successful for ID: {}", uuid);
       } catch (Exception e) {
-        LOG.error("Activation failed for ID: {}. Retrying... {} retries left", uuid, retryAttempts);
+        if (retryAttempts == 0) return;
+        LOG.error(
+            "Activation failed for ID: {}. Retrying... {} retries left", uuid, retryAttempts - 1);
         this.reactivationExecutor.schedule(
             () -> tryRestart(uuid, toReactivate, delay, retryAttempts - 1),
             delay.getSeconds(),
@@ -104,9 +114,10 @@ public class CancellationManager {
       activated.context().reportHealth(Health.down(throwable));
       try {
         activated.executable().deactivate();
-        executables.remove(uuid);
-        executables.put(
-            uuid, new RegisteredExecutable.Cancelled(activated.executable(), activated.context()));
+        executables.replace(
+            uuid,
+            new RegisteredExecutable.Cancelled(
+                activated.executable(), activated.context(), throwable));
       } catch (Exception e) {
         LOG.error("Failed to deactivate connector", e);
       }

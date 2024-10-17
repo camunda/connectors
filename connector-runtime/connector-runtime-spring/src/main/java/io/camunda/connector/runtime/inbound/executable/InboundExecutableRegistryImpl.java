@@ -293,7 +293,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               id,
               cancelled.executable().getClass(),
               cancelled.context().connectorElements(),
-              cancelled.context().getHealth(),
+              Health.down(cancelled.exceptionThrown()),
               cancelled.context().getLogs());
     };
   }

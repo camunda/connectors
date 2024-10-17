@@ -32,7 +32,8 @@ public sealed interface RegisteredExecutable {
 
   record Cancelled(
       InboundConnectorExecutable<InboundConnectorContext> executable,
-      InboundConnectorReportingContext context)
+      InboundConnectorReportingContext context,
+      Throwable exceptionThrown)
       implements RegisteredExecutable {}
 
   record ConnectorNotRegistered(ValidInboundConnectorDetails data)
