@@ -30,6 +30,8 @@ import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -64,15 +66,40 @@ import org.springframework.test.web.servlet.MockMvc;
 @ZeebeSpringTest
 public class SecurityConfigurationTest {
 
-  @Autowired private MockMvc mvc;
-
   // needed to access /actuator endpoints
   @Autowired RestTemplateBuilder restTemplateBuilder;
   @LocalManagementPort int managementPort;
+  @Autowired private MockMvc mvc;
 
   @MockBean
   @SuppressWarnings("unused")
   private CamundaOperateClient operateClient;
+
+  @Test
+  public void publishLogsEndpoint_fromLocalhost_returns200() throws Exception {
+    mvc.perform(
+            post("/inbound/logs")
+                .with(
+                    request -> {
+                      request.setRemoteAddr("127.0.0.1");
+                      return request;
+                    }))
+        .andExpect(status().isOk());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"192.10.1.12", "10.156.23.22"})
+  public void publishLogsEndpoint_fromNonLocalhost_returns403(String unauthorizedIp)
+      throws Exception {
+    mvc.perform(
+            post("/inbound/logs")
+                .with(
+                    request -> {
+                      request.setRemoteAddr(unauthorizedIp);
+                      return request;
+                    }))
+        .andExpect(status().isForbidden());
+  }
 
   @Test
   public void inboundEndpoint_noAuth_returns401() throws Exception {

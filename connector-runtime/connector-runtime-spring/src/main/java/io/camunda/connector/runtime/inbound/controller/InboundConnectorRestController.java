@@ -22,6 +22,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -50,6 +52,11 @@ public class InboundConnectorRestController {
       @RequestParam(required = false, value = "elementId") String elementId,
       @RequestParam(required = false, value = "type") String type) {
     return getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
+  }
+
+  @PostMapping("/inbound/logs")
+  public void logActiveInboundConnectors() {
+    ((InboundExecutableRegistryImpl) executableRegistry).logStatusReport();
   }
 
   @GetMapping("/tenants/{tenantId}/inbound")
