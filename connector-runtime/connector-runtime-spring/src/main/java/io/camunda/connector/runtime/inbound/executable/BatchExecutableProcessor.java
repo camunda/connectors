@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound.executable;
 
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
@@ -39,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,8 +75,7 @@ public class BatchExecutableProcessor {
    * considered valid).
    */
   public Map<UUID, RegisteredExecutable> activateBatch(
-      Map<UUID, InboundConnectorDetails> request,
-      BiConsumer<Throwable, UUID> cancellationCallback) {
+      Map<UUID, InboundConnectorDetails> request, CancellationManager cancellationManager) {
 
     final Map<UUID, RegisteredExecutable> alreadyActivated = new HashMap<>();
 
@@ -94,12 +93,13 @@ public class BatchExecutableProcessor {
       }
 
       final RegisteredExecutable result =
-          activateSingle(data, e -> cancellationCallback.accept(e, id));
+          activateSingle(data, cancellationManager.createCancellationCallback(id));
 
       switch (result) {
         case Activated activated -> alreadyActivated.put(id, activated);
         case ConnectorNotRegistered notRegistered -> alreadyActivated.put(id, notRegistered);
         case InvalidDefinition invalid -> alreadyActivated.put(id, invalid);
+        case RegisteredExecutable.Cancelled cancelled -> alreadyActivated.put(id, cancelled);
         case FailedToActivate failed -> {
           LOG.error(
               "Failed to activate connector of type '{}' with deduplication ID '{}', reason: {}. "
@@ -145,7 +145,7 @@ public class BatchExecutableProcessor {
     }
     var validData = (ValidInboundConnectorDetails) data;
 
-    final InboundConnectorExecutable executable;
+    final InboundConnectorExecutable<InboundConnectorContext> executable;
     final InboundConnectorReportingContext context;
 
     try {
