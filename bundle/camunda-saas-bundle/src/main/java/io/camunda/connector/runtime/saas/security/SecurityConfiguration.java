@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.saas.security;
 
+import static org.springframework.security.web.access.IpAddressAuthorizationManager.hasIpAddress;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +37,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @Configuration
 public class SecurityConfiguration {
+
+  public static final String LOCALHOST_IPV4 = "127.0.0.1";
 
   @Value("${camunda.connector.auth.audience}")
   private String audience;
@@ -63,7 +67,12 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.PUT, "/inbound/*")
                     .requestMatchers(HttpMethod.DELETE, "/inbound/*")
                     .requestMatchers("actuator/**"))
-        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers("/inbound/logs")
+                    .access(hasIpAddress(LOCALHOST_IPV4))
+                    .anyRequest()
+                    .permitAll())
         .build();
   }
 
