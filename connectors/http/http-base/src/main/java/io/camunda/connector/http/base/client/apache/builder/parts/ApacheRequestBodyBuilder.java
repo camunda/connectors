@@ -128,7 +128,8 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
     for (Map.Entry<?, ?> entry : body.entrySet()) {
       switch (entry.getValue()) {
         case Document document -> streamDocumentContent(entry, document, builder);
-        case null, default ->
+        case null -> {}
+        default ->
             builder.addTextBody(
                 String.valueOf(entry.getKey()),
                 String.valueOf(entry.getValue()),
