@@ -31,6 +31,7 @@ import java.util.Set;
   "name",
   "id",
   "description",
+  "metadata",
   "documentationRef",
   "version",
   "category",
@@ -46,19 +47,12 @@ public record ElementTemplate(
     int version,
     String documentationRef,
     String description,
+    Metadata metadata,
     Set<String> appliesTo,
     ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
     List<Property> properties,
     ElementTemplateIcon icon) {
-
-  public static ElementTemplateBuilder builderForOutbound() {
-    return ElementTemplateBuilder.createOutbound();
-  }
-
-  public static ElementTemplateBuilder builderForInbound() {
-    return ElementTemplateBuilder.createInbound();
-  }
 
   static final String SCHEMA_FIELD_NAME = "$schema";
   static final String SCHEMA_URL =
@@ -107,6 +101,14 @@ public record ElementTemplate(
     }
   }
 
+  public static ElementTemplateBuilder builderForOutbound() {
+    return ElementTemplateBuilder.createOutbound();
+  }
+
+  public static ElementTemplateBuilder builderForInbound() {
+    return ElementTemplateBuilder.createInbound();
+  }
+
   @JsonProperty
   public ElementTemplateCategory category() {
     return ElementTemplateCategory.CONNECTORS;
@@ -116,6 +118,8 @@ public record ElementTemplate(
   public String schema() {
     return SCHEMA_URL;
   }
+
+  public record Metadata(String[] keywords) {}
 
   @JsonInclude(Include.NON_NULL)
   public record ElementTypeWrapper(
