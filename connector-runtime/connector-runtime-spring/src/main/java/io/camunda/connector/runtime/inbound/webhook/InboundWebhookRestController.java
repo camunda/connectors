@@ -45,7 +45,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,10 +85,10 @@ public class InboundWebhookRestController {
   }
 
   protected static Object escapeValue(Object value) {
-    if (Objects.requireNonNull(value) instanceof String s) {
-      return HtmlUtils.htmlEscape(s);
-    }
-    return value;
+    return switch (value) {
+      case String s -> HtmlUtils.htmlEscape(s);
+      case null, default -> value;
+    };
   }
 
   @RequestMapping(

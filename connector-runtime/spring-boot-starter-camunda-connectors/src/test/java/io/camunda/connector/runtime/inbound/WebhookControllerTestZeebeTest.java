@@ -556,6 +556,58 @@ class WebhookControllerTestZeebeTest {
     assertEquals("test", responseEntity.getBody().tenantId());
   }
 
+  @Test
+  public void testSuccessfulProcessingWithPartialResponseBodyExpression() throws Exception {
+    var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+
+    var element =
+        new InboundConnectorElement(
+            Map.of("inbound.context", "myPath"),
+            null,
+            new ProcessElement("processA", 1, 1, "myElement", "myTenant"));
+
+    var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    var factory = new DefaultProcessElementContextFactory(secretProvider, (e) -> {}, mapper);
+    when(correlationHandlerMock.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                factory.createContext(element), 1L, "test"));
+
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.response()).thenReturn((c) -> WebhookHttpResponse.ok(null));
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandlerMock,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+
+    deployProcess("processA");
+
+    ResponseEntity<?> responseEntity =
+        controller.inbound(
+            "myPath",
+            new HashMap<>(),
+            "{}".getBytes(),
+            new HashMap<>(),
+            new MockHttpServletRequest());
+
+    assertEquals(200, responseEntity.getStatusCode().value());
+    assertNull(responseEntity.getBody());
+  }
+
   public void deployProcess(String bpmnProcessId) {
     zeebeClient
         .newDeployResourceCommand()
