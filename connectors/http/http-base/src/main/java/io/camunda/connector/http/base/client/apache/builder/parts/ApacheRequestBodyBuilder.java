@@ -29,7 +29,6 @@ import io.camunda.document.DocumentMetadata;
 import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
@@ -127,11 +126,13 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
     builder.setMode(HttpMultipartMode.LEGACY);
     Optional.ofNullable(contentType.getParameter("boundary")).ifPresent(builder::setBoundary);
     for (Map.Entry<?, ?> entry : body.entrySet()) {
-      if (Objects.requireNonNull(entry.getValue()) instanceof Document document) {
-        streamDocumentContent(entry, document, builder);
-      } else {
-        builder.addTextBody(
-            String.valueOf(entry.getKey()), String.valueOf(entry.getValue()), MULTIPART_FORM_DATA);
+      switch (entry.getValue()) {
+        case Document document -> streamDocumentContent(entry, document, builder);
+        case null, default ->
+            builder.addTextBody(
+                String.valueOf(entry.getKey()),
+                String.valueOf(entry.getValue()),
+                MULTIPART_FORM_DATA);
       }
     }
     return builder.build();
