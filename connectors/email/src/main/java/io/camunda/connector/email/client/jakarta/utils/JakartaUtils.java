@@ -167,7 +167,7 @@ public class JakartaUtils {
 
   private Folder findFolderRecursively(Folder rootFolder, String targetFolder)
       throws MessagingException {
-    if (targetFolder == null || targetFolder.isEmpty() || "INBOX".equals(targetFolder)) {
+    if (targetFolder == null || targetFolder.isEmpty() || "INBOX".equalsIgnoreCase(targetFolder)) {
       return rootFolder.getFolder("INBOX");
     }
     Folder[] folders = rootFolder.list();
