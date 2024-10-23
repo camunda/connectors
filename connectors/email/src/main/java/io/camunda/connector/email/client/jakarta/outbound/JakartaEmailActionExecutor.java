@@ -130,7 +130,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       sourceImapFolder.open(Folder.READ_WRITE);
       Folder targetImapFolder =
           store.getFolder(
-              String.join(String.valueOf(rootFolder.getSeparator()), toFolder.split("\\.")));
+              String.join(String.valueOf(rootFolder.getSeparator()), toFolder.split("[./]")));
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
       targetImapFolder.open(Folder.READ_WRITE);
 

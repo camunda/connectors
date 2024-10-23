@@ -321,7 +321,7 @@ public class JakartaUtils {
       char separator = imapFolder.getSeparator();
       String targetFolderFormatted =
           Optional.ofNullable(targetFolder)
-              .map(string -> string.split("\\."))
+              .map(string -> string.split("[./]"))
               .map(strings -> String.join(String.valueOf(separator), strings))
               .orElse("temp");
       Folder targetImapFolder = store.getFolder(targetFolderFormatted);
