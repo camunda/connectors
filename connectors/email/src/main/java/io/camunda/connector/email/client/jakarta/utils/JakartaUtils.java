@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 public class JakartaUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JakartaUtils.class);
+  private static final String REGEX_PATH_SPLITTER = "[./]";
 
   public Session createSession(Configuration configuration) {
     return Session.getInstance(
@@ -165,31 +166,19 @@ public class JakartaUtils {
         };
   }
 
-  private Folder findFolderRecursively(Folder rootFolder, String targetFolder)
-      throws MessagingException {
-    if (targetFolder == null || targetFolder.isEmpty() || "INBOX".equalsIgnoreCase(targetFolder)) {
-      return rootFolder.getFolder("INBOX");
+  public Folder findImapFolder(Store store, String folderPath) throws MessagingException {
+    if (folderPath == null || folderPath.isEmpty() || "INBOX".equalsIgnoreCase(folderPath)) {
+      return store.getFolder("INBOX");
     }
-    Folder[] folders = rootFolder.list();
-    for (Folder folder : folders) {
-      if (folder.getName().equals(targetFolder)) {
-        return folder;
-      } else {
-        Folder folderReturned = findFolderRecursively(folder, targetFolder);
-        if (folderReturned != null) {
-          return folderReturned;
-        }
-      }
-    }
-    return null;
-  }
-
-  public Folder findImapFolder(Folder rootFolder, String targetFolder) throws MessagingException {
-    Folder folder = findFolderRecursively(rootFolder, targetFolder);
-    if (folder != null) {
-      return folder;
-    }
-    throw new MessagingException("Unable to find IMAP folder");
+    char separator = store.getDefaultFolder().getSeparator();
+    String formattedPath =
+        Optional.of(folderPath)
+            .map(string -> string.split(REGEX_PATH_SPLITTER))
+            .map(strings -> String.join(String.valueOf(separator), strings))
+            .orElseThrow(() -> new RuntimeException("No folder has been set"));
+    Folder folder = store.getFolder(formattedPath);
+    if (!folder.exists()) throw new RuntimeException("Folder " + formattedPath + " does not exist");
+    return folder;
   }
 
   public Email createBodylessEmail(Message message) {
@@ -321,9 +310,9 @@ public class JakartaUtils {
       char separator = imapFolder.getSeparator();
       String targetFolderFormatted =
           Optional.ofNullable(targetFolder)
-              .map(string -> string.split("[./]"))
+              .map(string -> string.split(REGEX_PATH_SPLITTER))
               .map(strings -> String.join(String.valueOf(separator), strings))
-              .orElse("temp");
+              .orElseThrow(() -> new RuntimeException("No folder has been set"));
       Folder targetImapFolder = store.getFolder(targetFolderFormatted);
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
       targetImapFolder.open(Folder.READ_WRITE);

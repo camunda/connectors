@@ -64,9 +64,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       ImapSearchEmails imapSearchEmails, Authentication authentication, Session session) {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
-      Folder defaultFolder = store.getDefaultFolder();
       String targetFolder = imapSearchEmails.searchEmailFolder();
-      try (Folder imapFolder = this.jakartaUtils.findImapFolder(defaultFolder, targetFolder)) {
+      try (Folder imapFolder = this.jakartaUtils.findImapFolder(store, targetFolder)) {
         return searchEmails(imapFolder, imapSearchEmails.criteria());
       }
     } catch (MessagingException e) {
@@ -78,9 +77,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       ImapReadEmail imapReadEmail, Authentication authentication, Session session) {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
-      Folder defaultFolder = store.getDefaultFolder();
       String targetFolder = imapReadEmail.readEmailFolder();
-      try (Folder imapFolder = this.jakartaUtils.findImapFolder(defaultFolder, targetFolder)) {
+      try (Folder imapFolder = this.jakartaUtils.findImapFolder(store, targetFolder)) {
         imapFolder.open(Folder.READ_ONLY);
         Message[] messages = imapFolder.search(new MessageIDTerm(imapReadEmail.messageId()));
         return Arrays.stream(messages)
@@ -108,9 +106,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       ImapDeleteEmail imapDeleteEmail, Authentication authentication, Session session) {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
-      Folder defaultFolder = store.getDefaultFolder();
       String targetFolder = imapDeleteEmail.deleteEmailFolder();
-      try (Folder folder = this.jakartaUtils.findImapFolder(defaultFolder, targetFolder)) {
+      try (Folder folder = this.jakartaUtils.findImapFolder(store, targetFolder)) {
         return deleteEmail(folder, imapDeleteEmail.messageId());
       }
     } catch (MessagingException e) {
@@ -122,18 +119,9 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       ImapMoveEmail imapMoveEmail, Authentication authentication, Session session) {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
-      Folder rootFolder = store.getDefaultFolder();
       String fromFolder = imapMoveEmail.fromFolder();
-      String toFolder = imapMoveEmail.toFolder();
-      Folder sourceImapFolder = this.jakartaUtils.findImapFolder(rootFolder, fromFolder);
-      if (!sourceImapFolder.exists()) throw new MessagingException("Source folder does not exist");
+      Folder sourceImapFolder = this.jakartaUtils.findImapFolder(store, fromFolder);
       sourceImapFolder.open(Folder.READ_WRITE);
-      Folder targetImapFolder =
-          store.getFolder(
-              String.join(String.valueOf(rootFolder.getSeparator()), toFolder.split("[./]")));
-      if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
-      targetImapFolder.open(Folder.READ_WRITE);
-
       Message[] messages = sourceImapFolder.search(new MessageIDTerm(imapMoveEmail.messageId()));
       Message message =
           Arrays.stream(messages)
@@ -143,10 +131,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                       new MessagingException(
                           "Email with messageId %s does not exist"
                               .formatted(imapMoveEmail.messageId())));
-      sourceImapFolder.copyMessages(new Message[] {message}, targetImapFolder);
-      this.jakartaUtils.markAsDeleted(message);
+      this.jakartaUtils.moveMessage(store, message, imapMoveEmail.toFolder());
       sourceImapFolder.close();
-      targetImapFolder.close();
       return new MoveEmailResponse(
           imapMoveEmail.messageId(), imapMoveEmail.fromFolder(), imapMoveEmail.toFolder());
     } catch (MessagingException e) {
@@ -158,9 +144,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       ImapListEmails imapListEmails, Authentication authentication, Session session) {
     try (Store store = session.getStore()) {
       this.jakartaUtils.connectStore(store, authentication);
-      Folder rootFolder = store.getDefaultFolder();
       String targetFolder = imapListEmails.listEmailsFolder();
-      try (Folder imapFolder = this.jakartaUtils.findImapFolder(rootFolder, targetFolder)) {
+      try (Folder imapFolder = this.jakartaUtils.findImapFolder(store, targetFolder)) {
         imapFolder.open(Folder.READ_ONLY);
         return Arrays.stream(imapFolder.getMessages())
             .map(this.jakartaUtils::createBodylessEmail)

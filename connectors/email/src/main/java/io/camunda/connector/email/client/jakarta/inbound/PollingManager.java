@@ -17,9 +17,12 @@ import jakarta.mail.search.FlagTerm;
 import java.util.Arrays;
 import java.util.Objects;
 import org.eclipse.angus.mail.imap.IMAPMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PollingManager {
 
+  private static final Logger log = LoggerFactory.getLogger(PollingManager.class);
   private final InboundConnectorContext connectorContext;
   private final EmailListenerConfig emailListenerConfig;
   private final JakartaUtils jakartaUtils;
@@ -55,9 +58,7 @@ public class PollingManager {
           jakartaUtils.createSession(emailInboundConnectorProperties.data().imapConfig());
       store = session.getStore();
       jakartaUtils.connectStore(store, authentication);
-      folder =
-          jakartaUtils.findImapFolder(
-              store.getDefaultFolder(), emailListenerConfig.folderToListen());
+      folder = jakartaUtils.findImapFolder(store, emailListenerConfig.folderToListen());
       folder.open(Folder.READ_WRITE);
       if (emailListenerConfig.pollingConfig().handlingStrategy().equals(HandlingStrategy.MOVE)
           && (Objects.isNull(emailListenerConfig.pollingConfig().targetFolder())
@@ -94,6 +95,7 @@ public class PollingManager {
       try {
         this.jakartaUtils.connectStore(store, authentication);
       } catch (MessagingException e) {
+        log.error("Could not reconnect to store", e);
         throw new RuntimeException("Could not reconnect to store");
       }
     }
@@ -101,6 +103,7 @@ public class PollingManager {
       try {
         this.folder.open(Folder.READ_WRITE);
       } catch (MessagingException e) {
+        log.error("Could not reopen folder", e);
         throw new RuntimeException("Could not reopen folder");
       }
     }
