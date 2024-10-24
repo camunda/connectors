@@ -47,7 +47,7 @@ import org.springframework.boot.test.context.SpringBootTest;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
-public class EmailTests extends BaseEmailTest {
+public class OutboundEmailTests extends BaseEmailTest {
 
   private static final ScheduledExecutorService scheduler =
       Executors.newSingleThreadScheduledExecutor();

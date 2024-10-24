@@ -21,10 +21,7 @@ import io.camunda.connector.email.outbound.protocols.Pop3;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.Smtp;
 import io.camunda.connector.email.outbound.protocols.actions.*;
-import io.camunda.connector.email.response.DeleteEmailResponse;
-import io.camunda.connector.email.response.ListEmailsResponse;
-import io.camunda.connector.email.response.ReadEmailResponse;
-import io.camunda.connector.email.response.SearchEmailsResponse;
+import io.camunda.connector.email.response.*;
 import jakarta.mail.*;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -511,6 +508,68 @@ class JakartaExecutorTest {
     Object object = actionExecutor.execute(emailRequest);
 
     Assertions.assertInstanceOf(List.class, object);
+  }
+
+  @Test
+  void executeImapMoveEmail() throws MessagingException, IOException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    ImapMoveEmail imapMoveEmail = mock(ImapMoveEmail.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Imap.class);
+    Session session = mock(Session.class);
+    Store store = mock(Store.class);
+    Folder folder = mock(Folder.class);
+    Folder defaultFolder = mock(Folder.class);
+    Folder targetFolder = mock(Folder.class);
+    Message message = mock(Message.class);
+
+    when(sessionFactory.createSession(any())).thenReturn(session);
+
+    // Authentication
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
+    doNothing().when(store).connect(any(), any());
+
+    when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
+    when(folder.search(any())).thenReturn(new Message[] {message});
+    when(store.getDefaultFolder()).thenReturn(defaultFolder);
+    when(defaultFolder.getSeparator()).thenReturn('|');
+    when(folder.exists()).thenReturn(Boolean.TRUE);
+    when(message.getContent()).thenReturn("string");
+    when(message.isMimeType("text/plain")).thenReturn(true);
+    when(message.getHeader(any())).thenReturn(new String[] {"1"});
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(session.getStore()).thenReturn(store);
+    when(emailRequest.data()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(imapMoveEmail);
+    when(imapMoveEmail.fromFolder()).thenReturn("");
+    when(imapMoveEmail.toFolder()).thenReturn("test.to/folder");
+    when(store.getFolder("test|to|folder")).thenReturn(targetFolder);
+    when(sessionFactory.createBodylessEmail(any()))
+        .thenReturn(
+            new Email(
+                null,
+                "1",
+                "",
+                List.of(),
+                "",
+                List.of(""),
+                List.of(""),
+                OffsetDateTime.now(),
+                OffsetDateTime.now(),
+                1));
+    doNothing().when(store).connect(any(), any());
+
+    Object object = actionExecutor.execute(emailRequest);
+
+    Assertions.assertInstanceOf(MoveEmailResponse.class, object);
   }
 
   @Test
