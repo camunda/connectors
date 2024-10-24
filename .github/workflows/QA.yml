@@ -1,0 +1,77 @@
+name: Move PR to QA and Post Comment/Slack Notification
+
+on:
+  project_card:
+    types: [ moved ]
+
+jobs:
+  handle-move-to-qa:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.project_card.column_name == 'In QA' }}
+    steps:
+      - name: Set up variables
+        run: |
+          pr_url="${{ github.event.project_card.content_url }}"
+          pr_number=$(echo $pr_url | grep -oP '[0-9]+$')
+          echo "PR_URL=$pr_url" >> $GITHUB_ENV
+          echo "PR_NUMBER=$pr_number" >> $GITHUB_ENV
+
+      - name: Check if 'deploy-preview' label exists
+        id: check_label
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = process.env.PR_NUMBER;
+            const labels = await github.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const labelExists = labels.data.some(label => label.name === 'deploy-preview');
+            if (!labelExists) {
+              await github.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: ['deploy-preview'],
+              });
+            }
+
+      - name: Post a comment in the PR
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = process.env.PR_NUMBER;
+            const commentBody = `
+            :rocket: **This PR has been moved to QA!**
+            
+            - Please ensure the PR is ready for testing by providing any necessary details.
+            - **Deploy preview** label has been applied, and testing can begin.
+            `;
+            await github.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: commentBody
+            });
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "channel": "#connectors-qa",
+              "attachments": [
+                {
+                  "color": "#36a64f",
+                  "title": "PR moved to QA",
+                  "text": "PR <${{ env.PR_URL }}|#${{ env.PR_NUMBER }}> is ready for QA testing."
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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
+          #SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
