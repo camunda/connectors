@@ -1,0 +1,176 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid IDP extraction outbound Connector",
+  "id" : "io.camunda.connector.IdpExtractionOutBoundTemplate.v1-hybrid",
+  "description" : "Execute IDP extraction requests",
+  "documentationRef" : "https://docs.camunda.io/docs/guides/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "input",
+    "label" : "Input message data"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:idp-extraction-connector-template:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.extractionEngineType",
+    "label" : "Extraction engine type",
+    "description" : "Specify extraction engine to be used",
+    "optional" : false,
+    "value" : "= input.extractionEngineType",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.extractionEngineType",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.documentUrl",
+    "label" : "Document URL",
+    "description" : "Specify the URL where the document is hosted",
+    "optional" : false,
+    "value" : "= input.documentUrl",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.documentUrl",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.s3BucketName",
+    "label" : "AWS S3 Bucket name",
+    "description" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
+    "optional" : false,
+    "value" : "idp-extraction-connector",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.s3BucketName",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "input.taxonomyItems",
+    "label" : "Taxonomy Items",
+    "description" : "Array of taxonomy items",
+    "optional" : false,
+    "value" : "= input.taxonomyItems",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.taxonomyItems",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.converseData",
+    "label" : "AWS Bedrock Converse Parameters",
+    "description" : "Specify the parameters for AWS Bedrock",
+    "optional" : false,
+    "value" : "= input.converseData",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.converseData",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE5LjE3ODkiIGhlaWdodD0iMTkuMTc4OSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wMSIgc3R5bGU9Im1peC1ibGVuZC1tb2RlOm11bHRpcGx5Ii8+CjxwYXRoIGQ9Ik0xNi43ODA2IDcuMTkyMDhIMTEuOTg1OVYyLjM5NzM3SDE2Ljc4MDZWNy4xOTIwOFpNMTMuMTg0NiA1Ljk5MzRIMTUuNTgxOVYzLjU5NjA1SDEzLjE4NDZWNS45OTM0WiIgZmlsbD0iI0ZDNUQwRCIvPgo8cGF0aCBkPSJNMTAuMTg3OSA4Ljk5MDFWNS4zOTQwN0g1LjM5MzE4VjEzLjc4NDhIMTMuNzgzOVY4Ljk5MDFIMTAuMTg3OVpNNi41OTE4NiA2LjU5Mjc0SDguOTg5MjFWOC45OTAxSDYuNTkxODZWNi41OTI3NFpNOC45ODkyMSAxMi41ODYxSDYuNTkxODZWMTAuMTg4OEg4Ljk4OTIxVjEyLjU4NjFaTTEyLjU4NTIgMTIuNTg2MUgxMC4xODc5VjEwLjE4ODhIMTIuNTg1MlYxMi41ODYxWiIgZmlsbD0iI0ZDNUQwRCIvPgo8cGF0aCBkPSJNMTUuNTgxOSAxNi43ODE1SDMuNTk1MTZDMy4yNzczNyAxNi43ODExIDIuOTcyNjkgMTYuNjU0NyAyLjc0Nzk3IDE2LjQzQzIuNTIzMjYgMTYuMjA1MyAyLjM5Njg1IDE1LjkwMDYgMi4zOTY0OCAxNS41ODI4VjMuNTk2MDVDMi4zOTY4NSAzLjI3ODI1IDIuNTIzMjYgMi45NzM1NyAyLjc0Nzk3IDIuNzQ4ODZDMi45NzI2OSAyLjUyNDE0IDMuMjc3MzcgMi4zOTc3MyAzLjU5NTE2IDIuMzk3MzdIOS41ODg1NVYzLjU5NjA1SDMuNTk1MTZWMTUuNTgyOEgxNS41ODE5VjkuNTg5NDRIMTYuNzgwNlYxNS41ODI4QzE2Ljc4MDMgMTUuOTAwNiAxNi42NTM5IDE2LjIwNTMgMTYuNDI5MSAxNi40M0MxNi4yMDQ0IDE2LjY1NDcgMTUuODk5NyAxNi43ODExIDE1LjU4MTkgMTYuNzgxNVoiIGZpbGw9IiMxNjE2MTYiLz4KPC9zdmc+Cg=="
+  }
+}
