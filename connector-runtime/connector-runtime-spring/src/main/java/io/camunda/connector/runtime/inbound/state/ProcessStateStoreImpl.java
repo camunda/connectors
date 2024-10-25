@@ -37,12 +37,6 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   private final ProcessDefinitionInspector processDefinitionInspector;
   private final InboundExecutableRegistry executableRegistry;
 
-  private record ProcessState(
-      int version,
-      long processDefinitionKey,
-      String tenantId,
-      List<InboundConnectorElement> connectorElements) {}
-
   public ProcessStateStoreImpl(
       ProcessDefinitionInspector processDefinitionInspector,
       InboundExecutableRegistry executableRegistry) {
@@ -54,11 +48,13 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   public void update(ProcessImportResult processDefinitions) {
     var entries = processDefinitions.processDefinitionVersions().entrySet();
 
+    LOG.debug("Filtering only new process definitions...");
     var newlyDeployed =
         entries.stream()
             .filter(entry -> !processStates.containsKey(entry.getKey().bpmnProcessId()))
             .toList();
 
+    LOG.debug("Filtering only updated process definitions...");
     var replacedWithDifferentVersion =
         entries.stream()
             .filter(
@@ -68,6 +64,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
                 })
             .toList();
 
+    LOG.debug("Filtering only old process definitions)");
     var deletedProcessIds =
         processStates.keySet().stream()
             .filter(
@@ -85,6 +82,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
 
   private void newlyDeployed(
       Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
+    LOG.info("Activating newly deployed process definition: {}", entry.getKey().bpmnProcessId());
     try {
       processStates.compute(
           entry.getKey().bpmnProcessId(),
@@ -110,6 +108,9 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   private void replacedWithDifferentVersion(
       Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
     try {
+      LOG.info(
+          "Activating newest deployed version process definition: {}",
+          entry.getKey().bpmnProcessId());
       processStates.computeIfPresent(
           entry.getKey().bpmnProcessId(),
           (key, state) -> {
@@ -133,6 +134,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
 
   private void deleted(String processId) {
     try {
+      LOG.info("Deactivating newly deployed process definition: {}", processId);
       processStates.computeIfPresent(
           processId,
           (key1, state) -> {
@@ -204,4 +206,10 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
       LOG.info(". . Process {}", key);
     }
   }
+
+  private record ProcessState(
+      int version,
+      long processDefinitionKey,
+      String tenantId,
+      List<InboundConnectorElement> connectorElements) {}
 }
