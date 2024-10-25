@@ -108,7 +108,9 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   private void replacedWithDifferentVersion(
       Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
     try {
-      LOG.info("Activating newest deployed version process definition: {}", entry.getKey().bpmnProcessId());
+      LOG.info(
+          "Activating newest deployed version process definition: {}",
+          entry.getKey().bpmnProcessId());
       processStates.computeIfPresent(
           entry.getKey().bpmnProcessId(),
           (key, state) -> {
