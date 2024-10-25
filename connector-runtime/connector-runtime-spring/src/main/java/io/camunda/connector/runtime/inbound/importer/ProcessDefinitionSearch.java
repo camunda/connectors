@@ -75,7 +75,7 @@ public class ProcessDefinitionSearch {
       }
       List<Object> newPaginationIdx = processDefinitionResult.getSortValues();
 
-      LOG.trace("A page of process definitions has been fetched, continuing...");
+      LOG.debug("A page of process definitions has been fetched, continuing...");
 
       if (!CollectionUtils.isEmpty(newPaginationIdx)) {
         paginationIndex = newPaginationIdx;
@@ -84,7 +84,7 @@ public class ProcessDefinitionSearch {
       // result is sorted by key in descending order, so we will always encounter the latest
       // version first
 
-      LOG.trace("Sorting process definition results by descending order");
+      LOG.debug("Sorting process definition results by descending order");
       var items =
           Optional.ofNullable(processDefinitionResult.getItems()).orElse(List.of()).stream()
               .filter(
