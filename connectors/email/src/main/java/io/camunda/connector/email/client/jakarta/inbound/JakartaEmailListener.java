@@ -11,12 +11,9 @@ import io.camunda.connector.email.client.EmailListener;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import java.util.Objects;
 import java.util.concurrent.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class JakartaEmailListener implements EmailListener {
 
-  private static final Logger log = LoggerFactory.getLogger(JakartaEmailListener.class);
   private ScheduledExecutorService scheduledExecutorService;
   private PollingManager pollingManager;
 

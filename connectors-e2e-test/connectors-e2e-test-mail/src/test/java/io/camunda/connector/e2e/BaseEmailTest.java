@@ -38,7 +38,6 @@ public class BaseEmailTest {
   private static final GreenMail greenMail = new GreenMail();
   @TempDir File tempDir;
   private GreenMailUser greenMailUser = greenMail.setUser("test@camunda.com", "password");
-  ;
 
   @BeforeAll
   static void setup() {
