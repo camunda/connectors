@@ -82,7 +82,8 @@ public class SaaSOperateClientFactory {
           internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID),
           internalSecretProvider.getSecret(SECRET_NAME_SECRET),
           operateBaseUrl,
-          authUrl);
+          authUrl,
+          null);
     } catch (MalformedURLException | URISyntaxException e) {
       throw new RuntimeException(e);
     }

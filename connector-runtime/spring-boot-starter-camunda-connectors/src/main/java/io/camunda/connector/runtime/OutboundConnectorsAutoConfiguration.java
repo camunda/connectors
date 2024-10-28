@@ -156,7 +156,8 @@ public class OutboundConnectorsAutoConfiguration {
             authProperties.getClientId(),
             authProperties.getClientSecret(),
             consoleSecretsApiAudience,
-            issuerUrl);
+            issuerUrl,
+            null);
     return new ConsoleSecretApiClient(consoleSecretsApiEndpoint, jwtCredential);
   }
 
