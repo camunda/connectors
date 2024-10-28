@@ -51,9 +51,7 @@ public class SecurityConfiguration {
    * nothing is matched, then the second one will be applied. Here, alls of the public endpoint are
    * caught first.
    *
-   * @param http
    * @return The first security filter chain
-   * @throws Exception
    */
   @Bean
   @Order(0)
@@ -66,7 +64,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.POST, "/inbound/*")
                     .requestMatchers(HttpMethod.PUT, "/inbound/*")
                     .requestMatchers(HttpMethod.DELETE, "/inbound/*")
-                    .requestMatchers("actuator/**"))
+                    .requestMatchers("/actuator/**"))
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/inbound/logs")
@@ -82,14 +80,17 @@ public class SecurityConfiguration {
    * this was first and endpoint like `GET /inbound/*` would respond 401 Those endpoint will be
    * caught on the first security chain
    *
-   * @param http
    * @return The second security filter chain
-   * @throws Exception
    */
   @Bean
   @Order(1)
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
+        .securityMatchers(
+            requestMatcherConfigurer ->
+                requestMatcherConfigurer
+                    .requestMatchers("/inbound/**")
+                    .requestMatchers("/tenants/**"))
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(HttpMethod.GET, "/inbound", "/tenants/**")
