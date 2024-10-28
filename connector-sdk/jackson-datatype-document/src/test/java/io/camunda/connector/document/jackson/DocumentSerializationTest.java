@@ -22,14 +22,13 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.document.Document;
-import io.camunda.document.DocumentMetadata;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperationExecutor;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
-import java.util.Map;
 import java.util.Optional;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
@@ -48,7 +47,8 @@ public class DocumentSerializationTest {
 
   @Test
   void sourceTypeDocument_jacksonInternalModel() throws JsonProcessingException, JSONException {
-    var ref = new CamundaDocumentReferenceModel("test", "test", Map.of(), Optional.empty());
+    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null);
+    var ref = new CamundaDocumentReferenceModel("test", "test", metadata, Optional.empty());
     var document = mock(Document.class);
     when(document.reference()).thenReturn(ref);
     var source = new SourceTypeDocument(document);
@@ -69,7 +69,8 @@ public class DocumentSerializationTest {
 
   @Test
   void sourceTypeDocument_connectorSdkModel() throws JsonProcessingException, JSONException {
-    var ref = new CamundaDocumentReferenceImpl("test", "test", new DocumentMetadata(Map.of()));
+    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null);
+    var ref = new CamundaDocumentReferenceImpl("test", "test", metadata);
     var document = mock(Document.class);
     when(document.reference()).thenReturn(ref);
     var source = new SourceTypeDocument(document);

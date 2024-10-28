@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.document.annotation.jackson;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -26,9 +25,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.document.DocumentMetadata;
 import io.camunda.document.operation.DocumentOperation;
 import io.camunda.document.reference.DocumentReference;
+import io.camunda.zeebe.client.api.response.DocumentMetadata;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Optional;
 
@@ -54,22 +54,60 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
   @JsonInclude(Include.NON_EMPTY)
   Optional<DocumentOperation> operation();
 
+  @JsonInclude(Include.NON_EMPTY)
+  record CamundaDocumentMetadataModel(
+      String contentType,
+      ZonedDateTime expiresAt,
+      Long size,
+      String fileName,
+      Map<String, Object> customProperties)
+      implements DocumentMetadata {
+
+    public CamundaDocumentMetadataModel(DocumentMetadata documentMetadata) {
+      this(
+          documentMetadata.getContentType(),
+          documentMetadata.getExpiresAt(),
+          documentMetadata.getSize(),
+          documentMetadata.getFileName(),
+          documentMetadata.getCustomProperties());
+    }
+
+    @Override
+    public String getContentType() {
+      return contentType;
+    }
+
+    @Override
+    public ZonedDateTime getExpiresAt() {
+      return expiresAt;
+    }
+
+    @Override
+    public Long getSize() {
+      return size;
+    }
+
+    @Override
+    public String getFileName() {
+      return fileName;
+    }
+
+    @Override
+    public Map<String, Object> getCustomProperties() {
+      return customProperties;
+    }
+  }
+
   record CamundaDocumentReferenceModel(
       String storeId,
       String documentId,
-      @JsonProperty("metadata") Map<String, Object> rawMetadata,
+      CamundaDocumentMetadataModel metadata,
       Optional<DocumentOperation> operation)
       implements DocumentReferenceModel, CamundaDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)
     private String documentType() {
       return "camunda";
-    }
-
-    @Override
-    @JsonIgnore
-    public DocumentMetadata metadata() {
-      return new DocumentMetadata(rawMetadata);
     }
   }
 

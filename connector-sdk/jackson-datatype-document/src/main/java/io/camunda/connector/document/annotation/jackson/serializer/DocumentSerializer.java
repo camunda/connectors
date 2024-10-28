@@ -19,6 +19,7 @@ package io.camunda.connector.document.annotation.jackson.serializer;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.document.Document;
 import io.camunda.document.operation.DocumentOperationExecutor;
@@ -51,7 +52,7 @@ public class DocumentSerializer extends JsonSerializer<Document> {
           new CamundaDocumentReferenceModel(
               camundaReference.storeId(),
               camundaReference.documentId(),
-              camundaReference.metadata().getKeys(),
+              new CamundaDocumentMetadataModel(camundaReference.metadata()),
               Optional.empty());
     }
     jsonGenerator.writeObject(model);

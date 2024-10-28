@@ -16,11 +16,12 @@
  */
 package io.camunda.document.store;
 
-import io.camunda.document.DocumentMetadata;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -40,7 +41,35 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   public CamundaDocumentReference createDocument(DocumentCreationRequest request) {
     final String id =
         request.documentId() != null ? request.documentId() : UUID.randomUUID().toString();
-    final DocumentMetadata metadata = request.metadata();
+
+    final DocumentMetadata metadata =
+        new DocumentMetadata() {
+          @Override
+          public String getContentType() {
+            return request.contentType();
+          }
+
+          @Override
+          public ZonedDateTime getExpiresAt() {
+            return null;
+          }
+
+          @Override
+          public Long getSize() {
+            return (long) documents.get(id).length;
+          }
+
+          @Override
+          public String getFileName() {
+            return request.fileName();
+          }
+
+          @Override
+          public Map<String, Object> getCustomProperties() {
+            return request.customProperties();
+          }
+        };
+
     final byte[] content;
     try (InputStream contentStream = request.content()) {
       content = contentStream.readAllBytes();

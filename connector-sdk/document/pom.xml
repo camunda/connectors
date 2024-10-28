@@ -14,6 +14,11 @@
   <artifactId>connector-document</artifactId>
   <packaging>jar</packaging>
 
-
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>zeebe-client-java</artifactId>
+    </dependency>
+  </dependencies>
 
 </project>
