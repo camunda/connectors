@@ -27,6 +27,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Map;
@@ -47,6 +48,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class InboundKafkaTests extends BaseKafkaTest {
 
