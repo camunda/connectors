@@ -16,20 +16,21 @@
  */
 package io.camunda.connector.e2e;
 
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.process.test.api.ZeebeTestEngine;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
-import io.camunda.zeebe.spring.test.ZeebeTestThreadSupport;
 import jakarta.mail.Message;
 import java.io.File;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +46,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "spring.main.allow-bean-definition-overriding=true",
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class OutboundEmailTests extends BaseEmailTest {
 
@@ -64,7 +65,6 @@ public class OutboundEmailTests extends BaseEmailTest {
   private static final String RESULT_EXPRESSION_MOVE_EMAIL =
       "={messageId : messageId, from: from, to: to }";
   @Autowired private ZeebeClient zeebeClient;
-  @Autowired private ZeebeTestEngine proxiedZeebeTestEngine;
 
   private static BpmnModelInstance getBpmnModelInstance(final String serviceTaskName) {
     return Bpmn.createProcess()
@@ -78,6 +78,7 @@ public class OutboundEmailTests extends BaseEmailTest {
   @BeforeEach
   public void beforeEach() {
     super.reset();
+    CamundaAssert.setAssertionTimeout(Duration.ofSeconds(10));
   }
 
   @Test
@@ -104,7 +105,7 @@ public class OutboundEmailTests extends BaseEmailTest {
     var result = getZeebeTest(updatedModel);
 
     assertThat(result).isNotNull();
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("sent", true);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("sent", true);
 
     assertTrue(super.waitForNewEmails(5000, 1));
     List<Message> message = List.of(super.getLastReceivedEmails());
@@ -116,7 +117,7 @@ public class OutboundEmailTests extends BaseEmailTest {
   }
 
   @Test
-  public void shouldListPop3Email() throws ExecutionException, InterruptedException {
+  public void shouldListPop3Email() {
 
     File elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
@@ -141,14 +142,14 @@ public class OutboundEmailTests extends BaseEmailTest {
 
     BpmnModelInstance model = getBpmnModelInstance("listEmailsTask");
     BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, "listEmailsTask");
-    var result =
-        scheduler.schedule(() -> getZeebeTestMultiThreadSupport(updatedModel), 3, SECONDS).get();
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("subject1", "subject2");
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("subject2", "subject1");
+    await().atMost(3, SECONDS).until(() -> super.getLastReceivedEmails().length == 2);
+    var result = getZeebeTest(updatedModel);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("subject1", "subject2");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("subject2", "subject1");
   }
 
   @Test
-  public void shouldListImapEmail() throws InterruptedException, ExecutionException {
+  public void shouldListImapEmail() {
 
     File elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
@@ -173,15 +174,15 @@ public class OutboundEmailTests extends BaseEmailTest {
 
     BpmnModelInstance model = getBpmnModelInstance("listEmailsTask");
     BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, "listEmailsTask");
-    var result =
-        scheduler.schedule(() -> getZeebeTestMultiThreadSupport(updatedModel), 3, SECONDS).get();
+    await().atMost(3, SECONDS).until(() -> super.getLastReceivedEmails().length == 2);
+    var result = getZeebeTest(updatedModel);
 
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("subject1", "subject2");
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("subject2", "subject1");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("subject1", "subject2");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("subject2", "subject1");
   }
 
   @Test
-  public void shouldDeletePop3Email() throws ExecutionException, InterruptedException {
+  public void shouldDeletePop3Email() {
 
     super.sendEmail("test@camunda.com", "subject1", "content1");
     String messageId = getLastEmailMessageId();
@@ -202,14 +203,13 @@ public class OutboundEmailTests extends BaseEmailTest {
     BpmnModelInstance model = getBpmnModelInstance("deleteEmailTask");
     BpmnModelInstance updatedModel =
         getBpmnModelInstance(model, elementTemplate, "deleteEmailTask");
-    var result =
-        scheduler.schedule(() -> getZeebeTestMultiThreadSupport(updatedModel), 3, SECONDS).get();
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("messageId", messageId);
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("deleted", true);
+    var result = getZeebeTest(updatedModel);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("messageId", messageId);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("deleted", true);
   }
 
   @Test
-  public void shouldDeleteImapEmail() throws ExecutionException, InterruptedException {
+  public void shouldDeleteImapEmail() {
 
     super.sendEmail("test@camunda.com", "subject1", "content1");
     String messageId = getLastEmailMessageId();
@@ -231,14 +231,13 @@ public class OutboundEmailTests extends BaseEmailTest {
     BpmnModelInstance model = getBpmnModelInstance("deleteEmailTask");
     BpmnModelInstance updatedModel =
         getBpmnModelInstance(model, elementTemplate, "deleteEmailTask");
-    var result =
-        scheduler.schedule(() -> getZeebeTestMultiThreadSupport(updatedModel), 3, SECONDS).get();
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("messageId", messageId);
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("deleted", true);
+    var result = getZeebeTest(updatedModel);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("messageId", messageId);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("deleted", true);
   }
 
   @Test
-  public void shouldReadPop3Email() throws ExecutionException, InterruptedException {
+  public void shouldReadPop3Email() {
 
     super.sendEmail("test@camunda.com", "subject", "content");
     String messageId = getLastEmailMessageId();
@@ -258,19 +257,16 @@ public class OutboundEmailTests extends BaseEmailTest {
 
     BpmnModelInstance model = getBpmnModelInstance("readEmailTask");
     BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, "readEmailTask");
-    var result =
-        scheduler.schedule(() -> getZeebeTestMultiThreadSupport(updatedModel), 3, SECONDS).get();
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("messageId", messageId);
-    assertThat(result.getProcessInstanceEvent())
-        .hasVariableWithValue("fromAddress", "test@camunda.com");
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("subject", "subject");
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("size", 9);
-    assertThat(result.getProcessInstanceEvent())
-        .hasVariableWithValue("plainTextBody", "content\r\n");
+    var result = getZeebeTest(updatedModel);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("messageId", messageId);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("fromAddress", "test@camunda.com");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("subject", "subject");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("size", 9);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("plainTextBody", "content\r\n");
   }
 
   @Test
-  public void shouldReadImapEmail() throws ExecutionException, InterruptedException {
+  public void shouldReadImapEmail() {
 
     super.sendEmail("test@camunda.com", "subject", "content");
     String messageId = getLastEmailMessageId();
@@ -291,18 +287,16 @@ public class OutboundEmailTests extends BaseEmailTest {
 
     BpmnModelInstance model = getBpmnModelInstance("readEmailTask");
     BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, "readEmailTask");
-    var result =
-        scheduler.schedule(() -> getZeebeTestMultiThreadSupport(updatedModel), 3, SECONDS).get();
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("messageId", messageId);
-    assertThat(result.getProcessInstanceEvent())
-        .hasVariableWithValue("fromAddress", "test@camunda.com");
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("subject", "subject");
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("size", 7);
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("plainTextBody", "content");
+    var result = getZeebeTest(updatedModel);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("messageId", messageId);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("fromAddress", "test@camunda.com");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("subject", "subject");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("size", 7);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("plainTextBody", "content");
   }
 
   @Test
-  public void shouldMoveImapEmail() throws ExecutionException, InterruptedException {
+  public void shouldMoveImapEmail() {
 
     super.sendEmail("test@camunda.com", "subject", "content");
     String messageId = getLastEmailMessageId();
@@ -324,12 +318,11 @@ public class OutboundEmailTests extends BaseEmailTest {
 
     BpmnModelInstance model = getBpmnModelInstance("readEmailTask");
     BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, "readEmailTask");
-    var result =
-        scheduler.schedule(() -> getZeebeTestMultiThreadSupport(updatedModel), 3, SECONDS).get();
+    var result = getZeebeTest(updatedModel);
 
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("messageId", messageId);
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("from", "INBOX");
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("to", "TEST");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("messageId", messageId);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("from", "INBOX");
+    assertThat(result.getProcessInstanceEvent()).hasVariable("to", "TEST");
   }
 
   private BpmnModelInstance getBpmnModelInstance(
@@ -340,14 +333,6 @@ public class OutboundEmailTests extends BaseEmailTest {
   }
 
   protected ZeebeTest getZeebeTest(final BpmnModelInstance updatedModel) {
-    return ZeebeTest.with(zeebeClient)
-        .deploy(updatedModel)
-        .createInstance()
-        .waitForProcessCompletion();
-  }
-
-  protected ZeebeTest getZeebeTestMultiThreadSupport(final BpmnModelInstance updatedModel) {
-    ZeebeTestThreadSupport.setEngineForCurrentThread(this.proxiedZeebeTestEngine);
     return ZeebeTest.with(zeebeClient)
         .deploy(updatedModel)
         .createInstance()
