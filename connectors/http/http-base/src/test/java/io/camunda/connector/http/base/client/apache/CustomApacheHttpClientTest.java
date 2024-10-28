@@ -39,6 +39,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.unauthorized;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -140,7 +141,7 @@ public class CustomApacheHttpClientTest {
   @Nested
   class ProxyTests {
 
-    private static final WireMockServer proxy = new WireMockServer();
+    private static final WireMockServer proxy = new WireMockServer(options().dynamicPort());
     private static CustomApacheHttpClient proxiedApacheHttpClient;
     private static GenericContainer<?> proxyContainer;
 
