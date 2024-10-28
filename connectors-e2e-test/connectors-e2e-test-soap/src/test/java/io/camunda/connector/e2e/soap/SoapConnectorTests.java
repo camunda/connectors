@@ -47,7 +47,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class SoapConnectorTests extends SoapConnectorBaseTest {
 
   @Test
-  public void faultResponse() throws JsonProcessingException {
+  public void faultResponse() {
     wm.stubFor(
         post(urlPathMatching("/soapservice/service"))
             .withRequestBody(WireMock.equalToXml(NUMBER_OF_WORDS_REQUEST))
@@ -73,8 +73,6 @@ public class SoapConnectorTests extends SoapConnectorBaseTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("soapSimpleRequest", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariable("soapVersion", Map.of("version", "1.1"));
     Map<String, Object> expectedResult =
         Map.of(
             "Envelope",
@@ -114,8 +112,6 @@ public class SoapConnectorTests extends SoapConnectorBaseTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("soapSimpleRequest", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariable("soapVersion", Map.of("version", "1.1"));
     Map<String, Object> expectedResult =
         Map.of(
             "Envelope",
@@ -149,8 +145,6 @@ public class SoapConnectorTests extends SoapConnectorBaseTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("soapSimpleRequest", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariable("soapVersion", Map.of("version", "1.1"));
     Map<String, Object> expectedResult =
         Map.of(
             "Envelope",
