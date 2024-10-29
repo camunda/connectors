@@ -18,6 +18,7 @@ package io.camunda.connector.e2e;
 
 import static io.camunda.connector.e2e.BpmnFile.replace;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
@@ -83,6 +84,10 @@ public class InboundEmailTest extends BaseEmailTest {
     scheduler.schedule(
         () -> super.sendEmail("test@camunda.com", "test", "hey"), 2, TimeUnit.SECONDS);
 
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
+
     processStateStore.update(
         new ProcessImportResult(
             Map.of(
@@ -90,7 +95,6 @@ public class InboundEmailTest extends BaseEmailTest {
                     processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
@@ -113,9 +117,21 @@ public class InboundEmailTest extends BaseEmailTest {
 
     mockProcessDefinition(model);
 
-    super.sendEmail("test@camunda.com", "test", "hey");
+    scheduler.schedule(
+        () -> {
+          super.sendEmail("test@camunda.com", "test", "hey");
+          try {
+            Arrays.stream(getLastReceivedEmails()).findFirst().get().setFlag(Flags.Flag.SEEN, true);
+          } catch (MessagingException e) {
+            throw new RuntimeException(e);
+          }
+        },
+        2,
+        TimeUnit.SECONDS);
 
-    Arrays.stream(getLastReceivedEmails()).findFirst().get().setFlag(Flags.Flag.SEEN, true);
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
 
     processStateStore.update(
         new ProcessImportResult(
@@ -124,7 +140,6 @@ public class InboundEmailTest extends BaseEmailTest {
                     processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
 
     Assertions.assertThrows(ConditionTimeoutException.class, bpmnTest::waitForProcessCompletion);
   }
@@ -141,6 +156,10 @@ public class InboundEmailTest extends BaseEmailTest {
     scheduler.schedule(
         () -> super.sendEmail("test@camunda.com", "test", "hey"), 2, TimeUnit.SECONDS);
 
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
+
     processStateStore.update(
         new ProcessImportResult(
             Map.of(
@@ -148,8 +167,6 @@ public class InboundEmailTest extends BaseEmailTest {
                     processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
-
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
@@ -175,6 +192,10 @@ public class InboundEmailTest extends BaseEmailTest {
     scheduler.schedule(
         () -> super.sendEmail("test@camunda.com", "test", "hey"), 2, TimeUnit.SECONDS);
 
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
+
     processStateStore.update(
         new ProcessImportResult(
             Map.of(
@@ -182,8 +203,6 @@ public class InboundEmailTest extends BaseEmailTest {
                     processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
-
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
@@ -216,9 +235,24 @@ public class InboundEmailTest extends BaseEmailTest {
 
     mockProcessDefinition(model);
 
-    super.sendEmail("test@camunda.com", "test", "hey");
+    scheduler.schedule(
+        () -> {
+          super.sendEmail("test@camunda.com", "test", "hey");
+          try {
+            Arrays.stream(super.getLastReceivedEmails())
+                .findFirst()
+                .get()
+                .setFlag(Flags.Flag.SEEN, true);
+          } catch (MessagingException e) {
+            throw new RuntimeException(e);
+          }
+        },
+        2,
+        TimeUnit.SECONDS);
 
-    Arrays.stream(super.getLastReceivedEmails()).findFirst().get().setFlag(Flags.Flag.SEEN, true);
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
 
     processStateStore.update(
         new ProcessImportResult(
@@ -227,8 +261,6 @@ public class InboundEmailTest extends BaseEmailTest {
                     processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
-
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
