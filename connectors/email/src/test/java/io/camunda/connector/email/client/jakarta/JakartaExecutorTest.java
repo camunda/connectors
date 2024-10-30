@@ -76,8 +76,8 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                            && argument.getContent().toString().contains("body")
-                            && argument.getContentType().contains("text/plain");
+                        && argument.getContent().toString().contains("body")
+                        && argument.getContentType().contains("text/plain");
                   } catch (MessagingException | IOException e) {
                     throw new RuntimeException(e);
                   }
@@ -95,7 +95,7 @@ class JakartaExecutorTest {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
     JakartaEmailActionExecutor actionExecutor =
-            JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
     EmailRequest emailRequest = mock(EmailRequest.class);
     SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
@@ -125,23 +125,23 @@ class JakartaExecutorTest {
     actionExecutor.execute(emailRequest);
 
     verify(transport, times(1))
-            .sendMessage(
-                    argThat(
-                            argument -> {
-                              try {
-                                return Arrays.stream(argument.getFrom())
-                                        .allMatch(address -> address.toString().contains("myself"))
-                                        && argument.getContent().toString().contains("<!DOCTYPE html>")
-                                        && argument.getDataHandler().getContentType().contains("text/html");
-                              } catch (MessagingException | IOException e) {
-                                throw new RuntimeException(e);
-                              }
-                            }),
-                    argThat(
-                            argument ->
-                                    Arrays.toString(argument).contains("to")
-                                            && Arrays.toString(argument).contains("cc")
-                                            && Arrays.toString(argument).contains("bcc")));
+        .sendMessage(
+            argThat(
+                argument -> {
+                  try {
+                    return Arrays.stream(argument.getFrom())
+                            .allMatch(address -> address.toString().contains("myself"))
+                        && argument.getContent().toString().contains("<!DOCTYPE html>")
+                        && argument.getDataHandler().getContentType().contains("text/html");
+                  } catch (MessagingException | IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                }),
+            argThat(
+                argument ->
+                    Arrays.toString(argument).contains("to")
+                        && Arrays.toString(argument).contains("cc")
+                        && Arrays.toString(argument).contains("bcc")));
   }
 
   @Test
