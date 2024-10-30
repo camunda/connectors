@@ -257,7 +257,11 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       if (bcc.isPresent()) message.setRecipients(Message.RecipientType.BCC, bcc.get());
       headers.ifPresent(stringObjectMap -> setMessageHeaders(stringObjectMap, message));
       message.setSubject(smtpSendEmail.subject());
-      message.setText(smtpSendEmail.body());
+      if (smtpSendEmail.contentType().equals("html")) {
+        message.setContent(smtpSendEmail.body(), "text/html; charset=utf-8");
+      } else {
+        message.setText(smtpSendEmail.body());
+      }
       try (Transport transport = session.getTransport()) {
         this.jakartaUtils.connectTransport(transport, authentication);
         transport.sendMessage(message, message.getAllRecipients());

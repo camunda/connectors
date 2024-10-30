@@ -64,6 +64,7 @@ class JakartaExecutorTest {
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
     when(smtpSendEmail.from()).thenReturn("myself");
     when(smtpSendEmail.body()).thenReturn("body");
+    when(smtpSendEmail.contentType()).thenReturn("plain");
     when(session.getTransport()).thenReturn(transport);
 
     actionExecutor.execute(emailRequest);
@@ -75,7 +76,8 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && argument.getContent().toString().contains("body");
+                            && argument.getContent().toString().contains("body")
+                            && argument.getContentType().contains("text/plain");
                   } catch (MessagingException | IOException e) {
                     throw new RuntimeException(e);
                   }
@@ -85,6 +87,61 @@ class JakartaExecutorTest {
                     Arrays.toString(argument).contains("to")
                         && Arrays.toString(argument).contains("cc")
                         && Arrays.toString(argument).contains("bcc")));
+  }
+
+  @Test
+  void executeSmtpSendEmailAsHtml() throws MessagingException {
+
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+    JakartaEmailActionExecutor actionExecutor =
+            JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Smtp.class);
+    Session session = mock(Session.class);
+    Transport transport = mock(Transport.class);
+
+    // Authentication
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
+    doNothing().when(transport).connect(any(), any());
+
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(emailRequest.data()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
+    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(smtpSendEmail.to()).thenReturn(List.of("to"));
+    when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
+    when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
+    when(smtpSendEmail.from()).thenReturn("myself");
+    when(smtpSendEmail.contentType()).thenReturn("html");
+    when(smtpSendEmail.body()).thenReturn("<!DOCTYPE html>");
+    when(session.getTransport()).thenReturn(transport);
+
+    actionExecutor.execute(emailRequest);
+
+    verify(transport, times(1))
+            .sendMessage(
+                    argThat(
+                            argument -> {
+                              try {
+                                return Arrays.stream(argument.getFrom())
+                                        .allMatch(address -> address.toString().contains("myself"))
+                                        && argument.getContent().toString().contains("<!DOCTYPE html>")
+                                        && argument.getDataHandler().getContentType().contains("text/html");
+                              } catch (MessagingException | IOException e) {
+                                throw new RuntimeException(e);
+                              }
+                            }),
+                    argThat(
+                            argument ->
+                                    Arrays.toString(argument).contains("to")
+                                            && Arrays.toString(argument).contains("cc")
+                                            && Arrays.toString(argument).contains("bcc")));
   }
 
   @Test

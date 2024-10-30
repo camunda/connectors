@@ -593,6 +593,26 @@
     "tooltip" : "Email's subject",
     "type" : "String"
   }, {
+    "id": "content_type",
+    "label": "Content Type",
+    "value": "plain",
+    "group": "sendEmailSmtp",
+    "binding": {
+      "name": "data.smtpAction.contentType",
+      "type": "zeebe:input"
+    },
+    "type": "Dropdown",
+    "choices": [
+      {
+        "name": "Plain",
+        "value": "plain"
+      },
+      {
+        "name": "Html",
+        "value": "html"
+      }
+    ]
+  }, {
     "id" : "smtpBody",
     "label" : "Email Content",
     "optional" : false,
