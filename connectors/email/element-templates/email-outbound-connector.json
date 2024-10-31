@@ -588,25 +588,35 @@
     "tooltip" : "Email's subject",
     "type" : "String"
   }, {
-    "id": "content_type",
-    "label": "Content Type",
-    "value": "plain",
-    "group": "sendEmailSmtp",
-    "binding": {
-      "name": "data.smtpAction.contentType",
-      "type": "zeebe:input"
+    "id" : "contentType",
+    "label" : "ContentType",
+    "optional" : false,
+    "value" : "plain",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.contentType",
+      "type" : "zeebe:input"
     },
-    "type": "Dropdown",
-    "choices": [
-      {
-        "name": "Plain",
-        "value": "plain"
-      },
-      {
-        "name": "Html",
-        "value": "html"
-      }
-    ]
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.smtpActionDiscriminator",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Email's contentType",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Plain",
+      "value" : "plain"
+    }, {
+      "name" : "Html",
+      "value" : "html"
+    } ]
   }, {
     "id" : "smtpBody",
     "label" : "Email Content",

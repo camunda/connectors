@@ -83,13 +83,20 @@ public record SmtpSendEmail(
             label = "ContentType",
             group = "sendEmailSmtp",
             id = "contentType",
-            defaultValue = "plain",
-            type = TemplateProperty.PropertyType.String,
+            defaultValue = ContentType.Constants.PLAIN_VALUE,
+            type = TemplateProperty.PropertyType.Dropdown,
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(
+                  label = "Plain",
+                  value = ContentType.Constants.PLAIN_VALUE),
+              @TemplateProperty.DropdownPropertyChoice(
+                  label = "Html",
+                  value = ContentType.Constants.HTML_VALUE)
+            },
             tooltip = "Email's contentType",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.contentType"))
         @Valid
-        @NotNull
-        String contentType,
+        ContentType contentType,
     @TemplateProperty(
             label = "Email Content",
             group = "sendEmailSmtp",
