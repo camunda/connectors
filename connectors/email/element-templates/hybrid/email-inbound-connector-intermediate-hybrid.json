@@ -3,6 +3,11 @@
   "name" : "Hybrid Email Intermediate Catch Event Connector",
   "id" : "io.camunda.connectors.inbound.EmailIntermediate.v1-hybrid",
   "description" : "Consume emails",
+  "metadata": {
+    "keywords": [
+      "email received"
+    ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
   "version" : 1,
   "category" : {
