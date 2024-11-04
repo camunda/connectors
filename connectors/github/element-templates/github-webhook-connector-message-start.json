@@ -4,6 +4,19 @@
   "id": "io.camunda.connectors.webhook.GithubWebhookConnectorMessageStart.v1",
   "version": 1,
   "description": "Receive events from GitHub",
+  "metadata": {
+    "keywords": [
+      "issue created",
+      "issue updated",
+      "issue deleted",
+      "pull request created",
+      "pull request updated",
+      "pull request deleted",
+      "repository created",
+      "repository updated",
+      "repository deleted"
+    ]
+  },
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github/?github=inbound",
   "category": {
     "id": "connectors",
