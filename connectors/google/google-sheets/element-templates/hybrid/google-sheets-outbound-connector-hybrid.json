@@ -2,7 +2,20 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid Google Sheets Outbound Connector",
   "id" : "io.camunda.connectors.GoogleSheets.v1-hybrid",
-  "description" : "Work with spreadsheets",
+  "description" : "Manage spreadsheets with Google Sheets",
+  "metadata": {
+    "keywords": [
+      "create spreadsheet",
+      "add values to spreadsheet",
+      "create row",
+      "create column",
+      "create worksheet",
+      "delete worksheet",
+      "get row",
+      "get spreadsheet details",
+      "get worksheet data"
+    ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
   "version" : 4,
   "category" : {
