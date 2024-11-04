@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public enum LlmModel {
-  ANTHROPIC(getCommonSystemPrompt(), getCommonMessageTemplate()),
+  CLAUDE("anthropic", getCommonSystemPrompt(), getCommonMessageTemplate()),
   LLAMA(
+      "meta",
       """
             <|begin_of_text|><|start_header_id|>system<|end_header_id|>
             %s
@@ -46,14 +47,12 @@ public enum LlmModel {
             %s
       """
           .formatted(getCommonMessageTemplate())),
-  TITAN(getCommonSystemPrompt(), getCommonMessageTemplate());
+  TITAN("amazon", getCommonSystemPrompt(), getCommonMessageTemplate());
 
+  private final String vendor;
   private final String systemPrompt;
   private final String messageTemplate;
 
-  private static final String ANTHROPIC_PREFIX = "anthropic";
-  private static final String LLAMA_PREFIX = "meta";
-  private static final String TITAN_PREFIX = "amazon";
   private static final String EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE = "{{extractedText}}";
   private static final String TAXONOMY_PLACEHOLDER_FOR_MESSAGE = "{{taxonomy}}";
   private static final String SYSTEM_PROMPT_VARIABLE_TEMPLATE =
@@ -64,13 +63,18 @@ public enum LlmModel {
             </VAR>
       """;
 
-  LlmModel(String systemPrompt, String messageTemplate) {
+  LlmModel(String vendor, String systemPrompt, String messageTemplate) {
+    this.vendor = vendor;
     this.systemPrompt = systemPrompt;
     this.messageTemplate = messageTemplate;
   }
 
   public String getSystemPrompt() {
     return systemPrompt;
+  }
+
+  public String getVendor() {
+    return vendor;
   }
 
   public String getMessage(String extractedText, List<TaxonomyItem> taxonomyItems) {
@@ -89,15 +93,15 @@ public enum LlmModel {
   }
 
   public static LlmModel fromId(String id) {
-    String lowerCaseId = id.toLowerCase();
-    if (lowerCaseId.startsWith(ANTHROPIC_PREFIX)) {
-      return ANTHROPIC;
-    } else if (lowerCaseId.startsWith(LLAMA_PREFIX)) {
+    String modelId = id.toLowerCase();
+    if (modelId.contains(CLAUDE.getVendor())) {
+      return CLAUDE;
+    } else if (modelId.contains(LLAMA.getVendor())) {
       return LLAMA;
-    } else if (lowerCaseId.startsWith(TITAN_PREFIX)) {
+    } else if (modelId.contains(TITAN.getVendor())) {
       return TITAN;
     } else {
-      return ANTHROPIC;
+      return CLAUDE;
     }
   }
 
