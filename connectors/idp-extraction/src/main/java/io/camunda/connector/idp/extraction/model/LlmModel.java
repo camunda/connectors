@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-import static io.camunda.connector.idp.extraction.caller.BedrockCaller.EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE;
-import static io.camunda.connector.idp.extraction.caller.BedrockCaller.TAXONOMY_PLACEHOLDER_FOR_MESSAGE;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public enum LlmModel {
   ANTHROPIC(getCommonSystemPrompt(), getCommonMessageTemplate()),
@@ -54,6 +54,15 @@ public enum LlmModel {
   private static final String ANTHROPIC_PREFIX = "anthropic";
   private static final String LLAMA_PREFIX = "meta";
   private static final String TITAN_PREFIX = "amazon";
+  private static final String EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE = "{{extractedText}}";
+  private static final String TAXONOMY_PLACEHOLDER_FOR_MESSAGE = "{{taxonomy}}";
+  private static final String SYSTEM_PROMPT_VARIABLE_TEMPLATE =
+      """
+            <VAR>
+                <NAME>%s</NAME>
+                <PROMPT>%s</PROMPT>
+            </VAR>
+      """;
 
   LlmModel(String systemPrompt, String messageTemplate) {
     this.systemPrompt = systemPrompt;
@@ -64,10 +73,15 @@ public enum LlmModel {
     return systemPrompt;
   }
 
-  public String getMessage(String extractedText, String taxonomyItems) {
+  public String getMessage(String extractedText, List<TaxonomyItem> taxonomyItems) {
+    String taxonomies =
+        taxonomyItems.stream()
+            .map(item -> String.format(SYSTEM_PROMPT_VARIABLE_TEMPLATE, item.name(), item.prompt()))
+            .collect(Collectors.joining());
+
     return messageTemplate
         .replace(EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE, extractedText)
-        .replace(TAXONOMY_PLACEHOLDER_FOR_MESSAGE, taxonomyItems);
+        .replace(TAXONOMY_PLACEHOLDER_FOR_MESSAGE, taxonomies);
   }
 
   public boolean isSystemPromptAllowed() {

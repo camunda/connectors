@@ -9,7 +9,6 @@ package io.camunda.connector.idp.extraction.caller;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
 import io.camunda.connector.idp.extraction.model.LlmModel;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
@@ -23,28 +22,11 @@ public class BedrockCaller {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BedrockCaller.class);
 
-  private static final String SYSTEM_PROMPT_VARIABLE_TEMPLATE =
-      """
-            <VAR>
-                <NAME>%s</NAME>
-                <PROMPT>%s</PROMPT>
-            </VAR>
-            """;
-
-  public static final String EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE = "{{extractedText}}";
-
-  public static final String TAXONOMY_PLACEHOLDER_FOR_MESSAGE = "{{taxonomy}}";
-
   public String call(
       ExtractionRequest extractionRequest,
       String extractedText,
       BedrockRuntimeClient bedrockRuntimeClient) {
     LOGGER.debug("Calling AWS Bedrock model with extraction request: {}", extractionRequest);
-
-    String taxonomyItems =
-        extractionRequest.input().taxonomyItems().stream()
-            .map(item -> String.format(SYSTEM_PROMPT_VARIABLE_TEMPLATE, item.name(), item.prompt()))
-            .collect(Collectors.joining());
 
     ConverseData converseData = extractionRequest.input().converseData();
     LlmModel llmModel = LlmModel.fromId(converseData.modelId());
@@ -52,7 +34,8 @@ public class BedrockCaller {
     ConverseResponse response =
         bedrockRuntimeClient.converse(
             request -> {
-              String userMessage = llmModel.getMessage(extractedText, taxonomyItems);
+              String userMessage =
+                  llmModel.getMessage(extractedText, extractionRequest.input().taxonomyItems());
 
               if (llmModel.isSystemPromptAllowed()) {
                 SystemContentBlock prompt =
