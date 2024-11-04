@@ -3,6 +3,11 @@
   "name" : "Email Message Start Event Connector",
   "id" : "io.camunda.connectors.inbound.EmailMessageStart.v1",
   "description" : "Consume emails",
+  "metadata": {
+    "keywords": [
+      "email received"
+    ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
   "version" : 1,
   "category" : {
