@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Health.Error;
 import io.camunda.connector.api.inbound.ProcessElement;
@@ -29,12 +30,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Canc
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -48,14 +44,12 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final BlockingQueue<InboundExecutableEvent> eventQueue;
   private final ExecutorService executorService;
   private final BatchExecutableProcessor batchExecutableProcessor;
-  private final CancellationManager cancellationManager;
   private final Map<ProcessElement, UUID> executablesByElement = new ConcurrentHashMap<>();
   private final Map<String, List<String>> deduplicationScopesByType;
 
   public InboundExecutableRegistryImpl(
       InboundConnectorFactory connectorFactory, BatchExecutableProcessor batchExecutableProcessor) {
     this.batchExecutableProcessor = batchExecutableProcessor;
-    this.cancellationManager = CancellationManager.create(executables);
     this.executorService = Executors.newSingleThreadExecutor();
     eventQueue = new LinkedBlockingQueue<>();
     deduplicationScopesByType =
@@ -90,6 +84,26 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     switch (event) {
       case InboundExecutableEvent.Activated activated -> handleActivated(activated);
       case Deactivated deactivated -> handleDeactivated(deactivated);
+      case InboundExecutableEvent.Cancelled cancelled -> handleCancelled(cancelled);
+    }
+  }
+
+  private void handleCancelled(InboundExecutableEvent.Cancelled cancelled) {
+    RegisteredExecutable executable = this.executables.get(cancelled.uuid());
+    executable = this.batchExecutableProcessor.cancelExecutable(executable, cancelled.throwable());
+    this.executables.replace(cancelled.uuid(), executable);
+    if (cancelled.throwable() instanceof ConnectorRetryException retryException) {
+      this.batchExecutableProcessor
+          .restartFromContext(executable, retryException)
+          .thenAccept(
+              registeredExecutable ->
+                  this.executables.replace(cancelled.uuid(), registeredExecutable))
+          .exceptionally(
+              throwable -> {
+                LOG.error(
+                    "The inbound connector could not be restarted, {}", throwable.getMessage());
+                return null;
+              });
     }
   }
 
@@ -120,13 +134,17 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                     .forEach(element -> executablesByElement.put(element.element(), id)));
 
         var activationResult =
-            batchExecutableProcessor.activateBatch(groupedConnectors, cancellationManager);
+            batchExecutableProcessor.activateBatch(groupedConnectors, this::createCancellation);
         executables.putAll(activationResult);
 
       } catch (Exception e) {
         LOG.error("Failed to activate connectors", e);
       }
     }
+  }
+
+  private void createCancellation(InboundExecutableEvent cancelEvent) {
+    this.publishEvent(cancelEvent);
   }
 
   private void handleDeactivated(Deactivated deactivated) {

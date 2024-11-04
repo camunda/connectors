@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -34,12 +35,9 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Inva
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.UUID;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,14 +47,15 @@ import org.springframework.beans.factory.annotation.Value;
 public class BatchExecutableProcessor {
 
   private static final Logger LOG = LoggerFactory.getLogger(BatchExecutableProcessor.class);
-
-  @Value("${camunda.connector.inbound.log.size:10}")
-  private int inboundLogsSize;
-
   private final InboundConnectorFactory connectorFactory;
   private final InboundConnectorContextFactory connectorContextFactory;
   private final MetricsRecorder metricsRecorder;
   private final WebhookConnectorRegistry webhookConnectorRegistry;
+  private final ScheduledExecutorService reactivationScheduler =
+      Executors.newSingleThreadScheduledExecutor();
+
+  @Value("${camunda.connector.inbound.log.size:10}")
+  private int inboundLogsSize;
 
   public BatchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
@@ -75,7 +74,8 @@ public class BatchExecutableProcessor {
    * considered valid).
    */
   public Map<UUID, RegisteredExecutable> activateBatch(
-      Map<UUID, InboundConnectorDetails> request, CancellationManager cancellationManager) {
+      Map<UUID, InboundConnectorDetails> request,
+      Consumer<InboundExecutableEvent> cancellationCallback) {
 
     final Map<UUID, RegisteredExecutable> alreadyActivated = new HashMap<>();
 
@@ -93,7 +93,8 @@ public class BatchExecutableProcessor {
       }
 
       final RegisteredExecutable result =
-          activateSingle(data, cancellationManager.createCancellationCallback(id));
+          activateSingle(
+              data, t -> cancellationCallback.accept(new InboundExecutableEvent.Cancelled(id, t)));
 
       switch (result) {
         case Activated activated -> alreadyActivated.put(id, activated);
@@ -216,6 +217,93 @@ public class BatchExecutableProcessor {
               activated.context().getDefinition().type());
         }
       }
+    }
+  }
+
+  public CompletableFuture<RegisteredExecutable> restartFromContext(
+      RegisteredExecutable registeredExecutable, ConnectorRetryException retryException) {
+    CompletableFuture<RegisteredExecutable> future = new CompletableFuture<>();
+    LOG.warn(
+        "Inbound connector executable has requested its reactivation in {} {}",
+        retryException.getBackoffDuration().getSeconds(),
+        TimeUnit.SECONDS);
+    if (registeredExecutable instanceof RegisteredExecutable.Cancelled cancelled) {
+      InboundConnectorExecutable<InboundConnectorContext> newExecutable =
+          connectorFactory.getInstance(cancelled.context().getDefinition().type());
+      this.reactivationScheduler.schedule(
+          () ->
+              tryRestart(
+                      newExecutable,
+                      cancelled.context(),
+                      retryException.getBackoffDuration(),
+                      retryException.getRetries())
+                  .thenAccept(future::complete)
+                  .exceptionally(
+                      throwable -> {
+                        future.completeExceptionally(throwable);
+                        return null;
+                      }),
+          retryException.getBackoffDuration().getSeconds(),
+          TimeUnit.SECONDS);
+    } else {
+      LOG.error(
+          "Attempted to reactivate an inbound connector executable that is not in the cancelled state");
+      future.completeExceptionally(
+          new RuntimeException(
+              "Attempted to reactivate an inbound connector executable that is not in the cancelled state"));
+    }
+    return future;
+  }
+
+  private CompletableFuture<Activated> tryRestart(
+      InboundConnectorExecutable<InboundConnectorContext> executable,
+      InboundConnectorReportingContext context,
+      Duration delay,
+      Integer retryAttempts) {
+    CompletableFuture<Activated> future = new CompletableFuture<>();
+    try {
+      executable.activate(context);
+      LOG.info("Activation successful for {}", context.getDefinition().type());
+      future.complete(new Activated(executable, context));
+    } catch (Exception e) {
+      if (retryAttempts == 0) future.completeExceptionally(new RuntimeException("No more retries"));
+      else {
+        LOG.error(
+            "Activation failed for connector: {}. Retrying... {} retries left",
+            context.getDefinition().type(),
+            retryAttempts - 1);
+        this.reactivationScheduler.schedule(
+            () ->
+                tryRestart(executable, context, delay, retryAttempts - 1)
+                    .thenAccept(future::complete)
+                    .exceptionally(
+                        throwable -> {
+                          future.completeExceptionally(throwable);
+                          return null;
+                        }),
+            delay.getSeconds(),
+            TimeUnit.SECONDS);
+      }
+    }
+    return future;
+  }
+
+  public RegisteredExecutable cancelExecutable(
+      RegisteredExecutable registeredExecutable, Throwable throwable) {
+    if (registeredExecutable instanceof Activated activated) {
+      try {
+        activated.executable().deactivate();
+        return new RegisteredExecutable.Cancelled(
+            activated.executable(), activated.context(), throwable);
+      } catch (Exception e) {
+        LOG.error("Failed to deactivate connector", e);
+        throw new RuntimeException("Failed to deactivate connector", e);
+      }
+    } else {
+      LOG.error(
+          "Attempted to cancel an inbound connector executable that is not in the active state");
+      throw new RuntimeException(
+          "Attempted to cancel an inbound connector executable that is not in the active state");
     }
   }
 }
