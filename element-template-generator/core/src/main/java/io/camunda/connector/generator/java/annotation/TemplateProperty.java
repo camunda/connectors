@@ -135,10 +135,36 @@ public @interface TemplateProperty {
     String name();
   }
 
+  enum EqualsBoolean {
+    TRUE,
+    FALSE,
+    NULL;
+
+    public static EqualsBoolean fromBoolean(Boolean value) {
+      if (value == null) {
+        return NULL;
+      } else if (value) {
+        return TRUE;
+      } else {
+        return FALSE;
+      }
+    }
+
+    public Boolean toBoolean() {
+      if (this == NULL) {
+        return null;
+      } else {
+        return this == TRUE;
+      }
+    }
+  }
+
   @interface PropertyCondition {
     String property();
 
     String equals() default "";
+
+    EqualsBoolean equalsBoolean() default EqualsBoolean.NULL;
 
     String[] oneOf() default {};
 
@@ -152,6 +178,8 @@ public @interface TemplateProperty {
 
     /** For string properties */
     String equals() default "";
+
+    EqualsBoolean equalsBoolean() default EqualsBoolean.NULL;
 
     String[] oneOf() default {};
 

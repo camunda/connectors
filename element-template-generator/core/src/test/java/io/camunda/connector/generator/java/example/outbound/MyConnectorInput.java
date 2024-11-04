@@ -21,6 +21,7 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
@@ -96,11 +97,17 @@ public record MyConnectorInput(
         Boolean booleanProperty,
     @TemplateProperty(
             id = "dependsOnBooleanPropertyFalse",
-            condition = @PropertyCondition(property = "booleanProperty", equals = "false"))
+            condition =
+                @PropertyCondition(
+                    property = "booleanProperty",
+                    equalsBoolean = EqualsBoolean.FALSE))
         String dependsOnBooleanPropertyFalse,
     @TemplateProperty(
             id = "dependsOnBooleanPropertyTrue",
-            condition = @PropertyCondition(property = "booleanProperty", equals = "true"))
+            condition =
+                @PropertyCondition(
+                    property = "booleanProperty",
+                    equalsBoolean = EqualsBoolean.TRUE))
         String dependsOnBooleanPropertyTrue,
     @TemplateProperty(
             id = "mayBeEmptyOrRegexValidated",
