@@ -3,6 +3,16 @@
   "name" : "Email Connector",
   "id" : "io.camunda.connectors.email.v1",
   "description" : "Execute email requests",
+  "metadata": {
+    "keywords": [
+      "send emails",
+      "list emails",
+      "search emails",
+      "delete emails",
+      "read emails",
+      "move emails"
+    ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
   "version" : 2,
   "category" : {
