@@ -11,6 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 
 @TemplateSubType(id = "sendEmailSmtp", label = "Send Email")
 public record SmtpSendEmail(
@@ -57,6 +58,16 @@ public record SmtpSendEmail(
             optional = true)
         @Valid
         Object bcc,
+    @TemplateProperty(
+            label = "Headers",
+            group = "sendEmailSmtp",
+            id = "smtpHeaders",
+            tooltip = "Additional email's headers",
+            feel = Property.FeelMode.required,
+            binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.headers"),
+            optional = true)
+        @Valid
+        Map<String, Object> headers,
     @TemplateProperty(
             label = "Subject",
             group = "sendEmailSmtp",
