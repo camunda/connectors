@@ -261,22 +261,14 @@ public class BatchExecutableProcessor {
     }
   }
 
-  public RegisteredExecutable.Cancelled cancelExecutable(
-      RegisteredExecutable registeredExecutable, Throwable throwable) {
-    if (registeredExecutable instanceof Activated activated) {
-      try {
-        activated.executable().deactivate();
-        return new RegisteredExecutable.Cancelled(
-            activated.executable(), activated.context(), throwable);
-      } catch (Exception e) {
-        LOG.error("Failed to deactivate connector", e);
-        throw new RuntimeException("Failed to deactivate connector", e);
-      }
-    } else {
-      LOG.error(
-          "Attempted to cancel an inbound connector executable that is not in the active state");
-      throw new RuntimeException(
-          "Attempted to cancel an inbound connector executable that is not in the active state");
+  public RegisteredExecutable.Cancelled cancelExecutable(Activated activated, Throwable throwable) {
+    try {
+      activated.executable().deactivate();
+      return new RegisteredExecutable.Cancelled(
+          activated.executable(), activated.context(), throwable);
+    } catch (Exception e) {
+      LOG.error("Failed to deactivate connector", e);
+      throw new RuntimeException("Failed to deactivate connector", e);
     }
   }
 }
