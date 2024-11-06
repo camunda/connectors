@@ -18,31 +18,25 @@ package io.camunda.connector.runtime.inbound.executable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.Health.Status;
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.Keywords;
-import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.*;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 public class InboundExecutableRegistryTest {
 
@@ -272,5 +266,128 @@ public class InboundExecutableRegistryTest {
     assertThat(result.getFirst().health().getStatus()).isEqualTo(Status.DOWN);
     assertThat(result.getFirst().health().getError().message())
         .isEqualTo("Connector unknown-type not registered");
+  }
+
+  @Test
+  public void verify_activatedConnectorIsCancelledAndRestarted() throws Exception {
+
+    var elementId = "elementId";
+    var element1 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElement("id", 0, 0, elementId, "tenant"));
+
+    var executable = mock(InboundConnectorExecutable.class);
+    var context = mock(InboundConnectorReportingContext.class);
+    var definitions = mock(InboundConnectorDefinition.class);
+
+    try (MockedStatic<UUID> uuidMockedStatic = Mockito.mockStatic(UUID.class)) {
+      when(factory.getInstance(any())).thenReturn(executable);
+      when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+      when(context.getDefinition()).thenReturn(definitions);
+      when(definitions.type()).thenReturn("type1");
+      when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+      uuidMockedStatic.when(UUID::randomUUID).thenReturn(new UUID(24, 42));
+      // when
+      registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+      registry.handleEvent(
+          new InboundExecutableEvent.Cancelled(
+              new UUID(24, 42),
+              ConnectorRetryException.builder()
+                  .retries(3)
+                  .backoffDuration(Duration.ofSeconds(1))
+                  .build()));
+
+      // then
+      verify(executable).deactivate();
+      verify(executable, timeout(5000).times(2)).activate(any());
+    }
+  }
+
+  @Test
+  public void verify_activatedConnectorIsCancelledAndCouldNotBeRestarted() throws Exception {
+
+    var elementId = "elementId";
+    var element1 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElement("id", 0, 0, elementId, "tenant"));
+
+    var executable = mock(InboundConnectorExecutable.class);
+    var context = mock(InboundConnectorReportingContext.class);
+    var definitions = mock(InboundConnectorDefinition.class);
+
+    try (MockedStatic<UUID> uuidMockedStatic = Mockito.mockStatic(UUID.class)) {
+      // when
+      when(factory.getInstance(any())).thenReturn(executable);
+      when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+      when(context.getDefinition()).thenReturn(definitions);
+      when(definitions.type()).thenReturn("type1");
+      when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+      uuidMockedStatic.when(UUID::randomUUID).thenReturn(new UUID(24, 42));
+      doNothing().doThrow(new Exception()).when(executable).activate(any());
+
+      registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+
+
+      registry.handleEvent(
+          new InboundExecutableEvent.Cancelled(
+              new UUID(24, 42),
+              ConnectorRetryException.builder()
+                  .retries(3)
+                  .backoffDuration(Duration.ofSeconds(1))
+                  .build()));
+
+
+
+      // then
+      verify(executable).deactivate();
+      verify(executable, timeout(5000).times(4)).activate(any());
+    }
+  }
+
+  @Test
+  public void verify_activatedConnectorIsCancelledAndCouldNotBeRestartedButSecondRetryWorks() throws Exception {
+
+    var elementId = "elementId";
+    var element1 =
+            new InboundConnectorElement(
+                    Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
+                    new StartEventCorrelationPoint("processId", 0, 0),
+                    new ProcessElement("id", 0, 0, elementId, "tenant"));
+
+    var executable = mock(InboundConnectorExecutable.class);
+    var context = mock(InboundConnectorReportingContext.class);
+    var definitions = mock(InboundConnectorDefinition.class);
+
+    try (MockedStatic<UUID> uuidMockedStatic = Mockito.mockStatic(UUID.class)) {
+      // when
+      when(factory.getInstance(any())).thenReturn(executable);
+      when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+      when(context.getDefinition()).thenReturn(definitions);
+      when(definitions.type()).thenReturn("type1");
+      when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+      uuidMockedStatic.when(UUID::randomUUID).thenReturn(new UUID(24, 42));
+      doNothing().doThrow(new Exception()).doNothing().when(executable).activate(any());
+
+      registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+
+
+      registry.handleEvent(
+              new InboundExecutableEvent.Cancelled(
+                      new UUID(24, 42),
+                      ConnectorRetryException.builder()
+                              .retries(3)
+                              .backoffDuration(Duration.ofSeconds(1))
+                              .build()));
+
+
+
+      // then
+      verify(executable).deactivate();
+      verify(executable, timeout(5000).times(3)).activate(any());
+    }
   }
 }

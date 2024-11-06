@@ -90,18 +90,19 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
   private void handleCancelled(InboundExecutableEvent.Cancelled cancelled) {
     RegisteredExecutable executable = this.executables.get(cancelled.uuid());
-    executable = this.batchExecutableProcessor.cancelExecutable(executable, cancelled.throwable());
+    Cancelled cancelledExecutable =
+        this.batchExecutableProcessor.cancelExecutable(executable, cancelled.throwable());
     this.executables.replace(cancelled.uuid(), executable);
     if (cancelled.throwable() instanceof ConnectorRetryException retryException) {
+
       this.batchExecutableProcessor
-          .restartFromContext(executable, retryException)
+          .restartFromContext(cancelledExecutable, retryException)
           .thenAccept(
               registeredExecutable ->
                   this.executables.replace(cancelled.uuid(), registeredExecutable))
           .exceptionally(
               throwable -> {
-                LOG.error(
-                    "The inbound connector could not be restarted, {}", throwable.getMessage());
+                LOG.error("The inbound connector could not be restarted", throwable);
                 return null;
               });
     }

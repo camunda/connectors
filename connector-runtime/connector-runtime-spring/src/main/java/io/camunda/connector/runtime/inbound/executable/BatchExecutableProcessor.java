@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 import com.google.common.collect.EvictingQueue;
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -35,7 +37,6 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Inva
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -220,75 +221,47 @@ public class BatchExecutableProcessor {
     }
   }
 
-  public CompletableFuture<RegisteredExecutable> restartFromContext(
-      RegisteredExecutable registeredExecutable, ConnectorRetryException retryException) {
-    CompletableFuture<RegisteredExecutable> future = new CompletableFuture<>();
-    LOG.warn(
-        "Inbound connector executable has requested its reactivation in {} {}",
-        retryException.getBackoffDuration().getSeconds(),
-        TimeUnit.SECONDS);
-    if (registeredExecutable instanceof RegisteredExecutable.Cancelled cancelled) {
-      InboundConnectorExecutable<InboundConnectorContext> newExecutable =
-          connectorFactory.getInstance(cancelled.context().getDefinition().type());
-      this.reactivationScheduler.schedule(
-          () ->
-              tryRestart(
-                      newExecutable,
-                      cancelled.context(),
-                      retryException.getBackoffDuration(),
-                      retryException.getRetries())
-                  .thenAccept(future::complete)
-                  .exceptionally(
-                      throwable -> {
-                        future.completeExceptionally(throwable);
-                        return null;
-                      }),
-          retryException.getBackoffDuration().getSeconds(),
-          TimeUnit.SECONDS);
-    } else {
-      LOG.error(
-          "Attempted to reactivate an inbound connector executable that is not in the cancelled state");
-      future.completeExceptionally(
-          new RuntimeException(
-              "Attempted to reactivate an inbound connector executable that is not in the cancelled state"));
-    }
-    return future;
+  public CompletableFuture<Activated> restartFromContext(
+      RegisteredExecutable.Cancelled cancelled, ConnectorRetryException retryException) {
+
+    InboundConnectorExecutable<InboundConnectorContext> newExecutable =
+        connectorFactory.getInstance(cancelled.context().getDefinition().type());
+    LOG.warn("Inbound connector executable has requested its reactivation");
+    RetryPolicy<Object> retryPolicy =
+        RetryPolicy.builder()
+            .withDelay(retryException.getBackoffDuration())
+            .onFailedAttempt(
+                event ->
+                    LOG.error(
+                        "Reactivation failed for inbound connector: {}",
+                        cancelled.context().getDefinition().type(),
+                        event.getLastException()))
+            .onRetry(
+                event ->
+                    LOG.warn(
+                        "Failure #{} to reactivate connector: {}. Retrying.",
+                        event.getAttemptCount(),
+                        cancelled.context().getDefinition().type()))
+            .withMaxRetries(retryException.getRetries())
+            .build();
+
+    return Failsafe.with(retryPolicy)
+        .getAsync(() -> tryRestart(newExecutable, cancelled.context()));
   }
 
-  private CompletableFuture<Activated> tryRestart(
+  private Activated tryRestart(
       InboundConnectorExecutable<InboundConnectorContext> executable,
-      InboundConnectorReportingContext context,
-      Duration delay,
-      Integer retryAttempts) {
-    CompletableFuture<Activated> future = new CompletableFuture<>();
+      InboundConnectorReportingContext context) {
     try {
       executable.activate(context);
       LOG.info("Activation successful for {}", context.getDefinition().type());
-      future.complete(new Activated(executable, context));
+      return new Activated(executable, context);
     } catch (Exception e) {
-      if (retryAttempts == 0) future.completeExceptionally(new RuntimeException("No more retries"));
-      else {
-        LOG.error(
-            "Activation failed for connector: {}. Retrying... {} retries left",
-            context.getDefinition().type(),
-            retryAttempts - 1);
-        this.reactivationScheduler.schedule(
-            () ->
-                tryRestart(executable, context, delay, retryAttempts - 1)
-                    .thenAccept(future::complete)
-                    .exceptionally(
-                        throwable -> {
-                          future.completeExceptionally(throwable);
-                          return null;
-                        }),
-            delay.getSeconds(),
-            TimeUnit.SECONDS);
-      }
+      throw new RuntimeException(e);
     }
-    return future;
   }
 
-  public RegisteredExecutable cancelExecutable(
+  public RegisteredExecutable.Cancelled cancelExecutable(
       RegisteredExecutable registeredExecutable, Throwable throwable) {
     if (registeredExecutable instanceof Activated activated) {
       try {
