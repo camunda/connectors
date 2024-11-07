@@ -385,7 +385,6 @@ public class InboundExecutableRegistryTest {
       doNothing()
           .doAnswer(
               invocationOnMock -> {
-                System.out.println("should be before");
                 context.cancel(
                     ConnectorRetryException.builder()
                         .retries(3)
