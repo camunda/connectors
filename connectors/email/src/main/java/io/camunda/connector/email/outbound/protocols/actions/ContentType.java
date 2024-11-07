@@ -8,10 +8,13 @@ package io.camunda.connector.email.outbound.protocols.actions;
 
 public enum ContentType {
   PLAIN,
-  HTML;
+  HTML,
+  MULTIPART;
 
   public static class Constants {
     public static final String PLAIN_VALUE = "plain";
     public static final String HTML_VALUE = "html";
+
+    public static final String MULTIPART_VALUE = "multipart";
   }
 }

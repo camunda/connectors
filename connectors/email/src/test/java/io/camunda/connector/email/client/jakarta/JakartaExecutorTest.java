@@ -35,61 +35,6 @@ import org.junit.jupiter.api.Test;
 class JakartaExecutorTest {
 
   @Test
-  void executeSmtpSendEmail() throws MessagingException {
-
-    JakartaUtils sessionFactory = mock(JakartaUtils.class);
-    ObjectMapper objectMapper = mock(ObjectMapper.class);
-    JakartaEmailActionExecutor actionExecutor =
-        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
-
-    EmailRequest emailRequest = mock(EmailRequest.class);
-    SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
-    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
-    Protocol protocol = mock(Smtp.class);
-    Session session = mock(Session.class);
-    Transport transport = mock(Transport.class);
-
-    // Authentication
-    when(simpleAuthentication.username()).thenReturn("user");
-    when(simpleAuthentication.password()).thenReturn("secret");
-    doNothing().when(transport).connect(any(), any());
-
-    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
-    when(session.getProperties()).thenReturn(new Properties());
-    when(emailRequest.data()).thenReturn(protocol);
-    when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
-    when(sessionFactory.createSession(any())).thenReturn(session);
-    when(smtpSendEmail.to()).thenReturn(List.of("to"));
-    when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
-    when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
-    when(smtpSendEmail.from()).thenReturn("myself");
-    when(smtpSendEmail.body()).thenReturn("body");
-    when(smtpSendEmail.contentType()).thenReturn(ContentType.PLAIN);
-    when(session.getTransport()).thenReturn(transport);
-
-    actionExecutor.execute(emailRequest);
-
-    verify(transport, times(1))
-        .sendMessage(
-            argThat(
-                argument -> {
-                  try {
-                    return Arrays.stream(argument.getFrom())
-                            .allMatch(address -> address.toString().contains("myself"))
-                        && argument.getContent().toString().contains("body")
-                        && argument.getContentType().contains("text/plain");
-                  } catch (MessagingException | IOException e) {
-                    throw new RuntimeException(e);
-                  }
-                }),
-            argThat(
-                argument ->
-                    Arrays.toString(argument).contains("to")
-                        && Arrays.toString(argument).contains("cc")
-                        && Arrays.toString(argument).contains("bcc")));
-  }
-
-  @Test
   void executeSmtpSendEmailContentTypeNotSet() throws MessagingException {
 
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
@@ -144,8 +89,22 @@ class JakartaExecutorTest {
   }
 
   @Test
-  void executeSmtpSendEmailAsHtml() throws MessagingException {
+  void executeSmtpSendEmail() throws MessagingException {
+    buildSmtpTest(ContentType.PLAIN, "body", "text/plain");
+  }
 
+  @Test
+  void executeSmtpSendEmailAsHtml() throws MessagingException {
+    buildSmtpTest(ContentType.HTML, "<html><body>body</body></html>", "text/html");
+  }
+
+  @Test
+  void executeSmtpSendEmailAsMultiPart() throws MessagingException {
+    buildSmtpTest(ContentType.MULTIPART, "<html><body>body</body></html>", "multipart/mixed");
+  }
+
+  void buildSmtpTest(ContentType contentType, String body, String messageContentType)
+      throws MessagingException {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
     JakartaEmailActionExecutor actionExecutor =
@@ -172,8 +131,8 @@ class JakartaExecutorTest {
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
     when(smtpSendEmail.from()).thenReturn("myself");
-    when(smtpSendEmail.contentType()).thenReturn(ContentType.HTML);
-    when(smtpSendEmail.body()).thenReturn("<!DOCTYPE html>");
+    when(smtpSendEmail.contentType()).thenReturn(contentType);
+    when(smtpSendEmail.body()).thenReturn(body);
     when(session.getTransport()).thenReturn(transport);
 
     actionExecutor.execute(emailRequest);
@@ -185,8 +144,8 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && argument.getContent().toString().contains("<!DOCTYPE html>")
-                        && argument.getDataHandler().getContentType().contains("text/html");
+                        && argument.getContent().toString().contains(body)
+                        && argument.getDataHandler().getContentType().contains(messageContentType);
                   } catch (MessagingException | IOException e) {
                     throw new RuntimeException(e);
                   }

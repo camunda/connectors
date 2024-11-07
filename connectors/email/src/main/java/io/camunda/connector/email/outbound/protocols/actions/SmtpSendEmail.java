@@ -91,7 +91,10 @@ public record SmtpSendEmail(
                   value = ContentType.Constants.PLAIN_VALUE),
               @TemplateProperty.DropdownPropertyChoice(
                   label = "Html",
-                  value = ContentType.Constants.HTML_VALUE)
+                  value = ContentType.Constants.HTML_VALUE),
+              @TemplateProperty.DropdownPropertyChoice(
+                  label = "Html+Plain",
+                  value = ContentType.Constants.MULTIPART_VALUE)
             },
             tooltip = "Email's contentType",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.contentType"))
