@@ -33,7 +33,6 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import java.time.Duration;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -374,7 +373,9 @@ public class InboundExecutableRegistryTest {
             mock(ValidationProvider.class),
             mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
             null,
-            t -> registry.createCancellation(new InboundExecutableEvent.Cancelled(new UUID(24, 42), t)),
+            t ->
+                registry.createCancellation(
+                    new InboundExecutableEvent.Cancelled(new UUID(24, 42), t)),
             new ObjectMapper(),
             null);
 
