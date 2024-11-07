@@ -67,7 +67,7 @@ public record SmtpSendEmail(
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.headers"),
             optional = true)
         @Valid
-        Map<String, Object> headers,
+        Map<String, String> headers,
     @TemplateProperty(
             label = "Subject",
             group = "sendEmailSmtp",

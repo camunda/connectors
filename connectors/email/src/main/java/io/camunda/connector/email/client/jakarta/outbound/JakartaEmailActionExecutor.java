@@ -249,7 +249,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       Optional<InternetAddress[]> to = createParsedInternetAddresses(smtpSendEmail.to());
       Optional<InternetAddress[]> cc = createParsedInternetAddresses(smtpSendEmail.cc());
       Optional<InternetAddress[]> bcc = createParsedInternetAddresses(smtpSendEmail.bcc());
-      Optional<Map<String, Object>> headers = Optional.ofNullable(smtpSendEmail.headers());
+      Optional<Map<String, String>> headers = Optional.ofNullable(smtpSendEmail.headers());
       Message message = new MimeMessage(session);
       message.setFrom(new InternetAddress(smtpSendEmail.from()));
       if (to.isPresent()) message.setRecipients(Message.RecipientType.TO, to.get());
@@ -268,15 +268,13 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
     }
   }
 
-  private void setMessageHeaders(Map<String, Object> stringObjectMap, Message message) {
+  private void setMessageHeaders(Map<String, String> stringObjectMap, Message message) {
     stringObjectMap.forEach(
-        (key, value1) -> {
-          if (value1 instanceof String value) {
-            try {
-              message.setHeader(key, value);
-            } catch (MessagingException e) {
-              throw new RuntimeException(e);
-            }
+        (key, value) -> {
+          try {
+            message.setHeader(key, value);
+          } catch (MessagingException e) {
+            throw new RuntimeException(e);
           }
         });
   }
