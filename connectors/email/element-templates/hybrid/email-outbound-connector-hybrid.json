@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.email.v1-hybrid",
   "description" : "Execute email requests",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -542,6 +542,29 @@
       } ]
     },
     "tooltip" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+    "type" : "String"
+  }, {
+    "id" : "smtpHeaders",
+    "label" : "Headers",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.smtpActionDiscriminator",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Additional email's headers",
     "type" : "String"
   }, {
     "id" : "smtpSubject",

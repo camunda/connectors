@@ -25,7 +25,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     name = "Email Connector",
     description = "Execute email requests",
     inputDataClass = EmailRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "protocol", label = "Protocol"),

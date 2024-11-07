@@ -88,6 +88,55 @@ class JakartaExecutorTest {
   }
 
   @Test
+  void executeSmtpSendEmailWithHeaders() throws MessagingException {
+
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Smtp.class);
+    Session session = mock(Session.class);
+    Transport transport = mock(Transport.class);
+
+    // Authentication
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
+    doNothing().when(transport).connect(any(), any());
+
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(emailRequest.data()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
+    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(smtpSendEmail.to()).thenReturn(List.of("to"));
+    when(smtpSendEmail.headers()).thenReturn(Map.of("test", "header1"));
+    when(smtpSendEmail.from()).thenReturn("myself");
+    when(smtpSendEmail.body()).thenReturn("body");
+    when(session.getTransport()).thenReturn(transport);
+
+    actionExecutor.execute(emailRequest);
+
+    verify(transport, times(1))
+        .sendMessage(
+            argThat(
+                argument -> {
+                  try {
+                    return Arrays.stream(argument.getFrom())
+                            .allMatch(address -> address.toString().contains("myself"))
+                        && argument.getContent().toString().contains("body")
+                        && Arrays.stream(argument.getHeader("test")).toList().contains("header1");
+                  } catch (MessagingException | IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                }),
+            argThat(argument -> Arrays.toString(argument).contains("to")));
+  }
+
+  @Test
   void executePop3ListEmails() throws MessagingException {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
