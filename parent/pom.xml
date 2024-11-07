@@ -97,7 +97,7 @@ limitations under the License.</license.inlineheader>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
 
-    <version.localstack>1.20.2</version.localstack>
+    <version.localstack>1.20.3</version.localstack>
 
     <version.google-api-client>2.7.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20241027-2.0.0</version.google-api-services-drive>
@@ -125,7 +125,7 @@ limitations under the License.</license.inlineheader>
 
     <version.slack>1.43.1</version.slack>
 
-    <version.testcontainers>1.20.2</version.testcontainers>
+    <version.testcontainers>1.20.3</version.testcontainers>
     <version.awaitility>4.2.2</version.awaitility>
     <version.json-path>2.9.0</version.json-path>
 
