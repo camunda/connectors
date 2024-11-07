@@ -93,7 +93,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     if (executable instanceof Activated activated) {
       Cancelled cancelledExecutable =
           this.batchExecutableProcessor.cancelExecutable(activated, cancelled.throwable());
-      this.executables.replace(cancelled.uuid(), executable);
+      this.executables.replace(cancelled.uuid(), cancelledExecutable);
       if (cancelled.throwable() instanceof ConnectorRetryException retryException) {
         this.batchExecutableProcessor
             .restartFromContext(cancelledExecutable, retryException)
@@ -148,8 +148,11 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     }
   }
 
-  private void createCancellation(InboundExecutableEvent cancelEvent) {
-    this.publishEvent(cancelEvent);
+  public void createCancellation(InboundExecutableEvent.Cancelled cancelEvent) {
+    RegisteredExecutable executable = this.executables.get(cancelEvent.uuid());
+    if (executable instanceof Activated) {
+      this.publishEvent(cancelEvent);
+    } else throw new IllegalStateException();
   }
 
   private void handleDeactivated(Deactivated deactivated) {

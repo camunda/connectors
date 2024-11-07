@@ -76,7 +76,7 @@ public class BatchExecutableProcessor {
    */
   public Map<UUID, RegisteredExecutable> activateBatch(
       Map<UUID, InboundConnectorDetails> request,
-      Consumer<InboundExecutableEvent> cancellationCallback) {
+      Consumer<InboundExecutableEvent.Cancelled> cancellationCallback) {
 
     final Map<UUID, RegisteredExecutable> alreadyActivated = new HashMap<>();
 

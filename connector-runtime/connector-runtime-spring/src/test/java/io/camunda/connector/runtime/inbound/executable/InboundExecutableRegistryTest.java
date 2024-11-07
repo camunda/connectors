@@ -33,10 +33,14 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -44,6 +48,8 @@ import org.mockito.Mockito;
 
 public class InboundExecutableRegistryTest {
 
+  private static final ScheduledExecutorService scheduledExecutorService =
+      Executors.newSingleThreadScheduledExecutor();
   private InboundConnectorFactory factory;
   private InboundConnectorContextFactory contextFactory;
   private BatchExecutableProcessor batchProcessor;
@@ -303,8 +309,108 @@ public class InboundExecutableRegistryTest {
                   .build()));
 
       // then
-      verify(executable).deactivate();
+      verify(executable, timeout(5000).times(1)).deactivate();
       verify(executable, timeout(5000).times(2)).activate(any());
+    }
+  }
+
+  @Test
+  public void verify_activatedConnectorIsCancelledAndActivateCancelAgain() throws Exception {
+    var elementId = "elementId";
+    var element1 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElement("id", 0, 0, elementId, "tenant"));
+
+    var executable = mock(InboundConnectorExecutable.class);
+    var context =
+        new InboundConnectorContextImpl(
+            mock(SecretProvider.class),
+            mock(ValidationProvider.class),
+            mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
+            null,
+            t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(new UUID(24, 42), t)),
+            new ObjectMapper(),
+            null);
+
+    try (MockedStatic<UUID> uuidMockedStatic = Mockito.mockStatic(UUID.class)) {
+      when(factory.getInstance(any())).thenReturn(executable);
+      when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+      uuidMockedStatic.when(UUID::randomUUID).thenReturn(new UUID(24, 42));
+      doAnswer(
+              invocationOnMock -> {
+                context.cancel(
+                    ConnectorRetryException.builder()
+                        .retries(3)
+                        .backoffDuration(Duration.ofSeconds(1))
+                        .build());
+                return null;
+              })
+          .when(executable)
+          .activate(any());
+
+      registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+
+      // then
+      verify(executable, timeout(5000).times(1)).activate(any());
+      verify(executable, timeout(5000).times(0)).deactivate();
+    }
+  }
+
+  @Test
+  public void verify_activatedConnectorIsCancelledAndReActivateCancelAgain() throws Exception {
+    var elementId = "elementId";
+    var element1 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElement("id", 0, 0, elementId, "tenant"));
+
+    var executable = mock(InboundConnectorExecutable.class);
+    var context =
+        new InboundConnectorContextImpl(
+            mock(SecretProvider.class),
+            mock(ValidationProvider.class),
+            mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
+            null,
+            t -> registry.createCancellation(new InboundExecutableEvent.Cancelled(new UUID(24, 42), t)),
+            new ObjectMapper(),
+            null);
+
+    try (MockedStatic<UUID> uuidMockedStatic = Mockito.mockStatic(UUID.class)) {
+      when(factory.getInstance(any())).thenReturn(executable);
+      when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
+      uuidMockedStatic.when(UUID::randomUUID).thenReturn(new UUID(24, 42));
+      doNothing()
+          .doAnswer(
+              invocationOnMock -> {
+                System.out.println("should be before");
+                context.cancel(
+                    ConnectorRetryException.builder()
+                        .retries(3)
+                        .backoffDuration(Duration.ofSeconds(3))
+                        .build());
+                return null;
+              })
+          .when(executable)
+          .activate(any());
+
+      registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+
+      scheduledExecutorService.schedule(
+          () ->
+              context.cancel(
+                  ConnectorRetryException.builder()
+                      .retries(3)
+                      .backoffDuration(Duration.ofSeconds(1))
+                      .build()),
+          3,
+          TimeUnit.SECONDS);
+
+      // then
+      verify(executable, timeout(60000).times(2)).activate(any());
+      verify(executable, timeout(60000).times(1)).deactivate();
     }
   }
 
@@ -351,21 +457,21 @@ public class InboundExecutableRegistryTest {
   public void verify_activatedConnectorIsCancelledAndRestartFromTheContextFails() throws Exception {
     var elementId = "elementId";
     var element1 =
-            new InboundConnectorElement(
-                    Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
-                    new StartEventCorrelationPoint("processId", 0, 0),
-                    new ProcessElement("id", 0, 0, elementId, "tenant"));
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElement("id", 0, 0, elementId, "tenant"));
 
     var executable = mock(InboundConnectorExecutable.class);
     var context =
-            new InboundConnectorContextImpl(
-                    mock(SecretProvider.class),
-                    mock(ValidationProvider.class),
-                    mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
-                    null,
-                    t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(new UUID(24, 42), t)),
-                    new ObjectMapper(),
-                    null);
+        new InboundConnectorContextImpl(
+            mock(SecretProvider.class),
+            mock(ValidationProvider.class),
+            mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
+            null,
+            t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(new UUID(24, 42), t)),
+            new ObjectMapper(),
+            null);
 
     try (MockedStatic<UUID> uuidMockedStatic = Mockito.mockStatic(UUID.class)) {
       doNothing().doThrow(new Exception()).when(executable).activate(any());
@@ -376,10 +482,10 @@ public class InboundExecutableRegistryTest {
       registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
 
       context.cancel(
-              ConnectorRetryException.builder()
-                      .retries(3)
-                      .backoffDuration(Duration.ofSeconds(1))
-                      .build());
+          ConnectorRetryException.builder()
+              .retries(3)
+              .backoffDuration(Duration.ofSeconds(1))
+              .build());
 
       // then
       verify(executable, timeout(5000).times(4)).activate(any());
