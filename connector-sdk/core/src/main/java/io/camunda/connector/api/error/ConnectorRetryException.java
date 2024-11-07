@@ -38,6 +38,10 @@ public class ConnectorRetryException extends ConnectorException {
     this.backoffDuration = backoffDuration;
   }
 
+  public static ConnectorRetryExceptionBuilder builder() {
+    return new ConnectorRetryExceptionBuilder();
+  }
+
   public Integer getRetries() {
     return retries;
   }

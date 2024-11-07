@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound.executable;
 
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
+import java.util.UUID;
 
 public sealed interface InboundExecutableEvent {
 
@@ -27,4 +28,6 @@ public sealed interface InboundExecutableEvent {
 
   record Deactivated(String tenantId, long processDefinitionKey)
       implements InboundExecutableEvent {}
+
+  record Cancelled(UUID uuid, Throwable throwable) implements InboundExecutableEvent {}
 }

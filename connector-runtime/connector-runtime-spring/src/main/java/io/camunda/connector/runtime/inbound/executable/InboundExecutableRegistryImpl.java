@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Health.Error;
 import io.camunda.connector.api.inbound.ProcessElement;
@@ -25,21 +26,12 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Deactivated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Cancelled;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.BiConsumer;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,16 +39,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 public class InboundExecutableRegistryImpl implements InboundExecutableRegistry {
 
+  private static final Logger LOG = LoggerFactory.getLogger(InboundExecutableRegistryImpl.class);
+  final Map<UUID, RegisteredExecutable> executables = new ConcurrentHashMap<>();
   private final BlockingQueue<InboundExecutableEvent> eventQueue;
   private final ExecutorService executorService;
-
   private final BatchExecutableProcessor batchExecutableProcessor;
-
   private final Map<ProcessElement, UUID> executablesByElement = new ConcurrentHashMap<>();
-  final Map<UUID, RegisteredExecutable> executables = new HashMap<>();
-
-  private static final Logger LOG = LoggerFactory.getLogger(InboundExecutableRegistryImpl.class);
-
   private final Map<String, List<String>> deduplicationScopesByType;
 
   public InboundExecutableRegistryImpl(
@@ -92,32 +80,35 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     LOG.debug("Event added to the queue: {}", event);
   }
 
-  private final BiConsumer<Throwable, UUID> cancellationCallback =
-      (throwable, id) -> {
-        LOG.warn("Inbound connector executable has requested its cancellation", throwable);
-        var toCancel = executables.get(id);
-        if (toCancel == null) {
-          LOG.error("Inbound connector executable not found for the given ID: {}", id);
-          return;
-        }
-        if (toCancel instanceof Activated activated) {
-          activated.context().reportHealth(Health.down(throwable));
-          try {
-            activated.executable().deactivate();
-          } catch (Exception e) {
-            LOG.error("Failed to deactivate connector", e);
-          }
-        } else {
-          LOG.error(
-              "Attempted to cancel an inbound connector executable that is not in the active state: {}",
-              id);
-        }
-      };
-
   void handleEvent(InboundExecutableEvent event) {
     switch (event) {
       case InboundExecutableEvent.Activated activated -> handleActivated(activated);
       case Deactivated deactivated -> handleDeactivated(deactivated);
+      case InboundExecutableEvent.Cancelled cancelled -> handleCancelled(cancelled);
+    }
+  }
+
+  private void handleCancelled(InboundExecutableEvent.Cancelled cancelled) {
+    RegisteredExecutable executable = this.executables.get(cancelled.uuid());
+    if (executable instanceof Activated activated) {
+      Cancelled cancelledExecutable =
+          this.batchExecutableProcessor.cancelExecutable(activated, cancelled.throwable());
+      this.executables.replace(cancelled.uuid(), cancelledExecutable);
+      if (cancelled.throwable() instanceof ConnectorRetryException retryException) {
+        this.batchExecutableProcessor
+            .restartFromContext(cancelledExecutable, retryException)
+            .thenAccept(
+                registeredExecutable ->
+                    this.executables.replace(cancelled.uuid(), registeredExecutable))
+            .exceptionally(
+                throwable -> {
+                  LOG.error("The inbound connector could not be restarted", throwable);
+                  return null;
+                });
+      }
+    } else {
+      LOG.error(
+          "Attempted to cancel an inbound connector executable that is not in the active state");
     }
   }
 
@@ -148,13 +139,20 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                     .forEach(element -> executablesByElement.put(element.element(), id)));
 
         var activationResult =
-            batchExecutableProcessor.activateBatch(groupedConnectors, cancellationCallback);
+            batchExecutableProcessor.activateBatch(groupedConnectors, this::createCancellation);
         executables.putAll(activationResult);
 
       } catch (Exception e) {
         LOG.error("Failed to activate connectors", e);
       }
     }
+  }
+
+  public void createCancellation(InboundExecutableEvent.Cancelled cancelEvent) {
+    RegisteredExecutable executable = this.executables.get(cancelEvent.uuid());
+    if (executable instanceof Activated) {
+      this.publishEvent(cancelEvent);
+    } else throw new IllegalStateException();
   }
 
   private void handleDeactivated(Deactivated deactivated) {
@@ -241,6 +239,10 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               invalid.data().connectorElements().stream()
                   .map(InboundConnectorElement::element)
                   .toList();
+          case Cancelled cancelled ->
+              cancelled.context().connectorElements().stream()
+                  .map(InboundConnectorElement::element)
+                  .toList();
         };
     var type =
         switch (executable) {
@@ -248,6 +250,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
           case FailedToActivate failed -> failed.data().connectorElements().getFirst().type();
           case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
           case InvalidDefinition invalid -> invalid.data().connectorElements().getFirst().type();
+          case Cancelled cancelled -> cancelled.context().getDefinition().type();
         };
 
     return elements.stream()
@@ -311,6 +314,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                   new Error(
                       "Activation failure", "Invalid connector definition: " + invalid.reason())),
               List.of());
+      case Cancelled cancelled ->
+          new ActiveExecutableResponse(
+              id,
+              cancelled.executable().getClass(),
+              cancelled.context().connectorElements(),
+              Health.down(cancelled.exceptionThrown()),
+              cancelled.context().getLogs());
     };
   }
 
@@ -328,6 +338,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                           failed.data().connectorElements().getFirst().type();
                       case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
                       case InvalidDefinition invalid -> invalid.data().type();
+                      case Cancelled cancelled -> cancelled.context().getDefinition().type();
                     },
                 Collectors.toList()))
         .forEach(
@@ -351,6 +362,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                                     case ConnectorNotRegistered notRegistered ->
                                         notRegistered.data().tenantId();
                                     case InvalidDefinition invalid -> invalid.data().tenantId();
+                                    case Cancelled cancelled ->
+                                        cancelled.context().getDefinition().tenantId();
                                   },
                               Collectors.counting()));
               groupedByTenant.forEach(
