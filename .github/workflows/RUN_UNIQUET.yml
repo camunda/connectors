@@ -11,6 +11,12 @@ jobs:
   run-uniquet-and-push:
     runs-on: ubuntu-latest
     steps:
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
       - name: Checkout repository
         uses: actions/checkout@v2
         with:

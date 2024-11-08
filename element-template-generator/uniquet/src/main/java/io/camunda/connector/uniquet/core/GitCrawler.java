@@ -18,6 +18,7 @@ package io.camunda.connector.uniquet.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.uniquet.dto.OutputElementTemplate;
+import io.camunda.connector.uniquet.dto.VersionValue;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -35,7 +36,7 @@ public class GitCrawler {
 
   private static final String RAW_GITHUB_LINK =
       "https://raw.githubusercontent.com/camunda/connectors/%s/%s";
-  private final Map<String, Map<Integer, String>> result = new HashMap<>();
+  private final Map<String, Map<Integer, VersionValue>> result = new HashMap<>();
   private final Repository repository;
 
   public GitCrawler(Repository repository) {
@@ -54,7 +55,7 @@ public class GitCrawler {
     }
   }
 
-  public Map<String, Map<Integer, String>> getResult() {
+  public Map<String, Map<Integer, VersionValue>> getResult() {
     return result;
   }
 
@@ -81,12 +82,16 @@ public class GitCrawler {
                     .get(elementTemplateFile.elementTemplate().id())
                     .putIfAbsent(
                         elementTemplateFile.elementTemplate().version(),
-                        RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()));
+                        new VersionValue(
+                            RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()),
+                            elementTemplateFile.connectorRuntime()));
               } else {
-                Map<Integer, String> version = new HashMap<>();
+                Map<Integer, VersionValue> version = new HashMap<>();
                 version.put(
                     elementTemplateFile.elementTemplate().version(),
-                    RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()));
+                    new VersionValue(
+                        RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()),
+                        elementTemplateFile.connectorRuntime()));
                 result.put(elementTemplateFile.elementTemplate().id(), version);
               }
             });
@@ -103,7 +108,7 @@ public class GitCrawler {
   }
 
   private Map<String, List<OutputElementTemplate>> fromMap(
-      Map<String, Map<Integer, String>> result) {
+      Map<String, Map<Integer, VersionValue>> result) {
     return result.entrySet().stream()
         .map(
             stringMapEntry ->
@@ -111,9 +116,11 @@ public class GitCrawler {
                     stringMapEntry.getKey(),
                     stringMapEntry.getValue().entrySet().stream()
                         .map(
-                            integerStringEntry ->
+                            integerVersionValueEntry ->
                                 new OutputElementTemplate(
-                                    integerStringEntry.getKey(), integerStringEntry.getValue()))
+                                    integerVersionValueEntry.getKey(),
+                                    integerVersionValueEntry.getValue().link(),
+                                    integerVersionValueEntry.getValue().connectorRuntime()))
                         .sorted((o1, o2) -> o2.version() - o1.version())
                         .toList()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
