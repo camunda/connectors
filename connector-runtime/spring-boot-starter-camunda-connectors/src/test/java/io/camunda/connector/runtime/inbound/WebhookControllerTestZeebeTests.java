@@ -45,9 +45,9 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +68,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true"
     })
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class WebhookControllerTestZeebeTests {

@@ -17,6 +17,8 @@
 package io.camunda.connector.e2e;
 
 import static io.camunda.connector.e2e.BpmnFile.replace;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
@@ -25,11 +27,10 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.model.ProcessDefinition;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
-import io.camunda.zeebe.process.test.assertions.BpmnAssert;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import jakarta.mail.Flags;
 import jakarta.mail.MessagingException;
 import java.util.Arrays;
@@ -54,7 +55,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "spring.main.allow-bean-definition-overriding=true",
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class InboundEmailTest extends BaseEmailTest {
 
@@ -83,6 +84,10 @@ public class InboundEmailTest extends BaseEmailTest {
     scheduler.schedule(
         () -> super.sendEmail("test@camunda.com", "test", "hey"), 2, TimeUnit.SECONDS);
 
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
+
     processStateStore.update(
         new ProcessImportResult(
             Map.of(
@@ -90,7 +95,6 @@ public class InboundEmailTest extends BaseEmailTest {
                     processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
@@ -100,10 +104,8 @@ public class InboundEmailTest extends BaseEmailTest {
             .get()
             .getFlags()
             .contains(Flags.Flag.SEEN));
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("subject", "test");
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("plainTextBody", "hey");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("subject", "test");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("plainTextBody", "hey");
   }
 
   @Test
@@ -115,9 +117,21 @@ public class InboundEmailTest extends BaseEmailTest {
 
     mockProcessDefinition(model);
 
-    super.sendEmail("test@camunda.com", "test", "hey");
+    scheduler.schedule(
+        () -> {
+          super.sendEmail("test@camunda.com", "test", "hey");
+          try {
+            Arrays.stream(getLastReceivedEmails()).findFirst().get().setFlag(Flags.Flag.SEEN, true);
+          } catch (MessagingException e) {
+            throw new RuntimeException(e);
+          }
+        },
+        2,
+        TimeUnit.SECONDS);
 
-    Arrays.stream(getLastReceivedEmails()).findFirst().get().setFlag(Flags.Flag.SEEN, true);
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
 
     processStateStore.update(
         new ProcessImportResult(
@@ -126,7 +140,6 @@ public class InboundEmailTest extends BaseEmailTest {
                     processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
 
     Assertions.assertThrows(ConditionTimeoutException.class, bpmnTest::waitForProcessCompletion);
   }
@@ -143,6 +156,10 @@ public class InboundEmailTest extends BaseEmailTest {
     scheduler.schedule(
         () -> super.sendEmail("test@camunda.com", "test", "hey"), 2, TimeUnit.SECONDS);
 
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
+
     processStateStore.update(
         new ProcessImportResult(
             Map.of(
@@ -150,8 +167,6 @@ public class InboundEmailTest extends BaseEmailTest {
                     processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
-
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
@@ -161,10 +176,8 @@ public class InboundEmailTest extends BaseEmailTest {
             .get()
             .getFlags()
             .contains(Flags.Flag.DELETED));
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("subject", "test");
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("plainTextBody", "hey");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("subject", "test");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("plainTextBody", "hey");
   }
 
   @Test
@@ -179,6 +192,10 @@ public class InboundEmailTest extends BaseEmailTest {
     scheduler.schedule(
         () -> super.sendEmail("test@camunda.com", "test", "hey"), 2, TimeUnit.SECONDS);
 
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
+
     processStateStore.update(
         new ProcessImportResult(
             Map.of(
@@ -186,8 +203,6 @@ public class InboundEmailTest extends BaseEmailTest {
                     processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
-
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
@@ -198,10 +213,8 @@ public class InboundEmailTest extends BaseEmailTest {
             .get()
             .getFlags()
             .contains(Flags.Flag.DELETED));
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("subject", "test");
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("plainTextBody", "hey");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("subject", "test");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("plainTextBody", "hey");
   }
 
   private void mockProcessDefinition(BpmnModelInstance model) throws OperateException {
@@ -222,9 +235,24 @@ public class InboundEmailTest extends BaseEmailTest {
 
     mockProcessDefinition(model);
 
-    super.sendEmail("test@camunda.com", "test", "hey");
+    scheduler.schedule(
+        () -> {
+          super.sendEmail("test@camunda.com", "test", "hey");
+          try {
+            Arrays.stream(super.getLastReceivedEmails())
+                .findFirst()
+                .get()
+                .setFlag(Flags.Flag.SEEN, true);
+          } catch (MessagingException e) {
+            throw new RuntimeException(e);
+          }
+        },
+        2,
+        TimeUnit.SECONDS);
 
-    Arrays.stream(super.getLastReceivedEmails()).findFirst().get().setFlag(Flags.Flag.SEEN, true);
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+
+    await().atMost(3, TimeUnit.SECONDS).until(() -> getLastReceivedEmails().length == 1);
 
     processStateStore.update(
         new ProcessImportResult(
@@ -234,8 +262,6 @@ public class InboundEmailTest extends BaseEmailTest {
                 new ProcessImportResult.ProcessDefinitionVersion(
                     processDef.getKey(), processDef.getVersion().intValue()))));
 
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
-
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
     Assertions.assertTrue(
@@ -244,9 +270,7 @@ public class InboundEmailTest extends BaseEmailTest {
             .get()
             .getFlags()
             .contains(Flags.Flag.DELETED));
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("subject", "test");
-    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("plainTextBody", "hey");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("subject", "test");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("plainTextBody", "hey");
   }
 }

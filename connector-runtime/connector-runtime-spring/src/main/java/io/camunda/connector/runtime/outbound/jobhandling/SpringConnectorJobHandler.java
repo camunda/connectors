@@ -44,6 +44,8 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SpringConnectorJobHandler.class);
 
+  private static final int MAX_ZEEBE_COMMAND_RETRIES = 3;
+
   private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
   private final MetricsRecorder metricsRecorder;
   private final OutboundConnectorConfiguration connectorConfiguration;
@@ -85,7 +87,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
                 Outbound.METRIC_NAME_INVOCATIONS,
                 Outbound.ACTION_FAILED,
                 connectorConfiguration.type());
-            LOGGER.warn("Failed to handle job: " + job);
+            LOGGER.warn("Failed to handle job: {}", job);
           }
         });
   }
@@ -98,7 +100,13 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
           Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_FAILED, connectorConfiguration.type());
     } finally {
       FinalCommandStep commandStep = prepareFailJobCommand(client, job, result);
-      new CommandWrapper(commandStep, job, commandExceptionHandlingStrategy).executeAsync();
+      new CommandWrapper(
+              commandStep,
+              job,
+              commandExceptionHandlingStrategy,
+              metricsRecorder,
+              MAX_ZEEBE_COMMAND_RETRIES)
+          .executeAsync();
     }
   }
 
@@ -113,7 +121,9 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
       new CommandWrapper(
               prepareThrowBpmnErrorCommand(client, job, value),
               job,
-              commandExceptionHandlingStrategy)
+              commandExceptionHandlingStrategy,
+              metricsRecorder,
+              MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }
   }
@@ -129,7 +139,13 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
           connectorConfiguration.type());
     } finally {
       FinalCommandStep commandStep = prepareCompleteJobCommand(client, job, result);
-      new CommandWrapper(commandStep, job, commandExceptionHandlingStrategy).executeAsync();
+      new CommandWrapper(
+              commandStep,
+              job,
+              commandExceptionHandlingStrategy,
+              metricsRecorder,
+              MAX_ZEEBE_COMMAND_RETRIES)
+          .executeAsync();
     }
   }
 }

@@ -18,13 +18,12 @@ package io.camunda.connector.runtime.secret;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.common.auth.Authentication;
-import io.camunda.common.auth.JwtConfig;
-import io.camunda.common.auth.JwtCredential;
-import io.camunda.common.auth.Product;
-import io.camunda.common.auth.SaaSAuthenticationBuilder;
-import io.camunda.common.json.SdkObjectMapper;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.operate.auth.Authentication;
+import io.camunda.operate.auth.JwtAuthentication;
+import io.camunda.operate.auth.JwtCredential;
+import io.camunda.operate.auth.TokenResponseMapper;
+import io.camunda.operate.auth.TokenResponseMapper.JacksonTokenResponseMapper;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -48,11 +47,9 @@ public class ConsoleSecretApiClient {
       new TypeReference<>() {};
 
   public ConsoleSecretApiClient(String secretsEndpoint, JwtCredential jwt) {
-    var jsonMapper = new SdkObjectMapper(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
-    var jwtConfig = new JwtConfig();
-    jwtConfig.addProduct(Product.CONSOLE, jwt);
-    this.authentication =
-        new SaaSAuthenticationBuilder().withJsonMapper(jsonMapper).withJwtConfig(jwtConfig).build();
+    TokenResponseMapper tokenResponseMapper =
+        new JacksonTokenResponseMapper(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
+    this.authentication = new JwtAuthentication(jwt, tokenResponseMapper);
     this.secretsEndpoint = secretsEndpoint;
   }
 
@@ -62,10 +59,10 @@ public class ConsoleSecretApiClient {
   }
 
   public Map<String, String> getSecrets() {
-    LOGGER.debug("Loading secrets from " + secretsEndpoint);
+    LOGGER.debug("Loading secrets from {}", secretsEndpoint);
     try (CloseableHttpClient httpClient = HttpClientBuilder.create().build()) {
       var request = new HttpGet(secretsEndpoint);
-      var authHeader = authentication.getTokenHeader(Product.CONSOLE);
+      var authHeader = authentication.getTokenHeader();
       authHeader.forEach(request::addHeader);
       return httpClient.execute(request, this::handleSecretsResponse);
     } catch (Exception e) {
@@ -78,7 +75,7 @@ public class ConsoleSecretApiClient {
     return switch (response.getCode()) {
       case 200 -> objectMapper.readValue(response.getEntity().getContent(), mapTypeReference);
       case 401, 403 -> {
-        authentication.resetToken(Product.CONSOLE);
+        authentication.resetToken();
         throw new RuntimeException("Authentication failed: " + response.getCode());
       }
       default ->

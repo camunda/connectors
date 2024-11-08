@@ -71,9 +71,9 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.5.5</version.zeebe>
+    <version.zeebe>8.7.0-SNAPSHOT</version.zeebe>
+    <version.operate-client>8.6.2</version.operate-client>
     <version.feel-engine>1.18.1</version.feel-engine>
-    <version.spring-zeebe>8.5.7</version.spring-zeebe>
 
     <!-- Third party dependencies -->
 
@@ -112,6 +112,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore5>5.3.1</version.httpcore5>
     <version.httpclient5>5.4.1</version.httpclient5>
     <version.pdfbox>3.0.3</version.pdfbox>
+    <version.collections4>4.5.0-M2</version.collections4>
 
     <version.commons-io>2.17.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
@@ -278,29 +279,25 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda</groupId>
-        <artifactId>zeebe-client-java</artifactId>
+        <artifactId>spring-boot-starter-camunda-sdk</artifactId>
         <version>${version.zeebe}</version>
       </dependency>
 
       <dependency>
         <groupId>io.camunda.spring</groupId>
-        <artifactId>spring-boot-starter-camunda</artifactId>
-        <version>${version.spring-zeebe}</version>
+        <artifactId>spring-boot-starter-camunda-operate</artifactId>
+        <version>${version.operate-client}</version>
       </dependency>
+
       <dependency>
-        <groupId>io.camunda.spring</groupId>
-        <artifactId>spring-boot-starter-camunda-test</artifactId>
-        <version>${version.spring-zeebe}</version>
+        <groupId>io.camunda</groupId>
+        <artifactId>zeebe-client-java</artifactId>
+        <version>${version.zeebe}</version>
       </dependency>
       <dependency>
         <groupId>io.camunda.spring</groupId>
         <artifactId>java-client-operate</artifactId>
-        <version>${version.spring-zeebe}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.camunda.spring</groupId>
-        <artifactId>spring-client-zeebe</artifactId>
-        <version>${version.spring-zeebe}</version>
+        <version>${version.operate-client}</version>
       </dependency>
 
       <dependency>
@@ -416,6 +413,12 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>${version.collections4}</version>
+      </dependency>
+
+      <dependency>
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>
         <version>${version.kafka-clients}</version>
@@ -512,6 +515,12 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <!-- test dependencies -->
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>camunda-process-test-spring</artifactId>
+        <version>${version.zeebe}</version>
+        <scope>test</scope>
+      </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>
         <artifactId>junit-jupiter</artifactId>

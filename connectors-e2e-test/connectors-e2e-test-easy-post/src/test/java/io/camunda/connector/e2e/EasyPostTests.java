@@ -20,12 +20,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.io.File;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,10 +37,11 @@ import org.springframework.boot.test.context.SpringBootTest;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=false"
+      "camunda.connector.polling.enabled=false",
+      "operate.client.profile=simple"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class EasyPostTests extends BaseEasyPostTest {
 
@@ -70,8 +71,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostCreateAddressTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("addressId", "expectedAddressId");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("addressId", "expectedAddressId");
   }
 
   @Test
@@ -93,8 +93,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostCreateParcelTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("parcelId", "expectedParcelId");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("parcelId", "expectedParcelId");
   }
 
   @Test
@@ -116,8 +115,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostCreateShipmentTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("shipmentId", "shp_123456789");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("shipmentId", "shp_123456789");
   }
 
   @Test
@@ -137,7 +135,7 @@ public class EasyPostTests extends BaseEasyPostTest {
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostBuyShipmentTask", elementTemplate);
 
     assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("trackerId", "trk_c1aa7f4bfa71414887e5e87e0138fb98");
+        .hasVariable("trackerId", "trk_c1aa7f4bfa71414887e5e87e0138fb98");
   }
 
   @Test
@@ -160,8 +158,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostVerifyAddressTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("addressDeliverySuccess", true);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("addressDeliverySuccess", true);
   }
 
   @Test
@@ -178,8 +175,7 @@ public class EasyPostTests extends BaseEasyPostTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("easyPostRetrieveTrackerTask", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("trackerStatus", "pre_transit");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("trackerStatus", "pre_transit");
   }
 
   private ElementTemplate getElementTemplateWithBasicAuthForOperationType(String operationType) {

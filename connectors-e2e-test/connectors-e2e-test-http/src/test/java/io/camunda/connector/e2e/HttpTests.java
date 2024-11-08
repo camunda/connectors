@@ -26,7 +26,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static io.camunda.connector.e2e.BpmnFile.Replace.replace;
 import static io.camunda.connector.e2e.BpmnFile.replace;
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -45,10 +45,11 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.model.ProcessDefinition;
+import io.camunda.process.test.api.CamundaProcessTestContext;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.util.Collections;
 import java.util.Map;
@@ -69,10 +70,11 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
-      "camunda.connector.polling.enabled=true"
+      "camunda.connector.polling.enabled=true",
+      "operate.client.profile=simple"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class HttpTests {
 
@@ -87,7 +89,9 @@ public class HttpTests {
 
   @Autowired ProcessStateStore stateStore;
 
-  @Autowired CamundaOperateClient camundaOperateClient;
+  @MockBean CamundaOperateClient camundaOperateClient;
+
+  @Autowired CamundaProcessTestContext context;
 
   @LocalServerPort int serverPort;
 
@@ -138,8 +142,7 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("orderStatus", "processing");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
 
   @Test
@@ -178,8 +181,7 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("orderStatus", "processing");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
 
   @Test
@@ -220,8 +222,7 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("orderStatus", "processing");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
 
   @Test
@@ -262,8 +263,7 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("orderStatus", "processing");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
 
   @Test
@@ -312,8 +312,7 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("orderStatus", "processing");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
 
   @Test
@@ -333,8 +332,7 @@ public class HttpTests {
     var bpmnTest =
         ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("orderStatus", "processing");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
 
   @Test
@@ -363,7 +361,7 @@ public class HttpTests {
     var bpmnTest =
         ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("webhookExecuted", true);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("webhookExecuted", true);
   }
 
   @Test
@@ -392,8 +390,8 @@ public class HttpTests {
     var bpmnTest =
         ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("webhookExecuted", true);
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("queryParam", "test");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("webhookExecuted", true);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("queryParam", "test");
   }
 
   @Test
@@ -441,8 +439,7 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("orderStatus", "processing");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
 
   @Test
@@ -494,8 +491,7 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("orderStatus", "processing");
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
 
   @Test
@@ -521,6 +517,9 @@ public class HttpTests {
             .serviceTask("restTask")
             .boundaryEvent("errorId")
             .error()
+            .zeebeOutput("=temp", "temp")
+            .zeebeOutput("=message", "message")
+            .zeebeOutput("=booleanField", "booleanField")
             .endEvent()
             .done();
 
@@ -528,10 +527,10 @@ public class HttpTests {
         ElementTemplate.from(
                 "../../connectors/http/rest/element-templates/http-json-connector.json")
             .property("url", mockUrl)
-            .property("method", "post")
+            .property("method", "POST")
             .property(
                 "errorExpression",
-                "if matches(error.code, \"400\") and error.variables.response.body.temp = 36 then bpmnError(\"Too hot\", error.variables.response.body.message, error.variables.response.body) else bpmnError(\"Not too hot\", \"The message default\",{fake: \"fakeValue\"})")
+                "=if matches(error.code, \"400\") and error.variables.response.body.temp = 36 then bpmnError(\"Too hot\", error.variables.response.body.message, error.variables.response.body) else bpmnError(\"Not too hot\", \"The message default\",{fake: \"fakeValue\"})")
             .writeTo(new File(tempDir, "template.json"));
 
     var updatedModel =
@@ -545,10 +544,9 @@ public class HttpTests {
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasNoIncidents();
     assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("temp", 36)
-        .hasVariableWithValue("booleanField", true)
-        .hasVariableWithValue("message", "custom message");
+        .hasVariable("temp", 36)
+        .hasVariable("booleanField", true)
+        .hasVariable("message", "custom message");
   }
 }

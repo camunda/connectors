@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.outbound;
 
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
@@ -29,13 +28,11 @@ import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.outbound.JobRetriesIntegrationTest.CustomConfiguration;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.model.bpmn.Bpmn;
-import io.camunda.zeebe.process.test.assertions.BpmnAssert;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.Arrays;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,7 +51,7 @@ import org.springframework.context.annotation.Primary;
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false"
     })
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class JobRetriesIntegrationTest {
 
@@ -74,21 +71,17 @@ public class JobRetriesIntegrationTest {
     // given
     deployProcessWithRetries(2, "PT1S");
     var function = (CountingConnectorFunction) factory.getInstance(testConnectorType);
-    var recordStream = BpmnAssert.getRecordStream();
 
     // when
-    var instance = createProcessInstance();
+    createProcessInstance();
 
     // then
+    // should be invoked twice exactly
     await()
-        .atMost(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              // need to reset it manually, as it is stored in ThreadLocal
-              BpmnAssert.initRecordStream(recordStream);
-              assertThat(instance).hasAnyIncidents();
-            });
-    Assertions.assertThat(function.counter).isEqualTo(2);
+        .during(1, SECONDS)
+        .atMost(5, SECONDS)
+        .failFast(() -> function.counter > 2)
+        .until(() -> function.counter == 2);
   }
 
   @Test
@@ -96,26 +89,19 @@ public class JobRetriesIntegrationTest {
     // given
     deployProcessWithRetries(3, "NOT_A_VALID_DURATION");
     var function = (CountingConnectorFunction) factory.getInstance(testConnectorType);
-    var recordStream = BpmnAssert.getRecordStream();
 
     // when
-    var instance = createProcessInstance();
+    createProcessInstance();
 
     // then
     await()
-        .atMost(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              // need to reset it manually, as it is stored in ThreadLocal
-              BpmnAssert.initRecordStream(recordStream);
-              assertThat(instance).hasAnyIncidents();
-            });
-    Assertions.assertThat(function.counter).isEqualTo(0);
+        .during(3, SECONDS)
+        .failFast(() -> function.counter > 0)
+        .until(() -> function.counter == 0);
   }
 
   @Test
   void noRetriesProvided_connectorIsInvoked3times() {
-    var recordStream = BpmnAssert.getRecordStream();
     var function = (CountingConnectorFunction) factory.getInstance(testConnectorType);
     zeebeClient
         .newDeployResourceCommand()
@@ -130,22 +116,17 @@ public class JobRetriesIntegrationTest {
         .send()
         .join();
 
-    var instance = createProcessInstance();
+    createProcessInstance();
 
     await()
-        .atMost(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              // need to reset it manually, as it is stored in ThreadLocal
-              BpmnAssert.initRecordStream(recordStream);
-              assertThat(instance).hasAnyIncidents();
-            });
-    Assertions.assertThat(function.counter).isEqualTo(3);
+        .during(1, SECONDS)
+        .atMost(5, SECONDS)
+        .failFast(() -> function.counter > 3)
+        .until(() -> function.counter == 3);
   }
 
   @Test
   void retryExceptionThrown_connectorIsInvoked5times() {
-    var recordStream = BpmnAssert.getRecordStream();
     var retryFunction =
         (CountingRetryConnectorFunction) factory.getInstance(testRetryConnectorType);
     zeebeClient
@@ -161,17 +142,13 @@ public class JobRetriesIntegrationTest {
         .send()
         .join();
 
-    var instance = createProcessInstance();
+    createProcessInstance();
 
     await()
-        .atMost(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              // need to reset it manually, as it is stored in ThreadLocal
-              BpmnAssert.initRecordStream(recordStream);
-              assertThat(instance).hasAnyIncidents();
-            });
-    Assertions.assertThat(retryFunction.counter).isEqualTo(5);
+        .during(1, SECONDS)
+        .atMost(5, SECONDS)
+        .failFast(() -> retryFunction.counter > 5)
+        .until(() -> retryFunction.counter == 5);
   }
 
   private void deployProcessWithRetries(int retries, String backoff) {
@@ -205,7 +182,7 @@ public class JobRetriesIntegrationTest {
     int counter = 0;
 
     @Override
-    public Object execute(OutboundConnectorContext context) throws Exception {
+    public Object execute(OutboundConnectorContext context) {
       counter++;
       throw new RuntimeException("test");
     }

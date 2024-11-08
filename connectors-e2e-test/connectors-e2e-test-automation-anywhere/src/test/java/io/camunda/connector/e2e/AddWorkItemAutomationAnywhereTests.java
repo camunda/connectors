@@ -19,13 +19,13 @@ package io.camunda.connector.e2e;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,10 +37,11 @@ import org.springframework.boot.test.context.SpringBootTest;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=false"
+      "camunda.connector.polling.enabled=false",
+      "operate.client.profile=simple"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class AddWorkItemAutomationAnywhereTests extends BaseAutomationAnywhereTest {
 
@@ -84,7 +85,7 @@ public class AddWorkItemAutomationAnywhereTests extends BaseAutomationAnywhereTe
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("itemId", 31250);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("itemId", 31250);
   }
 
   @Test
@@ -134,7 +135,7 @@ public class AddWorkItemAutomationAnywhereTests extends BaseAutomationAnywhereTe
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("itemId", 31250);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("itemId", 31250);
   }
 
   @Test
@@ -181,6 +182,6 @@ public class AddWorkItemAutomationAnywhereTests extends BaseAutomationAnywhereTe
             .createInstance()
             .waitForProcessCompletion();
 
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("itemId", 31250);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("itemId", 31250);
   }
 }

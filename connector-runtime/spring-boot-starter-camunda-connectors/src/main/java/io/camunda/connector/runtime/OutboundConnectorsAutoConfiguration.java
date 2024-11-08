@@ -17,10 +17,6 @@
 package io.camunda.connector.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.common.auth.Authentication;
-import io.camunda.common.auth.JwtCredential;
-import io.camunda.common.auth.Product;
-import io.camunda.common.auth.SaaSAuthentication;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
@@ -30,6 +26,14 @@ import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfigurati
 import io.camunda.connector.runtime.secret.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
+import io.camunda.operate.auth.JwtCredential;
+import io.camunda.zeebe.client.api.JsonMapper;
+import io.camunda.zeebe.client.impl.ZeebeObjectMapper;
+import io.camunda.zeebe.spring.client.properties.CamundaClientProperties;
+import io.camunda.zeebe.spring.client.properties.CamundaClientProperties.ClientMode;
+import io.camunda.zeebe.spring.common.json.SdkObjectMapper;
+import java.net.URI;
+import java.net.URL;
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
@@ -90,6 +94,25 @@ public class OutboundConnectorsAutoConfiguration {
     return new SecretProviderAggregator(secretProviders);
   }
 
+  @Bean(name = "zeebeJsonMapper")
+  @ConditionalOnMissingBean
+  public JsonMapper jsonMapper(ObjectMapper objectMapper) {
+    if (objectMapper == null) {
+      return new ZeebeObjectMapper();
+    }
+    return new ZeebeObjectMapper(objectMapper.copy());
+  }
+
+  @Bean(name = "commonJsonMapper")
+  @ConditionalOnMissingBean
+  public io.camunda.zeebe.spring.common.json.JsonMapper commonJsonMapper(
+      ObjectMapper objectMapper) {
+    if (objectMapper == null) {
+      return new SdkObjectMapper();
+    }
+    return new SdkObjectMapper(objectMapper.copy());
+  }
+
   @Bean
   @ConditionalOnProperty(
       name = "camunda.connector.secretprovider.environment.enabled",
@@ -112,24 +135,30 @@ public class OutboundConnectorsAutoConfiguration {
   @ConditionalOnProperty(
       name = "camunda.connector.secretprovider.console.enabled",
       havingValue = "true")
-  public ConsoleSecretApiClient consoleSecretApiClient(Authentication authentication) {
-    if (authentication instanceof SaaSAuthentication saaSAuthentication) {
-      // We reuse the Zeebe SaaS authentication here as
-      // Connectors will always rely on being connected to a zeebe instance
-      JwtCredential zeebeJwtCredential =
-          saaSAuthentication.getJwtConfig().getProduct(Product.ZEEBE);
-      JwtCredential jwtCredential =
-          new JwtCredential(
-              zeebeJwtCredential.getClientId(),
-              zeebeJwtCredential.getClientSecret(),
-              consoleSecretsApiAudience,
-              zeebeJwtCredential.getAuthUrl());
-      return new ConsoleSecretApiClient(consoleSecretsApiEndpoint, jwtCredential);
-    } else {
+  public ConsoleSecretApiClient consoleSecretApiClient(CamundaClientProperties clientProperties) {
+
+    if (!clientProperties.getMode().equals(ClientMode.saas)) {
       throw new RuntimeException(
-          "Console Secrets require an authentication against the SaaS environment:"
-              + authentication.getClass());
+          "Console Secrets require a SaaS environment, but the client is configured for "
+              + clientProperties.getMode());
     }
+
+    var authProperties = clientProperties.getAuth();
+    URL issuerUrl;
+    try {
+      issuerUrl = new URI(authProperties.getIssuer()).toURL();
+    } catch (Exception e) {
+      throw new RuntimeException("Invalid issuer URL: " + authProperties.getIssuer(), e);
+    }
+
+    var jwtCredential =
+        new JwtCredential(
+            authProperties.getClientId(),
+            authProperties.getClientSecret(),
+            consoleSecretsApiAudience,
+            issuerUrl,
+            null);
+    return new ConsoleSecretApiClient(consoleSecretsApiEndpoint, jwtCredential);
   }
 
   @Bean

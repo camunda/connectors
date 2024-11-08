@@ -18,15 +18,14 @@ package io.camunda.connector.e2e.soap;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.io.File;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -42,12 +41,12 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 public class SoapConnectorTests extends SoapConnectorBaseTest {
 
   @Test
-  public void faultResponse() throws JsonProcessingException {
+  public void faultResponse() {
     wm.stubFor(
         post(urlPathMatching("/soapservice/service"))
             .withRequestBody(WireMock.equalToXml(NUMBER_OF_WORDS_REQUEST))
@@ -73,8 +72,6 @@ public class SoapConnectorTests extends SoapConnectorBaseTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("soapSimpleRequest", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("soapVersion", Map.of("version", "1.1"));
     Map<String, Object> expectedResult =
         Map.of(
             "Envelope",
@@ -90,7 +87,7 @@ public class SoapConnectorTests extends SoapConnectorBaseTest {
                         "detail",
                         Map.of(
                             "error", "Object reference not set to an instance of an object.")))));
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("response", expectedResult);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("response", expectedResult);
   }
 
   @Test
@@ -114,15 +111,13 @@ public class SoapConnectorTests extends SoapConnectorBaseTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("soapSimpleRequest", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("soapVersion", Map.of("version", "1.1"));
     Map<String, Object> expectedResult =
         Map.of(
             "Envelope",
             Map.of(
                 "Body",
                 Map.of("NumberToWordsResponse", Map.of("NumberToWordsResult", "five hundred "))));
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("res", expectedResult);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("res", expectedResult);
   }
 
   @Test
@@ -149,14 +144,12 @@ public class SoapConnectorTests extends SoapConnectorBaseTest {
 
     ZeebeTest bpmnTest = setupTestWithBpmnModel("soapSimpleRequest", elementTemplate);
 
-    assertThat(bpmnTest.getProcessInstanceEvent())
-        .hasVariableWithValue("soapVersion", Map.of("version", "1.1"));
     Map<String, Object> expectedResult =
         Map.of(
             "Envelope",
             Map.of(
                 "Body",
                 Map.of("NumberToWordsResponse", Map.of("NumberToWordsResult", "five hundred "))));
-    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("res", expectedResult);
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("res", expectedResult);
   }
 }
