@@ -28,7 +28,7 @@ import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.E
 import io.camunda.document.operation.DocumentOperation;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.zeebe.client.api.response.DocumentMetadata;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
 
@@ -57,7 +57,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
   @JsonInclude(Include.NON_EMPTY)
   record CamundaDocumentMetadataModel(
       String contentType,
-      ZonedDateTime expiresAt,
+      OffsetDateTime expiresAt,
       Long size,
       String fileName,
       Map<String, Object> customProperties)
@@ -78,7 +78,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     }
 
     @Override
-    public ZonedDateTime getExpiresAt() {
+    public OffsetDateTime getExpiresAt() {
       return expiresAt;
     }
 

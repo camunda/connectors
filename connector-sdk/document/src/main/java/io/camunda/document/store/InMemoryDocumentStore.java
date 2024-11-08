@@ -21,7 +21,7 @@ import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -50,7 +50,7 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
           }
 
           @Override
-          public ZonedDateTime getExpiresAt() {
+          public OffsetDateTime getExpiresAt() {
             return null;
           }
 
