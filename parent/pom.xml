@@ -119,7 +119,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>3.9.0</version.kafka-clients>
 
-    <version.microsoft-graph>6.19.0</version.microsoft-graph>
+    <version.microsoft-graph>6.20.0</version.microsoft-graph>
     <version.azure-identity>1.14.1</version.azure-identity>
 
     <version.bouncycastle>1.79</version.bouncycastle>
