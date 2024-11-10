@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
@@ -80,11 +81,19 @@ public class GitCrawler {
               if (result.containsKey(elementTemplateFile.elementTemplate().id())) {
                 result
                     .get(elementTemplateFile.elementTemplate().id())
-                    .putIfAbsent(
+                    .compute(
                         elementTemplateFile.elementTemplate().version(),
-                        new VersionValue(
-                            RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()),
-                            elementTemplateFile.connectorRuntime()));
+                        (integer, versionValue) ->
+                            Optional.ofNullable(versionValue)
+                                .map(
+                                    vv ->
+                                        new VersionValue(
+                                            vv.link(), elementTemplateFile.connectorRuntime()))
+                                .orElse(
+                                    new VersionValue(
+                                        RAW_GITHUB_LINK.formatted(
+                                            commit.getName(), elementTemplateFile.path()),
+                                        elementTemplateFile.connectorRuntime())));
               } else {
                 Map<Integer, VersionValue> version = new HashMap<>();
                 version.put(

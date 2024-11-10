@@ -82,7 +82,7 @@ class GitCrawlerTest {
 
     // Verification that the version 2 is the last commit
     Assertions.assertTrue(map.get("test").get(2).link().contains(revCommit3.getName()));
-    Assertions.assertTrue(map.get("test").get(2).connectorRuntime().equals("9.9"));
+    Assertions.assertTrue(map.get("test").get(2).connectorRuntime().equals("^9.9"));
     // Verification that the version 1 is the last commit containing version 1
     Assertions.assertTrue(map.get("test").get(1).link().contains(revCommit2.getName()));
     Assertions.assertFalse(map.get("test").get(1).link().contains(revCommit1.getName()));

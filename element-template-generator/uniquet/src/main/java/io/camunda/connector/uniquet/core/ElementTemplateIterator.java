@@ -57,7 +57,6 @@ public class ElementTemplateIterator implements Iterator<ElementTemplateFile> {
       TreeWalk treeWalk = new TreeWalk(repository);
       treeWalk.addTree(this.commit.getTree());
       treeWalk.setRecursive(false);
-      // treeWalk.setFilter(PathFilter.create("connectors"));
       this.initialWalk = treeWalk;
       this.initialWalk.next();
     } catch (IOException e) {
@@ -82,10 +81,14 @@ public class ElementTemplateIterator implements Iterator<ElementTemplateFile> {
       try (StringReader reader = new StringReader(pomContent)) {
         MavenXpp3Reader mavenReader = new MavenXpp3Reader();
         Model model = mavenReader.read(reader);
-        return model.getParent().getVersion();
+        String[] version = model.getParent().getVersion().split("\\.");
+        return "^" + version[0] + "." + version[1];
       }
-    } catch (IOException | XmlPullParserException | NullPointerException e) {
-      log.error("Commit: " + commit.getName() + ". No connector runtime found");
+    } catch (IOException
+        | XmlPullParserException
+        | NullPointerException
+        | IndexOutOfBoundsException e) {
+      log.error("Commit: {}. No connector runtime found", commit.getName());
       return "";
     }
   }
