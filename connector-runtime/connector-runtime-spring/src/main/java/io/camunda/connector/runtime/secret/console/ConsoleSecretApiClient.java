@@ -14,16 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.secret;
+package io.camunda.connector.runtime.secret.console;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.operate.auth.Authentication;
-import io.camunda.operate.auth.JwtAuthentication;
-import io.camunda.operate.auth.JwtCredential;
-import io.camunda.operate.auth.TokenResponseMapper;
-import io.camunda.operate.auth.TokenResponseMapper.JacksonTokenResponseMapper;
+import io.camunda.connector.runtime.secret.console.TokenResponseMapper.JacksonTokenResponseMapper;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.hc.client5.http.classic.methods.HttpGet;

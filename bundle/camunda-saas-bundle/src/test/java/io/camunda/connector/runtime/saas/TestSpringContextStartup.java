@@ -36,8 +36,7 @@ import org.springframework.test.context.ActiveProfiles;
       "camunda.operate.client.url=" + MockSaaSConfiguration.OPERATE_CLIENT_URL,
       "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
       "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL,
-      "camunda.connector.secretprovider.discovery.enabled=false",
-      "operate.client.profile=oidc",
+      "camunda.connector.secretprovider.discovery.enabled=false"
     })
 @ActiveProfiles("test")
 public class TestSpringContextStartup {

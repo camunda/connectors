@@ -14,20 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound;
+package io.camunda.connector.runtime.secret.console;
 
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import io.camunda.zeebe.spring.client.metrics.SimpleMetricsRecorder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+import java.net.URL;
 
-@Configuration
-public class InboundConnectorTestConfiguration {
-
-  @Bean
-  @Primary
-  public MetricsRecorder metricsRecorder() {
-    return new SimpleMetricsRecorder();
-  }
-}
+public record JwtCredential(
+    String clientId, String clientSecret, String audience, URL authUrl, String scope) {}

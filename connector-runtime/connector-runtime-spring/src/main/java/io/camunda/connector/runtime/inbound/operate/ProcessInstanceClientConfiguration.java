@@ -17,16 +17,15 @@
 package io.camunda.connector.runtime.inbound.operate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
-import io.camunda.operate.CamundaOperateClient;
+import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class OperateClientConfiguration {
+public class ProcessInstanceClientConfiguration {
   @Bean
-  public OperateClientAdapter springOperateClientAdapter(
-      CamundaOperateClient camundaOperateClient, ObjectMapper mapper) {
-    return new OperateClientAdapterImpl(camundaOperateClient, mapper);
+  public ProcessInstanceClient springOperateClientAdapter(
+      OperateClient operateClient, ObjectMapper mapper) {
+    return new ProcessInstanceClientImpl(operateClient, mapper);
   }
 }

@@ -23,7 +23,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
-import io.camunda.operate.model.FlowNodeInstance;
+import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -37,14 +37,14 @@ import java.util.stream.Collectors;
 public class InboundIntermediateConnectorContextImpl
     implements InboundIntermediateConnectorContext, InboundConnectorReportingContext {
   private final InboundConnectorReportingContext inboundContext;
-  private final OperateClientAdapter operateClient;
+  private final ProcessInstanceClient operateClient;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
   private final InboundCorrelationHandler correlationHandler;
 
   public InboundIntermediateConnectorContextImpl(
       final InboundConnectorReportingContext inboundContext,
-      final OperateClientAdapter operateClient,
+      final ProcessInstanceClient operateClient,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper,
       final InboundCorrelationHandler correlationHandler) {

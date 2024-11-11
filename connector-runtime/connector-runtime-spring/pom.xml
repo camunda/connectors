@@ -48,8 +48,8 @@
       <artifactId>spring-boot-starter-camunda-sdk</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.camunda.spring</groupId>
-      <artifactId>java-client-operate</artifactId>
+      <groupId>io.camunda</groupId>
+      <artifactId>zeebe-bpmn-model</artifactId>
     </dependency>
 
     <dependency>

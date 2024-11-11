@@ -37,8 +37,7 @@ import org.springframework.boot.test.context.SpringBootTest;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=false",
-      "operate.client.profile=simple"
+      "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest

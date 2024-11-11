@@ -63,7 +63,6 @@ import org.springframework.test.web.servlet.MockMvc;
       "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
       "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL,
       "camunda.connector.secretprovider.discovery.enabled=false",
-      "operate.client.profile=oidc",
       "management.endpoints.web.exposure.include=*"
     })
 @DirtiesContext

@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
+import io.camunda.connector.runtime.inbound.operate.OperateClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Configuration;
 public class ProcessDefinitionImportConfiguration {
 
   @Bean
-  public ProcessDefinitionSearch processDefinitionSearch(CamundaOperateClient client) {
+  public ProcessDefinitionSearch processDefinitionSearch(OperateClient client) {
     return new ProcessDefinitionSearch(client);
   }
 
