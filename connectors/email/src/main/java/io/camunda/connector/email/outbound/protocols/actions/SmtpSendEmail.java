@@ -62,7 +62,7 @@ public record SmtpSendEmail(
             label = "Headers",
             group = "sendEmailSmtp",
             id = "smtpHeaders",
-            tooltip = "Additional email's headers",
+            tooltip = "Additional email headers",
             feel = Property.FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.headers"),
             optional = true)
