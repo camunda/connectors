@@ -17,34 +17,45 @@ public enum LlmModel {
             <|begin_of_text|><|start_header_id|>system<|end_header_id|>
             %s
 
-            You are a helpful assistant with tool calling capabilities.
+            You are a helpful assistant tasked with extracting variables from the provided text
+            using specific extraction instructions.
+            The output must be a flat JSON object, where each key is the variable name and its
+            corresponding value is the extracted value.
+
+            Your response should strictly adhere to this format:
+            {
+              "variable1": "value1",
+              "variable2": "value2"
+            }
+
+            Do not include any preamble, explanations, or additional text, and ensure the response is valid JSON.
       """
           .formatted(getCommonSystemInstruction()),
       """
             <|eot_id|><|start_header_id|>user<|end_header_id|>
-            Given the following functions, please respond with a JSON for a function call with its proper arguments
-            that best answers the given prompts.
-
-            Respond in JSON format, without any preamble. Example response:
+            Given the following functions, extract the needed variables based on the given prompt.
             {
-              "name": "John Smith",
-              "age": 32
-            }
-
-            {
-                "type": "function",
-                "function": {
-                "name": "extract text variables",
-                "description": "extract every variable based on the given prompt in the question",
-                "parameters": {
-                    "type": "object"
+              "name": "variable_extract",
+              "description": "extract value from a text using the provided prompts.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "the corresponding name in the variable taxonomy"
+                    },
+                    "value": {
+                      "type": "any",
+                      "description": "the extracted value found in the document text using the prompts"
                     }
-                }
+                  }
+              }
             }
 
-            Question: Given the following functions, please respond with a JSON for a function call with its proper arguments
-            that best answers the given prompt.
+            Question: Given the variable_extract function and document text, extract the variables.
             %s
+            Only respond with the function output, no preamble.
+            <|eot_id|><|start_header_id|>assistant<|end_header_id|>
       """
           .formatted(getCommonMessageTemplate())),
   TITAN("amazon", getCommonSystemPrompt(), getCommonMessageTemplate());
