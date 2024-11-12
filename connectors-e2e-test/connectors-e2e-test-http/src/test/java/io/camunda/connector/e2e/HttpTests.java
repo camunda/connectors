@@ -39,15 +39,14 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
+import io.camunda.connector.runtime.inbound.operate.OperateClient;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.model.ProcessDefinition;
-import io.camunda.process.test.api.CamundaProcessTestContext;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.io.File;
@@ -88,9 +87,7 @@ public class HttpTests {
 
   @Autowired ProcessStateStore stateStore;
 
-  @MockBean CamundaOperateClient camundaOperateClient;
-
-  @Autowired CamundaProcessTestContext context;
+  @MockBean OperateClient operateClient;
 
   @LocalServerPort int serverPort;
 
@@ -341,11 +338,11 @@ public class HttpTests {
     var model = replace("webhook_connector.bpmn", replace("http://webhook", mockUrl));
 
     // Prepare a mocked process connectorData backed by our test model
-    when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
+    when(operateClient.getProcessModel(1L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
-    when(processDef.getKey()).thenReturn(1L);
+    when(processDef.getProcessDefinitionKey()).thenReturn(1L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
-    when(processDef.getBpmnProcessId())
+    when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
     // Deploy the webhook
@@ -353,9 +350,9 @@ public class HttpTests {
         new ProcessImportResult(
             Map.of(
                 new ProcessDefinitionIdentifier(
-                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 new ProcessDefinitionVersion(
-                    processDef.getKey(), processDef.getVersion().intValue()))));
+                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
     var bpmnTest =
         ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
@@ -370,11 +367,11 @@ public class HttpTests {
     var model = replace("webhook_connector.bpmn", replace("http://webhook", mockUrl));
 
     // Prepare a mocked process connectorData backed by our test model
-    when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
+    when(operateClient.getProcessModel(1L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
-    when(processDef.getKey()).thenReturn(1L);
+    when(processDef.getProcessDefinitionKey()).thenReturn(1L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
-    when(processDef.getBpmnProcessId())
+    when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
     // Deploy the webhook
@@ -382,9 +379,9 @@ public class HttpTests {
         new ProcessImportResult(
             Map.of(
                 new ProcessDefinitionIdentifier(
-                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 new ProcessDefinitionVersion(
-                    processDef.getKey(), processDef.getVersion().intValue()))));
+                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
     var bpmnTest =
         ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();

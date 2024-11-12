@@ -28,7 +28,6 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.operate.exception.OperateException;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -157,9 +156,8 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
     }
   }
 
-  private ProcessImportResult mockProcessDefinition(BpmnModelInstance model)
-      throws OperateException {
-    when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
+  private ProcessImportResult mockProcessDefinition(BpmnModelInstance model) {
+    when(operateClient.getProcessModel(1)).thenReturn(model);
     var bpmnId = model.getModelElementsByType(Process.class).stream().findFirst().get().getId();
     var tenantId = zeebeClient.getConfiguration().getDefaultTenantId();
     return new ProcessImportResult(

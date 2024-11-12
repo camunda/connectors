@@ -19,7 +19,7 @@ package io.camunda.connector.e2e;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
-import io.camunda.operate.CamundaOperateClient;
+import io.camunda.connector.runtime.inbound.operate.OperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -41,7 +41,7 @@ public abstract class BaseRabbitMqTest {
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 
-  @Autowired CamundaOperateClient camundaOperateClient;
+  @Autowired OperateClient operateClient;
 
   @LocalServerPort int serverPort;
 

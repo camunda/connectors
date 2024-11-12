@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.app;
 
-import io.camunda.operate.CamundaOperateClient;
+import io.camunda.connector.runtime.inbound.operate.OperateClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -28,7 +28,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
   io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
   io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class
 })
-@MockBean(CamundaOperateClient.class)
+@MockBean(OperateClient.class)
 public class TestConnectorRuntimeApplication {
 
   public static void main(String[] args) {
