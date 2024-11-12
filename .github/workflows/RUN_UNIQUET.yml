@@ -22,6 +22,10 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch_name }}
 
+      - name: Checkout branch
+        run: |
+          git checkout -b single-file-element-template
+
       - name: install-uniquet
         run: |
           mvn install -pl element-template-generator/uniquet -am
@@ -31,10 +35,24 @@ jobs:
           BRANCH_NAME=${{ github.event.inputs.branch_name }}
           ./element-template-generator/uniquet/target/appassembler/bin/uniquet --destination ./connector-templates.json --branch $BRANCH_NAME
 
-      - name: Commit connectors template file
+      - name: Create commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -am "ci: adding connectors template file"
           git push --force-with-lease
+
+      - name: Create pull request to main branch
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.set-snapshot-version.outputs.branchName }}
+          commit-message: "others(element-template): single element template file"
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          delete-branch: true
+          base: ${{ github.event.inputs.branch_name }}
+          title: "others(element-template): single element template file generation"
+          labels: "no milestone"
+          body: |
+            This PR sets the new single element template file containing all necessary references.

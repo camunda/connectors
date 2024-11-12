@@ -17,6 +17,7 @@
 package io.camunda.connector.uniquet.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.uniquet.dto.Engine;
 import io.camunda.connector.uniquet.dto.OutputElementTemplate;
 import io.camunda.connector.uniquet.dto.VersionValue;
 import java.io.File;
@@ -129,7 +130,8 @@ public class GitCrawler {
                                 new OutputElementTemplate(
                                     integerVersionValueEntry.getKey(),
                                     integerVersionValueEntry.getValue().link(),
-                                    integerVersionValueEntry.getValue().connectorRuntime()))
+                                    new Engine(
+                                        integerVersionValueEntry.getValue().connectorRuntime())))
                         .sorted((o1, o2) -> o2.version() - o1.version())
                         .toList()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
