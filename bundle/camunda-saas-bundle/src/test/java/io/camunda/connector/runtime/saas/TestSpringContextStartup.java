@@ -16,15 +16,13 @@
  */
 package io.camunda.connector.runtime.saas;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(
-    classes = {SaaSConnectorRuntimeApplication.class, MockSaaSConfiguration.class},
+    classes = {SaaSConnectorRuntimeApplication.class},
     properties = {
       "camunda.saas.secrets.projectId=42",
       "zeebe.client.cloud.clusterId=42",
@@ -33,15 +31,10 @@ import org.springframework.test.context.ActiveProfiles;
       "zeebe.client.security.plaintext=true",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
-      "camunda.operate.client.url=" + MockSaaSConfiguration.OPERATE_CLIENT_URL,
-      "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
-      "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL,
       "camunda.connector.secretprovider.discovery.enabled=false"
     })
 @ActiveProfiles("test")
 public class TestSpringContextStartup {
-
-  @Autowired private SaaSOperateClientFactory operateClientFactory;
 
   @Test
   public void contextLoaded() {
@@ -49,16 +42,5 @@ public class TestSpringContextStartup {
     // conflicting class files in logging or other wired behavior that can be observed
     // when the Spring context is initialized (e.g.
     // https://github.com/camunda/team-connectors/issues/251)
-  }
-
-  @Test
-  public void jwtCredentialConfigured() {
-    var jwtCredential = operateClientFactory.configureJwtCredential();
-    assertThat(jwtCredential).isNotNull();
-    assertThat(jwtCredential.clientId()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_CLIENT_ID);
-    assertThat(jwtCredential.clientSecret()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_SECRET);
-    assertThat(jwtCredential.audience()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_BASEURL);
-    assertThat(jwtCredential.authUrl().toString())
-        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL);
   }
 }

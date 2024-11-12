@@ -26,7 +26,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.camunda.operate.CamundaOperateClient;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -36,7 +35,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
@@ -49,7 +47,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(
     webEnvironment = WebEnvironment.RANDOM_PORT,
-    classes = {SaaSConnectorRuntimeApplication.class, MockSaaSConfiguration.class},
+    classes = {SaaSConnectorRuntimeApplication.class},
     properties = {
       "camunda.saas.secrets.projectId=42",
       "camunda.client.zeebe.enabled=true",
@@ -59,9 +57,6 @@ import org.springframework.test.web.servlet.MockMvc;
       "zeebe.client.cloud.region=bru-1",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
-      "camunda.operate.client.url=" + MockSaaSConfiguration.OPERATE_CLIENT_URL,
-      "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
-      "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL,
       "camunda.connector.secretprovider.discovery.enabled=false",
       "management.endpoints.web.exposure.include=*"
     })
@@ -75,10 +70,6 @@ public class SecurityConfigurationTest {
   @Autowired RestTemplateBuilder restTemplateBuilder;
   @LocalManagementPort int managementPort;
   @Autowired private MockMvc mvc;
-
-  @MockBean
-  @SuppressWarnings("unused")
-  private CamundaOperateClient operateClient;
 
   @Test
   public void publishLogsEndpoint_fromLocalhost_returns200() throws Exception {
