@@ -16,5 +16,4 @@
  */
 package io.camunda.connector.uniquet.dto;
 
-public record ElementTemplateFile(
-    ElementTemplate elementTemplate, String path, String connectorRuntime) {}
+public record Engine(String camunda) {}
