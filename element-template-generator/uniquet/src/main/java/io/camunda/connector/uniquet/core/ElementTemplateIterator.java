@@ -19,22 +19,32 @@ package io.camunda.connector.uniquet.core;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.uniquet.dto.ElementTemplate;
 import io.camunda.connector.uniquet.dto.ElementTemplateFile;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Objects;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ElementTemplateIterator implements Iterator<ElementTemplateFile> {
 
+  private static final Logger log = LoggerFactory.getLogger(ElementTemplateIterator.class);
   private final RevCommit commit;
   private final ObjectMapper objectMapper;
   private final Repository repository;
   private final TreeWalk initialWalk;
+  private final String currentConnectorRuntime;
   private ElementTemplateFile elementTemplate;
   private TreeWalk currentWalk;
   private String currentFolderBeingAnalyzed;
@@ -47,13 +57,40 @@ public class ElementTemplateIterator implements Iterator<ElementTemplateFile> {
       TreeWalk treeWalk = new TreeWalk(repository);
       treeWalk.addTree(this.commit.getTree());
       treeWalk.setRecursive(false);
-      treeWalk.setFilter(PathFilter.create("connectors"));
       this.initialWalk = treeWalk;
       this.initialWalk.next();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+    this.currentConnectorRuntime = findCurrentConnectorRuntime(repository, commit);
     this.elementTemplate = this.prepareNext();
+  }
+
+  private static String findCurrentConnectorRuntime(Repository repository, RevCommit commit) {
+    TreeWalk treeWalk = new TreeWalk(repository);
+    try {
+      treeWalk.addTree(commit.getTree());
+      treeWalk.setRecursive(false);
+      treeWalk.setFilter(PathFilter.create("pom.xml"));
+      treeWalk.next();
+      ObjectId objectId = treeWalk.getObjectId(0);
+      ObjectLoader loader = repository.open(objectId);
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      loader.copyTo(out);
+      String pomContent = out.toString(StandardCharsets.UTF_8);
+      try (StringReader reader = new StringReader(pomContent)) {
+        MavenXpp3Reader mavenReader = new MavenXpp3Reader();
+        Model model = mavenReader.read(reader);
+        String[] version = model.getParent().getVersion().split("\\.");
+        return "^" + version[0] + "." + version[1];
+      }
+    } catch (IOException
+        | XmlPullParserException
+        | NullPointerException
+        | IndexOutOfBoundsException e) {
+      log.error("Commit: {}. No connector runtime found", commit.getName());
+      return "";
+    }
   }
 
   @Override
@@ -91,7 +128,8 @@ public class ElementTemplateIterator implements Iterator<ElementTemplateFile> {
             try {
               return new ElementTemplateFile(
                   objectMapper.readValue(bytes, ElementTemplate.class),
-                  this.currentWalk.getPathString());
+                  this.currentWalk.getPathString(),
+                  this.currentConnectorRuntime);
             } catch (IOException e) {
               System.err.println(
                   "Error while reading element-template: "

@@ -559,7 +559,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "Additional email's headers",
+    "tooltip" : "Additional email headers",
     "type" : "String"
   }, {
     "id" : "smtpSubject",
