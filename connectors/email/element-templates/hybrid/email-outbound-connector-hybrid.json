@@ -596,7 +596,10 @@
     "id" : "contentType",
     "label" : "ContentType",
     "optional" : false,
-    "value" : "plain",
+    "value" : "PLAIN",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "sendEmailSmtp",
     "binding" : {
       "name" : "data.smtpAction.contentType",
@@ -617,13 +620,13 @@
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Plain",
-      "value" : "plain"
+      "value" : "PLAIN"
     }, {
       "name" : "Html",
-      "value" : "html"
+      "value" : "HTML"
     }, {
       "name" : "Html+Plain",
-      "value" : "multipart"
+      "value" : "MULTIPART"
     } ]
   }, {
     "id" : "smtpBody",

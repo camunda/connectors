@@ -7,14 +7,17 @@
 package io.camunda.connector.email.outbound.protocols.actions;
 
 public enum ContentType {
-  PLAIN,
-  HTML,
-  MULTIPART;
+  PLAIN("text/plain; charset=utf-8"),
+  HTML("text/html; charset=utf-8"),
+  MULTIPART("multipart/mixed; charset=utf-8");
 
-  public static class Constants {
-    public static final String PLAIN_VALUE = "plain";
-    public static final String HTML_VALUE = "html";
+  private final String value;
 
-    public static final String MULTIPART_VALUE = "multipart";
+  ContentType(String value) {
+    this.value = value;
+  }
+
+  public String value() {
+    return value;
   }
 }
