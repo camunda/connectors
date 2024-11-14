@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.NoOpSecretProvider;
 import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
@@ -93,6 +94,7 @@ public class InboundCorrelationHandlerTest {
             new BoundaryEventCorrelationPoint.Activity("123", "test"));
     var element = mock(InboundConnectorElement.class);
     when(element.correlationPoint()).thenReturn(point);
+    when(element.element()).thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
     var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
     when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -124,6 +126,7 @@ public class InboundCorrelationHandlerTest {
             new BoundaryEventCorrelationPoint.Activity("123", "test"));
     var element = mock(InboundConnectorElement.class);
     when(element.correlationPoint()).thenReturn(point);
+    when(element.element()).thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
     when(zeebeClient.newPublishMessageCommand())
         .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
@@ -141,6 +144,8 @@ public class InboundCorrelationHandlerTest {
     var startEventPoint = new StartEventCorrelationPoint("process1", 0, 0);
     var startEventElement = mock(InboundConnectorElement.class);
     when(startEventElement.correlationPoint()).thenReturn(startEventPoint);
+    when(startEventElement.element())
+        .thenReturn(new ProcessElement("process1", 0, 0, "startEventElementId", "default"));
     when(startEventElement.activationCondition()).thenReturn("=testKey=\"testValue1\"");
     var messageElement = mock(InboundConnectorElement.class);
     when(messageElement.activationCondition()).thenReturn("=testKey=\"testValue2\"");
@@ -194,6 +199,8 @@ public class InboundCorrelationHandlerTest {
       var point = new StartEventCorrelationPoint("process1", 0, 0);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new CreateCommandDummy());
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
@@ -223,6 +230,8 @@ public class InboundCorrelationHandlerTest {
       var point = new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", null, duration);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("correlationKey", correlationKeyValue);
 
@@ -254,6 +263,8 @@ public class InboundCorrelationHandlerTest {
       var point = new MessageStartEventCorrelationPoint("test", "", duration, "", "1", 1, 0);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -283,6 +294,8 @@ public class InboundCorrelationHandlerTest {
       var point = new MessageStartEventCorrelationPoint("test", "=myVar", duration, "", "1", 1, 0);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -317,6 +330,8 @@ public class InboundCorrelationHandlerTest {
       var point = new MessageStartEventCorrelationPoint("test", "=myVar", duration, "", "1", 1, 0);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(dummyCommand.send())
@@ -389,6 +404,8 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn("=testKey=\"testValue\"");
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -410,6 +427,8 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn(null);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -431,6 +450,8 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn("  ");
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -452,6 +473,8 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn("=myOtherMap.myOtherKey=\"myOtherValue\"");
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables =
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
@@ -474,6 +497,8 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn(null);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables =
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
@@ -496,6 +521,8 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn("  ");
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables =
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
@@ -519,6 +546,8 @@ public class InboundCorrelationHandlerTest {
       var point = new StartEventCorrelationPoint("process1", 0, 0);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -542,6 +571,8 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.resultVariable()).thenReturn("resultVar");
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -566,6 +597,8 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
@@ -591,6 +624,8 @@ public class InboundCorrelationHandlerTest {
       when(element.correlationPoint()).thenReturn(point);
       when(element.resultVariable()).thenReturn("resultVar");
       when(element.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
@@ -625,6 +660,8 @@ public class InboundCorrelationHandlerTest {
       var point = new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", null, null);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -646,6 +683,9 @@ public class InboundCorrelationHandlerTest {
           new StandaloneMessageCorrelationPoint("msg1", "=extractedId", "=extractedId", null);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       Map<String, Object> variables = Map.of("extractedId", "resolvedIdValue");
@@ -661,6 +701,9 @@ public class InboundCorrelationHandlerTest {
       var point = new StandaloneMessageCorrelationPoint("msg1", "=123", null, null);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
