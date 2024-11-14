@@ -6,25 +6,37 @@
  */
 package io.camunda.connector.email.client.jakarta.outbound;
 
+import static io.camunda.document.DocumentMetadata.CONTENT_TYPE;
+import static io.camunda.document.DocumentMetadata.FILE_NAME;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.EmailActionExecutor;
+import io.camunda.connector.email.client.jakarta.models.EmailAttachment;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.email.response.*;
+import io.camunda.document.Document;
+import io.camunda.document.store.DocumentCreationRequest;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
 import jakarta.mail.*;
 import jakarta.mail.internet.*;
 import jakarta.mail.search.*;
 import java.nio.charset.StandardCharsets;
+import jakarta.mail.util.ByteArrayDataSource;
+import java.io.IOException;
 import java.util.*;
 
 public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private final JakartaUtils jakartaUtils;
   private final ObjectMapper objectMapper;
+  private OutboundConnectorContext connectorContext;
 
   private JakartaEmailActionExecutor(JakartaUtils jakartaUtils, ObjectMapper objectMapper) {
     this.jakartaUtils = jakartaUtils;
@@ -36,7 +48,9 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
     return new JakartaEmailActionExecutor(sessionFactory, objectMapper);
   }
 
-  public Object execute(EmailRequest emailRequest) {
+  public Object execute(OutboundConnectorContext context) {
+    this.connectorContext = context;
+    EmailRequest emailRequest = context.bindVariables(EmailRequest.class);
     Authentication authentication = emailRequest.authentication();
     Protocol protocol = emailRequest.data();
     Action action = protocol.getProtocolAction();
@@ -93,6 +107,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                         email.size(),
                         email.body().bodyAsPlainText(),
                         email.body().bodyAsHtml(),
+                        this.createDocumentList(email.body().attachments(), connectorContext),
                         email.receivedAt()))
             .orElseThrow(() -> new MessagingException("Could not find an email ID"));
       }
@@ -196,6 +211,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                           email.size(),
                           email.body().bodyAsPlainText(),
                           email.body().bodyAsHtml(),
+                          this.createDocumentList(
+                              email.body().attachments(), this.connectorContext),
                           email.receivedAt()))
               .orElseThrow(() -> new MessagingException("No emails have been found with this ID"));
         }
@@ -256,14 +273,24 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       if (bcc.isPresent()) message.setRecipients(Message.RecipientType.BCC, bcc.get());
       headers.ifPresent(stringObjectMap -> setMessageHeaders(stringObjectMap, message));
       message.setSubject(smtpSendEmail.subject());
-      Multipart multipart = getMultipart(smtpSendEmail);
+        Multipart multipart = getMultipart(smtpSendEmail);
+      if (!Objects.isNull(smtpSendEmail.attachment())) {
+        BodyPart attachment = new MimeBodyPart();
+        DataSource dataSource =
+            new ByteArrayDataSource(
+                smtpSendEmail.attachment().asInputStream(),
+                smtpSendEmail.attachment().metadata().getContentType());
+        attachment.setDataHandler(new DataHandler(dataSource));
+        attachment.setFileName(smtpSendEmail.attachment().metadata().getFileName());
+        multipart.addBodyPart(attachment);
+      }
       message.setContent(multipart);
       try (Transport transport = session.getTransport()) {
         this.jakartaUtils.connectTransport(transport, authentication);
         transport.sendMessage(message, message.getAllRecipients());
       }
       return new SendEmailResponse(smtpSendEmail.subject(), true);
-    } catch (MessagingException e) {
+    } catch (MessagingException | IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -361,5 +388,19 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
               throw new IllegalStateException(
                   "Unexpected value: " + object + ". List or String was expected");
         });
+  }
+
+  private List<Document> createDocumentList(
+      List<EmailAttachment> attachments, OutboundConnectorContext connectorContext) {
+    return attachments.stream()
+        .map(
+            document ->
+                connectorContext.createDocument(
+                    DocumentCreationRequest.from(document.inputStream())
+                        .metadata(
+                            Map.of(
+                                CONTENT_TYPE, document.contentType(), FILE_NAME, document.name()))
+                        .build()))
+        .toList();
   }
 }

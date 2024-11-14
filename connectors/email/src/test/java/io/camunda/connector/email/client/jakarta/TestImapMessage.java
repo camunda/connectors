@@ -36,7 +36,7 @@ public class TestImapMessage extends IMAPMessage {
   private final OffsetDateTime sentAt;
   private final OffsetDateTime receivedAt;
   private final Integer size;
-  private final String body;
+  private final Multipart body;
 
   public TestImapMessage(
       String messageId,
@@ -47,7 +47,7 @@ public class TestImapMessage extends IMAPMessage {
       OffsetDateTime sentAt,
       OffsetDateTime receivedAt,
       Integer size,
-      String body) {
+      Multipart body) {
     super(null);
     this.messageId = messageId;
     this.subject = subject;
@@ -252,7 +252,7 @@ public class TestImapMessage extends IMAPMessage {
     private OffsetDateTime sentAt;
     private OffsetDateTime receivedAt;
     private Integer size;
-    private String body;
+    private Multipart body;
 
     public TestMessageBuilder setMessageId(String messageId) {
       this.messageId = messageId;
@@ -294,7 +294,7 @@ public class TestImapMessage extends IMAPMessage {
       return this;
     }
 
-    public TestMessageBuilder setBody(String body) {
+    public TestMessageBuilder setBody(Multipart body) {
       this.body = body;
       return this;
     }

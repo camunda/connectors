@@ -683,6 +683,29 @@
     "tooltip" : "Email's Html content",
     "type" : "Text"
   }, {
+    "id" : "attachmentSmtp",
+    "label" : "Attachment",
+    "description" : "Email's attachment",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.attachment",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.smtpActionDiscriminator",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
     "id" : "pop3maxToBeRead",
     "label" : "Maximum number of emails to be read",
     "optional" : false,

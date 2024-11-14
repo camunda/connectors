@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.email.client;
 
-import io.camunda.connector.email.outbound.model.EmailRequest;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
 public interface EmailActionExecutor {
-  Object execute(EmailRequest emailRequest);
+  Object execute(OutboundConnectorContext context);
 }

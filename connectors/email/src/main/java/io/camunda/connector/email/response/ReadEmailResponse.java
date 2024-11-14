@@ -7,6 +7,7 @@
 package io.camunda.connector.email.response;
 
 import io.camunda.connector.email.client.jakarta.models.Header;
+import io.camunda.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -18,4 +19,5 @@ public record ReadEmailResponse(
     Integer size,
     String plainTextBody,
     String htmlBody,
+    List<Document> attachments,
     OffsetDateTime receivedDateTime) {}

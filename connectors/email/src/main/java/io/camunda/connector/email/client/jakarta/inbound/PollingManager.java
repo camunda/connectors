@@ -6,15 +6,23 @@
  */
 package io.camunda.connector.email.client.jakarta.inbound;
 
+import static io.camunda.document.DocumentMetadata.CONTENT_TYPE;
+import static io.camunda.document.DocumentMetadata.FILE_NAME;
+
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
+import io.camunda.connector.email.client.jakarta.models.EmailAttachment;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.inbound.model.*;
 import io.camunda.connector.email.response.ReadEmailResponse;
+import io.camunda.document.Document;
+import io.camunda.document.store.DocumentCreationRequest;
 import jakarta.mail.*;
 import jakarta.mail.search.FlagTerm;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.eclipse.angus.mail.imap.IMAPMessage;
 import org.slf4j.Logger;
@@ -144,6 +152,8 @@ public class PollingManager {
 
   private void correlateEmail(Message message, InboundConnectorContext connectorContext) {
     Email email = this.jakartaUtils.createEmail(message);
+    List<Document> documents =
+        this.createDocumentList(email.body().attachments(), connectorContext);
     connectorContext.correlateWithResult(
         new ReadEmailResponse(
             email.messageId(),
@@ -153,7 +163,22 @@ public class PollingManager {
             email.size(),
             email.body().bodyAsPlainText(),
             email.body().bodyAsHtml(),
+            documents,
             email.receivedAt()));
+  }
+
+  private List<Document> createDocumentList(
+      List<EmailAttachment> attachments, InboundConnectorContext connectorContext) {
+    return attachments.stream()
+        .map(
+            document ->
+                connectorContext.createDocument(
+                    DocumentCreationRequest.from(document.inputStream())
+                        .metadata(
+                            Map.of(
+                                CONTENT_TYPE, document.contentType(), FILE_NAME, document.name()))
+                        .build()))
+        .toList();
   }
 
   public long delay() {

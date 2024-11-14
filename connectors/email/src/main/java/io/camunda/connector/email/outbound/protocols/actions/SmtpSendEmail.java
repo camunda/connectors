@@ -9,6 +9,7 @@ package io.camunda.connector.email.outbound.protocols.actions;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
@@ -124,5 +125,15 @@ public record SmtpSendEmail(
                     property = "contentType",
                     oneOf = {"HTML", "MULTIPART"}))
         @Valid
-        String htmlBody)
+        String htmlBody
+    @TemplateProperty(
+            label = "Attachment",
+            group = "sendEmailSmtp",
+            id = "attachmentSmtp",
+            type = TemplateProperty.PropertyType.String,
+            feel = Property.FeelMode.required,
+            optional = true,
+            description = "Email's attachment",
+            binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.attachment"))
+        Document attachment)
     implements SmtpAction {}

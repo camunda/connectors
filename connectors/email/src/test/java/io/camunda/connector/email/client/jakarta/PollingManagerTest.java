@@ -18,15 +18,23 @@ import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
 import io.camunda.connector.email.inbound.model.EmailListenerConfig;
 import io.camunda.connector.email.inbound.model.HandlingStrategy;
 import io.camunda.connector.email.inbound.model.PollUnseen;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
 import jakarta.mail.*;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import org.apache.hc.core5.http.ContentType;
 import org.junit.jupiter.api.Test;
 
 class PollingManagerTest {
 
   @Test
-  void poll() throws MessagingException {
+  void poll() throws MessagingException, IOException {
     InboundConnectorContext connectorContext = mock(InboundConnectorContext.class);
     EmailInboundConnectorProperties emailInboundConnectorProperties =
         mock(EmailInboundConnectorProperties.class);
@@ -38,13 +46,26 @@ class PollingManagerTest {
     PollUnseen pollUnseen = mock(PollUnseen.class);
     JakartaUtils jakartaUtils = mock(JakartaUtils.class);
 
+    Multipart multipart = new MimeMultipart();
+    MimeBodyPart textContent = new MimeBodyPart();
+    textContent.setText("body");
+    multipart.addBodyPart(textContent);
+    BodyPart attachment = new MimeBodyPart();
+    DataSource dataSource =
+        new ByteArrayDataSource(
+            new FileInputStream("src/test/resources/img/img.png"),
+            ContentType.IMAGE_PNG.getMimeType());
+    attachment.setDataHandler(new DataHandler(dataSource));
+    attachment.setFileName("any.svg");
+    multipart.addBodyPart(attachment);
+
     TestImapMessage message =
         TestImapMessage.builder()
             .setTo(List.of("recipient@example.com"))
             .setMessageId("messageId")
             .setFrom("sender")
             .setSubject("subject")
-            .setBody("body")
+            .setBody(multipart)
             .createTestMessage();
 
     when(connectorContext.bindProperties(any())).thenReturn(emailInboundConnectorProperties);
