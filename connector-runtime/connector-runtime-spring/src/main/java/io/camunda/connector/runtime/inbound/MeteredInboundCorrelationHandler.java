@@ -42,7 +42,7 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  protected boolean isActivationConditionMet(InboundConnectorElement def, Object context) {
+  public boolean isActivationConditionMet(InboundConnectorElement def, Object context) {
     boolean isConditionMet = super.isActivationConditionMet(def, context);
     if (!isConditionMet) {
       metricsRecorder.increase(

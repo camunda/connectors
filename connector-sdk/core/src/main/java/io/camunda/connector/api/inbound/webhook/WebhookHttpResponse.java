@@ -16,11 +16,21 @@
  */
 package io.camunda.connector.api.inbound.webhook;
 
+import io.camunda.document.reference.DocumentReference;
+import java.util.List;
 import java.util.Map;
 
-public record WebhookHttpResponse(Object body, Map<String, String> headers, Integer statusCode) {
+public record WebhookHttpResponse(
+    Object body,
+    Map<String, String> headers,
+    Integer statusCode,
+    List<DocumentReference> documents) {
+
+  public WebhookHttpResponse(Object body, Map<String, String> headers, Integer statusCode) {
+    this(body, headers, statusCode, List.of());
+  }
 
   public static WebhookHttpResponse ok(Object body) {
-    return new WebhookHttpResponse(body, null, 200);
+    return new WebhookHttpResponse(body, null, 200, List.of());
   }
 }

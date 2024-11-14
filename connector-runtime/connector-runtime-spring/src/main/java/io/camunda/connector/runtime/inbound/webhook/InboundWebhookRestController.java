@@ -23,11 +23,13 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
@@ -40,11 +42,14 @@ import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
+import io.camunda.document.DocumentMetadata;
+import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.store.DocumentCreationRequest;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,7 +112,11 @@ public class InboundWebhookRestController {
             connector -> {
               WebhookProcessingPayload payload =
                   new HttpServletRequestWebhookProcessingPayload(
-                      httpServletRequest, params, headers, bodyAsByteArray);
+                      httpServletRequest,
+                      params,
+                      headers,
+                      bodyAsByteArray,
+                      getParts(httpServletRequest));
               return processWebhook(connector, payload);
             })
         .orElseGet(() -> ResponseEntity.notFound().build());
@@ -128,15 +137,42 @@ public class InboundWebhookRestController {
         // when verification was skipped
         // Step 2: trigger and correlate
         var webhookResult = connectorHook.triggerWebhook(payload);
-        var ctxData = toWebhookTriggerResultContext(webhookResult);
+        // create documents if the connector is activable
+        var documentReferences = createDocuments(connector.context(), payload);
+        var ctxData = toWebhookTriggerResultContext(webhookResult, documentReferences);
+        // correlate
         var correlationResult = connector.context().correlateWithResult(ctxData);
-        response = buildResponse(webhookResult, correlationResult);
+        response = buildResponse(webhookResult, documentReferences, correlationResult);
       }
     } catch (Exception e) {
       LOG.info("Webhook: {} failed with exception", connector.context().getDefinition(), e);
       response = buildErrorResponse(e);
     }
     return response;
+  }
+
+  private List<DocumentReference> createDocuments(
+      InboundConnectorContext context, WebhookProcessingPayload payload) {
+    if (!(context.canActivate(payload) instanceof ActivationCheckResult.Success)) {
+      return List.of();
+    }
+
+    return payload.parts().stream()
+        .map(
+            part -> {
+              Map<String, Object> metadata = new HashMap<>();
+              if (part.submittedFileName() != null) {
+                metadata.put(DocumentMetadata.FILE_NAME, part.submittedFileName());
+              }
+              metadata.put(DocumentMetadata.CONTENT_TYPE, part.contentType());
+              return context
+                  .createDocument(
+                      DocumentCreationRequest.from(part.inputStream())
+                          .metadata(new DocumentMetadata(metadata))
+                          .build())
+                  .reference();
+            })
+        .toList();
   }
 
   protected ResponseEntity<?> verify(
@@ -150,15 +186,18 @@ public class InboundWebhookRestController {
   }
 
   private ResponseEntity<?> buildResponse(
-      WebhookResult webhookResult, CorrelationResult correlationResult) {
+      WebhookResult webhookResult,
+      List<DocumentReference> documentReferences,
+      CorrelationResult correlationResult) {
     ResponseEntity<?> response;
     if (correlationResult instanceof CorrelationResult.Success success) {
-      response = buildSuccessfulResponse(webhookResult, success);
+      response = buildSuccessfulResponse(webhookResult, documentReferences, success);
     } else {
       if (correlationResult instanceof CorrelationResult.Failure failure) {
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream ignored -> response = buildErrorResponse(failure);
-          case Ignore ignored -> response = buildSuccessfulResponse(webhookResult, null);
+          case Ignore ignored ->
+              response = buildSuccessfulResponse(webhookResult, documentReferences, null);
         }
       } else {
         throw new IllegalStateException("Illegal correlation result : " + correlationResult);
@@ -178,10 +217,13 @@ public class InboundWebhookRestController {
   }
 
   private ResponseEntity<?> buildSuccessfulResponse(
-      WebhookResult webhookResult, CorrelationResult.Success correlationResult) {
+      WebhookResult webhookResult,
+      List<DocumentReference> documentReferences,
+      CorrelationResult.Success correlationResult) {
     ResponseEntity<?> response;
     if (webhookResult.response() != null) {
-      var processVariablesContext = toWebhookResultContext(webhookResult, correlationResult);
+      var processVariablesContext =
+          toWebhookResultContext(webhookResult, documentReferences, correlationResult);
       var httpResponseData = webhookResult.response().apply(processVariablesContext);
       if (httpResponseData != null) {
         response = toResponseEntity(httpResponseData);
@@ -217,10 +259,44 @@ public class InboundWebhookRestController {
     return response;
   }
 
+  private Collection<io.camunda.connector.api.inbound.webhook.Part> getParts(
+      HttpServletRequest httpServletRequest) {
+    try {
+      return httpServletRequest.getParts().stream()
+          .map(InboundWebhookRestController::mapToCamundaPart)
+          .filter(Objects::nonNull)
+          .toList();
+    } catch (IOException e) {
+      LOG.error("Failed to get parts from request", e);
+      throw new RuntimeException("Failed to get parts from request", e);
+    } catch (ServletException e) {
+      LOG.debug("The request is not multipart/form-data, silently ignoring", e);
+      return List.of();
+    } catch (IllegalStateException e) {
+      LOG.error("Size limits are exceeded or no multipart configuration is provided", e);
+      throw new RuntimeException(
+          "Size limits are exceeded or no multipart configuration is provided", e);
+    }
+  }
+
+  private static io.camunda.connector.api.inbound.webhook.Part mapToCamundaPart(Part part) {
+    try {
+      return new io.camunda.connector.api.inbound.webhook.Part(
+          part.getName(),
+          part.getSubmittedFileName(),
+          part.getInputStream(),
+          part.getContentType());
+    } catch (IOException e) {
+      LOG.warn("Failed to process part: {}", part.getName(), e);
+      return null;
+    }
+  }
+
   // This will be used to correlate data returned from connector.
   // In other words, we pass this data to Zeebe.
-  private WebhookTriggerResultContext toWebhookTriggerResultContext(WebhookResult processedResult) {
-    WebhookTriggerResultContext ctx = new WebhookTriggerResultContext(null, null);
+  private WebhookTriggerResultContext toWebhookTriggerResultContext(
+      WebhookResult processedResult, List<DocumentReference> documentReferences) {
+    WebhookTriggerResultContext ctx = new WebhookTriggerResultContext(null, null, List.of());
     if (processedResult != null) {
       ctx =
           new WebhookTriggerResultContext(
@@ -228,7 +304,8 @@ public class InboundWebhookRestController {
                   Optional.ofNullable(processedResult.request().body()).orElse(emptyMap()),
                   Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
                   Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
-              Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()));
+              Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
+              documentReferences);
     }
     return ctx;
   }
@@ -237,7 +314,9 @@ public class InboundWebhookRestController {
   // In other words, depending on the response body expression,
   // this data may be returned to the webhook caller.
   private WebhookResultContext toWebhookResultContext(
-      WebhookResult processedResult, CorrelationResult.Success correlationResult) {
+      WebhookResult processedResult,
+      List<DocumentReference> documents,
+      CorrelationResult.Success correlationResult) {
     WebhookResultContext ctx = new WebhookResultContext(null, null, null);
     if (processedResult != null) {
       Object correlation = null;
@@ -252,7 +331,8 @@ public class InboundWebhookRestController {
                   Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
                   Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
               Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
-              Optional.ofNullable(correlation).orElse(emptyMap()));
+              Optional.ofNullable(correlation).orElse(emptyMap()),
+              documents);
     }
     return ctx;
   }

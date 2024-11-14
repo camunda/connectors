@@ -27,6 +27,17 @@ import java.util.Map;
 public interface InboundConnectorContext {
 
   /**
+   * Checks if the Connector can be activated. The Connector can be activated if the activation
+   * condition is met or the Connector is not configured with an activation condition. This method
+   * can be used when you want to perform an action only if the Connector is activable (creating
+   * documents, marking an email as read, etc.).
+   *
+   * @param variables - an object containing inbound connector variables
+   * @return ActivationCheckResult that should be interpreted by the Connector implementation
+   */
+  ActivationCheckResult canActivate(Object variables);
+
+  /**
    * Correlates the inbound event to the matching process definition and returns the result.
    *
    * <p>Correlation may not succeed due to Connector configuration (e.g. if activation condition

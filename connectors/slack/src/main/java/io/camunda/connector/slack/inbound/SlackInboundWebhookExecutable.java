@@ -31,11 +31,7 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,14 +114,14 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
           new MappedHttpRequest(
               bodyAsMap, Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()), null),
           bodyAsMap,
-          new WebhookHttpResponse(defaultCommandResponse(), null, 200));
+          new WebhookHttpResponse(defaultCommandResponse(), null, 200, List.of()));
     }
 
     // Other requests, e.g. events
     return new SlackWebhookProcessingResult(
         new MappedHttpRequest(bodyAsMap, webhookProcessingPayload.headers(), null),
         null,
-        new WebhookHttpResponse(bodyAsMap, null, 200));
+        new WebhookHttpResponse(bodyAsMap, null, 200, List.of()));
   }
 
   @Override

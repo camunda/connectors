@@ -16,12 +16,10 @@
  */
 package io.camunda.connector.runtime.inbound.webhook.model;
 
+import io.camunda.connector.api.inbound.webhook.Part;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class HttpServletRequestWebhookProcessingPayload implements WebhookProcessingPayload {
 
@@ -30,17 +28,20 @@ public class HttpServletRequestWebhookProcessingPayload implements WebhookProces
   private final Map<String, String> headers;
   private final Map<String, String> params;
   private final byte[] rawBody;
+  private final Collection<Part> parts;
 
   public HttpServletRequestWebhookProcessingPayload(
       final HttpServletRequest httpServletRequest,
       final Map<String, String> params,
       final Map<String, String> headers,
-      byte[] bodyAsByteArray) {
+      byte[] bodyAsByteArray,
+      Collection<Part> parts) {
     this.requestURL = httpServletRequest.getRequestURL().toString();
     this.method = httpServletRequest.getMethod();
     this.headers = headers;
     this.params = params;
     this.rawBody = bodyAsByteArray;
+    this.parts = parts;
   }
 
   @Override
@@ -66,6 +67,11 @@ public class HttpServletRequestWebhookProcessingPayload implements WebhookProces
   @Override
   public byte[] rawBody() {
     return rawBody != null ? Arrays.copyOf(rawBody, rawBody.length) : null;
+  }
+
+  @Override
+  public Collection<Part> parts() {
+    return List.copyOf(Optional.ofNullable(parts).orElse(Collections.emptyList()));
   }
 
   @Override

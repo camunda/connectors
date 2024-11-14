@@ -16,7 +16,18 @@
  */
 package io.camunda.connector.api.inbound.webhook;
 
+import io.camunda.document.reference.DocumentReference;
+import java.util.List;
 import java.util.Map;
 
 public record WebhookResultContext(
-    MappedHttpRequest request, Map<String, Object> connectorData, Object correlation) {}
+    MappedHttpRequest request,
+    Map<String, Object> connectorData,
+    Object correlation,
+    List<DocumentReference> documents) {
+
+  public WebhookResultContext(
+      MappedHttpRequest request, Map<String, Object> connectorData, Object correlation) {
+    this(request, connectorData, correlation, List.of());
+  }
+}

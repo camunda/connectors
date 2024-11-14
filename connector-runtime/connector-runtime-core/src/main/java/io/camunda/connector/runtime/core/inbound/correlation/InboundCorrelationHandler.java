@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound.correlation;
 
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
@@ -70,29 +71,24 @@ public class InboundCorrelationHandler {
   public CorrelationResult correlate(
       List<InboundConnectorElement> elements, Object variables, String messageId) {
 
-    final List<InboundConnectorElement> matchingElements;
+    final ActivationCheckResult activationCheckResult;
     try {
-      matchingElements =
-          elements.stream().filter(e -> isActivationConditionMet(e, variables)).toList();
+      activationCheckResult = canActivate(elements, variables);
     } catch (ConnectorInputException e) {
       LOG.info("Failed to evaluate activation condition", e);
       return new CorrelationResult.Failure.InvalidInput(
           "Failed to evaluate activation condition against the provided input", e);
     }
 
-    if (matchingElements.isEmpty()) {
-      var discardUnmatchedEvents =
-          elements.stream()
-              .map(InboundConnectorElement::consumeUnmatchedEvents)
-              .anyMatch(e -> e.equals(Boolean.TRUE));
-      return new ActivationConditionNotMet(discardUnmatchedEvents);
-    }
-    if (matchingElements.size() > 1) {
-      return new Failure.InvalidInput("Multiple connectors are activated for the same input", null);
-    }
-
-    var activatedElement = matchingElements.getFirst();
-    return correlateInternal(activatedElement, variables, messageId);
+    return switch (activationCheckResult) {
+      case ActivationCheckResult.Failure.NoMatchingElement noMatchingElement ->
+          new ActivationConditionNotMet(noMatchingElement.discardUnmatchedEvents());
+      case ActivationCheckResult.Failure.TooManyMatchingElements ignored ->
+          new Failure.InvalidInput("Multiple connectors are activated for the same input", null);
+      case ActivationCheckResult.Success.CanActivate canActivate ->
+          correlateInternal(
+              findMatchingElement(elements, canActivate.activatedElement()), variables, messageId);
+    };
   }
 
   protected CorrelationResult correlateInternal(
@@ -241,6 +237,36 @@ public class InboundCorrelationHandler {
       result = new Failure.Other(ex);
     }
     return result;
+  }
+
+  private List<InboundConnectorElement> getMatchingElements(
+      List<InboundConnectorElement> elements, Object variables) {
+    return elements.stream().filter(e -> isActivationConditionMet(e, variables)).toList();
+  }
+
+  private InboundConnectorElement findMatchingElement(
+      List<InboundConnectorElement> elements, ProcessElementContext contentElement) {
+    return elements.stream()
+        .filter(e -> e.element().elementId().equals(contentElement.getElement().elementId()))
+        .findFirst()
+        .get();
+  }
+
+  public ActivationCheckResult canActivate(List<InboundConnectorElement> elements, Object context) {
+    var matchingElements = getMatchingElements(elements, context);
+
+    if (matchingElements.isEmpty()) {
+      var discardUnmatchedEvents =
+          elements.stream()
+              .map(InboundConnectorElement::consumeUnmatchedEvents)
+              .anyMatch(e -> e.equals(Boolean.TRUE));
+      return new ActivationCheckResult.Failure.NoMatchingElement(discardUnmatchedEvents);
+    }
+    if (matchingElements.size() > 1) {
+      return new ActivationCheckResult.Failure.TooManyMatchingElements();
+    }
+    return new ActivationCheckResult.Success.CanActivate(
+        processElementContextFactory.createContext(matchingElements.getFirst()));
   }
 
   protected boolean isActivationConditionMet(InboundConnectorElement definition, Object context) {

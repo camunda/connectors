@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.api.inbound.webhook;
 
+import java.util.Collection;
 import java.util.Map;
 
 /** A wrapper object for the webhook request. */
@@ -48,4 +49,10 @@ public interface WebhookProcessingPayload {
    * @return HTTP Request body as byte array.
    */
   byte[] rawBody();
+
+  /**
+   * @return The parts of the request, or an empty collection if there's no Multipart Content-Type
+   *     or no parts.
+   */
+  Collection<Part> parts();
 }

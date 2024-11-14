@@ -7,7 +7,10 @@
 package io.camunda.connector.inbound.authorization;
 
 import com.google.common.net.HttpHeaders;
+import io.camunda.connector.api.inbound.webhook.Part;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 public record TestWebhookProcessingPayload(
@@ -15,7 +18,8 @@ public record TestWebhookProcessingPayload(
     String method,
     Map<String, String> headers,
     Map<String, String> params,
-    byte[] rawBody)
+    byte[] rawBody,
+    Collection<Part> parts)
     implements WebhookProcessingPayload {
   TestWebhookProcessingPayload(String token, String body) {
     this(
@@ -27,10 +31,11 @@ public record TestWebhookProcessingPayload(
             HttpHeaders.CONTENT_TYPE.toLowerCase(),
             "application/json"),
         null,
-        body == null ? null : body.getBytes());
+        body == null ? null : body.getBytes(),
+        List.of());
   }
 
   TestWebhookProcessingPayload(Map<String, String> headers) {
-    this(null, null, headers, null, null);
+    this(null, null, headers, null, null, List.of());
   }
 }
