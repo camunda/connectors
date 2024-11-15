@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.operate;
+package io.camunda.connector.runtime.inbound.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -45,7 +45,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ProcessInstanceClientImplTest {
 
-  @Mock private OperateClient operateClient;
+  @Mock private SearchQueryClient operateClient;
   private ObjectMapper objectMapper;
 
   @BeforeEach

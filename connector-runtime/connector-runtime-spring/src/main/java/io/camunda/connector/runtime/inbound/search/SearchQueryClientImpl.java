@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.operate;
+package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
@@ -26,13 +26,13 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 
-public class OperateClientImpl implements OperateClient {
+public class SearchQueryClientImpl implements SearchQueryClient {
 
   private static final int PAGE_SIZE = 50;
 
   private final ZeebeClient zeebeClient;
 
-  public OperateClientImpl(ZeebeClient zeebeClient) {
+  public SearchQueryClientImpl(ZeebeClient zeebeClient) {
     this.zeebeClient = zeebeClient;
   }
 

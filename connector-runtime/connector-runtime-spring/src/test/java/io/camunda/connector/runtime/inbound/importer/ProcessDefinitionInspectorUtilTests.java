@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import io.camunda.connector.runtime.inbound.operate.OperateClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
@@ -120,7 +120,7 @@ public class ProcessDefinitionInspectorUtilTests {
 
   private List<InboundConnectorElement> fromModel(String fileName, String processId) {
     try {
-      var operateClientMock = mock(OperateClient.class);
+      var operateClientMock = mock(SearchQueryClient.class);
       var inspector = new ProcessDefinitionInspector(operateClientMock);
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));

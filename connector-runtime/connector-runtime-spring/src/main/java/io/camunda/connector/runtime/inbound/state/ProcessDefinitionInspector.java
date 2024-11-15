@@ -29,7 +29,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationP
 import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
-import io.camunda.connector.runtime.inbound.operate.OperateClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -76,9 +76,9 @@ public class ProcessDefinitionInspector {
     INBOUND_ELIGIBLE_TYPES.add(BoundaryEvent.class);
   }
 
-  private final OperateClient operateClient;
+  private final SearchQueryClient operateClient;
 
-  public ProcessDefinitionInspector(OperateClient operateClient) {
+  public ProcessDefinitionInspector(SearchQueryClient operateClient) {
     this.operateClient = operateClient;
   }
 

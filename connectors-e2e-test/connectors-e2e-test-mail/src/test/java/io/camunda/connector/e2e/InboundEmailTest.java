@@ -22,7 +22,7 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.runtime.inbound.operate.OperateClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.process.test.api.CamundaAssert;
@@ -64,7 +64,7 @@ public class InboundEmailTest extends BaseEmailTest {
       Executors.newSingleThreadScheduledExecutor();
   private static final AtomicInteger counter = new AtomicInteger(1);
   @Autowired ProcessStateStore processStateStore;
-  @Autowired OperateClient camundaOperateClient;
+  @Autowired SearchQueryClient camundaOperateClient;
   @Mock private ProcessDefinition processDef;
   @Autowired private ZeebeClient zeebeClient;
 

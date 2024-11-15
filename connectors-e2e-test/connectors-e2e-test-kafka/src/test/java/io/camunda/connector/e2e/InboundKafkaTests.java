@@ -147,7 +147,7 @@ public class InboundKafkaTests extends BaseKafkaTest {
   }
 
   private void mockProcessDefinition(BpmnModelInstance model) {
-    when(camundaOperateClient.getProcessModel(1)).thenReturn(model);
+    when(searchQueryClient.getProcessModel(1)).thenReturn(model);
     when(processDef.getProcessDefinitionKey()).thenReturn(1L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())

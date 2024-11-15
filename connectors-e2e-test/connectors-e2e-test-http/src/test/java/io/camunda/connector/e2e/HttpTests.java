@@ -39,7 +39,7 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
-import io.camunda.connector.runtime.inbound.operate.OperateClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
@@ -87,7 +87,7 @@ public class HttpTests {
 
   @Autowired ProcessStateStore stateStore;
 
-  @MockBean OperateClient operateClient;
+  @MockBean SearchQueryClient searchQueryClient;
 
   @LocalServerPort int serverPort;
 
@@ -338,7 +338,7 @@ public class HttpTests {
     var model = replace("webhook_connector.bpmn", replace("http://webhook", mockUrl));
 
     // Prepare a mocked process connectorData backed by our test model
-    when(operateClient.getProcessModel(1L)).thenReturn(model);
+    when(searchQueryClient.getProcessModel(1L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
     when(processDef.getProcessDefinitionKey()).thenReturn(1L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
@@ -367,7 +367,7 @@ public class HttpTests {
     var model = replace("webhook_connector.bpmn", replace("http://webhook", mockUrl));
 
     // Prepare a mocked process connectorData backed by our test model
-    when(operateClient.getProcessModel(1L)).thenReturn(model);
+    when(searchQueryClient.getProcessModel(1L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
     when(processDef.getProcessDefinitionKey()).thenReturn(1L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());

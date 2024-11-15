@@ -12,9 +12,9 @@ import java.util.Objects;
 
 public class PollingIntervalConfiguration {
   private static final Duration DEFAULT_HTTP_REQUEST_INTERVAL = Duration.ofSeconds(50);
-  private static final Duration DEFAULT_OPERATE_INTERVAL = Duration.ofSeconds(5);
+  private static final Duration DEFAULT_PROCESS_POLLING_INTERVAL = Duration.ofSeconds(5);
   @FEEL private Duration httpRequestInterval;
-  @FEEL private Duration operatePollingInterval;
+  @FEEL private Duration processPollingInterval;
 
   public Duration getHttpRequestInterval() {
     return httpRequestInterval != null ? httpRequestInterval : DEFAULT_HTTP_REQUEST_INTERVAL;
@@ -24,12 +24,14 @@ public class PollingIntervalConfiguration {
     this.httpRequestInterval = httpRequestInterval;
   }
 
-  public Duration getOperatePollingInterval() {
-    return operatePollingInterval != null ? operatePollingInterval : DEFAULT_OPERATE_INTERVAL;
+  public Duration getProcessPollingInterval() {
+    return processPollingInterval != null
+        ? processPollingInterval
+        : DEFAULT_PROCESS_POLLING_INTERVAL;
   }
 
-  public void setOperatePollingInterval(final Duration operatePollingInterval) {
-    this.operatePollingInterval = operatePollingInterval;
+  public void setProcessPollingInterval(final Duration processPollingInterval) {
+    this.processPollingInterval = processPollingInterval;
   }
 
   @Override
@@ -41,12 +43,12 @@ public class PollingIntervalConfiguration {
       return false;
     }
     return Objects.equals(httpRequestInterval, that.httpRequestInterval)
-        && Objects.equals(operatePollingInterval, that.operatePollingInterval);
+        && Objects.equals(processPollingInterval, that.processPollingInterval);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(httpRequestInterval, operatePollingInterval);
+    return Objects.hash(httpRequestInterval, processPollingInterval);
   }
 
   @Override
@@ -54,8 +56,8 @@ public class PollingIntervalConfiguration {
     return "PollingIntervalConfiguration{"
         + "httpRequestInterval="
         + httpRequestInterval
-        + ", operatePollingInterval="
-        + operatePollingInterval
+        + ", processPollingInterval="
+        + processPollingInterval
         + "}";
   }
 }

@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
-import io.camunda.connector.runtime.inbound.operate.OperateClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
 import io.camunda.zeebe.client.api.search.response.SearchQueryResponse;
 import java.util.ArrayList;
@@ -35,10 +35,10 @@ import org.springframework.util.CollectionUtils;
 public class ProcessDefinitionSearch {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionSearch.class);
-  private final OperateClient operateClient;
+  private final SearchQueryClient searchQueryClient;
 
-  public ProcessDefinitionSearch(OperateClient operateClient) {
-    this.operateClient = operateClient;
+  public ProcessDefinitionSearch(SearchQueryClient operateClient) {
+    this.searchQueryClient = operateClient;
   }
 
   /**
@@ -55,7 +55,7 @@ public class ProcessDefinitionSearch {
     final Set<String> encounteredBpmnProcessIds = new HashSet<>();
 
     do {
-      processDefinitionResult = operateClient.queryProcessDefinitions(paginationIndex);
+      processDefinitionResult = searchQueryClient.queryProcessDefinitions(paginationIndex);
       List<Object> newPaginationIdx = processDefinitionResult.page().lastSortValues();
 
       LOG.debug("A page of process definitions has been fetched, continuing...");
@@ -80,7 +80,7 @@ public class ProcessDefinitionSearch {
       processDefinitions.addAll(items);
 
     } while (processDefinitionResult.items() != null && !processDefinitionResult.items().isEmpty());
-    LOG.debug("Fetching from Operate has been correctly executed.");
+    LOG.debug("Fetching process definitions has been correctly executed.");
     return processDefinitions;
   }
 }

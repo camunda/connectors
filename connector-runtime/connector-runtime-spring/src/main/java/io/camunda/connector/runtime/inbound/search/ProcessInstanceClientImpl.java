@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.operate;
+package io.camunda.connector.runtime.inbound.search;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,12 +33,13 @@ import org.springframework.util.CollectionUtils;
 
 public class ProcessInstanceClientImpl implements ProcessInstanceClient {
 
-  private final OperateClient operateClient;
+  private final SearchQueryClient operateClient;
   private final ObjectMapper mapper;
   private final Lock fetchActiveProcessLock;
   private final Lock fetchVariablesLock;
 
-  public ProcessInstanceClientImpl(final OperateClient operateClient, final ObjectMapper mapper) {
+  public ProcessInstanceClientImpl(
+      final SearchQueryClient operateClient, final ObjectMapper mapper) {
     this.operateClient = operateClient;
     this.mapper = mapper;
     this.fetchActiveProcessLock = new ReentrantLock();

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.operate;
+package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
 import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
@@ -23,8 +23,8 @@ import io.camunda.zeebe.client.api.search.response.Variable;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.util.List;
 
-/** Wrapper over Zeebe client for Operate methods. Enables easier mocking and testing. */
-public interface OperateClient {
+/** Wrapper over Zeebe client for search query methods. Enables easier mocking and testing. */
+public interface SearchQueryClient {
 
   SearchQueryResponse<ProcessDefinition> queryProcessDefinitions(List<Object> paginationIndex);
 

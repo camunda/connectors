@@ -20,7 +20,7 @@ import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
-import io.camunda.connector.runtime.inbound.operate.OperateClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.zeebe.client.ZeebeClient;
 import java.io.File;
@@ -63,7 +63,7 @@ public class BaseKafkaTest {
 
   @Autowired ProcessStateStore processStateStore;
 
-  @Autowired OperateClient camundaOperateClient;
+  @Autowired SearchQueryClient searchQueryClient;
 
   static KafkaContainer kafkaContainer;
 

@@ -33,9 +33,9 @@ import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
-import io.camunda.connector.runtime.inbound.operate.OperateClient;
-import io.camunda.connector.runtime.inbound.operate.OperateClientImpl;
-import io.camunda.connector.runtime.inbound.operate.ProcessInstanceClientConfiguration;
+import io.camunda.connector.runtime.inbound.search.ProcessInstanceClientConfiguration;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
@@ -124,12 +124,12 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  OperateClient operateClient(ZeebeClient zeebeClient) {
-    return new OperateClientImpl(zeebeClient);
+  SearchQueryClient operateClient(ZeebeClient zeebeClient) {
+    return new SearchQueryClientImpl(zeebeClient);
   }
 
   @Bean
-  public ProcessDefinitionInspector processDefinitionInspector(OperateClient operateClient) {
+  public ProcessDefinitionInspector processDefinitionInspector(SearchQueryClient operateClient) {
     return new ProcessDefinitionInspector(operateClient);
   }
 
