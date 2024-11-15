@@ -16,8 +16,14 @@
  */
 package io.camunda.document.reference;
 
-import io.camunda.document.DocumentMetadata;
+import io.camunda.zeebe.client.api.response.DocumentMetadata;
+import io.camunda.zeebe.client.api.response.DocumentReferenceResponse;
 
 public record CamundaDocumentReferenceImpl(
     String storeId, String documentId, DocumentMetadata metadata)
-    implements DocumentReference.CamundaDocumentReference {}
+    implements DocumentReference.CamundaDocumentReference {
+
+  public CamundaDocumentReferenceImpl(DocumentReferenceResponse response) {
+    this(response.getStoreId(), response.getDocumentId(), response.getMetadata());
+  }
+}

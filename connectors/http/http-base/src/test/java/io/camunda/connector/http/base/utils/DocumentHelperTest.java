@@ -23,9 +23,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.document.CamundaDocument;
-import io.camunda.document.DocumentMetadata;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -45,10 +45,11 @@ public class DocumentHelperTest {
   public void shouldParseDocuments_InBody_whenMapInput() {
     // given
     DocumentHelper documentHelper = new DocumentHelper();
+    var metadata = mock(DocumentMetadata.class);
     CamundaDocument document =
         new CamundaDocument(
-            new DocumentMetadata(Map.of()),
-            new CamundaDocumentReferenceImpl("store", "id1", new DocumentMetadata(Map.of())),
+            metadata,
+            new CamundaDocumentReferenceImpl("store", "id1", metadata),
             InMemoryDocumentStore.INSTANCE);
     Map<String, Object> input =
         Map.of("body", Map.of("content", Arrays.asList(document, document, document)));
@@ -75,10 +76,11 @@ public class DocumentHelperTest {
   public void shouldParseDocuments_InBody_whenListInput() {
     // given
     DocumentHelper documentHelper = new DocumentHelper();
+    var metadata = mock(DocumentMetadata.class);
     CamundaDocument document =
         new CamundaDocument(
-            new DocumentMetadata(Map.of()),
-            new CamundaDocumentReferenceImpl("store", "id1", new DocumentMetadata(Map.of())),
+            metadata,
+            new CamundaDocumentReferenceImpl("store", "id1", metadata),
             InMemoryDocumentStore.INSTANCE);
     List<Object> input = Arrays.asList(document, document, document);
     Function<CamundaDocument, Object> transformer = mock(Function.class);

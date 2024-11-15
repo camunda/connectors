@@ -60,7 +60,6 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.document.CamundaDocument;
-import io.camunda.document.DocumentMetadata;
 import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
@@ -104,7 +103,7 @@ public class CustomApacheHttpClientTest {
       var ref =
           store.createDocument(
               DocumentCreationRequest.from("The content of this file".getBytes())
-                  .metadata(new DocumentMetadata(Map.of(DocumentMetadata.FILE_NAME, "file.txt")))
+                  .fileName("file.txt")
                   .build());
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);

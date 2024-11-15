@@ -17,46 +17,39 @@
 
 package io.camunda.document.store;
 
-import io.camunda.document.DocumentMetadata;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Map;
 
 public record DocumentCreationRequest(
-    DocumentMetadata metadata, InputStream content, String documentId, String storeId) {
+    InputStream content,
+    String documentId,
+    String storeId,
+    String contentType,
+    String fileName,
+    Duration timeToLive,
+    Map<String, Object> customProperties) {
 
-  public static BuilderStepMetadata from(InputStream content) {
-    return new BuilderStepMetadata(content);
+  public static BuilderFinalStep from(InputStream content) {
+    return new BuilderFinalStep(content);
   }
 
-  public static BuilderStepMetadata from(byte[] content) {
-    return new BuilderStepMetadata(new ByteArrayInputStream(content));
-  }
-
-  public static class BuilderStepMetadata {
-    private final InputStream content;
-
-    public BuilderStepMetadata(InputStream content) {
-      this.content = content;
-    }
-
-    public BuilderFinalStep metadata(DocumentMetadata metadata) {
-      return new BuilderFinalStep(metadata, content);
-    }
-
-    public BuilderFinalStep metadata(Map<String, Object> metadata) {
-      return new BuilderFinalStep(new DocumentMetadata(metadata), content);
-    }
+  public static BuilderFinalStep from(byte[] content) {
+    return new BuilderFinalStep(new ByteArrayInputStream(content));
   }
 
   public static class BuilderFinalStep {
-    private final DocumentMetadata metadata;
+
     private final InputStream content;
     private String documentId;
     private String storeId;
+    private String contentType;
+    private String fileName;
+    private Duration timeToLive;
+    private Map<String, Object> customProperties;
 
-    public BuilderFinalStep(DocumentMetadata metadata, InputStream content) {
-      this.metadata = metadata;
+    public BuilderFinalStep(InputStream content) {
       this.content = content;
     }
 
@@ -70,8 +63,29 @@ public record DocumentCreationRequest(
       return this;
     }
 
+    public BuilderFinalStep contentType(String contentType) {
+      this.contentType = contentType;
+      return this;
+    }
+
+    public BuilderFinalStep fileName(String fileName) {
+      this.fileName = fileName;
+      return this;
+    }
+
+    public BuilderFinalStep timeToLive(Duration timeToLive) {
+      this.timeToLive = timeToLive;
+      return this;
+    }
+
+    public BuilderFinalStep customProperties(Map<String, Object> customProperties) {
+      this.customProperties = customProperties;
+      return this;
+    }
+
     public DocumentCreationRequest build() {
-      return new DocumentCreationRequest(metadata, content, documentId, storeId);
+      return new DocumentCreationRequest(
+          content, documentId, storeId, contentType, fileName, timeToLive, customProperties);
     }
   }
 }

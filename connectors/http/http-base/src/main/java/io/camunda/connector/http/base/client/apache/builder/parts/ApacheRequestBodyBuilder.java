@@ -25,7 +25,7 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.utils.DocumentHelper;
 import io.camunda.document.Document;
-import io.camunda.document.DocumentMetadata;
+import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;

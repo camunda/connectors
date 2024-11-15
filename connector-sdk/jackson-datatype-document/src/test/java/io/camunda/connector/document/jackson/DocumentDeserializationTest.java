@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.document.Document;
@@ -62,7 +63,7 @@ public class DocumentDeserializationTest {
 
   @Test
   void targetTypeDocument() {
-    var ref = createDocumentMock("Hello World");
+    var ref = createDocumentMock("Hello World", null);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeDocument.class);
     assertEquals(ref, result.document.reference());
@@ -71,7 +72,7 @@ public class DocumentDeserializationTest {
   @Test
   void targetTypeByteArray() {
     var contentString = "Hello World";
-    var ref = createDocumentMock(contentString);
+    var ref = createDocumentMock(contentString, null);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeByteArray.class);
     assertEquals(contentString, new String(result.document));
@@ -80,7 +81,7 @@ public class DocumentDeserializationTest {
   @Test
   void targetTypeInputStream() throws IOException {
     var contentString = "Hello World";
-    var ref = createDocumentMock(contentString);
+    var ref = createDocumentMock(contentString, null);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeInputStream.class);
     assertEquals(contentString, new String(result.document.readAllBytes()));
@@ -88,7 +89,7 @@ public class DocumentDeserializationTest {
 
   @Test
   void targetTypeObject() {
-    var ref = createDocumentMock("Hello World");
+    var ref = createDocumentMock("Hello World", null);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
     assertInstanceOf(Document.class, result.document);
@@ -98,7 +99,7 @@ public class DocumentDeserializationTest {
   @Test
   @SuppressWarnings("unchecked")
   void targetTypeObject_NestedObject() {
-    var ref = createDocumentMock("Hello World");
+    var ref = createDocumentMock("Hello World", null);
     var payload = Map.of("document", Map.of("document", ref));
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
     assertInstanceOf(Map.class, result.document);
@@ -110,7 +111,7 @@ public class DocumentDeserializationTest {
   @Test
   @SuppressWarnings("unchecked")
   void targetTypeObject_Array() {
-    var ref = createDocumentMock("Hello World");
+    var ref = createDocumentMock("Hello World", null);
     var payload = Map.of("document", List.of(ref));
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
     Assertions.assertInstanceOf(List.class, result.document);
@@ -119,10 +120,11 @@ public class DocumentDeserializationTest {
     assertEquals(ref, ((Document) list.get(0)).reference());
   }
 
-  private DocumentReferenceModel createDocumentMock(String content) {
+  private DocumentReferenceModel createDocumentMock(
+      String content, CamundaDocumentMetadataModel metadata) {
     var ref =
         new CamundaDocumentReferenceModel(
-            "default", UUID.randomUUID().toString(), Map.of(), Optional.empty());
+            "default", UUID.randomUUID().toString(), metadata, Optional.empty());
     Document document = mock(Document.class);
     lenient().when(document.asByteArray()).thenReturn(content.getBytes());
     lenient().when(document.reference()).thenReturn(ref);
