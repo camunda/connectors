@@ -51,7 +51,7 @@ jobs:
           commit-message: "others(element-template): single element template file"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           delete-branch: true
-          base: ${{ github.event.inputs.branch_name }}
+          base: main
           title: "others(element-template): single element template file generation"
           labels: "no milestone"
           body: |
