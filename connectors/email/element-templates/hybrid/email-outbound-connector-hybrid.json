@@ -619,22 +619,19 @@
     "tooltip" : "Email's contentType",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Plain",
+      "name" : "PLAIN",
       "value" : "PLAIN"
     }, {
-      "name" : "Html",
+      "name" : "HTML",
       "value" : "HTML"
     }, {
-      "name" : "Html+Plain",
+      "name" : "HTML & Plaintext",
       "value" : "MULTIPART"
     } ]
   }, {
     "id" : "smtpBody",
-    "label" : "Email Content",
+    "label" : "Email Text Content",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "sendEmailSmtp",
     "binding" : {
@@ -643,6 +640,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "contentType",
+        "oneOf" : [ "PLAIN", "MULTIPART" ],
+        "type" : "simple"
+      }, {
         "property" : "data.smtpActionDiscriminator",
         "equals" : "sendEmailSmtp",
         "type" : "simple"
@@ -653,6 +654,33 @@
       } ]
     },
     "tooltip" : "Email's content",
+    "type" : "Text"
+  }, {
+    "id" : "smtpHtmlBody",
+    "label" : "Email Html Content",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.htmlBody",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "contentType",
+        "oneOf" : [ "HTML", "MULTIPART" ],
+        "type" : "simple"
+      }, {
+        "property" : "data.smtpActionDiscriminator",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Email's Html content",
     "type" : "Text"
   }, {
     "id" : "pop3maxToBeRead",

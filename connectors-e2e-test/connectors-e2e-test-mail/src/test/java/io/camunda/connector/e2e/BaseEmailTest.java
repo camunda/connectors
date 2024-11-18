@@ -23,6 +23,7 @@ import com.icegreen.greenmail.util.GreenMailUtil;
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
 import jakarta.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.IOException;
@@ -67,7 +68,10 @@ public class BaseEmailTest {
 
   protected static String getPlainTextBody(Message message) {
     try {
-      return message.getContent().toString().trim();
+      if (message.getContent() instanceof Multipart multipart) {
+        return multipart.getBodyPart(0).getContent().toString();
+      }
+      return null;
     } catch (MessagingException | IOException e) {
       throw new RuntimeException(e);
     }

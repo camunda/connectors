@@ -96,6 +96,7 @@ public class OutboundEmailTests extends BaseEmailTest {
             .property("smtpFrom", "test@camunda.com")
             .property("smtpTo", "receiver@test.com")
             .property("smtpSubject", "subject")
+            .property("contentType", "PLAIN")
             .property("smtpBody", "content")
             .property("resultExpression", RESULT_EXPRESSION_SEND_EMAIL)
             .writeTo(new File(tempDir, "template.json"));
