@@ -82,7 +82,7 @@ public class OutboundEmailTests extends BaseEmailTest {
   }
 
   @Test
-  public void shouldSendSMTPEmail() {
+  public void shouldSendSMTPTextEmail() {
     File elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
             .property("authentication.type", "simple")
@@ -115,6 +115,42 @@ public class OutboundEmailTests extends BaseEmailTest {
     assertThat(getReceivers(message.getFirst())).hasSize(1).first().isEqualTo("receiver@test.com");
     assertThat(getSubject(message.getFirst())).isEqualTo("subject");
     assertThat(getPlainTextBody(message.getFirst())).isEqualTo("content");
+  }
+
+  @Test
+  public void shouldSendSMTPHtmlEmail() {
+    File elementTemplate =
+            ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
+                    .property("authentication.type", "simple")
+                    .property("authentication.simpleAuthenticationUsername", "test@camunda.com")
+                    .property("authentication.simpleAuthenticationPassword", "password")
+                    .property("protocol", "smtp")
+                    .property("data.smtpPort", getUnsecureSmtpPort())
+                    .property("data.smtpHost", LOCALHOST)
+                    .property("smtpCryptographicProtocol", "NONE")
+                    .property("data.smtpActionDiscriminator", "sendEmailSmtp")
+                    .property("smtpFrom", "test@camunda.com")
+                    .property("smtpTo", "receiver@test.com")
+                    .property("smtpSubject", "subject")
+                    .property("contentType", "HTML")
+                    .property("smtpHtmlBody", "<h1>content</h1>")
+                    .property("resultExpression", RESULT_EXPRESSION_SEND_EMAIL)
+                    .writeTo(new File(tempDir, "template.json"));
+
+    BpmnModelInstance model = getBpmnModelInstance("sendEmailTask");
+    BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, "sendEmailTask");
+    var result = getZeebeTest(updatedModel);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("sent", true);
+
+    assertTrue(super.waitForNewEmails(5000, 1));
+    List<Message> message = List.of(super.getLastReceivedEmails());
+    assertThat(message).isNotNull();
+    assertThat(getSenders(message.getFirst())).hasSize(1).first().isEqualTo("test@camunda.com");
+    assertThat(getReceivers(message.getFirst())).hasSize(1).first().isEqualTo("receiver@test.com");
+    assertThat(getSubject(message.getFirst())).isEqualTo("subject");
+    assertThat(getHtmlBody(message.getFirst())).isEqualTo("<h1>content</h1>");
   }
 
   @Test
