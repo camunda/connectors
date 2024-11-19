@@ -22,10 +22,6 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch_name }}
 
-      - name: Checkout branch
-        run: |
-          git checkout -b single-file-element-template
-
       - name: install-uniquet
         run: |
           mvn install -pl element-template-generator/uniquet -am
@@ -34,14 +30,6 @@ jobs:
         run: |
           BRANCH_NAME=${{ github.event.inputs.branch_name }}
           ./element-template-generator/uniquet/target/appassembler/bin/uniquet --destination ./connector-templates.json --branch $BRANCH_NAME
-
-      - name: Create commit
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -am "ci: adding connectors template file"
-          git push --set-upstream origin single-file-element-template
 
       - name: Create pull request to main branch
         uses: peter-evans/create-pull-request@v7
