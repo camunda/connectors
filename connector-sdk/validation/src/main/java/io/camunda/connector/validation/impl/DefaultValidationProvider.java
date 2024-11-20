@@ -44,7 +44,7 @@ public class DefaultValidationProvider implements ValidationProvider {
         validatorFactory.getValidator().validate(objectToValidate);
     if (!violations.isEmpty()) {
       String errorMessage = composeMessage(violations);
-      throw new ConnectorInputException(errorMessage, new ValidationException(errorMessage));
+      throw new ConnectorInputException(new ValidationException(errorMessage));
     }
   }
 
