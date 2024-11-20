@@ -125,7 +125,7 @@ limitations under the License.</license.inlineheader>
 
     <version.slack>1.43.1</version.slack>
 
-    <version.testcontainers>1.20.3</version.testcontainers>
+    <version.testcontainers>1.20.4</version.testcontainers>
     <version.awaitility>4.2.2</version.awaitility>
     <version.json-path>2.9.0</version.json-path>
 
