@@ -44,6 +44,7 @@ import org.springframework.boot.test.context.SpringBootTest;
     classes = {TestConnectorRuntimeApplication.class},
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
+      "camunda.connector.polling.enabled=false",
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -120,29 +121,29 @@ public class OutboundEmailTests extends BaseEmailTest {
   @Test
   public void shouldSendSMTPHtmlEmail() {
     File elementTemplate =
-            ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
-                    .property("authentication.type", "simple")
-                    .property("authentication.simpleAuthenticationUsername", "test@camunda.com")
-                    .property("authentication.simpleAuthenticationPassword", "password")
-                    .property("protocol", "smtp")
-                    .property("data.smtpPort", getUnsecureSmtpPort())
-                    .property("data.smtpHost", LOCALHOST)
-                    .property("smtpCryptographicProtocol", "NONE")
-                    .property("data.smtpActionDiscriminator", "sendEmailSmtp")
-                    .property("smtpFrom", "test@camunda.com")
-                    .property("smtpTo", "receiver@test.com")
-                    .property("smtpSubject", "subject")
-                    .property("contentType", "HTML")
-                    .property("smtpHtmlBody", "<h1>content</h1>")
-                    .property("resultExpression", RESULT_EXPRESSION_SEND_EMAIL)
-                    .writeTo(new File(tempDir, "template.json"));
+        ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
+            .property("authentication.type", "simple")
+            .property("authentication.simpleAuthenticationUsername", "test@camunda.com")
+            .property("authentication.simpleAuthenticationPassword", "password")
+            .property("protocol", "smtp")
+            .property("data.smtpPort", getUnsecureSmtpPort())
+            .property("data.smtpHost", LOCALHOST)
+            .property("smtpCryptographicProtocol", "NONE")
+            .property("data.smtpActionDiscriminator", "sendEmailSmtp")
+            .property("smtpFrom", "test@camunda.com")
+            .property("smtpTo", "receiver@test.com")
+            .property("smtpSubject", "subject")
+            .property("contentType", "HTML")
+            .property("smtpHtmlBody", "<h1>content</h1>")
+            .property("resultExpression", RESULT_EXPRESSION_SEND_EMAIL)
+            .writeTo(new File(tempDir, "template.json"));
 
     BpmnModelInstance model = getBpmnModelInstance("sendEmailTask");
     BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, "sendEmailTask");
     var result = getZeebeTest(updatedModel);
 
     assertThat(result).isNotNull();
-    assertThat(result.getProcessInstanceEvent()).hasVariableWithValue("sent", true);
+    assertThat(result.getProcessInstanceEvent()).hasVariable("sent", true);
 
     assertTrue(super.waitForNewEmails(5000, 1));
     List<Message> message = List.of(super.getLastReceivedEmails());

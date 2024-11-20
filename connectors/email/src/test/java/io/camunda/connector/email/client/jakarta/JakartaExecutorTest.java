@@ -172,6 +172,7 @@ class JakartaExecutorTest {
     when(smtpSendEmail.headers()).thenReturn(Map.of("test", "header1"));
     when(smtpSendEmail.from()).thenReturn("myself");
     when(smtpSendEmail.body()).thenReturn("body");
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.PLAIN);
     when(session.getTransport()).thenReturn(transport);
 
     actionExecutor.execute(emailRequest);
@@ -183,9 +184,9 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && argument.getContent().toString().contains("body")
+                        && messageContains(argument, "body")
                         && Arrays.stream(argument.getHeader("test")).toList().contains("header1");
-                  } catch (MessagingException | IOException e) {
+                  } catch (MessagingException e) {
                     throw new RuntimeException(e);
                   }
                 }),
