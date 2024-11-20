@@ -19,6 +19,7 @@
         <module>google-base</module>
         <module>google-drive</module>
         <module>google-sheets</module>
+        <module>google-gemini</module>
     </modules>
 
     <properties>

@@ -1,0 +1,60 @@
+{
+  "authentication" : {
+    "authType" : "bearer",
+    "bearerToken" : "token"
+  },
+  "input": {
+    "projectId": "projectId",
+    "model": "GEMINI_1_5_FLASH_001",
+    "region": "region",
+    "grounding": "true",
+    "prompts": [
+      {
+        "text": "tell me abut this band"
+      },
+      {
+        "mime": "video/*",
+        "uri": "https://youtu.be/Snhb-97lMcQ?si=_cFMlEcGldkQ6h63"
+      }
+    ],
+    "temperature": "2",
+    "topK": 2,
+    "maxOutputTokens": "600",
+    "topP": "0.9",
+    "seed": "1",
+    "functionCalls": [
+      {
+        "name": "get_exchange_rate",
+        "description": "Get the exchange rate for currencies between countries",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "currency_date": {
+              "type": "STRING",
+              "description": "A date that must always be in YYYY-MM-DD format or the value 'latest' if a time period is not specified"
+            },
+            "currency_from": {
+              "type": "STRING",
+              "description": "The currency to convert from in ISO 4217 format"
+            },
+            "currency_to": {
+              "type": "STRING",
+              "description": "The currency to convert to in ISO 4217 format"
+            }
+          }
+        }
+      }
+    ],
+    "stopSequences": [
+      "text1",
+      "text2"
+    ],
+    "dangerousContent": "BLOCK_ONLY_HIGH",
+    "harassment": "BLOCK_LOW_AND_ABOVE",
+    "hateSpeech": "OFF",
+    "sexuallyExplicit": "BLOCK_MEDIUM_AND_ABOVE",
+    "dataStorePath": "projects/silicon-bolt-438910-q6/locations/global/collections/default_collection/dataStores/mma-rules_1730735591574",
+    "systemInstrText": "You are a helpful customer service agent",
+    "safetySettings": "true"
+  }
+}

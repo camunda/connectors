@@ -1,0 +1,23 @@
+[
+  {
+    "name": "get_exchange_rate",
+    "description":"Get the exchange rate for currencies between countries",
+    "parameters": {
+      "type": "OBJECT",
+      "properties": {
+        "currency_date": {
+          "type": "STRING",
+          "description": "A date that must always be in YYYY-MM-DD format or the value 'latest' if a time period is not specified"
+        },
+        "currency_from": {
+          "type": "STRING",
+          "description": "The currency to convert from in ISO 4217 format"
+        },
+        "currency_to": {
+          "type": "STRING",
+          "description": "The currency to convert to in ISO 4217 format"
+        }
+      }
+    }
+  }
+]
