@@ -42,7 +42,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
-import io.camunda.document.DocumentMetadata;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import jakarta.servlet.ServletException;
@@ -159,19 +158,14 @@ public class InboundWebhookRestController {
 
     return payload.parts().stream()
         .map(
-            part -> {
-              Map<String, Object> metadata = new HashMap<>();
-              if (part.submittedFileName() != null) {
-                metadata.put(DocumentMetadata.FILE_NAME, part.submittedFileName());
-              }
-              metadata.put(DocumentMetadata.CONTENT_TYPE, part.contentType());
-              return context
-                  .createDocument(
-                      DocumentCreationRequest.from(part.inputStream())
-                          .metadata(new DocumentMetadata(metadata))
-                          .build())
-                  .reference();
-            })
+            part ->
+                context
+                    .createDocument(
+                        DocumentCreationRequest.from(part.inputStream())
+                            .fileName(part.submittedFileName())
+                            .contentType(part.contentType())
+                            .build())
+                    .reference())
         .toList();
   }
 
