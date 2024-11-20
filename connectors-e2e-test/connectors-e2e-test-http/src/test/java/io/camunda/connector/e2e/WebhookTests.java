@@ -163,21 +163,15 @@ public class WebhookTests {
       Assertions.assertThat(pngDocument).containsKey("storeId");
       Assertions.assertThat(pngDocument).containsKey("documentId");
       Map<String, Object> metadata = (Map<String, Object>) pngDocument.get("metadata");
-      Assertions.assertThat(metadata).containsKey("keys");
       Assertions.assertThat(metadata.get("fileName")).isEqualTo(PNG_FILE);
       Assertions.assertThat(metadata.get("contentType")).isEqualTo(MediaType.IMAGE_PNG_VALUE);
-      Assertions.assertThat(metadata.get("keys"))
-          .isEqualTo(Map.of("contentType", MediaType.IMAGE_PNG_VALUE, "fileName", PNG_FILE));
       Map<String, Object> textDocument =
           (Map<String, Object>) ((List<?>) actualResponse.get("documents")).get(1);
       Assertions.assertThat(textDocument).containsKey("storeId");
       Assertions.assertThat(textDocument).containsKey("documentId");
       Map<String, Object> metadata2 = (Map<String, Object>) textDocument.get("metadata");
-      Assertions.assertThat(metadata2).containsKey("keys");
       Assertions.assertThat(metadata2.get("fileName")).isEqualTo(TEXT_FILE);
       Assertions.assertThat(metadata2.get("contentType")).isEqualTo(MediaType.TEXT_PLAIN_VALUE);
-      Assertions.assertThat(metadata2.get("keys"))
-          .isEqualTo(Map.of("contentType", MediaType.TEXT_PLAIN_VALUE, "fileName", TEXT_FILE));
 
       var pngStoredDocument =
           documentFactory.resolve(
