@@ -36,30 +36,14 @@ global:
     # necessary due to name override bugs
     url:
       host: elasticsearch
+  auth:
+    username: demo
+    password: demo
+
   identity:
     auth:
       # Enable Camunda Identity-based authentication
-      enabled: true
-      # Token issuer (Keycloak) URL
-      publicIssuerUrl: https://{{ include "ingress.domain" . }}/auth/realms/camunda-platform
-      connectors:
-        # fixed secret, to avoid generating a random one each time
-        existingSecret: connectors
-      operate:
-        # fixed secret, to avoid generating a random one each time
-        existingSecret: operate
-        redirectUrl: https://{{ include "ingress.domain" . }}/operate
-      webModeler:
-        redirectUrl: https://{{ include "ingress.domain" . }}/modeler
-      zeebe:
-        # fixed secret, to avoid generating a random one each time
-        existingSecret: zeebe
-    keycloak:
-      auth:
-        # necessary due to name override bugs
-        adminUser: admin
-        existingSecret: identity-keycloak
-        existingSecretKey: admin-password
+      enabled: false
   zeebeClusterName: zeebe-cluster
 
 
@@ -85,6 +69,10 @@ camunda-platform:
     env:
     - name: JAVA_OPTS
       value: "-Xms512m -Xmx512m"
+    - name: CAMUNDA_CLIENT_AUTH_USERNAME
+      value: demo
+    - name: CAMUNDA_CLIENT_AUTH_PASSWORD
+      value: demo
     resources:
       limits:
         cpu: 1
