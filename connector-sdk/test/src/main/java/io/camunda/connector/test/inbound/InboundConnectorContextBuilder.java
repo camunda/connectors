@@ -19,16 +19,8 @@ package io.camunda.connector.test.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
-import io.camunda.connector.api.inbound.ProcessElement;
-import io.camunda.connector.api.inbound.ProcessElementContext;
-import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -232,6 +224,28 @@ public class InboundConnectorContextBuilder {
 
     protected void correlate(Object variables) {
       correlatedEvents.add(variables);
+    }
+
+    @Override
+    public ActivationCheckResult canActivate(Object variables) {
+      return new ActivationCheckResult.Success.CanActivate(
+          new ProcessElementContext() {
+
+            @Override
+            public ProcessElement getElement() {
+              return new ProcessElement("test", 0, 0, "test", "<default>");
+            }
+
+            @Override
+            public <T> T bindProperties(Class<T> cls) {
+              return TestInboundConnectorContext.this.bindProperties(cls);
+            }
+
+            @Override
+            public Map<String, Object> getProperties() {
+              return TestInboundConnectorContext.this.getProperties();
+            }
+          });
     }
 
     @Override

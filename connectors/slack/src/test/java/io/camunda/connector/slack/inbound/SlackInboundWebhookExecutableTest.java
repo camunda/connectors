@@ -30,6 +30,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +55,10 @@ class SlackInboundWebhookExecutableTest {
       CHALLENGE_RESPONSE_VERIFICATION_FUNCTION =
           (ctx) ->
               new WebhookHttpResponse(
-                  Map.of("challenge", ((Map) ctx.get("body")).get("challenge")), Map.of(), 200);
+                  Map.of("challenge", ((Map) ctx.get("body")).get("challenge")),
+                  Map.of(),
+                  200,
+                  List.of());
 
   private static final String SLASH_COMMAND =
       "token=qwertyuiop"

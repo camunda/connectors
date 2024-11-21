@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0quqths" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.27.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
+    <bpmn:process id="Process_1tpx1wl" isExecutable="true">
+        <bpmn:endEvent id="Event_0xrdgun">
+            <bpmn:incoming>Flow_1bmdiss</bpmn:incoming>
+        </bpmn:endEvent>
+        <bpmn:startEvent id="Event_08aeoc3">
+            <bpmn:outgoing>Flow_0ykmad3</bpmn:outgoing>
+        </bpmn:startEvent>
+        <bpmn:intermediateCatchEvent id="Event_13sti90" zeebe:modelerTemplate="io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1" zeebe:modelerTemplateVersion="11" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyBpZD0naWNvbicgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAzMiAzMic+CiAgPGRlZnM+CiAgICA8c3R5bGU+LmNscy0xIHsgZmlsbDogbm9uZTsgfTwvc3R5bGU+CiAgPC9kZWZzPgogIDxwYXRoCiAgICBkPSdNMjQsMjZhMywzLDAsMSwwLTIuODE2NC00SDEzdjFhNSw1LDAsMSwxLTUtNVYxNmE3LDcsMCwxLDAsNi45Mjg3LDhoNi4yNTQ5QTIuOTkxNCwyLjk5MTQsMCwwLDAsMjQsMjZaJy8+CiAgPHBhdGgKICAgIGQ9J00yNCwxNmE3LjAyNCw3LjAyNCwwLDAsMC0yLjU3LjQ4NzNsLTMuMTY1Ni01LjUzOTVhMy4wNDY5LDMuMDQ2OSwwLDEsMC0xLjczMjYuOTk4NWw0LjExODksNy4yMDg1Ljg2ODYtLjQ5NzZhNS4wMDA2LDUuMDAwNiwwLDEsMS0xLjg1MSw2Ljg0MThMMTcuOTM3LDI2LjUwMUE3LjAwMDUsNy4wMDA1LDAsMSwwLDI0LDE2WicvPgogIDxwYXRoCiAgICBkPSdNOC41MzIsMjAuMDUzN2EzLjAzLDMuMDMsMCwxLDAsMS43MzI2Ljk5ODVDMTEuNzQsMTguNDcsMTMuODYsMTQuNzYwNywxMy44OSwxNC43MDhsLjQ5NzYtLjg2ODItLjg2NzctLjQ5N2E1LDUsMCwxLDEsNi44MTItMS44NDM4bDEuNzMxNSwxLjAwMmE3LjAwMDgsNy4wMDA4LDAsMSwwLTEwLjM0NjIsMi4wMzU2Yy0uNDU3Ljc0MjctMS4xMDIxLDEuODcxNi0yLjA3MzcsMy41NzI4WicvPgogIDxyZWN0IGlkPSdfVHJhbnNwYXJlbnRfUmVjdGFuZ2xlXycgZGF0YS1uYW1lPScmbHQ7VHJhbnNwYXJlbnQgUmVjdGFuZ2xlJmd0OycgY2xhc3M9J2Nscy0xJwogICAgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJy8+Cjwvc3ZnPg==">
+            <bpmn:extensionElements>
+                <zeebe:properties>
+                    <zeebe:property name="inbound.type" value="io.camunda:webhook:1" />
+                    <zeebe:property name="inbound.method" value="any" />
+                    <zeebe:property name="inbound.context" value="testId" />
+                    <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
+                    <zeebe:property name="inbound.auth.type" value="NONE" />
+                    <zeebe:property name="inbound.responseExpression" value="={body: {documents: documents}}" />
+                    <zeebe:property name="consumeUnmatchedEvents" value="true" />
+                    <zeebe:property name="correlationKeyExpression" value="=&#34;1&#34;" />
+                    <zeebe:property name="resultVariable" value="result" />
+                    <zeebe:property name="resultExpression" value="={body: request.body, documents: documents}" />
+                </zeebe:properties>
+            </bpmn:extensionElements>
+            <bpmn:incoming>Flow_0ykmad3</bpmn:incoming>
+            <bpmn:outgoing>Flow_1bmdiss</bpmn:outgoing>
+            <bpmn:messageEventDefinition id="MessageEventDefinition_08zueud" messageRef="Message_05luvet" />
+        </bpmn:intermediateCatchEvent>
+        <bpmn:sequenceFlow id="Flow_0ykmad3" sourceRef="Event_08aeoc3" targetRef="Event_13sti90" />
+        <bpmn:sequenceFlow id="Flow_1bmdiss" sourceRef="Event_13sti90" targetRef="Event_0xrdgun" />
+    </bpmn:process>
+    <bpmn:message id="Message_05luvet" name="5575922d-3e82-410a-b535-c389a60a545d" zeebe:modelerTemplate="io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1">
+        <bpmn:extensionElements>
+            <zeebe:subscription correlationKey="=&#34;1&#34;" />
+        </bpmn:extensionElements>
+    </bpmn:message>
+    <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+        <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1tpx1wl">
+            <bpmndi:BPMNShape id="Event_0xrdgun_di" bpmnElement="Event_0xrdgun">
+                <dc:Bounds x="542" y="82" width="36" height="36" />
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="Event_08aeoc3_di" bpmnElement="Event_08aeoc3">
+                <dc:Bounds x="152" y="82" width="36" height="36" />
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="Event_06e06zh_di" bpmnElement="Event_13sti90">
+                <dc:Bounds x="542" y="192" width="36" height="36" />
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge id="Flow_0ykmad3_di" bpmnElement="Flow_0ykmad3">
+                <di:waypoint x="188" y="100" />
+                <di:waypoint x="365" y="100" />
+                <di:waypoint x="365" y="210" />
+                <di:waypoint x="542" y="210" />
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge id="Flow_1bmdiss_di" bpmnElement="Flow_1bmdiss">
+                <di:waypoint x="560" y="192" />
+                <di:waypoint x="560" y="118" />
+            </bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+</bpmn:definitions>

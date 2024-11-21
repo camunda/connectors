@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.webhook.Part;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -20,10 +21,7 @@ import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -138,6 +136,11 @@ public class HMACTwilioSignatureTest {
     @Override
     public byte[] rawBody() {
       return body == null ? rawBody : body.getBytes();
+    }
+
+    @Override
+    public Collection<Part> parts() {
+      return List.of();
     }
 
     public void setBody(final String body) {

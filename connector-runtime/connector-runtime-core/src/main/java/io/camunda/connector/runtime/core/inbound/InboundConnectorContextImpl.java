@@ -18,12 +18,7 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
-import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.CorrelationResult;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.api.inbound.Severity;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
@@ -99,6 +94,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         cancellationCallback,
         objectMapper,
         logs);
+  }
+
+  @Override
+  public ActivationCheckResult canActivate(Object variables) {
+    return correlationHandler.canActivate(connectorDetails.connectorElements(), variables);
   }
 
   @Override

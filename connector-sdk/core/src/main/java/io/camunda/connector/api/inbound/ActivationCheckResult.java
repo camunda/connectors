@@ -14,23 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound.webhook;
+package io.camunda.connector.api.inbound;
 
-import io.camunda.document.reference.DocumentReference;
-import java.util.List;
-import java.util.Map;
+public sealed interface ActivationCheckResult {
 
-public record WebhookHttpResponse(
-    Object body,
-    Map<String, String> headers,
-    Integer statusCode,
-    List<DocumentReference> documents) {
+  sealed interface Success extends ActivationCheckResult {
+    ProcessElementContext activatedElement();
 
-  public WebhookHttpResponse(Object body, Map<String, String> headers, Integer statusCode) {
-    this(body, headers, statusCode, List.of());
+    record CanActivate(ProcessElementContext activatedElement) implements Success {}
   }
 
-  public static WebhookHttpResponse ok(Object body) {
-    return new WebhookHttpResponse(body, null, 200, List.of());
+  sealed interface Failure extends ActivationCheckResult {
+
+    record NoMatchingElement(boolean discardUnmatchedEvents) implements Failure {}
+
+    record TooManyMatchingElements() implements Failure {}
   }
 }
