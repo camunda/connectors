@@ -49,6 +49,10 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.spring</groupId>
+      <artifactId>java-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.spring</groupId>
       <artifactId>java-client-operate</artifactId>
     </dependency>
 

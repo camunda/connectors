@@ -282,6 +282,11 @@ limitations under the License.</license.inlineheader>
       </dependency>
       <dependency>
         <groupId>io.camunda.spring</groupId>
+        <artifactId>java-common</artifactId>
+        <version>${version.spring-zeebe}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.spring</groupId>
         <artifactId>spring-boot-starter-camunda-test</artifactId>
         <version>${version.spring-zeebe}</version>
       </dependency>
