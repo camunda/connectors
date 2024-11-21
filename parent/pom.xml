@@ -292,7 +292,7 @@ limitations under the License.</license.inlineheader>
       </dependency>
       <dependency>
         <groupId>io.camunda.spring</groupId>
-        <artifactId>java-client-operate</artifactId>
+        <artifactId>java-client-operate-legacy</artifactId>
         <version>${version.spring-zeebe}</version>
       </dependency>
       <dependency>
