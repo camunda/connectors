@@ -163,7 +163,7 @@ public class PollingManager {
   }
 
   private List<Document> createDocumentList(Email email, InboundConnectorContext connectorContext) {
-    if (connectorContext.canActivate(
+    if (!(connectorContext.canActivate(
             new ReadEmailResponse(
                 email.messageId(),
                 email.from(),
@@ -174,7 +174,7 @@ public class PollingManager {
                 email.body().bodyAsHtml(),
                 List.of(),
                 email.receivedAt()))
-        instanceof ActivationCheckResult.Success) {
+        instanceof ActivationCheckResult.Success)) {
       return List.of();
     } else
       return email.body().attachments().stream()
