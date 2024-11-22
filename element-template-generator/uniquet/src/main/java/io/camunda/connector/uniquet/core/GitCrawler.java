@@ -17,16 +17,14 @@
 package io.camunda.connector.uniquet.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.camunda.connector.uniquet.dto.Engine;
 import io.camunda.connector.uniquet.dto.OutputElementTemplate;
 import io.camunda.connector.uniquet.dto.VersionValue;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
@@ -108,9 +106,11 @@ public class GitCrawler {
   }
 
   public GitCrawler persist(String location) {
-
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
     try (FileWriter myWriter = new FileWriter(location)) {
-      myWriter.write(new ObjectMapper().writeValueAsString(fromMap(this.result)));
+      myWriter.write(
+          objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(fromMap(this.result)));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
