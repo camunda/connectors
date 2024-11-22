@@ -195,13 +195,14 @@ class JakartaExecutorTest {
     when(smtpSendEmail.body()).thenReturn(body);
     when(smtpSendEmail.htmlBody()).thenReturn(bodyAsHtml);
     try (FileInputStream fileInputStream = new FileInputStream("src/test/resources/img/img.png")) {
-      when(smtpSendEmail.attachment())
+      when(smtpSendEmail.attachments())
           .thenReturn(
-              this.documentFactory.create(
-                  DocumentCreationRequest.from(fileInputStream)
-                      .contentType(ContentType.IMAGE_PNG.getMimeType())
-                      .fileName("test")
-                      .build()));
+              List.of(
+                  this.documentFactory.create(
+                      DocumentCreationRequest.from(fileInputStream)
+                          .contentType(ContentType.IMAGE_PNG.getMimeType())
+                          .fileName("test")
+                          .build())));
     }
     when(session.getTransport()).thenReturn(transport);
 

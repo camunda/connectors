@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import jakarta.mail.util.ByteArrayDataSource;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
@@ -280,6 +281,12 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         attachment.setDataHandler(new DataHandler(dataSource));
         attachment.setFileName(smtpSendEmail.attachment().metadata().getFileName());
         multipart.addBodyPart(attachment);
+      Multipart multipart = new MimeMultipart();
+      MimeBodyPart textContent = new MimeBodyPart();
+      textContent.setText(smtpSendEmail.body());
+      multipart.addBodyPart(textContent);
+      if (!Objects.isNull(smtpSendEmail.attachments())) {
+        smtpSendEmail.attachments().forEach(getDocumentConsumer(multipart));
       }
       message.setContent(multipart);
       try (Transport transport = session.getTransport()) {
@@ -287,7 +294,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         transport.sendMessage(message, message.getAllRecipients());
       }
       return new SendEmailResponse(smtpSendEmail.subject(), true);
-    } catch (MessagingException | IOException e) {
+    } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
   }
@@ -385,6 +392,21 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
               throw new IllegalStateException(
                   "Unexpected value: " + object + ". List or String was expected");
         });
+  }
+
+  private Consumer<Document> getDocumentConsumer(Multipart multipart) {
+    return document -> {
+      try {
+        BodyPart attachment = new MimeBodyPart();
+        DataSource dataSource =
+            new ByteArrayDataSource(document.asInputStream(), document.metadata().getContentType());
+        attachment.setDataHandler(new DataHandler(dataSource));
+        attachment.setFileName(document.metadata().getFileName());
+        multipart.addBodyPart(attachment);
+      } catch (IOException | MessagingException e) {
+        throw new RuntimeException(e);
+      }
+    };
   }
 
   private List<Document> createDocumentList(
