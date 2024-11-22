@@ -30,7 +30,6 @@ import io.camunda.document.store.InMemoryDocumentStore;
 import jakarta.mail.*;
 import jakarta.mail.internet.MimeMultipart;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -154,7 +153,7 @@ class JakartaExecutorTest {
   }
 
   @Test
-  void executeSmtpSendEmailWithAttachment() throws MessagingException, FileNotFoundException {
+  void executeSmtpSendEmailWithAttachment() throws MessagingException, IOException {
 
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
@@ -195,6 +194,15 @@ class JakartaExecutorTest {
     when(smtpSendEmail.contentType()).thenReturn(contentType);
     when(smtpSendEmail.body()).thenReturn(body);
     when(smtpSendEmail.htmlBody()).thenReturn(bodyAsHtml);
+    try (FileInputStream fileInputStream = new FileInputStream("src/test/resources/img/img.png")) {
+      when(smtpSendEmail.attachment())
+          .thenReturn(
+              this.documentFactory.create(
+                  DocumentCreationRequest.from(fileInputStream)
+                      .contentType(ContentType.IMAGE_PNG.getMimeType())
+                      .fileName("test")
+                      .build()));
+    }
     when(session.getTransport()).thenReturn(transport);
 
     actionExecutor.execute(outboundConnectorContext);

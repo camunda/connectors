@@ -51,13 +51,13 @@ class PollingManagerTest {
     textContent.setText("body");
     multipart.addBodyPart(textContent);
     BodyPart attachment = new MimeBodyPart();
-    DataSource dataSource =
-        new ByteArrayDataSource(
-            new FileInputStream("src/test/resources/img/img.png"),
-            ContentType.IMAGE_PNG.getMimeType());
-    attachment.setDataHandler(new DataHandler(dataSource));
-    attachment.setFileName("any.svg");
-    multipart.addBodyPart(attachment);
+    try (FileInputStream fileInputStream = new FileInputStream("src/test/resources/img/img.png")) {
+      DataSource dataSource =
+          new ByteArrayDataSource(fileInputStream, ContentType.IMAGE_PNG.getMimeType());
+      attachment.setDataHandler(new DataHandler(dataSource));
+      attachment.setFileName("any.svg");
+      multipart.addBodyPart(attachment);
+    }
 
     TestImapMessage message =
         TestImapMessage.builder()
