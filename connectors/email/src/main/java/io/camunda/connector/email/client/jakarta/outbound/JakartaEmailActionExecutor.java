@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.email.client.jakarta.outbound;
 
-import static io.camunda.document.DocumentMetadata.CONTENT_TYPE;
-import static io.camunda.document.DocumentMetadata.FILE_NAME;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -397,9 +394,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
             document ->
                 connectorContext.createDocument(
                     DocumentCreationRequest.from(document.inputStream())
-                        .metadata(
-                            Map.of(
-                                CONTENT_TYPE, document.contentType(), FILE_NAME, document.name()))
+                        .fileName(document.name())
+                        .contentType(document.contentType())
                         .build()))
         .toList();
   }

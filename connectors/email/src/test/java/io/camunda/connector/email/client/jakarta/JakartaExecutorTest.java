@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.email.client.jakarta;
 
-import static io.camunda.document.DocumentMetadata.CONTENT_TYPE;
-import static io.camunda.document.DocumentMetadata.FILE_NAME;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -191,9 +189,8 @@ class JakartaExecutorTest {
         .thenReturn(
             this.documentFactory.create(
                 DocumentCreationRequest.from(new FileInputStream("src/test/resources/img/img.png"))
-                    .metadata(
-                        Map.of(
-                            CONTENT_TYPE, ContentType.IMAGE_PNG.getMimeType(), FILE_NAME, "test"))
+                    .contentType(ContentType.IMAGE_PNG.getMimeType())
+                    .fileName("test")
                     .build()));
     when(smtpSendEmail.contentType()).thenReturn(contentType);
     when(smtpSendEmail.body()).thenReturn(body);
