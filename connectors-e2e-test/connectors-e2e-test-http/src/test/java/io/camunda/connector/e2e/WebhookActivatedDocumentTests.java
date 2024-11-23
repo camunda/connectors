@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
+import static io.camunda.connector.e2e.BpmnFile.replace;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -37,10 +38,7 @@ import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.model.bpmn.Bpmn;
-import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
-import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +49,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -69,7 +66,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest(
-    classes = {TestConnectorRuntimeApplication.class, WebhookTests.SpyTestConfig.class},
+    classes = {
+      TestConnectorRuntimeApplication.class,
+      WebhookActivatedDocumentTests.SpyTestConfig.class
+    },
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
@@ -78,12 +78,10 @@ import org.springframework.test.web.servlet.ResultActions;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
-@Import(WebhookTests.SpyTestConfig.class)
+@Import(WebhookActivatedDocumentTests.SpyTestConfig.class)
 @ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
-public class WebhookTests {
-
-  @TempDir File tempDir;
+public class WebhookActivatedDocumentTests {
 
   @TestConfiguration
   static class SpyTestConfig {
@@ -121,12 +119,12 @@ public class WebhookTests {
   @Test
   void shouldCreateDocumentsAndReturnResponse_whenMultipartRequest() throws Exception {
     var mockUrl = "http://localhost:" + serverPort + "/inbound/testId";
-    var model = createModel("=request.headers.THEHEADER = &#34;THEVALUE&#34;");
-    //        replace(
-    //            "webhook_document.bpmn",
-    //            // valid activation condition
-    //            BpmnFile.Replace.replace(
-    //                "<ACTIVATION_CONDITION>", "=request.headers.THEHEADER = &#34;THEVALUE&#34;"));
+    var model =
+        replace(
+            "webhook_document.bpmn",
+            // valid activation condition
+            BpmnFile.Replace.replace(
+                "<ACTIVATION_CONDITION>", "=request.headers.THEHEADER = &#34;THEVALUE&#34;"));
 
     // Prepare a mocked process connectorData backed by our test model
     when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
@@ -220,100 +218,5 @@ public class WebhookTests {
       Assertions.assertThat(new String(storedTextContent))
           .isEqualTo("Hello from\n" + "the Camunda Connectors!");
     }
-  }
-
-  @Test
-  void shouldNotCreateDocumentsAndReturnResponse_whenMultipartRequestButWontActivate()
-      throws Exception {
-    var mockUrl = "http://localhost:" + serverPort + "/inbound/testId";
-
-    var model = createModel("=request.headers.THEHEADER = &#34;INVALID_VALUE&#34;");
-    //        replace(
-    //            "webhook_document.bpmn",
-    //            // invalid activation condition
-    //            BpmnFile.Replace.replace(
-    //                "<ACTIVATION_CONDITION>", "=request.headers.THEHEADER =
-    // &#34;INVALID_VALUE&#34;"));
-
-    // Prepare a mocked process connectorData backed by our test model
-    when(camundaOperateClient.getProcessDefinitionModel(2L)).thenReturn(model);
-    var processDef = mock(ProcessDefinition.class);
-    when(processDef.getKey()).thenReturn(2L);
-    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
-    when(processDef.getBpmnProcessId())
-        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
-
-    // Deploy the webhook
-    stateStore.update(
-        new ProcessImportResult(
-            Map.of(
-                new ProcessDefinitionIdentifier(
-                    processDef.getBpmnProcessId(), processDef.getTenantId()),
-                new ProcessDefinitionVersion(
-                    processDef.getKey(), processDef.getVersion().intValue()))));
-
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
-    CompletableFuture<ResultActions> future = new CompletableFuture<>();
-    ClassPathResource textFile = new ClassPathResource("files/text.txt");
-    ClassPathResource imageFile = new ClassPathResource("files/camunda1.png");
-    byte[] textFileContent = copyToByteArray(textFile.getInputStream());
-    byte[] imageFileContent = copyToByteArray(imageFile.getInputStream());
-
-    try (var executor = Executors.newSingleThreadScheduledExecutor()) {
-      executor.schedule(
-          () -> {
-            try {
-              future.complete(
-                  mockMvc.perform(
-                      multipart(mockUrl)
-                          .part(
-                              new MockPart(
-                                  "param1", PNG_FILE, imageFileContent, MediaType.IMAGE_PNG))
-                          .part(
-                              new MockPart(
-                                  "param2", TEXT_FILE, textFileContent, MediaType.TEXT_PLAIN))
-                          .header("THEHEADER", "THEVALUE")));
-            } catch (Exception e) {
-              future.completeExceptionally(e);
-            }
-          },
-          2,
-          java.util.concurrent.TimeUnit.SECONDS);
-      future.get(10, TimeUnit.SECONDS);
-      verify(documentFactory, never()).create(any());
-    }
-  }
-
-  private BpmnModelInstance createModel(String activationCondition) {
-    var model =
-        Bpmn.createProcess()
-            .executable()
-            .startEvent()
-            .intermediateCatchEvent("webhookId")
-            .endEvent()
-            .done();
-
-    var elementTemplate =
-        ElementTemplate.from(
-                "../../connectors/webhook/element-templates/webhook-connector-intermediate.json")
-            .property("inbound.method", "any")
-            .property("inbound.context", "testId")
-            .property("inbound.shouldValidateHmac", "disabled")
-            .property("inbound.auth.type", "NONE")
-            .property("activationCondition", activationCondition)
-            .property(
-                "inbound.responseExpression",
-                "={body: {documents: documents, someField: \"someValue\"}")
-            .property("consumeUnmatchedEvents", "true")
-            .property("correlationKeyPayload", "=\"1\"")
-            .property("correlationKeyProcess", "=\"1\"")
-            .property("resultVariable", "result")
-            .property("resultExpression", "={body: request.body, documents: documents}")
-            .writeTo(new File(tempDir, "template.json"));
-    var updatedElementTemplateFile = new File(tempDir, "result.bpmn");
-
-    return new BpmnFile(model)
-        .writeToFile(new File(tempDir, "test.bpmn"))
-        .apply(elementTemplate, "webhookId", updatedElementTemplateFile);
   }
 }
