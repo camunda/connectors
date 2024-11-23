@@ -61,7 +61,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest(
-    classes = {TestConnectorRuntimeApplication.class, WebhookNotActivatedDocumentTests.SpyTestConfig.class},
+    classes = {
+      TestConnectorRuntimeApplication.class,
+      WebhookNotActivatedDocumentTests.SpyTestConfig.class
+    },
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
@@ -74,7 +77,7 @@ import org.springframework.test.web.servlet.ResultActions;
 @ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
 public class WebhookNotActivatedDocumentTests {
-  
+
   @TestConfiguration
   static class SpyTestConfig {
 
@@ -107,7 +110,7 @@ public class WebhookNotActivatedDocumentTests {
   void beforeAll() {
     when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
-  
+
   @Test
   void shouldNotCreateDocumentsAndReturnResponse_whenMultipartRequestButWontActivate()
       throws Exception {
