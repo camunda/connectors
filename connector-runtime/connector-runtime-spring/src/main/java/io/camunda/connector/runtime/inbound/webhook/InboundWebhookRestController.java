@@ -137,7 +137,8 @@ public class InboundWebhookRestController {
         // Step 2: trigger and correlate
         var webhookResult = connectorHook.triggerWebhook(payload);
         // create documents if the connector is activable
-        var documentReferences = createDocuments(connector.context(), payload);
+        var documentReferences =
+            createDocuments(connector.context(), webhookResult, payload.parts());
         var ctxData = toWebhookTriggerResultContext(webhookResult, documentReferences);
         // correlate
         var correlationResult = connector.context().correlateWithResult(ctxData);
@@ -151,12 +152,14 @@ public class InboundWebhookRestController {
   }
 
   private List<DocumentReference> createDocuments(
-      InboundConnectorContext context, WebhookProcessingPayload payload) {
-    if (!(context.canActivate(payload) instanceof ActivationCheckResult.Success)) {
+      InboundConnectorContext context,
+      WebhookResult webhookResult,
+      Collection<io.camunda.connector.api.inbound.webhook.Part> parts) {
+    if (!(context.canActivate(webhookResult) instanceof ActivationCheckResult.Success)) {
       return List.of();
     }
 
-    return payload.parts().stream()
+    return parts.stream()
         .map(
             part ->
                 context

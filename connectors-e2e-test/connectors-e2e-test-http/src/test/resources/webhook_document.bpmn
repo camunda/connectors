@@ -15,7 +15,8 @@
                     <zeebe:property name="inbound.context" value="testId" />
                     <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
                     <zeebe:property name="inbound.auth.type" value="NONE" />
-                    <zeebe:property name="inbound.responseExpression" value="={body: {documents: documents}}" />
+                    <zeebe:property name="activationCondition" value="<ACTIVATION_CONDITION>" />
+                    <zeebe:property name="inbound.responseExpression" value="={body: {documents: documents, someField: &#34;someValue&#34; }}" />
                     <zeebe:property name="consumeUnmatchedEvents" value="true" />
                     <zeebe:property name="correlationKeyExpression" value="=&#34;1&#34;" />
                     <zeebe:property name="resultVariable" value="result" />
