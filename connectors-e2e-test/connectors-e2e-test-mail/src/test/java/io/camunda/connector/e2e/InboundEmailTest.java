@@ -27,12 +27,14 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.model.ProcessDefinition;
+import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import jakarta.mail.Flags;
 import jakarta.mail.MessagingException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -70,6 +72,7 @@ public class InboundEmailTest extends BaseEmailTest {
   @BeforeEach
   public void beforeEach() {
     super.reset();
+    CamundaAssert.setAssertionTimeout(Duration.ofSeconds(20));
   }
 
   @Test
