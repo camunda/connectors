@@ -34,9 +34,62 @@ import org.junit.jupiter.api.Test;
 
 class JakartaExecutorTest {
 
+  protected static boolean messageContains(Message message, String... value) {
+    List<String> values = Arrays.asList(value);
+    try {
+      boolean contains = false;
+      if (message.getContent() instanceof Multipart multipart) {
+        for (int i = 0; i < multipart.getCount(); i++) {
+          contains = contains || values.contains(multipart.getBodyPart(i).getContent().toString());
+        }
+      }
+      return contains;
+    } catch (MessagingException | IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static boolean messageHasContentType(Message message, String... messageContentType) {
+    List<String> values = Arrays.asList(messageContentType);
+    try {
+      boolean contains = true;
+      if (message.getContent() instanceof Multipart multipart) {
+        for (int i = 0; i < multipart.getCount(); i++) {
+          contains =
+              contains
+                  && values.contains(multipart.getBodyPart(i).getDataHandler().getContentType());
+        }
+      }
+      return contains;
+    } catch (MessagingException | IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Test
   void executeSmtpSendEmail() throws MessagingException {
+    buildSmtpTest(ContentType.PLAIN, "body", null, "text/plain; charset=UTF-8");
+  }
 
+  @Test
+  void executeSmtpSendEmailAsHtml() throws MessagingException {
+    buildSmtpTest(
+        ContentType.HTML, null, "<html><body>body</body></html>", "text/html; charset=utf-8");
+  }
+
+  @Test
+  void executeSmtpSendEmailAsMultiPart() throws MessagingException {
+    buildSmtpTest(
+        ContentType.MULTIPART,
+        "Hello",
+        "<html><body>body</body></html>",
+        "text/plain; charset=UTF-8",
+        "text/html; charset=utf-8");
+  }
+
+  void buildSmtpTest(
+      ContentType contentType, String body, String bodyAsHtml, String... messageContentType)
+      throws MessagingException {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
     JakartaEmailActionExecutor actionExecutor =
@@ -63,7 +116,9 @@ class JakartaExecutorTest {
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
     when(smtpSendEmail.from()).thenReturn("myself");
-    when(smtpSendEmail.body()).thenReturn("body");
+    when(smtpSendEmail.contentType()).thenReturn(contentType);
+    when(smtpSendEmail.body()).thenReturn(body);
+    when(smtpSendEmail.htmlBody()).thenReturn(bodyAsHtml);
     when(session.getTransport()).thenReturn(transport);
 
     actionExecutor.execute(emailRequest);
@@ -75,8 +130,9 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && argument.getContent().toString().contains("body");
-                  } catch (MessagingException | IOException e) {
+                        && messageContains(argument, body, bodyAsHtml)
+                        && messageHasContentType(argument, messageContentType);
+                  } catch (MessagingException e) {
                     throw new RuntimeException(e);
                   }
                 }),
@@ -116,6 +172,7 @@ class JakartaExecutorTest {
     when(smtpSendEmail.headers()).thenReturn(Map.of("test", "header1"));
     when(smtpSendEmail.from()).thenReturn("myself");
     when(smtpSendEmail.body()).thenReturn("body");
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.PLAIN);
     when(session.getTransport()).thenReturn(transport);
 
     actionExecutor.execute(emailRequest);
@@ -127,9 +184,9 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && argument.getContent().toString().contains("body")
+                        && messageContains(argument, "body")
                         && Arrays.stream(argument.getHeader("test")).toList().contains("header1");
-                  } catch (MessagingException | IOException e) {
+                  } catch (MessagingException e) {
                     throw new RuntimeException(e);
                   }
                 }),

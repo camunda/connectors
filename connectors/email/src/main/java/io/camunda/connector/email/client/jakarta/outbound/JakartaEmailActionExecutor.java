@@ -16,10 +16,9 @@ import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.email.response.*;
 import jakarta.mail.*;
-import jakarta.mail.internet.AddressException;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.*;
 import jakarta.mail.search.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class JakartaEmailActionExecutor implements EmailActionExecutor {
@@ -257,7 +256,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       if (bcc.isPresent()) message.setRecipients(Message.RecipientType.BCC, bcc.get());
       headers.ifPresent(stringObjectMap -> setMessageHeaders(stringObjectMap, message));
       message.setSubject(smtpSendEmail.subject());
-      message.setText(smtpSendEmail.body());
+      Multipart multipart = getMultipart(smtpSendEmail);
+      message.setContent(multipart);
       try (Transport transport = session.getTransport()) {
         this.jakartaUtils.connectTransport(transport, authentication);
         transport.sendMessage(message, message.getAllRecipients());
@@ -277,6 +277,31 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
             throw new RuntimeException(e);
           }
         });
+  }
+
+  private Multipart getMultipart(SmtpSendEmail smtpSendEmail) throws MessagingException {
+    Multipart multipart = new MimeMultipart();
+    switch (smtpSendEmail.contentType()) {
+      case PLAIN -> {
+        MimeBodyPart textPart = new MimeBodyPart();
+        textPart.setText(smtpSendEmail.body(), StandardCharsets.UTF_8.name());
+        multipart.addBodyPart(textPart);
+      }
+      case HTML -> {
+        MimeBodyPart htmlPart = new MimeBodyPart();
+        htmlPart.setContent(smtpSendEmail.htmlBody(), JakartaUtils.HTML_CHARSET);
+        multipart.addBodyPart(htmlPart);
+      }
+      case MULTIPART -> {
+        MimeBodyPart textPart = new MimeBodyPart();
+        textPart.setText(smtpSendEmail.body(), StandardCharsets.UTF_8.name());
+        MimeBodyPart htmlPart = new MimeBodyPart();
+        htmlPart.setContent(smtpSendEmail.htmlBody(), JakartaUtils.HTML_CHARSET);
+        multipart.addBodyPart(textPart);
+        multipart.addBodyPart(htmlPart);
+      }
+    }
+    return multipart;
   }
 
   private SearchTerm createSearchTerms(JsonNode jsonNode) throws AddressException {

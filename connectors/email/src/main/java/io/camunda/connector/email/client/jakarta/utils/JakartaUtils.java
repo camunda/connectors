@@ -34,6 +34,7 @@ public class JakartaUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JakartaUtils.class);
   private static final String REGEX_PATH_SPLITTER = "[./]";
+  public static final String HTML_CHARSET = "text/html; charset=utf-8";
 
   public Session createSession(Configuration configuration) {
     return Session.getInstance(
