@@ -75,6 +75,6 @@ public class DefaultValidationProvider implements ValidationProvider {
    * property values.
    */
   protected String buildValidationMessage(ConstraintViolation<Object> violation) {
-    return " - Property: " + violation.getPropertyPath().toString() + ": Validation failed.";
+    return " - Property: " + violation.getPropertyPath().toString() + ": Validation failed. Original message: " + violation.getMessage();
   }
 }
