@@ -33,5 +33,5 @@ Executables for Windows and Unix systems are provided (`.bat` and Shell scripts,
 `--git-repository` or `-g` is the location of the git repository.
 
 ```shell
-uniquet --destination ~/Desktop/singlefile.json --branch main
+./element-template-generator/uniquet/target/appassembler/bin/uniquet --destination ./connectors-file.json --branch main
 ```
