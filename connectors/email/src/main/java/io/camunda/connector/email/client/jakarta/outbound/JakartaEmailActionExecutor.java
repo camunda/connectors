@@ -24,9 +24,9 @@ import jakarta.activation.DataSource;
 import jakarta.mail.*;
 import jakarta.mail.internet.*;
 import jakarta.mail.search.*;
-import java.nio.charset.StandardCharsets;
 import jakarta.mail.util.ByteArrayDataSource;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -271,20 +271,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       if (bcc.isPresent()) message.setRecipients(Message.RecipientType.BCC, bcc.get());
       headers.ifPresent(stringObjectMap -> setMessageHeaders(stringObjectMap, message));
       message.setSubject(smtpSendEmail.subject());
-        Multipart multipart = getMultipart(smtpSendEmail);
-      if (!Objects.isNull(smtpSendEmail.attachment())) {
-        BodyPart attachment = new MimeBodyPart();
-        DataSource dataSource =
-            new ByteArrayDataSource(
-                smtpSendEmail.attachment().asInputStream(),
-                smtpSendEmail.attachment().metadata().getContentType());
-        attachment.setDataHandler(new DataHandler(dataSource));
-        attachment.setFileName(smtpSendEmail.attachment().metadata().getFileName());
-        multipart.addBodyPart(attachment);
-      Multipart multipart = new MimeMultipart();
-      MimeBodyPart textContent = new MimeBodyPart();
-      textContent.setText(smtpSendEmail.body());
-      multipart.addBodyPart(textContent);
+      Multipart multipart = getMultipart(smtpSendEmail);
       if (!Objects.isNull(smtpSendEmail.attachments())) {
         smtpSendEmail.attachments().forEach(getDocumentConsumer(multipart));
       }

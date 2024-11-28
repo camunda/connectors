@@ -683,14 +683,14 @@
     "tooltip" : "Email's Html content",
     "type" : "Text"
   }, {
-    "id" : "attachmentSmtp",
+    "id" : "attachmentsSmtp",
     "label" : "Attachment",
-    "description" : "Email's attachment",
+    "description" : "Email's attachment. e.g., =[ document1, document2]",
     "optional" : true,
     "feel" : "required",
     "group" : "sendEmailSmtp",
     "binding" : {
-      "name" : "data.smtpAction.attachment",
+      "name" : "data.smtpAction.attachments",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -704,6 +704,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Email's attachments, should be set as a list ",
     "type" : "String"
   }, {
     "id" : "pop3maxToBeRead",

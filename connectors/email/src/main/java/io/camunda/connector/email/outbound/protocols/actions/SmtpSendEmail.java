@@ -126,7 +126,7 @@ public record SmtpSendEmail(
                     property = "contentType",
                     oneOf = {"HTML", "MULTIPART"}))
         @Valid
-        String htmlBody
+        String htmlBody,
     @TemplateProperty(
             label = "Attachment",
             group = "sendEmailSmtp",

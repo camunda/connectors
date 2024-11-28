@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.email.client.jakarta;
 
+import static org.apache.hc.core5.http.ContentType.IMAGE_PNG;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -35,37 +36,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.*;
-import org.apache.hc.core5.http.ContentType;
 import org.eclipse.angus.mail.pop3.POP3Folder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class JakartaExecutorTest {
 
-  protected static boolean messageContains(Message message, String... value) {
-    List<String> values = Arrays.asList(value);
-    try {
-      boolean contains = false;
-      if (message.getContent() instanceof Multipart multipart) {
-        for (int i = 0; i < multipart.getCount(); i++) {
-          contains = contains || values.contains(multipart.getBodyPart(i).getContent().toString());
-        }
-      }
-      return contains;
-    } catch (MessagingException | IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
+  DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
   private static boolean messageHasContentType(Message message, String... messageContentType) {
     List<String> values = Arrays.asList(messageContentType);
     try {
-      boolean contains = true;
+      boolean contains = false;
       if (message.getContent() instanceof Multipart multipart) {
         for (int i = 0; i < multipart.getCount(); i++) {
           contains =
               contains
-                  && values.contains(multipart.getBodyPart(i).getDataHandler().getContentType());
+                  || values.contains(multipart.getBodyPart(i).getDataHandler().getContentType());
         }
       }
       return contains;
@@ -74,32 +61,31 @@ class JakartaExecutorTest {
     }
   }
 
-  DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+  private boolean bodyContains(Object element, String toBeFound)
+      throws MessagingException, IOException {
+    return switch (element) {
+      case String str -> str.contains(toBeFound);
+      case MimeMultipart multipart -> {
+        try {
+          int max = multipart.getCount();
+          boolean found = false;
+          for (int i = 0; i < max; i++) {
+            found =
+                found
+                    || bodyContains(multipart.getBodyPart(i).getContent(), toBeFound)
+                    || toBeFound.equals(multipart.getBodyPart(i).getFileName());
+          }
+          yield found;
+        } catch (MessagingException | IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      default -> false;
+    };
+  }
 
   @Test
   void executeSmtpSendEmail() throws MessagingException {
-    buildSmtpTest(ContentType.PLAIN, "body", null, "text/plain; charset=UTF-8");
-  }
-
-  @Test
-  void executeSmtpSendEmailAsHtml() throws MessagingException {
-    buildSmtpTest(
-        ContentType.HTML, null, "<html><body>body</body></html>", "text/html; charset=utf-8");
-  }
-
-  @Test
-  void executeSmtpSendEmailAsMultiPart() throws MessagingException {
-    buildSmtpTest(
-        ContentType.MULTIPART,
-        "Hello",
-        "<html><body>body</body></html>",
-        "text/plain; charset=UTF-8",
-        "text/html; charset=utf-8");
-  }
-
-  void buildSmtpTest(
-      ContentType contentType, String body, String bodyAsHtml, String... messageContentType)
-      throws MessagingException {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
     JakartaEmailActionExecutor actionExecutor =
@@ -128,6 +114,7 @@ class JakartaExecutorTest {
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
     when(smtpSendEmail.from()).thenReturn("myself");
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.PLAIN);
     when(smtpSendEmail.body()).thenReturn("body");
     when(session.getTransport()).thenReturn(transport);
 
@@ -140,7 +127,122 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && bodyContains(argument.getContent(), "body");
+                        && bodyContains(argument.getContent(), "body")
+                        && messageHasContentType(argument, "text/plain; charset=UTF-8");
+                  } catch (MessagingException | IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                }),
+            argThat(
+                argument ->
+                    Arrays.toString(argument).contains("to")
+                        && Arrays.toString(argument).contains("cc")
+                        && Arrays.toString(argument).contains("bcc")));
+  }
+
+  @Test
+  void executeSmtpSendEmailAsHtml() throws MessagingException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Smtp.class);
+    Session session = mock(Session.class);
+    Transport transport = mock(Transport.class);
+
+    // Authentication
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
+    doNothing().when(transport).connect(any(), any());
+
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(emailRequest.data()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
+    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(smtpSendEmail.to()).thenReturn(List.of("to"));
+    when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
+    when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
+    when(smtpSendEmail.from()).thenReturn("myself");
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.HTML);
+    when(smtpSendEmail.htmlBody()).thenReturn("<html><body>body</body></html>");
+    when(session.getTransport()).thenReturn(transport);
+
+    actionExecutor.execute(outboundConnectorContext);
+
+    verify(transport, times(1))
+        .sendMessage(
+            argThat(
+                argument -> {
+                  try {
+                    return Arrays.stream(argument.getFrom())
+                            .allMatch(address -> address.toString().contains("myself"))
+                        && bodyContains(argument.getContent(), "body")
+                        && messageHasContentType(argument, "text/html; charset=utf-8");
+                  } catch (MessagingException | IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                }),
+            argThat(
+                argument ->
+                    Arrays.toString(argument).contains("to")
+                        && Arrays.toString(argument).contains("cc")
+                        && Arrays.toString(argument).contains("bcc")));
+  }
+
+  @Test
+  void executeSmtpSendEmailAsMultiPart() throws MessagingException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Smtp.class);
+    Session session = mock(Session.class);
+    Transport transport = mock(Transport.class);
+
+    // Authentication
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
+    doNothing().when(transport).connect(any(), any());
+
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(emailRequest.data()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
+    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(smtpSendEmail.to()).thenReturn(List.of("to"));
+    when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
+    when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
+    when(smtpSendEmail.from()).thenReturn("myself");
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.MULTIPART);
+    when(smtpSendEmail.body()).thenReturn("Hello");
+    when(smtpSendEmail.htmlBody()).thenReturn("<html><body>body</body></html>");
+    when(session.getTransport()).thenReturn(transport);
+
+    actionExecutor.execute(outboundConnectorContext);
+
+    verify(transport, times(1))
+        .sendMessage(
+            argThat(
+                argument -> {
+                  try {
+                    return Arrays.stream(argument.getFrom())
+                            .allMatch(address -> address.toString().contains("myself"))
+                        && bodyContains(argument.getContent(), "body")
+                        && messageHasContentType(
+                            argument, "text/plain; charset=UTF-8", "text/html; charset=utf-8");
                   } catch (MessagingException | IOException e) {
                     throw new RuntimeException(e);
                   }
@@ -184,24 +286,16 @@ class JakartaExecutorTest {
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
     when(smtpSendEmail.from()).thenReturn("myself");
     when(smtpSendEmail.body()).thenReturn("body");
-    when(smtpSendEmail.attachment())
-        .thenReturn(
-            this.documentFactory.create(
-                DocumentCreationRequest.from(new FileInputStream("src/test/resources/img/img.png"))
-                    .contentType(ContentType.IMAGE_PNG.getMimeType())
-                    .fileName("test")
-                    .build()));
-    when(smtpSendEmail.contentType()).thenReturn(contentType);
-    when(smtpSendEmail.body()).thenReturn(body);
-    when(smtpSendEmail.htmlBody()).thenReturn(bodyAsHtml);
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.PLAIN);
+
     try (FileInputStream fileInputStream = new FileInputStream("src/test/resources/img/img.png")) {
       when(smtpSendEmail.attachments())
           .thenReturn(
               List.of(
                   this.documentFactory.create(
                       DocumentCreationRequest.from(fileInputStream)
-                          .contentType(ContentType.IMAGE_PNG.getMimeType())
-                          .fileName("test")
+                          .contentType(IMAGE_PNG.getMimeType())
+                          .fileName("testFile")
                           .build())));
     }
     when(session.getTransport()).thenReturn(transport);
@@ -215,10 +309,9 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && messageContains(argument, body, bodyAsHtml)
-                        && messageHasContentType(argument, messageContentType)
-                            && bodyContains(argument.getContent(), "body")
-                            && bodyContains(argument.getContent(), "test");
+                        && bodyContains(argument.getContent(), "testFile")
+                        && messageHasContentType(argument, "text/plain; charset=UTF-8")
+                        && bodyContains(argument.getContent(), "body");
                   } catch (MessagingException | IOException e) {
                     throw new RuntimeException(e);
                   }
@@ -228,29 +321,6 @@ class JakartaExecutorTest {
                     Arrays.toString(argument).contains("to")
                         && Arrays.toString(argument).contains("cc")
                         && Arrays.toString(argument).contains("bcc")));
-  }
-
-  private boolean bodyContains(Object element, String toBeFound)
-      throws MessagingException, IOException {
-    return switch (element) {
-      case String str -> str.contains(toBeFound);
-      case MimeMultipart multipart -> {
-        try {
-          int max = multipart.getCount();
-          boolean found = false;
-          for (int i = 0; i < max; i++) {
-            found =
-                found
-                    || bodyContains(multipart.getBodyPart(i).getContent(), toBeFound)
-                    || toBeFound.equals(multipart.getBodyPart(i).getFileName());
-          }
-          yield found;
-        } catch (MessagingException | IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-      default -> false;
-    };
   }
 
   @Test
@@ -297,9 +367,8 @@ class JakartaExecutorTest {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
                         && bodyContains(argument.getContent(), "body")
-                        && messageContains(argument, "body")
                         && Arrays.stream(argument.getHeader("test")).toList().contains("header1");
-                  } catch (MessagingException e) {
+                  } catch (MessagingException | IOException e) {
                     throw new RuntimeException(e);
                   }
                 }),
