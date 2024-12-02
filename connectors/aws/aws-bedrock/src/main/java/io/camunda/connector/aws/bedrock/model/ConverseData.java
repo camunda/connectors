@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -88,6 +89,16 @@ public final class ConverseData implements RequestData {
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.topP"))
   private Float topP = 0.9f;
+
+  @TemplateProperty(
+          label = "documents",
+          group = "converse",
+          id = "data.documents",
+          feel = Property.FeelMode.required,
+          optional = true,
+          binding = @TemplateProperty.PropertyBinding(name = "data.documents")
+  )
+  private List<Document> documents;
 
   @Override
   public BedrockResponse execute(
