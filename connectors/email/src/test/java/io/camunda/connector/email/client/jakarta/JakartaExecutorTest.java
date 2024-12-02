@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.email.client.jakarta;
 
+import static org.apache.hc.core5.http.ContentType.IMAGE_PNG;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
 import io.camunda.connector.email.client.jakarta.models.EmailBody;
@@ -22,7 +24,13 @@ import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.Smtp;
 import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.email.response.*;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
 import jakarta.mail.*;
+import jakarta.mail.internet.MimeMultipart;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,30 +42,17 @@ import org.junit.jupiter.api.Test;
 
 class JakartaExecutorTest {
 
-  protected static boolean messageContains(Message message, String... value) {
-    List<String> values = Arrays.asList(value);
-    try {
-      boolean contains = false;
-      if (message.getContent() instanceof Multipart multipart) {
-        for (int i = 0; i < multipart.getCount(); i++) {
-          contains = contains || values.contains(multipart.getBodyPart(i).getContent().toString());
-        }
-      }
-      return contains;
-    } catch (MessagingException | IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
+  DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
   private static boolean messageHasContentType(Message message, String... messageContentType) {
     List<String> values = Arrays.asList(messageContentType);
     try {
-      boolean contains = true;
+      boolean contains = false;
       if (message.getContent() instanceof Multipart multipart) {
         for (int i = 0; i < multipart.getCount(); i++) {
           contains =
               contains
-                  && values.contains(multipart.getBodyPart(i).getDataHandler().getContentType());
+                  || values.contains(multipart.getBodyPart(i).getDataHandler().getContentType());
         }
       }
       return contains;
@@ -66,35 +61,37 @@ class JakartaExecutorTest {
     }
   }
 
+  private boolean bodyContains(Object element, String toBeFound)
+      throws MessagingException, IOException {
+    return switch (element) {
+      case String str -> str.contains(toBeFound);
+      case MimeMultipart multipart -> {
+        try {
+          int max = multipart.getCount();
+          boolean found = false;
+          for (int i = 0; i < max; i++) {
+            found =
+                found
+                    || bodyContains(multipart.getBodyPart(i).getContent(), toBeFound)
+                    || toBeFound.equals(multipart.getBodyPart(i).getFileName());
+          }
+          yield found;
+        } catch (MessagingException | IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      default -> false;
+    };
+  }
+
   @Test
   void executeSmtpSendEmail() throws MessagingException {
-    buildSmtpTest(ContentType.PLAIN, "body", null, "text/plain; charset=UTF-8");
-  }
-
-  @Test
-  void executeSmtpSendEmailAsHtml() throws MessagingException {
-    buildSmtpTest(
-        ContentType.HTML, null, "<html><body>body</body></html>", "text/html; charset=utf-8");
-  }
-
-  @Test
-  void executeSmtpSendEmailAsMultiPart() throws MessagingException {
-    buildSmtpTest(
-        ContentType.MULTIPART,
-        "Hello",
-        "<html><body>body</body></html>",
-        "text/plain; charset=UTF-8",
-        "text/html; charset=utf-8");
-  }
-
-  void buildSmtpTest(
-      ContentType contentType, String body, String bodyAsHtml, String... messageContentType)
-      throws MessagingException {
     JakartaUtils sessionFactory = mock(JakartaUtils.class);
     ObjectMapper objectMapper = mock(ObjectMapper.class);
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -107,6 +104,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(transport).connect(any(), any());
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(session.getProperties()).thenReturn(new Properties());
     when(emailRequest.data()).thenReturn(protocol);
@@ -116,12 +114,11 @@ class JakartaExecutorTest {
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
     when(smtpSendEmail.from()).thenReturn("myself");
-    when(smtpSendEmail.contentType()).thenReturn(contentType);
-    when(smtpSendEmail.body()).thenReturn(body);
-    when(smtpSendEmail.htmlBody()).thenReturn(bodyAsHtml);
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.PLAIN);
+    when(smtpSendEmail.body()).thenReturn("body");
     when(session.getTransport()).thenReturn(transport);
 
-    actionExecutor.execute(emailRequest);
+    actionExecutor.execute(outboundConnectorContext);
 
     verify(transport, times(1))
         .sendMessage(
@@ -130,9 +127,192 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && messageContains(argument, body, bodyAsHtml)
-                        && messageHasContentType(argument, messageContentType);
-                  } catch (MessagingException e) {
+                        && bodyContains(argument.getContent(), "body")
+                        && messageHasContentType(argument, "text/plain; charset=UTF-8");
+                  } catch (MessagingException | IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                }),
+            argThat(
+                argument ->
+                    Arrays.toString(argument).contains("to")
+                        && Arrays.toString(argument).contains("cc")
+                        && Arrays.toString(argument).contains("bcc")));
+  }
+
+  @Test
+  void executeSmtpSendEmailAsHtml() throws MessagingException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Smtp.class);
+    Session session = mock(Session.class);
+    Transport transport = mock(Transport.class);
+
+    // Authentication
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
+    doNothing().when(transport).connect(any(), any());
+
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(emailRequest.data()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
+    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(smtpSendEmail.to()).thenReturn(List.of("to"));
+    when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
+    when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
+    when(smtpSendEmail.from()).thenReturn("myself");
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.HTML);
+    when(smtpSendEmail.htmlBody()).thenReturn("<html><body>body</body></html>");
+    when(session.getTransport()).thenReturn(transport);
+
+    actionExecutor.execute(outboundConnectorContext);
+
+    verify(transport, times(1))
+        .sendMessage(
+            argThat(
+                argument -> {
+                  try {
+                    return Arrays.stream(argument.getFrom())
+                            .allMatch(address -> address.toString().contains("myself"))
+                        && bodyContains(argument.getContent(), "body")
+                        && messageHasContentType(argument, "text/html; charset=utf-8");
+                  } catch (MessagingException | IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                }),
+            argThat(
+                argument ->
+                    Arrays.toString(argument).contains("to")
+                        && Arrays.toString(argument).contains("cc")
+                        && Arrays.toString(argument).contains("bcc")));
+  }
+
+  @Test
+  void executeSmtpSendEmailAsMultiPart() throws MessagingException {
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Smtp.class);
+    Session session = mock(Session.class);
+    Transport transport = mock(Transport.class);
+
+    // Authentication
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
+    doNothing().when(transport).connect(any(), any());
+
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(emailRequest.data()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
+    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(smtpSendEmail.to()).thenReturn(List.of("to"));
+    when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
+    when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
+    when(smtpSendEmail.from()).thenReturn("myself");
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.MULTIPART);
+    when(smtpSendEmail.body()).thenReturn("Hello");
+    when(smtpSendEmail.htmlBody()).thenReturn("<html><body>body</body></html>");
+    when(session.getTransport()).thenReturn(transport);
+
+    actionExecutor.execute(outboundConnectorContext);
+
+    verify(transport, times(1))
+        .sendMessage(
+            argThat(
+                argument -> {
+                  try {
+                    return Arrays.stream(argument.getFrom())
+                            .allMatch(address -> address.toString().contains("myself"))
+                        && bodyContains(argument.getContent(), "body")
+                        && messageHasContentType(
+                            argument, "text/plain; charset=UTF-8", "text/html; charset=utf-8");
+                  } catch (MessagingException | IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                }),
+            argThat(
+                argument ->
+                    Arrays.toString(argument).contains("to")
+                        && Arrays.toString(argument).contains("cc")
+                        && Arrays.toString(argument).contains("bcc")));
+  }
+
+  @Test
+  void executeSmtpSendEmailWithAttachment() throws MessagingException, IOException {
+
+    JakartaUtils sessionFactory = mock(JakartaUtils.class);
+    ObjectMapper objectMapper = mock(ObjectMapper.class);
+    JakartaEmailActionExecutor actionExecutor =
+        JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
+
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
+    EmailRequest emailRequest = mock(EmailRequest.class);
+    SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
+    SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
+    Protocol protocol = mock(Smtp.class);
+    Session session = mock(Session.class);
+    Transport transport = mock(Transport.class);
+
+    // Authentication
+    when(simpleAuthentication.username()).thenReturn("user");
+    when(simpleAuthentication.password()).thenReturn("secret");
+    doNothing().when(transport).connect(any(), any());
+
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
+    when(emailRequest.authentication()).thenReturn(simpleAuthentication);
+    when(session.getProperties()).thenReturn(new Properties());
+    when(emailRequest.data()).thenReturn(protocol);
+    when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
+    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(smtpSendEmail.to()).thenReturn(List.of("to"));
+    when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
+    when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
+    when(smtpSendEmail.from()).thenReturn("myself");
+    when(smtpSendEmail.body()).thenReturn("body");
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.PLAIN);
+
+    try (FileInputStream fileInputStream = new FileInputStream("src/test/resources/img/img.png")) {
+      when(smtpSendEmail.attachments())
+          .thenReturn(
+              List.of(
+                  this.documentFactory.create(
+                      DocumentCreationRequest.from(fileInputStream)
+                          .contentType(IMAGE_PNG.getMimeType())
+                          .fileName("testFile")
+                          .build())));
+    }
+    when(session.getTransport()).thenReturn(transport);
+
+    actionExecutor.execute(outboundConnectorContext);
+
+    verify(transport, times(1))
+        .sendMessage(
+            argThat(
+                argument -> {
+                  try {
+                    return Arrays.stream(argument.getFrom())
+                            .allMatch(address -> address.toString().contains("myself"))
+                        && bodyContains(argument.getContent(), "testFile")
+                        && messageHasContentType(argument, "text/plain; charset=UTF-8")
+                        && bodyContains(argument.getContent(), "body");
+                  } catch (MessagingException | IOException e) {
                     throw new RuntimeException(e);
                   }
                 }),
@@ -151,6 +331,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     SmtpSendEmail smtpSendEmail = mock(SmtpSendEmail.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -163,6 +344,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(transport).connect(any(), any());
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(emailRequest.authentication()).thenReturn(simpleAuthentication);
     when(session.getProperties()).thenReturn(new Properties());
     when(emailRequest.data()).thenReturn(protocol);
@@ -175,7 +357,7 @@ class JakartaExecutorTest {
     when(smtpSendEmail.contentType()).thenReturn(ContentType.PLAIN);
     when(session.getTransport()).thenReturn(transport);
 
-    actionExecutor.execute(emailRequest);
+    actionExecutor.execute(outboundConnectorContext);
 
     verify(transport, times(1))
         .sendMessage(
@@ -184,9 +366,9 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && messageContains(argument, "body")
+                        && bodyContains(argument.getContent(), "body")
                         && Arrays.stream(argument.getHeader("test")).toList().contains("header1");
-                  } catch (MessagingException e) {
+                  } catch (MessagingException | IOException e) {
                     throw new RuntimeException(e);
                   }
                 }),
@@ -201,6 +383,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3ListEmails pop3ListEmails = mock(Pop3ListEmails.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -214,6 +397,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.username()).thenReturn("user");
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
 
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
 
@@ -246,7 +430,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertInstanceOf(List.class, object);
     Assertions.assertInstanceOf(ListEmailsResponse.class, ((List) object).getFirst());
@@ -260,6 +444,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapListEmails imapListEmails = mock(ImapListEmails.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -273,6 +458,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.username()).thenReturn("user");
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
 
     doNothing().when(folder).open(Folder.READ_ONLY);
 
@@ -304,7 +490,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertInstanceOf(List.class, object);
     Assertions.assertInstanceOf(ListEmailsResponse.class, ((List) object).getFirst());
@@ -318,6 +504,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3ReadEmail pop3ReadEmail = mock(Pop3ReadEmail.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -334,6 +521,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
     when(pop3Folder.search(any())).thenReturn(new Message[] {message});
     when(message.getHeader(any())).thenReturn(new String[] {"10"});
@@ -360,7 +548,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertInstanceOf(ReadEmailResponse.class, object);
   }
@@ -373,6 +561,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapReadEmail imapReadEmail = mock(ImapReadEmail.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -389,6 +578,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(folder.search(any())).thenReturn(new Message[] {message});
     when(message.getHeader(any())).thenReturn(new String[] {"10"});
@@ -415,7 +605,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertInstanceOf(ReadEmailResponse.class, object);
   }
@@ -428,6 +618,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3DeleteEmail pop3DeleteEmail = mock(Pop3DeleteEmail.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -444,6 +635,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
     when(pop3Folder.search(any())).thenReturn(new Message[] {message});
     when(message.getHeader(any())).thenReturn(new String[] {"10"});
@@ -457,7 +649,7 @@ class JakartaExecutorTest {
     when(protocol.getProtocolAction()).thenReturn(pop3DeleteEmail);
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertInstanceOf(DeleteEmailResponse.class, object);
   }
@@ -470,6 +662,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapDeleteEmail imapDeleteEmail = mock(ImapDeleteEmail.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -486,6 +679,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(folder.search(any())).thenReturn(new Message[] {message});
     when(message.getHeader(any())).thenReturn(new String[] {"10"});
@@ -499,7 +693,7 @@ class JakartaExecutorTest {
     when(protocol.getProtocolAction()).thenReturn(imapDeleteEmail);
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertInstanceOf(DeleteEmailResponse.class, object);
   }
@@ -512,6 +706,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     Pop3SearchEmails pop3SearchEmails = mock(Pop3SearchEmails.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -528,6 +723,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(store.getFolder(anyString())).thenReturn(pop3Folder);
     when(pop3Folder.search(any(), any())).thenReturn(new Message[] {message});
     when(pop3SearchEmails.criteria())
@@ -555,7 +751,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertInstanceOf(List.class, object);
   }
@@ -568,6 +764,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -584,6 +781,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(folder.search(any(), any())).thenReturn(new Message[] {message});
     when(imapSearchEmails.criteria())
@@ -611,7 +809,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertInstanceOf(List.class, object);
   }
@@ -624,6 +822,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapMoveEmail imapMoveEmail = mock(ImapMoveEmail.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -642,6 +841,7 @@ class JakartaExecutorTest {
     when(simpleAuthentication.password()).thenReturn("secret");
     doNothing().when(store).connect(any(), any());
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(folder.search(any())).thenReturn(new Message[] {message});
     when(store.getDefaultFolder()).thenReturn(defaultFolder);
@@ -673,7 +873,7 @@ class JakartaExecutorTest {
                 1));
     doNothing().when(store).connect(any(), any());
 
-    Object object = actionExecutor.execute(emailRequest);
+    Object object = actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertInstanceOf(MoveEmailResponse.class, object);
   }
@@ -686,6 +886,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -720,6 +921,7 @@ class JakartaExecutorTest {
     Store store = new TestStore(Session.getInstance(new Properties()), new URLName(""));
     Folder folder = new TestFolder(store, message, message2, message3);
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(session.getStore()).thenReturn(store);
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(imapSearchEmails.criteria())
@@ -729,7 +931,7 @@ class JakartaExecutorTest {
     when(protocol.getProtocolAction()).thenReturn(imapSearchEmails);
 
     List<SearchEmailsResponse> searchEmailsResponses =
-        (List<SearchEmailsResponse>) actionExecutor.execute(emailRequest);
+        (List<SearchEmailsResponse>) actionExecutor.execute(outboundConnectorContext);
 
     Assertions.assertEquals(1, searchEmailsResponses.size());
     Assertions.assertEquals("important", searchEmailsResponses.getFirst().subject());
@@ -743,6 +945,7 @@ class JakartaExecutorTest {
     JakartaEmailActionExecutor actionExecutor =
         JakartaEmailActionExecutor.create(sessionFactory, objectMapper);
 
+    OutboundConnectorContext outboundConnectorContext = mock(OutboundConnectorContext.class);
     EmailRequest emailRequest = mock(EmailRequest.class);
     ImapSearchEmails imapSearchEmails = mock(ImapSearchEmails.class);
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
@@ -779,6 +982,7 @@ class JakartaExecutorTest {
     Store store = new TestStore(Session.getInstance(new Properties()), new URLName(""));
     Folder folder = new TestFolder(store, message, message2, message3);
 
+    when(outboundConnectorContext.bindVariables(any())).thenReturn(emailRequest);
     when(session.getStore()).thenReturn(store);
     when(sessionFactory.findImapFolder(any(), any())).thenReturn(folder);
     when(imapSearchEmails.criteria())
@@ -789,7 +993,7 @@ class JakartaExecutorTest {
     when(sessionFactory.createBodylessEmail(any())).thenCallRealMethod();
 
     List<SearchEmailsResponse> searchEmailsResponses =
-        (List<SearchEmailsResponse>) actionExecutor.execute(emailRequest);
+        (List<SearchEmailsResponse>) actionExecutor.execute(outboundConnectorContext);
 
     System.out.println(searchEmailsResponses);
     Assertions.assertEquals(2, searchEmailsResponses.size());
