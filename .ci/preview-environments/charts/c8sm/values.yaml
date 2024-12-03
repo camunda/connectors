@@ -73,6 +73,8 @@ camunda-platform:
       value: demo
     - name: CAMUNDA_CLIENT_AUTH_PASSWORD
       value: demo
+    - name: CAMUNDA_CONNECTOR_POLLING_ENABLED
+      value: "false"
     resources:
       limits:
         cpu: 1
