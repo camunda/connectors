@@ -24,8 +24,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ProcessInstanceClientConfiguration {
   @Bean
-  public ProcessInstanceClient springOperateClientAdapter(
-      SearchQueryClient operateClient, ObjectMapper mapper) {
-    return new ProcessInstanceClientImpl(operateClient, mapper);
+  public ProcessInstanceClient springProcessInstanceClient(
+      SearchQueryClient searchQueryClient, ObjectMapper mapper) {
+    return new ProcessInstanceClientImpl(searchQueryClient, mapper);
   }
 }

@@ -33,14 +33,14 @@ import org.springframework.util.CollectionUtils;
 
 public class ProcessInstanceClientImpl implements ProcessInstanceClient {
 
-  private final SearchQueryClient operateClient;
+  private final SearchQueryClient searchQueryClient;
   private final ObjectMapper mapper;
   private final Lock fetchActiveProcessLock;
   private final Lock fetchVariablesLock;
 
   public ProcessInstanceClientImpl(
-      final SearchQueryClient operateClient, final ObjectMapper mapper) {
-    this.operateClient = operateClient;
+      final SearchQueryClient searchQueryClient, final ObjectMapper mapper) {
+    this.searchQueryClient = searchQueryClient;
     this.mapper = mapper;
     this.fetchActiveProcessLock = new ReentrantLock();
     this.fetchVariablesLock = new ReentrantLock();
@@ -66,7 +66,7 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
       List<FlowNodeInstance> result = new ArrayList<>();
       do {
         searchResult =
-            operateClient.queryActiveFlowNodes(
+            searchQueryClient.queryActiveFlowNodes(
                 processDefinitionKey, elementId, processPaginationIndex);
         processPaginationIndex = searchResult.page().lastSortValues();
         if (searchResult.items() != null) {
@@ -96,7 +96,8 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
       SearchQueryResponse<Variable> searchResult;
       Map<String, Object> processVariables = new HashMap<>();
       do {
-        searchResult = operateClient.queryVariables(processInstanceKey, variablePaginationIndex);
+        searchResult =
+            searchQueryClient.queryVariables(processInstanceKey, variablePaginationIndex);
         List<Object> newPaginationIdx = searchResult.page().lastSortValues();
         if (searchResult.items() != null) {
           processVariables.putAll(

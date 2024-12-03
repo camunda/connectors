@@ -100,7 +100,7 @@ public class WebhookNotActivatedDocumentTests {
 
   @Autowired ProcessStateStore stateStore;
 
-  @MockBean SearchQueryClient camundaOperateClient;
+  @MockBean SearchQueryClient searchQueryClient;
 
   @Autowired DocumentFactory documentFactory;
 
@@ -124,7 +124,7 @@ public class WebhookNotActivatedDocumentTests {
                 "<ACTIVATION_CONDITION>", "=request.headers.THEHEADER = &#34;INVALID_VALUE&#34;"));
 
     // Prepare a mocked process connectorData backed by our test model
-    when(camundaOperateClient.getProcessModel(2L)).thenReturn(model);
+    when(searchQueryClient.getProcessModel(2L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
     when(processDef.getProcessDefinitionKey()).thenReturn(2L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());

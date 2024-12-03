@@ -37,8 +37,8 @@ public class ProcessDefinitionSearch {
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionSearch.class);
   private final SearchQueryClient searchQueryClient;
 
-  public ProcessDefinitionSearch(SearchQueryClient operateClient) {
-    this.searchQueryClient = operateClient;
+  public ProcessDefinitionSearch(SearchQueryClient searchQueryClient) {
+    this.searchQueryClient = searchQueryClient;
   }
 
   /**

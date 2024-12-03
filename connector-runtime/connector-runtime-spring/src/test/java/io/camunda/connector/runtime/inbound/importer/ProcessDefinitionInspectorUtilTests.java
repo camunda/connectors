@@ -120,13 +120,13 @@ public class ProcessDefinitionInspectorUtilTests {
 
   private List<InboundConnectorElement> fromModel(String fileName, String processId) {
     try {
-      var operateClientMock = mock(SearchQueryClient.class);
-      var inspector = new ProcessDefinitionInspector(operateClientMock);
+      var searchQueryClientMock = mock(SearchQueryClient.class);
+      var inspector = new ProcessDefinitionInspector(searchQueryClientMock);
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
       var processDefinitionID = new ProcessDefinitionIdentifier(processId, "tenant1");
       var processDefinitionVersion = new ProcessImportResult.ProcessDefinitionVersion(1, 1);
-      when(operateClientMock.getProcessModel(1)).thenReturn(model);
+      when(searchQueryClientMock.getProcessModel(1)).thenReturn(model);
       return inspector.findInboundConnectors(processDefinitionID, processDefinitionVersion);
     } catch (Exception e) {
       throw new RuntimeException(e);

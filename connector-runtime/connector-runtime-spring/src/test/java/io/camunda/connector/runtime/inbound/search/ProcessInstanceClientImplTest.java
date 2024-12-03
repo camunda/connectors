@@ -45,7 +45,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ProcessInstanceClientImplTest {
 
-  @Mock private SearchQueryClient operateClient;
+  @Mock private SearchQueryClient searchQueryClient;
   private ObjectMapper objectMapper;
 
   @BeforeEach
@@ -54,9 +54,9 @@ class ProcessInstanceClientImplTest {
   }
 
   @Test
-  public void testFetchFlowNodeInstanceByDefinitionKeyAndElementId() throws Exception {
-    ProcessInstanceClient operateClientAdapter =
-        new ProcessInstanceClientImpl(operateClient, objectMapper);
+  public void testFetchFlowNodeInstanceByDefinitionKeyAndElementId() {
+    ProcessInstanceClient processInstanceClient =
+        new ProcessInstanceClientImpl(searchQueryClient, objectMapper);
 
     // Given
     Long processDefinitionKey = 123L;
@@ -71,13 +71,13 @@ class ProcessInstanceClientImplTest {
     SearchQueryResponse<FlowNodeInstance> flownodeInstanceEmptySearchResult =
         createEmptySearchResult();
 
-    when(operateClient.queryActiveFlowNodes(anyLong(), any(), any()))
+    when(searchQueryClient.queryActiveFlowNodes(anyLong(), any(), any()))
         .thenReturn(flownodeInstanceSearchResult)
         .thenReturn(flownodeInstanceEmptySearchResult);
 
     // When
     List<FlowNodeInstance> result =
-        operateClientAdapter.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
+        processInstanceClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
             processDefinitionKey, elementId);
 
     // Then
@@ -111,8 +111,8 @@ class ProcessInstanceClientImplTest {
 
   @Test
   public void testFetchVariablesByProcessInstanceKey() throws Exception {
-    ProcessInstanceClient operateClientAdapter =
-        new ProcessInstanceClientImpl(operateClient, objectMapper);
+    ProcessInstanceClient processInstanceClient =
+        new ProcessInstanceClientImpl(searchQueryClient, objectMapper);
 
     // Given
     Long processInstanceKey = 456L;
@@ -123,13 +123,13 @@ class ProcessInstanceClientImplTest {
     SearchQueryResponse<Variable> variableSearchResult = createSearchResult(variable1, variable2);
     SearchQueryResponse<Variable> variableEmptySearchResult = createEmptySearchResult();
 
-    when(operateClient.queryVariables(anyLong(), any()))
+    when(searchQueryClient.queryVariables(anyLong(), any()))
         .thenReturn(variableSearchResult)
         .thenReturn(variableEmptySearchResult);
 
     // When
     Map<String, Object> result =
-        operateClientAdapter.fetchVariablesByProcessInstanceKey(processInstanceKey);
+        processInstanceClient.fetchVariablesByProcessInstanceKey(processInstanceKey);
 
     // Then
     assertThat(result.size()).isEqualTo(2);

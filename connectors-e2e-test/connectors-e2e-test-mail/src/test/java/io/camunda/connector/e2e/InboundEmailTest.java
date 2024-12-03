@@ -64,7 +64,7 @@ public class InboundEmailTest extends BaseEmailTest {
       Executors.newSingleThreadScheduledExecutor();
   private static final AtomicInteger counter = new AtomicInteger(1);
   @Autowired ProcessStateStore processStateStore;
-  @Autowired SearchQueryClient camundaOperateClient;
+  @Autowired SearchQueryClient searchQueryClient;
   @Mock private ProcessDefinition processDef;
   @Autowired private ZeebeClient zeebeClient;
 
@@ -220,7 +220,7 @@ public class InboundEmailTest extends BaseEmailTest {
   }
 
   private void mockProcessDefinition(BpmnModelInstance model) {
-    when(camundaOperateClient.getProcessModel(1L)).thenReturn(model);
+    when(searchQueryClient.getProcessModel(1L)).thenReturn(model);
     when(processDef.getProcessDefinitionKey()).thenReturn(1L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())

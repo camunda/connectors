@@ -76,17 +76,18 @@ public class ProcessDefinitionInspector {
     INBOUND_ELIGIBLE_TYPES.add(BoundaryEvent.class);
   }
 
-  private final SearchQueryClient operateClient;
+  private final SearchQueryClient searchQueryClient;
 
-  public ProcessDefinitionInspector(SearchQueryClient operateClient) {
-    this.operateClient = operateClient;
+  public ProcessDefinitionInspector(SearchQueryClient searchQueryClient) {
+    this.searchQueryClient = searchQueryClient;
   }
 
   public List<InboundConnectorElement> findInboundConnectors(
       ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version) {
 
     LOG.debug("Checking {} (version {}) for connectors.", identifier, version.version());
-    BpmnModelInstance modelInstance = operateClient.getProcessModel(version.processDefinitionKey());
+    BpmnModelInstance modelInstance =
+        searchQueryClient.getProcessModel(version.processDefinitionKey());
 
     var processes =
         modelInstance.getDefinitions().getChildElementsByType(Process.class).stream()

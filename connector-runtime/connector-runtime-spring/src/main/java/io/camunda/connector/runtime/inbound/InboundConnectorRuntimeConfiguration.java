@@ -90,14 +90,14 @@ public class InboundConnectorRuntimeConfiguration {
       InboundCorrelationHandler correlationHandler,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
-      ProcessInstanceClient operateClientAdapter,
+      ProcessInstanceClient processInstanceClient,
       DocumentFactory documentFactory) {
     return new DefaultInboundConnectorContextFactory(
         mapper,
         correlationHandler,
         secretProviderAggregator,
         validationProvider,
-        operateClientAdapter,
+        processInstanceClient,
         documentFactory);
   }
 
@@ -124,13 +124,14 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  SearchQueryClient operateClient(ZeebeClient zeebeClient) {
+  SearchQueryClient searchQueryClient(ZeebeClient zeebeClient) {
     return new SearchQueryClientImpl(zeebeClient);
   }
 
   @Bean
-  public ProcessDefinitionInspector processDefinitionInspector(SearchQueryClient operateClient) {
-    return new ProcessDefinitionInspector(operateClient);
+  public ProcessDefinitionInspector processDefinitionInspector(
+      SearchQueryClient searchQueryClient) {
+    return new ProcessDefinitionInspector(searchQueryClient);
   }
 
   @Bean

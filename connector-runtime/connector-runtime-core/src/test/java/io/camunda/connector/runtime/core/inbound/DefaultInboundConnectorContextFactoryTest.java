@@ -42,7 +42,7 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private InboundCorrelationHandler correlationHandler;
   @Mock private SecretProviderAggregator secretProviderAggregator;
   @Mock private ValidationProvider validationProvider;
-  @Mock private ProcessInstanceClient operateClientAdapter;
+  @Mock private ProcessInstanceClient processInstanceClient;
   @Mock private Consumer<Throwable> cancellationCallback;
   @Mock private ValidInboundConnectorDetails newConnector;
   @Mock private DocumentFactory documentFactory;
@@ -56,7 +56,7 @@ class DefaultInboundConnectorContextFactoryTest {
             correlationHandler,
             secretProviderAggregator,
             validationProvider,
-            operateClientAdapter,
+            processInstanceClient,
             documentFactory);
   }
 

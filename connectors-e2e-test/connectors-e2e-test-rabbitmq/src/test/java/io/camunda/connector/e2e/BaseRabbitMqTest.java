@@ -41,7 +41,7 @@ public abstract class BaseRabbitMqTest {
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 
-  @Autowired SearchQueryClient operateClient;
+  @Autowired SearchQueryClient searchQueryClient;
 
   @LocalServerPort int serverPort;
 
