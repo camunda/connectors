@@ -11,6 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 
 @TemplateSubType(id = "sendEmailSmtp", label = "Send Email")
 public record SmtpSendEmail(
@@ -58,6 +59,16 @@ public record SmtpSendEmail(
         @Valid
         Object bcc,
     @TemplateProperty(
+            label = "Headers",
+            group = "sendEmailSmtp",
+            id = "smtpHeaders",
+            tooltip = "Additional email headers",
+            feel = Property.FeelMode.required,
+            binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.headers"),
+            optional = true)
+        @Valid
+        Map<String, String> headers,
+    @TemplateProperty(
             label = "Subject",
             group = "sendEmailSmtp",
             id = "smtpSubject",
@@ -69,14 +80,49 @@ public record SmtpSendEmail(
         @NotNull
         String subject,
     @TemplateProperty(
-            label = "Email Content",
+            label = "ContentType",
+            group = "sendEmailSmtp",
+            id = "contentType",
+            defaultValue = "PLAIN",
+            type = TemplateProperty.PropertyType.Dropdown,
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(label = "PLAIN", value = "PLAIN"),
+              @TemplateProperty.DropdownPropertyChoice(label = "HTML", value = "HTML"),
+              @TemplateProperty.DropdownPropertyChoice(
+                  label = "HTML & Plaintext",
+                  value = "MULTIPART")
+            },
+            tooltip = "Email's contentType",
+            binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.contentType"))
+        @Valid
+        @NotNull
+        ContentType contentType,
+    @TemplateProperty(
+            label = "Email Text Content",
             group = "sendEmailSmtp",
             id = "smtpBody",
             type = TemplateProperty.PropertyType.Text,
             tooltip = "Email's content",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.body"),
-            feel = Property.FeelMode.optional)
+            feel = Property.FeelMode.optional,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "contentType",
+                    oneOf = {"PLAIN", "MULTIPART"}))
         @Valid
-        @NotNull
-        String body)
+        String body,
+    @TemplateProperty(
+            label = "Email Html Content",
+            group = "sendEmailSmtp",
+            id = "smtpHtmlBody",
+            type = TemplateProperty.PropertyType.Text,
+            tooltip = "Email's Html content",
+            binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.htmlBody"),
+            feel = Property.FeelMode.optional,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "contentType",
+                    oneOf = {"HTML", "MULTIPART"}))
+        @Valid
+        String htmlBody)
     implements SmtpAction {}
