@@ -36,14 +36,31 @@ global:
     # necessary due to name override bugs
     url:
       host: elasticsearch
-  auth:
-    username: demo
-    password: demo
 
-  identity:
+identity:
+  auth:
+    # Enable Camunda Identity-based authentication
+    enabled: true
+    # Token issuer (Keycloak) URL
+    publicIssuerUrl: https://{{ include "ingress.domain" . }}/auth/realms/camunda-platform
+    connectors:
+      # fixed secret, to avoid generating a random one each time
+      existingSecret: connectors
+    operate:
+      # fixed secret, to avoid generating a random one each time
+      existingSecret: operate
+      redirectUrl: https://{{ include "ingress.domain" . }}/operate
+    webModeler:
+      redirectUrl: https://{{ include "ingress.domain" . }}/modeler
+    zeebe:
+      # fixed secret, to avoid generating a random one each time
+      existingSecret: zeebe
+  keycloak:
     auth:
-      # Enable Camunda Identity-based authentication
-      enabled: false
+      # necessary due to name override bugs
+      adminUser: admin
+      existingSecret: identity-keycloak
+      existingSecretKey: admin-password
   zeebeClusterName: zeebe-cluster
 
 
@@ -69,10 +86,14 @@ camunda-platform:
     env:
     - name: JAVA_OPTS
       value: "-Xms512m -Xmx512m"
-    - name: CAMUNDA_CLIENT_AUTH_USERNAME
-      value: demo
-    - name: CAMUNDA_CLIENT_AUTH_PASSWORD
-      value: demo
+    - name: CAMUNDA_CLIENT_AUTH_CLIENT-ID
+      value: ${ZEEBE_CLIENT_ID}
+    - name: CAMUNDA_CLIENT_AUTH_CLIENT-SECRET
+      value: ${ZEEBE_CLIENT_SECRET}
+    - name: CAMUNDA_CLIENT_AUTH_AUDIENCE
+      value: ${ZEEBE_TOKEN_AUDIENCE}
+    - name: CAMUNDA_CLIENT_AUTH_ISSUER
+      value: ${ZEEBE_AUTHORIZATION_SERVER_URL}
     - name: CAMUNDA_CONNECTOR_POLLING_ENABLED
       value: "false"
     - name: CAMUNDA_CLIENT_ZEEBE_REST-ADDRESS
@@ -119,6 +140,93 @@ camunda-platform:
       - key: "previews"
         operator: "Exists"
         effect: "NoSchedule"
+
+  identity:
+    enabled: true
+    fullnameOverride: identity
+    contextPath: /identity
+    fullURL: https://{{ include "ingress.domain" . }}{{ .Values.contextPath }}
+    # image:
+    #     repository: camunda/identity
+    #     tag: latest
+    env:
+      # Pre-create an Identity test application to be used to access the Zeebe cluster endpoint
+      - name: KEYCLOAK_CLIENTS_2_ID
+        value: test
+      - name: KEYCLOAK_CLIENTS_2_NAME
+        value: test
+      - name: KEYCLOAK_CLIENTS_2_SECRET
+        value: test
+      - name: KEYCLOAK_CLIENTS_2_REDIRECT_URIS_0
+        value: /callback
+      - name: KEYCLOAK_CLIENTS_2_ROOT_URL
+        value: http://test
+      - name: KEYCLOAK_CLIENTS_2_TYPE
+        value: CONFIDENTIAL
+      - name: KEYCLOAK_CLIENTS_2_PERMISSIONS_0_RESOURCE_SERVER_ID
+        value: zeebe-api
+      - name: KEYCLOAK_CLIENTS_2_PERMISSIONS_0_DEFINITION
+        value: "write:*"
+    resources:
+      limits:
+        cpu: 1
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    nodeSelector:
+      cloud.google.com/gke-nodepool: previews
+    tolerations:
+      - key: "previews"
+        operator: "Exists"
+        effect: "NoSchedule"
+
+  identityKeycloak:
+    enabled: true
+    fullnameOverride: identity-keycloak
+    auth:
+      adminUser: admin
+      adminPassword: admin
+    externalDatabase:
+      password: postgresql
+    extraEnvVars:
+      - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
+        value: "true"
+    resources:
+      limits:
+        cpu: 1
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    nodeSelector:
+      cloud.google.com/gke-nodepool: previews
+    tolerations:
+      - key: "previews"
+        operator: "Exists"
+        effect: "NoSchedule"
+    postgresql:
+      fullnameOverride: identity-keycloak-postgresql
+      auth:
+        # fixed secret, to avoid generating a random password each time
+        password: postgresql
+      primary:
+        persistence:
+          enabled: true
+          size: 1Gi
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        nodeSelector:
+          cloud.google.com/gke-nodepool: previews
+        tolerations:
+          - key: "previews"
+            operator: "Exists"
+            effect: "NoSchedule"
 
   operate:
     enabled: true
