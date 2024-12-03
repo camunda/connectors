@@ -19,6 +19,10 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
+      @ElementTemplate.PropertyGroup(id = "action", label = "Action"),
+      @ElementTemplate.PropertyGroup(id = "deleteObject", label = "Delete an object"),
+      @ElementTemplate.PropertyGroup(id = "uploadObject", label = "Upload an object"),
+      @ElementTemplate.PropertyGroup(id = "downloadObject", label = "Download an object"),
     },
     documentationRef = "https://docs.camunda.io/docs/",
     icon = "icon.svg")
