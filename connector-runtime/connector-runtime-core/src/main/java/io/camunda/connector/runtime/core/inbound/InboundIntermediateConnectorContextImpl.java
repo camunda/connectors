@@ -23,7 +23,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
-import io.camunda.operate.model.FlowNodeInstance;
+import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -37,19 +37,19 @@ import java.util.stream.Collectors;
 public class InboundIntermediateConnectorContextImpl
     implements InboundIntermediateConnectorContext, InboundConnectorReportingContext {
   private final InboundConnectorReportingContext inboundContext;
-  private final OperateClientAdapter operateClient;
+  private final ProcessInstanceClient processInstanceClient;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
   private final InboundCorrelationHandler correlationHandler;
 
   public InboundIntermediateConnectorContextImpl(
       final InboundConnectorReportingContext inboundContext,
-      final OperateClientAdapter operateClient,
+      final ProcessInstanceClient processInstanceClient,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper,
       final InboundCorrelationHandler correlationHandler) {
     this.inboundContext = inboundContext;
-    this.operateClient = operateClient;
+    this.processInstanceClient = processInstanceClient;
     this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
     this.correlationHandler = correlationHandler;
@@ -66,7 +66,7 @@ public class InboundIntermediateConnectorContextImpl
               if (elementInfo.correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
                 elementId = point.attachedTo().elementId();
               }
-              return operateClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
+              return processInstanceClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
                   elementInfo.element().processDefinitionKey(), elementId);
             })
         .flatMap(List::stream)
@@ -76,7 +76,8 @@ public class InboundIntermediateConnectorContextImpl
 
   private ProcessInstanceContext createProcessInstanceContext(FlowNodeInstance node) {
     Supplier<Map<String, Object>> variableSupplier =
-        () -> operateClient.fetchVariablesByProcessInstanceKey(node.getProcessInstanceKey());
+        () ->
+            processInstanceClient.fetchVariablesByProcessInstanceKey(node.getProcessInstanceKey());
 
     return new DefaultProcessInstanceContext(
         this, node, validationProvider, correlationHandler, objectMapper, variableSupplier);

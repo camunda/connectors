@@ -36,7 +36,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   private final InboundCorrelationHandler correlationHandler;
   private final SecretProviderAggregator secretProviderAggregator;
   private final ValidationProvider validationProvider;
-  private final OperateClientAdapter operateClientAdapter;
+  private final ProcessInstanceClient processInstanceClient;
   private final DocumentFactory documentFactory;
 
   public DefaultInboundConnectorContextFactory(
@@ -44,13 +44,13 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       final InboundCorrelationHandler correlationHandler,
       final SecretProviderAggregator secretProviderAggregator,
       final ValidationProvider validationProvider,
-      final OperateClientAdapter operateClientAdapter,
+      final ProcessInstanceClient processInstanceClient,
       final DocumentFactory documentFactory) {
     this.objectMapper = mapper;
     this.correlationHandler = correlationHandler;
     this.secretProviderAggregator = secretProviderAggregator;
     this.validationProvider = validationProvider;
-    this.operateClientAdapter = operateClientAdapter;
+    this.processInstanceClient = processInstanceClient;
     this.documentFactory = documentFactory;
   }
 
@@ -76,7 +76,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       inboundContext =
           new InboundIntermediateConnectorContextImpl(
               inboundContext,
-              operateClientAdapter,
+              processInstanceClient,
               validationProvider,
               objectMapper,
               correlationHandler);

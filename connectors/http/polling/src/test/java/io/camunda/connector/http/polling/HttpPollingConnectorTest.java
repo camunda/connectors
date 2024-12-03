@@ -28,7 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class HttpPollingConnectorTest {
 
-  private static final Long DEFAULT_OPERATE_INTERVAL = 5000L;
+  private static final Long DEFAULT_PROCESS_POLLING_INTERVAL = 5000L;
   @Mock private HttpService httpService;
   @Mock private SharedExecutorService executorService;
   @Mock private InboundIntermediateConnectorContext context;
@@ -53,7 +53,7 @@ public class HttpPollingConnectorTest {
         .scheduleWithFixedDelay(
             any(ProcessInstancesFetcherTask.class),
             eq(0L),
-            eq(DEFAULT_OPERATE_INTERVAL),
+            eq(DEFAULT_PROCESS_POLLING_INTERVAL),
             eq(TimeUnit.MILLISECONDS));
   }
 }

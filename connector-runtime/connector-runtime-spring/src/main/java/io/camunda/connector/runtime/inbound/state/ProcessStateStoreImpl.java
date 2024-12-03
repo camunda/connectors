@@ -21,7 +21,6 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
-import io.camunda.operate.exception.OperateException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -150,16 +149,12 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
 
   private List<InboundConnectorElement> getConnectors(
       Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
-    try {
-      var elements =
-          processDefinitionInspector.findInboundConnectors(entry.getKey(), entry.getValue());
-      if (elements.isEmpty()) {
-        LOG.debug("No inbound connectors found for process {}", entry.getKey().bpmnProcessId());
-      }
-      return elements;
-    } catch (OperateException e) {
-      throw new RuntimeException(e);
+    var elements =
+        processDefinitionInspector.findInboundConnectors(entry.getKey(), entry.getValue());
+    if (elements.isEmpty()) {
+      LOG.debug("No inbound connectors found for process {}", entry.getKey().bpmnProcessId());
     }
+    return elements;
   }
 
   private void activate(

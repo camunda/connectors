@@ -24,8 +24,8 @@ import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
-import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
 import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
+import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
@@ -33,13 +33,14 @@ import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
-import io.camunda.connector.runtime.inbound.operate.OperateClientConfiguration;
+import io.camunda.connector.runtime.inbound.search.ProcessInstanceClientConfiguration;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.time.Duration;
@@ -52,7 +53,7 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import({
   ProcessDefinitionImportConfiguration.class,
-  OperateClientConfiguration.class,
+  ProcessInstanceClientConfiguration.class,
   InboundConnectorRestController.class
 })
 public class InboundConnectorRuntimeConfiguration {
@@ -89,14 +90,14 @@ public class InboundConnectorRuntimeConfiguration {
       InboundCorrelationHandler correlationHandler,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
-      OperateClientAdapter operateClientAdapter,
+      ProcessInstanceClient processInstanceClient,
       DocumentFactory documentFactory) {
     return new DefaultInboundConnectorContextFactory(
         mapper,
         correlationHandler,
         secretProviderAggregator,
         validationProvider,
-        operateClientAdapter,
+        processInstanceClient,
         documentFactory);
   }
 
@@ -123,8 +124,14 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public ProcessDefinitionInspector processDefinitionInspector(CamundaOperateClient client) {
-    return new ProcessDefinitionInspector(client);
+  SearchQueryClient searchQueryClient(ZeebeClient zeebeClient) {
+    return new SearchQueryClientImpl(zeebeClient);
+  }
+
+  @Bean
+  public ProcessDefinitionInspector processDefinitionInspector(
+      SearchQueryClient searchQueryClient) {
+    return new ProcessDefinitionInspector(searchQueryClient);
   }
 
   @Bean

@@ -16,13 +16,9 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
-import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.exception.OperateException;
-import io.camunda.operate.model.ProcessDefinition;
-import io.camunda.operate.model.SearchResult;
-import io.camunda.operate.search.SearchQuery;
-import io.camunda.operate.search.Sort;
-import io.camunda.operate.search.SortOrder;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
+import io.camunda.zeebe.client.api.search.response.SearchQueryResponse;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -38,13 +34,11 @@ import org.springframework.util.CollectionUtils;
  */
 public class ProcessDefinitionSearch {
 
-  private static final int PAGE_SIZE = 50;
+  private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionSearch.class);
+  private final SearchQueryClient searchQueryClient;
 
-  private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionImporter.class);
-  private final CamundaOperateClient camundaOperateClient;
-
-  public ProcessDefinitionSearch(CamundaOperateClient camundaOperateClient) {
-    this.camundaOperateClient = camundaOperateClient;
+  public ProcessDefinitionSearch(SearchQueryClient searchQueryClient) {
+    this.searchQueryClient = searchQueryClient;
   }
 
   /**
@@ -54,26 +48,15 @@ public class ProcessDefinitionSearch {
   public List<ProcessDefinition> query() {
     LOG.trace("Query process deployments...");
     List<ProcessDefinition> processDefinitions = new ArrayList<>();
-    SearchResult<ProcessDefinition> processDefinitionResult;
+    SearchQueryResponse<ProcessDefinition> processDefinitionResult;
     LOG.trace("Running paginated query");
 
     List<Object> paginationIndex = null;
     final Set<String> encounteredBpmnProcessIds = new HashSet<>();
 
     do {
-      try {
-        SearchQuery processDefinitionQuery =
-            new SearchQuery.Builder()
-                .searchAfter(paginationIndex)
-                .sort(new Sort("key", SortOrder.DESC))
-                .size(PAGE_SIZE)
-                .build();
-        processDefinitionResult =
-            camundaOperateClient.searchProcessDefinitionResults(processDefinitionQuery);
-      } catch (OperateException e) {
-        throw new RuntimeException(e);
-      }
-      List<Object> newPaginationIdx = processDefinitionResult.getSortValues();
+      processDefinitionResult = searchQueryClient.queryProcessDefinitions(paginationIndex);
+      List<Object> newPaginationIdx = processDefinitionResult.page().lastSortValues();
 
       LOG.debug("A page of process definitions has been fetched, continuing...");
 
@@ -86,17 +69,18 @@ public class ProcessDefinitionSearch {
 
       LOG.debug("Sorting process definition results by descending order");
       var items =
-          Optional.ofNullable(processDefinitionResult.getItems()).orElse(List.of()).stream()
+          Optional.ofNullable(processDefinitionResult.items()).orElse(List.of()).stream()
               .filter(
-                  definition -> !encounteredBpmnProcessIds.contains(definition.getBpmnProcessId()))
-              .peek(definition -> encounteredBpmnProcessIds.add(definition.getBpmnProcessId()))
+                  definition ->
+                      !encounteredBpmnProcessIds.contains(definition.getProcessDefinitionId()))
+              .peek(
+                  definition -> encounteredBpmnProcessIds.add(definition.getProcessDefinitionId()))
               .toList();
 
       processDefinitions.addAll(items);
 
-    } while (processDefinitionResult.getItems() != null
-        && !processDefinitionResult.getItems().isEmpty());
-    LOG.debug("Fetching from Operate has been correctly executed.");
+    } while (processDefinitionResult.items() != null && !processDefinitionResult.items().isEmpty());
+    LOG.debug("Fetching process definitions has been correctly executed.");
     return processDefinitions;
   }
 }

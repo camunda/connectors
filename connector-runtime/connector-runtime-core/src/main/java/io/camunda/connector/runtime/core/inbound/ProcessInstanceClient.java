@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import io.camunda.operate.model.FlowNodeInstance;
+import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +28,7 @@ import java.util.Map;
  * associated variables. These methods facilitate communication with Camunda Operate's APIs and help
  * in obtaining relevant data for inbound connectors.
  */
-public interface OperateClientAdapter {
+public interface ProcessInstanceClient {
 
   /**
    * Fetches a list of active flow node instances associated with a given process definition key and

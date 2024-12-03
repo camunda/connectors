@@ -26,7 +26,8 @@ import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import io.camunda.operate.auth.Authentication;
+import io.camunda.connector.runtime.secret.console.Authentication;
+import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;

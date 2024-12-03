@@ -14,19 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.operate;
+package io.camunda.connector.runtime.inbound.search;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
-import io.camunda.operate.CamundaOperateClient;
+import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class OperateClientConfiguration {
+public class ProcessInstanceClientConfiguration {
   @Bean
-  public OperateClientAdapter springOperateClientAdapter(
-      CamundaOperateClient camundaOperateClient, ObjectMapper mapper) {
-    return new OperateClientAdapterImpl(camundaOperateClient, mapper);
+  public ProcessInstanceClient springProcessInstanceClient(
+      SearchQueryClient searchQueryClient, ObjectMapper mapper) {
+    return new ProcessInstanceClientImpl(searchQueryClient, mapper);
   }
 }

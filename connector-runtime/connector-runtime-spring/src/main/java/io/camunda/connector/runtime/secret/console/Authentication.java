@@ -14,20 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound;
+package io.camunda.connector.runtime.secret.console;
 
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import io.camunda.zeebe.spring.client.metrics.SimpleMetricsRecorder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+import java.util.Map;
 
-@Configuration
-public class InboundConnectorTestConfiguration {
+public interface Authentication {
 
-  @Bean
-  @Primary
-  public MetricsRecorder metricsRecorder() {
-    return new SimpleMetricsRecorder();
-  }
+  Map<String, String> getTokenHeader();
+
+  void resetToken();
 }

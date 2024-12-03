@@ -14,20 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound;
+package io.camunda.connector.runtime.secret.console;
 
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import io.camunda.zeebe.spring.client.metrics.SimpleMetricsRecorder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-@Configuration
-public class InboundConnectorTestConfiguration {
+public interface TokenResponseMapper {
+  TokenResponse readToken(String token);
 
-  @Bean
-  @Primary
-  public MetricsRecorder metricsRecorder() {
-    return new SimpleMetricsRecorder();
+  public class JacksonTokenResponseMapper implements TokenResponseMapper {
+    private final ObjectMapper objectMapper;
+
+    public JacksonTokenResponseMapper(ObjectMapper objectMapper) {
+      this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public TokenResponse readToken(String token) {
+      try {
+        return objectMapper.readValue(token, TokenResponse.class);
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException("Error while reading token " + token, e);
+      }
+    }
   }
 }

@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
-import io.camunda.operate.CamundaOperateClient;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import java.io.File;
@@ -46,8 +45,7 @@ import org.testcontainers.utility.DockerImageName;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=true",
-      "operate.client.profile=simple"
+      "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -58,7 +56,6 @@ public abstract class BaseAwsTest {
   @TempDir File tempDir;
   @Autowired ZeebeClient zeebeClient;
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
-  @Autowired CamundaOperateClient camundaOperateClient;
 
   static LocalStackContainer localstack;
 

@@ -22,14 +22,13 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.exception.OperateException;
-import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import jakarta.mail.Flags;
@@ -40,7 +39,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,9 +62,9 @@ public class InboundEmailTest extends BaseEmailTest {
 
   private static final ScheduledExecutorService scheduler =
       Executors.newSingleThreadScheduledExecutor();
-  private static AtomicLong counter = new AtomicLong(1);
+  private static final AtomicInteger counter = new AtomicInteger(1);
   @Autowired ProcessStateStore processStateStore;
-  @Autowired CamundaOperateClient camundaOperateClient;
+  @Autowired SearchQueryClient searchQueryClient;
   @Mock private ProcessDefinition processDef;
   @Autowired private ZeebeClient zeebeClient;
 
@@ -76,7 +75,7 @@ public class InboundEmailTest extends BaseEmailTest {
   }
 
   @Test
-  public void shouldReceiveEmailAndSetAsSeen() throws OperateException, MessagingException {
+  public void shouldReceiveEmailAndSetAsSeen() throws MessagingException {
     var model =
         replace(
             "email-inbound-connector-intermediate_unseen_read.bpmn",
@@ -95,9 +94,9 @@ public class InboundEmailTest extends BaseEmailTest {
         new ProcessImportResult(
             Map.of(
                 new ProcessImportResult.ProcessDefinitionIdentifier(
-                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
-                    processDef.getKey(), processDef.getVersion().intValue()))));
+                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
@@ -112,7 +111,7 @@ public class InboundEmailTest extends BaseEmailTest {
   }
 
   @Test
-  public void shouldThrowWhenAllMessageAreSeen() throws OperateException, MessagingException {
+  public void shouldThrowWhenAllMessageAreSeen() throws MessagingException {
     var model =
         replace(
             "email-inbound-connector-intermediate_unseen_read.bpmn",
@@ -140,15 +139,15 @@ public class InboundEmailTest extends BaseEmailTest {
         new ProcessImportResult(
             Map.of(
                 new ProcessImportResult.ProcessDefinitionIdentifier(
-                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
-                    processDef.getKey(), processDef.getVersion().intValue()))));
+                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
     Assertions.assertThrows(ConditionTimeoutException.class, bpmnTest::waitForProcessCompletion);
   }
 
   @Test
-  public void shouldReceiveEmailAndDelete() throws OperateException, MessagingException {
+  public void shouldReceiveEmailAndDelete() throws MessagingException {
     var model =
         replace(
             "email-inbound-connector-intermediate_unseen_delete.bpmn",
@@ -167,9 +166,9 @@ public class InboundEmailTest extends BaseEmailTest {
         new ProcessImportResult(
             Map.of(
                 new ProcessImportResult.ProcessDefinitionIdentifier(
-                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
-                    processDef.getKey(), processDef.getVersion().intValue()))));
+                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
@@ -184,7 +183,7 @@ public class InboundEmailTest extends BaseEmailTest {
   }
 
   @Test
-  public void shouldReceiveEmailAndMove() throws OperateException, MessagingException {
+  public void shouldReceiveEmailAndMove() throws MessagingException {
     var model =
         replace(
             "email-inbound-connector-intermediate_unseen_move.bpmn",
@@ -203,9 +202,9 @@ public class InboundEmailTest extends BaseEmailTest {
         new ProcessImportResult(
             Map.of(
                 new ProcessImportResult.ProcessDefinitionIdentifier(
-                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
-                    processDef.getKey(), processDef.getVersion().intValue()))));
+                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
@@ -220,17 +219,17 @@ public class InboundEmailTest extends BaseEmailTest {
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("plainTextBody", "hey");
   }
 
-  private void mockProcessDefinition(BpmnModelInstance model) throws OperateException {
-    when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
-    when(processDef.getKey()).thenReturn(1L);
+  private void mockProcessDefinition(BpmnModelInstance model) {
+    when(searchQueryClient.getProcessModel(1L)).thenReturn(model);
+    when(processDef.getProcessDefinitionKey()).thenReturn(1L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
-    when(processDef.getBpmnProcessId())
+    when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
     when(processDef.getVersion()).thenReturn(counter.getAndIncrement());
   }
 
   @Test
-  public void shouldPollEmailAndMove() throws OperateException, MessagingException {
+  public void shouldPollEmailAndMove() throws MessagingException {
     var model =
         replace(
             "email-inbound-connector-intermediate_all_delete.bpmn",
@@ -261,9 +260,9 @@ public class InboundEmailTest extends BaseEmailTest {
         new ProcessImportResult(
             Map.of(
                 new ProcessImportResult.ProcessDefinitionIdentifier(
-                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 new ProcessImportResult.ProcessDefinitionVersion(
-                    processDef.getKey(), processDef.getVersion().intValue()))));
+                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
