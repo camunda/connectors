@@ -8,9 +8,11 @@ package io.camunda.connector.aws.s3.model;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+@TemplateSubType(id = "deleteObject", label = "Delete document")
 public record DeleteS3Action(
     @TemplateProperty(
             label = "AWS bucket",
