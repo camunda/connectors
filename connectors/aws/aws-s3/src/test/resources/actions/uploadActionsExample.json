@@ -1,0 +1,22 @@
+[
+  {
+    "action":{
+      "bucket":"connector-aws-s3-test",
+      "key":"attachment",
+      "document":{
+        "storeId":"in-memory",
+        "documentId":"41d2a87f-f39c-4ddd-a116-18d2091cc695",
+        "metadata":{
+          "contentType":"text/plain", "size":41730,
+          "fileName":"test.txt"
+        },
+        "documentType":"camunda"
+      }
+    }, "configuration":{"region":"eu-central-1"},
+    "authentication":{
+      "type":"credentials",
+      "accessKey":"test",
+      "secretKey":"test"
+    }, "actionDiscriminator":"uploadObject"
+  }
+]

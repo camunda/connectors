@@ -1,0 +1,18 @@
+[
+  {
+    "action":{
+      "bucket":"connector-aws-s3-test",
+      "key":"attachment",
+      "asFile":false
+    },
+    "configuration":{
+      "region":"eu-central-1"
+    },
+    "authentication":{
+      "type":"credentials",
+      "accessKey":"test",
+      "secretKey":"test"
+    },
+    "actionDiscriminator":"downloadObject"
+  }
+]
