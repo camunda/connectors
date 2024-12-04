@@ -8,9 +8,11 @@ package io.camunda.connector.aws.s3.model;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+@TemplateSubType(id = "downloadObject", label = "Download document")
 public record DownloadS3Action(
     @TemplateProperty(
             label = "AWS bucket",
@@ -31,5 +33,17 @@ public record DownloadS3Action(
             binding = @TemplateProperty.PropertyBinding(name = "action.key"))
         @Valid
         @NotNull
-        String key)
+        String key,
+    @TemplateProperty(
+            label = "Create document",
+            id = "downloadActionAsFile",
+            group = "downloadObject",
+            tooltip = "....",
+            type = TemplateProperty.PropertyType.Boolean,
+            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+            defaultValue = "true",
+            binding = @TemplateProperty.PropertyBinding(name = "action.asFile"))
+        @Valid
+        @NotNull
+        boolean asFile)
     implements S3Action {}
