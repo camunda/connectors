@@ -28,7 +28,7 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whehOnlyStatusCode() {
     // given
-    HttpCommonResult result = new HttpCommonResult(200, null, null, null);
+    HttpCommonResult result = new HttpCommonResult(200, null, null, null, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -66,7 +66,7 @@ public class ConnectorExceptionMapperTest {
     // given
     HttpCommonResult result =
         new HttpCommonResult(
-            200, Map.of("Content-Type", "text/plain", "X-Custom", "value"), null, null);
+            200, Map.of("Content-Type", "text/plain", "X-Custom", "value"), null, null, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -84,7 +84,7 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndBody() {
     // given
-    HttpCommonResult result = new HttpCommonResult(400, null, "text", null);
+    HttpCommonResult result = new HttpCommonResult(400, null, "text", null, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -122,7 +122,7 @@ public class ConnectorExceptionMapperTest {
     // given
     HttpCommonResult result =
         new HttpCommonResult(
-            400, Map.of("Content-Type", "text/plain", "X-Custom", "value"), "text", null);
+            400, Map.of("Content-Type", "text/plain", "X-Custom", "value"), "text", null, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);

@@ -17,6 +17,7 @@
 package io.camunda.connector.http.base;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.base.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.base.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.base.client.HttpClient;
@@ -24,6 +25,7 @@ import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,25 +47,36 @@ public class HttpService {
   }
 
   public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
+    return executeConnectorRequest(request, null);
+  }
+
+  public HttpCommonResult executeConnectorRequest(
+      HttpCommonRequest request, @Nullable OutboundConnectorContext context) {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
-    boolean cloudFunctionEnabled = cloudFunctionService.isCloudFunctionEnabled();
+    ExecutionEnvironment executionEnvironment =
+        ExecutionEnvironment.from(
+            cloudFunctionService.isCloudFunctionEnabled(),
+            cloudFunctionService.isRunningInCloudFunction(),
+            request.isStoreResponse(),
+            context);
 
-    if (cloudFunctionEnabled) {
+    if (executionEnvironment instanceof ExecutionEnvironment.SaaSCallerSideEnvironment) {
       // Wrap the request in a proxy request
       request = cloudFunctionService.toCloudFunctionRequest(request);
     }
-    return executeRequest(request, cloudFunctionEnabled);
+    return executeRequest(request, executionEnvironment);
   }
 
-  private HttpCommonResult executeRequest(HttpCommonRequest request, boolean cloudFunctionEnabled) {
+  private HttpCommonResult executeRequest(
+      HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
     try {
-      HttpCommonResult jsonResult = httpClient.execute(request, cloudFunctionEnabled);
+      HttpCommonResult jsonResult = httpClient.execute(request, executionEnvironment);
       LOGGER.debug("Connector returned result: {}", jsonResult);
       return jsonResult;
     } catch (ConnectorException e) {
       LOGGER.debug("Failed to execute request {}", request, e);
-      if (cloudFunctionEnabled) {
+      if (executionEnvironment instanceof ExecutionEnvironment.SaaSCallerSideEnvironment) {
         throw cloudFunctionService.parseCloudFunctionError(e);
       }
       throw e;

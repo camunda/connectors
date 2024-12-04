@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
     name = "GraphQL Outbound Connector",
     description = "Execute GraphQL query",
     inputDataClass = GraphQLRequest.class,
-    version = 6,
+    version = 7,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),
@@ -59,6 +59,6 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     var graphQLRequest = context.bindVariables(GraphQLRequest.class);
     HttpCommonRequest commonRequest = graphQLRequestMapper.toHttpCommonRequest(graphQLRequest);
     LOGGER.debug("Executing graphql connector with request {}", commonRequest);
-    return httpService.executeConnectorRequest(commonRequest);
+    return httpService.executeConnectorRequest(commonRequest, context);
   }
 }

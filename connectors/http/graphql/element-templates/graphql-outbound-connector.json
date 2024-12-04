@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -369,6 +369,18 @@
       "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "graphql.storeResponse",
+    "label" : "Store response",
+    "description" : "Store the response as a document in the document store",
+    "optional" : false,
+    "value" : false,
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "graphql.storeResponse",
+      "type" : "zeebe:input"
+    },
+    "type" : "Boolean"
   }, {
     "id" : "graphql.query",
     "label" : "Query/Mutation",

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.http.base.cloudfunction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -35,6 +36,13 @@ public class CloudFunctionService {
   private static final Logger LOG = LoggerFactory.getLogger(CloudFunctionService.class);
   private static final String PROXY_FUNCTION_URL_ENV_NAME = "CAMUNDA_CONNECTOR_HTTP_PROXY_URL";
   private static final int NO_TIMEOUT = 0;
+
+  /**
+   * Environment variable to check if the current execution is running in a Google Cloud Function.
+   */
+  private static final String CLOUD_FUNCTION_MARKER_VARIABLE =
+      "CAMUNDA_CONNECTOR_HTTP_BLOCK_URL_GCP_META_DATA_INTERNAL";
+
   private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
   private final CloudFunctionCredentials credentials;
 
@@ -55,11 +63,8 @@ public class CloudFunctionService {
    */
   public HttpCommonRequest toCloudFunctionRequest(final HttpCommonRequest request) {
     try {
-      // Using the JsonHttpContent cannot work with an element on the root content,
-      // hence write it ourselves:
-      String contentAsJson = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(request);
       String token = credentials.getOAuthToken(getProxyFunctionUrl());
-      return createCloudFunctionRequest(contentAsJson, token);
+      return createCloudFunctionRequest(request, token);
     } catch (IOException e) {
       LOG.error("Failed to serialize the request to JSON: {}", request, e);
       throw new ConnectorException("Failed to serialize the request to JSON: " + request, e);
@@ -102,15 +107,24 @@ public class CloudFunctionService {
     return proxyFunctionUrl != null;
   }
 
+  /** Check if the current execution is running in a Google Cloud Function. */
+  public boolean isRunningInCloudFunction() {
+    return System.getenv(CLOUD_FUNCTION_MARKER_VARIABLE) != null;
+  }
+
   public String getProxyFunctionUrl() {
     return proxyFunctionUrl;
   }
 
-  private HttpCommonRequest createCloudFunctionRequest(String contentAsJson, String token) {
+  private HttpCommonRequest createCloudFunctionRequest(HttpCommonRequest request, String token)
+      throws JsonProcessingException {
+    String contentAsJson =
+        ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(request);
     HttpCommonRequest cloudFunctionRequest = new HttpCommonRequest();
     cloudFunctionRequest.setMethod(HttpMethod.POST);
     cloudFunctionRequest.setUrl(getProxyFunctionUrl());
     cloudFunctionRequest.setBody(contentAsJson);
+    cloudFunctionRequest.setStoreResponse(request.isStoreResponse());
     cloudFunctionRequest.setReadTimeoutInSeconds(NO_TIMEOUT);
     cloudFunctionRequest.setHeaders(
         Map.of(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()));

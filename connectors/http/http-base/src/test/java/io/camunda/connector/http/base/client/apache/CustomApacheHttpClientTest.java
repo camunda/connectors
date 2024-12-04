@@ -16,29 +16,7 @@
  */
 package io.camunda.connector.http.base.client.apache;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
-import static com.github.tomakehurst.wiremock.client.WireMock.and;
-import static com.github.tomakehurst.wiremock.client.WireMock.any;
-import static com.github.tomakehurst.wiremock.client.WireMock.containing;
-import static com.github.tomakehurst.wiremock.client.WireMock.created;
-import static com.github.tomakehurst.wiremock.client.WireMock.delete;
-import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
-import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
-import static com.github.tomakehurst.wiremock.client.WireMock.ok;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.put;
-import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.unauthorized;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -50,6 +28,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.http.base.DocumentOutboundContext;
+import io.camunda.connector.http.base.ExecutionEnvironment;
 import io.camunda.connector.http.base.authentication.OAuthConstants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -60,9 +40,10 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.document.CamundaDocument;
-import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
@@ -70,11 +51,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -92,7 +69,48 @@ public class CustomApacheHttpClientTest {
 
   private final CustomApacheHttpClient customApacheHttpClient = CustomApacheHttpClient.getDefault();
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-  private final CamundaDocumentStore store = InMemoryDocumentStore.INSTANCE;
+  private final InMemoryDocumentStore store = InMemoryDocumentStore.INSTANCE;
+
+  @BeforeEach
+  public void setUp() {
+    store.clear();
+  }
+
+  @Nested
+  class DocumentDownloadTests {
+
+    @Test
+    public void shouldStoreDocument_whenStoreResponseEnabled(WireMockRuntimeInfo wmRuntimeInfo)
+        throws IOException {
+      stubFor(
+          get("/download")
+              .willReturn(
+                  ok().withHeader(HttpHeaders.CONTENT_TYPE, ContentType.IMAGE_JPEG.getMimeType())
+                      .withBodyFile("fileName.jpg")));
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setStoreResponse(true);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/download");
+      HttpCommonResult result =
+          customApacheHttpClient.execute(
+              request,
+              new ExecutionEnvironment.SelfManagedEnvironment(
+                  request.isStoreResponse(), new DocumentOutboundContext()));
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+      assertThat(result.headers().get(HttpHeaders.CONTENT_TYPE))
+          .isEqualTo(ContentType.IMAGE_JPEG.getMimeType());
+      assertThat(result.body()).isNull();
+      var documents = store.getDocuments();
+      assertThat(documents).hasSize(1);
+      var responseDocumentReference =
+          (DocumentReference.CamundaDocumentReference) result.document();
+      assertThat(responseDocumentReference).isNotNull();
+      var documentContent = documents.get(responseDocumentReference.documentId());
+      assertThat(documentContent)
+          .isEqualTo(getClass().getResourceAsStream("/__files/fileName.jpg").readAllBytes());
+    }
+  }
 
   @Nested
   class DocumentUploadTests {
@@ -133,7 +151,6 @@ public class CustomApacheHttpClientTest {
                       .withName("document")
                       .withBody(equalTo("The content of this file"))
                       .build()));
-      store.deleteDocument(ref);
     }
   }
 

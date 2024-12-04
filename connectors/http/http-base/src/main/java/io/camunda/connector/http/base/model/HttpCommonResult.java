@@ -17,19 +17,66 @@
 package io.camunda.connector.http.base.model;
 
 import io.camunda.connector.generator.java.annotation.DataExample;
+import io.camunda.document.reference.CamundaDocumentReferenceImpl;
+import io.camunda.document.reference.DocumentReference;
+import io.camunda.zeebe.client.api.response.DocumentMetadata;
+import java.time.OffsetDateTime;
 import java.util.Map;
 
 public record HttpCommonResult(
-    int status, Map<String, Object> headers, Object body, String reason) {
+    int status,
+    Map<String, String> headers,
+    Object body,
+    String reason,
+    DocumentReference document) {
 
-  public HttpCommonResult(int status, Map<String, Object> headers, Object body) {
-    this(status, headers, body, null);
+  public HttpCommonResult(int status, Map<String, String> headers, Object body, String reason) {
+    this(status, headers, body, reason, null);
+  }
+
+  public HttpCommonResult(
+      int status, Map<String, String> headers, Object body, DocumentReference documentReference) {
+    this(status, headers, body, null, documentReference);
+  }
+
+  public HttpCommonResult(int status, Map<String, String> headers, Object body) {
+    this(status, headers, body, null, null);
   }
 
   @DataExample(id = "basic", feel = "= body.order.id")
   public static HttpCommonResult exampleResult() {
-    Map<String, Object> headers = Map.of("Content-Type", "application/json");
+    Map<String, String> headers = Map.of("Content-Type", "application/json");
+    DocumentReference documentReference =
+        new CamundaDocumentReferenceImpl(
+            "theStoreId",
+            "977c5cbf-0f19-4a76-a8e1-60902216a07b",
+            new DocumentMetadata() {
+              @Override
+              public String getContentType() {
+                return "application/pdf";
+              }
+
+              @Override
+              public OffsetDateTime getExpiresAt() {
+                return null;
+              }
+
+              @Override
+              public Long getSize() {
+                return 516554L;
+              }
+
+              @Override
+              public String getFileName() {
+                return "theFileName.pdf";
+              }
+
+              @Override
+              public Map<String, Object> getCustomProperties() {
+                return Map.of("key", "value");
+              }
+            });
     var body = Map.of("order", Map.of("id", "123", "total", "100.00€"));
-    return new HttpCommonResult(200, headers, body);
+    return new HttpCommonResult(200, headers, body, documentReference);
   }
 }
