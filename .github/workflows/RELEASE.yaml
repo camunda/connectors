@@ -28,8 +28,8 @@ jobs:
             echo "Script failed"
             exit 1
           fi
-          echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
-          echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
+          echo "type=RC" >> $GITHUB_OUTPUT
+          echo "previousTag=8.7.0-alpha1" >> $GITHUB_OUTPUT
 
       # We will update this branch by setting the new version and pushing it
       - name: Determine release branch name
