@@ -32,7 +32,6 @@
     <module>soap</module>
     <module>webhook</module>
     <module>idp-extraction</module>
-      <module>aws/aws-s3</module>
   </modules>
 
   <properties>
