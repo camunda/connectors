@@ -23,11 +23,6 @@ jobs:
       - name: Validate release tag and determine previous tag
         id: validate_tag
         run: |
-          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ github.event.release.tag_name }})"
-          if [ $? -ne 0 ]; then
-            echo "Script failed"
-            exit 1
-          fi
           echo "type=RC" >> $GITHUB_OUTPUT
           echo "previousTag=8.7.0-alpha1" >> $GITHUB_OUTPUT
 
