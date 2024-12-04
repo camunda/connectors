@@ -121,7 +121,8 @@ public class HttpCommonResultResponseHandler
    * @param content the response content
    */
   private Object extractBody(byte[] content) throws IOException {
-    if (executionEnvironment != null && executionEnvironment.storeResponseSelected()) {
+    if (executionEnvironment instanceof ExecutionEnvironment.SaaSCloudFunctionSideEnvironment
+        && executionEnvironment.storeResponseSelected()) {
       return Base64.getEncoder().encodeToString(content);
     }
 
