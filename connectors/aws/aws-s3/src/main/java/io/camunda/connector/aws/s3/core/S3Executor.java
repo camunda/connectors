@@ -36,19 +36,19 @@ public class S3Executor {
   private final S3Client s3Client;
   private final Function<DocumentCreationRequest, Document> createDocument;
 
-  public S3Executor(
-      S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {
-    this.s3Client =
-        S3Client.builder()
-            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(s3Request))
-            .region(Region.of(s3Request.getConfiguration().region()))
-            .build();
+  public S3Executor(S3Client s3Client, Function<DocumentCreationRequest, Document> createDocument) {
+    this.s3Client = s3Client;
     this.createDocument = createDocument;
   }
 
   public static S3Executor create(
       S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {
-    return new S3Executor(s3Request, createDocument);
+    return new S3Executor(
+        S3Client.builder()
+            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(s3Request))
+            .region(Region.of(s3Request.getConfiguration().region()))
+            .build(),
+        createDocument);
   }
 
   public Object execute(S3Action s3Action) {
