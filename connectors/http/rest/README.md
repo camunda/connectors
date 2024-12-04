@@ -244,9 +244,10 @@ leading to the following result
 "123"
 ```
 
-| Connector Info          |                        |
-|-------------------------|------------------------|
-| Type                    | io.camunda:http-json:1 |
-| Version                 | 8                      |
-| Supported element types |                        |
+
+| Connector Info            |                                                                       |
+| ---                       | ---                                                                   |
+| Type                      | io.camunda:http-json:1                                                            |
+| Version                   | 9                                                         |
+| Supported element types   |     |
 

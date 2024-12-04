@@ -33,6 +33,7 @@ public final class GraphQLRequestMapper {
       httpCommonRequest.setQueryParameters(mapQueryAndVariablesToQueryParams(queryAndVariablesMap));
     }
 
+    httpCommonRequest.setStoreResponse(graphQLRequest.graphql().storeResponse());
     httpCommonRequest.setHeaders(graphQLRequest.graphql().headers());
     httpCommonRequest.setAuthentication(graphQLRequest.authentication());
     httpCommonRequest.setUrl(graphQLRequest.graphql().url());

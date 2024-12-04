@@ -45,7 +45,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     description = "Invoke REST API",
     inputDataClass = HttpJsonRequest.class,
     outputDataClass = HttpCommonResult.class,
-    version = 8,
+    version = 9,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "endpoint", label = "HTTP endpoint"),
@@ -71,6 +71,6 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(final OutboundConnectorContext context) {
     final var request = context.bindVariables(HttpJsonRequest.class);
-    return httpService.executeConnectorRequest(request);
+    return httpService.executeConnectorRequest(request, context);
   }
 }
