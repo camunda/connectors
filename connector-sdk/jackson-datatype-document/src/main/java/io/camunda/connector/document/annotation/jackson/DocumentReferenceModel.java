@@ -44,7 +44,7 @@ import java.util.Optional;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public sealed interface DocumentReferenceModel extends DocumentReference {
 
-  String DISCRIMINATOR_KEY = "documentType";
+  String DISCRIMINATOR_KEY = "camunda.document.type";
 
   /**
    * Document references may have operations associated with them. Operation indicates that the
