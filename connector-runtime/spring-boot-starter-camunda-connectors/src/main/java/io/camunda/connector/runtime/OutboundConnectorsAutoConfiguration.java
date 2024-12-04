@@ -19,6 +19,7 @@ package io.camunda.connector.runtime;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument.DocumentModuleSettings;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
@@ -27,6 +28,7 @@ import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.console.JwtCredential;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.zeebe.client.api.JsonMapper;
 import io.camunda.zeebe.client.impl.ZeebeObjectMapper;
 import io.camunda.zeebe.spring.client.properties.CamundaClientProperties;
@@ -96,11 +98,8 @@ public class OutboundConnectorsAutoConfiguration {
 
   @Bean(name = "zeebeJsonMapper")
   @ConditionalOnMissingBean
-  public JsonMapper jsonMapper(ObjectMapper objectMapper) {
-    if (objectMapper == null) {
-      return new ZeebeObjectMapper();
-    }
-    return new ZeebeObjectMapper(objectMapper.copy());
+  public JsonMapper jsonMapper() {
+    return new ZeebeObjectMapper(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
   }
 
   @Bean(name = "commonJsonMapper")
@@ -163,7 +162,9 @@ public class OutboundConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ObjectMapper objectMapper() {
+  public ObjectMapper objectMapper(DocumentFactory documentFactory) {
+    ConnectorsObjectMapperSupplier.registerDocumentModule(
+        documentFactory, DocumentModuleSettings.create());
     return ConnectorsObjectMapperSupplier.getCopy();
   }
 }

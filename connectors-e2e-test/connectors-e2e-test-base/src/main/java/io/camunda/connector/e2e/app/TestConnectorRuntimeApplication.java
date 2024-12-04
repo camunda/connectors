@@ -16,7 +16,11 @@
  */
 package io.camunda.connector.e2e.app;
 
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument.DocumentModuleSettings;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.InMemoryDocumentStore;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -32,6 +36,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 public class TestConnectorRuntimeApplication {
 
   public static void main(String[] args) {
+    ConnectorsObjectMapperSupplier.registerDocumentModule(
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE), DocumentModuleSettings.create());
+
     SpringApplication.run(TestConnectorRuntimeApplication.class, args);
   }
 }
