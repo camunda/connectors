@@ -72,6 +72,15 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               optional = true,
               description = "Map of HTTP headers to add to the request")
           Map<String, String> headers,
+      @FEEL
+          @TemplateProperty(
+              group = "endpoint",
+              type = TemplateProperty.PropertyType.Boolean,
+              feel = Property.FeelMode.disabled,
+              defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+              defaultValue = "false",
+              description = "Store the response as a document in the document store")
+          boolean storeResponse,
       @TemplateProperty(
               group = "timeout",
               defaultValue = "20",

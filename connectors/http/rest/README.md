@@ -212,6 +212,18 @@ used in the result expression.
       "total" : "100.00€"
     }
   },
+  "document" : {
+    "documentId" : "977c5cbf-0f19-4a76-a8e1-60902216a07b",
+    "metadata" : {
+      "contentType" : "application/pdf",
+      "customProperties" : {
+        "key" : "value"
+      },
+      "fileName" : "theFileName.pdf",
+      "size" : 516554
+    },
+    "storeId" : "theStoreId"
+  },
   "headers" : {
     "Content-Type" : "application/json"
   },
@@ -232,6 +244,6 @@ leading to the following result
 | Connector Info            |                                                                       |
 | ---                       | ---                                                                   |
 | Type                      | io.camunda:http-json:1                                                            |
-| Version                   | 8                                                         |
+| Version                   | 9                                                         |
 | Supported element types   |     |
 
