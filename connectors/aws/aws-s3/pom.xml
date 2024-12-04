@@ -3,6 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connectors-parent</artifactId>
@@ -10,13 +11,22 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>aws-s3</artifactId>
+    <name>connector-aws-s3</name>
+    <description>Camunda Connector AWS S3</description>
+    <artifactId>connector-aws-s3</artifactId>
+    <packaging>jar</packaging>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <licenses>
+        <license>
+            <name>Camunda Self-Managed Free Edition license</name>
+            <url>
+                https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
+            </url>
+        </license>
+        <license>
+            <name>Camunda Self-Managed Enterprise Edition license</name>
+        </license>
+    </licenses>
 
     <dependencies>
         <dependency>
@@ -24,7 +34,43 @@
             <artifactId>connector-aws-base</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>${version.software-aws-java-sdk}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3-transfer-manager</artifactId>
+            <version>${version.software-aws-java-sdk}</version>
+        </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.camunda.connector</groupId>
+                <artifactId>element-template-generator-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <configuration>
+                    <connectors>
+                        <connector>
+                            <connectorClass>io.camunda.connector.aws.s3.S3ConnectorFunction</connectorClass>
+                            <files>
+                                <file>
+                                    <templateId>io.camunda.connectors.aws.s3.v1</templateId>
+                                    <templateFileName>aws-s3-outbound-connector.json</templateFileName>
+                                </file>
+                            </files>
+                            <generateHybridTemplates>true</generateHybridTemplates>
+                        </connector>
+                    </connectors>
+                    <includeDependencies>
+                        <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
+                    </includeDependencies>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

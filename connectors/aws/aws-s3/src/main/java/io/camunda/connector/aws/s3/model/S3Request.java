@@ -18,7 +18,7 @@ public class S3Request extends AwsBaseRequest {
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
-      property = "action")
+      property = "actionDiscriminator")
   @JsonSubTypes(
       value = {
         @JsonSubTypes.Type(value = DeleteS3Action.class, name = "deleteObject"),
@@ -28,5 +28,15 @@ public class S3Request extends AwsBaseRequest {
   @Valid
   @NotNull
   @NestedProperties(addNestedPath = false)
-  private S3Action data;
+  private S3Action action;
+
+  public S3Request() {}
+
+  public S3Action getData() {
+    return action;
+  }
+
+  public void setData(S3Action data) {
+    this.action = data;
+  }
 }

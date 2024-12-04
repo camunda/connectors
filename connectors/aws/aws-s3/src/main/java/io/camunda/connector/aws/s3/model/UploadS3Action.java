@@ -6,6 +6,43 @@
  */
 package io.camunda.connector.aws.s3.model;
 
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.document.Document;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
-public record UploadS3Action(String bucket, Document document) implements S3Action {}
+@TemplateSubType(id = "uploadObject", label = "Upload document")
+public record UploadS3Action(
+    @TemplateProperty(
+            label = "AWS bucket",
+            id = "uploadActionBucket",
+            group = "uploadObject",
+            tooltip = "Bucket from where an object should be uploaded",
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "action.bucket"))
+        @Valid
+        @NotNull
+        String bucket,
+    @TemplateProperty(
+            label = "AWS key",
+            id = "uploadActionKey",
+            group = "uploadObject",
+            tooltip =
+                "Key of the uploaded object, if not given. The file name from the document metadata will be used",
+            optional = true,
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "action.key"))
+        @Valid
+        String key,
+    @TemplateProperty(
+            label = "Document",
+            group = "uploadObject",
+            id = "uploadActionDocument",
+            tooltip = "Document to be uploaded on AWS S3",
+            type = TemplateProperty.PropertyType.String,
+            feel = Property.FeelMode.required,
+            binding = @TemplateProperty.PropertyBinding(name = "action.document"))
+        Document document)
+    implements S3Action {}
