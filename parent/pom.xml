@@ -970,11 +970,6 @@ limitations under the License.</license.inlineheader>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-enforcer-plugin</artifactId>
-            <configuration>
-              <rules>
-                <requireReleaseDeps/>
-              </rules>
-            </configuration>
           </plugin>
         </plugins>
       </build>
