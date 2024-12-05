@@ -222,7 +222,8 @@ used in the result expression.
       "fileName" : "theFileName.pdf",
       "size" : 516554
     },
-    "storeId" : "theStoreId"
+    "storeId" : "theStoreId",
+    "documentType" : "camunda"
   },
   "headers" : {
     "Content-Type" : "application/json"
