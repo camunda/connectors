@@ -122,7 +122,7 @@ public class JobHandlerContext extends AbstractConnectorContext
       throw new ConnectorException("JSON_MISMATCH_ERROR", e.getOriginalMessage());
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
-          "JSON_PROCESSING_ERROR", "Exception: " + e.getClass().getSimpleName() + "was raised");
+          "JSON_PROCESSING_ERROR", "Exception: " + e.getClass().getSimpleName() + " was raised", e);
     }
   }
 

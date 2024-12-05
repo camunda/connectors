@@ -68,6 +68,7 @@ public class CommonProperties {
     return StringProperty.builder()
         .id("retryBackoff")
         .label("Retry backoff")
+        .feel(FeelMode.disabled)
         .description("ISO-8601 duration to wait between retries")
         .group("retries")
         .value("PT0S");
