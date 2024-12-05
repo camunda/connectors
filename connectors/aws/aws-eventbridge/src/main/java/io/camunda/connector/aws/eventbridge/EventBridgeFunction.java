@@ -31,12 +31,9 @@ import java.util.Optional;
     id = "io.camunda.connectors.AWSEventBridge.v1",
     name = "Amazon EventBridge Outbound Connector",
     description = "Send events to AWS EventBridge",
-    metadata = @ElementTemplate.Metadata(keywords = {
-      "emit event",
-      "publish event",
-      "send event",
-      "trigger event"
-    }),
+    metadata =
+        @ElementTemplate.Metadata(
+            keywords = {"emit event", "publish event", "send event", "trigger event"}),
     inputDataClass = AwsEventBridgeRequest.class,
     version = 5,
     propertyGroups = {
