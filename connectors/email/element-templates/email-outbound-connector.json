@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.email.v1",
   "description" : "Execute email requests",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -539,6 +539,29 @@
     "tooltip" : "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
     "type" : "String"
   }, {
+    "id" : "smtpHeaders",
+    "label" : "Headers",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.smtpActionDiscriminator",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Additional email headers",
+    "type" : "String"
+  }, {
     "id" : "smtpSubject",
     "label" : "Subject",
     "optional" : false,
@@ -565,16 +588,13 @@
     "tooltip" : "Email's subject",
     "type" : "String"
   }, {
-    "id" : "smtpBody",
-    "label" : "Email Content",
+    "id" : "contentType",
+    "label" : "ContentType",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "value" : "PLAIN",
     "group" : "sendEmailSmtp",
     "binding" : {
-      "name" : "data.smtpAction.body",
+      "name" : "data.smtpAction.contentType",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -588,7 +608,71 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Email's contentType",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "PLAIN",
+      "value" : "PLAIN"
+    }, {
+      "name" : "HTML",
+      "value" : "HTML"
+    }, {
+      "name" : "HTML & Plaintext",
+      "value" : "MULTIPART"
+    } ]
+  }, {
+    "id" : "smtpBody",
+    "label" : "Email Text Content",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.body",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "contentType",
+        "oneOf" : [ "PLAIN", "MULTIPART" ],
+        "type" : "simple"
+      }, {
+        "property" : "data.smtpActionDiscriminator",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
     "tooltip" : "Email's content",
+    "type" : "Text"
+  }, {
+    "id" : "smtpHtmlBody",
+    "label" : "Email Html Content",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "sendEmailSmtp",
+    "binding" : {
+      "name" : "data.smtpAction.htmlBody",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "contentType",
+        "oneOf" : [ "HTML", "MULTIPART" ],
+        "type" : "simple"
+      }, {
+        "property" : "data.smtpActionDiscriminator",
+        "equals" : "sendEmailSmtp",
+        "type" : "simple"
+      }, {
+        "property" : "protocol",
+        "equals" : "smtp",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Email's Html content",
     "type" : "Text"
   }, {
     "id" : "pop3maxToBeRead",

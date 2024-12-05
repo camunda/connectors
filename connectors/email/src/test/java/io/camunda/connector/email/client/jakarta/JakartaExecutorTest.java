@@ -23,6 +23,7 @@ import io.camunda.connector.email.outbound.protocols.Smtp;
 import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.email.response.*;
 import jakarta.mail.*;
+import jakarta.mail.internet.MimeMultipart;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,6 +65,7 @@ class JakartaExecutorTest {
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
     when(smtpSendEmail.from()).thenReturn("myself");
     when(smtpSendEmail.body()).thenReturn("body");
+    when(smtpSendEmail.contentType()).thenReturn(ContentType.PLAIN);
     when(session.getTransport()).thenReturn(transport);
 
     actionExecutor.execute(emailRequest);
@@ -75,7 +77,7 @@ class JakartaExecutorTest {
                   try {
                     return Arrays.stream(argument.getFrom())
                             .allMatch(address -> address.toString().contains("myself"))
-                        && argument.getContent().toString().contains("body");
+                        && isMultipartBodyWithSinglePlaintextFormat(argument.getContent(), "body");
                   } catch (MessagingException | IOException e) {
                     throw new RuntimeException(e);
                   }
@@ -85,6 +87,17 @@ class JakartaExecutorTest {
                     Arrays.toString(argument).contains("to")
                         && Arrays.toString(argument).contains("cc")
                         && Arrays.toString(argument).contains("bcc")));
+  }
+
+  private boolean isMultipartBodyWithSinglePlaintextFormat(Object content, String expectedContent) {
+    if (content instanceof MimeMultipart mimeMultipart) {
+      try {
+        return mimeMultipart.getBodyPart(0).getContent().equals(expectedContent);
+      } catch (IOException | MessagingException e) {
+        throw new RuntimeException("Error while reading body part from content", e);
+      }
+    }
+    return false;
   }
 
   @Test
