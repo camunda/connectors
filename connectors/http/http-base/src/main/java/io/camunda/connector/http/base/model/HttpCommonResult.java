@@ -17,25 +17,24 @@
 package io.camunda.connector.http.base.model;
 
 import io.camunda.connector.generator.java.annotation.DataExample;
+import io.camunda.document.CamundaDocument;
+import io.camunda.document.Document;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.time.OffsetDateTime;
 import java.util.Map;
 
 public record HttpCommonResult(
-    int status,
-    Map<String, String> headers,
-    Object body,
-    String reason,
-    DocumentReference document) {
+    int status, Map<String, String> headers, Object body, String reason, Document document) {
 
   public HttpCommonResult(int status, Map<String, String> headers, Object body, String reason) {
     this(status, headers, body, reason, null);
   }
 
   public HttpCommonResult(
-      int status, Map<String, String> headers, Object body, DocumentReference documentReference) {
+      int status, Map<String, String> headers, Object body, Document documentReference) {
     this(status, headers, body, null, documentReference);
   }
 
@@ -46,7 +45,7 @@ public record HttpCommonResult(
   @DataExample(id = "basic", feel = "= body.order.id")
   public static HttpCommonResult exampleResult() {
     Map<String, String> headers = Map.of("Content-Type", "application/json");
-    DocumentReference documentReference =
+    DocumentReference.CamundaDocumentReference documentReference =
         new CamundaDocumentReferenceImpl(
             "theStoreId",
             "977c5cbf-0f19-4a76-a8e1-60902216a07b",
@@ -76,7 +75,10 @@ public record HttpCommonResult(
                 return Map.of("key", "value");
               }
             });
+    CamundaDocument doc =
+        new CamundaDocument(
+            documentReference.metadata(), documentReference, InMemoryDocumentStore.INSTANCE);
     var body = Map.of("order", Map.of("id", "123", "total", "100.00€"));
-    return new HttpCommonResult(200, headers, body, documentReference);
+    return new HttpCommonResult(200, headers, body, doc);
   }
 }

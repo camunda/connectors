@@ -18,7 +18,7 @@ package io.camunda.connector.http.base.document;
 
 import io.camunda.connector.http.base.ExecutionEnvironment;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -38,7 +38,7 @@ public class FileResponseHandler {
     this.executionEnvironment = executionEnvironment;
   }
 
-  public DocumentReference handleCloudFunctionResult(HttpCommonResult result) {
+  public Document handleCloudFunctionResult(HttpCommonResult result) {
     if (!storeResponseSelected()) return null;
 
     var body = result.body();
@@ -52,7 +52,7 @@ public class FileResponseHandler {
     return null;
   }
 
-  public DocumentReference handle(Map<String, String> headers, byte[] content) {
+  public Document handle(Map<String, String> headers, byte[] content) {
     if (storeResponseSelected()
         && executionEnvironment instanceof ExecutionEnvironment.StoresDocument env) {
       try (var byteArrayInputStream = new ByteArrayInputStream(content)) {
@@ -60,8 +60,7 @@ public class FileResponseHandler {
             .createDocument(
                 DocumentCreationRequest.from(byteArrayInputStream)
                     .contentType(getContentType(headers))
-                    .build())
-            .reference();
+                    .build());
       } catch (IOException e) {
         LOGGER.error("Failed to create document", e);
         throw new RuntimeException(e);

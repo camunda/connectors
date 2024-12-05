@@ -24,7 +24,7 @@ import io.camunda.connector.http.base.client.HttpStatusHelper;
 import io.camunda.connector.http.base.document.FileResponseHandler;
 import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.Document;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -83,10 +83,10 @@ public class HttpCommonResultResponseHandler
     return new HttpCommonResult(code, headers, null, reason);
   }
 
-  private DocumentReference handleFileResponse(Map<String, String> headers, byte[] content) {
-    var documentReference = fileResponseHandler.handle(headers, content);
-    LOGGER.debug("Stored response as document. Document reference: {}", documentReference);
-    return documentReference;
+  private Document handleFileResponse(Map<String, String> headers, byte[] content) {
+    var document = fileResponseHandler.handle(headers, content);
+    LOGGER.debug("Stored response as document. Document reference: {}", document);
+    return document;
   }
 
   /**
@@ -105,13 +105,13 @@ public class HttpCommonResultResponseHandler
     // Unwrap the response as a HttpCommonResult directly
     var result =
         ConnectorsObjectMapperSupplier.getCopy().readValue(content, HttpCommonResult.class);
-    DocumentReference documentReference = fileResponseHandler.handleCloudFunctionResult(result);
+    Document document = fileResponseHandler.handleCloudFunctionResult(result);
     return new HttpCommonResult(
         result.status(),
         result.headers(),
-        documentReference == null ? result.body() : null,
+        document == null ? result.body() : null,
         result.reason(),
-        documentReference);
+        document);
   }
 
   /**
