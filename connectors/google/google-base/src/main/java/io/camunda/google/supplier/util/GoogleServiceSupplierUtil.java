@@ -24,22 +24,25 @@ public final class GoogleServiceSupplierUtil {
   private GoogleServiceSupplierUtil() {}
 
   public static HttpCredentialsAdapter getHttpHttpCredentialsAdapter(final Authentication auth) {
-    Credentials creds = null;
+    Credentials creds = getCredentials(auth);
     if (auth.authType() == AuthenticationType.BEARER) {
-      AccessToken accessToken = new AccessToken(auth.bearerToken(), null);
-      creds = new GoogleCredentials(accessToken).createScoped(DriveScopes.DRIVE);
-    }
-
-    if (auth.authType() == AuthenticationType.REFRESH) {
-      creds =
-          UserCredentials.newBuilder()
-              .setClientId(auth.oauthClientId())
-              .setClientSecret(auth.oauthClientSecret())
-              .setRefreshToken(auth.oauthRefreshToken())
-              .build();
+      creds = ((GoogleCredentials) creds).createScoped(DriveScopes.DRIVE);
     }
 
     return new HttpCredentialsAdapter(creds);
+  }
+
+  public static Credentials getCredentials(Authentication auth) {
+    if (auth.authType() == AuthenticationType.BEARER) {
+      AccessToken accessToken = new AccessToken(auth.bearerToken(), null);
+      GoogleCredentials googleCredentials = new GoogleCredentials(accessToken);
+      return googleCredentials;
+    }
+    return UserCredentials.newBuilder()
+        .setClientId(auth.oauthClientId())
+        .setClientSecret(auth.oauthClientSecret())
+        .setRefreshToken(auth.oauthRefreshToken())
+        .build();
   }
 
   public static NetHttpTransport getNetHttpTransport() {

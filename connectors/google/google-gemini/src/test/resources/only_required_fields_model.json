@@ -1,0 +1,22 @@
+{
+  "input": {
+    "model": "GEMINI_1_5_FLASH_001",
+    "prompts": [
+      {
+        "text": "tell me abut this band"
+      },
+      {
+        "mime": "video/*",
+        "uri": "https://youtu.be/Snhb-97lMcQ?si=_cFMlEcGldkQ6h63"
+      }
+    ],
+    "projectId": "projectId",
+    "systemInstrText": "You are a helpful customer service agent",
+    "region": "region",
+    "maxOutputTokens": "600"
+  },
+  "authentication": {
+    "authType": "bearer",
+    "bearerToken": "d"
+  }
+}

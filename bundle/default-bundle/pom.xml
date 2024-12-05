@@ -117,6 +117,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-comprehend</artifactId>
     </dependency>
+    <dependency>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-google-gemini</artifactId>
+  </dependency>
   </dependencies>
 
   <build>
