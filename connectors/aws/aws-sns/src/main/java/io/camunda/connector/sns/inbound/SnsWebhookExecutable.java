@@ -45,10 +45,7 @@ import org.slf4j.LoggerFactory;
     version = 4,
     inputDataClass = SnsWebhookConnectorPropertiesWrapper.class,
     description = "Receive messages from AWS SNS via HTTPS.",
-    metadata = @ElementTemplate.Metadata(keywords = {
-      "receive event",
-      "receive message"
-    }),
+    metadata = @ElementTemplate.Metadata(keywords = {"receive event", "receive message"}),
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
     propertyGroups = {@PropertyGroup(id = "subscription", label = "Subscription Configuration")},
