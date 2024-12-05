@@ -49,8 +49,9 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     super(String.class);
     this.feelEngineWrapper = feelEngineWrapper;
     this.relaxed = relaxed;
-    BLANK_OBJECT_MAPPER.registerModule(new Jdk8Module())
-            .registerModule(new JacksonModuleDocument(new DocumentFactoryImpl(null), null));
+    BLANK_OBJECT_MAPPER
+        .registerModule(new Jdk8Module())
+        .registerModule(new JacksonModuleDocument(new DocumentFactoryImpl(null), null));
   }
 
   @Override

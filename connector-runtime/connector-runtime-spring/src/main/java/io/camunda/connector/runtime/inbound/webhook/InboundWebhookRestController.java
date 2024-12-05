@@ -296,7 +296,7 @@ public class InboundWebhookRestController {
                   Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
                   Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
               Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
-                  documents);
+              documents);
     }
     return ctx;
   }
