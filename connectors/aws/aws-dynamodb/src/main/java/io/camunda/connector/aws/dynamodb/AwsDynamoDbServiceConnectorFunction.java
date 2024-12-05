@@ -21,17 +21,19 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     name = "AWS DynamoDB Outbound Connector",
     version = 7,
     description = "Manage tables and items with AWS DynamoDB.",
-    metadata = @ElementTemplate.Metadata(keywords = {
-      "create table",
-      "delete table",
-      "update table",
-      "describe table",
-      "scan table",
-      "add item",
-      "delete item",
-      "get item",
-      "update item"
-    }),
+    metadata =
+        @ElementTemplate.Metadata(
+            keywords = {
+              "create table",
+              "delete table",
+              "update table",
+              "describe table",
+              "scan table",
+              "add item",
+              "delete item",
+              "get item",
+              "update item"
+            }),
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/",
     propertyGroups = {
