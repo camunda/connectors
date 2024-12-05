@@ -102,7 +102,6 @@ public class HttpCommonRequest {
       description = "Map of query parameters to add to the request URL")
   private Map<String, String> queryParameters;
 
-  @FEEL
   @TemplateProperty(
       group = "endpoint",
       type = PropertyType.Boolean,
