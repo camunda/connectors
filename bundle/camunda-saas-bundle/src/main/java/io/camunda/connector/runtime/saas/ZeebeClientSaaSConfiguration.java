@@ -58,7 +58,7 @@ public class ZeebeClientSaaSConfiguration {
 
   @Bean
   @Primary
-  public ZeebeClientConfiguration zeebeClientConfiguration(
+  public ZeebeClientConfiguration saasZeebeClientConfiguration(
       final ZeebeClientConfigurationProperties properties,
       final CamundaClientProperties camundaClientProperties,
       final JsonMapper jsonMapper,
