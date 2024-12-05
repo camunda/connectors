@@ -103,8 +103,9 @@ public class CustomApacheHttpClientTest {
       assertThat(result.body()).isNull();
       var documents = store.getDocuments();
       assertThat(documents).hasSize(1);
-      var responseDocumentReference =
-          (DocumentReference.CamundaDocumentReference) result.document();
+      var responseDocument = (CamundaDocument) result.document();
+      DocumentReference.CamundaDocumentReference responseDocumentReference =
+          (DocumentReference.CamundaDocumentReference) responseDocument.reference();
       assertThat(responseDocumentReference).isNotNull();
       var documentContent = documents.get(responseDocumentReference.documentId());
       assertThat(documentContent)
