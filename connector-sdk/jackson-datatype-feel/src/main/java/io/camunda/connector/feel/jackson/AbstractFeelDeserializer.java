@@ -22,10 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.document.factory.DocumentFactoryImpl;
 import java.io.IOException;
 import java.util.function.Supplier;
 
@@ -49,9 +46,6 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     super(String.class);
     this.feelEngineWrapper = feelEngineWrapper;
     this.relaxed = relaxed;
-    BLANK_OBJECT_MAPPER
-        .registerModule(new Jdk8Module())
-        .registerModule(new JacksonModuleDocument(new DocumentFactoryImpl(null), null));
   }
 
   @Override
