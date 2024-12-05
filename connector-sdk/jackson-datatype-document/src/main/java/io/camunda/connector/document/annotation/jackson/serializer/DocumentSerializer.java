@@ -39,7 +39,6 @@ public class DocumentSerializer extends JsonSerializer<Document> {
   public void serialize(
       Document document, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
       throws IOException {
-
     var reference = document.reference();
     if (!(reference instanceof CamundaDocumentReference camundaReference)) {
       throw new IllegalArgumentException("Unsupported document reference type: " + reference);

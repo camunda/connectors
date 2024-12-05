@@ -16,15 +16,19 @@
  */
 package io.camunda.connector.feel;
 
+import static io.camunda.connector.feel.JacksonSupport.MAP_TYPE_REFERENCE;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
+import io.camunda.document.factory.DocumentFactoryImpl;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,48 +40,37 @@ import java.util.stream.StreamSupport;
 import org.camunda.feel.FeelEngine;
 import org.camunda.feel.impl.JavaValueMapper;
 import org.camunda.feel.impl.SpiServiceLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.collection.Iterable;
 import scala.jdk.javaapi.CollectionConverters;
 
 /** Wrapper for the FEEL engine, handling type conversions and expression evaluations. */
 public class FeelEngineWrapper {
 
-  static final String ERROR_CONTEXT_IS_NULL = "Context is null";
-
-  static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {};
-
+  private static final String ERROR_CONTEXT_IS_NULL = "Context is null";
+  private static final Logger log = LoggerFactory.getLogger(FeelEngineWrapper.class);
   private final FeelEngine feelEngine;
   private final ObjectMapper objectMapper;
 
-  /**
-   * Default constructor, creating an {@link ObjectMapper} and a {@link FeelEngine} with default
-   * configuration.
-   */
   public FeelEngineWrapper() {
-    this(
-        new FeelEngine.Builder()
-            .customValueMapper(new JavaValueMapper())
-            .functionProvider(SpiServiceLoader.loadFunctionProvider())
-            .build(),
+    this.objectMapper =
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
             .registerModule(new JavaTimeModule())
-            // deserialize unknown types as empty objects
+            .registerModule(new Jdk8Module())
+            .registerModule(new JacksonModuleDocument(new DocumentFactoryImpl(null), null))
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS));
-  }
+            .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS);
 
-  /**
-   * Injection constructor allowing to pass in the {@link FeelEngine} and {@link ObjectMapper} to
-   * use.
-   *
-   * @param feelEngine the FEEL engine to use
-   * @param objectMapper the object mapper to use
-   */
-  public FeelEngineWrapper(final FeelEngine feelEngine, final ObjectMapper objectMapper) {
-    this.feelEngine = feelEngine;
-    this.objectMapper = objectMapper;
+    this.feelEngine =
+        new FeelEngine.Builder()
+            .customValueMapper(new JavaValueMapper())
+            .functionProvider(SpiServiceLoader.loadFunctionProvider())
+            .customValueMapper(new CustomValueMapper(objectMapper))
+            .build();
+    ;
   }
 
   private static String trimExpression(final String expression) {
@@ -113,6 +106,7 @@ public class FeelEngineWrapper {
     try {
       return Optional.of(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
     } catch (IllegalArgumentException ex) {
+      log.warn(ex.getMessage(), ex);
       return Optional.empty();
     }
   }
@@ -278,7 +272,6 @@ public class FeelEngineWrapper {
   private Object evaluateInternal(final String expression, final Object[] variables) {
     var variablesAsMap = mergeMapVariables(variables);
     var variablesAsMapAsScalaMap = toScalaMap(variablesAsMap);
-
     var result = feelEngine.evalExpression(trimExpression(expression), variablesAsMapAsScalaMap);
     if (result.isRight()) {
       return result.right().get();
