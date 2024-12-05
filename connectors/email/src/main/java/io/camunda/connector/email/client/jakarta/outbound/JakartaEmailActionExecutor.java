@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.email.client.jakarta.outbound;
 
+import static io.camunda.connector.email.outbound.protocols.actions.ContentType.PLAIN;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.email.authentication.Authentication;
@@ -14,6 +16,7 @@ import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
+import io.camunda.connector.email.outbound.protocols.actions.ContentType;
 import io.camunda.connector.email.response.*;
 import jakarta.mail.*;
 import jakarta.mail.internet.*;
@@ -282,7 +285,9 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private Multipart getMultipart(SmtpSendEmail smtpSendEmail) throws MessagingException {
     Multipart multipart = new MimeMultipart();
-    switch (smtpSendEmail.contentType()) {
+    ContentType contentType =
+        smtpSendEmail.contentType() == null ? PLAIN : smtpSendEmail.contentType();
+    switch (contentType) {
       case PLAIN -> {
         MimeBodyPart textPart = new MimeBodyPart();
         textPart.setText(smtpSendEmail.body(), StandardCharsets.UTF_8.name());

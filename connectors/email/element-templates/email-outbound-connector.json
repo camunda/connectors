@@ -592,9 +592,6 @@
     "label" : "ContentType",
     "optional" : false,
     "value" : "PLAIN",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "group" : "sendEmailSmtp",
     "binding" : {
       "name" : "data.smtpAction.contentType",
