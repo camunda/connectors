@@ -72,8 +72,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               optional = true,
               description = "Map of HTTP headers to add to the request")
           Map<String, String> headers,
-      @FEEL
-          @TemplateProperty(
+      @TemplateProperty(
               group = "endpoint",
               type = TemplateProperty.PropertyType.Boolean,
               feel = Property.FeelMode.disabled,
