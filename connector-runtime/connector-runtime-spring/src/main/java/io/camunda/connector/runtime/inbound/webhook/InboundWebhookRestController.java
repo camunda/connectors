@@ -42,7 +42,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
-import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -137,12 +137,11 @@ public class InboundWebhookRestController {
         // Step 2: trigger and correlate
         var webhookResult = connectorHook.triggerWebhook(payload);
         // create documents if the connector is activable
-        var documentReferences =
-            createDocuments(connector.context(), webhookResult, payload.parts());
-        var ctxData = toWebhookTriggerResultContext(webhookResult, documentReferences);
+        var documents = createDocuments(connector.context(), webhookResult, payload.parts());
+        var ctxData = toWebhookTriggerResultContext(webhookResult, documents);
         // correlate
         var correlationResult = connector.context().correlateWithResult(ctxData);
-        response = buildResponse(webhookResult, documentReferences, correlationResult);
+        response = buildResponse(webhookResult, documents, correlationResult);
       }
     } catch (Exception e) {
       LOG.info("Webhook: {} failed with exception", connector.context().getDefinition(), e);
@@ -151,7 +150,7 @@ public class InboundWebhookRestController {
     return response;
   }
 
-  private List<DocumentReference> createDocuments(
+  private List<Document> createDocuments(
       InboundConnectorContext context,
       WebhookResult webhookResult,
       Collection<io.camunda.connector.api.inbound.webhook.Part> parts) {
@@ -162,13 +161,11 @@ public class InboundWebhookRestController {
     return parts.stream()
         .map(
             part ->
-                context
-                    .createDocument(
-                        DocumentCreationRequest.from(part.inputStream())
-                            .fileName(part.submittedFileName())
-                            .contentType(part.contentType())
-                            .build())
-                    .reference())
+                context.createDocument(
+                    DocumentCreationRequest.from(part.inputStream())
+                        .fileName(part.submittedFileName())
+                        .contentType(part.contentType())
+                        .build()))
         .toList();
   }
 
@@ -183,18 +180,15 @@ public class InboundWebhookRestController {
   }
 
   private ResponseEntity<?> buildResponse(
-      WebhookResult webhookResult,
-      List<DocumentReference> documentReferences,
-      CorrelationResult correlationResult) {
+      WebhookResult webhookResult, List<Document> documents, CorrelationResult correlationResult) {
     ResponseEntity<?> response;
     if (correlationResult instanceof CorrelationResult.Success success) {
-      response = buildSuccessfulResponse(webhookResult, documentReferences, success);
+      response = buildSuccessfulResponse(webhookResult, documents, success);
     } else {
       if (correlationResult instanceof CorrelationResult.Failure failure) {
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream ignored -> response = buildErrorResponse(failure);
-          case Ignore ignored ->
-              response = buildSuccessfulResponse(webhookResult, documentReferences, null);
+          case Ignore ignored -> response = buildSuccessfulResponse(webhookResult, documents, null);
         }
       } else {
         throw new IllegalStateException("Illegal correlation result : " + correlationResult);
@@ -215,12 +209,12 @@ public class InboundWebhookRestController {
 
   private ResponseEntity<?> buildSuccessfulResponse(
       WebhookResult webhookResult,
-      List<DocumentReference> documentReferences,
+      List<Document> documents,
       CorrelationResult.Success correlationResult) {
     ResponseEntity<?> response;
     if (webhookResult.response() != null) {
       var processVariablesContext =
-          toWebhookResultContext(webhookResult, documentReferences, correlationResult);
+          toWebhookResultContext(webhookResult, documents, correlationResult);
       var httpResponseData = webhookResult.response().apply(processVariablesContext);
       if (httpResponseData != null) {
         response = toResponseEntity(httpResponseData);
@@ -292,7 +286,7 @@ public class InboundWebhookRestController {
   // This will be used to correlate data returned from connector.
   // In other words, we pass this data to Zeebe.
   private WebhookTriggerResultContext toWebhookTriggerResultContext(
-      WebhookResult processedResult, List<DocumentReference> documentReferences) {
+      WebhookResult processedResult, List<Document> documents) {
     WebhookTriggerResultContext ctx = new WebhookTriggerResultContext(null, null, List.of());
     if (processedResult != null) {
       ctx =
@@ -302,7 +296,7 @@ public class InboundWebhookRestController {
                   Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
                   Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
               Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
-              documentReferences);
+              documents);
     }
     return ctx;
   }
@@ -312,7 +306,7 @@ public class InboundWebhookRestController {
   // this data may be returned to the webhook caller.
   private WebhookResultContext toWebhookResultContext(
       WebhookResult processedResult,
-      List<DocumentReference> documents,
+      List<Document> documents,
       CorrelationResult.Success correlationResult) {
     WebhookResultContext ctx = new WebhookResultContext(null, null, null);
     if (processedResult != null) {

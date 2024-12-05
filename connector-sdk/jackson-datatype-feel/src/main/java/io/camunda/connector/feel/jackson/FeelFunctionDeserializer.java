@@ -52,7 +52,8 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
               deserializationContext,
               node.textValue(),
               deserializationContext.getTypeFactory().constructType(JsonNode.class),
-              mergeContexts(input, feelContext));
+              input,
+              feelContext);
       try {
         if (jsonNode == null || jsonNode.isNull()) {
           return null;
@@ -66,23 +67,6 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
         throw new RuntimeException(e);
       }
     };
-  }
-
-  private Object mergeContexts(Object inputContext, Object feelContext) {
-    try {
-      var wrappedInput =
-          new MergedContext(BLANK_OBJECT_MAPPER.convertValue(inputContext, MAP_TYPE_REF));
-      var wrappedFeelContext =
-          new MergedContext(BLANK_OBJECT_MAPPER.convertValue(feelContext, MAP_TYPE_REF));
-      var merged =
-          BLANK_OBJECT_MAPPER
-              .readerForUpdating(wrappedInput)
-              .treeToValue(
-                  BLANK_OBJECT_MAPPER.valueToTree(wrappedFeelContext), MergedContext.class);
-      return merged.context;
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   @Override
