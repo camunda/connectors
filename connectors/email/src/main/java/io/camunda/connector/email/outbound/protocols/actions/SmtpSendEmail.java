@@ -95,7 +95,6 @@ public record SmtpSendEmail(
             tooltip = "Email's contentType",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.contentType"))
         @Valid
-        @NotNull
         ContentType contentType,
     @TemplateProperty(
             label = "Email Text Content",
