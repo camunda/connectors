@@ -113,7 +113,8 @@ public class HttpServiceTest {
     assertThat(result.status()).isEqualTo(200);
     assertThat(result.body()).isNull();
     assertThat(result.document()).isNotNull();
-    var documentId = ((DocumentReference.CamundaDocumentReference) result.document()).documentId();
+    var documentId =
+        ((DocumentReference.CamundaDocumentReference) (result.document().reference())).documentId();
     var content = store.getDocuments().get(documentId);
     assertThat(content)
         .isEqualTo(getClass().getResourceAsStream("/__files/fileName.jpg").readAllBytes());
