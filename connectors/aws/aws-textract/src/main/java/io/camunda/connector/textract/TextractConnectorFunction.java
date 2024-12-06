@@ -24,13 +24,15 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
     id = "io.camunda.connectors.AWSTEXTRACT.v1",
     name = "AWS Textract Outbound Connector",
     description = "Extract text and data using AWS Textract.",
-    metadata = @ElementTemplate.Metadata(keywords = {
-      "extract text",
-      "extract data",
-      "extract text from image",
-      "extract data from image",
-      "ocr"
-    }),
+    metadata =
+        @ElementTemplate.Metadata(
+            keywords = {
+              "extract text",
+              "extract data",
+              "extract text from image",
+              "extract data from image",
+              "ocr"
+            }),
     inputDataClass = TextractRequest.class,
     version = 1,
     propertyGroups = {
