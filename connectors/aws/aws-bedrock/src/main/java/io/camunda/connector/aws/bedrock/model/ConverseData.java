@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,10 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
-import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
-import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
-import software.amazon.awssdk.services.bedrockruntime.model.Message;
+import software.amazon.awssdk.services.bedrockruntime.model.*;
 
 @TemplateSubType(id = "converse", label = "Converse")
 public final class ConverseData implements RequestData {
@@ -89,10 +87,20 @@ public final class ConverseData implements RequestData {
       binding = @TemplateProperty.PropertyBinding(name = "data.topP"))
   private Float topP = 0.9f;
 
+  @TemplateProperty(
+      label = "documents",
+      group = "converse",
+      id = "data.documents",
+      feel = Property.FeelMode.required,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "data.documents"))
+  private List<Document> documents;
+
   @Override
   public BedrockResponse execute(
       BedrockRuntimeClient bedrockRuntimeClient, ObjectMapper mapperInstance) {
-    this.messages.add(new PreviousMessage(this.nextMessage, ConversationRole.USER.name()));
+    addPreviousMessages();
+
     Message.Builder messageBuilder = Message.builder();
     List<Message> messages =
         this.messages.stream()
@@ -100,7 +108,7 @@ public final class ConverseData implements RequestData {
                 message ->
                     messageBuilder
                         .role(ConversationRole.valueOf(message.role()))
-                        .content(ContentBlock.fromText(message.message()))
+                        .content(mapToContentBlock(message.message()))
                         .build())
             .toList();
     ConverseResponse converseResponse =
@@ -119,6 +127,26 @@ public final class ConverseData implements RequestData {
     String newMessage = converseResponse.output().message().content().getFirst().text();
     this.messages.add(new PreviousMessage(newMessage, ConversationRole.ASSISTANT.name()));
     return new ConverseWrapperResponse(this.messages, newMessage);
+  }
+
+  private ContentBlock mapToContentBlock(Object message) {
+    if (message instanceof String) {
+      return ContentBlock.fromText((String) message);
+    }
+
+    if (message instanceof ImageBlock) {
+      return ContentBlock.fromImage((ImageBlock) message);
+    }
+
+    return ContentBlock.fromDocument((DocumentBlock) message);
+  }
+
+  private void addPreviousMessages() {
+    String user = ConversationRole.USER.name();
+    this.messages.add(new PreviousMessage(this.nextMessage, user));
+    //    List<Object> documentBlocks = DocumentMapper.mapToDocumentBlocks(this.documents);
+    //    var previousMessages = PreviousMessageMapper.mapToPreviousMessage(documentBlocks, user);
+    //    this.messages.addAll(previousMessages);
   }
 
   @Override
@@ -161,6 +189,14 @@ public final class ConverseData implements RequestData {
 
   public void setTopP(Float topP) {
     this.topP = topP;
+  }
+
+  public List<Document> getDocuments() {
+    return documents;
+  }
+
+  public void setDocuments(List<Document> documents) {
+    this.documents = documents;
   }
 
   @Override

@@ -292,6 +292,22 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.documents",
+    "label" : "documents",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "converse",
+    "binding" : {
+      "name" : "data.documents",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "action",
+      "equals" : "converse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "resultVariable",
     "label" : "Result variable",
     "description" : "Name of variable to store the response in",
