@@ -57,7 +57,7 @@ public class DocumentSerializationTest {
         """
         {
           "document": {
-            "documentType": "camunda",
+            "camunda.document.type": "camunda",
             "storeId": "test",
             "documentId": "test",
             "metadata": {}
@@ -79,7 +79,7 @@ public class DocumentSerializationTest {
         """
         {
           "document": {
-            "documentType": "camunda",
+            "camunda.document.type": "camunda",
             "storeId": "test",
             "documentId": "test",
             "metadata": {}
