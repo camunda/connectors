@@ -24,18 +24,18 @@ import org.slf4j.LoggerFactory;
     name = "Google Sheets Outbound Connector",
     description = "Manage spreadsheets with Google Sheets",
     metadata =
-      @ElementTemplate.Metadata(
-        keywords = {
-          "create spreadsheet",
-          "add values to spreadsheet",
-          "create row",
-          "create column",
-          "create worksheet",
-          "delete worksheet",
-          "get row",
-          "get spreadsheet details",
-          "get worksheet data"
-        }),
+        @ElementTemplate.Metadata(
+            keywords = {
+              "create spreadsheet",
+              "add values to spreadsheet",
+              "create row",
+              "create column",
+              "create worksheet",
+              "delete worksheet",
+              "get row",
+              "get spreadsheet details",
+              "get worksheet data"
+            }),
     inputDataClass = GoogleSheetsRequest.class,
     version = 4,
     propertyGroups = {
