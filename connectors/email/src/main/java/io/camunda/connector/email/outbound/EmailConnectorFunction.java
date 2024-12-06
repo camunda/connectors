@@ -25,15 +25,15 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     name = "Email Connector",
     description = "Execute email requests",
     metadata =
-      @ElementTemplate.Metadata(
-        keywords = {
-          "send emails",
-          "list emails",
-          "search emails",
-          "delete emails",
-          "read emails",
-          "move emails"
-        }),
+        @ElementTemplate.Metadata(
+            keywords = {
+              "send emails",
+              "list emails",
+              "search emails",
+              "delete emails",
+              "read emails",
+              "move emails"
+            }),
     inputDataClass = EmailRequest.class,
     version = 2,
     propertyGroups = {
