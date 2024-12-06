@@ -16,8 +16,10 @@
  */
 package io.camunda.connector.http.base.client;
 
+import io.camunda.connector.http.base.ExecutionEnvironment;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import javax.annotation.Nullable;
 
 public interface HttpClient {
 
@@ -26,11 +28,11 @@ public interface HttpClient {
    * HttpCommonResult}.
    *
    * @param request the {@link HttpCommonRequest} to execute
-   * @param remoteExecutionEnabled whether to use the internal Google Function to execute the
-   *     request remotely
+   * @param executionEnvironment the {@link ExecutionEnvironment} to use for the execution.
    * @return the result of the request as a {@link HttpCommonResult}
    */
-  HttpCommonResult execute(HttpCommonRequest request, boolean remoteExecutionEnabled);
+  HttpCommonResult execute(
+      HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment);
 
   /**
    * Executes the given {@link HttpCommonRequest} and returns the result as a {@link
@@ -38,8 +40,9 @@ public interface HttpClient {
    *
    * @param request the {@link HttpCommonRequest} to execute
    * @return the result of the request as a {@link HttpCommonResult}
+   * @see #execute(HttpCommonRequest, ExecutionEnvironment)
    */
   default HttpCommonResult execute(HttpCommonRequest request) {
-    return execute(request, false);
+    return execute(request, null);
   }
 }

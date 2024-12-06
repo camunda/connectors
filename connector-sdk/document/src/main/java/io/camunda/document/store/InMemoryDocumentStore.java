@@ -97,4 +97,8 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   public void clear() {
     documents.clear();
   }
+
+  public Map<String, byte[]> getDocuments() {
+    return documents;
+  }
 }
