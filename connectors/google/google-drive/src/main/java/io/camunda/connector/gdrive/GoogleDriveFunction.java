@@ -22,12 +22,8 @@ import org.slf4j.LoggerFactory;
     name = "Google Drive Outbound Connector",
     description = "Manage Google Drive files and folders",
     metadata =
-      @ElementTemplate.Metadata(
-        keywords = {
-          "create file",
-          "create file from template",
-          "create folder"
-        }),
+        @ElementTemplate.Metadata(
+            keywords = {"create file", "create file from template", "create folder"}),
     inputDataClass = GoogleDriveRequest.class,
     version = 3,
     propertyGroups = {
