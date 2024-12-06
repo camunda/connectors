@@ -51,12 +51,5 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>io.camunda.connector</groupId>
-            <artifactId>connectors-e2e-test-base</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 </project>
