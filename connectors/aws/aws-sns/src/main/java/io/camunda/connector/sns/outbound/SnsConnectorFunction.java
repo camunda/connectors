@@ -32,7 +32,8 @@ import java.util.Optional;
 @ElementTemplate(
     id = "io.camunda.connectors.AWSSNS.v1",
     name = "Amazon SNS Outbound connector",
-    description = "Send message to topic",
+    description = "Send messages to Amazon SNS.",
+    metadata = @ElementTemplate.Metadata(keywords = {"send message", "publish message"}),
     inputDataClass = SnsConnectorRequest.class,
     version = 7,
     propertyGroups = {

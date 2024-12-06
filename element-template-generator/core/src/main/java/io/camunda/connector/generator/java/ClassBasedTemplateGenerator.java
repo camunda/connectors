@@ -52,6 +52,45 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     this(Thread.currentThread().getContextClassLoader());
   }
 
+  private static String createId(
+      TemplateGenerationContext context,
+      String templateId,
+      ConnectorElementType elementType,
+      final boolean isHybridMode) {
+    String baseTemplateId =
+        Optional.ofNullable(elementType.templateIdOverride())
+            .orElseGet(
+                () ->
+                    context.elementTypes().size() > 1
+                        ? templateId + ":" + elementType.elementType().getId()
+                        : templateId);
+    return isHybridMode
+        ? baseTemplateId + GeneratorConfiguration.HYBRID_TEMPLATE_ID_SUFFIX
+        : baseTemplateId;
+  }
+
+  private static String createName(
+      TemplateGenerationContext context,
+      String templateName,
+      ConnectorElementType elementType,
+      boolean isHybridMode) {
+    String baseTemplateName =
+        Optional.ofNullable(elementType.templateNameOverride())
+            .orElseGet(
+                () -> {
+                  if (context.elementTypes().size() > 1) {
+                    return templateName
+                        + " ("
+                        + camelCaseToSpaces(elementType.elementType().getId())
+                        + ")";
+                  }
+                  return templateName;
+                });
+    return isHybridMode
+        ? GeneratorConfiguration.HYBRID_TEMPLATE_NAME_PREFIX + baseTemplateName
+        : baseTemplateName;
+  }
+
   @Override
   public List<io.camunda.connector.generator.dsl.ElementTemplate> generate(
       Class<?> connectorDefinition, GeneratorConfiguration configuration) {
@@ -130,6 +169,9 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .appliesTo(elementType.appliesTo())
                   .elementType(elementType.elementType())
                   .icon(icon)
+                  .metadata(
+                      new io.camunda.connector.generator.dsl.ElementTemplate.Metadata(
+                          template.metadata().keywords()))
                   .documentationRef(
                       template.documentationRef().isEmpty() ? null : template.documentationRef())
                   .description(template.description().isEmpty() ? null : template.description())
@@ -139,45 +181,6 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .build();
             })
         .toList();
-  }
-
-  private static String createId(
-      TemplateGenerationContext context,
-      String templateId,
-      ConnectorElementType elementType,
-      final boolean isHybridMode) {
-    String baseTemplateId =
-        Optional.ofNullable(elementType.templateIdOverride())
-            .orElseGet(
-                () ->
-                    context.elementTypes().size() > 1
-                        ? templateId + ":" + elementType.elementType().getId()
-                        : templateId);
-    return isHybridMode
-        ? baseTemplateId + GeneratorConfiguration.HYBRID_TEMPLATE_ID_SUFFIX
-        : baseTemplateId;
-  }
-
-  private static String createName(
-      TemplateGenerationContext context,
-      String templateName,
-      ConnectorElementType elementType,
-      boolean isHybridMode) {
-    String baseTemplateName =
-        Optional.ofNullable(elementType.templateNameOverride())
-            .orElseGet(
-                () -> {
-                  if (context.elementTypes().size() > 1) {
-                    return templateName
-                        + " ("
-                        + camelCaseToSpaces(elementType.elementType().getId())
-                        + ")";
-                  }
-                  return templateName;
-                });
-    return isHybridMode
-        ? GeneratorConfiguration.HYBRID_TEMPLATE_NAME_PREFIX + baseTemplateName
-        : baseTemplateName;
   }
 
   private List<PropertyGroup> addServiceProperties(
