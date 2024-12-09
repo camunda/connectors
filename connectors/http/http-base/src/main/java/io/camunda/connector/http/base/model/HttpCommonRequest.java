@@ -17,6 +17,7 @@
 package io.camunda.connector.http.base.model;
 
 import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
@@ -100,6 +101,15 @@ public class HttpCommonRequest {
       optional = true,
       description = "Map of query parameters to add to the request URL")
   private Map<String, String> queryParameters;
+
+  @TemplateProperty(
+      group = "endpoint",
+      type = PropertyType.Boolean,
+      feel = Property.FeelMode.disabled,
+      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+      defaultValue = "false",
+      description = "Store the response as a document in the document store")
+  private boolean storeResponse;
 
   public Object getBody() {
     return body;
@@ -189,6 +199,14 @@ public class HttpCommonRequest {
     this.headers = headers;
   }
 
+  public boolean isStoreResponse() {
+    return storeResponse;
+  }
+
+  public void setStoreResponse(boolean storeResponse) {
+    this.storeResponse = storeResponse;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -201,7 +219,8 @@ public class HttpCommonRequest {
         && Objects.equals(readTimeoutInSeconds, that.readTimeoutInSeconds)
         && Objects.equals(headers, that.headers)
         && Objects.equals(body, that.body)
-        && Objects.equals(queryParameters, that.queryParameters);
+        && Objects.equals(queryParameters, that.queryParameters)
+        && storeResponse == that.storeResponse;
   }
 
   @Override
@@ -214,7 +233,8 @@ public class HttpCommonRequest {
         readTimeoutInSeconds,
         headers,
         body,
-        queryParameters);
+        queryParameters,
+        storeResponse);
   }
 
   @Override
@@ -240,6 +260,8 @@ public class HttpCommonRequest {
         + body
         + ", queryParameters="
         + queryParameters
+        + ", storeResponse="
+        + storeResponse
         + '}';
   }
 }
