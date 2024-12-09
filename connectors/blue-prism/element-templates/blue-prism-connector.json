@@ -3,7 +3,14 @@
   "name": "Blue Prism Outbound Connector",
   "id": "io.camunda.connectors.BluePrism.v1",
   "version": 3,
-  "description": "Orchestrate your Blue Prism queue with Camunda. You can create new queue items and get the result from it",
+  "description": "Manage Blue Prism work queues and items.",
+  "metadata": {
+    "keywords": [
+      "get item from queue by ID",
+      "create work queue item",
+      "work queue"
+    ]
+  },
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/blueprism/",
   "category": {
     "id": "connectors",

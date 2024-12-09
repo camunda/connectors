@@ -38,7 +38,15 @@ import org.slf4j.LoggerFactory;
     icon = "icon.svg",
     version = 9,
     inputDataClass = SqsInboundProperties.class,
-    description = "Receive message from a queue",
+    description = "Receive messages from Amazon SQS.",
+    metadata =
+        @ElementTemplate.Metadata(
+            keywords = {
+              "receive message",
+              "receive event",
+              "receive message from queue",
+              "receive event from queue"
+            }),
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
     propertyGroups = {

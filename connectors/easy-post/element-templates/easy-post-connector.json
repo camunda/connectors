@@ -3,7 +3,17 @@
   "name": "Easy Post Outbound Connector",
   "id": "io.camunda.connectors.EasyPost.v1",
   "version": 4,
-  "description": "Allows you to create addresses, parcels, and shipments, as well as purchase and verify shipments",
+  "description": "Manage addresses, parcels, and shipments with Easy Post.",
+  "metadata": {
+    "keywords": [
+      "create address",
+      "create parcel",
+      "create shipment",
+      "buy shipment",
+      "verify address",
+      "retrieve tracker by ID"
+    ]
+  },
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/easy-post/",
   "category": {
     "id": "connectors",
