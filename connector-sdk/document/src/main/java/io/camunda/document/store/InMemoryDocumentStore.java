@@ -25,10 +25,12 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 /** Use this document store to store documents in memory. This is useful for testing purposes. */
 public class InMemoryDocumentStore implements CamundaDocumentStore {
 
+  private static final Logger LOGGER = Logger.getLogger(InMemoryDocumentStore.class.getName());
   public static final String STORE_ID = "in-memory";
 
   public static InMemoryDocumentStore INSTANCE = new InMemoryDocumentStore();
@@ -39,6 +41,7 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
 
   @Override
   public CamundaDocumentReference createDocument(DocumentCreationRequest request) {
+    logWarning();
     final String id =
         request.documentId() != null ? request.documentId() : UUID.randomUUID().toString();
 
@@ -82,6 +85,7 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
 
   @Override
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
+    logWarning();
     var content = documents.get(reference.documentId());
     if (content == null) {
       throw new RuntimeException("Document not found: " + reference.documentId());
@@ -91,10 +95,16 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
 
   @Override
   public void deleteDocument(CamundaDocumentReference reference) {
+    logWarning();
     documents.remove(reference.documentId());
   }
 
   public void clear() {
     documents.clear();
+  }
+
+  public void logWarning() {
+    LOGGER.warning(
+        "In-memory document store is used. This store is not suitable for production use.");
   }
 }

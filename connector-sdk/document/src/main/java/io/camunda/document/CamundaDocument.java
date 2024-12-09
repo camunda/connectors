@@ -58,7 +58,7 @@ public class CamundaDocument implements Document {
     try {
       return documentStore.getDocumentContent(reference).readAllBytes();
     } catch (Exception e) {
-      throw new RuntimeException("Failed to read document content", e);
+      throw new RuntimeException("Failed to read document content: " + e.getMessage(), e);
     }
   }
 
