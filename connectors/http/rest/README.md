@@ -7,7 +7,11 @@ Invoke REST API
 # Camunda HTTP JSON Connector
 
 Find the user documentation in
+<<<<<<< HEAD
 our [Camunda](https://docs.camunda.io/docs/components/connectors/protocol/rest/).
+=======
+our [Camunda](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/rest/).
+>>>>>>> 1df27e363 (feat(rest): update README)
 
 ## Build
 
@@ -147,10 +151,18 @@ The response will contain the status code, the headers and the body of the respo
 The Connector will fail on any non-2XX HTTP status code in the response. This error status code will be passed on as
 error code, e.g. "404".
 
-## :lock: Use proxy-mechanism
+## :lock: Use proxy-mechanism (Google Cloud Function)
 
 > :warning: Proxy mode is currently only supported in Camunda 8 SaaS environment.
 
+<<<<<<< HEAD
+=======
+> :warning: This is for Camunda internal use only, do not mistake this with
+> the [general proxy configuration](https://docs.camunda.io/docs/components/connectors/protocol/rest/#configure-a-proxy-server-in-self-managed)
+> available in
+> Self-Managed.
+
+>>>>>>> 1df27e363 (feat(rest): update README)
 You can configure the HTTP JSON Connector to do any outgoing HTTP call via a proxy. This proxy should be effectively
 also an HTTP JSON Connector
 running in a different environment.
@@ -225,9 +237,28 @@ used in the result expression.
       "total": "100.00€"
     }
   },
+<<<<<<< HEAD
   "headers": {
     "Content-Type": "application/json"
   },
+=======
+  "document": {
+    "documentId": "977c5cbf-0f19-4a76-a8e1-60902216a07b",
+    "metadata": {
+      "contentType": "application/pdf",
+      "customProperties": {
+        "key": "value"
+      },
+      "fileName": "theFileName.pdf",
+      "size": 516554
+    },
+    "storeId": "theStoreId",
+    "documentType": "camunda"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+>>>>>>> 1df27e363 (feat(rest): update README)
   "status": 200
 }
 ```
@@ -244,10 +275,9 @@ leading to the following result
 "123"
 ```
 
-
-| Connector Info            |                                                                       |
-| ---                       | ---                                                                   |
-| Type                      | io.camunda:http-json:1                                                            |
-| Version                   | 9                                                         |
-| Supported element types   |     |
+| Connector Info          |                        |
+|-------------------------|------------------------|
+| Type                    | io.camunda:http-json:1 |
+| Version                 | 9                      |
+| Supported element types |                        |
 
