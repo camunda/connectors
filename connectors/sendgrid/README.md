@@ -1,6 +1,7 @@
 # Camunda SendGrid Connector
 
-Find the user documentation in our [Camunda](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/sendgrid/).
+Find the user documentation in
+our [Camunda](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/).
 
 ## Build
 

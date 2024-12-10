@@ -1,6 +1,7 @@
 # Camunda Google Drive Connector
 
-Find the user documentation in our [Camunda Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/googledrive/).
+Find the user documentation in
+our [Camunda Docs](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/).
 
 ## Build
 
@@ -16,8 +17,8 @@ mvn clean package
 
 ```json
   {
-  "authentication":{
-    "authType":"bearer",
+  "authentication": {
+    "authType": "bearer",
     "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "resource": {
@@ -35,19 +36,19 @@ mvn clean package
 
 ```json
 {
-  "authentication":{
-    "authType":"refresh",
-    "oauthClientId":"{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
-    "oauthClientSecret":"{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
-    "oauthRefreshToken":"{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
+  "authentication": {
+    "authType": "refresh",
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
-  "resource":{
-    "type":"folder",
-    "additionalGoogleDriveProperties":{
+  "resource": {
+    "type": "folder",
+    "additionalGoogleDriveProperties": {
       "description": "description"
     },
-    "parent":"{{secrets.PARENT_ID}}",
-    "name":"MyNewFolderName"
+    "parent": "{{secrets.PARENT_ID}}",
+    "name": "MyNewFolderName"
   }
 }
 ```
@@ -58,8 +59,8 @@ mvn clean package
 
 ```json
   {
-  "authentication":{
-    "authType":"bearer",
+  "authentication": {
+    "authType": "bearer",
     "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "resource": {
@@ -93,11 +94,11 @@ mvn clean package
 
 ```json
   {
-  "authentication":{
-    "authType":"refresh",
-    "oauthClientId":"{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
-    "oauthClientSecret":"{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
-    "oauthRefreshToken":"{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
+  "authentication": {
+    "authType": "refresh",
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "resource": {
     "type": "folder",

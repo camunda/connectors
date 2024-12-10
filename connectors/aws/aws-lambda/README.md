@@ -1,6 +1,7 @@
 # Camunda AWS Lambda Connector
 
-Find the user documentation in our [Camunda Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/aws-lambda).
+Find the user documentation in
+our [Camunda Docs](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda).
 
 ## Build
 
@@ -45,4 +46,5 @@ mvn clean package
 
 ## Element Template
 
-The element templates can be found in the [element-templates/aws-lambda-outbound-connector.json](element-templates/aws-lambda-outbound-connector.json) file.
+The element templates can be found in
+the [element-templates/aws-lambda-outbound-connector.json](element-templates/aws-lambda-outbound-connector.json) file.

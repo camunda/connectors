@@ -1,6 +1,7 @@
 # Camunda RabbitMQ Connector
 
-Find the user documentation in our [Camunda](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview).
+Find the user documentation in
+our [Camunda](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/).
 
 ## Build
 
@@ -29,12 +30,14 @@ mvn clean package
     "port": "5672"
   },
   "message": {
-    "body": {"messageBodyKey": "value"},
+    "body": {
+      "messageBodyKey": "value"
+    },
     "properties": {
-      "contentType":"text/plan",
+      "contentType": "text/plan",
       "headers": {
         "key": "value",
-        "key2":"value2"
+        "key2": "value2"
       }
     }
   }
@@ -53,7 +56,7 @@ mvn clean package
   },
   "message": {
     "properties": {
-      "contentType":"text/plan",
+      "contentType": "text/plan",
       "headers": {
         "key": "value"
       }

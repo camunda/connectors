@@ -1,7 +1,7 @@
 # Camunda JDBC Connector
 
 Find the user documentation in
-our [Camunda Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview).
+our [Camunda Docs](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sql/).
 
 ## Build
 

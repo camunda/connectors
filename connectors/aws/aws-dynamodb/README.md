@@ -1,7 +1,7 @@
 # Camunda AWS SNS Connector
 
 Find the user documentation in
-our [Camunda Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/aws-dynamodb/)
+our [Camunda Docs](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/)
 .
 
 ## Build
@@ -32,4 +32,6 @@ mvn clean package
 
 ## Element Template
 
-The element templates can be found in the [element-templates/aws-dynamodb-outbound-connector.json](element-templates/aws-dynamodb-outbound-connector.json)file.
+The element templates can be found in
+the [element-templates/aws-dynamodb-outbound-connector.json](element-templates/aws-dynamodb-outbound-connector.json)
+file.

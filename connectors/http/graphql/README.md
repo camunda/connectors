@@ -1,6 +1,7 @@
 # Camunda GraphQL Connector
 
-Find the user documentation in our [Camunda](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/graphql/).
+Find the user documentation in
+our [Camunda](https://docs.camunda.io/docs/components/connectors/protocol/graphql/).
 
 ## Build
 
@@ -28,10 +29,10 @@ The response will contain the status code, the headers and the body of the respo
 ```json
 {
   "body": {
-    "data":{
+    "data": {
       "person": {
-        "id":"cGVvcGxlOjI=",
-        "name":"C-3PO"
+        "id": "cGVvcGxlOjI=",
+        "name": "C-3PO"
       }
     }
   },
@@ -82,13 +83,13 @@ The response will contain the status code, the headers and the body of the respo
   "method": "post",
   "url": "https://youroauthclientdomainname.eu.auth0.com/oauth/token",
   "authentication": {
-    "oauthTokenEndpoint":"{{secrets.OAUTH_TOKEN_ENDPOINT_KEY}}",
+    "oauthTokenEndpoint": "{{secrets.OAUTH_TOKEN_ENDPOINT_KEY}}",
     "scopes": "read:clients read:users",
-    "audience":"{{secrets.AUDIENCE_KEY}}",
-    "clientId":"{{secrets.CLIENT_ID_KEY}}",
-    "clientSecret":"{{secrets.CLIENT_SECRET_KEY}}",
+    "audience": "{{secrets.AUDIENCE_KEY}}",
+    "clientId": "{{secrets.CLIENT_ID_KEY}}",
+    "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}",
     "type": "oauth-client-credentials-flow",
-    "clientAuthentication":"{{secrets.CLIENT_AUTHENTICATION_KEY}}"
+    "clientAuthentication": "{{secrets.CLIENT_AUTHENTICATION_KEY}}"
   }
 }
 ```
@@ -97,19 +98,22 @@ The response will contain the status code, the headers and the body of the respo
 
 ```json
 {
-  "access_token":"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlUtN2N6WG1sMzljUFNfUnlQQkNMWCJ9.kjhwfjkhfejkrhfbwjkfbhetcetc",
-  "scope":"read:clients create:users",
-  "expires_in":86400,
-  "token_type":"Bearer"
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlUtN2N6WG1sMzljUFNfUnlQQkNMWCJ9.kjhwfjkhfejkrhfbwjkfbhetcetc",
+  "scope": "read:clients create:users",
+  "expires_in": 86400,
+  "token_type": "Bearer"
 }
 ```
+
 ### Error codes
 
-The Connector will fail on any non-2XX HTTP status code in the response. This error status code will be passed on as error code, e.g. "404".
+The Connector will fail on any non-2XX HTTP status code in the response. This error status code will be passed on as
+error code, e.g. "404".
 
 ## Use proxy-mechanism
 
-The graphQL connector executes the queries/mutations using an HTTP call. You can configure the GraphQL Connector to do any outgoing HTTP call via a proxy. This proxy should be effectively an HTTP JSON Connector
+The graphQL connector executes the queries/mutations using an HTTP call. You can configure the GraphQL Connector to do
+any outgoing HTTP call via a proxy. This proxy should be effectively an HTTP JSON Connector
 running in a different environment.
 
 For example, you can build the following runtime architecture:
@@ -119,10 +123,12 @@ For example, you can build the following runtime architecture:
  [ Camunda Network, e.g. K8S                         ]  [ Separate network, e.g. Google Function ]
 ```
 
-Now, any GraphQL query/mutation will be just forwarded to a specified hardcoded URL. And this proxy does the real call then.
+Now, any GraphQL query/mutation will be just forwarded to a specified hardcoded URL. And this proxy does the real call
+then.
 This avoids that you could reach internal endpoints in your Camunda network (e.g. the current Kubernetes cluster).
 
-Just set the following property to enable proxy mode for the connector, e.g. in application.properties when using the Spring-based runtime:
+Just set the following property to enable proxy mode for the connector, e.g. in application.properties when using the
+Spring-based runtime:
 
 ```properties
 camunda.connector.http.proxy.url=https://someUrl/
@@ -142,7 +148,8 @@ GOOGLE_APPLICATION_CREDENTIALS=...
 
 ### :lock: Test the Connector locally with Google Cloud Function as a proxy
 
-Run the [:lock:connector-proxy-saas](https://github.com/camunda/connector-proxy-saas) project locally as described in its [:lock:README](https://github.com/camunda/connector-proxy-saas#usage).
+Run the [:lock:connector-proxy-saas](https://github.com/camunda/connector-proxy-saas) project locally as described in
+its [:lock:README](https://github.com/camunda/connector-proxy-saas#usage).
 
 Set the specific property or environment variable to enable proxy mode as described above.
 
