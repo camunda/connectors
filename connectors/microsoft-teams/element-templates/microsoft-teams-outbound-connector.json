@@ -1468,7 +1468,6 @@
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
     "value" : "PT0S",
-    "feel" : "optional",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",
