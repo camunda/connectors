@@ -14,7 +14,7 @@ mvn clean verify
 ### Test with local runtime
 
 Use
-the [Camunda Connector Runtime](https://github.com/camunda-community-hub/spring-zeebe/tree/master/connector-runtime#building-connector-runtime-bundles)
+the [Camunda Connector Runtime](https://github.com/camunda/connectors/tree/main/connector-runtime#runtime-modules)
 to run your function as a local Java application.
 
 In your IDE you can also simply navigate to the
