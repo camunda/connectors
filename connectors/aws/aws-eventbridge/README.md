@@ -1,8 +1,10 @@
 # Camunda AWS EventBridge Connector
 
-Find the user documentation in our [Camunda Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/aws-eventbridge).
+Find the user documentation in
+our [Camunda Docs](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/).
 
 ## Build
+
 ```bash
 mvn clean package
 ```
@@ -10,25 +12,31 @@ mvn clean package
 ## API
 
 ### Input
+
 ```json
 {
-    "authentication": {
-      "secretKey": "my-aws-secret-key",
-      "accessKey": "my-aws-access-key"
-    },
-    "configuration": {
-      "region": "ua-east-1"
-    },
-    "input": {
-      "detailType": "detail-type",
-      "eventBusName": "event-bus-name",
-      "source": "event-source",
-      "detail": {"key1": {"innerKey": "innerValue"}}
+  "authentication": {
+    "secretKey": "my-aws-secret-key",
+    "accessKey": "my-aws-access-key"
+  },
+  "configuration": {
+    "region": "ua-east-1"
+  },
+  "input": {
+    "detailType": "detail-type",
+    "eventBusName": "event-bus-name",
+    "source": "event-source",
+    "detail": {
+      "key1": {
+        "innerKey": "innerValue"
+      }
     }
   }
+}
 ```
 
 ### Output
+
 ```json
 {
   "sdkResponseMetadata": {
@@ -70,4 +78,6 @@ mvn clean package
 
 ## Element Template
 
-The element templates can be found in the [element-templates/aws-eventbridge-outbound-connector.json](element-templates/aws-eventbridge-outbound-connector.json) file.
+The element templates can be found in
+the [element-templates/aws-eventbridge-outbound-connector.json](element-templates/aws-eventbridge-outbound-connector.json)
+file.

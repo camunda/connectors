@@ -1,6 +1,7 @@
 # Camunda AWS SNS Connector
 
-Find the user documentation in our [Camunda Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/aws-sns/).
+Find the user documentation in
+our [Camunda Docs](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns/).
 
 ## Build
 
@@ -14,25 +15,25 @@ mvn clean package
 
 ```json
 {
-  "authentication":{
-    "accessKey":"{{secrets.SNS_ACCESS_KEY}}",
-    "secretKey":"{{secrets.SNS_SECRET_KEY}}"
+  "authentication": {
+    "accessKey": "{{secrets.SNS_ACCESS_KEY}}",
+    "secretKey": "{{secrets.SNS_SECRET_KEY}}"
   },
-  "topic":{
-    "message":"MyMessage",
-    "messageAttributes":{
-      "attribute2":{
-        "StringValue":"attribute 2 value",
-        "DataType":"String"
+  "topic": {
+    "message": "MyMessage",
+    "messageAttributes": {
+      "attribute2": {
+        "StringValue": "attribute 2 value",
+        "DataType": "String"
       },
-      "attribute1":{
-        "StringValue":"attribute 1 value",
-        "DataType":"String"
+      "attribute1": {
+        "StringValue": "attribute 1 value",
+        "DataType": "String"
       }
     },
-    "subject":"MySubject",
-    "region":"us-east-1",
-    "topicArn":"arn:aws:sns:us-east-1:00000000:MySNSTopic"
+    "subject": "MySubject",
+    "region": "us-east-1",
+    "topicArn": "arn:aws:sns:us-east-1:00000000:MySNSTopic"
   }
 }
 ```

@@ -1,6 +1,7 @@
 # Camunda AWS SQS Connector
 
-Find the user documentation in our [Camunda Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/aws-sqs/).
+Find the user documentation in
+our [Camunda Docs](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/).
 
 ## Build
 
@@ -14,26 +15,26 @@ mvn clean package
 
 ```json
 {
-  "authentication":{
-    "secretKey":"{{secrets.AWS_SECRET_KEY}}",
-    "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+  "authentication": {
+    "secretKey": "{{secrets.AWS_SECRET_KEY}}",
+    "accessKey": "{{secrets.AWS_ACCESS_KEY}}"
   },
-  "queue":{
-    "messageAttributes":{
-      "attribute2":{
-        "StringValue":"attribute 2 value",
-        "DataType":"String"
+  "queue": {
+    "messageAttributes": {
+      "attribute2": {
+        "StringValue": "attribute 2 value",
+        "DataType": "String"
       },
-      "attribute1":{
-        "StringValue":"attribute 1 value",
-        "DataType":"String"
+      "attribute1": {
+        "StringValue": "attribute 1 value",
+        "DataType": "String"
       }
     },
-    "messageBody":{
-      "data":"ok"
+    "messageBody": {
+      "data": "ok"
     },
-    "region":"us-east-1",
-    "url":"https://sqs.us-east-1.amazonaws.com/000000000/my-sqs"
+    "region": "us-east-1",
+    "url": "https://sqs.us-east-1.amazonaws.com/000000000/my-sqs"
   }
 }
 ```

@@ -1,6 +1,7 @@
 # Camunda Microsoft Teams Connector
 
-Find the user documentation in our [Camunda](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview).
+Find the user documentation in
+our [Camunda](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/).
 
 ## Build
 
@@ -13,6 +14,7 @@ mvn clean package
 ### Input
 
 #### Authentication
+
 ##### Bearer token
 
 ```json
@@ -24,7 +26,9 @@ mvn clean package
   "data": {}
 }
 ```
+
 ##### Client secrets
+
 ```json
 {
   "authentication": {
@@ -53,6 +57,7 @@ mvn clean package
   }
 }
 ```
+
 ##### Get channel
 
 ```json
@@ -65,6 +70,7 @@ mvn clean package
   }
 }
 ```
+
 ##### Get channel message by id
 
 ```json
@@ -78,6 +84,7 @@ mvn clean package
   }
 }
 ```
+
 ##### Get channel members
 
 ```json
@@ -90,6 +97,7 @@ mvn clean package
   }
 }
 ```
+
 ##### Get channel messages
 
 ```json
@@ -129,6 +137,7 @@ mvn clean package
   }
 }
 ```
+
 ##### Send message in channel
 
 ```json
@@ -149,4 +158,6 @@ See [Microsoft Graph API documentation](https://learn.microsoft.com/en-us/graph/
 
 ## Element Template
 
-The element templates can be found in the [element-templates/microsoft-teams-outbound-connector.json](element-templates/microsoft-teams-outbound-connector.json) file.
+The element templates can be found in
+the [element-templates/microsoft-teams-outbound-connector.json](element-templates/microsoft-teams-outbound-connector.json)
+file.
