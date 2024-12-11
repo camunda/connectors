@@ -20,7 +20,10 @@ import org.slf4j.LoggerFactory;
 @ElementTemplate(
     id = "io.camunda.connectors.GoogleDrive.v1",
     name = "Google Drive Outbound Connector",
-    description = "Create folder or a file from template",
+    description = "Manage Google Drive files and folders",
+    metadata =
+        @ElementTemplate.Metadata(
+            keywords = {"create file", "create file from template", "create folder"}),
     inputDataClass = GoogleDriveRequest.class,
     version = 3,
     propertyGroups = {

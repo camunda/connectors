@@ -29,7 +29,14 @@ import java.util.function.BiFunction;
 @ElementTemplate(
     id = "io.camunda.connectors.AWSSAGEMAKER.v1",
     name = "AWS SageMaker Outbound Connector",
-    description = "Execute SageMaker models",
+    description = "Run inferences using AWS SageMaker.",
+    metadata =
+        @ElementTemplate.Metadata(
+            keywords = {
+              "run inference",
+              "perform asynchronous inference",
+              "perform real-time inference"
+            }),
     inputDataClass = SageMakerRequest.class,
     version = 1,
     propertyGroups = {
