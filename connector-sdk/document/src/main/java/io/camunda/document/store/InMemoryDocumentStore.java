@@ -103,6 +103,10 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
     documents.clear();
   }
 
+  public Map<String, byte[]> getDocuments() {
+    return documents;
+  }
+
   public void logWarning() {
     LOGGER.warning(
         "In-memory document store is used. This store is not suitable for production use.");
