@@ -3,7 +3,7 @@
   "name" : "AWS S3 Outbound Connector",
   "id" : "io.camunda.connectors.aws.s3.v1",
   "description" : "Execute S3 requests",
-  "documentationRef" : "https://docs.camunda.io/docs/",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-s3/",
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -216,6 +216,9 @@
     "id" : "uploadActionKey",
     "label" : "AWS key",
     "optional" : true,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "uploadObject",
     "binding" : {
@@ -291,9 +294,6 @@
     "label" : "Create document",
     "optional" : false,
     "value" : true,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "downloadObject",
     "binding" : {
@@ -305,7 +305,7 @@
       "equals" : "downloadObject",
       "type" : "simple"
     },
-    "tooltip" : "....",
+    "tooltip" : "If set to true, a document reference will be created. If set to false, the content will be extracted and provided inside the response.",
     "type" : "Boolean"
   }, {
     "id" : "resultVariable",
@@ -356,7 +356,6 @@
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
     "value" : "PT0S",
-    "feel" : "optional",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",
