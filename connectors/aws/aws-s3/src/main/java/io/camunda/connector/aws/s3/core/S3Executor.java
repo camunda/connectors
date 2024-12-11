@@ -42,7 +42,7 @@ public class S3Executor {
   }
 
   public static S3Executor create(
-          S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {
+      S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {
     return new S3Executor(
         S3Client.builder()
             .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(s3Request))
