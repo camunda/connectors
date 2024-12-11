@@ -8,10 +8,10 @@ package io.camunda.connector.aws.s3.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
-import io.camunda.connector.aws.s3.model.*;
-import io.camunda.connector.aws.s3.response.DeleteResponse;
-import io.camunda.connector.aws.s3.response.DownloadResponse;
-import io.camunda.connector.aws.s3.response.UploadResponse;
+import io.camunda.connector.aws.s3.model.request.*;
+import io.camunda.connector.aws.s3.model.response.DeleteResponse;
+import io.camunda.connector.aws.s3.model.response.DownloadResponse;
+import io.camunda.connector.aws.s3.model.response.UploadResponse;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
 import java.io.IOException;
@@ -42,7 +42,7 @@ public class S3Executor {
   }
 
   public static S3Executor create(
-      S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {
+          S3Request s3Request, Function<DocumentCreationRequest, Document> createDocument) {
     return new S3Executor(
         S3Client.builder()
             .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(s3Request))

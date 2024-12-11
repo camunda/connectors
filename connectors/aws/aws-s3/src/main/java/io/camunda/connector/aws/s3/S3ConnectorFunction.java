@@ -10,7 +10,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.s3.core.S3Executor;
-import io.camunda.connector.aws.s3.model.S3Request;
+import io.camunda.connector.aws.s3.model.request.S3Request;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
@@ -34,7 +34,7 @@ import java.util.function.Function;
       @ElementTemplate.PropertyGroup(id = "uploadObject", label = "Upload an object"),
       @ElementTemplate.PropertyGroup(id = "downloadObject", label = "Download an object"),
     },
-    documentationRef = "https://docs.camunda.io/docs/",
+    documentationRef = "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-s3/",
     icon = "icon.svg")
 public class S3ConnectorFunction implements OutboundConnectorFunction {
 

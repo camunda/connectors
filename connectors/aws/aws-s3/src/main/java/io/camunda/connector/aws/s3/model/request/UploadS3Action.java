@@ -4,14 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.aws.s3.model;
+package io.camunda.connector.aws.s3.model.request;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.document.Document;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(id = "uploadObject", label = "Upload document")
 public record UploadS3Action(
@@ -22,8 +21,7 @@ public record UploadS3Action(
             tooltip = "Bucket from where an object should be uploaded",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.bucket"))
-        @Valid
-        @NotNull
+        @NotBlank
         String bucket,
     @TemplateProperty(
             label = "AWS key",
@@ -34,7 +32,7 @@ public record UploadS3Action(
             optional = true,
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.key"))
-        @Valid
+        @NotBlank
         String key,
     @TemplateProperty(
             label = "Document",
