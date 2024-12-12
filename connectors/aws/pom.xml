@@ -27,6 +27,7 @@
     <module>aws-bedrock</module>
     <module>aws-comprehend</module>
     <module>aws-textract</module>
+    <module>aws-s3</module>
   </modules>
 
   <properties>
