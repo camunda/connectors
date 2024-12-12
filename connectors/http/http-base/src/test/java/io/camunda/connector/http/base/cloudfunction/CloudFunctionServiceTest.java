@@ -75,7 +75,7 @@ public class CloudFunctionServiceTest {
     assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of()))
         .containsEntry("Content-Type", "application/json");
     Map<String, Object> body =
-        ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
+        ConnectorsObjectMapperSupplier.getCopy().readValue(
             (String) cloudFunctionRequest.getBody(), Map.class);
     assertThat(body).containsEntry("url", "theUrl");
     assertThat(body).containsEntry("method", "POST");

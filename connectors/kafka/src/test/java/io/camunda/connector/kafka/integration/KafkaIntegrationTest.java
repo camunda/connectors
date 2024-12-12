@@ -626,8 +626,8 @@ public class KafkaIntegrationTest {
     var rawValue = castedResult1.getRawValue();
     assertNull(rawValue);
     assertInstanceOf(ObjectNode.class, value1);
-    String json = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(value1);
-    Map map = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(json, Map.class);
+    String json = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(value1);
+    Map map = ConnectorsObjectMapperSupplier.getCopy().readValue(json, Map.class);
     assertEquals("Test", map.get("name").toString());
     assertEquals(40, map.get("age"));
     assertEquals("test@camunda.com", ((List) map.get("emails")).get(0));
@@ -732,8 +732,8 @@ public class KafkaIntegrationTest {
     var rawValue = castedResult1.getRawValue();
     assertInstanceOf(JsonNode.class, value1);
     assertInstanceOf(String.class, rawValue);
-    String json = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(value1);
-    Map map = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(json, Map.class);
+    String json = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(value1);
+    Map map = ConnectorsObjectMapperSupplier.getCopy().readValue(json, Map.class);
     assertEquals(json, rawValue);
     assertEquals("Test", map.get("name").toString());
     assertEquals(40, map.get("age"));

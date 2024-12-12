@@ -40,34 +40,28 @@ import org.slf4j.LoggerFactory;
 
 public class GcpSecretManagerSecretProvider implements SecretProvider {
 
+  /** Secrets used as fallback if SecretProvider is loaded via SPI */
+  public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
+  public static final String SECRETS_PREFIX_ENV_NAME = "SECRETS_PREFIX";
+  public static final String CLUSTER_ID_ENV_NAME = "CAMUNDA_CLUSTER_ID";
+  public static final String SECRETS_CACHE_MILLIS_ENV_NAME =
+      "CAMUNDA_CONNECTOR_SECRETS_CACHE_MILLIS";
   private static final Logger LOGGER =
       LoggerFactory.getLogger(GcpSecretManagerSecretProvider.class);
-
   private static final ObjectMapper DEFAULT_MAPPER =
       new ObjectMapper()
           .registerModule(new Jdk8Module())
           .registerModule(new JavaTimeModule())
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-
-  /** Secrets used as fallback if SecretProvider is loaded via SPI */
-  public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
-
-  public static final String SECRETS_PREFIX_ENV_NAME = "SECRETS_PREFIX";
-  public static final String CLUSTER_ID_ENV_NAME = "CAMUNDA_CLUSTER_ID";
-
-  public static final String SECRETS_CACHE_MILLIS_ENV_NAME =
-      "CAMUNDA_CONNECTOR_SECRETS_CACHE_MILLIS";
-
-  // private final Gson gson;
-  private ObjectMapper mapper;
+  // private Map<String, String> secrets = new HashMap<>();
+  private static final String CACHE_KEY = "SECRETS";
   private final String clusterId;
   private final String secretsProjectId;
   private final String secretsNamePrefix;
-
-  // private Map<String, String> secrets = new HashMap<>();
-  private static final String CACHE_KEY = "SECRETS";
   LoadingCache<String, Map<String, String>> secretsCache;
+  // private final Gson gson;
+  private ObjectMapper mapper;
 
   public GcpSecretManagerSecretProvider() {
     this(

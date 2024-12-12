@@ -101,7 +101,7 @@ public class GraphQLFunctionTest extends BaseTest {
                 GraphQLRequest.GraphQL.class)
             .connectionTimeoutInSeconds();
     var graphQLRequestMapper =
-        new GraphQLRequestMapper(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
+        new GraphQLRequestMapper(ConnectorsObjectMapperSupplier.getCopy());
 
     // when
     var request =

@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 
 class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
-  private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Test
   void bindProperties_shouldThrowExceptionWhenWrongFormat() {

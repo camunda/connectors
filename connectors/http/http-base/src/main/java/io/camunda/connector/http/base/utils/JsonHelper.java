@@ -27,7 +27,7 @@ import java.util.Optional;
 
 public class JsonHelper {
 
-  private static final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private static final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   public static JsonNode getAsJsonElement(Object body) {
     if (body instanceof String stringBody) {

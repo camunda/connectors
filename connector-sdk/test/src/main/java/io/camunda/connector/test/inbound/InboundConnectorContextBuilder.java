@@ -51,7 +51,7 @@ public class InboundConnectorContextBuilder {
   protected InboundConnectorDefinition definition;
   protected ValidationProvider validationProvider;
 
-  protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   protected CorrelationResult result;
 

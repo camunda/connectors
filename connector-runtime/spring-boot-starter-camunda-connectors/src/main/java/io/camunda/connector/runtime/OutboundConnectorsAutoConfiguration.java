@@ -59,21 +59,17 @@ import org.springframework.core.env.Environment;
 @EnableConfigurationProperties(ConnectorProperties.class)
 public class OutboundConnectorsAutoConfiguration {
 
+  private static final Logger LOG =
+      LoggerFactory.getLogger(OutboundConnectorsAutoConfiguration.class);
   @Value("${camunda.connector.secretprovider.discovery.enabled:true}")
   Boolean secretProviderLookupEnabled;
-
   @Value("${camunda.connector.secretprovider.environment.prefix:}")
   String environmentSecretProviderPrefix;
-
   @Value(
       "${camunda.connector.secretprovider.console.endpoint:https://cluster-api.cloud.camunda.io/secrets}")
   String consoleSecretsApiEndpoint;
-
   @Value("${camunda.connector.secretprovider.console.audience:secrets.camunda.io}")
   String consoleSecretsApiAudience;
-
-  private static final Logger LOG =
-      LoggerFactory.getLogger(OutboundConnectorsAutoConfiguration.class);
 
   /** Provides a {@link FeelEngineWrapper} unless already present in the Spring Context */
   @Bean
@@ -99,7 +95,7 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean(name = "zeebeJsonMapper")
   @ConditionalOnMissingBean
   public JsonMapper jsonMapper() {
-    return new ZeebeObjectMapper(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
+    return new ZeebeObjectMapper(ConnectorsObjectMapperSupplier.getCopy());
   }
 
   @Bean(name = "commonJsonMapper")
@@ -163,7 +159,7 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ObjectMapper objectMapper(DocumentFactory documentFactory) {
-    ConnectorsObjectMapperSupplier.registerDocumentModule(
+    ConnectorsObjectMapperSupplier.getCopy(
         documentFactory, DocumentModuleSettings.create());
     return ConnectorsObjectMapperSupplier.getCopy();
   }
