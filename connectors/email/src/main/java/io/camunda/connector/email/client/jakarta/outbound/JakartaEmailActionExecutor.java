@@ -289,16 +289,25 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         smtpSendEmail.contentType() == null ? PLAIN : smtpSendEmail.contentType();
     switch (contentType) {
       case PLAIN -> {
+        if (smtpSendEmail.body() == null) {
+          throw new MessagingException("Text Body is null");
+        }
         MimeBodyPart textPart = new MimeBodyPart();
         textPart.setText(smtpSendEmail.body(), StandardCharsets.UTF_8.name());
         multipart.addBodyPart(textPart);
       }
       case HTML -> {
+        if (smtpSendEmail.htmlBody() == null) {
+          throw new MessagingException("HTML Body is null");
+        }
         MimeBodyPart htmlPart = new MimeBodyPart();
         htmlPart.setContent(smtpSendEmail.htmlBody(), JakartaUtils.HTML_CHARSET);
         multipart.addBodyPart(htmlPart);
       }
       case MULTIPART -> {
+        if (smtpSendEmail.htmlBody() == null || smtpSendEmail.body() == null) {
+          throw new MessagingException("Text or HTML Body is null");
+        }
         MimeBodyPart textPart = new MimeBodyPart();
         textPart.setText(smtpSendEmail.body(), StandardCharsets.UTF_8.name());
         MimeBodyPart htmlPart = new MimeBodyPart();
