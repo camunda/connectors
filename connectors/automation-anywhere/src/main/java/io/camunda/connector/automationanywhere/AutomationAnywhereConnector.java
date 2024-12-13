@@ -25,8 +25,14 @@ import java.util.Map;
 @ElementTemplate(
     id = "io.camunda.connectors.AutomationAnywhere",
     name = "Automation Anywhere Outbound Connector",
-    description =
-        "Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",
+    description = "Manage work items in Automation Anywhere queues.",
+    metadata =
+        @ElementTemplate.Metadata(
+            keywords = {
+              "add work item to queue",
+              "get work item from queue",
+              "get work item result from queue by ID"
+            }),
     inputDataClass = AutomationAnywhereRequest.class,
     version = 2,
     propertyGroups = {
