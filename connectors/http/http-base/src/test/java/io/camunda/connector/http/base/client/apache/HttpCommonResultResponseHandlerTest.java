@@ -107,8 +107,8 @@ public class HttpCommonResultResponseHandlerTest {
     response.setHeaders(headers);
     response.setEntity(
         new StringEntity(
-            ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(
-                new ErrorResponse("500", "Custom message", null))));
+            ConnectorsObjectMapperSupplier.getCopy()
+                .writeValueAsString(new ErrorResponse("500", "Custom message", null))));
 
     // when
     HttpCommonResult result = handler.handleResponse(response);

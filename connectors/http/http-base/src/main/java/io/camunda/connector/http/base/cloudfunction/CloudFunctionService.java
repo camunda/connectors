@@ -57,8 +57,7 @@ public class CloudFunctionService {
     try {
       // Using the JsonHttpContent cannot work with an element on the root content,
       // hence write it ourselves:
-      String contentAsJson =
-          ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(request);
+      String contentAsJson = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(request);
       String token = credentials.getOAuthToken(getProxyFunctionUrl());
       return createCloudFunctionRequest(contentAsJson, token);
     } catch (IOException e) {

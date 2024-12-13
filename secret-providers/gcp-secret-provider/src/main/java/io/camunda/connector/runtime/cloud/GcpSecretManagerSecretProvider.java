@@ -42,6 +42,7 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
 
   /** Secrets used as fallback if SecretProvider is loaded via SPI */
   public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
+
   public static final String SECRETS_PREFIX_ENV_NAME = "SECRETS_PREFIX";
   public static final String CLUSTER_ID_ENV_NAME = "CAMUNDA_CLUSTER_ID";
   public static final String SECRETS_CACHE_MILLIS_ENV_NAME =

@@ -27,8 +27,6 @@ import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument.DocumentModuleSettings;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.store.InMemoryDocumentStore;
 
 /** Default ObjectMapper supplier to be used by the connector runtime. */
 public class ConnectorsObjectMapperSupplier {
@@ -46,8 +44,7 @@ public class ConnectorsObjectMapperSupplier {
   private ConnectorsObjectMapperSupplier() {}
 
   public static ObjectMapper getCopy() {
-    return DEFAULT_MAPPER
-        .copy();
+    return DEFAULT_MAPPER.copy();
   }
 
   public static ObjectMapper getCopy(DocumentFactory factory, DocumentModuleSettings settings) {

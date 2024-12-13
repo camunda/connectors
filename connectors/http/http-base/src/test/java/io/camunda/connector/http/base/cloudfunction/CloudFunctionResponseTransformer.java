@@ -45,8 +45,8 @@ public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
           .but()
           .status(200)
           .body(
-              ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(
-                  httpService.executeConnectorRequest(request)))
+              ConnectorsObjectMapperSupplier.getCopy()
+                  .writeValueAsString(httpService.executeConnectorRequest(request)))
           .build();
     } catch (ConnectorException e) {
       try {
@@ -54,8 +54,9 @@ public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
             .status(500)
             .headers(new HttpHeaders(new HttpHeader("Content-Type", "application/json")))
             .body(
-                ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(
-                    new ErrorResponse(e.getErrorCode(), e.getMessage(), e.getErrorVariables())))
+                ConnectorsObjectMapperSupplier.getCopy()
+                    .writeValueAsString(
+                        new ErrorResponse(e.getErrorCode(), e.getMessage(), e.getErrorVariables())))
             .build();
       } catch (JsonProcessingException ex) {
         throw new RuntimeException(ex);

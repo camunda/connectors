@@ -100,8 +100,7 @@ public class GraphQLFunctionTest extends BaseTest {
                 objectMapper.readValue(input, ObjectNode.class).get("graphql").toString(),
                 GraphQLRequest.GraphQL.class)
             .connectionTimeoutInSeconds();
-    var graphQLRequestMapper =
-        new GraphQLRequestMapper(ConnectorsObjectMapperSupplier.getCopy());
+    var graphQLRequestMapper = new GraphQLRequestMapper(ConnectorsObjectMapperSupplier.getCopy());
 
     // when
     var request =

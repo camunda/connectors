@@ -131,9 +131,10 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
 
   private void assertIntermediateCatchEventUsingModel(BpmnModelInstance model) throws Exception {
     Object expectedJsonResponse =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(
-            "{\"message\":{\"consumerTag\":\"myConsumerTag\",\"body\":{\"foo\": {\"bar\": \"barValue\"}},\"properties\":{}}}",
-            Object.class);
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(
+                "{\"message\":{\"consumerTag\":\"myConsumerTag\",\"body\":{\"foo\": {\"bar\": \"barValue\"}},\"properties\":{}}}",
+                Object.class);
 
     processStateStore.update(mockProcessDefinition(model));
 
