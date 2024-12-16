@@ -163,7 +163,6 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ObjectMapper objectMapper(DocumentFactory documentFactory) {
-    ConnectorsObjectMapperSupplier.getCopy(documentFactory, DocumentModuleSettings.create());
-    return ConnectorsObjectMapperSupplier.getCopy();
+    return ConnectorsObjectMapperSupplier.getCopy(documentFactory, DocumentModuleSettings.create());
   }
 }
