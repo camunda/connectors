@@ -23,6 +23,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     version = 1,
     inputDataClass = EmailInboundConnectorProperties.class,
     description = "Consume emails",
+    metadata = @ElementTemplate.Metadata(keywords = {"email received"}),
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
     propertyGroups = {

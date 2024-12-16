@@ -30,7 +30,8 @@ import java.util.Optional;
 @ElementTemplate(
     id = "io.camunda.connectors.AWSLAMBDA.v2",
     name = "AWS Lambda Outbound Connector",
-    description = "Invoke a function",
+    description = "Invoke AWS Lambda functions.",
+    metadata = @ElementTemplate.Metadata(keywords = {"invoke function", "run function"}),
     inputDataClass = AwsLambdaRequest.class,
     version = 5,
     propertyGroups = {
