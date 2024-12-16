@@ -348,8 +348,7 @@ public class ApacheRequestFactoryTest {
       assertThat(httpRequest.getEntity().getContentType())
           .isEqualTo(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8).toString());
       var jsonNode =
-          ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readTree(
-              httpRequest.getEntity().getContent());
+          ConnectorsObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
     }
 
@@ -374,8 +373,7 @@ public class ApacheRequestFactoryTest {
       assertThat(httpRequest.getEntity().getContentType())
           .isEqualTo(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8).toString());
       var jsonNode =
-          ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readTree(
-              httpRequest.getEntity().getContent());
+          ConnectorsObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
     }
 
@@ -400,8 +398,7 @@ public class ApacheRequestFactoryTest {
       assertThat(httpRequest.getEntity().getContentType())
           .isEqualTo(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8).toString());
       var jsonNode =
-          ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readTree(
-              httpRequest.getEntity().getContent());
+          ConnectorsObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
     }
 
@@ -427,8 +424,7 @@ public class ApacheRequestFactoryTest {
       assertThat(httpRequest.getEntity().getContentType())
           .isEqualTo(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8).toString());
       var jsonNode =
-          ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readTree(
-              httpRequest.getEntity().getContent());
+          ConnectorsObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
     }
 

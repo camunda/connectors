@@ -63,7 +63,7 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
 
   private String mapObjectToString(Object o) {
     try {
-      return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(o);
+      return ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(o);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
@@ -71,7 +71,7 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
 
   private Object mapBytesToObject(byte[] rawBody) {
     try {
-      return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(rawBody, Object.class);
+      return ConnectorsObjectMapperSupplier.getCopy().readValue(rawBody, Object.class);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

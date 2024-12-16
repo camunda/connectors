@@ -38,7 +38,7 @@ public class ConnectorHelper {
 
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
   public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
-  public static ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  public static ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
 
   /**
    * @return a map with output process variables for a given response from an {@link

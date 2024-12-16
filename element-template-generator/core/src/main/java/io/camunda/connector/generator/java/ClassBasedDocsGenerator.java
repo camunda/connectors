@@ -65,8 +65,7 @@ import uk.co.jemos.podam.api.PodamFactoryImpl;
 public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
   private static final ObjectWriter OBJECT_WRITER =
-      ConnectorsObjectMapperSupplier.DEFAULT_MAPPER
-          .copy()
+      ConnectorsObjectMapperSupplier.getCopy()
           .enable(SORT_PROPERTIES_ALPHABETICALLY)
           .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
           .setSerializationInclusion(JsonInclude.Include.NON_NULL)
