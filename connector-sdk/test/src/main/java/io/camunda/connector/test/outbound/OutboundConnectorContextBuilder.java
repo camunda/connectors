@@ -46,12 +46,8 @@ public class OutboundConnectorContextBuilder {
   protected DocumentFactory documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   private ObjectMapper objectMapper =
-      ConnectorsObjectMapperSupplier.getCopy()
-          .registerModule(
-              new JacksonModuleDocument(
-                  this.documentFactory,
-                  null,
-                  JacksonModuleDocument.DocumentModuleSettings.create()));
+      ConnectorsObjectMapperSupplier.getCopy(
+          this.documentFactory, JacksonModuleDocument.DocumentModuleSettings.create());
 
   /**
    * @return a new instance of the {@link OutboundConnectorContextBuilder}
