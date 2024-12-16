@@ -19,6 +19,7 @@ package io.camunda.connector.e2e;
 import static io.camunda.connector.e2e.BpmnFile.replace;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -64,6 +65,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
   private static String PORT;
   private static RabbitMQContainer rabbitMQContainer;
   private static ConnectionFactory factory;
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Autowired ProcessStateStore processStateStore;
 
@@ -131,10 +133,9 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
 
   private void assertIntermediateCatchEventUsingModel(BpmnModelInstance model) throws Exception {
     Object expectedJsonResponse =
-        ConnectorsObjectMapperSupplier.getCopy()
-            .readValue(
-                "{\"message\":{\"consumerTag\":\"myConsumerTag\",\"body\":{\"foo\": {\"bar\": \"barValue\"}},\"properties\":{}}}",
-                Object.class);
+        this.objectMapper.readValue(
+            "{\"message\":{\"consumerTag\":\"myConsumerTag\",\"body\":{\"foo\": {\"bar\": \"barValue\"}},\"properties\":{}}}",
+            Object.class);
 
     processStateStore.update(mockProcessDefinition(model));
 
