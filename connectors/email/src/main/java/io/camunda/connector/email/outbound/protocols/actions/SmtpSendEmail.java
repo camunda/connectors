@@ -11,6 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.document.Document;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
@@ -138,4 +139,13 @@ public record SmtpSendEmail(
             description = "Email's attachment. e.g., =[ document1, document2]",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.attachments"))
         List<Document> attachments)
-    implements SmtpAction {}
+    implements SmtpAction {
+  @AssertTrue(message = "Please provide a proper message body")
+  public boolean isEmailMessageValid() {
+    return switch (contentType) {
+      case PLAIN -> body != null;
+      case HTML -> htmlBody != null;
+      case MULTIPART -> body != null && htmlBody != null;
+    };
+  }
+}
