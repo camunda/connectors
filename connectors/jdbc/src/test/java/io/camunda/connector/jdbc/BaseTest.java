@@ -26,7 +26,7 @@ public abstract class BaseTest {
       "src/test/resources/requests/success-test-cases.json";
   private static final String SUCCESS_CASES_WITH_SECRETS_PATH =
       "src/test/resources/requests/success-test-cases-with-secrets.json";
-  protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   protected static Stream<String> failRequestValidationTestCases() throws IOException {
     return loadTestCasesFromResourceFile(FAIL_REQUEST_VALIDATION_CASES_PATH);

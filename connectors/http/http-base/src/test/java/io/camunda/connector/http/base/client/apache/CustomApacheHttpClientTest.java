@@ -91,7 +91,7 @@ import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 public class CustomApacheHttpClientTest {
 
   private final CustomApacheHttpClient customApacheHttpClient = CustomApacheHttpClient.getDefault();
-  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
   private final CamundaDocumentStore store = InMemoryDocumentStore.INSTANCE;
 
   @Nested

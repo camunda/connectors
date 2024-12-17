@@ -37,14 +37,14 @@ public class ConsoleSecretApiClient {
 
   private final Authentication authentication;
 
-  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   private static final TypeReference<Map<String, String>> mapTypeReference =
       new TypeReference<>() {};
 
   public ConsoleSecretApiClient(String secretsEndpoint, JwtCredential jwt) {
     TokenResponseMapper tokenResponseMapper =
-        new JacksonTokenResponseMapper(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
+        new JacksonTokenResponseMapper(ConnectorsObjectMapperSupplier.getCopy());
     this.authentication = new JwtAuthentication(jwt, tokenResponseMapper);
     this.secretsEndpoint = secretsEndpoint;
   }

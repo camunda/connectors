@@ -43,7 +43,7 @@ public class InboundConnectorElementTest {
             new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
 
     // when
-    var result = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(testObj);
+    var result = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(testObj);
 
     // then
     assertThat(result).doesNotContain("auth", "abc");

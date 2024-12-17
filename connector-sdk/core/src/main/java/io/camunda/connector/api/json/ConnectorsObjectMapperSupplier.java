@@ -31,7 +31,7 @@ import io.camunda.document.factory.DocumentFactory;
 /** Default ObjectMapper supplier to be used by the connector runtime. */
 public class ConnectorsObjectMapperSupplier {
 
-  public static final ObjectMapper DEFAULT_MAPPER =
+  private static final ObjectMapper DEFAULT_MAPPER =
       JsonMapper.builder()
           .addModules(new JacksonModuleFeelFunction(), new Jdk8Module(), new JavaTimeModule())
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
@@ -47,8 +47,7 @@ public class ConnectorsObjectMapperSupplier {
     return DEFAULT_MAPPER.copy();
   }
 
-  public static void registerDocumentModule(
-      DocumentFactory factory, DocumentModuleSettings settings) {
-    DEFAULT_MAPPER.registerModule(new JacksonModuleDocument(factory, null, settings));
+  public static ObjectMapper getCopy(DocumentFactory factory, DocumentModuleSettings settings) {
+    return DEFAULT_MAPPER.copy().registerModule(new JacksonModuleDocument(factory, null, settings));
   }
 }

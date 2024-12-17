@@ -55,7 +55,7 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class WebhookControllerPlainJavaTests {
 
-  private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Test
   public void multipleWebhooksOnSameContextPathAreNotSupported() {
