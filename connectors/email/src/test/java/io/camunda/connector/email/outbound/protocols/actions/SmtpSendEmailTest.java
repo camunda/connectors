@@ -1,64 +1,61 @@
 package io.camunda.connector.email.outbound.protocols.actions;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.Test;
+
 class SmtpSendEmailTest {
 
-    @Test
-    void isEmailMessageValidPlainTextWithBody() {
-        SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.PLAIN, "text", null);
-        assertTrue(smtpSendEmail.isEmailMessageValid());
-    }
+  @Test
+  void isEmailMessageValidPlainTextWithBody() {
+    SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.PLAIN, "text", null);
+    assertTrue(smtpSendEmail.isEmailMessageValid());
+  }
 
-    @Test
-    void isEmailMessageNotValidPlainTextWithoutBody() {
-        SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.PLAIN, null, null);
-        assertFalse(smtpSendEmail.isEmailMessageValid());
-    }
+  @Test
+  void isEmailMessageNotValidPlainTextWithoutBody() {
+    SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.PLAIN, null, null);
+    assertFalse(smtpSendEmail.isEmailMessageValid());
+  }
 
-    @Test
-    void isEmailMessageValidHtmlTextWithBody() {
-        SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.HTML, null, "text");
-        assertTrue(smtpSendEmail.isEmailMessageValid());
-    }
+  @Test
+  void isEmailMessageValidHtmlTextWithBody() {
+    SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.HTML, null, "text");
+    assertTrue(smtpSendEmail.isEmailMessageValid());
+  }
 
-    @Test
-    void isEmailMessageNotValidHtmlWithoutBody() {
-        SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.HTML, null, null);
-        assertFalse(smtpSendEmail.isEmailMessageValid());
-    }
+  @Test
+  void isEmailMessageNotValidHtmlWithoutBody() {
+    SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.HTML, null, null);
+    assertFalse(smtpSendEmail.isEmailMessageValid());
+  }
 
-    @Test
-    void isEmailMessageValidMultiWithBody() {
-        SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.MULTIPART, "text", "text2");
-        assertTrue(smtpSendEmail.isEmailMessageValid());
-    }
+  @Test
+  void isEmailMessageValidMultiWithBody() {
+    SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.MULTIPART, "text", "text2");
+    assertTrue(smtpSendEmail.isEmailMessageValid());
+  }
 
-    @Test
-    void isEmailMessageNotValidHtmlTextWithoutBothBodies() {
-        SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.MULTIPART, null, null);
-        assertFalse(smtpSendEmail.isEmailMessageValid());
-    }
+  @Test
+  void isEmailMessageNotValidHtmlTextWithoutBothBodies() {
+    SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.MULTIPART, null, null);
+    assertFalse(smtpSendEmail.isEmailMessageValid());
+  }
 
-    @Test
-    void isEmailMessageNotValidMultiWithoutHtmlBody() {
-        SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.MULTIPART, "text", null);
-        assertFalse(smtpSendEmail.isEmailMessageValid());
-    }
+  @Test
+  void isEmailMessageNotValidMultiWithoutHtmlBody() {
+    SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.MULTIPART, "text", null);
+    assertFalse(smtpSendEmail.isEmailMessageValid());
+  }
 
-    @Test
-    void isEmailMessageNotValidMultiWithoutBody() {
-        SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.MULTIPART, null, "text");
-        assertFalse(smtpSendEmail.isEmailMessageValid());
-    }
+  @Test
+  void isEmailMessageNotValidMultiWithoutBody() {
+    SmtpSendEmail smtpSendEmail = mockSmtpSendEmail(ContentType.MULTIPART, null, "text");
+    assertFalse(smtpSendEmail.isEmailMessageValid());
+  }
 
-
-
-    private SmtpSendEmail mockSmtpSendEmail(ContentType contentType, String body, String htmlBody) {
-        return new SmtpSendEmail("", "", "", "", null, "", contentType,
-                body, htmlBody, null);
-    }
+  private SmtpSendEmail mockSmtpSendEmail(ContentType contentType, String body, String htmlBody) {
+    return new SmtpSendEmail("", "", "", "", null, "", contentType, body, htmlBody, null);
+  }
 }
