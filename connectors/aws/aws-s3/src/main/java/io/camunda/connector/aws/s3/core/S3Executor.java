@@ -137,10 +137,7 @@ public class S3Executor {
 
   private DeleteResponse delete(DeleteObject deleteObject) {
     DeleteObjectRequest deleteObjectRequest =
-        DeleteObjectRequest.builder()
-            .bucket(deleteObject.bucket())
-            .key(deleteObject.key())
-            .build();
+        DeleteObjectRequest.builder().bucket(deleteObject.bucket()).key(deleteObject.key()).build();
 
     this.s3Client.deleteObject(deleteObjectRequest);
     return new DeleteResponse(deleteObject.bucket(), deleteObject.key());

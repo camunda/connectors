@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.aws.s3.model.request.DeleteObject;
 import io.camunda.connector.aws.s3.model.request.DownloadObject;
 import io.camunda.connector.aws.s3.model.request.S3Action;
@@ -106,7 +106,8 @@ class S3ExecutorTest {
     assertInstanceOf(DownloadResponse.class, object);
     assertNotNull(((DownloadResponse) object).element());
     assertInstanceOf(Element.StringContent.class, ((DownloadResponse) object).element());
-    assertEquals("Hello World", ((DownloadResponse) object).element());
+    assertEquals(
+        "Hello World", ((Element.StringContent) ((DownloadResponse) object).element()).content());
   }
 
   @Test
@@ -130,7 +131,11 @@ class S3ExecutorTest {
     assertInstanceOf(DownloadResponse.class, object);
     DownloadResponse downloadResponse = (DownloadResponse) object;
     assertNotNull(downloadResponse.element());
-    assertEquals("World", ((ObjectNode) downloadResponse.element()).get("Hello").asText());
+    assertEquals(
+        "World",
+        ((JsonNode) ((Element.JsonContent) downloadResponse.element()).content())
+            .get("Hello")
+            .asText());
   }
 
   @Test
@@ -155,6 +160,7 @@ class S3ExecutorTest {
     DownloadResponse downloadResponse = (DownloadResponse) object;
     assertNotNull(downloadResponse.element());
     assertEquals(
-        Base64.getEncoder().encodeToString("Hello".getBytes()), downloadResponse.element());
+        Base64.getEncoder().encodeToString("Hello".getBytes()),
+        ((Element.StringContent) downloadResponse.element()).content());
   }
 }

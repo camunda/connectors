@@ -3,6 +3,9 @@
   "name" : "AWS S3 Outbound Connector",
   "id" : "io.camunda.connectors.aws.s3.v1",
   "description" : "Execute S3 requests",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-s3/",
   "version" : 1,
   "category" : {
@@ -143,10 +146,10 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Delete document",
+      "name" : "Delete object",
       "value" : "deleteObject"
     }, {
-      "name" : "Download document",
+      "name" : "Download object",
       "value" : "downloadObject"
     }, {
       "name" : "Upload object",
