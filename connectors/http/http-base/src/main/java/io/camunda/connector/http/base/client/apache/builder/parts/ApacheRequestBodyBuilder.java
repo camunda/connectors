@@ -102,7 +102,7 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
           ? new StringEntity(
               s, contentType.orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
           : new StringEntity(
-              ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(body),
+              ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(body),
               contentType.orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
     } catch (JsonProcessingException e) {
       throw new ConnectorException("Failed to serialize request body:" + body, e);

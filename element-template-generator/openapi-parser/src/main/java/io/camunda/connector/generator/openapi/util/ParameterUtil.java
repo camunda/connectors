@@ -134,7 +134,7 @@ public class ParameterUtil {
       return data.toString();
     }
     try {
-      return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER
+      return ConnectorsObjectMapperSupplier.getCopy()
           .writerWithDefaultPrettyPrinter()
           .writeValueAsString(data);
     } catch (JsonProcessingException e) {

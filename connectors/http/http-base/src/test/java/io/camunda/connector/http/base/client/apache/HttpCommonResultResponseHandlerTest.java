@@ -82,7 +82,7 @@ public class HttpCommonResultResponseHandlerTest {
         new HttpCommonResult(200, Map.of("X-Header", "value"), Map.of("key", "value"));
     response.setEntity(
         new StringEntity(
-            ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(cloudFunctionResult)));
+            ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
 
     // when
     HttpCommonResult result = handler.handleResponse(response);
@@ -107,8 +107,8 @@ public class HttpCommonResultResponseHandlerTest {
     response.setHeaders(headers);
     response.setEntity(
         new StringEntity(
-            ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(
-                new ErrorResponse("500", "Custom message", null))));
+            ConnectorsObjectMapperSupplier.getCopy()
+                .writeValueAsString(new ErrorResponse("500", "Custom message", null))));
 
     // when
     HttpCommonResult result = handler.handleResponse(response);
@@ -134,7 +134,7 @@ public class HttpCommonResultResponseHandlerTest {
         new HttpCommonResult(200, Map.of("X-Header", "value"), "{\"key\":\"value\"}");
     response.setEntity(
         new StringEntity(
-            ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(cloudFunctionResult)));
+            ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
 
     // when
     HttpCommonResult result = handler.handleResponse(response);

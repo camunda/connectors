@@ -141,7 +141,7 @@ public class KafkaPropertyTransformer {
             case GenericRecord record -> GENERIC_RECORD_ENCODER.encode(record);
             case JsonNode jsonNode -> {
               kafkaInboundMessage.setRawValue(
-                  ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(jsonNode));
+                  ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(jsonNode));
               yield jsonNode;
             }
             case String string -> {

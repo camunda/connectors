@@ -78,11 +78,11 @@ public class HttpCommonResultResponseHandler
     if (HttpStatusHelper.isError(code)) {
       // unwrap as ErrorResponse
       var errorResponse =
-          ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(content, ErrorResponse.class);
+          ConnectorsObjectMapperSupplier.getCopy().readValue(content, ErrorResponse.class);
       return new HttpCommonResult(code, headers, errorResponse, reason);
     }
     // Unwrap the response as a HttpCommonResult directly
-    return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(content, HttpCommonResult.class);
+    return ConnectorsObjectMapperSupplier.getCopy().readValue(content, HttpCommonResult.class);
   }
 
   /**
@@ -97,7 +97,7 @@ public class HttpCommonResultResponseHandler
 
     if (StringUtils.isNotBlank(bodyString)) {
       return isJsonStringValid(bodyString)
-          ? ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(bodyString, Object.class)
+          ? ConnectorsObjectMapperSupplier.getCopy().readValue(bodyString, Object.class)
           : bodyString;
     }
     return null;

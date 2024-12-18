@@ -66,7 +66,7 @@ public class HttpServiceTest {
   private final HttpService httpService = new HttpService(cloudFunctionService);
   private final HttpService httpServiceWithoutCloudFunction =
       new HttpService(disabledCloudFunctionService);
-  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @BeforeAll
   public static void setUp() {

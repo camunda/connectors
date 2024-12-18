@@ -14,6 +14,11 @@
       "automerge": true
     },
     {
+      "matchManagers": ["helm"],
+      "automerge": true,
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
+    },
+    {
       "matchBaseBranches": ["/^release/.*/"],
       "matchUpdateTypes": ["major", "minor"],
       "enabled": false
