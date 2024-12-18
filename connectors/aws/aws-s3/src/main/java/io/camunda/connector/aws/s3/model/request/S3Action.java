@@ -15,4 +15,4 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     name = "actionDiscriminator",
     defaultValue = "uploadObject")
 @TemplateSubType(id = "action", label = "Action")
-public sealed interface S3Action permits DeleteS3Action, DownloadS3Action, UploadObject {}
+public sealed interface S3Action permits DeleteObject, DownloadObject, UploadObject {}

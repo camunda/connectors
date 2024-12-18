@@ -6,5 +6,4 @@
  */
 package io.camunda.connector.aws.s3.model.response;
 
-
 public record DownloadResponse(String bucket, String key, Element element) {}

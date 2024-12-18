@@ -32,7 +32,6 @@ public record UploadObject(
             optional = true,
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.key"))
-        @NotBlank
         String key,
     @TemplateProperty(
             label = "Document",

@@ -54,8 +54,8 @@ public class S3Executor {
 
   public Object execute(S3Action s3Action) {
     return switch (s3Action) {
-      case DeleteS3Action deleteS3Action -> delete(deleteS3Action);
-      case DownloadS3Action downloadS3Action -> download(downloadS3Action);
+      case DeleteObject deleteObject -> delete(deleteObject);
+      case DownloadObject downloadObject -> download(downloadObject);
       case UploadObject uploadObject -> upload(uploadObject);
     };
   }
@@ -84,20 +84,20 @@ public class S3Executor {
         String.format("https://%s.s3.amazonaws.com/%s", uploadObject.bucket(), uploadObject.key()));
   }
 
-  private DownloadResponse download(DownloadS3Action downloadS3Action) {
+  private DownloadResponse download(DownloadObject downloadObject) {
     GetObjectRequest getObjectRequest =
         GetObjectRequest.builder()
-            .bucket(downloadS3Action.bucket())
-            .key(downloadS3Action.key())
+            .bucket(downloadObject.bucket())
+            .key(downloadObject.key())
             .build();
 
     ResponseInputStream<GetObjectResponse> getObjectResponse =
         this.s3Client.getObject(getObjectRequest);
 
-    if (!downloadS3Action.asFile()) {
+    if (!downloadObject.asFile()) {
       try {
         return retrieveResponseWithContent(
-            downloadS3Action.bucket(), downloadS3Action.key(), getObjectResponse);
+            downloadObject.bucket(), downloadObject.key(), getObjectResponse);
       } catch (IOException e) {
         log.error("An error occurred while trying to read and parse the downloaded file", e);
         throw new RuntimeException(e);
@@ -107,13 +107,13 @@ public class S3Executor {
           .andThen(
               document ->
                   new DownloadResponse(
-                      downloadS3Action.bucket(),
-                      downloadS3Action.key(),
+                      downloadObject.bucket(),
+                      downloadObject.key(),
                       new Element.DocumentContent(document)))
           .apply(
               DocumentCreationRequest.from(getObjectResponse)
                   .contentType(getObjectResponse.response().contentType())
-                  .fileName(downloadS3Action.key())
+                  .fileName(downloadObject.key())
                   .build());
     }
   }
@@ -135,14 +135,14 @@ public class S3Executor {
     };
   }
 
-  private DeleteResponse delete(DeleteS3Action deleteS3Action) {
+  private DeleteResponse delete(DeleteObject deleteObject) {
     DeleteObjectRequest deleteObjectRequest =
         DeleteObjectRequest.builder()
-            .bucket(deleteS3Action.bucket())
-            .key(deleteS3Action.key())
+            .bucket(deleteObject.bucket())
+            .key(deleteObject.key())
             .build();
 
     this.s3Client.deleteObject(deleteObjectRequest);
-    return new DeleteResponse(deleteS3Action.bucket(), deleteS3Action.key());
+    return new DeleteResponse(deleteObject.bucket(), deleteObject.key());
   }
 }

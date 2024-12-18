@@ -21,9 +21,9 @@ public class S3Request extends AwsBaseRequest {
       property = "actionDiscriminator")
   @JsonSubTypes(
       value = {
-        @JsonSubTypes.Type(value = DeleteS3Action.class, name = "deleteObject"),
+        @JsonSubTypes.Type(value = DeleteObject.class, name = "deleteObject"),
         @JsonSubTypes.Type(value = UploadObject.class, name = "uploadObject"),
-        @JsonSubTypes.Type(value = DownloadS3Action.class, name = "downloadObject"),
+        @JsonSubTypes.Type(value = DownloadObject.class, name = "downloadObject"),
       })
   @Valid
   @NotNull

@@ -11,8 +11,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.camunda.connector.aws.s3.model.request.DeleteS3Action;
-import io.camunda.connector.aws.s3.model.request.DownloadS3Action;
+import io.camunda.connector.aws.s3.model.request.DeleteObject;
+import io.camunda.connector.aws.s3.model.request.DownloadObject;
 import io.camunda.connector.aws.s3.model.request.S3Action;
 import io.camunda.connector.aws.s3.model.request.UploadObject;
 import io.camunda.connector.aws.s3.model.response.DeleteResponse;
@@ -40,7 +40,7 @@ class S3ExecutorTest {
     S3Client s3Client = mock(S3Client.class);
     Function<DocumentCreationRequest, Document> function = doc -> mock(Document.class);
     S3Executor executor = new S3Executor(s3Client, function);
-    S3Action s3Action = new DeleteS3Action("test", "key");
+    S3Action s3Action = new DeleteObject("test", "key");
 
     Object object = executor.execute(s3Action);
 
@@ -73,7 +73,7 @@ class S3ExecutorTest {
     S3Executor executor = new S3Executor(s3Client, function);
     ResponseInputStream<GetObjectResponse> responseInputStream = mock(ResponseInputStream.class);
     GetObjectResponse getObjectResponse = mock(GetObjectResponse.class);
-    S3Action s3Action = new DownloadS3Action("test", "key", true);
+    S3Action s3Action = new DownloadObject("test", "key", true);
 
     when(s3Client.getObject(any(GetObjectRequest.class))).thenReturn(responseInputStream);
     when(responseInputStream.response()).thenReturn(getObjectResponse);
@@ -93,7 +93,7 @@ class S3ExecutorTest {
     S3Executor executor = new S3Executor(s3Client, function);
     ResponseInputStream<GetObjectResponse> responseInputStream = mock(ResponseInputStream.class);
     GetObjectResponse getObjectResponse = mock(GetObjectResponse.class);
-    S3Action s3Action = new DownloadS3Action("test", "key", false);
+    S3Action s3Action = new DownloadObject("test", "key", false);
 
     when(s3Client.getObject(any(GetObjectRequest.class))).thenReturn(responseInputStream);
     when(responseInputStream.response()).thenReturn(getObjectResponse);
@@ -117,7 +117,7 @@ class S3ExecutorTest {
     S3Executor executor = new S3Executor(s3Client, function);
     ResponseInputStream<GetObjectResponse> responseInputStream = mock(ResponseInputStream.class);
     GetObjectResponse getObjectResponse = mock(GetObjectResponse.class);
-    S3Action s3Action = new DownloadS3Action("test", "key", false);
+    S3Action s3Action = new DownloadObject("test", "key", false);
 
     when(s3Client.getObject(any(GetObjectRequest.class))).thenReturn(responseInputStream);
     when(responseInputStream.response()).thenReturn(getObjectResponse);
@@ -141,7 +141,7 @@ class S3ExecutorTest {
     S3Executor executor = new S3Executor(s3Client, function);
     ResponseInputStream<GetObjectResponse> responseInputStream = mock(ResponseInputStream.class);
     GetObjectResponse getObjectResponse = mock(GetObjectResponse.class);
-    S3Action s3Action = new DownloadS3Action("test", "key", false);
+    S3Action s3Action = new DownloadObject("test", "key", false);
 
     when(s3Client.getObject(any(GetObjectRequest.class))).thenReturn(responseInputStream);
     when(responseInputStream.response()).thenReturn(getObjectResponse);

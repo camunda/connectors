@@ -149,7 +149,7 @@
       "name" : "Download document",
       "value" : "downloadObject"
     }, {
-      "name" : "Upload document",
+      "name" : "Upload object",
       "value" : "uploadObject"
     } ]
   }, {
@@ -216,9 +216,6 @@
     "id" : "uploadActionKey",
     "label" : "AWS key",
     "optional" : true,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "uploadObject",
     "binding" : {

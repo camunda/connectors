@@ -10,7 +10,7 @@
           "contentType":"text/plain", "size":41730,
           "fileName":"test.txt"
         },
-        "documentType":"camunda"
+        "camunda.document.type":"camunda"
       }
     }, "configuration":{"region":"eu-central-1"},
     "authentication":{

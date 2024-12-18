@@ -11,35 +11,24 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = "downloadObject", label = "Download document")
-public record DownloadS3Action(
+@TemplateSubType(id = "deleteObject", label = "Delete object")
+public record DeleteObject(
     @TemplateProperty(
             label = "AWS bucket",
-            id = "downloadActionBucket",
-            group = "downloadObject",
-            tooltip = "Bucket from where an object should be downloaded",
+            id = "deleteActionBucket",
+            group = "deleteObject",
+            tooltip = "Bucket from where an object should be deleted",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.bucket"))
         @NotBlank
         String bucket,
     @TemplateProperty(
             label = "AWS key",
-            id = "downloadActionKey",
-            group = "downloadObject",
-            tooltip = "Key of the object which should be download",
+            id = "deleteActionKey",
+            group = "deleteObject",
+            tooltip = "Key of the object which should be deleted",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.key"))
         @NotBlank
-        String key,
-    @TemplateProperty(
-            label = "Create document",
-            id = "downloadActionAsFile",
-            group = "downloadObject",
-            tooltip =
-                "If set to true, a document reference will be created. If set to false, the content will be extracted and provided inside the response.",
-            type = TemplateProperty.PropertyType.Boolean,
-            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-            defaultValue = "true",
-            binding = @TemplateProperty.PropertyBinding(name = "action.asFile"))
-        boolean asFile)
+        String key)
     implements S3Action {}
