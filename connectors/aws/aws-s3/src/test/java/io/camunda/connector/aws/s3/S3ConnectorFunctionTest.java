@@ -51,7 +51,7 @@ class S3ConnectorFunctionTest extends BaseTest {
 
     try (MockedStatic<S3Executor> s3ExecutorMockedStatic = Mockito.mockStatic(S3Executor.class)) {
       s3ExecutorMockedStatic.when(() -> S3Executor.create(any(), any())).thenReturn(s3Executor);
-      when(s3Executor.execute(any())).thenReturn(new DownloadResponse("test", "test", null, null));
+      when(s3Executor.execute(any())).thenReturn(new DownloadResponse("test", "test", null));
       var response = s3ConnectorFunction.execute(context);
       Assertions.assertNotNull(response);
       Assertions.assertInstanceOf(DownloadResponse.class, response);

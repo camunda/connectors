@@ -43,6 +43,6 @@ public class S3ConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     Function<DocumentCreationRequest, Document> createDocument = context::createDocument;
     S3Request s3Request = context.bindVariables(S3Request.class);
-    return S3Executor.create(s3Request, createDocument).execute(s3Request.getData());
+    return S3Executor.create(s3Request, createDocument).execute(s3Request.getAction());
   }
 }

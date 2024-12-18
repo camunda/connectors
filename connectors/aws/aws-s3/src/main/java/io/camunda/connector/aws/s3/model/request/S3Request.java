@@ -22,7 +22,7 @@ public class S3Request extends AwsBaseRequest {
   @JsonSubTypes(
       value = {
         @JsonSubTypes.Type(value = DeleteS3Action.class, name = "deleteObject"),
-        @JsonSubTypes.Type(value = UploadS3Action.class, name = "uploadObject"),
+        @JsonSubTypes.Type(value = UploadObject.class, name = "uploadObject"),
         @JsonSubTypes.Type(value = DownloadS3Action.class, name = "downloadObject"),
       })
   @Valid
@@ -32,11 +32,11 @@ public class S3Request extends AwsBaseRequest {
 
   public S3Request() {}
 
-  public S3Action getData() {
+  public S3Action getAction() {
     return action;
   }
 
-  public void setData(S3Action data) {
-    this.action = data;
+  public void setAction(S3Action action) {
+    this.action = action;
   }
 }

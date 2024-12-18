@@ -14,9 +14,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.aws.s3.model.request.DeleteS3Action;
 import io.camunda.connector.aws.s3.model.request.DownloadS3Action;
 import io.camunda.connector.aws.s3.model.request.S3Action;
-import io.camunda.connector.aws.s3.model.request.UploadS3Action;
+import io.camunda.connector.aws.s3.model.request.UploadObject;
 import io.camunda.connector.aws.s3.model.response.DeleteResponse;
 import io.camunda.connector.aws.s3.model.response.DownloadResponse;
+import io.camunda.connector.aws.s3.model.response.Element;
 import io.camunda.connector.aws.s3.model.response.UploadResponse;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
@@ -53,7 +54,7 @@ class S3ExecutorTest {
     Function<DocumentCreationRequest, Document> function = doc -> mock(Document.class);
     S3Executor executor = new S3Executor(s3Client, function);
     Document document = mock(Document.class, RETURNS_DEEP_STUBS);
-    S3Action s3Action = new UploadS3Action("test", "key", document);
+    S3Action s3Action = new UploadObject("test", "key", document);
 
     when(document.metadata().getSize()).thenReturn(42L);
     when(document.metadata().getContentType()).thenReturn("application/octet-stream");
@@ -81,8 +82,7 @@ class S3ExecutorTest {
 
     verify(s3Client, times(1)).getObject(any(GetObjectRequest.class));
     assertInstanceOf(DownloadResponse.class, object);
-    assertNull(((DownloadResponse) object).content());
-    assertNotNull(((DownloadResponse) object).document());
+    assertInstanceOf(Element.DocumentContent.class, ((DownloadResponse) object).element());
   }
 
   @Test
@@ -104,9 +104,9 @@ class S3ExecutorTest {
 
     verify(s3Client, times(1)).getObject(any(GetObjectRequest.class));
     assertInstanceOf(DownloadResponse.class, object);
-    assertNotNull(((DownloadResponse) object).content());
-    assertNull(((DownloadResponse) object).document());
-    assertEquals("Hello World", ((DownloadResponse) object).content());
+    assertNotNull(((DownloadResponse) object).element());
+    assertInstanceOf(Element.StringContent.class, ((DownloadResponse) object).element());
+    assertEquals("Hello World", ((DownloadResponse) object).element());
   }
 
   @Test
@@ -129,9 +129,8 @@ class S3ExecutorTest {
     verify(s3Client, times(1)).getObject(any(GetObjectRequest.class));
     assertInstanceOf(DownloadResponse.class, object);
     DownloadResponse downloadResponse = (DownloadResponse) object;
-    assertNotNull(downloadResponse.content());
-    assertNull(downloadResponse.document());
-    assertEquals("World", ((ObjectNode) downloadResponse.content()).get("Hello").asText());
+    assertNotNull(downloadResponse.element());
+    assertEquals("World", ((ObjectNode) downloadResponse.element()).get("Hello").asText());
   }
 
   @Test
@@ -154,9 +153,8 @@ class S3ExecutorTest {
     verify(s3Client, times(1)).getObject(any(GetObjectRequest.class));
     assertInstanceOf(DownloadResponse.class, object);
     DownloadResponse downloadResponse = (DownloadResponse) object;
-    assertNotNull(downloadResponse.content());
-    assertNull(downloadResponse.document());
+    assertNotNull(downloadResponse.element());
     assertEquals(
-        Base64.getEncoder().encodeToString("Hello".getBytes()), downloadResponse.content());
+        Base64.getEncoder().encodeToString("Hello".getBytes()), downloadResponse.element());
   }
 }

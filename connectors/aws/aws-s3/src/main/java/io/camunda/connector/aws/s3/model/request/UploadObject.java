@@ -12,8 +12,8 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.document.Document;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(id = "uploadObject", label = "Upload document")
-public record UploadS3Action(
+@TemplateSubType(id = "uploadObject", label = "Upload object")
+public record UploadObject(
     @TemplateProperty(
             label = "AWS bucket",
             id = "uploadActionBucket",

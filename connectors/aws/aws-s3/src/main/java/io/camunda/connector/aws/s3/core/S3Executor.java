@@ -11,6 +11,7 @@ import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.s3.model.request.*;
 import io.camunda.connector.aws.s3.model.response.DeleteResponse;
 import io.camunda.connector.aws.s3.model.response.DownloadResponse;
+import io.camunda.connector.aws.s3.model.response.Element;
 import io.camunda.connector.aws.s3.model.response.UploadResponse;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
@@ -55,33 +56,32 @@ public class S3Executor {
     return switch (s3Action) {
       case DeleteS3Action deleteS3Action -> delete(deleteS3Action);
       case DownloadS3Action downloadS3Action -> download(downloadS3Action);
-      case UploadS3Action uploadS3Action -> upload(uploadS3Action);
+      case UploadObject uploadObject -> upload(uploadObject);
     };
   }
 
-  private Object upload(UploadS3Action uploadS3Action) {
-    Long contentLength = uploadS3Action.document().metadata().getSize();
-    String contentType = uploadS3Action.document().metadata().getContentType();
+  private Object upload(UploadObject uploadObject) {
+    Long contentLength = uploadObject.document().metadata().getSize();
+    String contentType = uploadObject.document().metadata().getContentType();
 
     PutObjectRequest putObjectRequest =
         PutObjectRequest.builder()
-            .bucket(uploadS3Action.bucket())
+            .bucket(uploadObject.bucket())
             .key(
-                Optional.ofNullable(uploadS3Action.key())
-                    .orElse(uploadS3Action.document().metadata().getFileName()))
+                Optional.ofNullable(uploadObject.key())
+                    .orElse(uploadObject.document().metadata().getFileName()))
             .contentLength(contentLength)
             .contentType(contentType)
             .build();
 
     this.s3Client.putObject(
         putObjectRequest,
-        RequestBody.fromInputStream(uploadS3Action.document().asInputStream(), contentLength));
+        RequestBody.fromInputStream(uploadObject.document().asInputStream(), contentLength));
 
     return new UploadResponse(
-        uploadS3Action.bucket(),
-        uploadS3Action.key(),
-        String.format(
-            "https://%s.s3.amazonaws.com/%s", uploadS3Action.bucket(), uploadS3Action.key()));
+        uploadObject.bucket(),
+        uploadObject.key(),
+        String.format("https://%s.s3.amazonaws.com/%s", uploadObject.bucket(), uploadObject.key()));
   }
 
   private DownloadResponse download(DownloadS3Action downloadS3Action) {
@@ -107,7 +107,9 @@ public class S3Executor {
           .andThen(
               document ->
                   new DownloadResponse(
-                      downloadS3Action.bucket(), downloadS3Action.key(), document, null))
+                      downloadS3Action.bucket(),
+                      downloadS3Action.key(),
+                      new Element.DocumentContent(document)))
           .apply(
               DocumentCreationRequest.from(getObjectResponse)
                   .contentType(getObjectResponse.response().contentType())
@@ -122,11 +124,14 @@ public class S3Executor {
     byte[] rawBytes = responseResponseInputStream.readAllBytes();
     return switch (responseResponseInputStream.response().contentType()) {
       case "text/plain" ->
-          new DownloadResponse(bucket, key, null, new String(rawBytes, StandardCharsets.UTF_8));
+          new DownloadResponse(
+              bucket, key, new Element.StringContent(new String(rawBytes, StandardCharsets.UTF_8)));
       case "application/json" ->
-          new DownloadResponse(bucket, key, null, new ObjectMapper().readTree(rawBytes));
+          new DownloadResponse(
+              bucket, key, new Element.JsonContent(new ObjectMapper().readTree(rawBytes)));
       default ->
-          new DownloadResponse(bucket, key, null, Base64.getEncoder().encodeToString(rawBytes));
+          new DownloadResponse(
+              bucket, key, new Element.StringContent(Base64.getEncoder().encodeToString(rawBytes)));
     };
   }
 

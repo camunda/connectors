@@ -6,6 +6,5 @@
  */
 package io.camunda.connector.aws.s3.model.response;
 
-import io.camunda.document.Document;
 
-public record DownloadResponse(String bucket, String key, Document document, Object content) {}
+public record DownloadResponse(String bucket, String key, Element element) {}
