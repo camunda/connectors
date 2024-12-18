@@ -10,6 +10,7 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
@@ -124,4 +125,13 @@ public record SmtpSendEmail(
                     oneOf = {"HTML", "MULTIPART"}))
         @Valid
         String htmlBody)
-    implements SmtpAction {}
+    implements SmtpAction {
+        @AssertTrue(message = "Please provide a proper message body")
+  public boolean isEmailMessageValid() {
+    return switch (contentType) {
+      case PLAIN -> body != null;
+      case HTML -> htmlBody != null;
+      case MULTIPART -> body != null && htmlBody != null;
+    };
+  }
+    }
