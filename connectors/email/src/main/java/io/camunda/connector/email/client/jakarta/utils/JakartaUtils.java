@@ -20,8 +20,10 @@ import io.camunda.connector.email.outbound.protocols.actions.SortFieldImap;
 import io.camunda.connector.email.outbound.protocols.actions.SortFieldPop3;
 import io.camunda.connector.email.outbound.protocols.actions.SortOrder;
 import jakarta.mail.*;
+import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.validation.constraints.NotNull;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
@@ -32,9 +34,9 @@ import org.slf4j.LoggerFactory;
 
 public class JakartaUtils {
 
+  public static final String HTML_CHARSET = "text/html; charset=utf-8";
   private static final Logger LOGGER = LoggerFactory.getLogger(JakartaUtils.class);
   private static final String REGEX_PATH_SPLITTER = "[./]";
-  public static final String HTML_CHARSET = "text/html; charset=utf-8";
 
   public Session createSession(Configuration configuration) {
     return Session.getInstance(
@@ -282,11 +284,19 @@ public class JakartaUtils {
       throws MessagingException, IOException {
     BodyPart bodyPart = multipart.getBodyPart(i);
     switch (bodyPart.getContent()) {
-      case InputStream attachment when bodyPart
-              .getDisposition()
-              .equalsIgnoreCase(Part.ATTACHMENT) ->
+      case InputStream attachment when Part.ATTACHMENT.equalsIgnoreCase(
+              bodyPart.getDisposition()) ->
           emailBodyBuilder.addAttachment(
-              new EmailAttachment(attachment, bodyPart.getFileName(), bodyPart.getContentType()));
+              new EmailAttachment(
+                  attachment,
+                  bodyPart.getFileName(),
+                  new ContentType(bodyPart.getContentType()).getBaseType()));
+      case String textAttachment when Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) ->
+          emailBodyBuilder.addAttachment(
+              new EmailAttachment(
+                  new ByteArrayInputStream(textAttachment.getBytes()),
+                  bodyPart.getFileName(),
+                  new ContentType(bodyPart.getContentType()).getBaseType()));
       case String plainText when bodyPart.isMimeType("text/plain") ->
           emailBodyBuilder.withBodyAsPlainText(plainText);
       case String html when bodyPart.isMimeType("text/html") ->
