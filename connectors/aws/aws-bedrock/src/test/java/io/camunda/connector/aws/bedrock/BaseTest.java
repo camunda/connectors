@@ -20,6 +20,8 @@ import org.junit.jupiter.params.provider.Arguments;
 
 public class BaseTest {
 
+  protected static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
+
   public static Stream<String> loadInvokeModelVariables() {
     try {
       return loadTestCasesFromResourceFile(
@@ -37,12 +39,15 @@ public class BaseTest {
     }
   }
 
+  public static <T> T readData(String path, Class<T> type) throws IOException {
+    final String cases = readString(new File(path).toPath(), UTF_8);
+    return mapper.readValue(cases, type);
+  }
+
   @SuppressWarnings("unchecked")
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
-    final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
-    var array = mapper.readValue(cases, ArrayList.class);
+    var array = readData(fileWithTestCasesUri, ArrayList.class);
     return array.stream()
         .map(
             value -> {

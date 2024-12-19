@@ -18,5 +18,5 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
     defaultValue = "invokeModel")
 @TemplateSubType(id = "action", label = "Action")
 public sealed interface RequestData permits InvokeModelData, ConverseData {
-  BedrockResponse execute(BedrockRuntimeClient bedrockRuntimeClient, ObjectMapper mapperInstance);
+  Object execute(BedrockRuntimeClient bedrockRuntimeClient, ObjectMapper mapperInstance);
 }
