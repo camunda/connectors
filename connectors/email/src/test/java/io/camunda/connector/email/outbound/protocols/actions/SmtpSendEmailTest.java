@@ -62,6 +62,6 @@ class SmtpSendEmailTest {
   }
 
   private SmtpSendEmail mockSmtpSendEmail(ContentType contentType, String body, String htmlBody) {
-    return new SmtpSendEmail("", "", "", "", null, "", contentType, body, htmlBody, null);
+    return new SmtpSendEmail("", "", "", "", null, "", contentType, body, htmlBody);
   }
 }
