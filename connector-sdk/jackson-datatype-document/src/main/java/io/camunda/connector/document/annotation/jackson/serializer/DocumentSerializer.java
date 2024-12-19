@@ -22,18 +22,13 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.document.Document;
-import io.camunda.document.operation.DocumentOperationExecutor;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.IOException;
 import java.util.Optional;
 
 public class DocumentSerializer extends JsonSerializer<Document> {
 
-  private final DocumentOperationExecutor operationExecutor;
-
-  public DocumentSerializer(DocumentOperationExecutor operationExecutor) {
-    this.operationExecutor = operationExecutor;
-  }
+  public DocumentSerializer() {}
 
   @Override
   public void serialize(
