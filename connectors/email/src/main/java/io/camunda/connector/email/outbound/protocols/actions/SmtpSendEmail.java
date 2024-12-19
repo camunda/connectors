@@ -126,7 +126,7 @@ public record SmtpSendEmail(
         @Valid
         String htmlBody)
     implements SmtpAction {
-        @AssertTrue(message = "Please provide a proper message body")
+  @AssertTrue(message = "Please provide a proper message body")
   public boolean isEmailMessageValid() {
     return switch (contentType) {
       case PLAIN -> body != null;
@@ -134,4 +134,4 @@ public record SmtpSendEmail(
       case MULTIPART -> body != null && htmlBody != null;
     };
   }
-    }
+}
