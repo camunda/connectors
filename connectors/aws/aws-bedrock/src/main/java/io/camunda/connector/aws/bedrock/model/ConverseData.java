@@ -9,9 +9,13 @@ package io.camunda.connector.aws.bedrock.model;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.aws.bedrock.mapper.BedrockContentMapper;
+import io.camunda.connector.aws.bedrock.mapper.DocumentMapper;
+import io.camunda.connector.aws.bedrock.mapper.MessageMapper;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,13 +23,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
-import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
-import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
-import software.amazon.awssdk.services.bedrockruntime.model.Message;
+import software.amazon.awssdk.services.bedrockruntime.model.*;
 
 @TemplateSubType(id = "converse", label = "Converse")
 public final class ConverseData implements RequestData {
+
+  @TemplateProperty(
+      label = "Message History",
+      group = "converse",
+      id = "data.messagesHistory",
+      description = "Specify the message history, when previous context is needed",
+      feel = Property.FeelMode.required,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "data.messagesHistory"))
+  @Valid
+  @JsonSetter(nulls = Nulls.SKIP)
+  private List<BedrockMessage> messagesHistory = new ArrayList<>();
 
   @TemplateProperty(
       label = "Model ID",
@@ -42,25 +55,13 @@ public final class ConverseData implements RequestData {
   @TemplateProperty(
       label = "New Message",
       group = "converse",
-      id = "data.nextMessage",
+      id = "data.newMessage",
       description = "Specify the next message",
       feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.nextMessage"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.newMessage"))
   @Valid
   @NotBlank
-  private String nextMessage;
-
-  @TemplateProperty(
-      label = "Message History",
-      group = "converse",
-      id = "data.messages",
-      description = "Specify the message history, when previous context is needed",
-      feel = Property.FeelMode.required,
-      optional = true,
-      binding = @TemplateProperty.PropertyBinding(name = "data.messages"))
-  @Valid
-  @JsonSetter(nulls = Nulls.SKIP)
-  private List<PreviousMessage> messages = new ArrayList<>();
+  private String newMessage;
 
   @TemplateProperty(
       label = "Max token returned",
@@ -89,20 +90,23 @@ public final class ConverseData implements RequestData {
       binding = @TemplateProperty.PropertyBinding(name = "data.topP"))
   private Float topP = 0.9f;
 
+  @TemplateProperty(
+      label = "documents",
+      group = "converse",
+      id = "data.newDocuments",
+      feel = Property.FeelMode.required,
+      optional = true,
+      binding = @TemplateProperty.PropertyBinding(name = "data.newDocuments"))
+  private List<Document> newDocuments;
+
   @Override
-  public BedrockResponse execute(
+  public List<BedrockMessage> execute(
       BedrockRuntimeClient bedrockRuntimeClient, ObjectMapper mapperInstance) {
-    this.messages.add(new PreviousMessage(this.nextMessage, ConversationRole.USER.name()));
-    Message.Builder messageBuilder = Message.builder();
-    List<Message> messages =
-        this.messages.stream()
-            .map(
-                message ->
-                    messageBuilder
-                        .role(ConversationRole.valueOf(message.role()))
-                        .content(ContentBlock.fromText(message.message()))
-                        .build())
-            .toList();
+    var messageMapper = createMessageMapper();
+    this.messagesHistory.add(messageMapper.mapToBedrockMessage(newDocuments, newMessage));
+
+    List<Message> messages = messageMapper.mapToMessages(this.messagesHistory);
+
     ConverseResponse converseResponse =
         bedrockRuntimeClient.converse(
             builder ->
@@ -116,9 +120,16 @@ public final class ConverseData implements RequestData {
                                 .maxTokens(this.maxTokens)
                                 .topP(this.topP)
                                 .build()));
-    String newMessage = converseResponse.output().message().content().getFirst().text();
-    this.messages.add(new PreviousMessage(newMessage, ConversationRole.ASSISTANT.name()));
-    return new ConverseWrapperResponse(this.messages, newMessage);
+
+    var responseMessage = converseResponse.output().message();
+    this.messagesHistory.add(messageMapper.mapToBedrockMessage(responseMessage));
+
+    return messagesHistory;
+  }
+
+  private MessageMapper createMessageMapper() {
+    var bedrockContentMapper = new BedrockContentMapper(new DocumentMapper());
+    return new MessageMapper(bedrockContentMapper);
   }
 
   @Override
@@ -126,29 +137,27 @@ public final class ConverseData implements RequestData {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     ConverseData that = (ConverseData) o;
-    return Objects.equals(modelId, that.modelId)
-        && Objects.equals(nextMessage, that.nextMessage)
-        && Objects.equals(messages, that.messages)
+    return Objects.equals(messagesHistory, that.messagesHistory)
+        && Objects.equals(modelId, that.modelId)
+        && Objects.equals(newMessage, that.newMessage)
         && Objects.equals(maxTokens, that.maxTokens)
         && Objects.equals(temperature, that.temperature)
-        && Objects.equals(topP, that.topP);
+        && Objects.equals(topP, that.topP)
+        && Objects.equals(newDocuments, that.newDocuments);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(modelId, nextMessage, messages, maxTokens, temperature, topP);
+    return Objects.hash(
+        messagesHistory, modelId, newMessage, maxTokens, temperature, topP, newDocuments);
   }
 
   public void setModelId(@Valid @NotNull String modelId) {
     this.modelId = modelId;
   }
 
-  public void setNextMessage(@Valid @NotBlank String nextMessage) {
-    this.nextMessage = nextMessage;
-  }
-
-  public void setMessages(@Valid List<PreviousMessage> messages) {
-    this.messages = messages;
+  public void setNewMessage(@Valid @NotBlank String newMessage) {
+    this.newMessage = newMessage;
   }
 
   public void setMaxTokens(Integer maxTokens) {
@@ -161,6 +170,22 @@ public final class ConverseData implements RequestData {
 
   public void setTopP(Float topP) {
     this.topP = topP;
+  }
+
+  public List<Document> getNewDocuments() {
+    return newDocuments;
+  }
+
+  public void setNewDocuments(List<Document> newDocuments) {
+    this.newDocuments = newDocuments;
+  }
+
+  public List<BedrockMessage> getMessagesHistory() {
+    return this.messagesHistory;
+  }
+
+  public void setMessagesHistory(List<BedrockMessage> messagesHistory) {
+    this.messagesHistory = messagesHistory;
   }
 
   @Override

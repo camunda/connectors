@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.aws.bedrock.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -14,12 +15,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
+import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
+import software.amazon.awssdk.services.bedrockruntime.model.Message;
 
 class ConverseDataTest {
 
@@ -33,20 +34,26 @@ class ConverseDataTest {
     ConverseData converseData = new ConverseData();
     converseData.setModelId("random-model-id");
 
-    List<PreviousMessage> previousMessages = new ArrayList<>();
-    previousMessages.add(new PreviousMessage("Hey", ConversationRole.USER.name()));
-    previousMessages.add(new PreviousMessage("How are you?", ConversationRole.ASSISTANT.name()));
-    converseData.setMessages(previousMessages);
-    converseData.setNextMessage("I am good thanks, and you?");
+    List<BedrockMessage> previousMessages = new ArrayList<>();
+    previousMessages.add(
+        new BedrockMessage("assistant", List.of(new BedrockContent("Hey, How are you?"))));
+
+    converseData.setMessagesHistory(previousMessages);
+    converseData.setNewMessage("I am good thanks, and you?");
 
     when(bedrockRuntimeClient.converse(any(Consumer.class))).thenReturn(converseResponse);
-    when(converseResponse.output().message().content().getFirst().text())
-        .thenReturn("I am also good");
-    BedrockResponse bedrockResponse = converseData.execute(bedrockRuntimeClient, mapper);
+    Message response =
+        Message.builder()
+            .role("assistant")
+            .content(ContentBlock.fromText("I am also good"))
+            .build();
 
-    Assertions.assertInstanceOf(ConverseWrapperResponse.class, bedrockResponse);
-    Assertions.assertEquals(
-        "I am also good",
-        ((ConverseWrapperResponse) bedrockResponse).messageHistory().getLast().message());
+    when(converseResponse.output().message()).thenReturn(response);
+
+    List<BedrockMessage> result = converseData.execute(bedrockRuntimeClient, mapper);
+
+    assertThat(result.size()).isEqualTo(3);
+    assertThat(result.get(2).getContentList())
+        .isEqualTo(List.of(new BedrockContent("I am also good")));
   }
 }
