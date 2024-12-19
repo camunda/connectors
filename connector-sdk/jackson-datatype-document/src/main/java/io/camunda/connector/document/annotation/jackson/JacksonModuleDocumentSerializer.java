@@ -27,7 +27,7 @@ public class JacksonModuleDocumentSerializer extends SimpleModule {
 
   @Override
   public String getModuleName() {
-    return "JacksonModuleDocument";
+    return "JacksonModuleDocumentSerializer";
   }
 
   @Override
