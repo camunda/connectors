@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import java.io.IOException;
 import java.util.HashMap;
@@ -59,7 +59,7 @@ public class FeelEngineWrapper {
             .registerModule(DefaultScalaModule$.MODULE$)
             .registerModule(new JavaTimeModule())
             .registerModule(new Jdk8Module())
-            .registerModule(new JacksonModuleDocument(new DocumentFactoryImpl(null), null))
+            .registerModule(new JacksonModuleDocumentDeserializer(new DocumentFactoryImpl(null), null))
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS);

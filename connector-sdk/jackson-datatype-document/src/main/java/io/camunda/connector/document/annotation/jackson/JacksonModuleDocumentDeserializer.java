@@ -30,13 +30,13 @@ import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperationExecutor;
 import java.io.InputStream;
 
-public class JacksonModuleDocument extends SimpleModule {
+public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
   private final DocumentFactory documentFactory;
   private final DocumentOperationExecutor operationExecutor;
   private final DocumentModuleSettings settings;
 
-  public JacksonModuleDocument(
+  public JacksonModuleDocumentDeserializer(
       DocumentFactory documentFactory,
       DocumentOperationExecutor operationExecutor,
       DocumentModuleSettings settings) {
@@ -45,7 +45,7 @@ public class JacksonModuleDocument extends SimpleModule {
     this.settings = settings;
   }
 
-  public JacksonModuleDocument(
+  public JacksonModuleDocumentDeserializer(
       DocumentFactory documentFactory, DocumentOperationExecutor operationExecutor) {
     this(documentFactory, operationExecutor, DocumentModuleSettings.create());
   }
@@ -80,7 +80,6 @@ public class JacksonModuleDocument extends SimpleModule {
       addDeserializer(
           String.class, new StringDocumentDeserializer(operationExecutor, documentFactory));
     }
-    addSerializer(Document.class, new DocumentSerializer(operationExecutor));
     super.setupModule(context);
   }
 
