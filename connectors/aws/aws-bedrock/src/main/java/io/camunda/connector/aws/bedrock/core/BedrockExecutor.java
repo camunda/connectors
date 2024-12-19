@@ -9,7 +9,6 @@ package io.camunda.connector.aws.bedrock.core;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.bedrock.model.BedrockRequest;
-import io.camunda.connector.aws.bedrock.model.BedrockResponse;
 import io.camunda.connector.aws.bedrock.model.RequestData;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
@@ -33,7 +32,7 @@ public class BedrockExecutor {
         bedrockRequest.getData());
   }
 
-  public BedrockResponse execute() {
+  public Object execute() {
     return this.requestData.execute(bedrockRuntimeClient, ObjectMapperSupplier.getMapperInstance());
   }
 }

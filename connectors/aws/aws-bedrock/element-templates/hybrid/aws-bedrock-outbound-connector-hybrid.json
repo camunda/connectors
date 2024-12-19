@@ -1,10 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AWS BedRock Outbound Connector",
+  "name" : "Hybrid AWS Bedrock Outbound Connector",
   "id" : "io.camunda.connectors.aws.bedrock.v1-hybrid",
-  "description" : "Execute bedrock requests",
+  "description" : "Invoke models and converse using AWS Bedrock.",
+  "metadata" : {
+    "keywords" : [ "invoke model", "run inference", "invokemodel API", "converse API" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -192,6 +195,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.messagesHistory",
+    "label" : "Message History",
+    "description" : "Specify the message history, when previous context is needed",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "converse",
+    "binding" : {
+      "name" : "data.messagesHistory",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "action",
+      "equals" : "converse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "data.modelId1",
     "label" : "Model ID",
     "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
@@ -212,7 +232,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.nextMessage",
+    "id" : "data.newMessage",
     "label" : "New Message",
     "description" : "Specify the next message",
     "optional" : false,
@@ -222,24 +242,7 @@
     "feel" : "optional",
     "group" : "converse",
     "binding" : {
-      "name" : "data.nextMessage",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "action",
-      "equals" : "converse",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.messages",
-    "label" : "Message History",
-    "description" : "Specify the message history, when previous context is needed",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "converse",
-    "binding" : {
-      "name" : "data.messages",
+      "name" : "data.newMessage",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -288,6 +291,22 @@
     "group" : "converse",
     "binding" : {
       "name" : "data.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "action",
+      "equals" : "converse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.newDocuments",
+    "label" : "documents",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "converse",
+    "binding" : {
+      "name" : "data.newDocuments",
       "type" : "zeebe:input"
     },
     "condition" : {
