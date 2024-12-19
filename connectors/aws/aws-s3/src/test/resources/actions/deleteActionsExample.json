@@ -1,0 +1,15 @@
+[
+  {
+    "action":{
+      "bucket":"connector-aws-s3-test",
+      "key":"test"
+    }, "configuration":{
+    "region":"eu-central-1"
+  },
+    "authentication":{
+      "type":"credentials",
+      "accessKey":"test",
+      "secretKey":"test"
+    }, "actionDiscriminator":"deleteObject"
+  }
+]
