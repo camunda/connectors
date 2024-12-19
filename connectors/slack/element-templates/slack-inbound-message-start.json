@@ -3,6 +3,9 @@
   "name" : "Slack Webhook Message Start Event Connector",
   "id" : "io.camunda.connectors.inbound.Slack.MessageStartEvent.v1",
   "description" : "Receive events from Slack",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
   "version" : 5,
   "category" : {

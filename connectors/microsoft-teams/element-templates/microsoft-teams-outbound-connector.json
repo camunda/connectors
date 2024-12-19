@@ -3,6 +3,9 @@
   "name" : "Microsoft Teams Outbound Connector",
   "id" : "io.camunda.connectors.MSTeams.v1",
   "description" : "Create, update, and send a message to your Microsoft Teams",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
   "version" : 3,
   "category" : {
