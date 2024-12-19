@@ -3,6 +3,9 @@
   "name" : "RabbitMQ Outbound Connector",
   "id" : "io.camunda.connectors.RabbitMQ.v1",
   "description" : "Send message to RabbitMQ",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
   "version" : 5,
   "category" : {

@@ -3,6 +3,9 @@
   "name" : "Hybrid Webhook Start Event Connector",
   "id" : "io.camunda.connectors.webhook.WebhookConnector.v1-hybrid",
   "description" : "Configure webhook to receive callbacks",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
   "version" : 11,
   "category" : {

@@ -2,7 +2,10 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid Automation Anywhere Outbound Connector",
   "id" : "io.camunda.connectors.AutomationAnywhere-hybrid",
-  "description" : "Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",
+  "description" : "Manage work items in Automation Anywhere queues.",
+  "metadata" : {
+    "keywords" : [ "add work item to queue", "get work item from queue", "get work item result from queue by ID" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
   "version" : 2,
   "category" : {

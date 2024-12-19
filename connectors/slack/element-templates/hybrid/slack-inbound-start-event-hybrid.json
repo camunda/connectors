@@ -3,6 +3,9 @@
   "name" : "Hybrid Slack Webhook Start Event Connector",
   "id" : "io.camunda.connectors.inbound.Slack.StartEvent.v1-hybrid",
   "description" : "Receive events from Slack",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
   "version" : 5,
   "category" : {

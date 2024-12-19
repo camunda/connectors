@@ -2,7 +2,10 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid Amazon SNS Outbound connector",
   "id" : "io.camunda.connectors.AWSSNS.v1-hybrid",
-  "description" : "Send message to topic",
+  "description" : "Send messages to Amazon SNS.",
+  "metadata" : {
+    "keywords" : [ "send message", "publish message" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=outbound",
   "version" : 7,
   "category" : {

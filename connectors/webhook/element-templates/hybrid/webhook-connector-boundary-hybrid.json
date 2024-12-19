@@ -3,6 +3,9 @@
   "name" : "Hybrid Webhook Boundary Event Connector",
   "id" : "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1-hybrid",
   "description" : "Configure webhook to receive callbacks",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
   "version" : 11,
   "category" : {
