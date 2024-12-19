@@ -3,6 +3,9 @@
   "name" : "Kafka Message Start Event Connector",
   "id" : "io.camunda.connectors.inbound.KafkaMessageStart.v1",
   "description" : "Consume Kafka messages",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
   "version" : 6,
   "category" : {

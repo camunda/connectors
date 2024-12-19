@@ -3,6 +3,9 @@
   "name" : "Webhook Message Start Event Connector",
   "id" : "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1",
   "description" : "Configure webhook to receive callbacks",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
   "version" : 11,
   "category" : {

@@ -2,7 +2,10 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid SNS HTTPS Intermediate Catch Event Connector",
   "id" : "io.camunda.connectors.inbound.AWSSNS.IntermediateCatchEvent.v1-hybrid",
-  "description" : "Receive events from AWS SNS",
+  "description" : "Receive messages from AWS SNS via HTTPS.",
+  "metadata" : {
+    "keywords" : [ "receive event", "receive message" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
   "version" : 4,
   "category" : {

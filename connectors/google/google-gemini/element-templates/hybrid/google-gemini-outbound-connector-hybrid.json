@@ -3,6 +3,9 @@
   "name" : "Hybrid Google Gemini Outbound Connector",
   "id" : "io.camunda.connectors.GoogleGemini.v1-hybrid",
   "description" : " A large language model (LLM) created by Google AI. It's a multimodal model, meaning it can understand and work with different types of information like text, code, audio, images, and video",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-gemini/",
   "version" : 1,
   "category" : {

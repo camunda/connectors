@@ -59,7 +59,8 @@ public class FeelEngineWrapper {
             .registerModule(DefaultScalaModule$.MODULE$)
             .registerModule(new JavaTimeModule())
             .registerModule(new Jdk8Module())
-            .registerModule(new JacksonModuleDocumentDeserializer(new DocumentFactoryImpl(null), null))
+            .registerModule(
+                new JacksonModuleDocumentDeserializer(new DocumentFactoryImpl(null), null))
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS);

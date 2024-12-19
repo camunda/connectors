@@ -2,7 +2,10 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid Amazon SQS Outbound Connector",
   "id" : "io.camunda.connectors.AWSSQS.v1-hybrid",
-  "description" : "Send message to queue",
+  "description" : "Send messages to Amazon SQS.",
+  "metadata" : {
+    "keywords" : [ "send message", "publish message", "send message to queue", "publish message to queue" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=outbound",
   "version" : 10,
   "category" : {
