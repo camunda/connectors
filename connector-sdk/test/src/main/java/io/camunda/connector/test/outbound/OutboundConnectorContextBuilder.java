@@ -24,7 +24,7 @@ import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocument;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.document.Document;
@@ -47,7 +47,7 @@ public class OutboundConnectorContextBuilder {
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
   private ObjectMapper objectMapper =
       ConnectorsObjectMapperSupplier.getCopy(
-          this.documentFactory, JacksonModuleDocument.DocumentModuleSettings.create());
+          this.documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
 
   /**
    * @return a new instance of the {@link OutboundConnectorContextBuilder}
@@ -174,7 +174,7 @@ public class OutboundConnectorContextBuilder {
   public OutboundConnectorContextBuilder documentFactory(DocumentFactory documentFactory) {
     this.objectMapper =
         ConnectorsObjectMapperSupplier.getCopy(
-            documentFactory, JacksonModuleDocument.DocumentModuleSettings.create());
+            documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
     return this;
   }
 
