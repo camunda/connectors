@@ -52,7 +52,7 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
   @Override
   public String getModuleName() {
-    return "JacksonModuleDocument";
+    return "JacksonModuleDocumentDeserializer";
   }
 
   @Override

@@ -25,6 +25,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.operation.DocumentOperationExecutor;
@@ -43,6 +44,7 @@ public class DocumentSerializationTest {
   private final ObjectMapper objectMapper =
       new ObjectMapper()
           .registerModule(new JacksonModuleDocumentDeserializer(factory, operationExecutor))
+          .registerModule(new JacksonModuleDocumentSerializer())
           .registerModule(new Jdk8Module());
 
   @Test
