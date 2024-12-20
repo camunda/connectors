@@ -20,17 +20,14 @@ import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.camunda.connector.document.annotation.jackson.serializer.DocumentSerializer;
 import io.camunda.document.Document;
-import io.camunda.document.operation.DocumentOperationExecutor;
 
 public class JacksonModuleDocumentSerializer extends SimpleModule {
 
-
-  public JacksonModuleDocumentSerializer() {
-  }
+  public JacksonModuleDocumentSerializer() {}
 
   @Override
   public String getModuleName() {
-    return "JacksonModuleDocument";
+    return "JacksonModuleDocumentSerializer";
   }
 
   @Override
