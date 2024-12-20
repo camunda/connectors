@@ -3,10 +3,8 @@
   "name" : "Email Boundary Event Connector",
   "id" : "io.camunda.connectors.inbound.EmailBoundary.v1",
   "description" : "Consume emails",
-  "metadata": {
-    "keywords": [
-      "email received"
-    ]
+  "metadata" : {
+    "keywords" : [ "email received" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
   "version" : 1,

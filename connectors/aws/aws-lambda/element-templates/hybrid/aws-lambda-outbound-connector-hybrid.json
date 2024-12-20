@@ -2,7 +2,10 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid AWS Lambda Outbound Connector",
   "id" : "io.camunda.connectors.AWSLAMBDA.v2-hybrid",
-  "description" : "Invoke a function",
+  "description" : "Invoke AWS Lambda functions.",
+  "metadata" : {
+    "keywords" : [ "invoke function", "run function" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/",
   "version" : 5,
   "category" : {

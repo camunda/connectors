@@ -3,6 +3,9 @@
   "name" : "Hybrid RabbitMQ Boundary Event Connector",
   "id" : "io.camunda.connectors.inbound.RabbitMQ.Boundary.v1-hybrid",
   "description" : "Receive a message from RabbitMQ",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound",
   "version" : 7,
   "category" : {
