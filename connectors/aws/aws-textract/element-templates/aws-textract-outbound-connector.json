@@ -2,7 +2,10 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "AWS Textract Outbound Connector",
   "id" : "io.camunda.connectors.AWSTEXTRACT.v1",
-  "description" : "Automatically extract printed text, handwriting, layout elements, and data from any document",
+  "description" : "Extract text and data using AWS Textract.",
+  "metadata" : {
+    "keywords" : [ "extract text", "extract data", "extract text from image", "extract data from image", "ocr" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-textract/",
   "version" : 1,
   "category" : {

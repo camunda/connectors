@@ -2,7 +2,10 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid Google Drive Outbound Connector",
   "id" : "io.camunda.connectors.GoogleDrive.v1-hybrid",
-  "description" : "Create folder or a file from template",
+  "description" : "Manage Google Drive files and folders",
+  "metadata" : {
+    "keywords" : [ "create file", "create file from template", "create folder" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
   "version" : 3,
   "category" : {

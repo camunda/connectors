@@ -3,6 +3,9 @@
   "name" : "Amazon EventBridge Outbound Connector",
   "id" : "io.camunda.connectors.AWSEventBridge.v1",
   "description" : "Send events to AWS EventBridge",
+  "metadata" : {
+    "keywords" : [ "emit event", "publish event", "send event", "trigger event" ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound",
   "version" : 5,
   "category" : {
@@ -21,7 +24,7 @@
     "label" : "Queue properties"
   }, {
     "id" : "eventDetails",
-    "label" : "eventDetails"
+    "label" : "Event Details"
   }, {
     "id" : "eventPayload",
     "label" : "Event Payload"

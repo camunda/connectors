@@ -3,6 +3,9 @@
   "name" : "IDP extraction outbound Connector",
   "id" : "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
   "description" : "Execute IDP extraction requests",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/guides/",
   "version" : 1,
   "category" : {

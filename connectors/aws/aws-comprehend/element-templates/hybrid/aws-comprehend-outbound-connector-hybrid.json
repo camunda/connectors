@@ -3,6 +3,9 @@
   "name" : "Hybrid AWS Comprehend Outbound Connector",
   "id" : "io.camunda.connectors.AWSCOMPREHEND.v1-hybrid",
   "description" : "Execute Comprehend models",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-comprehend/",
   "version" : 1,
   "category" : {
