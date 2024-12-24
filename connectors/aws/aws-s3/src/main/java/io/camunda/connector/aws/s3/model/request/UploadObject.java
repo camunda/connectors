@@ -11,6 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.document.Document;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "uploadObject", label = "Upload object")
 public record UploadObject(
@@ -41,5 +42,6 @@ public record UploadObject(
             type = TemplateProperty.PropertyType.String,
             feel = Property.FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "action.document"))
+        @NotNull
         Document document)
     implements S3Action {}
