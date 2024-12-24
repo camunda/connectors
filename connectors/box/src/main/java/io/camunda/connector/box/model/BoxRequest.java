@@ -142,27 +142,45 @@ public record BoxRequest(
           Operation.Search {
     @TemplateSubType(id = "createFolder", label = "Create Folder")
     record CreateFolder(
-        @TemplateProperty(id = "createFolderName", group = "operation") @NotBlank String name,
-        @TemplateProperty(id = "createFolderParentPath", group = "operation") @NotBlank
+        @TemplateProperty(id = "createFolderName", group = "operation", label = "Folder name")
+            @NotBlank
+            String name,
+        @TemplateProperty(
+                id = "createFolderParentPath",
+                group = "operation",
+                label = "Parent path",
+                defaultValue = "/")
+            @NotBlank
             String folderPath)
         implements Operation {}
 
     @TemplateSubType(id = "deleteFolder", label = "Delete Folder")
     record DeleteFolder(
-        @TemplateProperty(id = "deleteFolderPath", group = "operation") @NotBlank String folderPath,
-        @TemplateProperty(defaultValue = "true", group = "operation") boolean recursive)
+        @TemplateProperty(id = "deleteFolderPath", group = "operation", label = "Folder path")
+            @NotBlank
+            String folderPath,
+        @TemplateProperty(
+                defaultValue = "true",
+                group = "operation",
+                label = "Recursive",
+                description = "Deletes all items contained by the folder")
+            boolean recursive)
         implements Operation {}
 
     @TemplateSubType(id = "uploadFile", label = "Upload File")
     record UploadFile(
-        @TemplateProperty(id = "uploadFileName", group = "operation") @NotBlank String name,
-        @TemplateProperty(id = "uploadFileFolderPath", group = "operation") @NotBlank
+        @TemplateProperty(id = "uploadFileName", group = "operation", label = "File name") @NotBlank
+            String name,
+        @TemplateProperty(id = "uploadFileFolderPath", group = "operation", label = "Folder path")
+            @NotBlank
             String folderPath,
         @TemplateProperty(
                 id = "uploadFileDocument",
                 group = "operation",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.required)
+                feel = Property.FeelMode.required,
+                label = "Document reference",
+                description = "The document reference that will be uploaded")
             @NotNull
             Document document)
         implements Operation {
@@ -174,7 +192,12 @@ public record BoxRequest(
 
     @TemplateSubType(id = "downloadFile", label = "Download File")
     record DownloadFile(
-        @TemplateProperty(id = "downloadFilePath", group = "operation") String filePath)
+        @TemplateProperty(
+                id = "downloadFilePath",
+                group = "operation",
+                label = "File path",
+                description = "Path to the file item to download")
+            String filePath)
         implements Operation {}
 
     @TemplateSubType(id = "moveFile", label = "Move File")

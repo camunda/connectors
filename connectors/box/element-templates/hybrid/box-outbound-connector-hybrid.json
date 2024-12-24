@@ -263,7 +263,7 @@
     } ]
   }, {
     "id" : "operation.createFolderName",
-    "label" : "Create folder name",
+    "label" : "Folder name",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -282,8 +282,9 @@
     "type" : "String"
   }, {
     "id" : "operation.createFolderParentPath",
-    "label" : "Create folder parent path",
+    "label" : "Parent path",
     "optional" : false,
+    "value" : "/",
     "constraints" : {
       "notEmpty" : true
     },
@@ -301,7 +302,7 @@
     "type" : "String"
   }, {
     "id" : "operation.deleteFolderPath",
-    "label" : "Delete folder path",
+    "label" : "Folder path",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -321,6 +322,7 @@
   }, {
     "id" : "operation.recursive",
     "label" : "Recursive",
+    "description" : "Deletes all items contained by the folder",
     "optional" : false,
     "value" : "true",
     "feel" : "optional",
@@ -337,7 +339,7 @@
     "type" : "String"
   }, {
     "id" : "operation.uploadFileName",
-    "label" : "Upload file name",
+    "label" : "File name",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -356,7 +358,7 @@
     "type" : "String"
   }, {
     "id" : "operation.uploadFileFolderPath",
-    "label" : "Upload file folder path",
+    "label" : "Folder path",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -375,7 +377,8 @@
     "type" : "String"
   }, {
     "id" : "operation.uploadFileDocument",
-    "label" : "Upload file document",
+    "label" : "Document reference",
+    "description" : "The document reference that will be uploaded",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -394,7 +397,8 @@
     "type" : "String"
   }, {
     "id" : "operation.downloadFilePath",
-    "label" : "Download file path",
+    "label" : "File path",
+    "description" : "Path to the file item to download",
     "optional" : false,
     "feel" : "optional",
     "group" : "operation",
