@@ -3,6 +3,9 @@
   "name" : "Box Outbound Connector",
   "id" : "io.camunda.connectors.box",
   "description" : "Interact with the Box Document API",
+  "metadata" : {
+    "keywords" : [ ]
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/box/",
   "version" : 1,
   "category" : {
@@ -238,19 +241,28 @@
       "name" : "Delete Folder",
       "value" : "deleteFolder"
     }, {
+      "name" : "Upload File",
+      "value" : "uploadFile"
+    }, {
       "name" : "Download File",
       "value" : "downloadFile"
     }, {
+      "name" : "Move File",
+      "value" : "moveFile"
+    }, {
+      "name" : "Delete File",
+      "value" : "deleteFile"
+    }, {
       "name" : "Search",
       "value" : "search"
-    }, {
-      "name" : "Upload File",
-      "value" : "uploadFile"
     } ]
   }, {
     "id" : "operation.createFolderName",
     "label" : "Create folder name",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
@@ -267,6 +279,9 @@
     "id" : "operation.createFolderParentPath",
     "label" : "Create folder parent path",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
@@ -283,6 +298,9 @@
     "id" : "operation.deleteFolderPath",
     "label" : "Delete folder path",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
@@ -313,6 +331,63 @@
     },
     "type" : "String"
   }, {
+    "id" : "operation.uploadFileName",
+    "label" : "Upload file name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.name",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "uploadFile",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.uploadFileFolderPath",
+    "label" : "Upload file folder path",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.folderPath",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "uploadFile",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.uploadFileDocument",
+    "label" : "Upload file document",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.document",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "uploadFile",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "operation.downloadFilePath",
     "label" : "Download file path",
     "optional" : false,
@@ -325,6 +400,63 @@
     "condition" : {
       "property" : "operation.type",
       "equals" : "downloadFile",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.moveFilePath",
+    "label" : "File path",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.filePath",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "moveFile",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.moveFileFolderPath",
+    "label" : "Target folder path",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.folderPath",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "moveFile",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.deleteFilePath",
+    "label" : "File path",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.filePath",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "deleteFile",
       "type" : "simple"
     },
     "type" : "String"
@@ -423,54 +555,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "operation.uploadFileName",
-    "label" : "Upload file name",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "operation.name",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "uploadFile",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "operation.uploadFileFolderPath",
-    "label" : "Upload file folder path",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "operation.folderPath",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "uploadFile",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "operation.uploadFileDocument",
-    "label" : "Upload file document",
-    "optional" : false,
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "operation.document",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "uploadFile",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "resultVariable",
     "label" : "Result variable",
     "description" : "Name of variable to store the response in",
@@ -519,7 +603,6 @@
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
     "value" : "PT0S",
-    "feel" : "optional",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",

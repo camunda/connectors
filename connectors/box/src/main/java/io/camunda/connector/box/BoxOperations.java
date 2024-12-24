@@ -16,6 +16,8 @@ import com.box.sdk.BoxCCGAPIConnection;
 import com.box.sdk.BoxConfig;
 import com.box.sdk.BoxDeveloperEditionAPIConnection;
 import com.box.sdk.BoxFile;
+import com.box.sdk.BoxFolder;
+import com.box.sdk.BoxItem;
 import com.box.sdk.BoxSearch;
 import com.box.sdk.BoxSearchParameters;
 import com.box.sdk.IAccessTokenCache;
@@ -37,6 +39,8 @@ public class BoxOperations {
       case BoxRequest.Operation.UploadFile uploadFile -> uploadFile(uploadFile, api);
       case BoxRequest.Operation.DownloadFile downloadFile ->
           downloadFile(downloadFile, api, context);
+      case BoxRequest.Operation.MoveFile moveFile -> moveFile(moveFile, api);
+      case BoxRequest.Operation.DeleteFile deleteFile -> deleteFile(deleteFile, api);
       case BoxRequest.Operation.CreateFolder createFolder -> createFolder(createFolder, api);
       case BoxRequest.Operation.DeleteFolder deleteFolder -> deleteFolder(deleteFolder, api);
       case BoxRequest.Operation.Search search -> search(search, api);
@@ -81,6 +85,20 @@ public class BoxOperations {
     var documentCreationRequest =
         DocumentCreationRequest.from(fileContent).fileName(file.getInfo().getName()).build();
     return context.createDocument(documentCreationRequest);
+  }
+
+  private static BoxResult deleteFile(
+      BoxRequest.Operation.DeleteFile deleteFile, BoxAPIConnection api) {
+    BoxFile file = getFile(deleteFile.filePath(), api);
+    file.delete();
+    return new BoxResult.Generic(item(file));
+  }
+
+  private static BoxResult moveFile(BoxRequest.Operation.MoveFile moveFile, BoxAPIConnection api) {
+    BoxFile file = getFile(moveFile.filePath(), api);
+    BoxFolder folder = getFolder(moveFile.folderPath(), api);
+    BoxItem.Info info = file.move(folder);
+    return new BoxResult.Generic(item(info));
   }
 
   private static BoxResult deleteFolder(

@@ -8,7 +8,6 @@ package io.camunda.connector.box.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -123,6 +122,8 @@ public record BoxRequest(
     @JsonSubTypes.Type(value = Operation.DeleteFolder.class, name = "deleteFolder"),
     @JsonSubTypes.Type(value = Operation.UploadFile.class, name = "uploadFile"),
     @JsonSubTypes.Type(value = Operation.DownloadFile.class, name = "downloadFile"),
+    @JsonSubTypes.Type(value = Operation.MoveFile.class, name = "moveFile"),
+    @JsonSubTypes.Type(value = Operation.DeleteFile.class, name = "deleteFile"),
     @JsonSubTypes.Type(value = Operation.Search.class, name = "search")
   })
   @TemplateDiscriminatorProperty(
@@ -134,31 +135,35 @@ public record BoxRequest(
   public sealed interface Operation
       permits Operation.CreateFolder,
           Operation.DeleteFolder,
+          Operation.UploadFile,
           Operation.DownloadFile,
-          Operation.Search,
-          Operation.UploadFile {
+          Operation.MoveFile,
+          Operation.DeleteFile,
+          Operation.Search {
     @TemplateSubType(id = "createFolder", label = "Create Folder")
     record CreateFolder(
-        @TemplateProperty(id = "createFolderName", group = "operation") String name,
-        @TemplateProperty(id = "createFolderParentPath", group = "operation") String folderPath)
+        @TemplateProperty(id = "createFolderName", group = "operation") @NotBlank String name,
+        @TemplateProperty(id = "createFolderParentPath", group = "operation") @NotBlank
+            String folderPath)
         implements Operation {}
 
     @TemplateSubType(id = "deleteFolder", label = "Delete Folder")
     record DeleteFolder(
-        @TemplateProperty(id = "deleteFolderPath", group = "operation") String folderPath,
+        @TemplateProperty(id = "deleteFolderPath", group = "operation") @NotBlank String folderPath,
         @TemplateProperty(defaultValue = "true", group = "operation") boolean recursive)
         implements Operation {}
 
     @TemplateSubType(id = "uploadFile", label = "Upload File")
     record UploadFile(
-        @TemplateProperty(id = "uploadFileName", group = "operation") String name,
-        @TemplateProperty(id = "uploadFileFolderPath", group = "operation") String folderPath,
+        @TemplateProperty(id = "uploadFileName", group = "operation") @NotBlank String name,
+        @TemplateProperty(id = "uploadFileFolderPath", group = "operation") @NotBlank
+            String folderPath,
         @TemplateProperty(
                 id = "uploadFileDocument",
                 group = "operation",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.required)
-            @FEEL
+            @NotNull
             Document document)
         implements Operation {
 
@@ -170,6 +175,24 @@ public record BoxRequest(
     @TemplateSubType(id = "downloadFile", label = "Download File")
     record DownloadFile(
         @TemplateProperty(id = "downloadFilePath", group = "operation") String filePath)
+        implements Operation {}
+
+    @TemplateSubType(id = "moveFile", label = "Move File")
+    record MoveFile(
+        @TemplateProperty(id = "moveFilePath", group = "operation", label = "File path") @NotBlank
+            String filePath,
+        @TemplateProperty(
+                id = "moveFileFolderPath",
+                group = "operation",
+                label = "Target folder path")
+            @NotBlank
+            String folderPath)
+        implements Operation {}
+
+    @TemplateSubType(id = "deleteFile", label = "Delete File")
+    record DeleteFile(
+        @TemplateProperty(id = "deleteFilePath", group = "operation", label = "File path") @NotBlank
+            String filePath)
         implements Operation {}
 
     @TemplateSubType(id = "search", label = "Search")
