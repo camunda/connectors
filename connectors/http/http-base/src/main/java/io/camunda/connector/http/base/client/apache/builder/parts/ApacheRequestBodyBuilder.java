@@ -20,12 +20,12 @@ import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.utils.DocumentHelper;
 import io.camunda.document.Document;
-import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;

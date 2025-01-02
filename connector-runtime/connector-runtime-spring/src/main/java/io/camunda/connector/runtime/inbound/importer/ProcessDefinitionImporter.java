@@ -16,12 +16,12 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
+import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.util.*;
 import java.util.stream.Collectors;

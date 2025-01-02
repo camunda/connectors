@@ -16,10 +16,10 @@
  */
 package io.camunda.connector.e2e;
 
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.response.DeploymentEvent;
+import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.process.test.api.CamundaAssert;
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.response.DeploymentEvent;
-import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.concurrent.TimeUnit;
@@ -28,23 +28,23 @@ import org.junit.jupiter.api.Assertions;
 
 public class ZeebeTest {
 
-  private final ZeebeClient zeebeClient;
+  private final CamundaClient camundaClient;
   private DeploymentEvent deploymentEvent;
   private ProcessInstanceEvent processInstanceEvent;
 
-  public ZeebeTest(ZeebeClient zeebeClient) {
-    this.zeebeClient = zeebeClient;
+  public ZeebeTest(CamundaClient camundaClient) {
+    this.camundaClient = camundaClient;
   }
 
-  public static ZeebeTest with(ZeebeClient zeebeClient) {
-    return new ZeebeTest(zeebeClient);
+  public static ZeebeTest with(CamundaClient camundaClient) {
+    return new ZeebeTest(camundaClient);
   }
 
   public ZeebeTest deploy(BpmnModelInstance bpmnModelInstance) {
     var process =
         bpmnModelInstance.getModelElementsByType(Process.class).stream().findFirst().get();
     this.deploymentEvent =
-        zeebeClient
+        camundaClient
             .newDeployResourceCommand()
             .addProcessModel(bpmnModelInstance, process.getId() + ".bpmn")
             .send()
@@ -56,7 +56,7 @@ public class ZeebeTest {
     Assertions.assertNotNull(deploymentEvent, "Process needs to be deployed first.");
     var bpmnProcessId = deploymentEvent.getProcesses().get(0).getBpmnProcessId();
     processInstanceEvent =
-        zeebeClient
+        camundaClient
             .newCreateInstanceCommand()
             .bpmnProcessId(bpmnProcessId)
             .latestVersion()

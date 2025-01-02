@@ -16,10 +16,10 @@
  */
 package io.camunda.connector.runtime.inbound.search;
 
-import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
-import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
-import io.camunda.zeebe.client.api.search.response.SearchQueryResponse;
-import io.camunda.zeebe.client.api.search.response.Variable;
+import io.camunda.client.api.search.response.FlowNodeInstance;
+import io.camunda.client.api.search.response.ProcessDefinition;
+import io.camunda.client.api.search.response.SearchQueryResponse;
+import io.camunda.client.api.search.response.Variable;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.util.List;
 

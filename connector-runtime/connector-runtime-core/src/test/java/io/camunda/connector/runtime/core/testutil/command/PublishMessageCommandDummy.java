@@ -16,20 +16,20 @@
  */
 package io.camunda.connector.runtime.core.testutil.command;
 
+import io.camunda.client.api.CamundaFuture;
+import io.camunda.client.api.command.FinalCommandStep;
+import io.camunda.client.api.command.PublishMessageCommandStep1;
+import io.camunda.client.api.response.PublishMessageResponse;
+import io.camunda.client.impl.CamundaClientFutureImpl;
 import io.camunda.connector.runtime.core.testutil.response.PublishMessageResponseDummy;
-import io.camunda.zeebe.client.api.ZeebeFuture;
-import io.camunda.zeebe.client.api.command.FinalCommandStep;
-import io.camunda.zeebe.client.api.command.PublishMessageCommandStep1;
-import io.camunda.zeebe.client.api.command.PublishMessageCommandStep1.PublishMessageCommandStep2;
-import io.camunda.zeebe.client.api.command.PublishMessageCommandStep1.PublishMessageCommandStep3;
-import io.camunda.zeebe.client.api.response.PublishMessageResponse;
-import io.camunda.zeebe.client.impl.ZeebeClientFutureImpl;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
 
 public class PublishMessageCommandDummy
-    implements PublishMessageCommandStep1, PublishMessageCommandStep2, PublishMessageCommandStep3 {
+    implements PublishMessageCommandStep1,
+        PublishMessageCommandStep1.PublishMessageCommandStep2,
+        PublishMessageCommandStep1.PublishMessageCommandStep3 {
 
   @Override
   public PublishMessageCommandStep2 messageName(String messageName) {
@@ -93,8 +93,8 @@ public class PublishMessageCommandDummy
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
-  public ZeebeFuture<PublishMessageResponse> send() {
-    ZeebeClientFutureImpl future = new ZeebeClientFutureImpl<>();
+  public CamundaFuture<PublishMessageResponse> send() {
+    CamundaClientFutureImpl future = new CamundaClientFutureImpl();
     future.complete(new PublishMessageResponseDummy());
     return future;
   }

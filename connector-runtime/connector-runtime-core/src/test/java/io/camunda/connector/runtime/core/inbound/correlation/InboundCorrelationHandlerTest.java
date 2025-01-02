@@ -25,6 +25,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
@@ -37,8 +39,6 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationP
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.testutil.command.CreateCommandDummy;
 import io.camunda.connector.runtime.core.testutil.command.PublishMessageCommandDummy;
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.grpc.Status;
 import java.time.Duration;
 import java.util.Collections;
@@ -62,7 +62,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class InboundCorrelationHandlerTest {
 
   private static final Duration DEFAULT_TTL = Duration.ofHours(2);
-  private ZeebeClient zeebeClient;
+  private CamundaClient camundaClient;
   private InboundCorrelationHandler handler;
 
   public static Stream<Arguments> durationsProvider() {
@@ -71,10 +71,10 @@ public class InboundCorrelationHandlerTest {
 
   @BeforeEach
   public void initMock() {
-    zeebeClient = mock(ZeebeClient.class);
+    camundaClient = mock(CamundaClient.class);
     handler =
         new InboundCorrelationHandler(
-            zeebeClient,
+            camundaClient,
             new FeelEngineWrapper(),
             new DefaultProcessElementContextFactory(
                 new NoOpSecretProvider(), (e) -> {}, new ObjectMapper()),
@@ -97,14 +97,14 @@ public class InboundCorrelationHandlerTest {
     when(element.element()).thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
     var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-    when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+    when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
     // when
     handler.correlate(List.of(element), Collections.emptyMap());
 
     // then
-    verify(zeebeClient).newPublishMessageCommand();
-    verifyNoMoreInteractions(zeebeClient);
+    verify(camundaClient).newPublishMessageCommand();
+    verifyNoMoreInteractions(camundaClient);
 
     verify(dummyCommand).messageName("test-boundary");
     verify(dummyCommand).correlationKey("test");
@@ -128,7 +128,7 @@ public class InboundCorrelationHandlerTest {
     when(element.correlationPoint()).thenReturn(point);
     when(element.element()).thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
-    when(zeebeClient.newPublishMessageCommand())
+    when(camundaClient.newPublishMessageCommand())
         .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
 
     // when & then
@@ -151,7 +151,7 @@ public class InboundCorrelationHandlerTest {
     when(messageElement.activationCondition()).thenReturn("=testKey=\"testValue2\"");
 
     var dummyCommand = Mockito.spy(new CreateCommandDummy());
-    when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+    when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
     // when
     var result =
@@ -159,8 +159,8 @@ public class InboundCorrelationHandlerTest {
             List.of(startEventElement, messageElement), Map.of("testKey", "testValue1"));
 
     // then
-    verify(zeebeClient).newCreateInstanceCommand();
-    verifyNoMoreInteractions(zeebeClient);
+    verify(camundaClient).newCreateInstanceCommand();
+    verifyNoMoreInteractions(camundaClient);
 
     verify(dummyCommand).bpmnProcessId("process1");
     verify(dummyCommand).version(0);
@@ -203,14 +203,14 @@ public class InboundCorrelationHandlerTest {
           .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
       var result = handler.correlate(List.of(element), Collections.emptyMap());
 
       // then
-      verify(zeebeClient).newCreateInstanceCommand();
-      verifyNoMoreInteractions(zeebeClient);
+      verify(camundaClient).newCreateInstanceCommand();
+      verifyNoMoreInteractions(camundaClient);
 
       verify(dummyCommand).bpmnProcessId(point.bpmnProcessId());
       verify(dummyCommand).version(point.version());
@@ -236,14 +236,14 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("correlationKey", correlationKeyValue);
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       // when
       var result = handler.correlate(List.of(element), variables);
 
       // then
-      verify(zeebeClient).newPublishMessageCommand();
-      verifyNoMoreInteractions(zeebeClient);
+      verify(camundaClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(camundaClient);
 
       verify(dummyCommand).messageName(point.messageName());
       verify(dummyCommand).correlationKey(correlationKeyValue);
@@ -267,14 +267,14 @@ public class InboundCorrelationHandlerTest {
           .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       // when
       var result = handler.correlate(List.of(element), Collections.emptyMap());
 
       // then
-      verify(zeebeClient).newPublishMessageCommand();
-      verifyNoMoreInteractions(zeebeClient);
+      verify(camundaClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(camundaClient);
 
       verify(dummyCommand).messageName("test");
       verify(dummyCommand).correlationKey("");
@@ -298,7 +298,7 @@ public class InboundCorrelationHandlerTest {
           .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       // when
       var result =
@@ -307,8 +307,8 @@ public class InboundCorrelationHandlerTest {
               Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
 
       // then
-      verify(zeebeClient).newPublishMessageCommand();
-      verifyNoMoreInteractions(zeebeClient);
+      verify(camundaClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(camundaClient);
 
       ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
       verify(dummyCommand).messageName("test");
@@ -338,7 +338,7 @@ public class InboundCorrelationHandlerTest {
           .thenThrow(
               new ClientStatusException(
                   Status.fromCode(Status.Code.ALREADY_EXISTS).withDescription("The desc"), null));
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       // when
       var result =
@@ -348,8 +348,8 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(dummyCommand).timeToLive(Optional.ofNullable(duration).orElse(DEFAULT_TTL));
-      verify(zeebeClient).newPublishMessageCommand();
-      verifyNoMoreInteractions(zeebeClient);
+      verify(camundaClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(camundaClient);
 
       assertThat(result).isInstanceOf(Success.MessageAlreadyCorrelated.class);
       var success = (Success.MessageAlreadyCorrelated) result;
@@ -371,7 +371,7 @@ public class InboundCorrelationHandlerTest {
 
       // when & then
       var result = assertDoesNotThrow(() -> handler.correlate(List.of(element), variables));
-      verifyNoMoreInteractions(zeebeClient);
+      verifyNoMoreInteractions(camundaClient);
       assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
       assertThat(((Failure.ActivationConditionNotMet) result).handlingStrategy())
           .isInstanceOf(CorrelationFailureHandlingStrategy.ForwardErrorToUpstream.class);
@@ -388,7 +388,7 @@ public class InboundCorrelationHandlerTest {
 
       // when & then
       var result = assertDoesNotThrow(() -> handler.correlate(List.of(element), variables));
-      verifyNoMoreInteractions(zeebeClient);
+      verifyNoMoreInteractions(camundaClient);
       assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
       assertThat(((Failure) result).handlingStrategy())
           .isInstanceOf(CorrelationFailureHandlingStrategy.Ignore.class);
@@ -398,7 +398,7 @@ public class InboundCorrelationHandlerTest {
     void activationConditionTrue_shouldCorrelate() {
       // given
       var dummyCommand = spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint("process1", 0, 0);
       var element = mock(InboundConnectorElement.class);
@@ -413,7 +413,7 @@ public class InboundCorrelationHandlerTest {
       var result = handler.correlate(List.of(element), variables);
 
       // then
-      verify(zeebeClient).newCreateInstanceCommand();
+      verify(camundaClient).newCreateInstanceCommand();
       assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
     }
 
@@ -421,7 +421,7 @@ public class InboundCorrelationHandlerTest {
     void activationConditionNull_shouldCorrelate() {
       // given
       var dummyCommand = spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint("process1", 0, 0);
       var element = mock(InboundConnectorElement.class);
@@ -436,7 +436,7 @@ public class InboundCorrelationHandlerTest {
       var result = handler.correlate(List.of(element), variables);
 
       // then
-      verify(zeebeClient).newCreateInstanceCommand();
+      verify(camundaClient).newCreateInstanceCommand();
       assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
     }
 
@@ -444,7 +444,7 @@ public class InboundCorrelationHandlerTest {
     void activationConditionBlank_shouldCorrelate() {
       // given
       var dummyCommand = spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint("process1", 0, 0);
       var element = mock(InboundConnectorElement.class);
@@ -459,7 +459,7 @@ public class InboundCorrelationHandlerTest {
       var result = handler.correlate(List.of(element), variables);
 
       // then
-      verify(zeebeClient).newCreateInstanceCommand();
+      verify(camundaClient).newCreateInstanceCommand();
       assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
     }
 
@@ -467,7 +467,7 @@ public class InboundCorrelationHandlerTest {
     void messageStartEvent_activationConditionTrue_shouldCorrelate() {
       // given
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", null, "", "1", 1, 0);
       var element = mock(InboundConnectorElement.class);
@@ -483,7 +483,7 @@ public class InboundCorrelationHandlerTest {
       var result = handler.correlate(List.of(element), variables);
 
       // then
-      verify(zeebeClient).newPublishMessageCommand();
+      verify(camundaClient).newPublishMessageCommand();
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
     }
 
@@ -491,7 +491,7 @@ public class InboundCorrelationHandlerTest {
     void messageStartEvent_activationConditionNull_shouldCorrelate() {
       // given
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", null, "", "1", 1, 0);
       var element = mock(InboundConnectorElement.class);
@@ -507,7 +507,7 @@ public class InboundCorrelationHandlerTest {
       var result = handler.correlate(List.of(element), variables);
 
       // then
-      verify(zeebeClient).newPublishMessageCommand();
+      verify(camundaClient).newPublishMessageCommand();
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
     }
 
@@ -515,7 +515,7 @@ public class InboundCorrelationHandlerTest {
     void messageStartEvent_activationConditionBlank_shouldCorrelate() {
       // given
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", null, "", "1", 1, 0);
       var element = mock(InboundConnectorElement.class);
@@ -531,7 +531,7 @@ public class InboundCorrelationHandlerTest {
       var result = handler.correlate(List.of(element), variables);
 
       // then
-      verify(zeebeClient).newPublishMessageCommand();
+      verify(camundaClient).newPublishMessageCommand();
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
     }
   }
@@ -552,7 +552,7 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       var dummyCommand = spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
       handler.correlate(List.of(element), variables);
@@ -577,7 +577,7 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       var dummyCommand = spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
       handler.correlate(List.of(element), variables);
@@ -603,7 +603,7 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
       var dummyCommand = spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
       handler.correlate(List.of(element), variables);
@@ -630,7 +630,7 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
       var dummyCommand = spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
       handler.correlate(List.of(element), variables);
@@ -664,7 +664,7 @@ public class InboundCorrelationHandlerTest {
           .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
       handler.correlate(List.of(element), Collections.singletonMap("correlationKey", "testkey"));
       // then
@@ -687,7 +687,7 @@ public class InboundCorrelationHandlerTest {
           .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       Map<String, Object> variables = Map.of("extractedId", "resolvedIdValue");
       // when
       handler.correlate(List.of(element), variables);
@@ -705,7 +705,7 @@ public class InboundCorrelationHandlerTest {
           .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
       handler.correlate(List.of(element), Collections.emptyMap(), "providedIdValue");
       // then

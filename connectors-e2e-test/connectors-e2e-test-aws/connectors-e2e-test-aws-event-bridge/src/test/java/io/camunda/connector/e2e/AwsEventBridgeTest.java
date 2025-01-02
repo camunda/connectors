@@ -130,7 +130,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .apply(elementTemplate, "aws-eventbridge-element-id", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();

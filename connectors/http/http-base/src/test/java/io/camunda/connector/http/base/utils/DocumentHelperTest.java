@@ -22,10 +22,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
-import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;

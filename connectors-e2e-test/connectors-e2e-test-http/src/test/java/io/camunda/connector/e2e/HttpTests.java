@@ -32,6 +32,8 @@ import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.http.base.authentication.OAuthConstants;
 import io.camunda.connector.http.base.model.auth.ApiKeyAuthentication;
@@ -45,8 +47,6 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.io.File;
@@ -81,7 +81,7 @@ public class HttpTests {
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
   @TempDir File tempDir;
-  @Autowired ZeebeClient zeebeClient;
+  @Autowired CamundaClient camundaClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 
@@ -133,7 +133,7 @@ public class HttpTests {
             .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -172,7 +172,7 @@ public class HttpTests {
             .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -213,7 +213,7 @@ public class HttpTests {
             .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -254,7 +254,7 @@ public class HttpTests {
             .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -303,7 +303,7 @@ public class HttpTests {
             .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -326,7 +326,7 @@ public class HttpTests {
     var model = replace("rest_connector.bpmn", replace("http://localhost/test", mockUrl));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
+        ZeebeTest.with(camundaClient).deploy(model).createInstance().waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
@@ -341,7 +341,8 @@ public class HttpTests {
     when(searchQueryClient.getProcessModel(1L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
     when(processDef.getProcessDefinitionKey()).thenReturn(1L);
-    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getTenantId())
+        .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
@@ -355,7 +356,7 @@ public class HttpTests {
                     processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
+        ZeebeTest.with(camundaClient).deploy(model).createInstance().waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("webhookExecuted", true);
   }
@@ -370,7 +371,8 @@ public class HttpTests {
     when(searchQueryClient.getProcessModel(1L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
     when(processDef.getProcessDefinitionKey()).thenReturn(1L);
-    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getTenantId())
+        .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
@@ -384,7 +386,7 @@ public class HttpTests {
                     processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
+        ZeebeTest.with(camundaClient).deploy(model).createInstance().waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("webhookExecuted", true);
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("queryParam", "test");
@@ -430,7 +432,7 @@ public class HttpTests {
             .apply(elementTemplate, "graphqlTask", updatedElementTemplateFile);
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -482,7 +484,7 @@ public class HttpTests {
             .apply(elementTemplate, "graphqlTask", updatedElementTemplateFile);
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -535,7 +537,7 @@ public class HttpTests {
             .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
