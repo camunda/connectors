@@ -118,8 +118,7 @@ public class CloudFunctionService {
 
   private HttpCommonRequest createCloudFunctionRequest(HttpCommonRequest request, String token)
       throws JsonProcessingException {
-    String contentAsJson =
-        ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(request);
+    String contentAsJson = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(request);
     HttpCommonRequest cloudFunctionRequest = new HttpCommonRequest();
     cloudFunctionRequest.setMethod(HttpMethod.POST);
     cloudFunctionRequest.setUrl(getProxyFunctionUrl());
