@@ -55,9 +55,10 @@ public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
           .but()
           .status(200)
           .body(
-              ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(
-                  new HttpCommonResult(
-                      value.status(), value.headers(), value.body(), value.reason(), null)))
+              ConnectorsObjectMapperSupplier.getCopy()
+                  .writeValueAsString(
+                      new HttpCommonResult(
+                          value.status(), value.headers(), value.body(), value.reason(), null)))
           .build();
     } catch (ConnectorException e) {
       try {
