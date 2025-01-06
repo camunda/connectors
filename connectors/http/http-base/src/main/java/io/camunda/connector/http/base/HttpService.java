@@ -58,10 +58,9 @@ public class HttpService {
         ExecutionEnvironment.from(
             cloudFunctionService.isCloudFunctionEnabled(),
             cloudFunctionService.isRunningInCloudFunction(),
-            request.isStoreResponse(),
             context);
 
-    if (executionEnvironment instanceof ExecutionEnvironment.SaaSCallerSideEnvironment) {
+    if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
       // Wrap the request in a proxy request
       request = cloudFunctionService.toCloudFunctionRequest(request);
     }
@@ -76,7 +75,7 @@ public class HttpService {
       return jsonResult;
     } catch (ConnectorException e) {
       LOGGER.debug("Failed to execute request {}", request, e);
-      if (executionEnvironment instanceof ExecutionEnvironment.SaaSCallerSideEnvironment) {
+      if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
         throw cloudFunctionService.parseCloudFunctionError(e);
       }
       throw e;

@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
-import java.util.UUID;
 
 public record DocumentCreationRequest(
     InputStream content,
@@ -46,7 +45,7 @@ public record DocumentCreationRequest(
     private String documentId;
     private String storeId;
     private String contentType;
-    private String fileName = UUID.randomUUID().toString();
+    private String fileName;
     private Duration timeToLive;
     private Map<String, Object> customProperties;
 

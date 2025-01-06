@@ -49,9 +49,14 @@ public class HttpCommonResultResponseHandler
 
   private final ExecutionEnvironment executionEnvironment;
 
-  public HttpCommonResultResponseHandler(@Nullable ExecutionEnvironment executionEnvironment) {
+  private final boolean isStoreResponseSelected;
+
+  public HttpCommonResultResponseHandler(
+      @Nullable ExecutionEnvironment executionEnvironment, boolean isStoreResponseSelected) {
     this.executionEnvironment = executionEnvironment;
-    this.fileResponseHandler = new FileResponseHandler(executionEnvironment);
+    this.isStoreResponseSelected = isStoreResponseSelected;
+    this.fileResponseHandler =
+        new FileResponseHandler(executionEnvironment, isStoreResponseSelected);
   }
 
   @Override
@@ -65,7 +70,7 @@ public class HttpCommonResultResponseHandler
                 Collectors.toMap(Header::getName, Header::getValue, (first, second) -> first));
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
-        if (executionEnvironment instanceof ExecutionEnvironment.SaaSCallerSideEnvironment) {
+        if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
           return getResultForCloudFunction(code, content, headers, reason);
         }
         var bytes = content.readAllBytes();
@@ -121,8 +126,8 @@ public class HttpCommonResultResponseHandler
    * @param content the response content
    */
   private Object extractBody(byte[] content) throws IOException {
-    if (executionEnvironment instanceof ExecutionEnvironment.SaaSCloudFunctionSideEnvironment
-        && executionEnvironment.storeResponseSelected()) {
+    if (executionEnvironment instanceof ExecutionEnvironment.SaaSCloudFunction
+        && isStoreResponseSelected) {
       return Base64.getEncoder().encodeToString(content);
     }
 

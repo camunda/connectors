@@ -106,7 +106,10 @@ public class CustomApacheHttpClient implements HttpClient {
               // (http.proxyHost, http.proxyPort, etc)
               .useSystemProperties()
               .build()
-              .execute(apacheRequest, new HttpCommonResultResponseHandler(executionEnvironment));
+              .execute(
+                  apacheRequest,
+                  new HttpCommonResultResponseHandler(
+                      executionEnvironment, request.isStoreResponse()));
       if (HttpStatusHelper.isError(result.status())) {
         throw ConnectorExceptionMapper.from(result);
       }

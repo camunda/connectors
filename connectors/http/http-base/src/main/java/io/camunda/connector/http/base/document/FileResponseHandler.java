@@ -33,9 +33,12 @@ public class FileResponseHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileResponseHandler.class);
   public static final String CONTENT_TYPE = "Content-Type";
   private final ExecutionEnvironment executionEnvironment;
+  private final boolean isStoreResponseSelected;
 
-  public FileResponseHandler(@Nullable ExecutionEnvironment executionEnvironment) {
+  public FileResponseHandler(
+      @Nullable ExecutionEnvironment executionEnvironment, boolean isStoreResponseSelected) {
     this.executionEnvironment = executionEnvironment;
+    this.isStoreResponseSelected = isStoreResponseSelected;
   }
 
   public Document handleCloudFunctionResult(HttpCommonResult result) {
@@ -78,6 +81,6 @@ public class FileResponseHandler {
   }
 
   private boolean storeResponseSelected() {
-    return executionEnvironment != null && executionEnvironment.storeResponseSelected();
+    return executionEnvironment != null && isStoreResponseSelected;
   }
 }

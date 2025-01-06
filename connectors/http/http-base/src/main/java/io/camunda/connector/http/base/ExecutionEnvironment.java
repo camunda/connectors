@@ -19,32 +19,25 @@ package io.camunda.connector.http.base;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
 public sealed interface ExecutionEnvironment
-    permits ExecutionEnvironment.SaaSCallerSideEnvironment,
-        ExecutionEnvironment.SaaSCloudFunctionSideEnvironment,
-        ExecutionEnvironment.SelfManagedEnvironment {
-
-  /**
-   * Indicates whether the option to store the response as a document was selected in the Element
-   * Template.
-   */
-  boolean storeResponseSelected();
+    permits ExecutionEnvironment.SaaSCluster,
+        ExecutionEnvironment.SaaSCloudFunction,
+        ExecutionEnvironment.SelfManaged {
 
   /**
    * The connector is executed in the context of the cloud function. This is where the
    * HttpCommonRequest will be executed.
    */
-  record SaaSCloudFunctionSideEnvironment(boolean storeResponseSelected)
-      implements ExecutionEnvironment {}
+  record SaaSCloudFunction() implements ExecutionEnvironment {}
 
   /**
    * The connector is executed in the context of the caller, i.e. in the C8 Cluster. When executed
    * here, the initial HttpCommonRequest will be serialized as JSON and passed to the Cloud
    * Function.
    */
-  record SaaSCallerSideEnvironment(boolean storeResponseSelected, OutboundConnectorContext context)
+  record SaaSCluster(OutboundConnectorContext context)
       implements ExecutionEnvironment, StoresDocument {}
 
-  record SelfManagedEnvironment(boolean storeResponseSelected, OutboundConnectorContext context)
+  record SelfManaged(OutboundConnectorContext context)
       implements ExecutionEnvironment, StoresDocument {}
 
   /**
@@ -52,21 +45,18 @@ public sealed interface ExecutionEnvironment
    *
    * @param cloudFunctionEnabled whether the connector is executed in the context of a cloud
    * @param isRunningInCloudFunction whether the connector is executed in the cloud function
-   * @param storeResponseSelected whether the response should be stored as a Document (this property
-   *     comes from the Element Template)
    */
   static ExecutionEnvironment from(
       boolean cloudFunctionEnabled,
       boolean isRunningInCloudFunction,
-      boolean storeResponseSelected,
       OutboundConnectorContext context) {
     if (cloudFunctionEnabled) {
-      return new SaaSCallerSideEnvironment(storeResponseSelected, context);
+      return new SaaSCluster(context);
     }
     if (isRunningInCloudFunction) {
-      return new SaaSCloudFunctionSideEnvironment(storeResponseSelected);
+      return new SaaSCloudFunction();
     }
-    return new SelfManagedEnvironment(storeResponseSelected, context);
+    return new SelfManaged(context);
   }
 
   interface StoresDocument {
