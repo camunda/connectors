@@ -18,6 +18,7 @@
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-client-java</artifactId>
+      <version>${version.camunda}</version>
     </dependency>
   </dependencies>
 

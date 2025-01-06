@@ -71,8 +71,7 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.7.0-alpha3-rc1</version.zeebe>
-    <version.camunda-client>8.7.0-alpha3-rc1</version.camunda-client>
+    <version.camunda>8.7.0-alpha3-rc3</version.camunda>
     <version.feel-engine>1.19.0</version.feel-engine>
 
     <!-- Third party dependencies -->
@@ -284,18 +283,18 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>spring-boot-starter-camunda-sdk</artifactId>
-        <version>${version.zeebe}</version>
+        <version>${version.camunda}</version>
       </dependency>
 
       <dependency>
         <groupId>io.camunda</groupId>
-        <artifactId>camunda-client-java</artifactId>
-        <version>${version.camunda-client}</version>
+        <artifactId>camunda-java</artifactId>
+        <version>${version.camunda}</version>
       </dependency>
       <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>zeebe-bpmn-model</artifactId>
-        <version>${version.zeebe}</version>
+        <version>${version.camunda}</version>
       </dependency>
 
       <dependency>
@@ -523,7 +522,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>camunda-process-test-spring</artifactId>
-        <version>${version.zeebe}</version>
+        <version>${version.camunda}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
