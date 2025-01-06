@@ -30,6 +30,7 @@ public class TemplateGenerationContextUtil {
   private static final Set<BpmnType> OUTBOUND_SUPPORTED_ELEMENT_TYPES =
       Set.of(
           BpmnType.SERVICE_TASK,
+          BpmnType.SEND_TASK,
           BpmnType.INTERMEDIATE_THROW_EVENT,
           BpmnType.SCRIPT_TASK,
           BpmnType.MESSAGE_END_EVENT);
