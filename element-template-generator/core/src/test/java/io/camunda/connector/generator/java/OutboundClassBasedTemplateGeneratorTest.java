@@ -223,6 +223,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           generator.generate(MyConnectorFunction.WithMultipleElementTypes.class, config);
       boolean hasServiceTask = false,
           hasScriptTask = false,
+          hasSendTask = false,
           hasMessageThrowEvent = false,
           hasMessageEndEvent = false;
       for (var template : templates) {
@@ -230,6 +231,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           hasServiceTask = true;
         } else if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SCRIPT_TASK))) {
           hasScriptTask = true;
+        } else if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SEND_TASK))) {
+          hasSendTask = true;
         } else if (template
             .elementType()
             .equals(ElementTypeWrapper.from(BpmnType.INTERMEDIATE_THROW_EVENT))) {
@@ -240,9 +243,10 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           hasMessageEndEvent = true;
         }
       }
-      assertThat(templates.size()).isEqualTo(4);
+      assertThat(templates.size()).isEqualTo(5);
       assertTrue(hasServiceTask);
       assertTrue(hasScriptTask);
+      assertTrue(hasSendTask);
       assertTrue(hasMessageThrowEvent);
       assertTrue(hasMessageEndEvent);
     }

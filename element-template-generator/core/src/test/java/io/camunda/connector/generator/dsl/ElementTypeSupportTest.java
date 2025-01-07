@@ -73,6 +73,21 @@ public class ElementTypeSupportTest extends BaseTest {
   }
 
   @Test
+  void sendTask() {
+    ElementTemplate template =
+        ElementTemplateBuilder.createOutbound()
+            .id("id")
+            .name("name")
+            .type("type", false)
+            .appliesTo(BpmnType.TASK)
+            .elementType(BpmnType.SEND_TASK)
+            .build();
+    assertThat(template.appliesTo()).containsExactly(BpmnType.TASK.getName());
+    assertThat(template.elementType().value()).isEqualTo(BpmnType.SEND_TASK.getName());
+    assertThat(template.elementType().eventDefinition()).isNull();
+  }
+
+  @Test
   void messageEndEvent() {
     ElementTemplate template =
         ElementTemplateBuilder.createOutbound()
