@@ -28,7 +28,7 @@ public class ConnectorExceptionMapper {
   public static ConnectorException from(HttpCommonResult result) {
     String status = String.valueOf(result.status());
     String reason = Optional.ofNullable(result.reason()).orElse("[no reason]");
-    Map<String, Object> headers = result.headers();
+    Map<String, String> headers = result.headers();
     Object body = result.body();
     Map<String, Object> response = new HashMap<>();
     response.put("headers", headers);
