@@ -118,6 +118,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       elementTypes = {
         @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SERVICE_TASK),
         @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SCRIPT_TASK),
+        @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SEND_TASK),
         @ConnectorElementType(
             appliesTo = BpmnType.END_EVENT,
             elementType = BpmnType.MESSAGE_END_EVENT),

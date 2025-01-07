@@ -24,6 +24,7 @@ public enum BpmnType {
   SERVICE_TASK("bpmn:ServiceTask", false, "ServiceTask"),
   RECEIVE_TASK("bpmn:ReceiveTask", true, "ReceiveTask"),
   SCRIPT_TASK("bpmn:ScriptTask", false, "ScriptTask"),
+  SEND_TASK("bpmn:SendTask", false, "SendTask"),
   START_EVENT("bpmn:StartEvent", false, "StartEvent"),
   INTERMEDIATE_CATCH_EVENT("bpmn:IntermediateCatchEvent", true, "IntermediateCatchEvent"),
   INTERMEDIATE_THROW_EVENT("bpmn:IntermediateThrowEvent", true, "IntermediateThrowEvent"),
