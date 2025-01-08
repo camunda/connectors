@@ -6,10 +6,19 @@
  */
 package io.camunda.connector.idp.extraction.util;
 
+import static org.apache.hc.core5.http.ContentType.APPLICATION_PDF;
+
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.TextExtractionEngineType;
+import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.store.InMemoryDocumentStore;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.List;
 
 public class ExtractionTestUtils {
@@ -21,7 +30,12 @@ public class ExtractionTestUtils {
       {
         "input": {
           "extractionEngineType": "AWS_TEXTRACT",
-          "documentUrl": "https://some-url-containing-your-document/documemt.pdf",
+          "document": {
+            "camunda.document.type": "camunda",
+            "storeId": "test",
+            "documentId": "test",
+            "metadata": {}
+          },
           "s3BucketName": "test-aws-s3-bucket-name",
           "converseData": {
             "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0"
@@ -53,10 +67,25 @@ public class ExtractionTestUtils {
   public static final ExtractionRequestData TEXTRACT_EXTRACTION_REQUEST_DATA =
       new ExtractionRequestData(
           TextExtractionEngineType.AWS_TEXTRACT,
-          "https://some-url-containing-your-document/documemt.pdf",
+          loadTestFile(),
           "test-aws-s3-bucket-name",
           List.of(
               new TaxonomyItem("sum", "the total amount that was paid for this invoice"),
               new TaxonomyItem("supplier", "who provided the goods or services")),
           new ConverseData("anthropic.claude-3-5-sonnet-20240620-v1:0", 512, 0.5f, 0.9f));
+
+  private static Document loadTestFile() {
+    DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+    try {
+      FileInputStream fileInputStream =
+          new FileInputStream("src/test/resources/sample-invoice.pdf");
+      return documentFactory.create(
+          DocumentCreationRequest.from(fileInputStream)
+              .contentType(APPLICATION_PDF.getMimeType())
+              .fileName("sample-invoice")
+              .build());
+    } catch (FileNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

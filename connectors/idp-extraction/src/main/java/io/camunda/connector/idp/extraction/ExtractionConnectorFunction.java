@@ -18,10 +18,7 @@ import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
-import java.net.URI;
-import java.net.URL;
 import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
@@ -97,16 +94,14 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
   private String extractTextUsingAwsTextract(ExtractionRequest extractionRequest) throws Exception {
     return pollingTextractCaller.call(
-        extractionRequest.input().documentUrl(),
+        extractionRequest.input().document(),
         extractionRequest.input().s3BucketName(),
         textractClientSupplier.getTextractClient(extractionRequest),
         s3ClientSupplier.getAsyncS3Client(extractionRequest));
   }
 
   private String extractTextUsingApachePdf(ExtractionRequest extractionRequest) throws Exception {
-    String documentUrl = extractionRequest.input().documentUrl();
-    URL url = URI.create(documentUrl).toURL();
-    PDDocument document = Loader.loadPDF(IOUtils.toByteArray(url.openStream()));
+    PDDocument document = Loader.loadPDF(extractionRequest.input().document().asByteArray());
     PDFTextStripper pdfStripper = new PDFTextStripper();
     return pdfStripper.getText(document);
   }

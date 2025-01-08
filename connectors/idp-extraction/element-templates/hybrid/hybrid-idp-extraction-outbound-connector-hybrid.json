@@ -57,17 +57,17 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.documentUrl",
-    "label" : "Document URL",
-    "description" : "Specify the URL where the document is hosted",
+    "id" : "input.document",
+    "label" : "Document",
+    "description" : "Specify the document",
     "optional" : false,
-    "value" : "= input.documentUrl",
+    "value" : "= input.document",
     "constraints" : {
       "notEmpty" : true
     },
     "group" : "input",
     "binding" : {
-      "name" : "input.documentUrl",
+      "name" : "input.document",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
