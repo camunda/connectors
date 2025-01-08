@@ -6,11 +6,9 @@
  */
 package io.camunda.connector.idp.extraction.utils;
 
+import io.camunda.document.Document;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -28,22 +26,16 @@ import software.amazon.awssdk.services.textract.model.S3Object;
 public class AwsS3Util {
   private static final Logger LOGGER = LoggerFactory.getLogger(AwsS3Util.class);
 
-  private static String uploadNewFileFromUrl(
-      final String documentUrl, final String bucketName, final S3AsyncClient s3AsyncClient)
+  private static String uploadNewFileFromDocument(
+      final Document document, final String bucketName, final S3AsyncClient s3AsyncClient)
       throws IOException {
     String documentKey = UUID.randomUUID().toString();
 
     LOGGER.debug("Starting document upload to AWS S3 with key {}", documentKey);
 
-    URL url = URI.create(documentUrl).toURL();
-    URLConnection urlConnection = url.openConnection();
-    long contentLength = urlConnection.getContentLength();
+    long contentLength = document.asByteArray().length;
 
-    if (contentLength == -1) {
-      throw new IOException("Unable to determine file size for URL: " + documentUrl);
-    }
-
-    try (InputStream inputStream = urlConnection.getInputStream()) {
+    try (InputStream inputStream = document.asInputStream()) {
       PutObjectRequest putObjectRequest =
           PutObjectRequest.builder().bucket(bucketName).key(documentKey).build();
 
@@ -82,12 +74,12 @@ public class AwsS3Util {
     response.thenApply(r -> null);
   }
 
-  public static S3Object buildS3ObjectFromUrl(
-      final String documentUrl, final String bucketName, final S3AsyncClient s3AsyncClient)
+  public static S3Object buildS3ObjectFromDocument(
+      final Document document, final String bucketName, final S3AsyncClient s3AsyncClient)
       throws IOException {
     return S3Object.builder()
         .bucket(bucketName)
-        .name(uploadNewFileFromUrl(documentUrl, bucketName, s3AsyncClient))
+        .name(uploadNewFileFromDocument(document, bucketName, s3AsyncClient))
         .build();
   }
 

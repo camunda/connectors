@@ -11,6 +11,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.model.TextractTask;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
+import io.camunda.document.Document;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -31,13 +32,13 @@ public class PollingTextractCaller {
   private static final Logger LOGGER = LoggerFactory.getLogger(PollingTextractCaller.class);
 
   public String call(
-      String documentUrl,
+      Document document,
       String bucketName,
       TextractClient textractClient,
       S3AsyncClient s3AsyncClient)
       throws Exception {
 
-    S3Object s3Object = AwsS3Util.buildS3ObjectFromUrl(documentUrl, bucketName, s3AsyncClient);
+    S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
 
     LOGGER.debug("Starting polling task for document analysis with document: {}", s3Object.name());
 
