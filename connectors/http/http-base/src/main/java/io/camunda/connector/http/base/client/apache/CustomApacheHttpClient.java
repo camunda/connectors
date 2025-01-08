@@ -17,12 +17,14 @@
 package io.camunda.connector.http.base.client.apache;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.base.ExecutionEnvironment;
 import io.camunda.connector.http.base.client.HttpClient;
 import io.camunda.connector.http.base.client.HttpStatusHelper;
 import io.camunda.connector.http.base.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
+import javax.annotation.Nullable;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -89,12 +91,12 @@ public class CustomApacheHttpClient implements HttpClient {
    * org.apache.hc.core5.http.ClassicHttpRequest} and executes it.
    *
    * @param request the request to execute
-   * @param remoteExecutionEnabled whether to use the internal Google Function to execute the
-   *     request remotely
+   * @param executionEnvironment the {@link ExecutionEnvironment} we are in
    * @return the {@link HttpCommonResult}
    */
   @Override
-  public HttpCommonResult execute(HttpCommonRequest request, boolean remoteExecutionEnabled) {
+  public HttpCommonResult execute(
+      HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
     var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
     try {
       var result =
@@ -104,7 +106,10 @@ public class CustomApacheHttpClient implements HttpClient {
               // (http.proxyHost, http.proxyPort, etc)
               .useSystemProperties()
               .build()
-              .execute(apacheRequest, new HttpCommonResultResponseHandler(remoteExecutionEnabled));
+              .execute(
+                  apacheRequest,
+                  new HttpCommonResultResponseHandler(
+                      executionEnvironment, request.isStoreResponse()));
       if (HttpStatusHelper.isError(result.status())) {
         throw ConnectorExceptionMapper.from(result);
       }

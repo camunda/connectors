@@ -124,6 +124,8 @@ limitations under the License.</license.inlineheader>
     <version.azure-identity>1.14.2</version.azure-identity>
 
     <version.bouncycastle>1.79</version.bouncycastle>
+    <version.box-sdk>4.12.0</version.box-sdk>
+
     <version.sendGrid>4.10.3</version.sendGrid>
 
     <version.slack>1.44.2</version.slack>
@@ -507,6 +509,12 @@ limitations under the License.</license.inlineheader>
         <groupId>dev.failsafe</groupId>
         <artifactId>failsafe</artifactId>
         <version>${version.failsafe}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.box</groupId>
+        <artifactId>box-java-sdk</artifactId>
+        <version>${version.box-sdk}</version>
       </dependency>
 
       <!-- test dependencies -->

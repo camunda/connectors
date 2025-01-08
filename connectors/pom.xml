@@ -20,6 +20,7 @@
   <modules>
     <module>automation-anywhere</module>
     <module>aws</module>
+    <module>box</module>
     <module>email</module>
     <module>google</module>
     <module>http</module>

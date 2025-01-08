@@ -16,6 +16,9 @@
  */
 package io.camunda.connector.http.base.cloudfunction;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformerV2;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
@@ -24,16 +27,21 @@ import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.http.base.DocumentOutboundContext;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 
 public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
 
   public static final String CLOUD_FUNCTION_TRANSFORMER = "cloud-function-transformer";
-  private final HttpService httpService = new HttpService();
+  private final CloudFunctionService cloudFunctionService = mock(CloudFunctionService.class);
+  private final HttpService httpService = new HttpService(cloudFunctionService);
 
-  public CloudFunctionResponseTransformer() {}
+  public CloudFunctionResponseTransformer() {
+    when(cloudFunctionService.isRunningInCloudFunction()).thenReturn(true);
+  }
 
   @Override
   public Response transform(Response response, ServeEvent serveEvent) {
@@ -41,12 +49,16 @@ public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
     try {
       HttpCommonRequest request =
           ConnectorsObjectMapperSupplier.getCopy().readValue(body, HttpCommonRequest.class);
+      HttpCommonResult value =
+          httpService.executeConnectorRequest(request, new DocumentOutboundContext());
       return Response.Builder.like(response)
           .but()
           .status(200)
           .body(
               ConnectorsObjectMapperSupplier.getCopy()
-                  .writeValueAsString(httpService.executeConnectorRequest(request)))
+                  .writeValueAsString(
+                      new HttpCommonResult(
+                          value.status(), value.headers(), value.body(), value.reason(), null)))
           .build();
     } catch (ConnectorException e) {
       try {

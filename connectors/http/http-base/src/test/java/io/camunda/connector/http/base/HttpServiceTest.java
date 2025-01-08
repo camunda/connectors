@@ -16,17 +16,7 @@
  */
 package io.camunda.connector.http.base;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
-import static com.github.tomakehurst.wiremock.client.WireMock.ok;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.unauthorized;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -45,8 +35,12 @@ import io.camunda.connector.http.base.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -67,6 +61,7 @@ public class HttpServiceTest {
   private final HttpService httpServiceWithoutCloudFunction =
       new HttpService(disabledCloudFunctionService);
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+  private final InMemoryDocumentStore store = InMemoryDocumentStore.INSTANCE;
 
   @BeforeAll
   public static void setUp() {
@@ -88,6 +83,47 @@ public class HttpServiceTest {
                 aResponse()
                     .withTransformers(
                         CloudFunctionResponseTransformer.CLOUD_FUNCTION_TRANSFORMER)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void shouldReturn200WithFileBody_whenGetFileRequest(
+      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    stubCloudFunction(wmRuntimeInfo);
+    HttpService httpService =
+        cloudFunctionEnabled ? HttpServiceTest.this.httpService : httpServiceWithoutCloudFunction;
+    stubFor(
+        get("/download")
+            .willReturn(
+                ok().withHeader(HttpHeaders.CONTENT_TYPE, ContentType.IMAGE_JPEG.getMimeType())
+                    .withBodyFile("fileName.jpg")));
+
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.GET);
+    request.setStoreResponse(true);
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/download");
+
+    // when
+    HttpCommonResult result =
+        httpService.executeConnectorRequest(request, new DocumentOutboundContext());
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(200);
+    assertThat(result.body()).isNull();
+    assertThat(result.document()).isNotNull();
+    var documentId =
+        ((DocumentReference.CamundaDocumentReference) (result.document().reference())).documentId();
+    var content = store.getDocuments().get(documentId);
+    assertThat(content)
+        .isEqualTo(getClass().getResourceAsStream("/__files/fileName.jpg").readAllBytes());
+    verify(getRequestedFor(urlEqualTo("/download")));
+    if (cloudFunctionEnabled) {
+      verify(
+          postRequestedFor(urlEqualTo("/proxy"))
+              .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
+    }
   }
 
   @ParameterizedTest

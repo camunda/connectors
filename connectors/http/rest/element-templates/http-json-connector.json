@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 8,
+  "version" : 9,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -390,6 +390,18 @@
       "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "storeResponse",
+    "label" : "Store response",
+    "description" : "Store the response as a document in the document store",
+    "optional" : false,
+    "value" : false,
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "storeResponse",
+      "type" : "zeebe:input"
+    },
+    "type" : "Boolean"
   }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
