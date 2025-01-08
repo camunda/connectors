@@ -45,7 +45,8 @@ class PollingTextractCallerTest {
     awsS3UtilMockedStatic
         .when(
             () ->
-                AwsS3Util.buildS3ObjectFromDocument(any(), any(String.class), any(S3AsyncClient.class)))
+                AwsS3Util.buildS3ObjectFromDocument(
+                    any(), any(String.class), any(S3AsyncClient.class)))
         .thenReturn(s3Object);
     awsS3UtilMockedStatic
         .when(
