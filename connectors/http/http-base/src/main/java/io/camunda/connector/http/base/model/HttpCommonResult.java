@@ -16,13 +16,13 @@
  */
 package io.camunda.connector.http.base.model;
 
+import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.generator.java.annotation.DataExample;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.InMemoryDocumentStore;
-import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.time.OffsetDateTime;
 import java.util.Map;
 
@@ -68,6 +68,16 @@ public record HttpCommonResult(
               @Override
               public String getFileName() {
                 return "theFileName.pdf";
+              }
+
+              @Override
+              public String getProcessDefinitionId() {
+                return "";
+              }
+
+              @Override
+              public Long getProcessInstanceKey() {
+                return 0L;
               }
 
               @Override

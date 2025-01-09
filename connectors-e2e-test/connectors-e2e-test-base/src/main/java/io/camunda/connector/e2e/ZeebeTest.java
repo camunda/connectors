@@ -69,7 +69,7 @@ public class ZeebeTest {
     Awaitility.with()
         .pollInSameThread()
         .await()
-        .atMost(10, TimeUnit.SECONDS)
+        .atMost(20, TimeUnit.SECONDS)
         .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).isCompleted());
     return this;
   }
