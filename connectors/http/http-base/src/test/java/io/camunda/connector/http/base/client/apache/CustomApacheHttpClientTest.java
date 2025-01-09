@@ -124,14 +124,13 @@ public class CustomApacheHttpClientTest {
                   .build());
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
+      var bodyMap = new HashMap<>();
+      bodyMap.put("document", new CamundaDocument(ref.metadata(), ref, store));
+      bodyMap.put("otherField", "otherValue");
+      bodyMap.put("nullField", null);
       request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      request.setBody(
-          Map.of(
-              "otherField",
-              "otherValue",
-              "document",
-              new CamundaDocument(ref.metadata(), ref, store)));
+      request.setBody(bodyMap);
       HttpCommonResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
@@ -506,7 +505,10 @@ public class CustomApacheHttpClientTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(Map.of("header", "headerValue"));
-      request.setBody(Map.of("key1", "value1"));
+      var bodyMap = new HashMap<>();
+      bodyMap.put("key1", "value1");
+      bodyMap.put("nullKey", null);
+      request.setBody(bodyMap);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       HttpCommonResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
@@ -516,7 +518,9 @@ public class CustomApacheHttpClientTest {
           postRequestedFor(urlEqualTo("/path"))
               .withHeader("Content-Type", equalTo("application/json"))
               .withHeader("header", equalTo("headerValue"))
-              .withRequestBody(equalTo(StringEscapeUtils.unescapeJson("{\"key1\":\"value1\"}"))));
+              .withRequestBody(
+                  equalTo(
+                      StringEscapeUtils.unescapeJson("{\"key1\":\"value1\",\"nullKey\":null}"))));
     }
 
     @Test
