@@ -19,6 +19,7 @@ package io.camunda.connector.http.base.utils;
 import io.camunda.document.CamundaDocument;
 import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -35,16 +36,20 @@ public class DocumentHelper {
     return switch (input) {
       case Map<?, ?> map ->
           map.entrySet().stream()
+              .filter(e -> e.getValue() != null)
               .map(
                   (Map.Entry<?, ?> e) ->
                       new AbstractMap.SimpleEntry<>(
                           e.getKey(), parseDocumentsInBody(e.getValue(), transformer)))
               .collect(
                   Collectors.toMap(
-                      AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
-
+                      AbstractMap.SimpleEntry::getKey,
+                      AbstractMap.SimpleEntry::getValue,
+                      (a, b) -> b,
+                      () -> new HashMap<>(map)));
       case Collection list -> list.stream().map(o -> parseDocumentsInBody(o, transformer)).toList();
       case CamundaDocument doc -> transformer.apply(doc);
+      case null -> null;
       default -> input;
     };
   }
