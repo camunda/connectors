@@ -16,14 +16,14 @@
  */
 package io.camunda.connector.http.base;
 
+import io.camunda.client.impl.response.DocumentMetadataImpl;
+import io.camunda.client.protocol.rest.DocumentMetadata;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
-import io.camunda.zeebe.client.impl.response.DocumentMetadataImpl;
-import io.camunda.zeebe.client.protocol.rest.DocumentMetadata;
 
 public class DocumentOutboundContext implements OutboundConnectorContext {
 

@@ -22,12 +22,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.api.command.CompleteJobCommandStep1;
+import io.camunda.client.api.command.FailJobCommandStep1;
+import io.camunda.client.api.command.ThrowErrorCommandStep1;
+import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.runtime.core.Keywords;
-import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
-import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
-import io.camunda.zeebe.client.api.command.ThrowErrorCommandStep1;
-import io.camunda.zeebe.client.api.response.ActivatedJob;
-import io.camunda.zeebe.client.api.worker.JobClient;
 import java.util.HashMap;
 import java.util.Map;
 import org.mockito.ArgumentCaptor;

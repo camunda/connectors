@@ -16,9 +16,9 @@
  */
 package io.camunda.connector.runtime;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImporter;
 import io.camunda.connector.runtime.metrics.ContextAwareLogbackMetrics;
-import io.camunda.zeebe.client.ZeebeClient;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.metrics.LogbackMetricsAutoConfiguration;
@@ -38,8 +38,8 @@ public class ConnectorsObservabilityAutoConfiguration {
   }
 
   @Bean(name = "zeebeClientHealthIndicator") // overrides the health indicator from Spring Zeebe
-  public ZeebeHealthIndicator zeebeClientHealthIndicator(ZeebeClient zeebeClient) {
-    return new ZeebeHealthIndicator(zeebeClient);
+  public ZeebeHealthIndicator zeebeClientHealthIndicator(CamundaClient camundaClient) {
+    return new ZeebeHealthIndicator(camundaClient);
   }
 
   @Bean

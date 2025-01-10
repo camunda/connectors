@@ -22,10 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
-import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import jakarta.mail.Message;
@@ -65,7 +65,7 @@ public class OutboundEmailTests extends BaseEmailTest {
       "={fromAddress : fromAddress, messageId : messageId, subject: subject, size: size, plainTextBody : plainTextBody }";
   private static final String RESULT_EXPRESSION_MOVE_EMAIL =
       "={messageId : messageId, from: from, to: to }";
-  @Autowired private ZeebeClient zeebeClient;
+  @Autowired private CamundaClient camundaClient;
 
   private static BpmnModelInstance getBpmnModelInstance(final String serviceTaskName) {
     return Bpmn.createProcess()
@@ -371,7 +371,7 @@ public class OutboundEmailTests extends BaseEmailTest {
   }
 
   protected ZeebeTest getZeebeTest(final BpmnModelInstance updatedModel) {
-    return ZeebeTest.with(zeebeClient)
+    return ZeebeTest.with(camundaClient)
         .deploy(updatedModel)
         .createInstance()
         .waitForProcessCompletion();

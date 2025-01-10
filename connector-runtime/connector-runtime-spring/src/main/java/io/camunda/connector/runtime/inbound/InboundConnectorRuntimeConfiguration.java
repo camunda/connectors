@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
@@ -41,7 +42,6 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,12 +76,12 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   public InboundCorrelationHandler inboundCorrelationHandler(
-      final ZeebeClient zeebeClient,
+      final CamundaClient camundaClient,
       final FeelEngineWrapper feelEngine,
       final MetricsRecorder metricsRecorder,
       final ProcessElementContextFactory elementContextFactory) {
     return new MeteredInboundCorrelationHandler(
-        zeebeClient, feelEngine, metricsRecorder, elementContextFactory, messageTtl);
+        camundaClient, feelEngine, metricsRecorder, elementContextFactory, messageTtl);
   }
 
   @Bean
@@ -124,8 +124,8 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  SearchQueryClient searchQueryClient(ZeebeClient zeebeClient) {
-    return new SearchQueryClientImpl(zeebeClient);
+  SearchQueryClient searchQueryClient(CamundaClient camundaClient) {
+    return new SearchQueryClientImpl(camundaClient);
   }
 
   @Bean
