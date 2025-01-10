@@ -28,6 +28,7 @@ import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -39,6 +40,39 @@ public class DocumentHelperTest {
   @AfterEach
   public void tearDown() {
     InMemoryDocumentStore.INSTANCE.clear();
+  }
+
+  @Test
+  public void shouldReturnBody_whenMapInputWithoutDocumentAndWithNullValues() {
+    // given
+    DocumentHelper documentHelper = new DocumentHelper();
+    Map<String, Object> input = new HashMap<>();
+    input.put("body", new HashMap<>());
+    ((Map<String, Object>) input.get("body")).put("content", null);
+
+    // when
+    Object res = documentHelper.parseDocumentsInBody(input, mock(Function.class));
+
+    // then
+    assertThat(res).isInstanceOf(Map.class);
+    assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
+    assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).containsKey("content")).isTrue();
+    assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content")).isNull();
+  }
+
+  @Test
+  public void shouldReturnBody_whenMapInputWithoutDocument() {
+    // given
+    DocumentHelper documentHelper = new DocumentHelper();
+    Map<String, Object> input = Map.of("body", Map.of("content", "no document"));
+
+    // when
+    Object res = documentHelper.parseDocumentsInBody(input, mock(Function.class));
+
+    // then
+    assertThat(res).isInstanceOf(Map.class);
+    assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
+    assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content")).isEqualTo("no document");
   }
 
   @Test
