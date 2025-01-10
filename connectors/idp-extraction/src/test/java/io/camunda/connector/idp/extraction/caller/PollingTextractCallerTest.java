@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
+import io.camunda.document.Document;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,7 @@ class PollingTextractCallerTest {
   S3AsyncClient s3AsyncClient = Mockito.mock(S3AsyncClient.class);
   S3Object s3Object = Mockito.mock(S3Object.class);
   MockedStatic<AwsS3Util> awsS3UtilMockedStatic;
+  Document mockedDocument = Mockito.mock(Document.class);
 
   @BeforeEach
   void beforeEach() {
@@ -43,7 +45,8 @@ class PollingTextractCallerTest {
     awsS3UtilMockedStatic
         .when(
             () ->
-                AwsS3Util.buildS3ObjectFromUrl(any(), any(String.class), any(S3AsyncClient.class)))
+                AwsS3Util.buildS3ObjectFromDocument(
+                    any(), any(String.class), any(S3AsyncClient.class)))
         .thenReturn(s3Object);
     awsS3UtilMockedStatic
         .when(
@@ -85,7 +88,7 @@ class PollingTextractCallerTest {
     String expectedExtractedText = "AAA\nBBB";
     String extractedText =
         new PollingTextractCaller()
-            .call("test Url", "test-aws-s3-bucket-name", textractClient, s3AsyncClient);
+            .call(mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient);
 
     assertThat(extractedText).isEqualTo(expectedExtractedText);
   }
@@ -114,7 +117,7 @@ class PollingTextractCallerTest {
     String expectedExtractedText = "";
     String extractedText =
         new PollingTextractCaller()
-            .call("test Url", "test-aws-s3-bucket-name", textractClient, s3AsyncClient);
+            .call(mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient);
 
     assertThat(extractedText).isEqualTo(expectedExtractedText);
   }
@@ -147,7 +150,7 @@ class PollingTextractCallerTest {
             ConnectorException.class,
             () ->
                 pollingTextractCaller.call(
-                    "test Url", "test-aws-s3-bucket-name", textractClient, s3AsyncClient));
+                    mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient));
 
     assertEquals("Test exception message", exception.getMessage());
   }

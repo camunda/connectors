@@ -10,6 +10,7 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
+import io.camunda.document.Document;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
@@ -27,17 +28,17 @@ public record ExtractionRequestData(
         @NotNull
         TextExtractionEngineType extractionEngineType,
     @TemplateProperty(
-            id = "documentUrl",
-            label = "Document URL",
+            id = "document",
+            label = "Document",
             group = "input",
             type = TemplateProperty.PropertyType.Hidden,
-            description = "Specify the URL where the document is hosted",
-            defaultValue = "= input.documentUrl",
-            binding = @PropertyBinding(name = "documentUrl"),
+            description = "Specify the document",
+            defaultValue = "= input.document",
+            binding = @PropertyBinding(name = "document"),
             feel = Property.FeelMode.disabled,
             constraints = @PropertyConstraints(notEmpty = true))
         @NotNull
-        String documentUrl,
+        Document document,
     @TemplateProperty(
             id = "s3BucketName",
             label = "AWS S3 Bucket name",

@@ -49,6 +49,6 @@ class BedrockCallerTest {
 
     String bedrockResponse = bedrockCaller.call(extractionRequest, "", bedrockRuntimeClient);
 
-    assertEquals(bedrockResponse, expectedResponse);
+    assertEquals(expectedResponse, bedrockResponse);
   }
 }
