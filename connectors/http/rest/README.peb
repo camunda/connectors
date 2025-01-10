@@ -145,7 +145,7 @@ The Connector will fail on any non-2XX HTTP status code in the response. This er
 
 > :warning: Proxy mode is currently only supported in Camunda 8 SaaS environment.
 
-the [general proxy configuration](https://docs.camunda.io/docs/components/connectors/protocol/rest/#configure-a-proxy-server-in-self-managed)
+> :warning: This is for Camunda internal use only, do not mistake this with the [general proxy configuration](https://docs.camunda.io/docs/components/connectors/protocol/rest/#configure-a-proxy-server-in-self-managed)
 > available in
 > Self-Managed.
 You can configure the HTTP JSON Connector to do any outgoing HTTP call via a proxy. This proxy should be effectively
