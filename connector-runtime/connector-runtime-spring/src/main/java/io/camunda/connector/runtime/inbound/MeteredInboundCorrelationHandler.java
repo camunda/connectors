@@ -16,13 +16,13 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.time.Duration;
 import java.util.List;
@@ -32,12 +32,12 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   private final MetricsRecorder metricsRecorder;
 
   public MeteredInboundCorrelationHandler(
-      ZeebeClient zeebeClient,
+      CamundaClient camundaClient,
       FeelEngineWrapper feelEngine,
       MetricsRecorder metricsRecorder,
       ProcessElementContextFactory contextFactory,
       Duration messageTtl) {
-    super(zeebeClient, feelEngine, contextFactory, messageTtl);
+    super(camundaClient, feelEngine, contextFactory, messageTtl);
     this.metricsRecorder = metricsRecorder;
   }
 

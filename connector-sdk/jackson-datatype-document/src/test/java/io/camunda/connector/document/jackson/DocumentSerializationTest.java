@@ -49,7 +49,7 @@ public class DocumentSerializationTest {
 
   @Test
   void sourceTypeDocument_jacksonInternalModel() throws JsonProcessingException, JSONException {
-    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null);
+    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null, null, null);
     var ref = new CamundaDocumentReferenceModel("test", "test", metadata, Optional.empty());
     var document = mock(Document.class);
     when(document.reference()).thenReturn(ref);
@@ -71,7 +71,7 @@ public class DocumentSerializationTest {
 
   @Test
   void sourceTypeDocument_connectorSdkModel() throws JsonProcessingException, JSONException {
-    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null);
+    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null, null, null);
     var ref = new CamundaDocumentReferenceImpl("test", "test", metadata);
     var document = mock(Document.class);
     when(document.reference()).thenReturn(ref);

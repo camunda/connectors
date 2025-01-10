@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.outbound.lifecycle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.worker.JobHandler;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -24,8 +26,6 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.worker.JobHandler;
 import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
@@ -68,7 +68,7 @@ public class OutboundConnectorManager {
     this.metricsRecorder = metricsRecorder;
   }
 
-  public void start(final ZeebeClient client) {
+  public void start(final CamundaClient client) {
     // Currently, existing Spring beans have a higher priority
     // One result is that you will not disable Spring Bean Connectors by providing environment
     // variables for a specific connector
@@ -84,7 +84,7 @@ public class OutboundConnectorManager {
   }
 
   private void openWorkerForOutboundConnector(
-      ZeebeClient client, OutboundConnectorConfiguration connector) {
+      CamundaClient client, OutboundConnectorConfiguration connector) {
     ZeebeWorkerValue zeebeWorkerValue = new ZeebeWorkerValue();
     zeebeWorkerValue.setName(connector.name());
     zeebeWorkerValue.setType(connector.type());

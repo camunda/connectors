@@ -16,12 +16,12 @@
  */
 package io.camunda.connector.runtime.core.testutil.command;
 
+import io.camunda.client.api.CamundaFuture;
+import io.camunda.client.api.command.CreateProcessInstanceCommandStep1;
+import io.camunda.client.api.command.FinalCommandStep;
+import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.impl.CamundaClientFutureImpl;
 import io.camunda.connector.runtime.core.testutil.response.ProcessInstanceEventDummy;
-import io.camunda.zeebe.client.api.ZeebeFuture;
-import io.camunda.zeebe.client.api.command.CreateProcessInstanceCommandStep1;
-import io.camunda.zeebe.client.api.command.FinalCommandStep;
-import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
-import io.camunda.zeebe.client.impl.ZeebeClientFutureImpl;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
@@ -86,8 +86,8 @@ public class CreateCommandDummy
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  public ZeebeFuture<ProcessInstanceEvent> send() {
-    ZeebeClientFutureImpl future = new ZeebeClientFutureImpl<>();
+  public CamundaFuture<ProcessInstanceEvent> send() {
+    CamundaClientFutureImpl future = new CamundaClientFutureImpl<>();
     future.complete(new ProcessInstanceEventDummy());
     return future;
   }

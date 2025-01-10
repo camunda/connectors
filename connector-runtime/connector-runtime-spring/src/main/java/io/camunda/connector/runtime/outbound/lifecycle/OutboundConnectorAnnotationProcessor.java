@@ -16,11 +16,11 @@
  */
 package io.camunda.connector.runtime.outbound.lifecycle;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
-import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.annotation.processor.AbstractZeebeAnnotationProcessor;
 import io.camunda.zeebe.spring.client.bean.BeanInfo;
 import io.camunda.zeebe.spring.client.bean.ClassInfo;
@@ -73,12 +73,12 @@ public class OutboundConnectorAnnotationProcessor extends AbstractZeebeAnnotatio
   }
 
   @Override
-  public void start(final ZeebeClient client) {
+  public void start(final CamundaClient client) {
     outboundConnectorManager.start(client);
   }
 
   @Override
-  public void stop(ZeebeClient client) {
+  public void stop(CamundaClient client) {
     outboundConnectorManager.stop();
   }
 }
