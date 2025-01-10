@@ -100,7 +100,7 @@ public class KafkaConnectorConsumer {
             consume();
             return null;
           } catch (Exception ex) {
-            LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage());
+            LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage(), ex);
             try {
               consumer.close();
             } catch (Exception e) {
