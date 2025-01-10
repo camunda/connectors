@@ -16,10 +16,10 @@
  */
 package io.camunda.document;
 
+import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
-import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.io.InputStream;
 import java.util.Base64;
 

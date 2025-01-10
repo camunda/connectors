@@ -79,7 +79,7 @@ public class AddWorkItemAutomationAnywhereTests extends BaseAutomationAnywhereTe
             .apply(elementTemplate, "automationAnywhereTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -129,7 +129,7 @@ public class AddWorkItemAutomationAnywhereTests extends BaseAutomationAnywhereTe
             .apply(elementTemplate, "automationAnywhereTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -176,7 +176,7 @@ public class AddWorkItemAutomationAnywhereTests extends BaseAutomationAnywhereTe
             .apply(elementTemplate, "automationAnywhereTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(zeebeClient)
+        ZeebeTest.with(camundaClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();

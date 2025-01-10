@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
+import io.camunda.client.api.search.response.FlowNodeInstance;
 import java.util.List;
 import java.util.Map;
 

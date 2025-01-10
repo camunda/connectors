@@ -22,6 +22,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.util.StreamUtils.copyToByteArray;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
@@ -33,8 +35,6 @@ import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Collections;
 import java.util.Map;
@@ -90,7 +90,7 @@ public class WebhookNotActivatedDocumentTests {
 
   public static final String TEXT_FILE = "text.txt";
   public static final String PNG_FILE = "camunda1.png";
-  @Autowired ZeebeClient zeebeClient;
+  @Autowired CamundaClient camundaClient;
 
   ObjectMapper mapper = new ObjectMapper();
 
@@ -127,7 +127,8 @@ public class WebhookNotActivatedDocumentTests {
     when(searchQueryClient.getProcessModel(2L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
     when(processDef.getProcessDefinitionKey()).thenReturn(2L);
-    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getTenantId())
+        .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
@@ -140,7 +141,7 @@ public class WebhookNotActivatedDocumentTests {
                 new ProcessDefinitionVersion(
                     processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
-    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
+    var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
     CompletableFuture<ResultActions> future = new CompletableFuture<>();
     ClassPathResource textFile = new ClassPathResource("files/text.txt");
     ClassPathResource imageFile = new ClassPathResource("files/camunda1.png");

@@ -20,8 +20,8 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
-import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -66,7 +66,7 @@ public abstract class BaseEasyPostTest {
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
-  @Autowired ZeebeClient zeebeClient;
+  @Autowired CamundaClient camundaClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 
@@ -93,7 +93,7 @@ public abstract class BaseEasyPostTest {
   }
 
   protected ZeebeTest getZeebeTest(final BpmnModelInstance updatedModel) {
-    return ZeebeTest.with(zeebeClient)
+    return ZeebeTest.with(camundaClient)
         .deploy(updatedModel)
         .createInstance()
         .waitForProcessCompletion();

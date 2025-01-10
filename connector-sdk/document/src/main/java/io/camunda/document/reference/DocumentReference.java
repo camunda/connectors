@@ -16,7 +16,7 @@
  */
 package io.camunda.document.reference;
 
-import io.camunda.zeebe.client.api.response.DocumentMetadata;
+import io.camunda.client.api.response.DocumentMetadata;
 
 public interface DocumentReference {
 
