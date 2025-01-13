@@ -25,6 +25,7 @@ import io.camunda.client.api.response.FailJobResponse;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -212,10 +213,15 @@ public class ConnectorJobHandler implements JobHandler {
       LOGGER.debug(
           "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
       String errorCode = null;
+      int retries = job.getRetries() - 1;
       if (ex instanceof ConnectorException connectorException) {
         errorCode = connectorException.getErrorCode();
+        Throwable cause = connectorException.getCause();
+        if (cause instanceof ConnectorInputException) {
+          retries = 0;
+        }
       }
-      result = handleSDKException(job, ex, job.getRetries() - 1, errorCode, retryBackoff);
+      result = handleSDKException(job, ex, retries, errorCode, retryBackoff);
     }
 
     try {

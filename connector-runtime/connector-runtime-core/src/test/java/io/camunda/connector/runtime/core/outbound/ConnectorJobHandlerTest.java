@@ -37,6 +37,7 @@ import io.camunda.client.api.command.FailJobCommandStep1;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
@@ -506,6 +507,26 @@ class ConnectorJobHandlerTest {
       assertThat(result.getErrorMessage().length())
           .isLessThanOrEqualTo(ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH);
     }
+
+    @Test
+    void shouldNotRetry_OnConnectorInputException() {
+      // given
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorExceptionBuilder()
+                    .message("expected Connector Input Exception")
+                    .cause(new ConnectorInputException(new Exception()))
+                    .build();
+              });
+
+      // when
+      var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo("expected Connector Input Exception");
+      assertThat(result.getRetries()).isEqualTo(0);
+    }
   }
 
   @Nested
@@ -934,7 +955,7 @@ class ConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateJobErrpr_UsingExceptionCodeAsSecondConditionAfterResponseProperty()
+    void shouldCreateJobError_UsingExceptionCodeAsSecondConditionAfterResponseProperty()
         throws JsonProcessingException {
       // given
       var errorExpression =
