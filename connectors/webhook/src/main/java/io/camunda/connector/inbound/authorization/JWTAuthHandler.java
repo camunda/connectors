@@ -26,6 +26,7 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.In
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.JWTProperties;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
+import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
@@ -39,7 +40,10 @@ import org.slf4j.LoggerFactory;
 final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JWTAuthHandler.class);
-
+  private static final AuthorizationResult JWT_AUTH_FAILED_RESULT =
+      new InvalidCredentials("JWT auth failed");
+  private static final AuthorizationResult JWT_AUTH_MISSING_PERMISSIONS_RESULT =
+      new Forbidden("Missing required permissions");
   private final JwkProvider jwkProvider;
   private final ObjectMapper objectMapper;
 
@@ -47,29 +51,6 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
     super(authorization);
     this.jwkProvider = jwkProvider;
     this.objectMapper = objectMapper;
-  }
-
-  @Override
-  public AuthorizationResult checkAuthorization(WebhookProcessingPayload payload) {
-
-    JWTProperties jwtProperties = expectedAuthorization.jwt();
-    Map<String, String> headers = payload.headers();
-
-    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(headers, jwkProvider);
-    if (decodedJWT.isEmpty()) {
-      return JWT_AUTH_FAILED_RESULT;
-    }
-    if (jwtProperties.requiredPermissions() != null
-        && !jwtProperties.requiredPermissions().isEmpty()) {
-
-      List<String> roles = extractRoles(jwtProperties, decodedJWT.get(), objectMapper);
-      if (!roles.containsAll(jwtProperties.requiredPermissions())) {
-        LOGGER.debug("JWT auth failed");
-        return JWT_AUTH_MISSING_PERMISSIONS_RESULT;
-      }
-    }
-    LOGGER.debug("JWT auth was successful");
-    return Success.INSTANCE;
   }
 
   private static Optional<DecodedJWT> getDecodedVerifiedJWT(
@@ -127,22 +108,22 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
   private static DecodedJWT verifyJWT(String jwtToken, JwkProvider jwkProvider)
       throws SignatureVerificationException, TokenExpiredException {
     DecodedJWT verifiedJWT =
-        Optional.ofNullable(JWT.decode(jwtToken))
+        Optional.of(JWT.decode(jwtToken))
             .map(
                 decodedJWT -> {
                   try {
-                    return jwkProvider.get(decodedJWT.getKeyId());
-                  } catch (JwkException e) {
-                    LOGGER.warn("Cannot find JWK for the JWT token: " + e.getMessage());
-                    throw new RuntimeException(e);
-                  }
-                })
-            .map(
-                jwk -> {
-                  try {
-                    return JWT.require(getAlgorithm(jwk)).build();
+                    Jwk jwk = jwkProvider.get(decodedJWT.getKeyId());
+                    return JWT.require(
+                            getAlgorithm(
+                                Optional.ofNullable(jwk.getAlgorithm())
+                                    .orElse(decodedJWT.getAlgorithm()),
+                                jwk.getPublicKey()))
+                        .build();
                   } catch (InvalidPublicKeyException e) {
                     LOGGER.warn("Token verification failed: " + e.getMessage());
+                    throw new RuntimeException(e);
+                  } catch (JwkException e) {
+                    LOGGER.warn("Cannot find JWK for the JWT token: " + e.getMessage());
                     throw new RuntimeException(e);
                   }
                 })
@@ -152,20 +133,39 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
     return verifiedJWT;
   }
 
-  private static Algorithm getAlgorithm(Jwk jwk) throws InvalidPublicKeyException {
-    return switch (jwk.getAlgorithm()) {
-      case "RS256" -> Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey());
-      case "RS384" -> Algorithm.RSA384((RSAPublicKey) jwk.getPublicKey());
-      case "RS512" -> Algorithm.RSA512((RSAPublicKey) jwk.getPublicKey());
-      case "ES256" -> Algorithm.ECDSA256((ECPublicKey) jwk.getPublicKey(), null);
-      case "ES384" -> Algorithm.ECDSA384((ECPublicKey) jwk.getPublicKey(), null);
-      case "ES512" -> Algorithm.ECDSA512((ECPublicKey) jwk.getPublicKey(), null);
+  private static Algorithm getAlgorithm(String algorithm, PublicKey publicKey)
+      throws InvalidPublicKeyException {
+    return switch (algorithm) {
+      case "RS256" -> Algorithm.RSA256((RSAPublicKey) publicKey);
+      case "RS384" -> Algorithm.RSA384((RSAPublicKey) publicKey);
+      case "RS512" -> Algorithm.RSA512((RSAPublicKey) publicKey);
+      case "ES256" -> Algorithm.ECDSA256((ECPublicKey) publicKey, null);
+      case "ES384" -> Algorithm.ECDSA384((ECPublicKey) publicKey, null);
+      case "ES512" -> Algorithm.ECDSA512((ECPublicKey) publicKey, null);
       default -> throw new RuntimeException("Unknown algorithm!");
     };
   }
 
-  private static final AuthorizationResult JWT_AUTH_FAILED_RESULT =
-      new InvalidCredentials("JWT auth failed");
-  private static final AuthorizationResult JWT_AUTH_MISSING_PERMISSIONS_RESULT =
-      new Forbidden("Missing required permissions");
+  @Override
+  public AuthorizationResult checkAuthorization(WebhookProcessingPayload payload) {
+
+    JWTProperties jwtProperties = expectedAuthorization.jwt();
+    Map<String, String> headers = payload.headers();
+
+    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(headers, jwkProvider);
+    if (decodedJWT.isEmpty()) {
+      return JWT_AUTH_FAILED_RESULT;
+    }
+    if (jwtProperties.requiredPermissions() != null
+        && !jwtProperties.requiredPermissions().isEmpty()) {
+
+      List<String> roles = extractRoles(jwtProperties, decodedJWT.get(), objectMapper);
+      if (!roles.containsAll(jwtProperties.requiredPermissions())) {
+        LOGGER.debug("JWT auth failed");
+        return JWT_AUTH_MISSING_PERMISSIONS_RESULT;
+      }
+    }
+    LOGGER.debug("JWT auth was successful");
+    return Success.INSTANCE;
+  }
 }
