@@ -135,7 +135,6 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
 
   private static Algorithm getAlgorithm(String algorithm, PublicKey publicKey)
       throws InvalidPublicKeyException {
-    LOGGER.debug("Using algorithm: " + algorithm);
     return switch (algorithm) {
       case "RS256" -> Algorithm.RSA256((RSAPublicKey) publicKey);
       case "RS384" -> Algorithm.RSA384((RSAPublicKey) publicKey);
@@ -143,7 +142,7 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
       case "ES256" -> Algorithm.ECDSA256((ECPublicKey) publicKey, null);
       case "ES384" -> Algorithm.ECDSA384((ECPublicKey) publicKey, null);
       case "ES512" -> Algorithm.ECDSA512((ECPublicKey) publicKey, null);
-      default -> throw new RuntimeException("Unknown algorithm!");
+      default -> throw new RuntimeException("Unknown algorithm: " + algorithm);
     };
   }
 
