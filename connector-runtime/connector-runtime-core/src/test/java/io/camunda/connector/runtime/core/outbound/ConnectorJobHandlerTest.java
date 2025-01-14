@@ -47,13 +47,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EmptySource;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.*;
 import org.mockito.ArgumentCaptor;
 
 class ConnectorJobHandlerTest {
@@ -508,16 +507,14 @@ class ConnectorJobHandlerTest {
           .isLessThanOrEqualTo(ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH);
     }
 
-    @Test
-    void shouldNotRetry_OnConnectorInputException() {
+    @ParameterizedTest
+    @MethodSource("provideInputExceptions")
+    void shouldNotRetry_OnConnectorInputException(Exception exception) {
       // given
       var jobHandler =
           newConnectorJobHandler(
               context -> {
-                throw new ConnectorExceptionBuilder()
-                    .message("expected Connector Input Exception")
-                    .cause(new ConnectorInputException(new Exception()))
-                    .build();
+                throw exception;
               });
 
       // when
@@ -526,6 +523,16 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorMessage()).isEqualTo("expected Connector Input Exception");
       assertThat(result.getRetries()).isEqualTo(0);
+    }
+
+    private static Stream<RuntimeException> provideInputExceptions() {
+      return Stream.of(
+          new ConnectorExceptionBuilder()
+              .message("expected Connector Input Exception")
+              .cause(new ConnectorInputException(new Exception()))
+              .build(),
+          new ConnectorInputException(
+              "expected Connector Input Exception", new RuntimeException("cause")));
     }
   }
 
