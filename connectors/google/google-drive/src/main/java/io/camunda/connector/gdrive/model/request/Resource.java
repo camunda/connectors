@@ -28,7 +28,9 @@ public record Resource(
             constraints = @PropertyConstraints(notEmpty = true),
             choices = {
               @DropdownPropertyChoice(label = "Create folder", value = "folder"),
-              @DropdownPropertyChoice(label = "Create file from template", value = "file")
+              @DropdownPropertyChoice(label = "Create file from template", value = "file"),
+              @DropdownPropertyChoice(label = "upload file", value = "upload"),
+              @DropdownPropertyChoice(label = "download file", value = "download")
             })
         @NotNull
         Type type,
@@ -57,4 +59,6 @@ public record Resource(
             optional = true,
             condition = @PropertyCondition(property = "resource.type", equals = "folder"))
         JsonNode additionalGoogleDriveProperties,
-    @Valid Template template) {}
+    @Valid Template template,
+    @Valid DownloadData downloadData,
+    @Valid UploadData uploadData) {}

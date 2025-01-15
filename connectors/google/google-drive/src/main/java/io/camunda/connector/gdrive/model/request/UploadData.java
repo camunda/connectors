@@ -1,0 +1,22 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.gdrive.model.request;
+
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.document.Document;
+
+public record UploadData(
+    @TemplateProperty(
+            group = "operationDetails",
+            label = "Document",
+            feel = Property.FeelMode.required,
+            type = TemplateProperty.PropertyType.String,
+            condition =
+                @TemplateProperty.PropertyCondition(property = "resource.type", equals = "upload"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+        Document document) {}

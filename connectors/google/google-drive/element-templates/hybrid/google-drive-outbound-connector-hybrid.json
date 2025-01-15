@@ -168,6 +168,12 @@
     }, {
       "name" : "Create file from template",
       "value" : "file"
+    }, {
+      "name" : "upload file",
+      "value" : "upload"
+    }, {
+      "name" : "download file",
+      "value" : "download"
     } ]
   }, {
     "id" : "resource.name",
@@ -243,6 +249,44 @@
     "condition" : {
       "property" : "resource.type",
       "equals" : "file",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resource.downloadData.id",
+    "label" : "File id",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.downloadData.id",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "resource.type",
+      "equals" : "download",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resource.uploadData.document",
+    "label" : "Document",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "resource.uploadData.document",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "resource.type",
+      "equals" : "upload",
       "type" : "simple"
     },
     "type" : "String"

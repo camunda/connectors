@@ -51,4 +51,12 @@ public class GoogleDriveClient {
       throw new RuntimeException(e);
     }
   }
+
+  public Drive getDriveService() {
+    return driveService;
+  }
+
+  public Docs getDocsService() {
+    return docsService;
+  }
 }
