@@ -164,10 +164,10 @@
       "name" : "Create file from template",
       "value" : "file"
     }, {
-      "name" : "upload file",
+      "name" : "Upload file",
       "value" : "upload"
     }, {
-      "name" : "download file",
+      "name" : "Download file",
       "value" : "download"
     } ]
   }, {
@@ -182,6 +182,11 @@
     "binding" : {
       "name" : "resource.name",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "resource.type",
+      "oneOf" : [ "folder", "file" ],
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -254,7 +259,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "required",
+    "feel" : "optional",
     "group" : "operationDetails",
     "binding" : {
       "name" : "resource.downloadData.id",

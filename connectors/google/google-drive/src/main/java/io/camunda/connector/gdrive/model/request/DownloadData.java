@@ -13,7 +13,7 @@ public record DownloadData(
     @TemplateProperty(
             group = "operationDetails",
             label = "File id",
-            feel = Property.FeelMode.required,
+            feel = Property.FeelMode.optional,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "resource.type",

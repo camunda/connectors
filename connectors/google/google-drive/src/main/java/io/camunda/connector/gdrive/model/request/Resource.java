@@ -15,7 +15,6 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownP
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 public record Resource(
@@ -29,8 +28,8 @@ public record Resource(
             choices = {
               @DropdownPropertyChoice(label = "Create folder", value = "folder"),
               @DropdownPropertyChoice(label = "Create file from template", value = "file"),
-              @DropdownPropertyChoice(label = "upload file", value = "upload"),
-              @DropdownPropertyChoice(label = "download file", value = "download")
+              @DropdownPropertyChoice(label = "Upload file", value = "upload"),
+              @DropdownPropertyChoice(label = "Download file", value = "download")
             })
         @NotNull
         Type type,
@@ -38,8 +37,12 @@ public record Resource(
             id = "name",
             label = "New resource name",
             group = "operationDetails",
-            feel = FeelMode.optional)
-        @NotEmpty
+            feel = FeelMode.optional,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "resource.type",
+                    oneOf = {"folder", "file"}),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String name,
     @TemplateProperty(
             id = "parent",

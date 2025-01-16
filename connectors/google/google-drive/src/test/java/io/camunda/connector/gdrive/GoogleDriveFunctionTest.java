@@ -8,13 +8,19 @@ package io.camunda.connector.gdrive;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 
+import com.google.api.services.drive.model.File;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
+import io.camunda.connector.gdrive.model.MimeTypeUrl;
 import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import io.camunda.document.Document;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -24,13 +30,17 @@ class GoogleDriveFunctionTest extends BaseTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/request-success-test-cases.json";
+  private static final String SUCCESS_UPLOAD_RESOURCE_PATH =
+      "src/test/resources/requests/file-success-upload.json";
+  private static final String SUCCESS_DOWNLOAD_RESOURCE_PATH =
+      "src/test/resources/requests/file-success-download.json";
 
   @DisplayName("Should execute connector and return success result")
   @ParameterizedTest(name = "Executing test case # {index}")
   @MethodSource("successRequestCases")
   void execute_shouldExecuteAndReturnResultWhenGiveContext(String input) {
     // Given
-    GoogleDriveService googleDriveServiceMock = Mockito.mock(GoogleDriveService.class);
+    GoogleDriveService googleDriveServiceMock = mock(GoogleDriveService.class);
     GoogleDriveFunction service = new GoogleDriveFunction(googleDriveServiceMock);
 
     OutboundConnectorContext context =
@@ -53,7 +63,69 @@ class GoogleDriveFunctionTest extends BaseTest {
     assertThat(((GoogleDriveResult) execute).getGoogleDriveResourceUrl()).isEqualTo(FILE_URL);
   }
 
+  @ParameterizedTest(name = "Executing test case # {index}")
+  @MethodSource("successUploadCases")
+  void execute_shouldExecuteFileUpload(String input) {
+    // Given
+    GoogleDriveService googleDriveServiceMock = mock(GoogleDriveService.class);
+    GoogleDriveFunction service = new GoogleDriveFunction(googleDriveServiceMock);
+
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
+
+    GoogleDriveResult googleDriveResult = new GoogleDriveResult();
+    googleDriveResult.setGoogleDriveResourceId(FILE_ID);
+    googleDriveResult.setGoogleDriveResourceUrl(
+        String.format(MimeTypeUrl.FILE_TEMPLATE_URL, FILE_ID));
+
+    Mockito.when(googleDriveServiceMock.execute(any(GoogleDriveClient.class), any(Resource.class)))
+        .thenReturn(googleDriveResult);
+    // When
+    Object execute = service.execute(context);
+    // Then
+    assertThat(execute).isInstanceOf(GoogleDriveResult.class);
+    assertThat(((GoogleDriveResult) execute).getGoogleDriveResourceId()).isEqualTo(FILE_ID);
+    assertThat(((GoogleDriveResult) execute).getGoogleDriveResourceUrl())
+        .isEqualTo((String.format(MimeTypeUrl.FILE_TEMPLATE_URL, FILE_ID)));
+  }
+
+  @ParameterizedTest(name = "Executing test case # {index}")
+  @MethodSource("successDownloadCases")
+  void execute_shouldExecuteFileDownload(String input) {
+    // Given
+    GoogleDriveService googleDriveServiceMock = mock(GoogleDriveService.class);
+    GoogleDriveFunction service = new GoogleDriveFunction(googleDriveServiceMock);
+
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
+
+    File file = new File();
+    file.setMimeType("image/png");
+    file.setName("google-my-business-logo-png-transparent.png");
+
+    Mockito.when(googleDriveServiceMock.execute(any(GoogleDriveClient.class), any(Resource.class)))
+        .thenReturn(Pair.of(file, new ByteArrayOutputStream()));
+    var result = (Document) service.execute(context);
+
+    assertThat(result.metadata().getFileName()).isEqualTo(file.getName());
+    assertThat(result.metadata().getContentType()).isEqualTo(file.getMimeType());
+  }
+
   private static Stream<String> successRequestCases() throws IOException {
     return BaseTest.loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
+  }
+
+  private static Stream<String> successUploadCases() throws IOException {
+    return BaseTest.loadTestCasesFromResourceFile(SUCCESS_UPLOAD_RESOURCE_PATH);
+  }
+
+  private static Stream<String> successDownloadCases() throws IOException {
+    return BaseTest.loadTestCasesFromResourceFile(SUCCESS_DOWNLOAD_RESOURCE_PATH);
   }
 }

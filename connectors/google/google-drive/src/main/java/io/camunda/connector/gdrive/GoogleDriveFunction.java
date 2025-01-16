@@ -6,14 +6,18 @@
  */
 package io.camunda.connector.gdrive;
 
+import com.google.api.services.drive.model.File;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.supliers.GoogleDocsServiceSupplier;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.document.Document;
+import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.google.supplier.GoogleDriveServiceSupplier;
+import java.io.ByteArrayOutputStream;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,15 +58,35 @@ public class GoogleDriveFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(final OutboundConnectorContext context) {
     var request = context.bindVariables(GoogleDriveRequest.class);
-    return executeConnector(request);
+
+    var result = executeConnector(request);
+
+    if (result instanceof Pair) {
+      return prepareDocument(context, (Pair<File, ByteArrayOutputStream>) result);
+    }
+
+    return result;
   }
 
-  private GoogleDriveResult executeConnector(final GoogleDriveRequest request) {
+  private Object executeConnector(final GoogleDriveRequest request) {
     LOGGER.debug("Executing my connector with request {}", request);
+
     GoogleDriveClient drive =
         new GoogleDriveClient(
             GoogleDriveServiceSupplier.createDriveClientInstance(request.getAuthentication()),
             GoogleDocsServiceSupplier.createDocsClientInstance(request.getAuthentication()));
+
     return service.execute(drive, request.getResource());
+  }
+
+  private Document prepareDocument(
+      final OutboundConnectorContext context, final Pair<File, ByteArrayOutputStream> pair) {
+    byte[] bytes = pair.getRight().toByteArray();
+    var metaData = pair.getLeft();
+    return context.createDocument(
+        DocumentCreationRequest.from(bytes)
+            .contentType(metaData.getMimeType())
+            .fileName(metaData.getName())
+            .build());
   }
 }

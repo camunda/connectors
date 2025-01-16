@@ -9,21 +9,26 @@ package io.camunda.connector.gdrive;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
+import com.google.api.client.http.AbstractInputStreamContent;
 import com.google.api.services.docs.v1.model.BatchUpdateDocumentResponse;
 import com.google.api.services.docs.v1.model.Request;
+import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
+import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
-import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
+import io.camunda.connector.gdrive.model.request.*;
+import io.camunda.document.Document;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
@@ -60,7 +65,7 @@ class GoogleDriveServiceTest extends BaseTest {
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
-    GoogleDriveResult execute = service.execute(googleDriveClient, request.getResource());
+    var execute = (GoogleDriveResult) service.execute(googleDriveClient, request.getResource());
     // Then
     Mockito.verify(googleDriveClient).createWithMetadata(captor.capture());
     File value = captor.getValue();
@@ -84,7 +89,7 @@ class GoogleDriveServiceTest extends BaseTest {
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
-    GoogleDriveResult execute = service.execute(googleDriveClient, request.getResource());
+    var execute = (GoogleDriveResult) service.execute(googleDriveClient, request.getResource());
     // Then
     Mockito.verify(googleDriveClient).createWithTemplate(captor.capture(), eq(templateId));
     File value = captor.getValue();
@@ -105,7 +110,7 @@ class GoogleDriveServiceTest extends BaseTest {
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
-    GoogleDriveResult execute = service.execute(googleDriveClient, request.getResource());
+    var execute = (GoogleDriveResult) service.execute(googleDriveClient, request.getResource());
     // Then
     Mockito.verify(googleDriveClient).createWithTemplate(captor.capture(), eq(templateId));
     File value = captor.getValue();
@@ -133,7 +138,7 @@ class GoogleDriveServiceTest extends BaseTest {
     Mockito.when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
     ArgumentCaptor<List<Request>> captor = ArgumentCaptor.forClass(List.class);
     // When
-    GoogleDriveResult execute = service.execute(googleDriveClient, request.getResource());
+    var execute = (GoogleDriveResult) service.execute(googleDriveClient, request.getResource());
     // Then
     verify(googleDriveClient).updateDocument(eq(FILE_ID), captor.capture());
 
@@ -159,6 +164,51 @@ class GoogleDriveServiceTest extends BaseTest {
     service.execute(googleDriveClient, request.getResource());
     // Then
     verify(googleDriveClient, never()).updateDocument(any(), any());
+  }
+
+  @Test
+  void execute_shouldUploadFile() throws IOException {
+    // Given
+    var docMetadata =
+        new DocumentReferenceModel.CamundaDocumentMetadataModel(
+            "image/png", null, 66497L, "picture", null, null, null);
+
+    Document document = Mockito.mock(Document.class);
+    when(document.metadata()).thenReturn(docMetadata);
+    when(document.asByteArray()).thenReturn(new byte[1]);
+
+    var resource =
+        new Resource(Type.UPLOAD, null, null, null, null, null, new UploadData(document));
+
+    Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
+
+    when(googleDriveClient.getDriveService()).thenReturn(drive);
+    when(drive.files().create(any(File.class), any(AbstractInputStreamContent.class)).execute())
+        .thenReturn(new File().setId("1"));
+
+    var result = service.execute(googleDriveClient, resource);
+    assertThat(result).isInstanceOf(GoogleDriveResult.class);
+    assertThat(((GoogleDriveResult) result).getGoogleDriveResourceId()).isEqualTo("1");
+    assertThat(((GoogleDriveResult) result).getGoogleDriveResourceUrl())
+        .isEqualTo(String.format(MimeTypeUrl.FILE_TEMPLATE_URL, "1"));
+  }
+
+  @Test
+  void execute_shouldDownloadFile() throws IOException {
+
+    var resource = new Resource(Type.DOWNLOAD, null, null, null, null, new DownloadData("1"), null);
+
+    Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
+    when(googleDriveClient.getDriveService()).thenReturn(drive);
+    when(drive.files().get(anyString()).execute()).thenReturn(new File());
+    Drive.Files.Get getFile = mock(Drive.Files.Get.class);
+    doNothing().when(getFile).executeAndDownloadTo(any(ByteArrayOutputStream.class));
+
+    var result = service.execute(googleDriveClient, resource);
+
+    assertThat(result).isInstanceOf(Pair.class);
+    assertThat(((Pair) result).getLeft()).isInstanceOf(File.class);
+    assertThat(((Pair) result).getRight()).isInstanceOf(ByteArrayOutputStream.class);
   }
 
   private static Stream<String> successFolderRequestCases() throws IOException {
