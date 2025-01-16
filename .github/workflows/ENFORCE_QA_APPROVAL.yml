@@ -20,19 +20,22 @@ jobs:
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
 
-            const requiredDev = "Szik";
+            const teamMembers = await github.rest.teams.listMembersInOrg({
+              org: "camunda",
+              team_slug: "qa-engineering",
+            });
+            
+            const reviews = await github.rest.pulls.listReviews({
+              owner: repoOwner,
+              repo: repoName,
+              pull_number: prNumber,
+            });
+            
+            const hasApproved = reviews.data.some(review => 
+              teamUsernames.includes(review.user.login) && review.state === "APPROVED"
+            );
 
             if (prTitle.startsWith("feat")) {
-              const reviews = await github.rest.pulls.listReviews({
-                owner: repoOwner,
-                repo: repoName,
-                pull_number: prNumber,
-              });
-
-              const hasApproved = reviews.data.some(review => 
-                review.user.login === requiredDev && review.state === "APPROVED"
-              );
-
               if (hasApproved) {
                 await github.rest.repos.createCommitStatus({
                   owner: repoOwner,
