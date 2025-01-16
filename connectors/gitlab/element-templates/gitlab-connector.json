@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitLab Outbound Connector",
   "id": "io.camunda.connectors.GitLab.v1",
-  "version": 5,
+  "version": 6,
   "description": "Manage GitLab issues, branches, releases, and more",
   "metadata": {
     "keywords": [
@@ -653,6 +653,19 @@
           "createAnIssue"
         ]
       }
+    },
+    {
+      "id": "skipEncoding",
+      "label": "Skip URL encoding",
+      "description": "Skip the default URL decoding and encoding behavior",
+      "optional": true,
+      "group": "endpoint",
+      "binding": {
+        "name": "skipEncoding",
+        "type": "zeebe:input"
+      },
+      "value": "true",
+      "type": "Hidden"
     },
     {
       "label": "Issue ID",

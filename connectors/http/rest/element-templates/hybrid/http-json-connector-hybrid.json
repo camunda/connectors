@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 9,
+  "version" : 10,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -407,6 +407,17 @@
       "type" : "zeebe:input"
     },
     "type" : "Boolean"
+  }, {
+    "id" : "skipEncoding",
+    "label" : "Skip URL encoding",
+    "description" : "Skip the default URL decoding and encoding behavior",
+    "optional" : true,
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "skipEncoding",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
