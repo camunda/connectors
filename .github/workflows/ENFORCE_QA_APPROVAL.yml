@@ -3,6 +3,8 @@ name: Enforce Specific QA Approval for "feat" PRs
 on:
   pull_request:
     types: [opened, edited, synchronize]
+    pull_request_review:
+      types: [ submitted ]
 
 jobs:
   enforce-approval:
