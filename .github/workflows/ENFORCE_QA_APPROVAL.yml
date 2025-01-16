@@ -25,11 +25,14 @@ jobs:
               team_slug: "qa-engineering",
             });
             
+            console.log("team members are :" + teamMembers)
+            
             const reviews = await github.rest.pulls.listReviews({
               owner: repoOwner,
               repo: repoName,
               pull_number: prNumber,
             });
+            
             
             const hasApproved = reviews.data.some(review => 
               teamUsernames.includes(review.user.login) && review.state === "APPROVED"
