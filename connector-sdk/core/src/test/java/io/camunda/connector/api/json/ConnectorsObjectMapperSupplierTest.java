@@ -53,10 +53,13 @@ class ConnectorsObjectMapperSupplierTest {
 
   @Test
   void singleDocumentShouldBeAcceptedAsArray() throws JsonProcessingException {
-    final var objectMapper = ConnectorsObjectMapperSupplier.getCopy(
-        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE), DocumentModuleSettings.create());
-    final var documentReference = new CamundaDocumentReferenceModel(
-        "default", UUID.randomUUID().toString(), null, Optional.empty());
+    final var objectMapper =
+        ConnectorsObjectMapperSupplier.getCopy(
+            new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+            DocumentModuleSettings.create());
+    final var documentReference =
+        new CamundaDocumentReferenceModel(
+            "default", UUID.randomUUID().toString(), null, Optional.empty());
     final var json = "{\"documents\":" + objectMapper.writeValueAsString(documentReference) + "}";
     var actual = objectMapper.readValue(json, TestRecordWithDocumentList.class);
     Assertions.assertThat(actual.documents()).hasSize(1);
