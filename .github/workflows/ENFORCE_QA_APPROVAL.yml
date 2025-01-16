@@ -18,7 +18,7 @@ jobs:
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
 
-            const requiredDev = "@Szik";
+            const requiredDev = "@mathias-vandaele";
 
             if (prTitle.startsWith("feat")) {
               const reviews = await github.rest.pulls.listReviews({
