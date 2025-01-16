@@ -25,7 +25,7 @@ jobs:
               team_slug: "qa-engineering",
             });
             
-            console.log("team members are :" + teamMembers)
+            console.log("team members are :" + teamMembers);
             
             const reviews = await github.rest.pulls.listReviews({
               owner: repoOwner,
