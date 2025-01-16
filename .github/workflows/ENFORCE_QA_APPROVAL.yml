@@ -18,25 +18,20 @@ jobs:
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
 
-            const requiredDev = "specific-dev"; // Replace with the actual username
+            const requiredDev = "@Szik";
 
             if (prTitle.startsWith("feat")) {
-              console.log("PR title starts with 'feat'. Checking approval by specific developer.");
-
-              // Fetch the reviews for the PR
               const reviews = await github.rest.pulls.listReviews({
                 owner: repoOwner,
                 repo: repoName,
                 pull_number: prNumber,
               });
 
-              // Check if the specific developer has approved
               const hasApproved = reviews.data.some(review => 
                 review.user.login === requiredDev && review.state === "APPROVED"
               );
 
               if (hasApproved) {
-                console.log(`PR has been approved by ${requiredDev}.`);
                 await github.rest.repos.createCommitStatus({
                   owner: repoOwner,
                   repo: repoName,
@@ -46,7 +41,6 @@ jobs:
                   description: `${requiredDev} has approved this PR.`,
                 });
               } else {
-                console.log(`PR has not been approved by ${requiredDev}.`);
                 await github.rest.repos.createCommitStatus({
                   owner: repoOwner,
                   repo: repoName,
@@ -57,7 +51,6 @@ jobs:
                 });
               }
             } else {
-              console.log("PR title does not start with 'feat'. No specific approval required.");
               await github.rest.repos.createCommitStatus({
                 owner: repoOwner,
                 repo: repoName,
