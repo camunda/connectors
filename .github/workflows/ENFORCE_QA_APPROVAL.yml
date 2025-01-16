@@ -37,7 +37,7 @@ jobs:
                   repo: repoName,
                   sha: context.payload.pull_request.head.sha,
                   state: "success",
-                  context: "specific-dev-approval",
+                  context: "QA-approval",
                   description: `${requiredDev} has approved this PR.`,
                 });
               } else {
@@ -46,7 +46,7 @@ jobs:
                   repo: repoName,
                   sha: context.payload.pull_request.head.sha,
                   state: "failure",
-                  context: "specific-dev-approval",
+                  context: "QA-approval",
                   description: `${requiredDev} approval is required for 'feat' PRs.`,
                 });
               }
@@ -56,7 +56,7 @@ jobs:
                 repo: repoName,
                 sha: context.payload.pull_request.head.sha,
                 state: "success",
-                context: "specific-dev-approval",
+                context: "QA-approval",
                 description: "No specific approval required for non-'feat' PRs.",
               });
             }
