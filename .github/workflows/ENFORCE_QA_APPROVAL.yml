@@ -41,8 +41,6 @@ jobs:
               auth: process.env.TOKEN,
             });
             
-            console.log(process.env.TOKEN)
-            
             const teamMembersResponse = await octokit.rest.teams.listMembersInOrg({
               org: "camunda",
               team_slug: "qa-engineering",
