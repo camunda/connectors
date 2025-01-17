@@ -419,6 +419,17 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "isHeaderGroupingEnabled",
+    "label" : "isHeaderGroupingEnabled",
+    "description" : "Group incoming headers with same name into a List",
+    "optional" : true,
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "isHeaderGroupingEnabled",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
     "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",

@@ -120,6 +120,15 @@ public class HttpCommonRequest {
       optional = true)
   private String skipEncoding;
 
+  @TemplateProperty(
+      label = "isHeaderGroupingEnabled",
+      description = "Group incoming headers with same name into a List",
+      type = TemplateProperty.PropertyType.Hidden,
+      feel = Property.FeelMode.disabled,
+      group = "endpoint",
+      optional = true)
+  private String isHeaderGroupingEnabled;
+
   public Object getBody() {
     return body;
   }
@@ -154,6 +163,14 @@ public class HttpCommonRequest {
 
   public void setSkipEncoding(final String skipEncoding) {
     this.skipEncoding = skipEncoding;
+  }
+
+  public boolean isHeaderGroupingEnabled() {
+    return Objects.equals(isHeaderGroupingEnabled, "true");
+  }
+
+  public void setHeaderGroupingEnabled(final String isHeaderGroupingEnabled) {
+    this.isHeaderGroupingEnabled = isHeaderGroupingEnabled;
   }
 
   public boolean hasAuthentication() {
