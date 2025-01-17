@@ -38,7 +38,7 @@ jobs:
             const repoName = context.repo.repo;
             
             const token = process.env.token;
-            const octokit = new require("@actions/github").getOctokit(${{ steps.app-token.outputs.token }});
+            const octokit = github.getOctokit(${{ steps.app-token.outputs.token }});
 
             const teamMembers = await octokit.rest.teams.listMembersInOrg({
               org: "camunda",
