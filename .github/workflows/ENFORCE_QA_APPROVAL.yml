@@ -46,7 +46,8 @@ jobs:
             const teamMembers = await octokit.rest.teams.listMembersInOrg({
               org: "camunda",
               team_slug: "qa-engineering",
-            });
+            })
+            .map(tm => tm.login);
             
             console.log("team members are :" + teamMembers);
             
@@ -58,7 +59,7 @@ jobs:
             
             
             const hasApproved = reviews.data.some(review => 
-              teamUsernames.includes(review.user.login) && review.state === "APPROVED"
+              teamMembers.includes(review.user.login) && review.state === "APPROVED"
             );
 
             if (prTitle.startsWith("feat")) {
