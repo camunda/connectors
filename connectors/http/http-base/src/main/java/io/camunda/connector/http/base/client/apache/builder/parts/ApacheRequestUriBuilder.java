@@ -23,6 +23,6 @@ public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
-    builder.setUri(UrlEncoder.toEncodedUri(request.getUrl()));
+    builder.setUri(UrlEncoder.toEncodedUri(request.getUrl(), request.getSkipEncoding()));
   }
 }

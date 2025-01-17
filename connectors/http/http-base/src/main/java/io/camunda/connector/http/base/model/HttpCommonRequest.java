@@ -111,6 +111,15 @@ public class HttpCommonRequest {
       optional = true)
   private String groupSetCookieHeaders;
 
+  @TemplateProperty(
+      label = "Skip URL encoding",
+      description = "Skip the default URL decoding and encoding behavior",
+      type = TemplateProperty.PropertyType.Hidden,
+      feel = FeelMode.disabled,
+      group = "endpoint",
+      optional = true)
+  private String skipEncoding;
+
   public Object getBody() {
     return body;
   }
@@ -145,6 +154,14 @@ public class HttpCommonRequest {
 
   public void setGroupSetCookieHeaders(final String groupSetCookieHeaders) {
     this.groupSetCookieHeaders = groupSetCookieHeaders;
+  }
+
+  public boolean getSkipEncoding() {
+    return Objects.equals(skipEncoding, "true");
+  }
+
+  public void setSkipEncoding(final String skipEncoding) {
+    this.skipEncoding = skipEncoding;
   }
 
   public boolean hasAuthentication() {
