@@ -55,7 +55,7 @@ public class FileResponseHandler {
     return null;
   }
 
-  public Document handle(Map<String, String> headers, byte[] content) {
+  public Document handle(Map<String, Object> headers, byte[] content) {
     if (storeResponseSelected()
         && executionEnvironment instanceof ExecutionEnvironment.StoresDocument env) {
       try (var byteArrayInputStream = new ByteArrayInputStream(content)) {
@@ -72,10 +72,11 @@ public class FileResponseHandler {
     return null;
   }
 
-  private String getContentType(Map<String, String> headers) {
+  private String getContentType(Map<String, Object> headers) {
     return headers.entrySet().stream()
         .filter(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE))
         .map(Map.Entry::getValue)
+        .map(Object::toString)
         .findFirst()
         .orElse(null);
   }

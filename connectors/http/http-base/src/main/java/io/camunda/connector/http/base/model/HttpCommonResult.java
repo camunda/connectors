@@ -27,24 +27,24 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 
 public record HttpCommonResult(
-    int status, Map<String, String> headers, Object body, String reason, Document document) {
+    int status, Map<String, Object> headers, Object body, String reason, Document document) {
 
-  public HttpCommonResult(int status, Map<String, String> headers, Object body, String reason) {
+  public HttpCommonResult(int status, Map<String, Object> headers, Object body, String reason) {
     this(status, headers, body, reason, null);
   }
 
   public HttpCommonResult(
-      int status, Map<String, String> headers, Object body, Document documentReference) {
+      int status, Map<String, Object> headers, Object body, Document documentReference) {
     this(status, headers, body, null, documentReference);
   }
 
-  public HttpCommonResult(int status, Map<String, String> headers, Object body) {
+  public HttpCommonResult(int status, Map<String, Object> headers, Object body) {
     this(status, headers, body, null, null);
   }
 
   @DataExample(id = "basic", feel = "= body.order.id")
   public static HttpCommonResult exampleResult() {
-    Map<String, String> headers = Map.of("Content-Type", "application/json");
+    Map<String, Object> headers = Map.of("Content-Type", "application/json");
     DocumentReference.CamundaDocumentReference documentReference =
         new CamundaDocumentReferenceImpl(
             "theStoreId",
