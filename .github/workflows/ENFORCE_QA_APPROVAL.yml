@@ -11,6 +11,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v3.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          secrets: |
+            secret/data/products/infra/ci/infra-releases RELEASES_APP_ID;
+            secret/data/products/infra/ci/infra-releases RELEASES_APP_KEY;
+      - name: Generate a GitHub token for infra-rerun camunda/infra-global-github-actions
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.RELEASES_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.RELEASES_APP_KEY }}
       - name: Check PR Title and Specific Dev Approval
         uses: actions/github-script@v6
         with:
@@ -19,8 +36,11 @@ jobs:
             const prNumber = context.payload.pull_request.number;
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
+            
+            const token = process.env.token;
+            const octokit = new require("@actions/github").getOctokit(${{ steps.app-token.outputs.token }});
 
-            const teamMembers = await github.rest.teams.listMembersInOrg({
+            const teamMembers = await octokit.rest.teams.listMembersInOrg({
               org: "camunda",
               team_slug: "qa-engineering",
             });
