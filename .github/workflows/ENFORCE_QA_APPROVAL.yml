@@ -37,7 +37,7 @@ jobs:
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
             
-            const octokit = github.getOctokit(${{ steps.app-token.outputs.token }});
+            const octokit = github.getOctokit(process.env.TOKEN);
 
             const teamMembers = await octokit.rest.teams.listMembersInOrg({
               org: "camunda",
@@ -87,3 +87,5 @@ jobs:
                 description: "No specific approval required for non-'feat' PRs.",
               });
             }
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
