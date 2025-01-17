@@ -28,11 +28,14 @@ import org.slf4j.LoggerFactory;
 public class UrlEncoder {
   private static final Logger LOG = LoggerFactory.getLogger(ApacheRequestUriBuilder.class);
 
-  public static URI toEncodedUri(String requestUrl) {
+  public static URI toEncodedUri(String requestUrl, Boolean skipEncoding) {
     try {
       // We try to decode the URL first, because it might be encoded already
       // which would lead to double encoding. Decoding is safe here, because it does nothing if
       // the URL is not encoded.
+      if (skipEncoding) {
+        return URI.create(requestUrl);
+      }
       var decodedUrl = URLDecoder.decode(requestUrl, StandardCharsets.UTF_8);
       var url = new URL(decodedUrl);
       // Only this URI constructor escapes the URL properly
