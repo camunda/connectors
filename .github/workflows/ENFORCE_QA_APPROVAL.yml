@@ -41,7 +41,7 @@ jobs:
               auth: process.env.token,
             });
             
-            console.log(octokit)
+            console.log(process.env.token)
             
             const teamMembers = await octokit.rest.teams.listMembersInOrg({
               org: "camunda",
