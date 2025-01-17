@@ -37,8 +37,10 @@ jobs:
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
             
-            const octokit = github.getOctokit(process.env.TOKEN);
-
+            const octokit = new github.constructor({
+              auth: process.env.token,
+            });
+            
             const teamMembers = await octokit.rest.teams.listMembersInOrg({
               org: "camunda",
               team_slug: "qa-engineering",
