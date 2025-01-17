@@ -43,11 +43,12 @@ jobs:
             
             console.log(process.env.TOKEN)
             
-            const teamMembers = await octokit.rest.teams.listMembersInOrg({
+            const teamMembersResponse = await octokit.rest.teams.listMembersInOrg({
               org: "camunda",
               team_slug: "qa-engineering",
             })
             
+            const teamMembers = teamMembersResponse.data.map(tm => tm.login);
             console.log("team members are :" + JSON.stringify(teamMembers));
             
             const reviews = await github.rest.pulls.listReviews({
@@ -60,6 +61,7 @@ jobs:
             const hasApproved = reviews.data.some(review => 
               teamMembers.includes(review.user.login) && review.state === "APPROVED"
             );
+            
 
             if (prTitle.startsWith("feat")) {
               if (hasApproved) {
