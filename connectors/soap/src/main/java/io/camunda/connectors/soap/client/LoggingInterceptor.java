@@ -21,7 +21,7 @@ public class LoggingInterceptor implements ClientInterceptor {
   public boolean handleRequest(MessageContext messageContext) throws WebServiceClientException {
     if (messageContext.getRequest() instanceof SoapMessage soapMessage) {
       String document = XmlUtilities.xmlDocumentToString(soapMessage.getDocument(), false, true);
-      LOG.debug("Request: \n{}", document);
+      LOG.trace("Request: \n{}", document);
     }
     return true;
   }
@@ -30,7 +30,7 @@ public class LoggingInterceptor implements ClientInterceptor {
   public boolean handleResponse(MessageContext messageContext) throws WebServiceClientException {
     if (messageContext.getResponse() instanceof SoapMessage soapMessage) {
       String document = XmlUtilities.xmlDocumentToString(soapMessage.getDocument(), false, true);
-      LOG.debug("Response: \n{}", document);
+      LOG.trace("Response: \n{}", document);
     }
     return true;
   }
