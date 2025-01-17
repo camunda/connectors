@@ -33,6 +33,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       "authentication",
       "headers",
       "queryParameters",
+      "skipEncoding",
       "connectionTimeoutInSeconds",
       "readTimeoutInSeconds",
       "writeTimeoutInSeconds",
@@ -46,7 +47,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     description = "Invoke REST API",
     inputDataClass = HttpJsonRequest.class,
     outputDataClass = HttpCommonResult.class,
-    version = 8,
+    version = 10,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "endpoint", label = "HTTP endpoint"),

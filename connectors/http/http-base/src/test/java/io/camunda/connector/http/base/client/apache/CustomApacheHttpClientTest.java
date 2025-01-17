@@ -19,6 +19,7 @@ package io.camunda.connector.http.base.client.apache;
 import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
 import static com.github.tomakehurst.wiremock.client.WireMock.and;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.created;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
@@ -254,6 +255,23 @@ public class CustomApacheHttpClientTest {
       request.setUrl(
           wmRuntimeInfo.getHttpBaseUrl() + "/path%20with%20spaces?andQuery=Param with space");
       HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+    }
+
+    @ParameterizedTest
+    @EnumSource(HttpMethod.class)
+    public void shouldKeepOriginalEscaping_whenSkipEscapingIsSet(
+        HttpMethod method, WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(any(urlEqualTo("/path%2Fwith%2Fencoding")).willReturn(ok()));
+      stubFor(any(urlEqualTo("/path/with/encoding")).willReturn(badRequest()));
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(method);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path%2Fwith%2Fencoding");
+      request.setSkipEncoding("true");
+
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
     }
