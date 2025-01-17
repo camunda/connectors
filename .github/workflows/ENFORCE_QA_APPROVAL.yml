@@ -71,7 +71,7 @@ jobs:
                   sha: context.payload.pull_request.head.sha,
                   state: "success",
                   context: "QA-approval",
-                  description: `${requiredDev} has approved this PR.`,
+                  description: `a QA has approved this PR.`,
                 });
               } else {
                 await github.rest.repos.createCommitStatus({
@@ -80,7 +80,7 @@ jobs:
                   sha: context.payload.pull_request.head.sha,
                   state: "failure",
                   context: "QA-approval",
-                  description: `${requiredDev} approval is required for 'feat' PRs.`,
+                  description: `a QA approval is required for 'feat' PRs.`,
                 });
               }
             } else {
