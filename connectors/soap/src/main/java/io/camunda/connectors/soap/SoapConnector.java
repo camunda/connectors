@@ -91,7 +91,7 @@ public class SoapConnector implements OutboundConnectorFunction {
               .withPreserveNamespaces(false)
               .build()
               .toJson(XmlUtilities.xmlStringToDocument(soapResponseMessage));
-      LOG.debug("Response to connector runtime: \n{}", response.toPrettyString());
+      LOG.trace("Response to connector runtime: \n{}", response.toPrettyString());
       return response;
     } catch (WebServiceException e) {
       if (e instanceof SoapFaultClientException soapFaultClientException) {
