@@ -38,10 +38,10 @@ jobs:
             const repoName = context.repo.repo;
             
             const octokit = new github.constructor({
-              auth: process.env.token,
+              auth: process.env.TOKEN,
             });
             
-            console.log(process.env.token)
+            console.log(process.env.TOKEN)
             
             const teamMembers = await octokit.rest.teams.listMembersInOrg({
               org: "camunda",
