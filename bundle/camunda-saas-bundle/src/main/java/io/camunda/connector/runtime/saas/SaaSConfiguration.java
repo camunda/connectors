@@ -37,6 +37,7 @@ public class SaaSConfiguration {
   @Value("${camunda.saas.secrets.internalPrefix:internal-connector-secrets}")
   private String secretsInternalNamePrefix;
 
+
   @Value("${zeebe.client.cloud.cluster-id}")
   private String clusterId;
 
