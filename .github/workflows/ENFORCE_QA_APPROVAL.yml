@@ -20,14 +20,14 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID}}
           secrets: |
-            secret/data/products/infra/ci/infra-releases RELEASES_APP_ID;
-            secret/data/products/infra/ci/infra-releases RELEASES_APP_KEY;
-      - name: Generate a GitHub token for infra-rerun camunda/infra-global-github-actions
+            products/connectors/ci/common GITHUB_APP_ID;
+            products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+      - name: Generate a GitHub token for connectors
         id: app-token
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ steps.vault-secrets.outputs.RELEASES_APP_ID }}
-          private-key: ${{ steps.vault-secrets.outputs.RELEASES_APP_KEY }}
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
       - name: Check PR Title and Specific Dev Approval
         uses: actions/github-script@v6
         with:
