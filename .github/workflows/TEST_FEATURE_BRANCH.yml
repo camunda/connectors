@@ -42,6 +42,7 @@ jobs:
           java-version: '21'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v3.1.0
         with:
@@ -52,7 +53,7 @@ jobs:
                "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
                "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*", "name": "camunda Nexus"}]'
 
       - uses: actions/setup-node@v4
         with:
