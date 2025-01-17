@@ -320,6 +320,23 @@ public class CustomApacheHttpClientTest {
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
     }
+
+    @ParameterizedTest
+    @EnumSource(HttpMethod.class)
+    public void shouldKeepOriginalEscaping_whenSkipEscapingIsSet(
+        HttpMethod method, WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(any(urlEqualTo("/path%2Fwith%2Fencoding")).willReturn(ok()));
+      stubFor(any(urlEqualTo("/path/with/encoding")).willReturn(badRequest()));
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(method);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path%2Fwith%2Fencoding");
+      request.setSkipEncoding("true");
+
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+    }
   }
 
   @Nested
