@@ -45,7 +45,9 @@ import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ContentType;
@@ -53,8 +55,7 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.*;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.testcontainers.Testcontainers;
@@ -380,6 +381,34 @@ public class CustomApacheHttpClientTest {
       HttpCommonResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
+    }
+
+    private static Stream<Arguments> provideTestDataForHeaderTest() {
+      return Stream.of(
+          Arguments.of("Set-Cookie", "false", false, "Test-Value-1"),
+          Arguments.of("Set-Cookie", "true", true, List.of("Test-Value-1", "Test-Value-2")),
+          Arguments.of("other-than-set-cookie", "false", false, "Test-Value-1"),
+          Arguments.of("other-than-set-cookie", "true", false, "Test-Value-1"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideTestDataForHeaderTest")
+    public void shouldReturn200_whenDuplicatedHeadersAsListDisabled(
+        String headerKey,
+        String groupSetCookieHeaders,
+        Boolean expectedDoesReturnList,
+        Object expectedValue,
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(get("/path").willReturn(ok().withHeader(headerKey, "Test-Value-1", "Test-Value-2")));
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setGroupSetCookieHeaders(groupSetCookieHeaders);
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+      assertThat(result.headers().get(headerKey) instanceof List).isEqualTo(expectedDoesReturnList);
+      assertThat(result.headers().get(headerKey)).isEqualTo(expectedValue);
     }
 
     @Test

@@ -38,7 +38,8 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       "readTimeoutInSeconds",
       "writeTimeoutInSeconds",
       "body",
-      "storeResponse"
+      "storeResponse",
+      "groupSetCookieHeaders"
     },
     type = HttpJsonFunction.TYPE)
 @ElementTemplate(
