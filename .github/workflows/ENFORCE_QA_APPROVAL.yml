@@ -1,0 +1,95 @@
+name: Enforce Specific QA Approval for "feat" PRs
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+  pull_request_review:
+    types: [ submitted ]
+
+jobs:
+  enforce-approval:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v3.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+      - name: Check PR Title and Specific Dev Approval
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prTitle = context.payload.pull_request.title;
+            const prNumber = context.payload.pull_request.number;
+            const repoOwner = context.repo.owner;
+            const repoName = context.repo.repo;
+            
+            const octokit = new github.constructor({
+              auth: process.env.TOKEN,
+            });
+            
+            const teamMembersResponse = await octokit.rest.teams.listMembersInOrg({
+              org: "camunda",
+              team_slug: "qa-engineering",
+            })
+            
+            const teamMembers = teamMembersResponse.data.map(tm => tm.login);
+            console.log("team members are :" + JSON.stringify(teamMembers));
+            
+            const reviews = await github.rest.pulls.listReviews({
+              owner: repoOwner,
+              repo: repoName,
+              pull_number: prNumber,
+            });
+            
+            
+            const hasApproved = reviews.data.some(review => 
+              teamMembers.includes(review.user.login) && review.state === "APPROVED"
+            );
+            
+
+            if (prTitle.startsWith("feat")) {
+              if (hasApproved) {
+                await github.rest.repos.createCommitStatus({
+                  owner: repoOwner,
+                  repo: repoName,
+                  sha: context.payload.pull_request.head.sha,
+                  state: "success",
+                  context: "QA-approval",
+                  description: `a QA has approved this PR.`,
+                });
+              } else {
+                await github.rest.repos.createCommitStatus({
+                  owner: repoOwner,
+                  repo: repoName,
+                  sha: context.payload.pull_request.head.sha,
+                  state: "failure",
+                  context: "QA-approval",
+                  description: `a QA approval is required for 'feat' PRs.`,
+                });
+              }
+            } else {
+              await github.rest.repos.createCommitStatus({
+                owner: repoOwner,
+                repo: repoName,
+                sha: context.payload.pull_request.head.sha,
+                state: "success",
+                context: "QA-approval",
+                description: "No specific approval required for non-'feat' PRs.",
+              });
+            }
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}

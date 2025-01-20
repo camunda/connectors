@@ -111,6 +111,25 @@ public class HttpCommonRequest {
       description = "Store the response as a document in the document store")
   private boolean storeResponse;
 
+  @TemplateProperty(
+      label = "Skip URL encoding",
+      description = "Skip the default URL decoding and encoding behavior",
+      type = TemplateProperty.PropertyType.Hidden,
+      feel = Property.FeelMode.disabled,
+      group = "endpoint",
+      optional = true)
+  private String skipEncoding;
+
+  @TemplateProperty(
+      label = "Group set-cookie headers to a list",
+      description =
+          "Group incoming headers with same name into a List to support <a href=\"https://datatracker.ietf.org/doc/html/rfc6265\">multiple Set-Cookie headers</a>.",
+      type = TemplateProperty.PropertyType.Hidden,
+      feel = Property.FeelMode.disabled,
+      group = "endpoint",
+      optional = true)
+  private String groupSetCookieHeaders;
+
   public Object getBody() {
     return body;
   }
@@ -137,6 +156,22 @@ public class HttpCommonRequest {
 
   public void setQueryParameters(Map<String, String> queryParameters) {
     this.queryParameters = queryParameters;
+  }
+
+  public boolean getSkipEncoding() {
+    return Objects.equals(skipEncoding, "true");
+  }
+
+  public void setSkipEncoding(final String skipEncoding) {
+    this.skipEncoding = skipEncoding;
+  }
+
+  public boolean getGroupSetCookieHeaders() {
+    return Objects.equals(groupSetCookieHeaders, "true");
+  }
+
+  public void setGroupSetCookieHeaders(final String groupSetCookieHeaders) {
+    this.groupSetCookieHeaders = groupSetCookieHeaders;
   }
 
   public boolean hasAuthentication() {

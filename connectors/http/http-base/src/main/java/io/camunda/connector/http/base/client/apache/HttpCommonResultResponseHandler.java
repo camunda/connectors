@@ -28,9 +28,7 @@ import io.camunda.document.Document;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
@@ -51,23 +49,27 @@ public class HttpCommonResultResponseHandler
 
   private final boolean isStoreResponseSelected;
 
+  private final boolean groupSetCookieHeaders;
+
   public HttpCommonResultResponseHandler(
-      @Nullable ExecutionEnvironment executionEnvironment, boolean isStoreResponseSelected) {
+      @Nullable ExecutionEnvironment executionEnvironment,
+      boolean isStoreResponseSelected,
+      boolean groupSetCookieHeaders) {
     this.executionEnvironment = executionEnvironment;
     this.isStoreResponseSelected = isStoreResponseSelected;
     this.fileResponseHandler =
         new FileResponseHandler(executionEnvironment, isStoreResponseSelected);
+    this.groupSetCookieHeaders = groupSetCookieHeaders;
   }
 
   @Override
   public HttpCommonResult handleResponse(ClassicHttpResponse response) {
     int code = response.getCode();
     String reason = response.getReasonPhrase();
-    Map<String, String> headers =
-        Arrays.stream(response.getHeaders())
-            .collect(
-                // Collect the headers into a map ignoring duplicates (Set Cookies for instance)
-                Collectors.toMap(Header::getName, Header::getValue, (first, second) -> first));
+    Map<String, Object> headers =
+        HttpCommonResultResponseHandler.formatHeaders(
+            response.getHeaders(), this.groupSetCookieHeaders);
+
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
         if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
@@ -88,7 +90,30 @@ public class HttpCommonResultResponseHandler
     return new HttpCommonResult(code, headers, null, reason);
   }
 
-  private Document handleFileResponse(Map<String, String> headers, byte[] content) {
+  private static Map<String, Object> formatHeaders(
+      Header[] headersArray, Boolean groupSetCookieHeaders) {
+    return Arrays.stream(headersArray)
+        .collect(
+            Collectors.toMap(
+                Header::getName,
+                header -> {
+                  if (groupSetCookieHeaders && header.getName().equalsIgnoreCase("Set-Cookie")) {
+                    return new ArrayList<String>(List.of(header.getValue()));
+                  } else {
+                    return header.getValue();
+                  }
+                },
+                (existingValue, newValue) -> {
+                  if (groupSetCookieHeaders
+                      && existingValue instanceof List
+                      && newValue instanceof List) {
+                    ((List<String>) existingValue).add(((List<String>) newValue).getFirst());
+                  }
+                  return existingValue;
+                }));
+  }
+
+  private Document handleFileResponse(Map<String, Object> headers, byte[] content) {
     var document = fileResponseHandler.handle(headers, content);
     LOGGER.debug("Stored response as document. Document reference: {}", document);
     return document;
@@ -99,7 +124,7 @@ public class HttpCommonResultResponseHandler
    * unwrapped as an ErrorResponse. Otherwise, it will be unwrapped as a HttpCommonResult.
    */
   private HttpCommonResult getResultForCloudFunction(
-      int code, InputStream content, Map<String, String> headers, String reason)
+      int code, InputStream content, Map<String, Object> headers, String reason)
       throws IOException {
     if (HttpStatusHelper.isError(code)) {
       // unwrap as ErrorResponse
