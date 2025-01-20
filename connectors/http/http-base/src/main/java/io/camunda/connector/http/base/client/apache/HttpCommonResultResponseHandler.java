@@ -41,9 +41,12 @@ public class HttpCommonResultResponseHandler
       LoggerFactory.getLogger(HttpCommonResultResponseHandler.class);
 
   boolean cloudFunctionEnabled;
+  boolean groupSetCookieHeaders;
 
-  public HttpCommonResultResponseHandler(boolean cloudFunctionEnabled) {
+  public HttpCommonResultResponseHandler(
+      boolean cloudFunctionEnabled, boolean groupSetCookieHeaders) {
     this.cloudFunctionEnabled = cloudFunctionEnabled;
+    this.groupSetCookieHeaders = groupSetCookieHeaders;
   }
 
   @Override
@@ -51,10 +54,9 @@ public class HttpCommonResultResponseHandler
     int code = response.getCode();
     String reason = response.getReasonPhrase();
     Map<String, Object> headers =
-        Arrays.stream(response.getHeaders())
-            .collect(
-                // Collect the headers into a map ignoring duplicates (Set Cookies for instance)
-                Collectors.toMap(Header::getName, Header::getValue, (first, second) -> first));
+        HttpCommonResultResponseHandler.formatHeaders(
+            response.getHeaders(), this.groupSetCookieHeaders);
+
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
         if (cloudFunctionEnabled) {
@@ -66,6 +68,35 @@ public class HttpCommonResultResponseHandler
       }
     }
     return new HttpCommonResult(code, headers, null, reason);
+  }
+
+  private static Map<String, Object> formatHeaders(
+      Header[] headersArray, Boolean groupSetCookieHeaders) {
+    return Arrays.stream(headersArray)
+        .collect(
+            Collectors.toMap(
+                Header::getName,
+                header -> {
+                  if (groupSetCookieHeaders && header.getName().equalsIgnoreCase("Set-Cookie")) {
+                    return new ArrayList<String>(List.of(header.getValue()));
+                  } else {
+                    return header.getValue();
+                  }
+                },
+                (existingValue, newValue) -> {
+                  if (groupSetCookieHeaders
+                      && existingValue instanceof List
+                      && newValue instanceof List) {
+                    ((List<String>) existingValue).add(((List<String>) newValue).getFirst());
+                  }
+                  return existingValue;
+                }));
+  }
+
+  private Document handleFileResponse(Map<String, Object> headers, byte[] content) {
+    var document = fileResponseHandler.handle(headers, content);
+    LOGGER.debug("Stored response as document. Document reference: {}", document);
+    return document;
   }
 
   /**
