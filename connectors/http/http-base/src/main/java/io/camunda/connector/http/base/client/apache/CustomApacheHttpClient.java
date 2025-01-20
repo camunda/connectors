@@ -111,7 +111,7 @@ public class CustomApacheHttpClient implements HttpClient {
                   new HttpCommonResultResponseHandler(
                       executionEnvironment,
                       request.isStoreResponse(),
-                      request.isHeaderGroupingEnabled()));
+                      request.getGroupSetCookieHeaders()));
       if (HttpStatusHelper.isError(result.status())) {
         throw ConnectorExceptionMapper.from(result);
       }

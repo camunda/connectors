@@ -121,13 +121,14 @@ public class HttpCommonRequest {
   private String skipEncoding;
 
   @TemplateProperty(
-      label = "isHeaderGroupingEnabled",
-      description = "Group incoming headers with same name into a List",
+      label = "Group set-cookie headers to a list",
+      description =
+          "Group incoming headers with same name into a List to support <a href=\"https://datatracker.ietf.org/doc/html/rfc6265\">multiple Set-Cookie headers</a>.",
       type = TemplateProperty.PropertyType.Hidden,
       feel = Property.FeelMode.disabled,
       group = "endpoint",
       optional = true)
-  private String isHeaderGroupingEnabled;
+  private String groupSetCookieHeaders;
 
   public Object getBody() {
     return body;
@@ -165,12 +166,12 @@ public class HttpCommonRequest {
     this.skipEncoding = skipEncoding;
   }
 
-  public boolean isHeaderGroupingEnabled() {
-    return Objects.equals(isHeaderGroupingEnabled, "true");
+  public boolean getGroupSetCookieHeaders() {
+    return Objects.equals(groupSetCookieHeaders, "true");
   }
 
-  public void setHeaderGroupingEnabled(final String isHeaderGroupingEnabled) {
-    this.isHeaderGroupingEnabled = isHeaderGroupingEnabled;
+  public void setGroupSetCookieHeaders(final String groupSetCookieHeaders) {
+    this.groupSetCookieHeaders = groupSetCookieHeaders;
   }
 
   public boolean hasAuthentication() {

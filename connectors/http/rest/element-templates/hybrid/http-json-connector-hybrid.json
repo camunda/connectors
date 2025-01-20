@@ -419,13 +419,13 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "isHeaderGroupingEnabled",
-    "label" : "isHeaderGroupingEnabled",
-    "description" : "Group incoming headers with same name into a List",
+    "id" : "groupSetCookieHeaders",
+    "label" : "Group set-cookie headers to a list",
+    "description" : "Group incoming headers with same name into a List to support <a href=\"https://datatracker.ietf.org/doc/html/rfc6265\">multiple Set-Cookie headers</a>.",
     "optional" : true,
     "group" : "endpoint",
     "binding" : {
-      "name" : "isHeaderGroupingEnabled",
+      "name" : "groupSetCookieHeaders",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"

@@ -395,7 +395,7 @@ public class CustomApacheHttpClientTest {
     @MethodSource("provideTestDataForHeaderTest")
     public void shouldReturn200_whenDuplicatedHeadersAsListDisabled(
         String headerKey,
-        String isHeaderGroupingEnabled,
+        String groupSetCookieHeaders,
         Boolean expectedDoesReturnList,
         Object expectedValue,
         WireMockRuntimeInfo wmRuntimeInfo) {
@@ -403,7 +403,7 @@ public class CustomApacheHttpClientTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      request.setHeaderGroupingEnabled(isHeaderGroupingEnabled);
+      request.setGroupSetCookieHeaders(groupSetCookieHeaders);
       HttpCommonResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);

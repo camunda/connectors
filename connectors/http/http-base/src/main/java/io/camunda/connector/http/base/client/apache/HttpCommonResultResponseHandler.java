@@ -49,24 +49,26 @@ public class HttpCommonResultResponseHandler
 
   private final boolean isStoreResponseSelected;
 
-  private final boolean isHeaderGroupingEnabled;
+  private final boolean groupSetCookieHeaders;
 
   public HttpCommonResultResponseHandler(
       @Nullable ExecutionEnvironment executionEnvironment,
       boolean isStoreResponseSelected,
-      boolean isHeaderGroupingEnabled) {
+      boolean groupSetCookieHeaders) {
     this.executionEnvironment = executionEnvironment;
     this.isStoreResponseSelected = isStoreResponseSelected;
     this.fileResponseHandler =
         new FileResponseHandler(executionEnvironment, isStoreResponseSelected);
-    this.isHeaderGroupingEnabled = isHeaderGroupingEnabled;
+    this.groupSetCookieHeaders = groupSetCookieHeaders;
   }
 
   @Override
   public HttpCommonResult handleResponse(ClassicHttpResponse response) {
     int code = response.getCode();
     String reason = response.getReasonPhrase();
-    Map<String, Object> headers = this.formatHeaders(response.getHeaders());
+    Map<String, Object> headers =
+        HttpCommonResultResponseHandler.formatHeaders(
+            response.getHeaders(), this.groupSetCookieHeaders);
 
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
@@ -88,23 +90,23 @@ public class HttpCommonResultResponseHandler
     return new HttpCommonResult(code, headers, null, reason);
   }
 
-  private Map<String, Object> formatHeaders(Header[] headersArray) {
+  private static Map<String, Object> formatHeaders(
+      Header[] headersArray, Boolean groupSetCookieHeaders) {
     return Arrays.stream(headersArray)
         .collect(
             Collectors.toMap(
                 Header::getName,
                 header -> {
-                  if (isHeaderGroupingEnabled && header.getName().equalsIgnoreCase("Set-Cookie")) {
+                  if (groupSetCookieHeaders && header.getName().equalsIgnoreCase("Set-Cookie")) {
                     return new ArrayList<String>(List.of(header.getValue()));
+                  } else {
+                    return header.getValue();
                   }
-                  return header.getValue();
                 },
                 (existingValue, newValue) -> {
-                  if (isHeaderGroupingEnabled
+                  if (groupSetCookieHeaders
                       && existingValue instanceof List
-                      && ((List<?>) existingValue).getFirst() instanceof String
-                      && newValue instanceof List
-                      && ((List<?>) newValue).getFirst() instanceof String) {
+                      && newValue instanceof List) {
                     ((List<String>) existingValue).add(((List<String>) newValue).getFirst());
                   }
                   return existingValue;
