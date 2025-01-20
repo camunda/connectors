@@ -17,7 +17,7 @@
 package io.camunda.connector.core;
 
 import io.camunda.connector.uniquet.core.GitCrawler;
-import io.camunda.connector.uniquet.dto.VersionValue;
+import io.camunda.connector.uniquet.dto.VersionMatrix;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,21 +70,29 @@ class GitCrawlerTest {
     RevCommit revCommit2 = git.commit().setSign(false).setMessage("commit 2").call();
 
     // commit 3
-    String content3 = Files.readString(Path.of("src/test/resources/commit3_version_changed.json"));
-    Files.write(newFilePath, content3.getBytes(), StandardOpenOption.CREATE);
+    String content3 = Files.readString(Path.of("src/test/resources/fakepom2.xml"));
+    Files.write(pomPath, content3.getBytes(), StandardOpenOption.CREATE);
     git.add().addFilepattern(".").call();
     RevCommit revCommit3 = git.commit().setSign(false).setMessage("commit 3").call();
 
-    Map<String, Map<Integer, VersionValue>> map =
+    // commit 4
+    String content4 = Files.readString(Path.of("src/test/resources/commit3_version_changed.json"));
+    Files.write(newFilePath, content4.getBytes(), StandardOpenOption.CREATE);
+    git.add().addFilepattern(".").call();
+    RevCommit revCommit4 = git.commit().setSign(false).setMessage("commit 4").call();
+
+    Map<String, Map<VersionMatrix, String>> map =
         GitCrawler.create(git.getRepository().getDirectory().getParentFile().getPath())
             .crawl("master")
             .getResult();
 
-    // Verification that the version 2 is the last commit
-    Assertions.assertTrue(map.get("test").get(2).link().contains(revCommit3.getName()));
-    Assertions.assertTrue(map.get("test").get(2).connectorRuntime().equals("^9.9"));
-    // Verification that the version 1 is the last commit containing version 1
-    Assertions.assertTrue(map.get("test").get(1).link().contains(revCommit2.getName()));
-    Assertions.assertFalse(map.get("test").get(1).link().contains(revCommit1.getName()));
+    System.out.println(map);
+
+    Assertions.assertTrue(
+        map.get("test").get(new VersionMatrix("1", "8.2")).contains(revCommit3.getName()));
+    Assertions.assertTrue(
+        map.get("test").get(new VersionMatrix("2", "8.2")).contains(revCommit4.getName()));
+    Assertions.assertTrue(
+        map.get("test").get(new VersionMatrix("1", "8.1")).contains(revCommit2.getName()));
   }
 }

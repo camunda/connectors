@@ -16,4 +16,4 @@
  */
 package io.camunda.connector.uniquet.dto;
 
-public record OutputElementTemplate(Integer version, String ref, Engine engine) {}
+public record OutputElementTemplate(String version, String ref) {}

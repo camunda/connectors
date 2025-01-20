@@ -82,7 +82,7 @@ public class ElementTemplateIterator implements Iterator<ElementTemplateFile> {
         MavenXpp3Reader mavenReader = new MavenXpp3Reader();
         Model model = mavenReader.read(reader);
         String[] version = model.getParent().getVersion().split("\\.");
-        return "^" + version[0] + "." + version[1];
+        return version[0] + "." + version[1];
       }
     } catch (IOException
         | XmlPullParserException

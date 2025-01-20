@@ -18,9 +18,8 @@ package io.camunda.connector.uniquet.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.camunda.connector.uniquet.dto.Engine;
 import io.camunda.connector.uniquet.dto.OutputElementTemplate;
-import io.camunda.connector.uniquet.dto.VersionValue;
+import io.camunda.connector.uniquet.dto.VersionMatrix;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -36,7 +35,8 @@ public class GitCrawler {
 
   private static final String RAW_GITHUB_LINK =
       "https://raw.githubusercontent.com/camunda/connectors/%s/%s";
-  private final Map<String, Map<Integer, VersionValue>> result = new HashMap<>();
+  private static final String CAMUNDA_VERSION = "8";
+  private final Map<String, Map<VersionMatrix, String>> result = new HashMap<>();
   private final Repository repository;
 
   public GitCrawler(Repository repository) {
@@ -55,7 +55,7 @@ public class GitCrawler {
     }
   }
 
-  public Map<String, Map<Integer, VersionValue>> getResult() {
+  public Map<String, Map<VersionMatrix, String>> getResult() {
     return result;
   }
 
@@ -77,29 +77,20 @@ public class GitCrawler {
     new ElementTemplateIterator(repository, commit)
         .forEachRemaining(
             elementTemplateFile -> {
+              VersionMatrix key =
+                  new VersionMatrix(
+                      elementTemplateFile.elementTemplate().version().toString(),
+                      elementTemplateFile.connectorRuntime());
               if (result.containsKey(elementTemplateFile.elementTemplate().id())) {
                 result
                     .get(elementTemplateFile.elementTemplate().id())
-                    .compute(
-                        elementTemplateFile.elementTemplate().version(),
-                        (integer, versionValue) ->
-                            Optional.ofNullable(versionValue)
-                                .map(
-                                    vv ->
-                                        new VersionValue(
-                                            vv.link(), elementTemplateFile.connectorRuntime()))
-                                .orElse(
-                                    new VersionValue(
-                                        RAW_GITHUB_LINK.formatted(
-                                            commit.getName(), elementTemplateFile.path()),
-                                        elementTemplateFile.connectorRuntime())));
+                    .putIfAbsent(
+                        key,
+                        RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()));
               } else {
-                Map<Integer, VersionValue> version = new HashMap<>();
+                Map<VersionMatrix, String> version = new HashMap<>();
                 version.put(
-                    elementTemplateFile.elementTemplate().version(),
-                    new VersionValue(
-                        RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()),
-                        elementTemplateFile.connectorRuntime()));
+                    key, RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()));
                 result.put(elementTemplateFile.elementTemplate().id(), version);
               }
             });
@@ -117,24 +108,39 @@ public class GitCrawler {
     return this;
   }
 
-  private Map<String, List<OutputElementTemplate>> fromMap(
-      Map<String, Map<Integer, VersionValue>> result) {
+  private Map<String, Map<String, List<OutputElementTemplate>>> fromMap(
+      Map<String, Map<VersionMatrix, String>> result) {
     return result.entrySet().stream()
-        .map(
-            stringMapEntry ->
-                Map.entry(
-                    stringMapEntry.getKey(),
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey,
+                stringMapEntry ->
                     stringMapEntry.getValue().entrySet().stream()
-                        .map(
-                            integerVersionValueEntry ->
-                                new OutputElementTemplate(
-                                    integerVersionValueEntry.getKey(),
-                                    integerVersionValueEntry.getValue().link(),
-                                    new Engine(
-                                        integerVersionValueEntry.getValue().connectorRuntime())))
-                        .sorted((o1, o2) -> o2.version() - o1.version())
-                        .toList()))
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                        .filter(
+                            versionMatrixStringEntry ->
+                                versionMatrixStringEntry
+                                    .getKey()
+                                    .ConnectorRuntimeVersion()
+                                    .startsWith(CAMUNDA_VERSION))
+                        .collect(
+                            Collectors.groupingBy(
+                                versionMatrixStringEntry ->
+                                    versionMatrixStringEntry.getKey().ConnectorRuntimeVersion()))
+                        .entrySet()
+                        .stream()
+                        .collect(
+                            Collectors.toMap(
+                                Map.Entry::getKey,
+                                e ->
+                                    e.getValue().stream()
+                                        .map(
+                                            versionMatrixStringEntry ->
+                                                new OutputElementTemplate(
+                                                    versionMatrixStringEntry
+                                                        .getKey()
+                                                        .elementTemplateVersion(),
+                                                    versionMatrixStringEntry.getValue()))
+                                        .toList()))));
   }
 
   public void close() {

@@ -4,7 +4,7 @@
     <parent>
         <groupId>test</groupId>
         <artifactId>test-parent</artifactId>
-        <version>8.1</version>
+        <version>8.2</version>
     </parent>
 
     <artifactId>test-test</artifactId>

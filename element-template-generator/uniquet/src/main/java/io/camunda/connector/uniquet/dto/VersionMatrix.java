@@ -16,4 +16,4 @@
  */
 package io.camunda.connector.uniquet.dto;
 
-public record VersionValue(String link, String connectorRuntime) {}
+public record VersionMatrix(String elementTemplateVersion, String ConnectorRuntimeVersion) {}
