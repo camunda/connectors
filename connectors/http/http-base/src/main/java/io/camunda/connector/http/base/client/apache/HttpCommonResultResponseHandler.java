@@ -25,7 +25,9 @@ import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -91,12 +93,6 @@ public class HttpCommonResultResponseHandler
                   }
                   return existingValue;
                 }));
-  }
-
-  private Document handleFileResponse(Map<String, Object> headers, byte[] content) {
-    var document = fileResponseHandler.handle(headers, content);
-    LOGGER.debug("Stored response as document. Document reference: {}", document);
-    return document;
   }
 
   /**

@@ -106,7 +106,7 @@ public class HttpCommonRequest {
       description =
           "Group incoming headers with same name into a List to support <a href=\"https://datatracker.ietf.org/doc/html/rfc6265\">multiple Set-Cookie headers</a>.",
       type = TemplateProperty.PropertyType.Hidden,
-      feel = Property.FeelMode.disabled,
+      feel = FeelMode.disabled,
       group = "endpoint",
       optional = true)
   private String groupSetCookieHeaders;
