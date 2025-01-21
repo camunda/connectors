@@ -63,7 +63,7 @@ jobs:
                "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
                "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!central", "name": "camunda Nexus"}]'
 
       - name: Build Artifacts
         run: mvn -B compile generate-sources source:jar javadoc:jar deploy -DskipTests
