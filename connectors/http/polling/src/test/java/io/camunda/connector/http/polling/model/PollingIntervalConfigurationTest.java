@@ -61,12 +61,12 @@ public class PollingIntervalConfigurationTest {
   }
 
   @ParameterizedTest
-  @MethodSource("processPollingIntervalTestCases")
-  public void testGetProcessPollingInterval(String value, long expected) {
-    inboundConnectorContext.getProperties().put("processPollingInterval", value);
+  @MethodSource("operatePollingIntervalTestCases")
+  public void testGetOperatePollingInterval(String value, long expected) {
+    inboundConnectorContext.getProperties().put("operatePollingInterval", value);
     PollingIntervalConfiguration intervals =
         inboundConnectorContext.bindProperties(PollingIntervalConfiguration.class);
-    long interval = intervals.getProcessPollingInterval().toMillis();
+    long interval = intervals.getOperatePollingInterval().toMillis();
     assertThat(interval).isEqualTo(expected);
   }
 
@@ -78,7 +78,7 @@ public class PollingIntervalConfigurationTest {
         Arguments.of(null, 50000));
   }
 
-  private static Stream<Arguments> processPollingIntervalTestCases() {
+  private static Stream<Arguments> operatePollingIntervalTestCases() {
     return Stream.of(
         Arguments.of("PT1M", 60000L),
         Arguments.of("PT45S", 45000L),

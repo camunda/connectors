@@ -24,9 +24,10 @@ import io.camunda.connector.e2e.helper.KafkaTestProducer;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
+import io.camunda.operate.exception.OperateException;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
-import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class InboundKafkaTests extends BaseKafkaTest {
   }
 
   @Test
-  void testKafkaIntermediateConnectorProcessWithJsonKey() {
+  void testKafkaIntermediateConnectorProcessWithJsonKey() throws OperateException {
     Map<String, Object> expectedJsonResponse =
         Map.of(
             "key", MESSAGE_KEY_JSON_AS_OBJECT,
@@ -86,9 +87,9 @@ public class InboundKafkaTests extends BaseKafkaTest {
         new ProcessImportResult(
             Map.of(
                 new ProcessDefinitionIdentifier(
-                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
+                    processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                    processDef.getKey(), processDef.getVersion().intValue()))));
 
     AtomicBoolean kafkaProducerThreadRun =
         producer.startContinuousMessageSending(
@@ -106,7 +107,7 @@ public class InboundKafkaTests extends BaseKafkaTest {
   }
 
   @Test
-  void testKafkaIntermediateConnectorProcessWithStringKey() {
+  void testKafkaIntermediateConnectorProcessWithStringKey() throws OperateException {
     Map<String, Object> expectedJsonResponse =
         Map.of(
             "key",
@@ -129,9 +130,9 @@ public class InboundKafkaTests extends BaseKafkaTest {
         new ProcessImportResult(
             Map.of(
                 new ProcessDefinitionIdentifier(
-                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
+                    processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                    processDef.getKey(), processDef.getVersion().intValue()))));
 
     AtomicBoolean kafkaProducerThreadRun =
         producer.startContinuousMessageSending(
@@ -146,11 +147,11 @@ public class InboundKafkaTests extends BaseKafkaTest {
         .hasVariable("allResult", expectedJsonResponse);
   }
 
-  private void mockProcessDefinition(BpmnModelInstance model) {
-    when(searchQueryClient.getProcessModel(1)).thenReturn(model);
-    when(processDef.getProcessDefinitionKey()).thenReturn(1L);
+  private void mockProcessDefinition(BpmnModelInstance model) throws OperateException {
+    when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
+    when(processDef.getKey()).thenReturn(1L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
-    when(processDef.getProcessDefinitionId())
+    when(processDef.getBpmnProcessId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
   }
 }

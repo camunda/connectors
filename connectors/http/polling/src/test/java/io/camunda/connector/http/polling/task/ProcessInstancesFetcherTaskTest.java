@@ -55,7 +55,7 @@ public class ProcessInstancesFetcherTaskTest {
   @BeforeEach
   public void setUp() {
     config = new PollingIntervalConfiguration();
-    config.setProcessPollingInterval(Duration.ofMillis(1000));
+    config.setOperatePollingInterval(Duration.ofMillis(1000));
     config.setHttpRequestInterval(Duration.ofMillis(1000));
     when(mockContext.getDefinition()).thenReturn(mockInboundConnectorDefinition);
     when(mockInboundConnectorDefinition.deduplicationId()).thenReturn("someDeduplicationId");

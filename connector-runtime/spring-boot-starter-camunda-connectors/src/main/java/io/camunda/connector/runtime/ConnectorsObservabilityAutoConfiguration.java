@@ -43,8 +43,8 @@ public class ConnectorsObservabilityAutoConfiguration {
   }
 
   @Bean
-  public ProcessDefinitionImportHealthIndicator processDefinitionImportHealthIndicator(
+  public OperateHealthIndicator operateHealthIndicator(
       @Autowired(required = false) ProcessDefinitionImporter processDefinitionImporter) {
-    return new ProcessDefinitionImportHealthIndicator(processDefinitionImporter);
+    return new OperateHealthIndicator(processDefinitionImporter);
   }
 }

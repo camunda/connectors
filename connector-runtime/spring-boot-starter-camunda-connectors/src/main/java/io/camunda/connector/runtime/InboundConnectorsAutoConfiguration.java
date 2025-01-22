@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
+import io.camunda.operate.spring.OperateClientConfiguration;
 import io.camunda.zeebe.spring.client.configuration.CamundaAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -25,7 +26,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @AutoConfiguration
-@AutoConfigureAfter({CamundaAutoConfiguration.class, OutboundConnectorsAutoConfiguration.class})
+@AutoConfigureAfter({
+  CamundaAutoConfiguration.class,
+  OutboundConnectorsAutoConfiguration.class,
+  OperateClientConfiguration.class
+})
 @ConditionalOnProperty(
     prefix = "camunda.connector.polling",
     name = "enabled",

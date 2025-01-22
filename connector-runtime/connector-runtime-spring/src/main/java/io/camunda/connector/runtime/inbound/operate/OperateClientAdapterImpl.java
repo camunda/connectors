@@ -14,14 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.search;
+package io.camunda.connector.runtime.inbound.operate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
-import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
-import io.camunda.zeebe.client.api.search.response.SearchQueryResponse;
-import io.camunda.zeebe.client.api.search.response.Variable;
+import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
+import io.camunda.operate.CamundaOperateClient;
+import io.camunda.operate.exception.OperateException;
+import io.camunda.operate.model.FlowNodeInstance;
+import io.camunda.operate.model.FlowNodeInstanceState;
+import io.camunda.operate.model.SearchResult;
+import io.camunda.operate.model.Variable;
+import io.camunda.operate.search.FlowNodeInstanceFilter;
+import io.camunda.operate.search.SearchQuery;
+import io.camunda.operate.search.VariableFilter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,16 +37,18 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import org.springframework.util.CollectionUtils;
 
-public class ProcessInstanceClientImpl implements ProcessInstanceClient {
+public class OperateClientAdapterImpl implements OperateClientAdapter {
 
-  private final SearchQueryClient searchQueryClient;
+  private static final int PAGE_SIZE = 20;
+
+  private final CamundaOperateClient camundaOperateClient;
   private final ObjectMapper mapper;
   private final Lock fetchActiveProcessLock;
   private final Lock fetchVariablesLock;
 
-  public ProcessInstanceClientImpl(
-      final SearchQueryClient searchQueryClient, final ObjectMapper mapper) {
-    this.searchQueryClient = searchQueryClient;
+  public OperateClientAdapterImpl(
+      final CamundaOperateClient camundaOperateClient, final ObjectMapper mapper) {
+    this.camundaOperateClient = camundaOperateClient;
     this.mapper = mapper;
     this.fetchActiveProcessLock = new ReentrantLock();
     this.fetchVariablesLock = new ReentrantLock();
@@ -62,18 +70,32 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
     fetchActiveProcessLock.lock();
     try {
       List<Object> processPaginationIndex = null;
-      SearchQueryResponse<FlowNodeInstance> searchResult;
+      SearchResult<FlowNodeInstance> searchResult;
       List<FlowNodeInstance> result = new ArrayList<>();
       do {
-        searchResult =
-            searchQueryClient.queryActiveFlowNodes(
-                processDefinitionKey, elementId, processPaginationIndex);
-        processPaginationIndex = searchResult.page().lastSortValues();
-        if (searchResult.items() != null) {
-          result.addAll(searchResult.items());
+        try {
+          FlowNodeInstanceFilter flownodeInstanceFilter =
+              FlowNodeInstanceFilter.builder()
+                  .processDefinitionKey(processDefinitionKey)
+                  .flowNodeId(elementId)
+                  .state(FlowNodeInstanceState.ACTIVE)
+                  .build();
+          SearchQuery processInstanceQuery =
+              new SearchQuery.Builder()
+                  .filter(flownodeInstanceFilter)
+                  .searchAfter(processPaginationIndex)
+                  .size(PAGE_SIZE)
+                  .build();
+          searchResult = camundaOperateClient.searchFlowNodeInstanceResults(processInstanceQuery);
+        } catch (OperateException e) {
+          throw new RuntimeException(e);
+        }
+        processPaginationIndex = searchResult.getSortValues();
+        if (searchResult.getItems() != null) {
+          result.addAll(searchResult.getItems());
         }
 
-      } while (!CollectionUtils.isEmpty(searchResult.items()));
+      } while (!CollectionUtils.isEmpty(searchResult.getItems()));
       return result;
     } finally {
       fetchActiveProcessLock.unlock();
@@ -93,15 +115,29 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
     fetchVariablesLock.lock();
     try {
       List<Object> variablePaginationIndex = null;
-      SearchQueryResponse<Variable> searchResult;
+      SearchResult<Variable> searchResult;
       Map<String, Object> processVariables = new HashMap<>();
       do {
-        searchResult =
-            searchQueryClient.queryVariables(processInstanceKey, variablePaginationIndex);
-        List<Object> newPaginationIdx = searchResult.page().lastSortValues();
-        if (searchResult.items() != null) {
+        try {
+          VariableFilter variableFilter =
+              VariableFilter.builder()
+                  .scopeKey(processInstanceKey)
+                  .processInstanceKey(processInstanceKey)
+                  .build();
+          SearchQuery variableQuery =
+              new SearchQuery.Builder()
+                  .filter(variableFilter)
+                  .searchAfter(variablePaginationIndex)
+                  .size(PAGE_SIZE)
+                  .build();
+          searchResult = camundaOperateClient.searchVariableResults(variableQuery);
+        } catch (OperateException e) {
+          throw new RuntimeException(e);
+        }
+        List<Object> newPaginationIdx = searchResult.getSortValues();
+        if (searchResult.getItems() != null) {
           processVariables.putAll(
-              searchResult.items().stream()
+              searchResult.getItems().stream()
                   .collect(
                       Collectors.toMap(
                           Variable::getName, variable -> unwrapValue(variable.getValue()))));
@@ -110,7 +146,7 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
           variablePaginationIndex = newPaginationIdx;
         }
 
-      } while (!CollectionUtils.isEmpty(searchResult.items()));
+      } while (!CollectionUtils.isEmpty(searchResult.getItems()));
       return processVariables;
     } finally {
       fetchVariablesLock.unlock();

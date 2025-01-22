@@ -14,11 +14,11 @@ global:
   
   image:
     pullSecrets:
-      - name: dockerhub-registry
+    - name: dockerhub-registry
 
   # still required by some subcharts (e.g. elasticsearch)
   imagePullSecrets:
-    - name: dockerhub-registry
+  - name: dockerhub-registry
 
   # Preview environment configurations
   preview:
@@ -80,25 +80,11 @@ camunda-platform:
       registry: registry.camunda.cloud
       repository: team-connectors/connectors-bundle
       pullSecrets:
-        - name: registry-camunda-cloud
-        - name: dockerhub-registry
+      - name: registry-camunda-cloud
+      - name: dockerhub-registry
     env:
-      - name: JAVA_OPTS
-        value: "-Xms512m -Xmx512m"
-      - name: CAMUNDA_CLIENT_AUTH_CLIENT-ID
-        value: ${ZEEBE_CLIENT_ID}
-      - name: CAMUNDA_CLIENT_AUTH_CLIENT-SECRET
-        value: ${ZEEBE_CLIENT_SECRET}
-      - name: CAMUNDA_CLIENT_AUTH_AUDIENCE
-        value: ${ZEEBE_TOKEN_AUDIENCE}
-      - name: CAMUNDA_CLIENT_AUTH_ISSUER
-        value: ${ZEEBE_AUTHORIZATION_SERVER_URL}
-      - name: CAMUNDA_CONNECTOR_POLLING_ENABLED
-        value: "false"
-      - name: CAMUNDA_CLIENT_ZEEBE_REST-ADDRESS
-        value: http://zeebe-cluster-gateway:9600
-      - name: CAMUNDA_CLIENT_ZEEBE_GRPC-ADDRESS
-        value: http://zeebe-cluster-gateway:26500
+    - name: JAVA_OPTS
+      value: "-Xms512m -Xmx512m"
     resources:
       limits:
         cpu: 1
@@ -109,9 +95,9 @@ camunda-platform:
     nodeSelector:
       cloud.google.com/gke-nodepool: previews
     tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
+    - key: "previews"
+      operator: "Exists"
+      effect: "NoSchedule"
 
   elasticsearch:
     enabled: true
@@ -136,9 +122,9 @@ camunda-platform:
       nodeSelector:
         cloud.google.com/gke-nodepool: previews
       tolerations:
-        - key: "previews"
-          operator: "Exists"
-          effect: "NoSchedule"
+      - key: "previews"
+        operator: "Exists"
+        effect: "NoSchedule"
 
   identity:
     enabled: true
@@ -149,23 +135,23 @@ camunda-platform:
     #     repository: camunda/identity
     #     tag: latest
     env:
-      # Pre-create an Identity test application to be used to access the Zeebe cluster endpoint
-      - name: KEYCLOAK_CLIENTS_2_ID
-        value: test
-      - name: KEYCLOAK_CLIENTS_2_NAME
-        value: test
-      - name: KEYCLOAK_CLIENTS_2_SECRET
-        value: test
-      - name: KEYCLOAK_CLIENTS_2_REDIRECT_URIS_0
-        value: /callback
-      - name: KEYCLOAK_CLIENTS_2_ROOT_URL
-        value: http://test
-      - name: KEYCLOAK_CLIENTS_2_TYPE
-        value: CONFIDENTIAL
-      - name: KEYCLOAK_CLIENTS_2_PERMISSIONS_0_RESOURCE_SERVER_ID
-        value: zeebe-api
-      - name: KEYCLOAK_CLIENTS_2_PERMISSIONS_0_DEFINITION
-        value: "write:*"
+    # Pre-create an Identity test application to be used to access the Zeebe cluster endpoint
+    - name: KEYCLOAK_CLIENTS_2_ID
+      value: test
+    - name: KEYCLOAK_CLIENTS_2_NAME
+      value: test
+    - name: KEYCLOAK_CLIENTS_2_SECRET
+      value: test
+    - name: KEYCLOAK_CLIENTS_2_REDIRECT_URIS_0
+      value: /callback
+    - name: KEYCLOAK_CLIENTS_2_ROOT_URL
+      value: http://test
+    - name: KEYCLOAK_CLIENTS_2_TYPE
+      value: CONFIDENTIAL
+    - name: KEYCLOAK_CLIENTS_2_PERMISSIONS_0_RESOURCE_SERVER_ID
+      value: zeebe-api
+    - name: KEYCLOAK_CLIENTS_2_PERMISSIONS_0_DEFINITION
+      value: "write:*"
     resources:
       limits:
         cpu: 1
@@ -176,9 +162,9 @@ camunda-platform:
     nodeSelector:
       cloud.google.com/gke-nodepool: previews
     tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
+    - key: "previews"
+      operator: "Exists"
+      effect: "NoSchedule"
 
   identityKeycloak:
     enabled: true
@@ -189,8 +175,8 @@ camunda-platform:
     externalDatabase:
       password: postgresql
     extraEnvVars:
-      - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
-        value: "true"
+    - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
+      value: "true"
     resources:
       limits:
         cpu: 1
@@ -201,9 +187,9 @@ camunda-platform:
     nodeSelector:
       cloud.google.com/gke-nodepool: previews
     tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
+    - key: "previews"
+      operator: "Exists"
+      effect: "NoSchedule"
     postgresql:
       fullnameOverride: identity-keycloak-postgresql
       auth:
@@ -223,9 +209,9 @@ camunda-platform:
         nodeSelector:
           cloud.google.com/gke-nodepool: previews
         tolerations:
-          - key: "previews"
-            operator: "Exists"
-            effect: "NoSchedule"
+        - key: "previews"
+          operator: "Exists"
+          effect: "NoSchedule"
 
   operate:
     enabled: true
@@ -235,8 +221,8 @@ camunda-platform:
     #   repository: camunda/operate
     #   tag: 8.3.4
     env:
-      - name: JAVA_OPTS
-        value: "-Xms512m -Xmx512m"
+    - name: JAVA_OPTS
+      value: "-Xms512m -Xmx512m"
     resources:
       limits:
         cpu: 1
@@ -251,9 +237,9 @@ camunda-platform:
     nodeSelector:
       cloud.google.com/gke-nodepool: previews
     tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
+    - key: "previews"
+      operator: "Exists"
+      effect: "NoSchedule"
 
   optimize:
     enabled: false
@@ -267,8 +253,8 @@ camunda-platform:
     contextPath: /modeler
     image:
       pullSecrets:
-        - name: dockerhub-registry
-        - name: registry-camunda-cloud
+      - name: dockerhub-registry
+      - name: registry-camunda-cloud
       # tag: latest
     restapi:
       # image:
@@ -286,9 +272,9 @@ camunda-platform:
       nodeSelector:
         cloud.google.com/gke-nodepool: previews
       tolerations:
-        - key: "previews"
-          operator: "Exists"
-          effect: "NoSchedule"
+      - key: "previews"
+        operator: "Exists"
+        effect: "NoSchedule"
     webapp:
       # image:
       #   repository: web-modeler-ee/modeler-webapp
@@ -302,9 +288,9 @@ camunda-platform:
       nodeSelector:
         cloud.google.com/gke-nodepool: previews
       tolerations:
-        - key: "previews"
-          operator: "Exists"
-          effect: "NoSchedule"
+      - key: "previews"
+        operator: "Exists"
+        effect: "NoSchedule"
     websockets:
       # image:
       #   repository: web-modeler-ee/modeler-websockets
@@ -318,9 +304,9 @@ camunda-platform:
       nodeSelector:
         cloud.google.com/gke-nodepool: previews
       tolerations:
-        - key: "previews"
-          operator: "Exists"
-          effect: "NoSchedule"
+      - key: "previews"
+        operator: "Exists"
+        effect: "NoSchedule"
 
   # WebModeler PostgreSQL
   postgresql:
@@ -342,9 +328,9 @@ camunda-platform:
       nodeSelector:
         cloud.google.com/gke-nodepool: previews
       tolerations:
-        - key: "previews"
-          operator: "Exists"
-          effect: "NoSchedule"
+      - key: "previews"
+        operator: "Exists"
+        effect: "NoSchedule"
 
   zeebe:
     enabled: true
@@ -358,11 +344,11 @@ camunda-platform:
     persistenceType: disk
     pvcSize: 1Gi
     env:
-      ## Adjustement required due to PVC size
-      - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_REPLICATION
-        value: "100MB"
-      - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_PROCESSING
-        value: "150MB"
+    ## Adjustement required due to PVC size
+    - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_REPLICATION
+      value: "100MB"
+    - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_PROCESSING
+      value: "150MB"
     javaOpts: >-
       -Xms512m -Xmx512m
       -XX:+HeapDumpOnOutOfMemoryError

@@ -21,7 +21,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -75,10 +75,10 @@ public class ProcessDefinitionImporter {
                       Collectors.toMap(
                           definition ->
                               new ProcessDefinitionIdentifier(
-                                  definition.getProcessDefinitionId(), definition.getTenantId()),
+                                  definition.getBpmnProcessId(), definition.getTenantId()),
                           definition ->
                               new ProcessDefinitionVersion(
-                                  definition.getProcessDefinitionKey(), definition.getVersion()))));
+                                  definition.getKey(), definition.getVersion().intValue()))));
       LOG.info("Updating the store with retrieved process definitions");
       stateStore.update(result);
     } catch (Exception e) {

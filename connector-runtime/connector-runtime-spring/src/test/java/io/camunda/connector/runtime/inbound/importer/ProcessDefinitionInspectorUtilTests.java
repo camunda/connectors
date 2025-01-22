@@ -22,10 +22,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
+import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.FileInputStream;
 import java.util.List;
@@ -120,13 +120,13 @@ public class ProcessDefinitionInspectorUtilTests {
 
   private List<InboundConnectorElement> fromModel(String fileName, String processId) {
     try {
-      var searchQueryClientMock = mock(SearchQueryClient.class);
-      var inspector = new ProcessDefinitionInspector(searchQueryClientMock);
+      var operateClientMock = mock(CamundaOperateClient.class);
+      var inspector = new ProcessDefinitionInspector(operateClientMock);
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
       var processDefinitionID = new ProcessDefinitionIdentifier(processId, "tenant1");
       var processDefinitionVersion = new ProcessImportResult.ProcessDefinitionVersion(1, 1);
-      when(searchQueryClientMock.getProcessModel(1)).thenReturn(model);
+      when(operateClientMock.getProcessDefinitionModel(1L)).thenReturn(model);
       return inspector.findInboundConnectors(processDefinitionID, processDefinitionVersion);
     } catch (Exception e) {
       throw new RuntimeException(e);

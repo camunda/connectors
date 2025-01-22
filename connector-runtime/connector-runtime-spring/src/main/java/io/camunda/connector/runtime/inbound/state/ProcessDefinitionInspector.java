@@ -29,9 +29,10 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationP
 import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
-import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
+import io.camunda.operate.CamundaOperateClient;
+import io.camunda.operate.exception.OperateException;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
@@ -76,18 +77,19 @@ public class ProcessDefinitionInspector {
     INBOUND_ELIGIBLE_TYPES.add(BoundaryEvent.class);
   }
 
-  private final SearchQueryClient searchQueryClient;
+  private final CamundaOperateClient operate;
 
-  public ProcessDefinitionInspector(SearchQueryClient searchQueryClient) {
-    this.searchQueryClient = searchQueryClient;
+  public ProcessDefinitionInspector(CamundaOperateClient operate) {
+    this.operate = operate;
   }
 
   public List<InboundConnectorElement> findInboundConnectors(
-      ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version) {
+      ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version)
+      throws OperateException {
 
     LOG.debug("Checking {} (version {}) for connectors.", identifier, version.version());
     BpmnModelInstance modelInstance =
-        searchQueryClient.getProcessModel(version.processDefinitionKey());
+        operate.getProcessDefinitionModel(version.processDefinitionKey());
 
     var processes =
         modelInstance.getDefinitions().getChildElementsByType(Process.class).stream()
@@ -114,7 +116,7 @@ public class ProcessDefinitionInspector {
 
       var rawProperties = getRawProperties(element);
       if (rawProperties == null || !rawProperties.containsKey(INBOUND_TYPE_KEYWORD)) {
-        LOG.debug("Not a connector: {}", element.getId());
+        LOG.debug("Not a connector: " + element.getId());
         continue;
       }
 

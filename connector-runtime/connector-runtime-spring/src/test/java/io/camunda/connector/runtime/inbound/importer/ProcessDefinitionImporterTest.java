@@ -24,9 +24,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
-import io.camunda.zeebe.client.impl.search.response.ProcessDefinitionImpl;
-import io.camunda.zeebe.client.protocol.rest.ProcessDefinitionItem;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.DefaultNoopMetricsRecorder;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,12 +68,12 @@ public class ProcessDefinitionImporterTest {
   }
 
   private ProcessDefinition getProcessDefinition(
-      String bpmnProcessId, int version, long key, String tenantId) {
-    var pdi = new ProcessDefinitionItem();
-    pdi.setProcessDefinitionId(bpmnProcessId);
-    pdi.setVersion(version);
-    pdi.setProcessDefinitionKey(key);
-    pdi.setTenantId(tenantId);
-    return new ProcessDefinitionImpl(pdi);
+      String bpmnProcessId, long version, long key, String tenantId) {
+    var pd = new ProcessDefinition();
+    pd.setBpmnProcessId(bpmnProcessId);
+    pd.setKey(key);
+    pd.setVersion(version);
+    pd.setTenantId(tenantId);
+    return pd;
   }
 }

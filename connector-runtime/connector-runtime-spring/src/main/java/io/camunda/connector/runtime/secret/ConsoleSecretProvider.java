@@ -20,7 +20,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import java.time.Duration;
 import java.util.Map;
 import org.slf4j.Logger;

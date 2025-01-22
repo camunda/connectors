@@ -16,14 +16,29 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import io.camunda.operate.CamundaOperateClient;
+import io.camunda.operate.exception.OperateException;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import io.camunda.zeebe.spring.client.metrics.SimpleMetricsRecorder;
+import java.util.ArrayList;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class InboundConnectorTestConfiguration {
+
+  @Bean
+  @Primary
+  public CamundaOperateClient mockOperateClient() throws OperateException {
+    CamundaOperateClient camundaOperateClientMock = mock(CamundaOperateClient.class);
+    when(camundaOperateClientMock.searchProcessDefinitions(any())).thenReturn(new ArrayList<>());
+    return camundaOperateClientMock;
+  }
 
   @Bean
   @Primary

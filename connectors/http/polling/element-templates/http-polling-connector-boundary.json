@@ -198,7 +198,7 @@
       "value": "PT5S",
       "binding": {
         "type": "zeebe:property",
-        "name": "processPollingInterval"
+        "name": "operatePollingInterval"
       },
       "optional": true
     },

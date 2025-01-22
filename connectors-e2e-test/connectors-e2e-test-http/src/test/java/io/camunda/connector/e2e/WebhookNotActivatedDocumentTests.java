@@ -24,7 +24,6 @@ import static org.springframework.util.StreamUtils.copyToByteArray;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
-import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
@@ -32,9 +31,10 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.operate.CamundaOperateClient;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Collections;
 import java.util.Map;
@@ -100,7 +100,7 @@ public class WebhookNotActivatedDocumentTests {
 
   @Autowired ProcessStateStore stateStore;
 
-  @MockBean SearchQueryClient searchQueryClient;
+  @MockBean CamundaOperateClient camundaOperateClient;
 
   @Autowired DocumentFactory documentFactory;
 
@@ -124,11 +124,11 @@ public class WebhookNotActivatedDocumentTests {
                 "<ACTIVATION_CONDITION>", "=request.headers.THEHEADER = &#34;INVALID_VALUE&#34;"));
 
     // Prepare a mocked process connectorData backed by our test model
-    when(searchQueryClient.getProcessModel(2L)).thenReturn(model);
+    when(camundaOperateClient.getProcessDefinitionModel(2L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
-    when(processDef.getProcessDefinitionKey()).thenReturn(2L);
+    when(processDef.getKey()).thenReturn(2L);
     when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
-    when(processDef.getProcessDefinitionId())
+    when(processDef.getBpmnProcessId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
     // Deploy the webhook
@@ -136,9 +136,9 @@ public class WebhookNotActivatedDocumentTests {
         new ProcessImportResult(
             Map.of(
                 new ProcessDefinitionIdentifier(
-                    processDef.getProcessDefinitionId(), processDef.getTenantId()),
+                    processDef.getBpmnProcessId(), processDef.getTenantId()),
                 new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                    processDef.getKey(), processDef.getVersion().intValue()))));
 
     var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
     CompletableFuture<ResultActions> future = new CompletableFuture<>();

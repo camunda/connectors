@@ -21,9 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ProcessInstanceFetcherTask is responsible for handling HTTP polling operations. Each instance of
- * this class is used for one flowNode and manages polling across all its corresponding
- * processInstances.
+ * PollingOperateTask is responsible for handling HTTP polling operations. Each instance of this
+ * class is used for one flowNode and manages polling across all its corresponding processInstances.
  */
 public class ProcessInstancesFetcherTask implements Runnable {
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessInstancesFetcherTask.class);
@@ -97,7 +96,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
     executorService
         .getExecutorService()
         .scheduleWithFixedDelay(
-            this, 0, config.getProcessPollingInterval().toMillis(), TimeUnit.MILLISECONDS);
+            this, 0, config.getOperatePollingInterval().toMillis(), TimeUnit.MILLISECONDS);
   }
 
   public void stop() {

@@ -22,12 +22,11 @@ import java.util.Map;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health.Builder;
 
-public class ProcessDefinitionImportHealthIndicator extends AbstractHealthIndicator {
+public class OperateHealthIndicator extends AbstractHealthIndicator {
 
   private final ProcessDefinitionImporter processDefinitionImporter;
 
-  public ProcessDefinitionImportHealthIndicator(
-      @Nullable ProcessDefinitionImporter processDefinitionImporter) {
+  public OperateHealthIndicator(@Nullable ProcessDefinitionImporter processDefinitionImporter) {
     this.processDefinitionImporter = processDefinitionImporter;
   }
 
