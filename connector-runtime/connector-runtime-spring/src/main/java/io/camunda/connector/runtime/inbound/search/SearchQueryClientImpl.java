@@ -16,8 +16,11 @@
  */
 package io.camunda.connector.runtime.inbound.search;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.client.api.search.response.*;
+import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
+import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
+import io.camunda.zeebe.client.api.search.response.SearchQueryResponse;
+import io.camunda.zeebe.client.api.search.response.Variable;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayInputStream;
@@ -27,17 +30,17 @@ public class SearchQueryClientImpl implements SearchQueryClient {
 
   private static final int PAGE_SIZE = 50;
 
-  private final CamundaClient camundaClient;
+  private final ZeebeClient zeebeClient;
 
-  public SearchQueryClientImpl(CamundaClient camundaClient) {
-    this.camundaClient = camundaClient;
+  public SearchQueryClientImpl(ZeebeClient zeebeClient) {
+    this.zeebeClient = zeebeClient;
   }
 
   @Override
   public SearchQueryResponse<ProcessDefinition> queryProcessDefinitions(
       List<Object> paginationIndex) {
     final var query =
-        camundaClient.newProcessDefinitionQuery().sort(s -> s.processDefinitionKey().desc());
+        zeebeClient.newProcessDefinitionQuery().sort(s -> s.processDefinitionKey().desc());
     if (paginationIndex != null) {
       query.page(p -> p.limit(PAGE_SIZE).searchAfter(paginationIndex));
     } else {
@@ -50,13 +53,13 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   public SearchQueryResponse<FlowNodeInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, List<Object> paginationIndex) {
     final var query =
-        camundaClient
+        zeebeClient
             .newFlownodeInstanceQuery()
             .filter(
                 i ->
                     i.processDefinitionKey(processDefinitionKey)
                         .flowNodeId(elementId)
-                        .state(FlowNodeInstanceState.ACTIVE));
+                        .state("ACTIVE"));
     if (paginationIndex != null) {
       query.page(p -> p.limit(PAGE_SIZE).searchAfter(paginationIndex));
     } else {
@@ -69,7 +72,7 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   public SearchQueryResponse<Variable> queryVariables(
       long processInstanceKey, List<Object> variablePaginationIndex) {
     final var query =
-        camundaClient
+        zeebeClient
             .newVariableQuery()
             .filter(v -> v.processInstanceKey(processInstanceKey).scopeKey(processInstanceKey));
     if (variablePaginationIndex != null) {
@@ -83,7 +86,7 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   @Override
   public BpmnModelInstance getProcessModel(long processDefinitionKey) {
     final String xml =
-        camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).send().join();
+        zeebeClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).send().join();
     return Bpmn.readModelFromStream(new ByteArrayInputStream(xml.getBytes()));
   }
 }

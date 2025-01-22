@@ -49,17 +49,17 @@ class RuntimeStartupWithConnectorsFromEnvVarsTests {
 
   @Autowired private JobWorkerManager jobWorkerManager;
 
-  @AfterTestClass
-  public static void cleanup() throws Exception {
-    EnvVarsConnectorDiscovery.clearHardwiredEnvironmentVariable();
-  }
-
   @BeforeTestClass
   public void prepare() throws Exception {
     EnvVarsConnectorDiscovery.addHardwiredEnvironmentVariable(
         "CONNECTOR_TEST2_FUNCTION", "io.camunda.connector.http.HttpJsonFunction");
     EnvVarsConnectorDiscovery.addHardwiredEnvironmentVariable(
         "CONNECTOR_TEST2_TYPE", "non-default-TEST-task-type");
+  }
+
+  @AfterTestClass
+  public static void cleanup() throws Exception {
+    EnvVarsConnectorDiscovery.clearHardwiredEnvironmentVariable();
   }
 
   @Test

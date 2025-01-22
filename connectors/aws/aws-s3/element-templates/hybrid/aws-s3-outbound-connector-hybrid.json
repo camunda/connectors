@@ -241,9 +241,6 @@
     "id" : "uploadActionDocument",
     "label" : "Document",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "required",
     "group" : "uploadObject",
     "binding" : {

@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
@@ -29,6 +28,7 @@ import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.CamundaDocumentStoreImpl;
+import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
@@ -46,8 +46,8 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public CamundaDocumentStore documentStore(CamundaClient camundaClient) {
-    return new CamundaDocumentStoreImpl(camundaClient);
+  public CamundaDocumentStore documentStore(ZeebeClient zeebeClient) {
+    return new CamundaDocumentStoreImpl(zeebeClient);
   }
 
   @Bean

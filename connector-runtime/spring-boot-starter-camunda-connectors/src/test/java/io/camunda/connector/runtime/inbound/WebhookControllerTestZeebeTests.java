@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
@@ -47,6 +46,7 @@ import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.HashMap;
 import java.util.Map;
@@ -75,7 +75,7 @@ class WebhookControllerTestZeebeTests {
 
   @Autowired private WebhookConnectorRegistry webhookConnectorRegistry;
 
-  @Autowired private CamundaClient camundaClient;
+  @Autowired private ZeebeClient zeebeClient;
 
   @Autowired private SecretProviderAggregator secretProvider;
 
@@ -609,7 +609,7 @@ class WebhookControllerTestZeebeTests {
   }
 
   public void deployProcess(String bpmnProcessId) {
-    camundaClient
+    zeebeClient
         .newDeployResourceCommand()
         .addProcessModel(
             Bpmn.createExecutableProcess(bpmnProcessId).startEvent().endEvent().done(),

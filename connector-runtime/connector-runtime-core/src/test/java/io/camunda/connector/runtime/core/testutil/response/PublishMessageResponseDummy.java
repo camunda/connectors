@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.testutil.response;
 
-import io.camunda.client.api.response.PublishMessageResponse;
+import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 
 public class PublishMessageResponseDummy implements PublishMessageResponse {
   @Override

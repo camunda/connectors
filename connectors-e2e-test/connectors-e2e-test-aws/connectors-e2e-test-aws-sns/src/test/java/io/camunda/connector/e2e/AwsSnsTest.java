@@ -130,7 +130,7 @@ public class AwsSnsTest extends BaseAwsTest {
             .apply(elementTemplate, "sns", new File(tempDir, "resultSns.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(camundaClient)
+        ZeebeTest.with(zeebeClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -190,7 +190,7 @@ public class AwsSnsTest extends BaseAwsTest {
             .apply(elementTemplate, "sns", new File(tempDir, "resultSns.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(camundaClient)
+        ZeebeTest.with(zeebeClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();

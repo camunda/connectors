@@ -16,9 +16,9 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
-import io.camunda.client.api.search.response.ProcessDefinition;
-import io.camunda.client.api.search.response.SearchQueryResponse;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
+import io.camunda.zeebe.client.api.search.response.SearchQueryResponse;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;

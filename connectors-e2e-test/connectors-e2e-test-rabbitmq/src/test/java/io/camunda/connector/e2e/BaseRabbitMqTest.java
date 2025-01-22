@@ -18,9 +18,9 @@ package io.camunda.connector.e2e;
 
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.util.Collections;
@@ -37,7 +37,7 @@ public abstract class BaseRabbitMqTest {
   protected static final String INTERMEDIATE_CATCH_EVENT_BPMN = "intermediate-catch-event.bpmn";
   @TempDir File tempDir;
 
-  @Autowired CamundaClient camundaClient;
+  @Autowired ZeebeClient zeebeClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 
@@ -51,6 +51,6 @@ public abstract class BaseRabbitMqTest {
   }
 
   protected ZeebeTest getZeebeTest(final BpmnModelInstance updatedModel) {
-    return ZeebeTest.with(camundaClient).deploy(updatedModel).createInstance();
+    return ZeebeTest.with(zeebeClient).deploy(updatedModel).createInstance();
   }
 }

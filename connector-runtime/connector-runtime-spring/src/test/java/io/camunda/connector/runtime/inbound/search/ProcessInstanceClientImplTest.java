@@ -22,16 +22,16 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
-import io.camunda.client.api.search.response.SearchQueryResponse;
-import io.camunda.client.api.search.response.Variable;
-import io.camunda.client.impl.search.response.FlowNodeInstanceImpl;
-import io.camunda.client.impl.search.response.SearchQueryResponseImpl;
-import io.camunda.client.impl.search.response.SearchResponsePageImpl;
-import io.camunda.client.impl.search.response.VariableImpl;
-import io.camunda.client.protocol.rest.FlowNodeInstanceItem;
-import io.camunda.client.protocol.rest.VariableItem;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
+import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
+import io.camunda.zeebe.client.api.search.response.SearchQueryResponse;
+import io.camunda.zeebe.client.api.search.response.Variable;
+import io.camunda.zeebe.client.impl.search.response.FlowNodeInstanceImpl;
+import io.camunda.zeebe.client.impl.search.response.SearchQueryResponseImpl;
+import io.camunda.zeebe.client.impl.search.response.SearchResponsePageImpl;
+import io.camunda.zeebe.client.impl.search.response.VariableImpl;
+import io.camunda.zeebe.client.protocol.rest.FlowNodeInstanceItem;
+import io.camunda.zeebe.client.protocol.rest.VariableItem;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -62,9 +62,9 @@ class ProcessInstanceClientImplTest {
     Long processDefinitionKey = 123L;
     String elementId = "task1";
     FlowNodeInstance flownodeInstance1 =
-        createFlownodeInstance("456", "123456", "187", "flowNodeName1", "tenantId1");
+        createFlownodeInstance(456L, 123456L, 187L, "flowNodeName1", "tenantId1");
     FlowNodeInstance flownodeInstance2 =
-        createFlownodeInstance("789", "234567", "203", "flowNodeName2", "tenantId2");
+        createFlownodeInstance(789L, 234567L, 203L, "flowNodeName2", "tenantId2");
 
     SearchQueryResponse<FlowNodeInstance> flownodeInstanceSearchResult =
         createSearchResult(flownodeInstance1, flownodeInstance2);
@@ -95,9 +95,9 @@ class ProcessInstanceClientImplTest {
   }
 
   private FlowNodeInstance createFlownodeInstance(
-      String key,
-      String processInstanceKey,
-      final String definitionKey,
+      Long key,
+      Long processInstanceKey,
+      final long definitionKey,
       final String flowNodeId,
       final String tenantId) {
     final var item = new FlowNodeInstanceItem();
@@ -117,8 +117,8 @@ class ProcessInstanceClientImplTest {
     // Given
     Long processInstanceKey = 456L;
 
-    Variable variable1 = createVariable("12345", "var1", "value1");
-    Variable variable2 = createVariable("67890", "var2", "value2");
+    Variable variable1 = createVariable(12345L, "var1", "value1");
+    Variable variable2 = createVariable(67890L, "var2", "value2");
 
     SearchQueryResponse<Variable> variableSearchResult = createSearchResult(variable1, variable2);
     SearchQueryResponse<Variable> variableEmptySearchResult = createEmptySearchResult();
@@ -138,7 +138,7 @@ class ProcessInstanceClientImplTest {
     assertThat(result.get("var2")).isEqualTo("value2");
   }
 
-  private Variable createVariable(String key, String name, String value) {
+  private Variable createVariable(Long key, String name, String value) {
     final var item = new VariableItem();
     item.setVariableKey(key);
     item.setScopeKey(key);

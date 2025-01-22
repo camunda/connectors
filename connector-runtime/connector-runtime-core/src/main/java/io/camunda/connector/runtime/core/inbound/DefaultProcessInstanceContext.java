@@ -18,12 +18,12 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
 import java.util.Map;
 import java.util.function.Supplier;
 

@@ -16,9 +16,9 @@
  */
 package io.camunda.document.store;
 
-import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
@@ -65,16 +65,6 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
           @Override
           public String getFileName() {
             return request.fileName();
-          }
-
-          @Override
-          public String getProcessDefinitionId() {
-            return "";
-          }
-
-          @Override
-          public Long getProcessInstanceKey() {
-            return 0L;
           }
 
           @Override

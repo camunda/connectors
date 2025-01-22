@@ -17,9 +17,6 @@
 package io.camunda.connector.runtime.outbound.jobhandling;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.command.FinalCommandStep;
-import io.camunda.client.api.response.ActivatedJob;
-import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -30,6 +27,9 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Outbound;
 import io.camunda.document.factory.DocumentFactory;
+import io.camunda.zeebe.client.api.command.FinalCommandStep;
+import io.camunda.zeebe.client.api.response.ActivatedJob;
+import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;

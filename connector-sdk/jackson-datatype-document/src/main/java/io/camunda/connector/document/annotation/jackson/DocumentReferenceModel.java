@@ -23,11 +23,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
-import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.document.operation.DocumentOperation;
 import io.camunda.document.reference.DocumentReference;
+import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -60,9 +60,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
       OffsetDateTime expiresAt,
       Long size,
       String fileName,
-      Map<String, Object> customProperties,
-      String processDefinitionId,
-      Long processInstanceKey)
+      Map<String, Object> customProperties)
       implements DocumentMetadata {
 
     public CamundaDocumentMetadataModel(DocumentMetadata documentMetadata) {
@@ -71,9 +69,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
           documentMetadata.getExpiresAt(),
           documentMetadata.getSize(),
           documentMetadata.getFileName(),
-          documentMetadata.getCustomProperties(),
-          documentMetadata.getProcessDefinitionId(),
-          documentMetadata.getProcessInstanceKey());
+          documentMetadata.getCustomProperties());
     }
 
     @Override
@@ -94,16 +90,6 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     @Override
     public String getFileName() {
       return fileName;
-    }
-
-    @Override
-    public String getProcessDefinitionId() {
-      return processDefinitionId;
-    }
-
-    @Override
-    public Long getProcessInstanceKey() {
-      return processInstanceKey;
     }
 
     @Override

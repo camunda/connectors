@@ -102,7 +102,7 @@ public class AwsSqsTest extends BaseAwsTest {
             .apply(elementTemplate, ELEMENT_ID, new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(camundaClient)
+        ZeebeTest.with(zeebeClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();
@@ -162,7 +162,7 @@ public class AwsSqsTest extends BaseAwsTest {
             .apply(elementTemplate, ELEMENT_ID, new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(camundaClient)
+        ZeebeTest.with(zeebeClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();

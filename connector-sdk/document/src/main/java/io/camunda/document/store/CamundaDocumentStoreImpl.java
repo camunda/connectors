@@ -16,22 +16,22 @@
  */
 package io.camunda.document.store;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.zeebe.client.ZeebeClient;
 import java.io.InputStream;
 
 public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
 
-  private final CamundaClient camundaClient;
+  private final ZeebeClient zeebeClient;
 
-  public CamundaDocumentStoreImpl(CamundaClient camundaClient) {
-    this.camundaClient = camundaClient;
+  public CamundaDocumentStoreImpl(ZeebeClient zeebeClient) {
+    this.zeebeClient = zeebeClient;
   }
 
   @Override
   public CamundaDocumentReference createDocument(DocumentCreationRequest request) {
-    final var command = camundaClient.newCreateDocumentCommand().content(request.content());
+    final var command = zeebeClient.newCreateDocumentCommand().content(request.content());
 
     if (request.contentType() != null) {
       command.contentType(request.contentType());
@@ -51,7 +51,7 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
 
   @Override
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
-    return camundaClient
+    return zeebeClient
         .newDocumentContentGetRequest(reference.documentId())
         .storeId(reference.storeId())
         .send()
@@ -60,7 +60,7 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
 
   @Override
   public void deleteDocument(CamundaDocumentReference reference) {
-    camundaClient
+    zeebeClient
         .newDeleteDocumentCommand(reference.documentId())
         .storeId(reference.storeId())
         .send()

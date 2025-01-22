@@ -99,7 +99,7 @@ public class AwsLambdaTest extends BaseAwsTest {
             .apply(elementTemplate, "aws", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(camundaClient)
+        ZeebeTest.with(zeebeClient)
             .deploy(updatedModel)
             .createInstance()
             .waitForProcessCompletion();

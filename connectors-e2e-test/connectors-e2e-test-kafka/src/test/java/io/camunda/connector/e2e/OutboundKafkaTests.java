@@ -106,7 +106,7 @@ public class OutboundKafkaTests extends BaseKafkaTest {
   }
 
   private ZeebeTest getZeebeTest(final BpmnModelInstance updatedModel) {
-    return ZeebeTest.with(camundaClient)
+    return ZeebeTest.with(zeebeClient)
         .deploy(updatedModel)
         .createInstance()
         .waitForProcessCompletion();

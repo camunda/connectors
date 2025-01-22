@@ -33,8 +33,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.camunda.client.api.command.FailJobCommandStep1;
-import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -42,6 +40,9 @@ import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
+import io.camunda.zeebe.client.api.command.FailJobCommandStep1.FailJobCommandStep2;
+import io.camunda.zeebe.client.api.worker.JobClient;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -540,13 +541,13 @@ class ConnectorJobHandlerTest {
   class RetryBackoffTests {
 
     private FailJobCommandStep1 firstStepMock;
-    private FailJobCommandStep1.FailJobCommandStep2 secondStepMock;
+    private FailJobCommandStep2 secondStepMock;
     private JobClient jobClient;
 
     @BeforeEach
     void init() {
       firstStepMock = mock(FailJobCommandStep1.class);
-      secondStepMock = mock(FailJobCommandStep1.FailJobCommandStep2.class, RETURNS_DEEP_STUBS);
+      secondStepMock = mock(FailJobCommandStep2.class, RETURNS_DEEP_STUBS);
       jobClient = mock(JobClient.class);
       when(firstStepMock.retries(anyInt())).thenReturn(secondStepMock);
       when(secondStepMock.retryBackoff(any())).thenReturn(secondStepMock);

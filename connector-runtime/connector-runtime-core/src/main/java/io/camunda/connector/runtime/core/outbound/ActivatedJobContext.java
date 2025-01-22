@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.util.Map;
 import java.util.function.Supplier;
 

@@ -17,13 +17,13 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;

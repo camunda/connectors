@@ -19,10 +19,10 @@ package io.camunda.connector.e2e;
 import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.zeebe.client.ZeebeClient;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,7 +57,7 @@ public class BaseKafkaTest {
 
   @TempDir File tempDir;
 
-  @Autowired CamundaClient camundaClient;
+  @Autowired ZeebeClient zeebeClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 

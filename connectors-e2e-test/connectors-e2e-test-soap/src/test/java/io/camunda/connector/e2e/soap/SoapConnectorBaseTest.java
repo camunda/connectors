@@ -21,10 +21,10 @@ import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
+import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -91,7 +91,7 @@ public abstract class SoapConnectorBaseTest {
           .build();
 
   @TempDir File tempDir;
-  @Autowired CamundaClient camundaClient;
+  @Autowired ZeebeClient zeebeClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 
@@ -121,7 +121,7 @@ public abstract class SoapConnectorBaseTest {
   }
 
   protected ZeebeTest getZeebeTest(final BpmnModelInstance updatedModel) {
-    return ZeebeTest.with(camundaClient)
+    return ZeebeTest.with(zeebeClient)
         .deploy(updatedModel)
         .createInstance()
         .waitForProcessCompletion();

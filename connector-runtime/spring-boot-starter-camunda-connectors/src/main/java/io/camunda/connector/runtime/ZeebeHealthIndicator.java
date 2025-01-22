@@ -16,10 +16,10 @@
  */
 package io.camunda.connector.runtime;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.client.api.response.BrokerInfo;
-import io.camunda.client.api.response.PartitionBrokerHealth;
-import io.camunda.client.api.response.PartitionInfo;
+import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.response.BrokerInfo;
+import io.camunda.zeebe.client.api.response.PartitionBrokerHealth;
+import io.camunda.zeebe.client.api.response.PartitionInfo;
 import java.util.Collection;
 import java.util.Map;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
@@ -27,15 +27,15 @@ import org.springframework.boot.actuate.health.Health.Builder;
 
 public class ZeebeHealthIndicator extends AbstractHealthIndicator {
 
-  private final CamundaClient camundaClient;
+  private final ZeebeClient zeebeClient;
 
-  public ZeebeHealthIndicator(CamundaClient camundaClient) {
-    this.camundaClient = camundaClient;
+  public ZeebeHealthIndicator(ZeebeClient zeebeClient) {
+    this.zeebeClient = zeebeClient;
   }
 
   @Override
   protected void doHealthCheck(Builder builder) {
-    var topology = camundaClient.newTopologyRequest().send().join();
+    var topology = zeebeClient.newTopologyRequest().send().join();
     var numBrokers = topology.getBrokers().size();
     boolean anyPartitionHealthy =
         topology.getBrokers().stream()

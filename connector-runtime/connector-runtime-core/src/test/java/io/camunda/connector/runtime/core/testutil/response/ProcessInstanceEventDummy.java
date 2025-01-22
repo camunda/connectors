@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.testutil.response;
 
-import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 
 public class ProcessInstanceEventDummy implements ProcessInstanceEvent {
   public long getProcessDefinitionKey() {

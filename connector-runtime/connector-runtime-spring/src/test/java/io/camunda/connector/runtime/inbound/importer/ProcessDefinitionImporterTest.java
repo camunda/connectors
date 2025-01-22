@@ -22,11 +22,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.api.search.response.ProcessDefinition;
-import io.camunda.client.impl.search.response.ProcessDefinitionImpl;
-import io.camunda.client.protocol.rest.ProcessDefinitionItem;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
+import io.camunda.zeebe.client.impl.search.response.ProcessDefinitionImpl;
+import io.camunda.zeebe.client.protocol.rest.ProcessDefinitionItem;
 import io.camunda.zeebe.spring.client.metrics.DefaultNoopMetricsRecorder;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,11 +49,11 @@ public class ProcessDefinitionImporterTest {
   @Test
   void shouldUpdateStateStore() {
     // given
-    List<ProcessDefinition> first = List.of(getProcessDefinition("process1", 1, "1", "tenant1"));
+    List<ProcessDefinition> first = List.of(getProcessDefinition("process1", 1, 1, "tenant1"));
     List<ProcessDefinition> second =
         List.of(
-            getProcessDefinition("process1", 1, "1", "tenant1"),
-            getProcessDefinition("process2", 1, "2", "tenant1"));
+            getProcessDefinition("process1", 1, 1, "tenant1"),
+            getProcessDefinition("process2", 1, 2, "tenant1"));
 
     when(search.query()).thenReturn(first).thenReturn(second);
 
@@ -70,7 +70,7 @@ public class ProcessDefinitionImporterTest {
   }
 
   private ProcessDefinition getProcessDefinition(
-      String bpmnProcessId, int version, String key, String tenantId) {
+      String bpmnProcessId, int version, long key, String tenantId) {
     var pdi = new ProcessDefinitionItem();
     pdi.setProcessDefinitionId(bpmnProcessId);
     pdi.setVersion(version);

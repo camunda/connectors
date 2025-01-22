@@ -161,7 +161,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
   private ProcessImportResult mockProcessDefinition(BpmnModelInstance model) {
     when(searchQueryClient.getProcessModel(1)).thenReturn(model);
     var bpmnId = model.getModelElementsByType(Process.class).stream().findFirst().get().getId();
-    var tenantId = camundaClient.getConfiguration().getDefaultTenantId();
+    var tenantId = zeebeClient.getConfiguration().getDefaultTenantId();
     return new ProcessImportResult(
         Map.of(
             new ProcessDefinitionIdentifier(bpmnId, tenantId),

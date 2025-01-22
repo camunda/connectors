@@ -3,8 +3,7 @@
 A collection of runtime utilities to wrap Connector functions as job workers and handle Connector discovery.
 This artifact can be used to build custom Connector runtimes.
 If you are looking for a ready-to-use Connector runtime, refer to the
-[Spring Connector Runtime](../connector-runtime-spring) or a
-corresponding [Spring Boot starter](../spring-boot-starter-camunda-connectors).
+[Spring Connector Runtime](../connector-runtime-spring) or a corresponding [Spring Boot starter](../spring-boot-starter-camunda-connectors).
 
 ## Wrapping a Connector function
 
@@ -13,33 +12,32 @@ Include the job worker runtime utilities as maven dependency:
 ```xml
 
 <dependency>
-    <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-runtime-core</artifactId>
-    <version>${version.connectors}</version>
+  <groupId>io.camunda.connector</groupId>
+  <artifactId>connector-runtime-core</artifactId>
+  <version>${version.connectors}</version>
 </dependency>
 ```
 
 You can create a job worker by wrapping a Connector function like this:
 
 ```java
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.slack.outbound.SlackFunction;
 import io.camunda.connector.runtime.jobworker.api.outbound.ConnectorJobHandler;
 import io.camunda.zeebe.client.ZeebeClient;
 
 public class Main {
 
-    public static void main(String[] args) {
+  public static void main(String[] args) {
 
-        var camundaClient = CamundaClient.newClientBuilder().build();
+    var zeebeClient = ZeebeClient.newClientBuilder().build();
 
-        camundaClient.newWorker()
-                .jobType("slack")
-                .handler(new ConnectorJobHandler(new SlackFunction()))
-                .name("SLACK")
-                .fetchVariables("foo", "bar")
-                .open();
-    }
+    zeebeClient.newWorker()
+        .jobType("slack")
+        .handler(new ConnectorJobHandler(new SlackFunction()))
+        .name("SLACK")
+        .fetchVariables("foo", "bar")
+        .open();
+  }
 }
 ```
 
@@ -56,7 +54,6 @@ variables and with SPI. Only one configuration approach must be used per applica
 ### Discovery via environment variables
 
 Outbound Connector configuration example:
-
 ```
 CONNECTOR_SLACK_FUNCTION=io.camunda.connector.runtime.util.outbound.SlackFunction
 CONNECTOR_SLACK_TYPE=io.camunda.connector:SLACK
@@ -65,7 +62,6 @@ CONNECTOR_SLACK_TIMEOUT=10000 # optional
 ```
 
 Inbound Connector configuration example:
-
 ```
 CONNECTOR_KAFKA_SUBSCRIPTION_EXECUTABLE=io.camunda.connector.runtime.util.outbound.KafkaSubscription
 CONNECTOR_KAFKA_SUBSCRIPTION_TYPE=io.camunda.connector:KAFKA_SUBSCRIPTION

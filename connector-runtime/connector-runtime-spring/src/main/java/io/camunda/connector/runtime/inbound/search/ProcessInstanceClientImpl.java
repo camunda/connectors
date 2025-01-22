@@ -18,10 +18,10 @@ package io.camunda.connector.runtime.inbound.search;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
-import io.camunda.client.api.search.response.SearchQueryResponse;
-import io.camunda.client.api.search.response.Variable;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
+import io.camunda.zeebe.client.api.search.response.FlowNodeInstance;
+import io.camunda.zeebe.client.api.search.response.SearchQueryResponse;
+import io.camunda.zeebe.client.api.search.response.Variable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

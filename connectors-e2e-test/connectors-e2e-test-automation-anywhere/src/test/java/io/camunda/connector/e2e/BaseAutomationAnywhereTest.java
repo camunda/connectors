@@ -20,8 +20,8 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
+import io.camunda.zeebe.client.ZeebeClient;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
@@ -41,7 +41,7 @@ public abstract class BaseAutomationAnywhereTest {
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
-  @Autowired CamundaClient camundaClient;
+  @Autowired ZeebeClient zeebeClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 

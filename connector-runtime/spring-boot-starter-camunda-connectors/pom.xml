@@ -28,12 +28,12 @@
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>spring-boot-starter-camunda-sdk</artifactId>
-      <version>${version.camunda}</version>
+      <version>${version.zeebe}</version>
     </dependency>
     <dependency>
       <groupId>io.camunda</groupId>
-      <artifactId>camunda-client-java</artifactId>
-      <version>${version.camunda}</version>
+      <artifactId>zeebe-client-java</artifactId>
+      <version>${version.zeebe}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>

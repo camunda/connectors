@@ -16,10 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound.correlation;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.client.api.command.ClientStatusException;
-import io.camunda.client.api.response.ProcessInstanceEvent;
-import io.camunda.client.api.response.PublishMessageResponse;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -33,6 +29,10 @@ import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
+import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.command.ClientStatusException;
+import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
+import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 import io.grpc.Status;
 import java.time.Duration;
 import java.util.List;
@@ -46,7 +46,7 @@ public class InboundCorrelationHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundCorrelationHandler.class);
 
-  private final CamundaClient camundaClient;
+  private final ZeebeClient zeebeClient;
   private final FeelEngineWrapper feelEngine;
 
   private final ProcessElementContextFactory processElementContextFactory;
@@ -54,11 +54,11 @@ public class InboundCorrelationHandler {
   private final Duration defaultMessageTtl;
 
   public InboundCorrelationHandler(
-      CamundaClient camundaClient,
+      ZeebeClient zeebeClient,
       FeelEngineWrapper feelEngine,
       ProcessElementContextFactory processElementContextFactory,
       Duration defaultMessageTtl) {
-    this.camundaClient = camundaClient;
+    this.zeebeClient = zeebeClient;
     this.feelEngine = feelEngine;
     this.processElementContextFactory = processElementContextFactory;
     this.defaultMessageTtl = defaultMessageTtl;
@@ -118,7 +118,7 @@ public class InboundCorrelationHandler {
 
     try {
       ProcessInstanceEvent result =
-          camundaClient
+          zeebeClient
               .newCreateInstanceCommand()
               .bpmnProcessId(correlationPoint.bpmnProcessId())
               .version(correlationPoint.version())
@@ -204,7 +204,7 @@ public class InboundCorrelationHandler {
     CorrelationResult result;
     try {
       var command =
-          camundaClient
+          zeebeClient
               .newPublishMessageCommand()
               .messageName(messageName)
               .correlationKey(correlationKey)

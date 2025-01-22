@@ -20,8 +20,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -31,6 +29,8 @@ import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.outbound.JobRetriesIntegrationTest.CustomConfiguration;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +58,7 @@ public class JobRetriesIntegrationTest {
   private static final String bpmnProcessId = "test-process";
   private static final String testConnectorType = "io.camunda:connector-test:1";
   private static final String testRetryConnectorType = "io.camunda:connector-retry-test:1";
-  @Autowired private CamundaClient camundaClient;
+  @Autowired private ZeebeClient zeebeClient;
   @Autowired private OutboundConnectorFactory factory;
 
   @BeforeEach
@@ -103,7 +103,7 @@ public class JobRetriesIntegrationTest {
   @Test
   void noRetriesProvided_connectorIsInvoked3times() {
     var function = (CountingConnectorFunction) factory.getInstance(testConnectorType);
-    camundaClient
+    zeebeClient
         .newDeployResourceCommand()
         .addProcessModel(
             Bpmn.createExecutableProcess(bpmnProcessId)
@@ -129,7 +129,7 @@ public class JobRetriesIntegrationTest {
   void retryExceptionThrown_connectorIsInvoked5times() {
     var retryFunction =
         (CountingRetryConnectorFunction) factory.getInstance(testRetryConnectorType);
-    camundaClient
+    zeebeClient
         .newDeployResourceCommand()
         .addProcessModel(
             Bpmn.createExecutableProcess(bpmnProcessId)
@@ -152,7 +152,7 @@ public class JobRetriesIntegrationTest {
   }
 
   private void deployProcessWithRetries(int retries, String backoff) {
-    camundaClient
+    zeebeClient
         .newDeployResourceCommand()
         .addProcessModel(
             Bpmn.createExecutableProcess(bpmnProcessId)
@@ -169,7 +169,7 @@ public class JobRetriesIntegrationTest {
   }
 
   private ProcessInstanceEvent createProcessInstance() {
-    return camundaClient
+    return zeebeClient
         .newCreateInstanceCommand()
         .bpmnProcessId(bpmnProcessId)
         .latestVersion()

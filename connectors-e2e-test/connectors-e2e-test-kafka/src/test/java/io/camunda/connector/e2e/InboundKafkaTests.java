@@ -19,7 +19,6 @@ package io.camunda.connector.e2e;
 import static io.camunda.connector.e2e.BpmnFile.replace;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.e2e.helper.KafkaTestProducer;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
@@ -27,6 +26,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.zeebe.client.api.search.response.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Map;
@@ -94,7 +94,7 @@ public class InboundKafkaTests extends BaseKafkaTest {
         producer.startContinuousMessageSending(
             TOPIC, MESSAGE_KEY_JSON_AS_OBJECT, MESSAGE_VALUE, MESSAGE_HEADERS_AS_OBJECT);
 
-    var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
     kafkaProducerThreadRun.set(false);
@@ -137,7 +137,7 @@ public class InboundKafkaTests extends BaseKafkaTest {
         producer.startContinuousMessageSending(
             TOPIC, MESSAGE_KEY_STRING, MESSAGE_VALUE, MESSAGE_HEADERS_AS_OBJECT);
 
-    var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(model).createInstance();
     bpmnTest = bpmnTest.waitForProcessCompletion();
 
     kafkaProducerThreadRun.set(false);
@@ -149,8 +149,7 @@ public class InboundKafkaTests extends BaseKafkaTest {
   private void mockProcessDefinition(BpmnModelInstance model) {
     when(searchQueryClient.getProcessModel(1)).thenReturn(model);
     when(processDef.getProcessDefinitionKey()).thenReturn(1L);
-    when(processDef.getTenantId())
-        .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
   }

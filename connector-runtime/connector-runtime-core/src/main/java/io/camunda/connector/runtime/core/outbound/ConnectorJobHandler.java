@@ -18,12 +18,6 @@
 package io.camunda.connector.runtime.core.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.command.FinalCommandStep;
-import io.camunda.client.api.response.ActivatedJob;
-import io.camunda.client.api.response.CompleteJobResponse;
-import io.camunda.client.api.response.FailJobResponse;
-import io.camunda.client.api.worker.JobClient;
-import io.camunda.client.api.worker.JobHandler;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
@@ -41,6 +35,12 @@ import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.Erro
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.document.factory.DocumentFactory;
+import io.camunda.zeebe.client.api.command.FinalCommandStep;
+import io.camunda.zeebe.client.api.response.ActivatedJob;
+import io.camunda.zeebe.client.api.response.CompleteJobResponse;
+import io.camunda.zeebe.client.api.response.FailJobResponse;
+import io.camunda.zeebe.client.api.worker.JobClient;
+import io.camunda.zeebe.client.api.worker.JobHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;

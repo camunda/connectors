@@ -22,10 +22,10 @@ import static io.camunda.connector.e2e.AwsService.SNS;
 import static io.camunda.connector.e2e.AwsService.SQS;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.zeebe.client.ZeebeClient;
 import java.io.File;
 import java.util.Collections;
 import org.junit.jupiter.api.AfterAll;
@@ -54,7 +54,7 @@ public abstract class BaseAwsTest {
   private static final DockerImageName localstackImage =
       DockerImageName.parse("localstack/localstack");
   @TempDir File tempDir;
-  @Autowired CamundaClient camundaClient;
+  @Autowired ZeebeClient zeebeClient;
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 
   static LocalStackContainer localstack;
