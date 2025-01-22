@@ -24,6 +24,10 @@ import org.springframework.test.context.ActiveProfiles;
     classes = {SaaSConnectorRuntimeApplication.class},
     properties = {
       "camunda.saas.secrets.projectId=42",
+      "zeebe.client.cloud.clusterId=42",
+      "zeebe.client.cloud.region=bru-1",
+      "zeebe.client.broker.gateway-address=zeebe-service:26500",
+      "zeebe.client.security.plaintext=true",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
       "camunda.connector.secretprovider.discovery.enabled=false"
