@@ -27,8 +27,8 @@ import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfigurati
 import io.camunda.connector.runtime.secret.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
-import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
-import io.camunda.connector.runtime.secret.console.JwtCredential;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.operate.auth.JwtCredential;
 import io.camunda.zeebe.client.api.JsonMapper;
 import io.camunda.zeebe.client.impl.ZeebeObjectMapper;
 import io.camunda.zeebe.spring.client.properties.CamundaClientProperties;

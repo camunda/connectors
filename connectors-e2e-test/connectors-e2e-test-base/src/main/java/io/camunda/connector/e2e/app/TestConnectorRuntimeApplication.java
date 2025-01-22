@@ -16,7 +16,10 @@
  */
 package io.camunda.connector.e2e.app;
 
-import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.operate.CamundaOperateClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
