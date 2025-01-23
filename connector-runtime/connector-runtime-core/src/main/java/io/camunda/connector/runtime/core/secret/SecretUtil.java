@@ -67,7 +67,7 @@ public class SecretUtil {
   private static String resolveSecretValue(
       Function<String, String> secretReplacer, Matcher matcher) {
     var secretName = matcher.group("secret").trim();
-    if (!secretName.isBlank() && !secretName.isEmpty()) {
+    if (!secretName.isBlank()) {
       var result = secretReplacer.apply(secretName);
       if (result != null) {
         return result;

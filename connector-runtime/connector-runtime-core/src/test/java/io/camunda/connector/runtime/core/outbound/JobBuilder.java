@@ -166,7 +166,7 @@ class JobBuilder {
 
   public static class JobResult {
 
-    private Map<String, Object> variables;
+    private final Map<String, Object> variables;
     private String errorCode;
     private String errorMessage;
     private int retries;
