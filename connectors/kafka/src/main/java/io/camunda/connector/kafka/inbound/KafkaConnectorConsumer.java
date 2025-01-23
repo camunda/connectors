@@ -37,10 +37,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -102,7 +99,9 @@ public class KafkaConnectorConsumer {
           } catch (Exception ex) {
             LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage(), ex);
             try {
-              consumer.close();
+              if (consumer != null) {
+                consumer.close();
+              }
             } catch (Exception e) {
               LOG.error(
                   "Failed to close consumer before retrying, reason: {}. "
@@ -134,7 +133,7 @@ public class KafkaConnectorConsumer {
           new OffsetUpdateRequiredListener(topicName, consumer, elementProps.offsets()));
       reportUp();
     } catch (Exception ex) {
-      LOG.error("Failed to initialize connector: {}", ex.getMessage());
+      LOG.error("Failed to initialize connector", ex);
       context.log(
           Activity.level(Severity.ERROR)
               .tag("Subscription")
@@ -198,12 +197,18 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  public void stopConsumer() throws ExecutionException, InterruptedException {
+  public void stopConsumer() {
     this.shouldLoop = false;
     if (this.future != null && !this.future.isDone()) {
-      this.future.get();
+      try {
+        this.future.get(10, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        LOG.error("Timeout while waiting for retryableFuture to stop", e);
+      }
     }
-    this.consumer.close();
+    if (this.consumer != null) {
+      this.consumer.close();
+    }
     if (this.executorService != null) {
       this.executorService.shutdownNow();
     }
