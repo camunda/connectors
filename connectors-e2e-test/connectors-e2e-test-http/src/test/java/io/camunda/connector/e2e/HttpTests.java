@@ -136,11 +136,8 @@ public class HttpTests {
             .writeToFile(new File(tempDir, "test.bpmn"))
             .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
 
-    var bpmnTest =
-        ZeebeTest.with(zeebeClient)
-            .deploy(updatedModel)
-            .createInstance()
-            .waitForProcessCompletion();
+    var bpmnTest = ZeebeTest.with(zeebeClient).deploy(updatedModel).createInstance();
+    bpmnTest.waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }

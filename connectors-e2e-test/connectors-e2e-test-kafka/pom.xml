@@ -48,7 +48,7 @@
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-process-test-spring</artifactId>
-      <version>${version.zeebe}</version>
+      <version>8.6.7</version>
     </dependency>
 
     <dependency>

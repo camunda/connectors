@@ -72,8 +72,9 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.zeebe>8.7.0-alpha2</version.zeebe>
-    <version.feel-engine>1.19.0</version.feel-engine>
+    <version.camunda-process-test>8.6.7</version.camunda-process-test>
     <version.operate-client>8.6.2</version.operate-client>
+    <version.feel-engine>1.19.0</version.feel-engine>
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.1.0</version.jakarta-validation>
@@ -527,7 +528,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>camunda-process-test-spring</artifactId>
-        <version>${version.zeebe}</version>
+        <version>${version.camunda-process-test}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
