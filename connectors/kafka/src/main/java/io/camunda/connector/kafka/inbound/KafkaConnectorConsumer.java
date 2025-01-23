@@ -96,19 +96,6 @@ public class KafkaConnectorConsumer {
             return null;
           } catch (Exception ex) {
             LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage(), ex);
-<<<<<<< Updated upstream
-            try {
-              if (consumer != null) {
-                consumer.close();
-              }
-            } catch (Exception e) {
-              LOG.error(
-                  "Failed to close consumer before retrying, reason: {}. "
-                      + "This error will be ignored. If the consumer is still running, it will be disconnected after max.poll.interval.ms.",
-                  e.getMessage());
-            }
-=======
->>>>>>> Stashed changes
             throw ex;
           }
         };
