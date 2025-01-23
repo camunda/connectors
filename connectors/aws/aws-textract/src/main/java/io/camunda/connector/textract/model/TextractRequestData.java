@@ -6,10 +6,11 @@
  */
 package io.camunda.connector.textract.model;
 
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.document.Document;
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 
@@ -30,21 +31,53 @@ public record TextractRequestData(
         TextractExecutionType executionType,
     @TemplateProperty(
             group = "input",
+            label = "Document location type",
+            description = "Document location",
+            feel = FeelMode.disabled,
+            type = TemplateProperty.PropertyType.Dropdown,
+            defaultValue = "UPLOADED",
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(value = "S3", label = "S3"),
+              @TemplateProperty.DropdownPropertyChoice(
+                  value = "UPLOADED",
+                  label = "Camunda Document")
+            },
+            tooltip =
+                "<a href=\"https://docs.camunda.io/docs/next/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.executionType",
+                    equals = "SYNC"))
+        DocumentLocationType documentLocationType,
+    @TemplateProperty(
+            group = "input",
             label = "Document bucket",
-            description = "S3 bucket that contains document that needs to be processed")
-        @NotBlank
+            description = "S3 bucket that contains document that needs to be processed",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.documentLocationType",
+                    equals = "S3"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String documentS3Bucket,
     @TemplateProperty(
             group = "input",
             label = "Document path",
-            description = "S3 document path to be processed")
-        @NotBlank
+            description = "S3 document path to be processed",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.documentLocationType",
+                    equals = "S3"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String documentName,
     @TemplateProperty(
             group = "input",
             label = "Document version",
             description = "S3 document version to be processed",
-            optional = true)
+            optional = true,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.documentLocationType",
+                    equals = "S3"))
         String documentVersion,
     @TemplateProperty(
             label = "Analyze tables",
@@ -150,14 +183,25 @@ public record TextractRequestData(
                 @TemplateProperty.PropertyCondition(
                     property = "input.executionType",
                     equals = "ASYNC"))
-        String outputConfigS3Prefix) {
+        String outputConfigS3Prefix,
+    @TemplateProperty(
+            group = "input",
+            label = "Document",
+            feel = Property.FeelMode.required,
+            type = TemplateProperty.PropertyType.String,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.documentLocationType",
+                    equals = "UPLOADED"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+        Document document) {
   @TemplateProperty(ignore = true)
   public static final String WRONG_OUTPUT_VALUES_MSG =
       "Output S3 bucket must be filled in if output S3 prefix is filled in";
 
   @TemplateProperty(ignore = true)
   public static final String WRONG_NOTIFICATION_VALUES_MSG =
-      "either both notification values role ARN and topic ARN must be filled in or none of them";
+      "Either both notification values role ARN and topic ARN must be filled in or none of them";
 
   @AssertTrue(message = WRONG_NOTIFICATION_VALUES_MSG)
   public boolean isValidNotificationProperties() {

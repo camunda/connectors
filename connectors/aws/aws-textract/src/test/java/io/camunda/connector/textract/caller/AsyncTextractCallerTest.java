@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.amazonaws.services.textract.AmazonTextractAsyncClient;
 import com.amazonaws.services.textract.model.StartDocumentAnalysisRequest;
 import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
+import io.camunda.connector.textract.model.DocumentLocationType;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
 import org.junit.jupiter.api.Test;
@@ -100,6 +101,7 @@ class AsyncTextractCallerTest {
   private TextractRequestData prepareReqData(String roleArn, String topicArn) {
     return new TextractRequestData(
         TextractExecutionType.ASYNC,
+        DocumentLocationType.S3,
         "test-bucket",
         "test-object",
         "1",
@@ -113,12 +115,14 @@ class AsyncTextractCallerTest {
         roleArn,
         topicArn,
         "outputBucket",
-        "prefix");
+        "prefix",
+        null);
   }
 
   private TextractRequestData prepareReqDataWithoutOutputS3Bucket() {
     return new TextractRequestData(
         TextractExecutionType.ASYNC,
+        DocumentLocationType.S3,
         "test-bucket",
         "test-object",
         "1",
@@ -132,6 +136,7 @@ class AsyncTextractCallerTest {
         "roleArn",
         "topicArn",
         "",
-        "prefix");
+        "prefix",
+        null);
   }
 }

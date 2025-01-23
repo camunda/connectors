@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
 import com.amazonaws.services.textract.model.DocumentLocation;
 import com.amazonaws.services.textract.model.S3Object;
+import io.camunda.connector.textract.model.DocumentLocationType;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
 import java.util.Set;
@@ -37,6 +38,7 @@ class TextractCallerTest {
     TextractRequestData requestData1 =
         new TextractRequestData(
             TextractExecutionType.SYNC,
+            DocumentLocationType.S3,
             "test-bucket",
             "test-object",
             "1",
@@ -50,7 +52,8 @@ class TextractCallerTest {
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix");
+            "prefix",
+            null);
     Set<String> featureTypes = textractCaller.prepareFeatureTypes(requestData1);
     assertThat(featureTypes).containsExactlyInAnyOrder("FORMS", "LAYOUT", "SIGNATURES", "TABLES");
   }
@@ -60,6 +63,7 @@ class TextractCallerTest {
     TextractRequestData requestData =
         new TextractRequestData(
             TextractExecutionType.SYNC,
+            DocumentLocationType.S3,
             "test-bucket",
             "test-object",
             "1",
@@ -73,7 +77,8 @@ class TextractCallerTest {
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix");
+            "prefix",
+            null);
 
     Exception exception =
         assertThrows(
@@ -87,6 +92,7 @@ class TextractCallerTest {
     TextractRequestData requestData =
         new TextractRequestData(
             TextractExecutionType.SYNC,
+            DocumentLocationType.S3,
             "test-bucket",
             "test-object",
             "1",
@@ -100,7 +106,8 @@ class TextractCallerTest {
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix");
+            "prefix",
+            null);
     Set<String> featureTypes = textractCaller.prepareFeatureTypes(requestData);
     assertThat(featureTypes).containsExactlyInAnyOrder("TABLES", "LAYOUT");
   }
