@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.textract.util;
 
+import io.camunda.connector.textract.model.DocumentLocationType;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
 
@@ -194,6 +195,7 @@ public class TextractTestUtils {
   public static final TextractRequestData FULL_FILLED_ASYNC_TEXTRACT_DATA =
       new TextractRequestData(
           TextractExecutionType.ASYNC,
+          DocumentLocationType.S3,
           "test-bucket",
           "test-object",
           "1",
@@ -207,5 +209,6 @@ public class TextractTestUtils {
           "notification-channel",
           "sns-arn",
           "outputBucket",
-          "prefix");
+          "prefix",
+          null);
 }
