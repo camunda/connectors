@@ -196,9 +196,6 @@ public class KafkaConnectorConsumer {
         LOG.error("Timeout while waiting for retryableFuture to stop", e);
       }
     }
-    if (this.consumer != null) {
-      this.consumer.close();
-    }
     if (this.executorService != null) {
       this.executorService.shutdownNow();
     }
