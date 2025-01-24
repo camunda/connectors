@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -99,6 +101,7 @@ public record SmtpSendEmail(
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.contentType"))
         @Valid
         @NotNull
+        @JsonSetter(nulls = Nulls.AS_EMPTY)
         ContentType contentType,
     @TemplateProperty(
             label = "Email Text Content",
