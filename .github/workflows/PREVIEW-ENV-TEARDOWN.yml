@@ -64,7 +64,7 @@ jobs:
         revision: ${{ env.BRANCH_NAME }}
         argocd_token: ${{ steps.secrets.outputs.ARGOCD_TOKEN }}
         app_name: connectors-${{ steps.sanitize.outputs.branch_name }}-${{ matrix.product_context }}
-        github_token: ${{ steps.github-token.outputs.token }}
+        # github_token: ${{ steps.github-token.outputs.token }}
   clean:
     if: always() && needs.teardown-preview.result != 'skipped'
     uses: camunda/connectors/.github/workflows/PREVIEW-ENV-CLEAN.yml@main
