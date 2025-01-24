@@ -367,9 +367,9 @@ public class OutboundEmailTests extends BaseEmailTest {
   @Test
   public void shouldSendEmailVersion1() {
     var model =
-            replace(
-                    "email-outbound-connector-send-email-v1.bpmn",
-                    BpmnFile.Replace.replace("55555", super.getUnsecureSmtpPort()));
+        replace(
+            "email-outbound-connector-send-email-v1.bpmn",
+            BpmnFile.Replace.replace("55555", super.getUnsecureSmtpPort()));
 
     var result = getZeebeTest(model);
 
