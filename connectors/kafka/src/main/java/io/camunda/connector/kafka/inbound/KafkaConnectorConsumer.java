@@ -37,10 +37,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -67,7 +64,6 @@ public class KafkaConnectorConsumer {
   private final RetryPolicy<Object> retryPolicy;
   private final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction;
   public CompletableFuture<?> future;
-  Consumer<Object, Object> consumer;
   KafkaConnectorProperties elementProps;
   boolean shouldLoop = true;
   private Health consumerStatus = Health.unknown();
@@ -95,20 +91,11 @@ public class KafkaConnectorConsumer {
 
     CheckedSupplier<Void> retryableFutureSupplier =
         () -> {
-          try {
-            prepareConsumer();
-            consume();
+          try (Consumer consumer = prepareConsumer()) {
+            consume(consumer);
             return null;
           } catch (Exception ex) {
-            LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage());
-            try {
-              consumer.close();
-            } catch (Exception e) {
-              LOG.error(
-                  "Failed to close consumer before retrying, reason: {}. "
-                      + "This error will be ignored. If the consumer is still running, it will be disconnected after max.poll.interval.ms.",
-                  e.getMessage());
-            }
+            LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage(), ex);
             throw ex;
           }
         };
@@ -125,16 +112,18 @@ public class KafkaConnectorConsumer {
                 });
   }
 
-  private void prepareConsumer() {
+  private Consumer<Object, Object> prepareConsumer() {
     try {
-      this.consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
+      var consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
       String topicName = elementProps.topic().topicName();
       consumer.subscribe(
           List.of(topicName),
           new OffsetUpdateRequiredListener(topicName, consumer, elementProps.offsets()));
-      reportUp();
+      reportUp(consumer);
+
+      return consumer;
     } catch (Exception ex) {
-      LOG.error("Failed to initialize connector: {}", ex.getMessage());
+      LOG.error("Failed to initialize connector", ex);
       context.log(
           Activity.level(Severity.ERROR)
               .tag("Subscription")
@@ -144,11 +133,11 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  public void consume() {
+  public void consume(Consumer consumer) {
     while (shouldLoop) {
       try {
-        pollAndPublish();
-        reportUp();
+        pollAndPublish(consumer);
+        reportUp(consumer);
       } catch (Exception ex) {
         reportDown(ex);
         throw ex;
@@ -157,14 +146,14 @@ public class KafkaConnectorConsumer {
     LOG.debug("Kafka inbound loop finished");
   }
 
-  private void pollAndPublish() {
-    LOG.trace("Polling the topics: {}", this.consumer.assignment());
-    ConsumerRecords<Object, Object> records = this.consumer.poll(Duration.ofMillis(500));
+  private void pollAndPublish(Consumer consumer) {
+    LOG.trace("Polling the topics: {}", consumer.assignment());
+    ConsumerRecords<Object, Object> records = consumer.poll(Duration.ofMillis(500));
     for (ConsumerRecord<Object, Object> record : records) {
       handleMessage(record);
     }
     if (!records.isEmpty()) {
-      this.consumer.commitSync();
+      consumer.commitSync();
     }
   }
 
@@ -198,18 +187,21 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  public void stopConsumer() throws ExecutionException, InterruptedException {
+  public void stopConsumer() {
     this.shouldLoop = false;
     if (this.future != null && !this.future.isDone()) {
-      this.future.get();
+      try {
+        this.future.get(10, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        LOG.error("Timeout while waiting for retryableFuture to stop", e);
+      }
     }
-    this.consumer.close();
     if (this.executorService != null) {
       this.executorService.shutdownNow();
     }
   }
 
-  private void reportUp() {
+  private void reportUp(Consumer consumer) {
     var details = new HashMap<String, Object>();
     details.put("group-id", consumer.groupMetadata().groupId());
     details.put("group-instance-id", consumer.groupMetadata().groupInstanceId().orElse("unknown"));
