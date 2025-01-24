@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
+import static io.camunda.connector.e2e.BpmnFile.replace;
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -361,6 +362,27 @@ public class OutboundEmailTests extends BaseEmailTest {
     assertThat(result.getProcessInstanceEvent()).hasVariable("messageId", messageId);
     assertThat(result.getProcessInstanceEvent()).hasVariable("from", "INBOX");
     assertThat(result.getProcessInstanceEvent()).hasVariable("to", "TEST");
+  }
+
+  @Test
+  public void shouldSendEmailVersion1() {
+    var model =
+            replace(
+                    "email-outbound-connector-send-email-v1.bpmn",
+                    BpmnFile.Replace.replace("55555", super.getUnsecureSmtpPort()));
+
+    var result = getZeebeTest(model);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getProcessInstanceEvent()).hasVariable("sent", true);
+
+    assertTrue(super.waitForNewEmails(5000, 1));
+    List<Message> message = List.of(super.getLastReceivedEmails());
+    assertThat(message).isNotNull();
+    assertThat(getSenders(message.getFirst())).hasSize(1).first().isEqualTo("test@camunda.com");
+    assertThat(getReceivers(message.getFirst())).hasSize(1).first().isEqualTo("receiver@test.com");
+    assertThat(getSubject(message.getFirst())).isEqualTo("Hello");
+    assertThat(getHtmlBody(message.getFirst())).isEqualTo("This is a test");
   }
 
   private BpmnModelInstance getBpmnModelInstance(

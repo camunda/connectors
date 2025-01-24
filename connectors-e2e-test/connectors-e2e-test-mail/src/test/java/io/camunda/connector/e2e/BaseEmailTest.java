@@ -88,7 +88,7 @@ public class BaseEmailTest {
       if (message.getContent() instanceof Multipart multipart) {
         for (int i = 0; i < multipart.getCount(); i++) {
           MimeBodyPart bodyPart = (MimeBodyPart) multipart.getBodyPart(i);
-          if (bodyPart.isMimeType("text/html")) {
+          if (bodyPart.isMimeType("text/html") || bodyPart.isMimeType("text/plain")) {
             return (String) bodyPart.getContent();
           }
         }
