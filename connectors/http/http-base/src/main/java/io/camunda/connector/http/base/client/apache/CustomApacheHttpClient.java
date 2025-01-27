@@ -30,6 +30,7 @@ import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
@@ -98,13 +99,18 @@ public class CustomApacheHttpClient implements HttpClient {
   public HttpCommonResult execute(
       HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
     var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+    HttpHost proxy = ProxyHandler.getProxyHost(apacheRequest.getScheme());
+    var routePlanner = ProxyHandler.getRoutePlanner(apacheRequest.getScheme(), proxy);
     try {
       var result =
           httpClientBuilder
               .setDefaultRequestConfig(getRequestConfig(request))
-              // Will allow customers to use system properties for proxy configuration
-              // (http.proxyHost, http.proxyPort, etc)
-              .useSystemProperties()
+              .setRoutePlanner(routePlanner)
+              .setProxy(proxy)
+              .setDefaultCredentialsProvider(
+                  ProxyHandler.getCredentialsProvider(apacheRequest.getScheme()))
+              .useSystemProperties() // Will fallback on system properties for unset values,
+              // e.g. http.keepAlive, http.agent
               .build()
               .execute(
                   apacheRequest,
