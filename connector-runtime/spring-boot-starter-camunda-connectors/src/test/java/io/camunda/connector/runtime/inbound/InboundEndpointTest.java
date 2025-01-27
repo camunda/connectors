@@ -22,14 +22,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
+import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
+import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +42,15 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 public class InboundEndpointTest {
+
+  static class AnotherExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
+
+    @Override
+    public void activate(InboundConnectorContext context) throws Exception {}
+
+    @Override
+    public void deactivate() throws Exception {}
+  }
 
   static class TestWebhookExecutable implements WebhookConnectorExecutable {
 
@@ -69,9 +82,10 @@ public class InboundEndpointTest {
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry);
 
-    var response = statusController.getActiveInboundConnectors(null, null, null);
+    var response = statusController.getActiveInboundConnectors(null, null, null, false);
     assertEquals(1, response.size());
-    assertEquals("myPath", response.get(0).data().get("path"));
+    assertEquals(
+        "myPath", ((ActiveInboundConnectorResponse) (response.getFirst())).data().get("path"));
   }
 
   @Test
@@ -95,8 +109,81 @@ public class InboundEndpointTest {
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry);
 
-    var response = statusController.getActiveInboundConnectors(null, null, null);
+    var response = statusController.getActiveInboundConnectors(null, null, null, false);
     assertEquals(1, response.size());
-    assertEquals(Health.down(), response.get(0).health());
+    assertEquals(Health.down(), ((ActiveInboundConnectorResponse) (response.getFirst())).health());
+  }
+
+  @Test
+  public void shouldReturnConnectorsGroupedByConnectorId() {
+    var executableRegistry = mock(InboundExecutableRegistry.class);
+    var type1 = "webhook";
+    var uuid1 = UUID.randomUUID();
+    var type2 = "anotherType";
+    var uuid2 = UUID.randomUUID();
+    var uuid3 = UUID.randomUUID();
+
+    when(executableRegistry.query(any()))
+        .thenReturn(
+            List.of(
+                new ActiveExecutableResponse(
+                    uuid1,
+                    TestWebhookExecutable.class,
+                    List.of(
+                        new InboundConnectorElement(
+                            Map.of("inbound.context", "myPath", "inbound.type", type1),
+                            new StandaloneMessageCorrelationPoint(
+                                "myPath", "=expression", "=myPath", null),
+                            new ProcessElement("ProcessA", 1, 1, "", ""))),
+                    Health.up(),
+                    Collections.emptyList()),
+                new ActiveExecutableResponse(
+                    uuid2,
+                    AnotherExecutable.class,
+                    List.of(
+                        new InboundConnectorElement(
+                            Map.of("inbound.other.prop", "myOtherValue", "inbound.type", type2),
+                            new StandaloneMessageCorrelationPoint(
+                                "myPath", "=expression", "=myPath", null),
+                            new ProcessElement("ProcessB", 2, 1, "", ""))),
+                    Health.up(),
+                    Collections.emptyList()),
+                new ActiveExecutableResponse(
+                    uuid3,
+                    AnotherExecutable.class,
+                    List.of(
+                        new InboundConnectorElement(
+                            Map.of("inbound.other.prop", "myOtherValue2", "inbound.type", type2),
+                            new StandaloneMessageCorrelationPoint(
+                                "myPath", "=expression", "=myPath", null),
+                            new ProcessElement("ProcessC", 2, 1, "", ""))),
+                    Health.up(),
+                    Collections.emptyList())));
+
+    InboundConnectorRestController statusController =
+        new InboundConnectorRestController(executableRegistry);
+
+    var response = statusController.getActiveInboundConnectors(null, null, null, true);
+    assertEquals(2, response.size());
+    ConnectorInstances first = (ConnectorInstances) response.get(0);
+    ConnectorInstances second = (ConnectorInstances) response.get(1);
+
+    assertEquals(type1, first.connectorId());
+    assertEquals(1, first.instances().size());
+    assertEquals(uuid1, first.instances().get(0).executableId());
+
+    assertEquals(type2, second.connectorId());
+    assertEquals(2, second.instances().size());
+    var firstInstance = second.instances().get(0);
+    var firstInstanceData = firstInstance.data();
+    var secondInstance = second.instances().get(1);
+    var secondInstanceData = secondInstance.data();
+
+    assertEquals(uuid2, firstInstance.executableId());
+    assertEquals("ProcessB", firstInstance.elements().getFirst().bpmnProcessId());
+    assertEquals("myOtherValue", firstInstanceData.get("inbound.other.prop"));
+    assertEquals(uuid3, secondInstance.executableId());
+    assertEquals("ProcessC", secondInstance.elements().getFirst().bpmnProcessId());
+    assertEquals("myOtherValue2", secondInstanceData.get("inbound.other.prop"));
   }
 }

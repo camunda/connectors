@@ -14,25 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound;
+package io.camunda.connector.runtime.inbound.executable;
 
-/** Represents a BPMN process element that contains an inbound connector definition. */
-public record ProcessElement(
-    String bpmnProcessId,
-    int version,
-    long processDefinitionKey,
-    String elementId,
-    String elementName,
-    String elementType,
-    String tenantId,
-    ElementTemplateDetails elementTemplateDetails) {
+import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
+import java.util.List;
 
-  public ProcessElement(
-      String bpmnProcessId,
-      int version,
-      long processDefinitionKey,
-      String elementId,
-      String tenantId) {
-    this(bpmnProcessId, version, processDefinitionKey, elementId, null, null, tenantId, null);
-  }
-}
+public record ConnectorInstances(
+    String connectorId, List<ActiveInboundConnectorResponse> instances) {}

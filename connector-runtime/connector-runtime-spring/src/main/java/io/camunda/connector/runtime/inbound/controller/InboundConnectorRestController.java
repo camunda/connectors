@@ -19,11 +19,9 @@ package io.camunda.connector.runtime.inbound.controller;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
+import io.camunda.connector.runtime.inbound.executable.*;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -47,11 +45,17 @@ public class InboundConnectorRestController {
   }
 
   @GetMapping("/inbound")
-  public List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
+  public List<?> getActiveInboundConnectors(
       @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
       @RequestParam(required = false, value = "elementId") String elementId,
-      @RequestParam(required = false, value = "type") String type) {
-    return getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
+      @RequestParam(required = false, value = "type") String type,
+      @RequestParam(value = "groupedByConnectorId", defaultValue = "false")
+          boolean groupedByConnectorId) {
+    if (groupedByConnectorId) {
+      return getConnectorsInstances(bpmnProcessId, elementId, type);
+    } else {
+      return getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
+    }
   }
 
   @PostMapping("/inbound/logs")
@@ -88,8 +92,25 @@ public class InboundConnectorRestController {
         .collect(Collectors.toList());
   }
 
-  private Map<String, Object> getData(ActiveExecutableResponse connector) {
-    Map<String, Object> data = Map.of();
+  /**
+   * Be aware that this API is used by c4-connectors to get the active inbound connectors grouped by
+   * connector connectorId. Changing the response format will break the c4-connectors, so make sure
+   * to update the c4-connectors as well.
+   */
+  private List<ConnectorInstances> getConnectorsInstances(
+      String bpmnProcessId, String elementId, String type) {
+    var activeInboundConnectors = getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
+    return activeInboundConnectors.stream()
+        .collect(Collectors.groupingBy(ActiveInboundConnectorResponse::type, Collectors.toList()))
+        .entrySet()
+        .stream()
+        .map(e -> new ConnectorInstances(e.getKey(), e.getValue()))
+        .collect(Collectors.toList());
+  }
+
+  private Map<String, String> getData(ActiveExecutableResponse connector) {
+    Map<String, String> data =
+        new HashMap<>(connector.elements().getFirst().connectorLevelProperties());
     var executableClass = connector.executableClass();
 
     if (executableClass != null
@@ -97,7 +118,7 @@ public class InboundConnectorRestController {
       try {
         var properties = connector.elements().getFirst().connectorLevelProperties();
         var contextPath = properties.get("inbound.context");
-        data = Map.of("path", contextPath);
+        data.put("path", contextPath);
       } catch (Exception e) {
         LOG.error("ERROR: webhook connector doesn't have context path property", e);
       }
