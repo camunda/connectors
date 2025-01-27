@@ -45,6 +45,7 @@ public class ConnectorsObjectMapperSupplier {
           .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
           .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
           .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+          .enable(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE)
           .build();
 
   private ConnectorsObjectMapperSupplier() {}

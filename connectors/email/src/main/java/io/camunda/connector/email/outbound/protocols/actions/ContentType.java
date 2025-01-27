@@ -6,7 +6,10 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
+import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
+
 public enum ContentType {
+  @JsonEnumDefaultValue
   PLAIN("text/plain; charset=utf-8"),
   HTML("text/html; charset=utf-8"),
   MULTIPART("multipart/mixed; charset=utf-8");
