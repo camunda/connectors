@@ -61,7 +61,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   public static final String TYPE = "io.camunda:http-json:1";
 
-  private final HttpService httpService;
+  protected final HttpService httpService;
 
   public HttpJsonFunction() {
     this(new HttpService());
@@ -73,7 +73,25 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(final OutboundConnectorContext context) {
-    final var request = context.bindVariables(HttpJsonRequest.class);
-    return httpService.executeConnectorRequest(request, context);
+    final var request = extractRequest(context);
+    try {
+      final var result = httpService.executeConnectorRequest(request, context);
+      return extractResponse(result);
+    } catch (RuntimeException e) {
+      throw extractException(e, context);
+    }
+  }
+
+  protected HttpJsonRequest extractRequest(final OutboundConnectorContext context) {
+    return context.bindVariables(HttpJsonRequest.class);
+  }
+
+  protected HttpCommonResult extractResponse(final HttpCommonResult result) {
+    return result;
+  }
+
+  protected RuntimeException extractException(
+      final RuntimeException exception, final OutboundConnectorContext context) {
+    return exception;
   }
 }
