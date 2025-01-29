@@ -1,6 +1,6 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns="http://maven.apache.org/POM/4.0.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -33,13 +33,15 @@
     <module>soap</module>
     <module>webhook</module>
     <module>idp-extraction</module>
+    <module>javascript</module>
   </modules>
 
   <properties>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
-under one or more contributor license agreements. Licensed under a proprietary license.
-See the License.txt file for more information. You may not use this file
-except in compliance with the proprietary license.</license.inlineheader>
+      under one or more contributor license agreements. Licensed under a proprietary license.
+      See the License.txt file for more information. You may not use this file
+      except in compliance with the proprietary license.
+    </license.inlineheader>
   </properties>
 
   <dependencies>
