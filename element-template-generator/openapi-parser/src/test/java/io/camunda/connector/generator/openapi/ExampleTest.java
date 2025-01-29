@@ -92,7 +92,8 @@ public class ExampleTest {
   @Test
   void generateFromRawYamlContentWithoutServerDescription() {
     // given
-    try (var openApiYamlContent = new FileInputStream("src/test/resources/example-without-server-description.yaml")) {
+    try (var openApiYamlContent =
+        new FileInputStream("src/test/resources/example-without-server-description.yaml")) {
       byte[] b = new byte[openApiYamlContent.available()];
       if (openApiYamlContent.read(b) == -1) {
         throw new RuntimeException("Failed to read yaml file!");
