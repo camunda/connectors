@@ -11,6 +11,9 @@
     </parent>
 
     <artifactId>javascript</artifactId>
+    <name>javascript</name>
+    <description>tbd</description>
+    <packaging>jar</packaging>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
