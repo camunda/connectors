@@ -35,7 +35,7 @@ import java.util.Base64;
     icon = "icon.svg")
 public class JavascriptConnectorFunction implements OutboundConnectorFunction {
 
-  final static String JS_MAGIC_ENDPOINT = "http://ec2-16-171-176-240.eu-north-1.compute.amazonaws.com:8000";
+  final static String JS_MAGIC_ENDPOINT = "http://ec2-16-171-176-240.eu-north-1.compute.amazonaws.com:8000/execute";
   final static ObjectMapper MAPPER = ConnectorsObjectMapperSupplier.getCopy();
 
   @Override
