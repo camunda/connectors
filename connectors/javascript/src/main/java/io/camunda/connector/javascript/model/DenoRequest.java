@@ -1,3 +1,6 @@
 package io.camunda.connector.javascript.model;
 
-public record DenoRequest(String script, Object params) { }
+
+import java.util.List;
+
+public record DenoRequest(String code, List<Object> parameters) { }

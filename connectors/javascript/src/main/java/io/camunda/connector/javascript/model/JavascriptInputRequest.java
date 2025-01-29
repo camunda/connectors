@@ -10,5 +10,5 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.util.List;
 
 public record JavascriptInputRequest(
-    @TemplateProperty(group = "javascript") String script,
-    @TemplateProperty(group = "javascript") List<String> parameters) {}
+    @TemplateProperty(group = "javascript") Object script,
+    @TemplateProperty(group = "javascript") List<Object> parameters) {}

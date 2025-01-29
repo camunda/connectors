@@ -14,6 +14,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.javascript.model.DenoRequest;
 import io.camunda.connector.javascript.model.JavascriptInputRequest;
+import io.camunda.document.Document;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -43,7 +44,17 @@ public class JavascriptConnectorFunction implements OutboundConnectorFunction {
     System.out.println("Executing Javascript connector");
     var input = context.bindVariables(JavascriptInputRequest.class);
 
-    final var denoRequest = new DenoRequest(input.script(), input.parameters());
+    String script = null;
+    if (input.script() instanceof Document document) {
+      script = new String(document.asByteArray());
+    } else if (input.script() instanceof String) {
+      script = (String) input.script();
+    } else {
+      throw new IllegalArgumentException("Unsupported script type: " + input.script().getClass());
+    }
+
+    final var denoRequest = new DenoRequest(script, input.parameters());
+
     try (final var client = HttpClient.newHttpClient()) {
 
       final var request = HttpRequest.newBuilder()
