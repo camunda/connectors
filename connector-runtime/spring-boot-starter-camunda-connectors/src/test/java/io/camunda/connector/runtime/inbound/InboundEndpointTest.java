@@ -77,7 +77,8 @@ public class InboundEndpointTest {
                                 "myPath", "=expression", "=myPath", null),
                             new ProcessElement("", 1, 1, "", ""))),
                     Health.up(),
-                    Collections.emptyList())));
+                    Collections.emptyList(),
+                    System.currentTimeMillis())));
 
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry);
@@ -104,7 +105,8 @@ public class InboundEndpointTest {
                                 "myPath", "=expression", "=myPath", null),
                             new ProcessElement("", 1, 1, "", ""))),
                     Health.down(),
-                    Collections.emptyList())));
+                    Collections.emptyList(),
+                    System.currentTimeMillis())));
 
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry);
@@ -136,7 +138,8 @@ public class InboundEndpointTest {
                                 "myPath", "=expression", "=myPath", null),
                             new ProcessElement("ProcessA", 1, 1, "", ""))),
                     Health.up(),
-                    Collections.emptyList()),
+                    Collections.emptyList(),
+                    System.currentTimeMillis()),
                 new ActiveExecutableResponse(
                     uuid2,
                     AnotherExecutable.class,
@@ -147,7 +150,8 @@ public class InboundEndpointTest {
                                 "myPath", "=expression", "=myPath", null),
                             new ProcessElement("ProcessB", 2, 1, "", ""))),
                     Health.up(),
-                    Collections.emptyList()),
+                    Collections.emptyList(),
+                    System.currentTimeMillis()),
                 new ActiveExecutableResponse(
                     uuid3,
                     AnotherExecutable.class,
@@ -158,7 +162,8 @@ public class InboundEndpointTest {
                                 "myPath", "=expression", "=myPath", null),
                             new ProcessElement("ProcessC", 2, 1, "", ""))),
                     Health.up(),
-                    Collections.emptyList())));
+                    Collections.emptyList(),
+                    System.currentTimeMillis())));
 
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry);

@@ -287,14 +287,16 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               activated.executable().getClass(),
               activated.context().connectorElements(),
               activated.context().getHealth(),
-              activated.context().getLogs());
+              activated.context().getLogs(),
+              activated.context().getActivationTimestamp());
       case FailedToActivate failed ->
           new ActiveExecutableResponse(
               id,
               null,
               failed.data().connectorElements(),
               Health.down(new Error("Activation failure", failed.reason())),
-              List.of());
+              List.of(),
+              null);
       case ConnectorNotRegistered notRegistered ->
           new ActiveExecutableResponse(
               id,
@@ -304,7 +306,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                   new Error(
                       "Activation failure",
                       "Connector " + notRegistered.data().type() + " not registered")),
-              List.of());
+              List.of(),
+              null);
       case InvalidDefinition invalid ->
           new ActiveExecutableResponse(
               id,
@@ -313,14 +316,16 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               Health.down(
                   new Error(
                       "Activation failure", "Invalid connector definition: " + invalid.reason())),
-              List.of());
+              List.of(),
+              null);
       case Cancelled cancelled ->
           new ActiveExecutableResponse(
               id,
               cancelled.executable().getClass(),
               cancelled.context().connectorElements(),
               Health.down(cancelled.exceptionThrown()),
-              cancelled.context().getLogs());
+              cancelled.context().getLogs(),
+              null);
     };
   }
 

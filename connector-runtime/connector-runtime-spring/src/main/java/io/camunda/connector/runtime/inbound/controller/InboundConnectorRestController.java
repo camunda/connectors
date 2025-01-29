@@ -136,6 +136,7 @@ public class InboundConnectorRestController {
         tenantId,
         elements.stream().map(InboundConnectorElement::element).toList(),
         getData(connector),
-        connector.health());
+        connector.health(),
+        connector.activationTimestamp());
   }
 }
