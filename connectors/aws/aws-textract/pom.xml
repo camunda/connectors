@@ -56,7 +56,7 @@ except in compliance with the proprietary license.</license.inlineheader>
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>8.6.7</version>
+        <version>8.6.6</version>
         <configuration>
           <connectors>
             <connector>
