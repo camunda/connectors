@@ -46,7 +46,7 @@
             <plugin>
                 <groupId>io.camunda.connector</groupId>
                 <artifactId>element-template-generator-maven-plugin</artifactId>
-                <version>8.7.0-alpha2</version>
+                <version>8.7.0-alpha3.3</version>
                 <configuration>
                     <connectors>
                         <connector>
