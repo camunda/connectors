@@ -4,16 +4,12 @@ on:
   pull_request_target:
     branches:
       - 'main'
-  push:
-    branches:
-      - '**'
-      - '!main'
   merge_group:
     branches: [ main ]
 
 jobs:
   run-tests:
-    
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
