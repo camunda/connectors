@@ -12,4 +12,5 @@ import java.util.List;
 
 public record JavascriptInputRequest(
     @TemplateProperty(group = "javascript") Object script,
+    @TemplateProperty(group = "javascript") String serverUrl,
     @TemplateProperty(group = "javascript", feel = FeelMode.required) List<Object> parameters) {}

@@ -47,10 +47,21 @@
     },
     "type" : "String"
   }, {
+    "id" : "serverUrl",
+    "label" : "Server url",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "javascript",
+    "binding" : {
+      "name" : "serverUrl",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
     "id" : "parameters",
     "label" : "Parameters",
     "optional" : false,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "javascript",
     "binding" : {
       "name" : "parameters",

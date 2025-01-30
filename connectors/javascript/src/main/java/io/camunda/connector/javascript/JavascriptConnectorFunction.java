@@ -19,10 +19,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Optional;
 
 @OutboundConnector(
     name = "Javascript Connector",
-    inputVariables = {"script", "parameters"},
+    inputVariables = {"script", "parameters", "serverUrl"},
     type = "io.camunda:javascript:1")
 @ElementTemplate(
     id = "io.camunda.connectors.javascript.v1",
@@ -43,6 +44,7 @@ public class JavascriptConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) throws Exception {
     System.out.println("Executing Javascript connector");
     var input = context.bindVariables(JavascriptInputRequest.class);
+    var serverUrl = input.serverUrl();
 
     String script = null;
     if (input.script() instanceof Document document) {
@@ -60,13 +62,13 @@ public class JavascriptConnectorFunction implements OutboundConnectorFunction {
 
       final var request =
           HttpRequest.newBuilder()
-              .uri(URI.create(JS_MAGIC_ENDPOINT))
+              .uri(URI.create(Optional.of(serverUrl).orElse(JS_MAGIC_ENDPOINT)))
               .header("Content-Type", "application/json")
               .POST(HttpRequest.BodyPublishers.ofString(MAPPER.writeValueAsString(denoRequest)));
 
       final var response = client.send(request.build(), HttpResponse.BodyHandlers.ofString());
       System.out.println(response.body());
-      return response.body();
+      return MAPPER.readTree(response.body());
     }
   }
 }
