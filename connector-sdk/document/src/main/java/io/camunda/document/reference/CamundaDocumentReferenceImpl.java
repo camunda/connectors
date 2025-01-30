@@ -26,4 +26,19 @@ public record CamundaDocumentReferenceImpl(
   public CamundaDocumentReferenceImpl(DocumentReferenceResponse response) {
     this(response.getStoreId(), response.getDocumentId(), response.getMetadata());
   }
+
+  @Override
+  public String getDocumentId() {
+    return documentId;
+  }
+
+  @Override
+  public String getStoreId() {
+    return storeId;
+  }
+
+  @Override
+  public DocumentMetadata getMetadata() {
+    return metadata;
+  }
 }
