@@ -16,7 +16,18 @@
         "shipAddress": "{{secrets.TEMPLATE_DATA_SHIP_ADDRESS}}",
         "shipZip": "{{secrets.TEMPLATE_DATA_SHIP_ZIP}}"
       }
-    }
+    },
+    "attachments" : [ {
+      "camunda.document.type" : "camunda",
+      "storeId" : "in-memory",
+      "documentId" : "2ea3bfcc-7683-4cb6-b0ce-8052ca1d6da0",
+      "metadata" : {
+        "contentType" : "image/png",
+        "fileName" : "google-my-business-logo-png-transparent.png",
+        "size" : 66497,
+        "customProperties" : { }
+      }
+    }]
   },
   {
     "apiKey": "send_grid_key",
@@ -35,7 +46,18 @@
         "shipAddress": "Krossener Str. 24",
         "shipZip": "10245"
       }
-    }
+    },
+    "attachments" : [ {
+      "camunda.document.type" : "camunda",
+      "storeId" : "in-memory",
+      "documentId" : "2ea3bfcc-7683-4cb6-b0ce-8052ca1d6da0",
+      "metadata" : {
+        "contentType" : "image/png",
+        "fileName" : "google-my-business-logo-png-transparent.png",
+        "size" : 66497,
+        "customProperties" : { }
+      }
+    }]
   },
   {
     "to":{
@@ -78,6 +100,17 @@
         ]
       },
       "id":"d-0b51e8f77bf8450fae379e0639ca0d11"
-    }
+    },
+    "attachments" : [ {
+      "camunda.document.type" : "camunda",
+      "storeId" : "in-memory",
+      "documentId" : "2ea3bfcc-7683-4cb6-b0ce-8052ca1d6da0",
+      "metadata" : {
+        "contentType" : "image/png",
+        "fileName" : "google-my-business-logo-png-transparent.png",
+        "size" : 66497,
+        "customProperties" : { }
+      }
+    }]
   }
 ]

@@ -30,6 +30,8 @@ public class BaseTest {
       "src/test/resources/requests/validation/validate-receiver-email-tests-cases.json";
   private static final String FAIL_REQUEST_WITH_WRONG_RECEIVER_NAME =
       "src/test/resources/requests/validation/validate-receiver-name-tests-cases.json";
+  private static final String FAIL_REQUEST_WITH_ATTACHMENTS_WITHOUT_FILE_NAME =
+      "src/test/resources/requests/validation/request-with-attachments-without-file-name.json";
 
   private static final String SUCCESS_REPLACE_SECRETS_REQUEST_CASES_PATH =
       "src/test/resources/requests/replace-secrets-success-test-cases.json";
@@ -48,6 +50,7 @@ public class BaseTest {
     String RECEIVER_NAME = "Jane Doe";
     String SENDER_EMAIL = "john.doe@example.com";
     String SENDER_NAME = "John Doe";
+    String ATTACHED_FILE_NAME = "google-my-business-logo-png-transparent.png";
 
     interface Content {
       String SUBJECT = "subject_test";
@@ -128,6 +131,10 @@ public class BaseTest {
 
   protected static Stream<String> failTestWithWrongReceiverEmail() throws IOException {
     return loadTestCasesFromResourceFile(FAIL_REQUEST_WITH_WRONG_RECEIVER_EMAIL);
+  }
+
+  protected static Stream<String> failTestWithEmptyFileName() throws IOException {
+    return loadTestCasesFromResourceFile(FAIL_REQUEST_WITH_ATTACHMENTS_WITHOUT_FILE_NAME);
   }
 
   protected static Stream<String> failTestWithWrongReceiverName() throws IOException {
