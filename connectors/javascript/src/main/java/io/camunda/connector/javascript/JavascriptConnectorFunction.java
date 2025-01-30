@@ -62,7 +62,7 @@ public class JavascriptConnectorFunction implements OutboundConnectorFunction {
 
       final var request =
           HttpRequest.newBuilder()
-              .uri(URI.create(Optional.of(serverUrl).orElse(JS_MAGIC_ENDPOINT)))
+              .uri(URI.create(Optional.ofNullable(serverUrl).orElse(JS_MAGIC_ENDPOINT)))
               .header("Content-Type", "application/json")
               .POST(HttpRequest.BodyPublishers.ofString(MAPPER.writeValueAsString(denoRequest)));
 
