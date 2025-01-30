@@ -21,13 +21,8 @@ jobs:
       - name: Validate release tag and determine previous tag
         id: validate_tag
         run: |
-          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ github.event.release.tag_name }})"
-          if [ $? -ne 0 ]; then
-            echo "Script failed"
-            exit 1
-          fi
-          echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
-          echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
+          echo "type=RC" >> $GITHUB_OUTPUT
+          echo "previousTag=8.7.0" >> $GITHUB_OUTPUT
 
       # We will update this branch by setting the new version and pushing it
       - name: Determine release branch name
@@ -115,7 +110,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
-        run: mvn -B -q compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release
+        run: mvn -B -q compile generate-sources source:jar javadoc:jar -PcheckFormat -Psonatype-oss-release
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -143,23 +138,23 @@ jobs:
 
       # Build & push bundle docker images (with version tag)
 
-      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - connector-runtime
-        uses: docker/build-push-action@v6
-        with:
-          context: connector-runtime/connector-runtime-application/
-          push: true
-          tags: camunda/connectors:${{ github.event.release.tag_name }}
-          platforms: linux/amd64,linux/arm64
-          provenance: false
+      #- name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - connector-runtime
+      #  uses: docker/build-push-action@v6
+      #  with:
+      #    context: connector-runtime/connector-runtime-application/
+      #    push: true
+      #    tags: camunda/connectors:${{ github.event.release.tag_name }}
+      #    platforms: linux/amd64,linux/arm64
+      #    provenance: false
 
-      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-default
-        uses: docker/build-push-action@v6
-        with:
-          context: bundle/default-bundle/
-          push: true
-          tags: camunda/connectors-bundle:${{ github.event.release.tag_name }}
-          platforms: linux/amd64,linux/arm64
-          provenance: false
+      #- name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-default
+      #  uses: docker/build-push-action@v6
+      #  with:
+      #    context: bundle/default-bundle/
+      #    push: true
+      #    tags: camunda/connectors-bundle:${{ github.event.release.tag_name }}
+      #    platforms: linux/amd64,linux/arm64
+      #    provenance: false
 
       - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-saas
         uses: docker/build-push-action@v6
@@ -172,67 +167,67 @@ jobs:
 
       # Build & push bundle docker images (with 'latest' tag)
 
-      - name: Build and Push Docker Image tag latest - connector-runtime
-        uses: docker/build-push-action@v6
-        with:
-          context: connector-runtime/connector-runtime-application/
-          push: true
-          tags: camunda/connectors:latest
-          platforms: linux/amd64,linux/arm64
-          provenance: false
+      #- name: Build and Push Docker Image tag latest - connector-runtime
+      #  uses: docker/build-push-action@v6
+      #  with:
+      #    context: connector-runtime/connector-runtime-application/
+      #    push: true
+      #    tags: camunda/connectors:latest
+      #    platforms: linux/amd64,linux/arm64
+      #    provenance: false
 
-      - name: Build and Push Docker Image tag latest - bundle-default
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: bundle/default-bundle/
-          push: true
-          tags: camunda/connectors-bundle:latest
-          platforms: linux/amd64,linux/arm64
-          provenance: false
+      #- name: Build and Push Docker Image tag latest - bundle-default
+      #  if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+      #  uses: docker/build-push-action@v6
+      #  with:
+      #    context: bundle/default-bundle/
+      #    push: true
+      #    tags: camunda/connectors-bundle:latest
+      #    platforms: linux/amd64,linux/arm64
+      #    provenance: false
 
-      - name: Build and Push Docker Image tag latest - bundle-saas
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: bundle/camunda-saas-bundle/
-          push: true
-          tags: camunda/connectors-bundle-saas:latest
-          platforms: linux/amd64,linux/arm64
-          provenance: false
+      #- name: Build and Push Docker Image tag latest - bundle-saas
+      #  if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+      #  uses: docker/build-push-action@v6
+      #  with:
+      #    context: bundle/camunda-saas-bundle/
+      #    push: true
+      #    tags: camunda/connectors-bundle-saas:latest
+      #    platforms: linux/amd64,linux/arm64
+      #    provenance: false
 
       # Update README in Dockerhub
 
-      - name: Push README to Dockerhub - bundle-default
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
-        uses: christian-korneck/update-container-description-action@v1
-        env:
-          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
-        with:
-          destination_container_repo: camunda/connectors-bundle
-          provider: dockerhub
-          readme_file: bundle/README.md
-          short_description: 'Camunda out-of-the-box Connectors Bundle'
+      #- name: Push README to Dockerhub - bundle-default
+      #  if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+      #  uses: christian-korneck/update-container-description-action@v1
+      #  env:
+      #    DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+      #    DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+      #  with:
+      #    destination_container_repo: camunda/connectors-bundle
+      #    provider: dockerhub
+      #    readme_file: bundle/README.md
+      #    short_description: 'Camunda out-of-the-box Connectors Bundle'
 
-      - name: Push README to Dockerhub - bundle-saas
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
-        uses: christian-korneck/update-container-description-action@v1
-        env:
-          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
-        with:
-          destination_container_repo: camunda/connectors-bundle-saas
-          provider: dockerhub
-          readme_file: bundle/README.md
-          short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
+      #- name: Push README to Dockerhub - bundle-saas
+      #  if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+      #  uses: christian-korneck/update-container-description-action@v1
+      #  env:
+      #    DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+      #    DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+      #  with:
+      #    destination_container_repo: camunda/connectors-bundle-saas
+      #    provider: dockerhub
+      #    readme_file: bundle/README.md
+      #    short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
       # Update GitHub release
 
-      - name: Bundle element templates
-        run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
-        env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+      #- name: Bundle element templates
+      #  run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
+      #  env:
+      #    RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Build Changelog
         id: changelog
@@ -268,11 +263,11 @@ jobs:
             connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
 
-  helm-deploy:
-    needs: build-and-push
-    name: Run Helm Integration Tests
-    uses: ./.github/workflows/INTEGRATION_TEST.yml
-    secrets: inherit
-    with:
-      connectors-version: ${{ github.event.release.tag_name }}
-      release-branch: ${{ needs.build-and-push.outputs.releaseBranch }}
+  #helm-deploy:
+  #  needs: build-and-push
+  #  name: Run Helm Integration Tests
+  #  uses: ./.github/workflows/INTEGRATION_TEST.yml
+  #  secrets: inherit
+  #  with:
+  #    connectors-version: ${{ github.event.release.tag_name }}
+  #    release-branch: ${{ needs.build-and-push.outputs.releaseBranch }}

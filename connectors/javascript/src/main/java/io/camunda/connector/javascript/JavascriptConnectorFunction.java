@@ -63,6 +63,7 @@ public class JavascriptConnectorFunction implements OutboundConnectorFunction {
           .POST(HttpRequest.BodyPublishers.ofString(MAPPER.writeValueAsString(denoRequest)));
 
       final var response = client.send(request.build(), HttpResponse.BodyHandlers.ofString());
+      System.out.println(response.body());
       return response.body();
     }
   }
