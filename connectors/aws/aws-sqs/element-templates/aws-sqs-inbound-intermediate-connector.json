@@ -3,9 +3,6 @@
   "name" : "Amazon SQS Intermediate Message Catch Event connector",
   "id" : "io.camunda.connectors.AWSSQS.intermediate.v1",
   "description" : "Receive messages from Amazon SQS.",
-  "metadata" : {
-    "keywords" : [ "receive message", "receive event", "receive message from queue", "receive event from queue" ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
   "version" : 9,
   "category" : {

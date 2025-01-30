@@ -3,9 +3,6 @@
   "name" : "AWS Bedrock Outbound Connector",
   "id" : "io.camunda.connectors.aws.bedrock.v1",
   "description" : "Invoke models and converse using AWS Bedrock.",
-  "metadata" : {
-    "keywords" : [ "invoke model", "run inference", "invokemodel API", "converse API" ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/",
   "version" : 2,
   "category" : {
@@ -359,6 +356,7 @@
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
     "value" : "PT0S",
+    "feel" : "optional",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",

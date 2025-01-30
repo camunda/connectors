@@ -3,9 +3,6 @@
   "name" : "Hybrid SNS HTTPS Boundary Event Connector",
   "id" : "io.camunda.connectors.inbound.AWSSNS.Boundary.v1-hybrid",
   "description" : "Receive messages from AWS SNS via HTTPS.",
-  "metadata" : {
-    "keywords" : [ "receive event", "receive message" ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
   "version" : 4,
   "category" : {

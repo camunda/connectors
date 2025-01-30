@@ -3,9 +3,6 @@
   "name" : "AWS SageMaker Outbound Connector",
   "id" : "io.camunda.connectors.AWSSAGEMAKER.v1",
   "description" : "Run inferences using AWS SageMaker.",
-  "metadata" : {
-    "keywords" : [ "run inference", "perform asynchronous inference", "perform real-time inference" ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-sagemaker/",
   "version" : 1,
   "category" : {
@@ -437,6 +434,7 @@
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
     "value" : "PT0S",
+    "feel" : "optional",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",

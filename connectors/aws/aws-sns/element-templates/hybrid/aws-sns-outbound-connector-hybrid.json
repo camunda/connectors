@@ -3,9 +3,6 @@
   "name" : "Hybrid Amazon SNS Outbound connector",
   "id" : "io.camunda.connectors.AWSSNS.v1-hybrid",
   "description" : "Send messages to Amazon SNS.",
-  "metadata" : {
-    "keywords" : [ "send message", "publish message" ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=outbound",
   "version" : 7,
   "category" : {
@@ -290,6 +287,7 @@
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
     "value" : "PT0S",
+    "feel" : "optional",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",

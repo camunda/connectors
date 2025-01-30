@@ -3,9 +3,6 @@
   "name" : "Hybrid Automation Anywhere Outbound Connector",
   "id" : "io.camunda.connectors.AutomationAnywhere-hybrid",
   "description" : "Manage work items in Automation Anywhere queues.",
-  "metadata" : {
-    "keywords" : [ "add work item to queue", "get work item from queue", "get work item result from queue by ID" ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
   "version" : 2,
   "category" : {
@@ -366,6 +363,7 @@
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
     "value" : "PT0S",
+    "feel" : "optional",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",

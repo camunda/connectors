@@ -3,9 +3,6 @@
   "name" : "AWS Lambda Outbound Connector",
   "id" : "io.camunda.connectors.AWSLAMBDA.v2",
   "description" : "Invoke AWS Lambda functions.",
-  "metadata" : {
-    "keywords" : [ "invoke function", "run function" ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/",
   "version" : 5,
   "category" : {
@@ -223,6 +220,7 @@
     "label" : "Retry backoff",
     "description" : "ISO-8601 duration to wait between retries",
     "value" : "PT0S",
+    "feel" : "optional",
     "group" : "retries",
     "binding" : {
       "key" : "retryBackoff",
