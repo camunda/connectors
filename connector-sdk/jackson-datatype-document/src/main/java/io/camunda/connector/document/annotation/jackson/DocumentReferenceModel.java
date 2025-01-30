@@ -109,6 +109,21 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     private String documentType() {
       return "camunda";
     }
+
+    @Override
+    public String getDocumentId() {
+      return documentId;
+    }
+
+    @Override
+    public String getStoreId() {
+      return storeId;
+    }
+
+    @Override
+    public DocumentMetadata getMetadata() {
+      return metadata;
+    }
   }
 
   record ExternalDocumentReferenceModel(String url, Optional<DocumentOperation> operation)

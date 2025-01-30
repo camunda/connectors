@@ -17,10 +17,11 @@
 package io.camunda.document.reference;
 
 import io.camunda.zeebe.client.api.response.DocumentMetadata;
+import io.camunda.zeebe.client.api.response.DocumentReferenceResponse;
 
 public interface DocumentReference {
 
-  interface CamundaDocumentReference extends DocumentReference {
+  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {
     String storeId();
 
     String documentId();

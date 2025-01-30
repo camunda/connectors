@@ -52,7 +52,7 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
   @Override
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
     return zeebeClient
-        .newDocumentContentGetRequest(reference.documentId())
+        .newDocumentContentGetRequest(reference)
         .storeId(reference.storeId())
         .send()
         .join();
