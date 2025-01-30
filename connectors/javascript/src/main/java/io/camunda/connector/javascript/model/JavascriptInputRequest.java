@@ -6,9 +6,10 @@
  */
 package io.camunda.connector.javascript.model;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.util.List;
 
 public record JavascriptInputRequest(
     @TemplateProperty(group = "javascript") Object script,
-    @TemplateProperty(group = "javascript") List<Object> parameters) {}
+    @TemplateProperty(group = "javascript", feel = FeelMode.required) List<Object> parameters) {}
