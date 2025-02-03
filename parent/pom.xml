@@ -71,7 +71,7 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.7.0-alpha3-rc3</version.camunda>
+    <version.camunda>8.7.0-alpha3</version.camunda>
     <version.feel-engine>1.19.0</version.feel-engine>
 
     <!-- Third party dependencies -->
