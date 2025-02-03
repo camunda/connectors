@@ -39,6 +39,7 @@ import io.swagger.v3.oas.models.servers.Server;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -233,7 +234,11 @@ public class OpenApiOutboundTemplateGenerator
       return Collections.emptyList();
     }
     return servers.stream()
-        .map(server -> new HttpServerData(server.getUrl(), server.getDescription()))
+        .map(server -> new HttpServerData(server.getUrl(), getServerLabel(server)))
         .collect(Collectors.toList());
+  }
+
+  private String getServerLabel(Server server) {
+    return Optional.ofNullable(server.getDescription()).orElse(server.getUrl());
   }
 }

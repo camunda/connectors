@@ -1,0 +1,228 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Revolut for Business OpenAPI
+servers:
+  - url: https://b2b.revolut.com/api/1.0
+  - url: https://sandbox-b2b.revolut.com/api/1.0
+paths:
+  /accounts:
+    get:
+      summary: List all accounts
+      operationId: getAccounts
+      security:
+        - AccessToken: [read]
+      tags:
+        - accounts
+      responses:
+        '200':
+          description: List of business accounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Accounts"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /accounts/{accountId}:
+    get:
+      summary: Info for a specific account
+      operationId: getAccount
+      security:
+        - AccessToken: [read]
+      tags:
+        - accounts
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: The id of the account to retrieve
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Expected response to a valid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /accounts/{accountId}/bank-details:
+    get:
+      summary: List all account bank details
+      operationId: getAccountDetails
+      security:
+        - AccessToken: [read]
+      tags:
+        - accounts
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: The id of the account to retrieve it's bank details
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of business account bank details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountBankDetailsItems"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    AccessToken:
+      type: http
+      scheme: bearer
+      description: For more information, see https://revolutdev.github.io/business-api/#oauth
+  schemas:
+    Account:
+      type: object
+      required:
+        - id
+        - name
+        - balance
+        - currency
+        - state
+        - public
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        balance:
+          type: number
+          format: double
+        currency:
+          $ref: "#/components/schemas/Currency"
+        state:
+          type: string
+          enum:
+            - active
+            - inactive
+        public:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Accounts:
+      type: array
+      items:
+        $ref: "#/components/schemas/Account"
+    AccountBankDetailsItem:
+      type: object
+      required:
+        - beneficiary
+        - beneficiary_address
+        - schemes
+        - estimated_time
+      properties:
+        iban:
+          type: string
+        bic:
+          type: string
+        account_no:
+          type: string
+        sort_code:
+          type: string
+        routing_number:
+          type: string
+        beneficiary:
+          type: string
+        beneficiary_address:
+          $ref: "#/components/schemas/BeneficiaryAddress"
+        bank_country:
+          $ref: "#/components/schemas/CountryCode"
+        pooled:
+          type: boolean
+        unique_reference:
+          type: string
+        schemes:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentSystem"
+        estimated_time:
+          $ref: "#/components/schemas/EstimatedTime"
+    EstimatedTime:
+      required:
+        - unit
+      properties:
+        unit:
+          type: string
+        min:
+          type: integer
+        max:
+          type: integer
+    PaymentSystem:
+      enum:
+        - chaps
+        - bacs
+        - faster_payments
+        - sepa
+        - swift
+        - ach
+        - elixir
+        - sorbnet
+        - nics
+        - rix
+        - sumclearing
+    BeneficiaryAddress:
+      type: object
+      required:
+        - country
+        - postcode
+      properties:
+        street_line1:
+          type: string
+        street_line2:
+          type: string
+        region:
+          type: string
+        city:
+          type: string
+        country:
+          $ref: "#/components/schemas/CountryCode"
+        postcode:
+          type: string
+    AccountBankDetailsItems:
+      type: array
+      items:
+        $ref: "#/components/schemas/AccountBankDetailsItem"
+    CountryCode:
+      type: string
+      pattern: "^[A-Z]{2,3}$"
+    Currency:
+      type: string
+      pattern: "^[A-Z]{3}$"
+    Error:
+      type: object
+      required:
+        - message
+        - code
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
