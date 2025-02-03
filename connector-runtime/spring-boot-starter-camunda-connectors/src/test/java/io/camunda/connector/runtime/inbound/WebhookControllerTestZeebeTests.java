@@ -91,6 +91,11 @@ class WebhookControllerTestZeebeTests {
   }
 
   @Test
+  public void failingTest() {
+    throw new RuntimeException("Failing test");
+  }
+
+  @Test
   public void testSuccessfulProcessingWithActivation() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     WebhookResult webhookResult = mock(WebhookResult.class);
