@@ -66,7 +66,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
     classes = TestConnectorRuntimeApplication.class,
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
-      "camunda.connector.webhook.enabled=true"
+      "camunda.connector.webhook.enabled=true",
+      "io.camunda.process.test.camundaVersion=8.7.0-alpha2"
     })
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
