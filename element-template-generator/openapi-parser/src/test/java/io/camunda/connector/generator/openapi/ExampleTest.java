@@ -110,6 +110,28 @@ public class ExampleTest {
   }
 
   @Test
+  void generateFromRawYamlContentWithoutServerDescription() {
+    // given
+    try (var openApiYamlContent =
+        new FileInputStream("src/test/resources/example-without-server-description.yaml")) {
+      byte[] b = new byte[openApiYamlContent.available()];
+      if (openApiYamlContent.read(b) == -1) {
+        throw new RuntimeException("Failed to read yaml file!");
+      }
+      var source = new OpenApiGenerationSource(List.of(new String(b)));
+      var generator = new OpenApiOutboundTemplateGenerator();
+
+      // when
+      var templates = generator.generate(source);
+
+      // then
+      System.out.println(mapper.writeValueAsString(templates));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
   void scan() {
     var parser = new OpenAPIV3Parser();
     var openApi = parser.read("web-modeler-rest-api.json");
