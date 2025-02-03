@@ -6,7 +6,7 @@ on:
     types: [ created ]
 
 jobs:
-  build-and-push:
+  setup:
     name: Build and push Docker images
     runs-on: ubuntu-latest
     outputs:
@@ -79,7 +79,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+  maven-release:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v3.1.0
         with:
@@ -127,6 +130,10 @@ jobs:
         run: |
           mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
 
+  docker-release:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
@@ -269,7 +276,7 @@ jobs:
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
 
   helm-deploy:
-    needs: build-and-push
+    needs: setup
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
