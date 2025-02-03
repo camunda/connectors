@@ -46,6 +46,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,6 +60,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class KafkaExecutableTest {
 
   private static final int MAX_ATTEMPTS = 3;
+  private static final int INFINITE_RETRIES = -1;
   private InboundConnectorContextBuilder.TestInboundConnectorContext context;
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private KafkaConnectorProperties kafkaConnectorProperties;
@@ -128,8 +130,6 @@ public class KafkaExecutableTest {
     // Then
     assertNotNull(kafkaExecutable.kafkaConnectorConsumer.future);
     kafkaExecutable.kafkaConnectorConsumer.future.get(3, TimeUnit.SECONDS);
-    assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
-    assertEquals(mockConsumer, kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertEquals(originalContext, context);
     // Create an ArgumentCaptor to capture the argument passed to subscribe
     ArgumentCaptor<Collection<String>> argumentCaptor = ArgumentCaptor.forClass(Collection.class);
@@ -149,7 +149,6 @@ public class KafkaExecutableTest {
 
     // Then
     assertEquals(originalContext, context);
-    assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop);
   }
 
@@ -176,6 +175,23 @@ public class KafkaExecutableTest {
     verify(mockConsumer, times(MAX_ATTEMPTS)).subscribe(anyCollection(), any());
     verify(mockConsumer, times(MAX_ATTEMPTS)).poll(any(Duration.class));
     verify(mockConsumer, times(MAX_ATTEMPTS)).close();
+  }
+
+  @Test
+  void testActivateAndDeactivate_consumerThrowsWithInfiniteRetries() {
+    // Given
+    KafkaExecutable kafkaExecutable = getThrowingConsumerMock();
+
+    // When
+    kafkaExecutable.activate(context);
+
+    // then
+    Assertions.assertTimeoutPreemptively(
+        Duration.ofSeconds(15),
+        () -> {
+          kafkaExecutable.deactivate();
+        },
+        "Deactivate should not hang, it's likely an issue with the stopConsumer method");
   }
 
   @Test
@@ -277,6 +293,18 @@ public class KafkaExecutableTest {
             .handle(Exception.class)
             .withDelay(Duration.ofMillis(50))
             .withMaxAttempts(MAX_ATTEMPTS)
+            .build());
+  }
+
+  public KafkaExecutable getThrowingConsumerMock() {
+    return new KafkaExecutable(
+        properties -> {
+          throw new RuntimeException("Some Kafka error");
+        },
+        RetryPolicy.builder()
+            .handle(Exception.class)
+            .withDelay(Duration.ofMillis(50))
+            .withMaxAttempts(INFINITE_RETRIES)
             .build());
   }
 
