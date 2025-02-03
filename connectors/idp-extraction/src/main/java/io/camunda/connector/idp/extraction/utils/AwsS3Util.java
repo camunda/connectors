@@ -30,11 +30,8 @@ public class AwsS3Util {
       final Document document, final String bucketName, final S3AsyncClient s3AsyncClient)
       throws IOException {
     String documentKey = UUID.randomUUID().toString();
-
     LOGGER.debug("Starting document upload to AWS S3 with key {}", documentKey);
-
-    long contentLength = document.asByteArray().length;
-
+    long contentLength = document.metadata().getSize();
     try (InputStream inputStream = document.asInputStream()) {
       PutObjectRequest putObjectRequest =
           PutObjectRequest.builder().bucket(bucketName).key(documentKey).build();
