@@ -7,8 +7,6 @@
 package io.camunda.connector.idp.extraction.utils;
 
 import io.camunda.document.Document;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
@@ -35,33 +33,21 @@ public class AwsS3Util {
 
     LOGGER.debug("Starting document upload to AWS S3 with key {}", documentKey);
 
-    try (InputStream originalInputStream = document.asInputStream();
-        ByteArrayOutputStream bufferStream = new ByteArrayOutputStream()) {
-      // Read the input stream to calculate the content length and store the data in memory
-      byte[] buffer = new byte[8192];
-      int bytesRead;
-      while ((bytesRead = originalInputStream.read(buffer)) != -1) {
-        bufferStream.write(buffer, 0, bytesRead);
-      }
+    long contentLength = document.metadata().getSize();
 
-      byte[] documentBytes = bufferStream.toByteArray();
-      long contentLength = documentBytes.length;
+    try (InputStream inputStream = document.asInputStream()) {
+      PutObjectRequest putObjectRequest =
+          PutObjectRequest.builder().bucket(bucketName).key(documentKey).build();
 
-      // Create a new input stream from the bytes for upload
-      try (InputStream inputStream = new ByteArrayInputStream(documentBytes)) {
-        PutObjectRequest putObjectRequest =
-            PutObjectRequest.builder().bucket(bucketName).key(documentKey).build();
-
-        try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
-          AsyncRequestBody asyncRequestBody =
-              AsyncRequestBody.fromInputStream(
-                  body ->
-                      body.executor(executorService)
-                          .contentLength(contentLength)
-                          .inputStream(inputStream)
-                          .build());
-          s3AsyncClient.putObject(putObjectRequest, asyncRequestBody).join();
-        }
+      try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
+        AsyncRequestBody asyncRequestBody =
+            AsyncRequestBody.fromInputStream(
+                body ->
+                    body.executor(executorService)
+                        .contentLength(contentLength)
+                        .inputStream(inputStream)
+                        .build());
+        s3AsyncClient.putObject(putObjectRequest, asyncRequestBody).join();
       }
     }
 
