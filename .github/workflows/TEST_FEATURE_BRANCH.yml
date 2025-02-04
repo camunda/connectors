@@ -1,9 +1,10 @@
 name: Test branch
 
 on:
-  pull_request_target:
+  push:
     branches:
-      - 'main'
+      - '**'
+      - '!main'
   merge_group:
     branches: [ main ]
 
