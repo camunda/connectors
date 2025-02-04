@@ -5,12 +5,36 @@ on:
   release:
     types: [ created ]
 
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        default: 'test_tag'
+      release_name:
+        description: 'Release name'
+        required: true
+        default: 'Release test'
+      release_body:
+        description: 'Release description'
+        required: true
+        default: 'desc'
+
 jobs:
   setup:
-    name: Build and push Docker images
+    name: Prepare the repository
     runs-on: ubuntu-latest
     outputs:
+      tagType: ${{ steps.validate_tag.outputs.type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+      previousTag: ${{ steps.validate_tag.outputs.previousTag }}
+      artifactoryUsr: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+      artifactoryPsw: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+      mavenCentralDeploymentUsr: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
+      mavenCentralDeploymentPsw: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
+      mavenCentralGpgSigningKeyPassphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+      dockerhubUser: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+      dockerhubPassword: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,13 +114,13 @@ jobs:
           servers: |
             [{
                "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
-               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+               "username": "${{ needs.setup.outputs.artifactoryUsr }}",
+               "password": "${{ needs.setup.outputs.artifactoryPsw }}"
              },
             {
                "id": "central",
-               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
-               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
+               "username": "${{ needs.setup.outputs.mavenCentralDeploymentUsr }}",
+               "password": "${{ needs.setup.outputs.mavenCentralDeploymentPsw }}"
              }
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
@@ -120,11 +144,11 @@ jobs:
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         run: mvn -B -q compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release
         env:
-          NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-          NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-          MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
-          MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
-          MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+          NEXUS_USR: ${{ needs.setup.outputs.artifactoryUsr }}
+          NEXUS_PSW: ${{ needs.setup.outputs.artifactoryPsw }}
+          MAVEN_USR: ${{ needs.setup.outputs.mavenCentralDeploymentUsr }}
+          MAVEN_PSW: ${{ needs.setup.outputs.mavenCentralDeploymentPsw }}
+          MAVEN_GPG_PASSPHRASE: ${{ needs.setup.outputs.mavenCentralGpgSigningKeyPassphrase }}
 
       - name: Generate sbom reports
         run: |
@@ -145,8 +169,8 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+          username: ${{ needs.setup.outputs.dockerhubUser }}
+          password: ${{ needs.setup.outputs.dockerhubPassword }}
 
       # Build & push bundle docker images (with version tag)
 
@@ -189,7 +213,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-default
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
@@ -199,7 +223,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-saas
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
@@ -211,11 +235,11 @@ jobs:
       # Update README in Dockerhub
 
       - name: Push README to Dockerhub - bundle-default
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
-          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+          DOCKER_USER: ${{ needs.setup.outputs.dockerhubUser }}
+          DOCKER_PASS: ${{ needs.setup.outputs.dockerhubPassword }}
         with:
           destination_container_repo: camunda/connectors-bundle
           provider: dockerhub
@@ -223,11 +247,11 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle'
 
       - name: Push README to Dockerhub - bundle-saas
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
-          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+          DOCKER_USER: ${{ needs.setup.outputs.dockerhubUser }}
+          DOCKER_PASS: ${{ needs.setup.outputs.dockerhubPassword }}
         with:
           destination_container_repo: camunda/connectors-bundle-saas
           provider: dockerhub
@@ -247,7 +271,7 @@ jobs:
         with:
           token: ${{ github.token }}
           fromTag: ${{ github.event.release.tag_name }}
-          toTag: ${{ steps.validate_tag.outputs.previousTag }}
+          toTag: ${{ needs.setup.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
@@ -261,12 +285,12 @@ jobs:
 
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
-          RELEASE_BRANCH: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+          RELEASE_BRANCH: ${{ sneeds.setup.outputs.releaseBranch }}
 
       - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ steps.validate_tag.outputs.type != 'NORMAL' }}
+          prerelease: ${{ needs.setup.outputs.tagType != 'NORMAL' }}
           body: ${{ steps.changelog.outputs.changes }}
           tag_name: ${{ github.event.release.tag_name }}
           files: |
@@ -276,10 +300,10 @@ jobs:
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
 
   helm-deploy:
-    needs: setup
+    needs: [maven-release, docker-release]
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
       connectors-version: ${{ github.event.release.tag_name }}
-      release-branch: ${{ needs.build-and-push.outputs.releaseBranch }}
+      release-branch: ${{ needs.setup.outputs.releaseBranch }}
