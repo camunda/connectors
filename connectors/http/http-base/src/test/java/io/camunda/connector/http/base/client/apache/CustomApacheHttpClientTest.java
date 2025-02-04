@@ -21,7 +21,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static uk.org.webcompere.systemstubs.SystemStubs.restoreSystemProperties;
-import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariable;
+import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -29,7 +29,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.DocumentOutboundContext;
 import io.camunda.connector.http.base.ExecutionEnvironment;
@@ -47,8 +46,6 @@ import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -237,29 +234,28 @@ public class CustomApacheHttpClientTest {
 
     private static Stream<Arguments> provideValidDataAsEnvVars() {
       return Stream.of(
-          Arguments.of(
-              "http://my-user:demo@localhost:" + proxyContainer.getMappedPort(3128) + "/protected",
-              "/protected"),
+          Arguments.of("my-user", "demo", "/protected"),
           Arguments.of( // username: user-with?special%char password: pass%?word
-              "http://"
-                  + URLEncoder.encode("user-with?special%char", StandardCharsets.UTF_8)
-                  + ":"
-                  + URLEncoder.encode("pass%?word", StandardCharsets.UTF_8)
-                  + "@localhost:"
-                  + proxyContainer.getMappedPort(3128)
-                  + "/protected",
-              "/protected"),
-          Arguments.of(
-              "http://localhost:" + proxyContainer.getMappedPort(3128) + "/path", "/path"));
+              "user-with?special%char", "pass%?word", "/protected"),
+          Arguments.of("", "", "/path"));
     }
 
     @ParameterizedTest
     @MethodSource("provideValidDataAsEnvVars")
     public void shouldReturn200_whenValidEnvVar(
-        String envVar, String path, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+        String user, String password, String path, WireMockRuntimeInfo wmRuntimeInfo)
+        throws Exception {
       restoreSystemProperties(
           () -> {
-            withEnvironmentVariable("HTTP_PROXY", envVar)
+            withEnvironmentVariables(
+                    "CONNECTOR_HTTP_PROXY_HOST",
+                    "localhost",
+                    "CONNECTOR_HTTP_PROXY_PORT",
+                    proxyContainer.getMappedPort(3128).toString(),
+                    "CONNECTOR_HTTP_PROXY_USER",
+                    user,
+                    "CONNECTOR_HTTP_PROXY_PASSWORD",
+                    password)
                 .execute(
                     () -> {
                       proxy.stubFor(get(path).willReturn(ok().withBody("Hello, world!")));
@@ -298,14 +294,20 @@ public class CustomApacheHttpClientTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "my-user:@", "my-user:invalid@"})
+    @ValueSource(strings = {"", "my-user", "invalid"})
     public void shouldThrowException_whenAuthenticationRequiredAndNotProvidedAsEnvVars(
         String loginData, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       restoreSystemProperties(
           () -> {
-            withEnvironmentVariable(
-                    "HTTP_PROXY",
-                    "http://" + loginData + "localhost:" + proxyContainer.getMappedPort(3128))
+            withEnvironmentVariables(
+                    "CONNECTOR_HTTP_PROXY_HOST",
+                    "localhost",
+                    "CONNECTOR_HTTP_PROXY_PORT",
+                    proxyContainer.getMappedPort(3128).toString(),
+                    "CONNECTOR_HTTP_PROXY_USER",
+                    loginData,
+                    "CONNECTOR_HTTP_PROXY_PASSWORD",
+                    loginData)
                 .execute(
                     () -> {
                       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
@@ -322,51 +324,20 @@ public class CustomApacheHttpClientTest {
           });
     }
 
-    private static Stream<Arguments> provideTestDataForInvalidAsEnvVars() {
-      return Stream.of(
-          Arguments.of(
-              "invalid",
-              "Invalid proxy settings. Proxy environment variable is incorrect: URI is not absolute"),
-          Arguments.of(
-              "http://my-user:"
-                  + "passord-with/%?special##chars"
-                  + "@localhost:"
-                  + proxyContainer.getMappedPort(3128),
-              "Invalid proxy settings. Proxy environment variable is incorrect: URLDecoder: Illegal hex characters in escape (%) pattern - Error at index 0 in: \"?s\""));
-    }
-
-    @ParameterizedTest
-    @MethodSource("provideTestDataForInvalidAsEnvVars")
-    public void shouldThrowException_whenAuthenticationRequiredAndInvalidAsEnvVars(
-        String inputUrl, String expectedExceptionMessage, WireMockRuntimeInfo wmRuntimeInfo)
-        throws Exception {
-      restoreSystemProperties(
-          () -> {
-            withEnvironmentVariable("HTTP_PROXY", inputUrl)
-                .execute(
-                    () -> {
-                      proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
-                      unsetAllSystemProperties();
-                      HttpCommonRequest request = new HttpCommonRequest();
-                      request.setMethod(HttpMethod.GET);
-                      request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
-                      ConnectorInputException e =
-                          assertThrows(
-                              ConnectorInputException.class,
-                              () -> proxiedApacheHttpClient.execute(request));
-                      assertThat(e.getMessage()).isEqualTo(expectedExceptionMessage);
-                    });
-          });
-    }
-
     @Test
     public void shouldUseSystemProperties_WhenEnvVarAndSystemPropertiesAreProvided(
         WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       restoreSystemProperties(
           () -> {
-            withEnvironmentVariable(
-                    "HTTP_PROXY",
-                    "http://my-user:invalid@localhost:" + proxyContainer.getMappedPort(3128))
+            withEnvironmentVariables(
+                    "CONNECTOR_HTTPS_PROXY_HOST",
+                    "localhost",
+                    "CONNECTOR_HTTPS_PROXY_PORT",
+                    proxyContainer.getMappedPort(3128).toString(),
+                    "CONNECTOR_HTTPS_PROXY_USER",
+                    "my-user",
+                    "CONNECTOR_HTTPS_PROXY_PASSWORD",
+                    "demo")
                 .execute(
                     () -> {
                       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
@@ -383,10 +354,6 @@ public class CustomApacheHttpClientTest {
                     });
           });
     }
-
-    // (TODO add test: test for Https)
-    // (TODO add tests for nonproxyhost and     // seems to be not possible
-    // TODO how is nonproxyhost handled for env vars ??
 
     @Test
     public void shouldReturn200_whenGetAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {

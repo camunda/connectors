@@ -24,6 +24,7 @@ import io.camunda.connector.http.base.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import javax.annotation.Nullable;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.config.RequestConfig;
@@ -98,10 +99,13 @@ public class CustomApacheHttpClient implements HttpClient {
   @Override
   public HttpCommonResult execute(
       HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
-    var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
-    HttpHost proxy = ProxyHandler.getProxyHost(apacheRequest.getScheme());
-    var routePlanner = ProxyHandler.getRoutePlanner(apacheRequest.getScheme(), proxy);
+
     try {
+      var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+      HttpHost proxy =
+          ProxyHandler.getProxyHost(apacheRequest.getScheme(), apacheRequest.getUri().getHost());
+      var routePlanner = ProxyHandler.getRoutePlanner(apacheRequest.getScheme(), proxy);
+
       var result =
           httpClientBuilder
               .setDefaultRequestConfig(getRequestConfig(request))
@@ -127,7 +131,7 @@ public class CustomApacheHttpClient implements HttpClient {
           String.valueOf(HttpStatus.SC_SERVER_ERROR),
           "An error with the HTTP protocol occurred",
           e);
-    } catch (IOException e) {
+    } catch (IOException | URISyntaxException e) {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
           "An error occurred while executing the request, or the connection was aborted",

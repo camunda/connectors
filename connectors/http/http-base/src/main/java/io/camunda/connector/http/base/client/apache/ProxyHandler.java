@@ -2,7 +2,7 @@ package io.camunda.connector.http.base.client.apache;
 
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.CredentialsProvider;
@@ -38,18 +38,29 @@ public class ProxyHandler {
     return provider;
   }
 
-  public static HttpHost getProxyHost(String uncheckedProtocol) {
+  public static HttpHost getProxyHost(String uncheckedProtocol, String requestUri) {
     String protocol = fallbackOnHttpForInvalidProtocol(uncheckedProtocol);
     if (isValidProxy(protocol)) {
       return new HttpHost(
           protocol,
           System.getProperty(protocol + ".proxyHost"),
           Integer.parseInt(System.getProperty(protocol + ".proxyPort")));
-    } else if (systemEnvIsSetForProtocol(protocol)) {
+    } else if (systemEnvIsSetForProtocol(protocol)
+        && !doesTargetMatchNonProxy(protocol, requestUri)) {
       var proxyData = getProxySettingsFromEnvVar(protocol);
       return new HttpHost(protocol, proxyData.host, proxyData.port);
     }
     return null;
+  }
+
+  private static boolean doesTargetMatchNonProxy(String protocol, String requestUri) {
+    String nonProxyHostsEnvVar =
+        System.getenv("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_NON_PROXY_HOSTS");
+    return (nonProxyHostsEnvVar != null
+        && Arrays.stream(nonProxyHostsEnvVar.split("\\|"))
+            .anyMatch(
+                nonProxyHost ->
+                    requestUri.matches(nonProxyHost.replace(".", "\\.").replace("*", ".*"))));
   }
 
   public static HttpRoutePlanner getRoutePlanner(String uncheckedProtocol, HttpHost proxyHost) {
@@ -57,7 +68,7 @@ public class ProxyHandler {
     if (isValidProxy(protocol)) {
       return new SystemDefaultRoutePlanner(
           DefaultSchemePortResolver.INSTANCE, ProxySelector.getDefault());
-    } else if (System.getenv(protocol.toUpperCase() + "_PROXY") != null) {
+    } else if (systemEnvIsSetForProtocol(protocol) && proxyHost != null) {
       return new DefaultProxyRoutePlanner(proxyHost);
     }
     return null;
@@ -68,7 +79,10 @@ public class ProxyHandler {
   }
 
   private static boolean systemEnvIsSetForProtocol(String protocol) {
-    return StringUtils.isNotBlank(System.getenv(protocol.toUpperCase() + "_PROXY"));
+    return StringUtils.isNotBlank(
+            System.getenv("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_HOST"))
+        && StringUtils.isNotBlank(
+            System.getenv("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_PORT"));
   }
 
   private static boolean isValidProxy(String protocol) {
@@ -84,25 +98,16 @@ public class ProxyHandler {
   }
 
   private static CustomProxy getProxySettingsFromEnvVar(String protocol) {
-    String proxyString = System.getenv(protocol.toUpperCase() + "_PROXY");
-    String user = "";
-    String password = "";
+    String proxyHost = System.getenv("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_HOST");
+    String proxyPort = System.getenv("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_PORT");
+    String proxyUser =
+        System.getenv().getOrDefault("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_USER", "");
+    String proxyPassword =
+        System.getenv().getOrDefault("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_PASSWORD", "");
 
     try {
-      URLDecoder.decode(proxyString, StandardCharsets.UTF_8); // Check if URL is correctly encoded.
-      URL url = new URI(proxyString).toURL();
-      String userInfo = url.getUserInfo();
-
-      if (userInfo != null) {
-        String[] credentials = userInfo.split(":");
-        if (credentials.length == 2) {
-          user = URLDecoder.decode(credentials[0], StandardCharsets.UTF_8);
-          password = URLDecoder.decode(credentials[1], StandardCharsets.UTF_8);
-        }
-      }
-
-      return new CustomProxy(url.getHost(), url.getPort(), user, password);
-    } catch (MalformedURLException | URISyntaxException | IllegalArgumentException e) {
+      return new CustomProxy(proxyHost, Integer.parseInt(proxyPort), proxyUser, proxyPassword);
+    } catch (NumberFormatException e) {
       throw new ConnectorInputException(
           "Invalid proxy settings. Proxy environment variable is incorrect: " + e.getMessage(), e);
     }
