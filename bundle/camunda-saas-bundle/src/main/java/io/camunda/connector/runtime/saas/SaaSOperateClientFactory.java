@@ -65,7 +65,7 @@ public class SaaSOperateClientFactory {
         new JwtAuthentication(jwtCredential, new JacksonTokenResponseMapper(objectMapper));
     URL convertedOperateUrl;
     try {
-      convertedOperateUrl = new URI(operateUrl).toURL();
+      convertedOperateUrl = new URI(removeTrailingSlash(operateUrl)).toURL();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -77,15 +77,22 @@ public class SaaSOperateClientFactory {
 
   JwtCredential configureJwtCredential() {
     try {
-      var authUrl = new URI(operateAuthUrl).toURL();
+      var authUrl = new URI(removeTrailingSlash(operateAuthUrl)).toURL();
       return new JwtCredential(
           internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID),
           internalSecretProvider.getSecret(SECRET_NAME_SECRET),
-          operateBaseUrl,
+          removeTrailingSlash(operateBaseUrl),
           authUrl,
           null);
     } catch (MalformedURLException | URISyntaxException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private String removeTrailingSlash(String input) {
+    if (input != null && input.endsWith("/")) {
+      return input.substring(0, input.length() - 1);
+    }
+    return input;
   }
 }
