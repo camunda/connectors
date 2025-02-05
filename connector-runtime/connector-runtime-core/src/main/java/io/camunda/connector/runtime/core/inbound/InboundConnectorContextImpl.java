@@ -55,6 +55,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final DocumentFactory documentFactory;
   private Health health = Health.unknown();
   private Map<String, Object> propertiesWithSecrets;
+  private final Long activationTimestamp;
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -75,6 +76,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
     this.logs = logs;
+    this.activationTimestamp = System.currentTimeMillis();
   }
 
   public InboundConnectorContextImpl(
@@ -179,6 +181,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public Document createDocument(DocumentCreationRequest request) {
     return documentFactory.create(request);
+  }
+
+  @Override
+  public Long getActivationTimestamp() {
+    return activationTimestamp;
   }
 
   private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {

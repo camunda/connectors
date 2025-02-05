@@ -85,15 +85,17 @@ public class SecurityConfiguration {
   @Bean
   @Order(1)
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
+    http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**", "/inbound-instances"))
         .securityMatchers(
             requestMatcherConfigurer ->
                 requestMatcherConfigurer
                     .requestMatchers("/inbound/**")
+                    .requestMatchers("/inbound-instances")
                     .requestMatchers("/tenants/**"))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.GET, "/inbound", "/tenants/**")
+                auth.requestMatchers(
+                        HttpMethod.GET, "/inbound", "/inbound-instances", "/tenants/**")
                     .hasAuthority("SCOPE_inbound:read"))
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     return http.build();

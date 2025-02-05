@@ -16,13 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
+import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import java.util.List;
 
-public interface InboundExecutableRegistry {
-
-  void publishEvent(InboundExecutableEvent event);
-
-  List<ActiveExecutableResponse> query(ActiveExecutableQuery query);
-
-  String getConnectorName(String type);
-}
+public record ConnectorInstances(
+    String connectorId, String connectorName, List<ActiveInboundConnectorResponse> instances) {}

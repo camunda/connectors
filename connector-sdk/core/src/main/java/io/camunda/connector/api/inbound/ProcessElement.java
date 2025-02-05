@@ -16,10 +16,35 @@
  */
 package io.camunda.connector.api.inbound;
 
+import java.util.Map;
+
 /** Represents a BPMN process element that contains an inbound connector definition. */
 public record ProcessElement(
     String bpmnProcessId,
     int version,
     long processDefinitionKey,
     String elementId,
-    String tenantId) {}
+    String elementName,
+    String elementType,
+    String tenantId,
+    ElementTemplateDetails elementTemplateDetails,
+    Map<String, String> properties) {
+
+  public ProcessElement(
+      String bpmnProcessId,
+      int version,
+      long processDefinitionKey,
+      String elementId,
+      String tenantId) {
+    this(
+        bpmnProcessId,
+        version,
+        processDefinitionKey,
+        elementId,
+        null,
+        null,
+        tenantId,
+        null,
+        Map.of());
+  }
+}
