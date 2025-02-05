@@ -41,6 +41,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -96,6 +97,35 @@ public class SecurityConfigurationTest {
   @Test
   public void inboundEndpoint_noAuth_returns401() throws Exception {
     mvc.perform(get("/inbound")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @WithMockUser(authorities = "SCOPE_inbound:read")
+  public void inboundEndpoint_auth_returns200() throws Exception {
+    mvc.perform(get("/inbound")).andExpect(status().isOk());
+  }
+
+  @Test
+  @WithMockUser(authorities = "SCOPE_WRONG")
+  public void inboundEndpoint_wrongAuth_returns403() throws Exception {
+    mvc.perform(get("/inbound")).andExpect(status().isForbidden());
+  }
+
+  @Test
+  public void inboundInstancesEndpoint_noAuth_returns401() throws Exception {
+    mvc.perform(get("/inbound-instances")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @WithMockUser(authorities = "SCOPE_inbound:read")
+  public void inboundInstancesEndpoint_auth_returns200() throws Exception {
+    mvc.perform(get("/inbound-instances")).andExpect(status().isOk());
+  }
+
+  @Test
+  @WithMockUser(authorities = "SCOPE_WRONG")
+  public void inboundInstancesEndpoint_wrongAuth_returns403() throws Exception {
+    mvc.perform(get("/inbound-instances")).andExpect(status().isForbidden());
   }
 
   @Test

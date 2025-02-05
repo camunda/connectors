@@ -54,10 +54,8 @@ public class InboundConnectorRestController {
 
   @GetMapping("/inbound-instances")
   public List<ConnectorInstances> getConnectorInstances(
-      @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
-      @RequestParam(required = false, value = "elementId") String elementId,
       @RequestParam(required = false, value = "type") String type) {
-    return getConnectorsInstances(bpmnProcessId, elementId, type);
+    return getConnectorsInstances(type);
   }
 
   @PostMapping("/inbound/logs")
@@ -99,9 +97,8 @@ public class InboundConnectorRestController {
    * connector connectorId. Changing the response format will break the c4-connectors, so make sure
    * to update the c4-connectors as well.
    */
-  private List<ConnectorInstances> getConnectorsInstances(
-      String bpmnProcessId, String elementId, String type) {
-    var activeInboundConnectors = getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
+  private List<ConnectorInstances> getConnectorsInstances(String type) {
+    var activeInboundConnectors = getActiveInboundConnectors(null, null, type, null);
     return activeInboundConnectors.stream()
         .collect(Collectors.groupingBy(ActiveInboundConnectorResponse::type, Collectors.toList()))
         .entrySet()
