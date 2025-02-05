@@ -20,7 +20,6 @@ import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;

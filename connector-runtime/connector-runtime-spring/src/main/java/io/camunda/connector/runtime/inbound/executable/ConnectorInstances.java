@@ -20,4 +20,4 @@ import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorRes
 import java.util.List;
 
 public record ConnectorInstances(
-    String connectorId, List<ActiveInboundConnectorResponse> instances) {}
+    String connectorId, String connectorName, List<ActiveInboundConnectorResponse> instances) {}

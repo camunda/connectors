@@ -46,12 +46,18 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final BatchExecutableProcessor batchExecutableProcessor;
   private final Map<ProcessElement, UUID> executablesByElement = new ConcurrentHashMap<>();
   private final Map<String, List<String>> deduplicationScopesByType;
+  private final Map<String, String> connectorsNamesByType;
 
   public InboundExecutableRegistryImpl(
       InboundConnectorFactory connectorFactory, BatchExecutableProcessor batchExecutableProcessor) {
     this.batchExecutableProcessor = batchExecutableProcessor;
     this.executorService = Executors.newSingleThreadExecutor();
     eventQueue = new LinkedBlockingQueue<>();
+    connectorsNamesByType =
+        connectorFactory.getConfigurations().stream()
+            .collect(
+                Collectors.toMap(
+                    InboundConnectorConfiguration::type, InboundConnectorConfiguration::name));
     deduplicationScopesByType =
         connectorFactory.getConfigurations().stream()
             .collect(
@@ -374,5 +380,10 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               groupedByTenant.forEach(
                   (tenant, count) -> LOG.info(". . {} for tenant {}", count, tenant));
             });
+  }
+
+  @Override
+  public String getConnectorName(String type) {
+    return connectorsNamesByType.get(type);
   }
 }

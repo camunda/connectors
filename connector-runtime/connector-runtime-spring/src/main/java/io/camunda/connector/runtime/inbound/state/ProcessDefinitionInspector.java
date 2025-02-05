@@ -129,7 +129,8 @@ public class ProcessDefinitionInspector {
               element.getAttributeValue(NAME_ATTRIBUTE),
               element.getElementType().getTypeName(),
               identifier.tenantId(),
-              new ElementTemplateDetails(element));
+              new ElementTemplateDetails(element),
+              rawProperties);
       InboundConnectorElement def =
           new InboundConnectorElement(rawProperties, target, processElement);
 

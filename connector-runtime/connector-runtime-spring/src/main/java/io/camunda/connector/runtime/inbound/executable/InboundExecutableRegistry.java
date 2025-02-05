@@ -23,4 +23,6 @@ public interface InboundExecutableRegistry {
   void publishEvent(InboundExecutableEvent event);
 
   List<ActiveExecutableResponse> query(ActiveExecutableQuery query);
+
+  String getConnectorName(String type);
 }

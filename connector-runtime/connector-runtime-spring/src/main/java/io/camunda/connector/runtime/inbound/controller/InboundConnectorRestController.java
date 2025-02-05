@@ -104,7 +104,10 @@ public class InboundConnectorRestController {
         .collect(Collectors.groupingBy(ActiveInboundConnectorResponse::type, Collectors.toList()))
         .entrySet()
         .stream()
-        .map(e -> new ConnectorInstances(e.getKey(), e.getValue()))
+        .map(
+            e ->
+                new ConnectorInstances(
+                    e.getKey(), executableRegistry.getConnectorName(e.getKey()), e.getValue()))
         .collect(Collectors.toList());
   }
 
