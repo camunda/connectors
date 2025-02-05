@@ -125,6 +125,8 @@ public class InboundEndpointTest {
     var uuid2 = UUID.randomUUID();
     var uuid3 = UUID.randomUUID();
 
+    when(executableRegistry.getConnectorName(type1)).thenReturn("Webhook");
+    when(executableRegistry.getConnectorName(type2)).thenReturn("AnotherType");
     when(executableRegistry.query(any()))
         .thenReturn(
             List.of(
@@ -174,10 +176,12 @@ public class InboundEndpointTest {
     ConnectorInstances second = (ConnectorInstances) response.get(1);
 
     assertEquals(type1, first.connectorId());
+    assertEquals("Webhook", first.connectorName());
     assertEquals(1, first.instances().size());
     assertEquals(uuid1, first.instances().get(0).executableId());
 
     assertEquals(type2, second.connectorId());
+    assertEquals("AnotherType", second.connectorName());
     assertEquals(2, second.instances().size());
     var firstInstance = second.instances().get(0);
     var firstInstanceData = firstInstance.data();
