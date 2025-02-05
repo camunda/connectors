@@ -41,6 +41,7 @@ public class InboundIntermediateConnectorContextImpl
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
   private final InboundCorrelationHandler correlationHandler;
+  private final Long activationTimestamp;
 
   public InboundIntermediateConnectorContextImpl(
       final InboundConnectorReportingContext inboundContext,
@@ -53,6 +54,7 @@ public class InboundIntermediateConnectorContextImpl
     this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
     this.correlationHandler = correlationHandler;
+    this.activationTimestamp = System.currentTimeMillis();
   }
 
   @Override
@@ -141,5 +143,10 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public List<InboundConnectorElement> connectorElements() {
     return inboundContext.connectorElements();
+  }
+
+  @Override
+  public Long getActivationTimestamp() {
+    return activationTimestamp;
   }
 }

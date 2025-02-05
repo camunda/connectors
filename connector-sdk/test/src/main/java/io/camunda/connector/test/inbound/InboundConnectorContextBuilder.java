@@ -214,6 +214,7 @@ public class InboundConnectorContextBuilder {
     private final String propertiesWithSecrets;
     private final CorrelationResult result;
     private Health health = Health.unknown();
+    private final Long activationTimestamp;
 
     protected TestInboundConnectorContext(
         SecretProvider secretProvider,
@@ -221,6 +222,7 @@ public class InboundConnectorContextBuilder {
         CorrelationResult result) {
       super(secretProvider, validationProvider);
       this.result = result;
+      this.activationTimestamp = System.currentTimeMillis();
       try {
         propertiesWithSecrets =
             getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties));
@@ -350,6 +352,11 @@ public class InboundConnectorContextBuilder {
     public List<InboundConnectorElement> connectorElements() {
       // never used in tests, runtime-specific method
       return null;
+    }
+
+    @Override
+    public Long getActivationTimestamp() {
+      return activationTimestamp;
     }
   }
 

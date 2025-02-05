@@ -21,6 +21,7 @@ import static io.camunda.connector.runtime.core.Keywords.INBOUND_TYPE_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.MESSAGE_ID_EXPRESSION;
 import static io.camunda.connector.runtime.core.Keywords.MESSAGE_TTL;
 
+import io.camunda.connector.api.inbound.ElementTemplateDetails;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
@@ -68,6 +69,7 @@ public class ProcessDefinitionInspector {
 
   private static final List<Class<? extends BaseElement>> INBOUND_ELIGIBLE_TYPES =
       new ArrayList<>();
+  private static final String NAME_ATTRIBUTE = "name";
 
   static {
     INBOUND_ELIGIBLE_TYPES.add(StartEvent.class);
@@ -124,7 +126,11 @@ public class ProcessDefinitionInspector {
               version.version(),
               version.processDefinitionKey(),
               element.getId(),
-              identifier.tenantId());
+              element.getAttributeValue(NAME_ATTRIBUTE),
+              element.getElementType().getTypeName(),
+              identifier.tenantId(),
+              new ElementTemplateDetails(element),
+              rawProperties);
       InboundConnectorElement def =
           new InboundConnectorElement(rawProperties, target, processElement);
 
