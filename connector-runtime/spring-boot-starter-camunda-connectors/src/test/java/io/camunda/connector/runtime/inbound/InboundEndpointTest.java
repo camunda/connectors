@@ -84,8 +84,7 @@ public class InboundEndpointTest {
 
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());
-    assertEquals(
-        "myPath", response.getFirst().data().get("path"));
+    assertEquals("myPath", response.getFirst().data().get("path"));
   }
 
   @Test
@@ -169,7 +168,7 @@ public class InboundEndpointTest {
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry);
 
-    var response = statusController.getConnectorInstances(null, null, null);
+    var response = statusController.getConnectorInstances(null);
     assertEquals(2, response.size());
     ConnectorInstances first = response.get(0);
     ConnectorInstances second = response.get(1);
