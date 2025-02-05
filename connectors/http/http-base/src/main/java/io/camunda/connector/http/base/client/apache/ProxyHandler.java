@@ -21,34 +21,44 @@ public class ProxyHandler {
   public static CredentialsProvider getCredentialsProvider(String uncheckedProtocol) {
     BasicCredentialsProvider provider = new BasicCredentialsProvider();
     String protocol = fallbackOnHttpForInvalidProtocol(uncheckedProtocol);
-    if (isValidProxyWithAuth(protocol)) {
-      provider.setCredentials(
-          new AuthScope(
-              System.getProperty(protocol + ".proxyHost"),
-              Integer.parseInt(System.getProperty(protocol + ".proxyPort"))),
-          new UsernamePasswordCredentials(
-              System.getProperty(protocol + ".proxyUser"),
-              System.getProperty(protocol + ".proxyPassword").toCharArray()));
-    } else if (systemEnvIsSetForProtocol(protocol)) {
-      CustomProxy proxyData = getProxySettingsFromEnvVar(protocol);
-      provider.setCredentials(
-          new AuthScope(proxyData.host, proxyData.port),
-          new UsernamePasswordCredentials(proxyData.username, proxyData.password.toCharArray()));
+    try {
+      if (isValidProxyWithAuth(protocol)) {
+        provider.setCredentials(
+            new AuthScope(
+                System.getProperty(protocol + ".proxyHost"),
+                Integer.parseInt(System.getProperty(protocol + ".proxyPort"))),
+            new UsernamePasswordCredentials(
+                System.getProperty(protocol + ".proxyUser"),
+                System.getProperty(protocol + ".proxyPassword").toCharArray()));
+      } else if (systemEnvIsSetForProtocol(protocol)) {
+        CustomProxy proxyData = getProxySettingsFromEnvVar(protocol);
+        provider.setCredentials(
+            new AuthScope(proxyData.host, proxyData.port),
+            new UsernamePasswordCredentials(proxyData.username, proxyData.password.toCharArray()));
+      }
+    } catch (NumberFormatException e) {
+      throw new ConnectorInputException(
+          "Invalid proxy port: " + (System.getProperty(protocol + ".proxyPort")), e);
     }
     return provider;
   }
 
   public static HttpHost getProxyHost(String uncheckedProtocol, String requestUri) {
     String protocol = fallbackOnHttpForInvalidProtocol(uncheckedProtocol);
-    if (isValidProxy(protocol)) {
-      return new HttpHost(
-          protocol,
-          System.getProperty(protocol + ".proxyHost"),
-          Integer.parseInt(System.getProperty(protocol + ".proxyPort")));
-    } else if (systemEnvIsSetForProtocol(protocol)
-        && !doesTargetMatchNonProxy(protocol, requestUri)) {
-      var proxyData = getProxySettingsFromEnvVar(protocol);
-      return new HttpHost(protocol, proxyData.host, proxyData.port);
+    try {
+      if (isValidProxy(protocol)) {
+        return new HttpHost(
+            protocol,
+            System.getProperty(protocol + ".proxyHost"),
+            Integer.parseInt(System.getProperty(protocol + ".proxyPort")));
+      } else if (systemEnvIsSetForProtocol(protocol)
+          && !doesTargetMatchNonProxy(protocol, requestUri)) {
+        var proxyData = getProxySettingsFromEnvVar(protocol);
+        return new HttpHost(protocol, proxyData.host, proxyData.port);
+      }
+    } catch (NumberFormatException e) {
+      throw new ConnectorInputException(
+          "Invalid proxy port: " + (System.getProperty(protocol + ".proxyPort")), e);
     }
     return null;
   }
@@ -97,7 +107,8 @@ public class ProxyHandler {
         && StringUtils.isNotBlank(System.getProperty(protocol + ".proxyPassword")));
   }
 
-  private static CustomProxy getProxySettingsFromEnvVar(String protocol) {
+  private static CustomProxy getProxySettingsFromEnvVar(String protocol)
+      throws NumberFormatException {
     String proxyHost = System.getenv("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_HOST");
     String proxyPort = System.getenv("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_PORT");
     String proxyUser =
@@ -105,11 +116,6 @@ public class ProxyHandler {
     String proxyPassword =
         System.getenv().getOrDefault("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_PASSWORD", "");
 
-    try {
-      return new CustomProxy(proxyHost, Integer.parseInt(proxyPort), proxyUser, proxyPassword);
-    } catch (NumberFormatException e) {
-      throw new ConnectorInputException(
-          "Invalid proxy settings. Proxy environment variable is incorrect: " + e.getMessage(), e);
-    }
+    return new CustomProxy(proxyHost, Integer.parseInt(proxyPort), proxyUser, proxyPassword);
   }
 }
