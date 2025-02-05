@@ -29,4 +29,5 @@ public record ActiveExecutableResponse(
     Class<? extends InboundConnectorExecutable> executableClass,
     List<InboundConnectorElement> elements,
     Health health,
-    Collection<Activity> logs) {}
+    Collection<Activity> logs,
+    Long activationTimestamp) {}

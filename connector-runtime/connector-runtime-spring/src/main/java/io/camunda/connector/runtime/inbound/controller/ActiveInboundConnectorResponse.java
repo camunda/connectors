@@ -27,5 +27,6 @@ public record ActiveInboundConnectorResponse(
     String type,
     String tenantId,
     List<ProcessElement> elements,
-    Map<String, Object> data,
-    Health health) {}
+    Map<String, String> data,
+    Health health,
+    Long activationTimestamp) {}

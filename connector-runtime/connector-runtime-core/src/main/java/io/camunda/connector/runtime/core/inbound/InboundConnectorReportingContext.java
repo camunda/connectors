@@ -45,4 +45,6 @@ public interface InboundConnectorReportingContext extends InboundConnectorContex
   Queue<Activity> getLogs();
 
   List<InboundConnectorElement> connectorElements();
+
+  Long getActivationTimestamp();
 }
