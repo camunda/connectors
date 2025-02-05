@@ -30,7 +30,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
-import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
@@ -83,10 +82,10 @@ public class InboundEndpointTest {
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry);
 
-    var response = statusController.getActiveInboundConnectors(null, null, null, false);
+    var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());
     assertEquals(
-        "myPath", ((ActiveInboundConnectorResponse) (response.getFirst())).data().get("path"));
+        "myPath", response.getFirst().data().get("path"));
   }
 
   @Test
@@ -111,9 +110,9 @@ public class InboundEndpointTest {
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry);
 
-    var response = statusController.getActiveInboundConnectors(null, null, null, false);
+    var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());
-    assertEquals(Health.down(), ((ActiveInboundConnectorResponse) (response.getFirst())).health());
+    assertEquals(Health.down(), (response.getFirst()).health());
   }
 
   @Test
@@ -170,10 +169,10 @@ public class InboundEndpointTest {
     InboundConnectorRestController statusController =
         new InboundConnectorRestController(executableRegistry);
 
-    var response = statusController.getActiveInboundConnectors(null, null, null, true);
+    var response = statusController.getConnectorInstances(null, null, null);
     assertEquals(2, response.size());
-    ConnectorInstances first = (ConnectorInstances) response.get(0);
-    ConnectorInstances second = (ConnectorInstances) response.get(1);
+    ConnectorInstances first = response.get(0);
+    ConnectorInstances second = response.get(1);
 
     assertEquals(type1, first.connectorId());
     assertEquals("Webhook", first.connectorName());

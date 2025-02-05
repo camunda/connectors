@@ -45,17 +45,19 @@ public class InboundConnectorRestController {
   }
 
   @GetMapping("/inbound")
-  public List<?> getActiveInboundConnectors(
+  public List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
       @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
       @RequestParam(required = false, value = "elementId") String elementId,
-      @RequestParam(required = false, value = "type") String type,
-      @RequestParam(value = "groupedByConnectorId", defaultValue = "false")
-          boolean groupedByConnectorId) {
-    if (groupedByConnectorId) {
-      return getConnectorsInstances(bpmnProcessId, elementId, type);
-    } else {
-      return getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
-    }
+      @RequestParam(required = false, value = "type") String type) {
+    return getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
+  }
+
+  @GetMapping("/inbound-instances")
+  public List<ConnectorInstances> getConnectorInstances(
+      @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
+      @RequestParam(required = false, value = "elementId") String elementId,
+      @RequestParam(required = false, value = "type") String type) {
+    return getConnectorsInstances(bpmnProcessId, elementId, type);
   }
 
   @PostMapping("/inbound/logs")

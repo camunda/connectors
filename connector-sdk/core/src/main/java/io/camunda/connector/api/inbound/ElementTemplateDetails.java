@@ -24,9 +24,9 @@ import io.camunda.zeebe.model.bpmn.instance.BaseElement;
  * @param id The id of the element template (io.camunda.connectors.webhook.WebhookConnector.v1 for
  *     example)
  * @param version The version of the element template
- * @param svgIcon The SVG icon of the element template
+ * @param icon The icon of the element template (might be SVG or PNG)
  */
-public record ElementTemplateDetails(String id, String version, String svgIcon) {
+public record ElementTemplateDetails(String id, String version, String icon) {
   private static final String NAMESPACE = "http://camunda.org/schema/zeebe/1.0";
 
   private static final String TEMPLATE_ID = "modelerTemplate";
