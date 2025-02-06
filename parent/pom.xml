@@ -123,7 +123,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph>6.27.0</version.microsoft-graph>
     <version.azure-identity>1.15.0</version.azure-identity>
 
-    <version.bouncycastle>1.79</version.bouncycastle>
+    <version.bouncycastle>1.80</version.bouncycastle>
     <version.box-sdk>4.14.0</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
