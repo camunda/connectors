@@ -101,16 +101,18 @@ public class CustomApacheHttpClient implements HttpClient {
       HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
     try {
       var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+      ProxyHandler proxyHandler =
+          new ProxyHandler(apacheRequest.getScheme(), apacheRequest.getUri().getHost());
       HttpHost proxy =
-          ProxyHandler.getProxyHost(apacheRequest.getScheme(), apacheRequest.getUri().getHost());
-      var routePlanner = ProxyHandler.getRoutePlanner(apacheRequest.getScheme(), proxy);
+          proxyHandler.getProxyHost(apacheRequest.getScheme(), apacheRequest.getUri().getHost());
+      var routePlanner = proxyHandler.getRoutePlanner(apacheRequest.getScheme(), proxy);
       var result =
           httpClientBuilder
               .setDefaultRequestConfig(getRequestConfig(request))
               .setRoutePlanner(routePlanner)
               .setProxy(proxy)
               .setDefaultCredentialsProvider(
-                  ProxyHandler.getCredentialsProvider(apacheRequest.getScheme()))
+                  proxyHandler.getCredentialsProvider(apacheRequest.getScheme()))
               .useSystemProperties() // Will fallback on system properties for unset values,
               // e.g. http.keepAlive, http.agent
               .build()
