@@ -59,7 +59,7 @@ class ConnectorsObjectMapperSupplierTest {
             DocumentModuleSettings.create());
     final var documentReference =
         new CamundaDocumentReferenceModel(
-            "default", UUID.randomUUID().toString(), null, Optional.empty());
+            "default", UUID.randomUUID().toString(), "hash", null, Optional.empty());
     final var json = "{\"documents\":" + objectMapper.writeValueAsString(documentReference) + "}";
     var actual = objectMapper.readValue(json, TestRecordWithDocumentList.class);
     Assertions.assertThat(actual.documents()).hasSize(1);

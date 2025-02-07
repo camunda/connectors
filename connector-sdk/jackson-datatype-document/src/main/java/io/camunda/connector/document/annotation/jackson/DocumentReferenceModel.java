@@ -60,6 +60,8 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
       OffsetDateTime expiresAt,
       Long size,
       String fileName,
+      String processDefinitionId,
+      Long processInstanceKey,
       Map<String, Object> customProperties,
       String processDefinitionId,
       Long processInstanceKey)
@@ -71,6 +73,8 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
           documentMetadata.getExpiresAt(),
           documentMetadata.getSize(),
           documentMetadata.getFileName(),
+          documentMetadata.getProcessDefinitionId(),
+          documentMetadata.getProcessInstanceKey(),
           documentMetadata.getCustomProperties(),
           documentMetadata.getProcessDefinitionId(),
           documentMetadata.getProcessInstanceKey());
@@ -115,6 +119,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
   record CamundaDocumentReferenceModel(
       String storeId,
       String documentId,
+      String contentHash,
       CamundaDocumentMetadataModel metadata,
       Optional<DocumentOperation> operation)
       implements DocumentReferenceModel, CamundaDocumentReference {
@@ -132,6 +137,11 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     @Override
     public String getStoreId() {
       return storeId;
+    }
+
+    @Override
+    public String getContentHash() {
+      return contentHash;
     }
 
     @Override
