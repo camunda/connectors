@@ -68,6 +68,16 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
           }
 
           @Override
+          public String getProcessDefinitionId() {
+            return request.processDefinitionId();
+          }
+
+          @Override
+          public Long getProcessInstanceKey() {
+            return request.processInstanceKey();
+          }
+
+          @Override
           public Map<String, Object> getCustomProperties() {
             return request.customProperties();
           }
@@ -80,15 +90,22 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
       throw new RuntimeException("Failed to read document content", e);
     }
     documents.put(id, content);
-    return new CamundaDocumentReferenceImpl(STORE_ID, id, metadata);
+    return new CamundaDocumentReferenceImpl(STORE_ID, id, String.valueOf(content.length), metadata);
   }
 
   @Override
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
     logWarning();
+    if (reference.getContentHash() == null || reference.getContentHash().isEmpty()) {
+      throw new RuntimeException("Content hash is missing: " + reference.documentId());
+    }
+    var hash = reference.getContentHash();
     var content = documents.get(reference.documentId());
     if (content == null) {
       throw new RuntimeException("Document not found: " + reference.documentId());
+    }
+    if (!hash.equals(String.valueOf(content.length))) {
+      throw new RuntimeException("Content hash mismatch: " + reference.documentId());
     }
     return new ByteArrayInputStream(content);
   }

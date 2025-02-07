@@ -49,8 +49,8 @@ public class DocumentSerializationTest {
 
   @Test
   void sourceTypeDocument_jacksonInternalModel() throws JsonProcessingException, JSONException {
-    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null);
-    var ref = new CamundaDocumentReferenceModel("test", "test", metadata, Optional.empty());
+    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null, null, null);
+    var ref = new CamundaDocumentReferenceModel("test", "test", "hash", metadata, Optional.empty());
     var document = mock(Document.class);
     when(document.reference()).thenReturn(ref);
     var source = new SourceTypeDocument(document);
@@ -62,6 +62,7 @@ public class DocumentSerializationTest {
             "camunda.document.type": "camunda",
             "storeId": "test",
             "documentId": "test",
+            "contentHash": "hash",
             "metadata": {}
           }
         }
@@ -71,8 +72,8 @@ public class DocumentSerializationTest {
 
   @Test
   void sourceTypeDocument_connectorSdkModel() throws JsonProcessingException, JSONException {
-    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null);
-    var ref = new CamundaDocumentReferenceImpl("test", "test", metadata);
+    var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null, null, null);
+    var ref = new CamundaDocumentReferenceImpl("test", "test", "hash", metadata);
     var document = mock(Document.class);
     when(document.reference()).thenReturn(ref);
     var source = new SourceTypeDocument(document);
@@ -84,6 +85,7 @@ public class DocumentSerializationTest {
             "camunda.document.type": "camunda",
             "storeId": "test",
             "documentId": "test",
+            "contentHash": "hash",
             "metadata": {}
           }
         }

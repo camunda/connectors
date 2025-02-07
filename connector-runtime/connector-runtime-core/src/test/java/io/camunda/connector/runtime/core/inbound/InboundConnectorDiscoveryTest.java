@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import static io.camunda.connector.runtime.core.util.TestUtil.withEnvVars;
+import static io.camunda.connector.runtime.core.testutil.TestUtil.withEnvVars;
 
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import java.util.List;

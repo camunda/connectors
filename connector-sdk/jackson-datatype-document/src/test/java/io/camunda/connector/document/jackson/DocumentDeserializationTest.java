@@ -124,7 +124,7 @@ public class DocumentDeserializationTest {
       String content, CamundaDocumentMetadataModel metadata) {
     var ref =
         new CamundaDocumentReferenceModel(
-            "default", UUID.randomUUID().toString(), metadata, Optional.empty());
+            "default", UUID.randomUUID().toString(), "hash", metadata, Optional.empty());
     Document document = mock(Document.class);
     lenient().when(document.asByteArray()).thenReturn(content.getBytes());
     lenient().when(document.reference()).thenReturn(ref);

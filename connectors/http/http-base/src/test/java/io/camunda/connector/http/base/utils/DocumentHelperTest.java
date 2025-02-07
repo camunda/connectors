@@ -83,7 +83,7 @@ public class DocumentHelperTest {
     CamundaDocument document =
         new CamundaDocument(
             metadata,
-            new CamundaDocumentReferenceImpl("store", "id1", metadata),
+            new CamundaDocumentReferenceImpl("store", "id1", "hash", metadata),
             InMemoryDocumentStore.INSTANCE);
     Map<String, Object> input =
         Map.of("body", Map.of("content", Arrays.asList(document, document, document)));
@@ -114,7 +114,7 @@ public class DocumentHelperTest {
     CamundaDocument document =
         new CamundaDocument(
             metadata,
-            new CamundaDocumentReferenceImpl("store", "id1", metadata),
+            new CamundaDocumentReferenceImpl("store", "id1", "hash", metadata),
             InMemoryDocumentStore.INSTANCE);
     List<Object> input = Arrays.asList(document, document, document);
     Function<CamundaDocument, Object> transformer = mock(Function.class);
