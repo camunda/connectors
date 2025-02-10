@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
-import io.camunda.zeebe.spring.client.configuration.CamundaAutoConfiguration;
+import io.camunda.spring.client.configuration.CamundaAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

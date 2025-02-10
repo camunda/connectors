@@ -74,7 +74,7 @@ public record JdbiJdbcClient() implements JdbcClient {
       return stmt;
     }
     switch (variables) {
-        // Named parameters (:name, :id)
+      // Named parameters (:name, :id)
       case Map<?, ?> map ->
           map.forEach(
               (key, value) -> {
@@ -86,7 +86,7 @@ public record JdbiJdbcClient() implements JdbcClient {
                   stmt.bind(key.toString(), value);
                 }
               });
-        // Positional parameters (?,?)
+      // Positional parameters (?,?)
       case List<?> list -> {
         for (int i = 0; i < list.size(); i++) {
           stmt.bind(i, list.get(i));

@@ -62,9 +62,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
       String fileName,
       String processDefinitionId,
       Long processInstanceKey,
-      Map<String, Object> customProperties,
-      String processDefinitionId,
-      Long processInstanceKey)
+      Map<String, Object> customProperties)
       implements DocumentMetadata {
 
     public CamundaDocumentMetadataModel(DocumentMetadata documentMetadata) {
@@ -75,9 +73,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
           documentMetadata.getFileName(),
           documentMetadata.getProcessDefinitionId(),
           documentMetadata.getProcessInstanceKey(),
-          documentMetadata.getCustomProperties(),
-          documentMetadata.getProcessDefinitionId(),
-          documentMetadata.getProcessInstanceKey());
+          documentMetadata.getCustomProperties());
     }
 
     @Override

@@ -22,7 +22,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import io.camunda.spring.client.metrics.MetricsRecorder;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;

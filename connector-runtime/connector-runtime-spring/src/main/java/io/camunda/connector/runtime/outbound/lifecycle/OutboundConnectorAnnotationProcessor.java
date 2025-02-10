@@ -21,15 +21,15 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
-import io.camunda.zeebe.spring.client.annotation.processor.AbstractZeebeAnnotationProcessor;
-import io.camunda.zeebe.spring.client.bean.BeanInfo;
-import io.camunda.zeebe.spring.client.bean.ClassInfo;
+import io.camunda.spring.client.annotation.processor.AbstractCamundaAnnotationProcessor;
+import io.camunda.spring.client.bean.BeanInfo;
+import io.camunda.spring.client.bean.ClassInfo;
 import java.lang.invoke.MethodHandles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** */
-public class OutboundConnectorAnnotationProcessor extends AbstractZeebeAnnotationProcessor {
+public class OutboundConnectorAnnotationProcessor extends AbstractCamundaAnnotationProcessor {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());

@@ -29,8 +29,8 @@ import io.camunda.client.impl.search.response.FlowNodeInstanceImpl;
 import io.camunda.client.impl.search.response.SearchQueryResponseImpl;
 import io.camunda.client.impl.search.response.SearchResponsePageImpl;
 import io.camunda.client.impl.search.response.VariableImpl;
-import io.camunda.client.protocol.rest.FlowNodeInstanceItem;
-import io.camunda.client.protocol.rest.VariableItem;
+import io.camunda.client.protocol.rest.FlowNodeInstanceResult;
+import io.camunda.client.protocol.rest.VariableResult;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import java.util.Arrays;
 import java.util.Collections;
@@ -82,7 +82,7 @@ class ProcessInstanceClientImplTest {
 
     // Then
     assertThat(result.size()).isEqualTo(2);
-    FlowNodeInstance actualFlowNodeInstance1 = result.get(0);
+    FlowNodeInstance actualFlowNodeInstance1 = result.getFirst();
     assertThat(actualFlowNodeInstance1.getFlowNodeId())
         .isEqualTo(flownodeInstance1.getFlowNodeId());
     assertThat(actualFlowNodeInstance1.getProcessDefinitionKey())
@@ -95,12 +95,12 @@ class ProcessInstanceClientImplTest {
   }
 
   private FlowNodeInstance createFlownodeInstance(
-      String key,
-      String processInstanceKey,
+      final String key,
+      final String processInstanceKey,
       final String definitionKey,
       final String flowNodeId,
       final String tenantId) {
-    final var item = new FlowNodeInstanceItem();
+    final var item = new FlowNodeInstanceResult();
     item.setFlowNodeInstanceKey(key);
     item.setProcessInstanceKey(processInstanceKey);
     item.setProcessDefinitionKey(definitionKey);
@@ -110,7 +110,7 @@ class ProcessInstanceClientImplTest {
   }
 
   @Test
-  public void testFetchVariablesByProcessInstanceKey() throws Exception {
+  public void testFetchVariablesByProcessInstanceKey() {
     ProcessInstanceClient processInstanceClient =
         new ProcessInstanceClientImpl(searchQueryClient, objectMapper);
 
@@ -139,7 +139,7 @@ class ProcessInstanceClientImplTest {
   }
 
   private Variable createVariable(String key, String name, String value) {
-    final var item = new VariableItem();
+    final var item = new VariableResult();
     item.setVariableKey(key);
     item.setScopeKey(key);
     item.setName(name);
@@ -155,8 +155,6 @@ class ProcessInstanceClientImplTest {
 
   private <T> SearchQueryResponse<T> createEmptySearchResult() {
     final var page = new SearchResponsePageImpl(0, null, null);
-    SearchQueryResponse<T> searchResult =
-        new SearchQueryResponseImpl<>(Collections.emptyList(), page);
-    return searchResult;
+    return new SearchQueryResponseImpl<>(Collections.emptyList(), page);
   }
 }

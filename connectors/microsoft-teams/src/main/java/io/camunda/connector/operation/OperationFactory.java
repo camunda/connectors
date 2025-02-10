@@ -41,7 +41,7 @@ import io.camunda.connector.operation.chat.SendMessageInChatChatOperation;
 public class OperationFactory {
   public Operation getService(final MSTeamsRequestData data) {
     return switch (data) {
-        // chat
+      // chat
       case CreateChat model -> new CreateChatOperation(model);
       case GetChat model -> new GetChatOperation(model);
       case GetMessageInChat model -> new GetMessageInChatOperation(model);
@@ -49,7 +49,7 @@ public class OperationFactory {
       case ListChats model -> new ListChatsOperation(model);
       case ListMessagesInChat model -> new ListMessagesInChatOperation(model);
       case SendMessageInChat model -> new SendMessageInChatChatOperation(model);
-        // channel
+      // channel
       case CreateChannel model -> new CreateChannelOperation(model);
       case GetChannel model -> new GetChannelOperation(model);
       case GetChannelMessage model -> new GetChannelMessageOperation(model);

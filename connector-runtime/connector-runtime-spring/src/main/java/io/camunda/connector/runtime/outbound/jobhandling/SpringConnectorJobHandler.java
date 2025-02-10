@@ -30,9 +30,9 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Outbound;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
-import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.spring.client.jobhandling.CommandWrapper;
+import io.camunda.spring.client.metrics.MetricsRecorder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
