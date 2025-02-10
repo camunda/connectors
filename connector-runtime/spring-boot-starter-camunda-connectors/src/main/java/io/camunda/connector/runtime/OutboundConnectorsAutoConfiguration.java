@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.api.JsonMapper;
 import io.camunda.client.impl.CamundaObjectMapper;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -30,10 +31,8 @@ import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.console.JwtCredential;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.zeebe.spring.client.properties.CamundaClientProperties;
-import io.camunda.zeebe.spring.client.properties.CamundaClientProperties.ClientMode;
-import io.camunda.zeebe.spring.common.json.SdkObjectMapper;
-import java.net.URI;
+import io.camunda.spring.client.properties.CamundaClientProperties;
+import io.camunda.spring.client.properties.CamundaClientProperties.ClientMode;
 import java.net.URL;
 import java.time.Duration;
 import java.util.LinkedList;
@@ -103,12 +102,11 @@ public class OutboundConnectorsAutoConfiguration {
 
   @Bean(name = "commonJsonMapper")
   @ConditionalOnMissingBean
-  public io.camunda.zeebe.spring.common.json.JsonMapper commonJsonMapper(
-      ObjectMapper objectMapper) {
+  public JsonMapper commonJsonMapper(ObjectMapper objectMapper) {
     if (objectMapper == null) {
-      return new SdkObjectMapper();
+      return new CamundaObjectMapper();
     }
-    return new SdkObjectMapper(objectMapper.copy());
+    return new CamundaObjectMapper(objectMapper.copy());
   }
 
   @Bean
@@ -144,7 +142,7 @@ public class OutboundConnectorsAutoConfiguration {
     var authProperties = clientProperties.getAuth();
     URL issuerUrl;
     try {
-      issuerUrl = new URI(authProperties.getIssuer()).toURL();
+      issuerUrl = authProperties.getIssuer().toURL();
     } catch (Exception e) {
       throw new RuntimeException("Invalid issuer URL: " + authProperties.getIssuer(), e);
     }

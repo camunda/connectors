@@ -205,6 +205,7 @@ public class WebhookActivatedDocumentTests {
               new CamundaDocumentReferenceImpl(
                   pngDocument.get("storeId").toString(),
                   pngDocument.get("documentId").toString(),
+                  pngDocument.get("contentHash").toString(),
                   null));
       var storedContent = pngStoredDocument.asByteArray();
       Assertions.assertThat(storedContent).isEqualTo(imageFileContent);
@@ -214,6 +215,7 @@ public class WebhookActivatedDocumentTests {
               new CamundaDocumentReferenceImpl(
                   textDocument.get("storeId").toString(),
                   textDocument.get("documentId").toString(),
+                  textDocument.get("contentHash").toString(),
                   null));
       var storedTextContent = textStoredDocument.asByteArray();
       Assertions.assertThat(new String(storedTextContent))

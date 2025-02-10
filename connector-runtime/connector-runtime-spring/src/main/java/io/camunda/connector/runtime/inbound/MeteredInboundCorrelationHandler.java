@@ -23,7 +23,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import io.camunda.spring.client.metrics.MetricsRecorder;
 import java.time.Duration;
 import java.util.List;
 

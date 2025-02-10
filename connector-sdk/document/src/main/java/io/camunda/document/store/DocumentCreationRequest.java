@@ -29,6 +29,8 @@ public record DocumentCreationRequest(
     String contentType,
     String fileName,
     Duration timeToLive,
+    String processDefinitionId,
+    Long processInstanceKey,
     Map<String, Object> customProperties) {
 
   public static BuilderFinalStep from(InputStream content) {
@@ -47,6 +49,8 @@ public record DocumentCreationRequest(
     private String contentType;
     private String fileName;
     private Duration timeToLive;
+    private String processDefinitionId;
+    private Long processInstanceKey;
     private Map<String, Object> customProperties;
 
     public BuilderFinalStep(InputStream content) {
@@ -78,6 +82,16 @@ public record DocumentCreationRequest(
       return this;
     }
 
+    public BuilderFinalStep processDefinitionId(String processDefinitionId) {
+      this.processDefinitionId = processDefinitionId;
+      return this;
+    }
+
+    public BuilderFinalStep processInstanceKey(Long processInstanceKey) {
+      this.processInstanceKey = processInstanceKey;
+      return this;
+    }
+
     public BuilderFinalStep customProperties(Map<String, Object> customProperties) {
       this.customProperties = customProperties;
       return this;
@@ -85,7 +99,15 @@ public record DocumentCreationRequest(
 
     public DocumentCreationRequest build() {
       return new DocumentCreationRequest(
-          content, documentId, storeId, contentType, fileName, timeToLive, customProperties);
+          content,
+          documentId,
+          storeId,
+          contentType,
+          fileName,
+          timeToLive,
+          processDefinitionId,
+          processInstanceKey,
+          customProperties);
     }
   }
 }

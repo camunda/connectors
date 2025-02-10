@@ -26,10 +26,10 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
-import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
-import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import io.camunda.spring.client.annotation.value.JobWorkerValue;
+import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.spring.client.jobhandling.JobWorkerManager;
+import io.camunda.spring.client.metrics.MetricsRecorder;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
@@ -85,7 +85,7 @@ public class OutboundConnectorManager {
 
   private void openWorkerForOutboundConnector(
       CamundaClient client, OutboundConnectorConfiguration connector) {
-    ZeebeWorkerValue zeebeWorkerValue = new ZeebeWorkerValue();
+    JobWorkerValue zeebeWorkerValue = new JobWorkerValue();
     zeebeWorkerValue.setName(connector.name());
     zeebeWorkerValue.setType(connector.type());
     zeebeWorkerValue.setFetchVariables(Arrays.asList(connector.inputVariables()));

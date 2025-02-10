@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import io.camunda.spring.client.metrics.MetricsRecorder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

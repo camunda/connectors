@@ -20,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
-import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
-import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
+import io.camunda.spring.client.annotation.value.JobWorkerValue;
+import io.camunda.spring.client.jobhandling.JobWorkerManager;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +40,7 @@ class RuntimeStartupWithConnectorsFromSpiTests {
 
   @Test
   public void httpConnectorLoadedViaSpi() {
-    Optional<ZeebeWorkerValue> httpjson = jobWorkerManager.findJobWorkerConfigByName("TEST");
+    Optional<JobWorkerValue> httpjson = jobWorkerManager.findJobWorkerConfigByName("TEST");
     assertTrue(httpjson.isPresent());
   }
 }

@@ -20,11 +20,15 @@ import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.client.api.response.DocumentReferenceResponse;
 
 public record CamundaDocumentReferenceImpl(
-    String storeId, String documentId, DocumentMetadata metadata)
+    String storeId, String documentId, String contentHash, DocumentMetadata metadata)
     implements DocumentReference.CamundaDocumentReference {
 
   public CamundaDocumentReferenceImpl(DocumentReferenceResponse response) {
-    this(response.getStoreId(), response.getDocumentId(), response.getMetadata());
+    this(
+        response.getStoreId(),
+        response.getDocumentId(),
+        response.getContentHash(),
+        response.getMetadata());
   }
 
   @Override
@@ -35,6 +39,11 @@ public record CamundaDocumentReferenceImpl(
   @Override
   public String getStoreId() {
     return storeId;
+  }
+
+  @Override
+  public String getContentHash() {
+    return contentHash;
   }
 
   @Override

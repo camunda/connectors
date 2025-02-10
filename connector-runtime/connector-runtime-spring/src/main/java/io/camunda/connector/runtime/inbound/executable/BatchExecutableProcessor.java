@@ -36,7 +36,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Fail
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import io.camunda.spring.client.metrics.MetricsRecorder;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;

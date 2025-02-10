@@ -49,6 +49,7 @@ public record HttpCommonResult(
         new CamundaDocumentReferenceImpl(
             "theStoreId",
             "977c5cbf-0f19-4a76-a8e1-60902216a07b",
+            "hash",
             new DocumentMetadata() {
               @Override
               public String getContentType() {
