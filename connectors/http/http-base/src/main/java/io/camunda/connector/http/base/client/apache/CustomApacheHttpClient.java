@@ -98,14 +98,15 @@ public class CustomApacheHttpClient implements HttpClient {
    */
   @Override
   public HttpCommonResult execute(
-      HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
+      HttpCommonRequest request,
+      ProxyHandler proxyHandler,
+      @Nullable ExecutionEnvironment executionEnvironment) {
     try {
       var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
-      ProxyHandler proxyHandler =
-          new ProxyHandler(apacheRequest.getScheme(), apacheRequest.getUri().getHost());
       HttpHost proxy =
-          proxyHandler.getProxyHost(apacheRequest.getScheme(), apacheRequest.getUri().getHost());
-      var routePlanner = proxyHandler.getRoutePlanner(apacheRequest.getScheme(), proxy);
+          proxyHandler.getProxyHost(
+              apacheRequest.getUri().getScheme(), apacheRequest.getUri().getHost());
+      var routePlanner = proxyHandler.getRoutePlanner(apacheRequest.getUri().getScheme(), proxy);
       var result =
           httpClientBuilder
               .setDefaultRequestConfig(getRequestConfig(request))

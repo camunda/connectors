@@ -96,7 +96,9 @@ public class CustomApacheHttpClientTest {
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/download");
       HttpCommonResult result =
           customApacheHttpClient.execute(
-              request, new ExecutionEnvironment.SelfManaged(new DocumentOutboundContext()));
+              request,
+              new ProxyHandler(),
+              new ExecutionEnvironment.SelfManaged(new DocumentOutboundContext()));
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.headers().get(HttpHeaders.CONTENT_TYPE))
