@@ -2229,7 +2229,7 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "={\"tag_name\": tagName, \"body\":if githubBody = null then null else githubBody,\"name\":if name = null then null else name,\"make_latest\":if makeLatest = null then null else makeLatest}",
+      "value": "={\"tag_name\": tagName, \"body\":if githubBody = null then null else githubBody,\"name\":if releaseName = null then null else releaseName,\"make_latest\":if makeLatest = null then null else makeLatest}",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
