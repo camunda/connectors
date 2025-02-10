@@ -468,6 +468,9 @@
     "id" : "operation.searchQuery",
     "label" : "Search query",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
@@ -486,6 +489,9 @@
     "description" : "Column for sorting search results",
     "optional" : false,
     "value" : "modified_at",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
