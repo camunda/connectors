@@ -433,7 +433,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.getType()).isEqualTo("Dropdown");
       assertThat(((DropdownProperty) property).getChoices())
           .containsExactly(
-              new DropdownChoice("VALUE1", "VALUE1"), new DropdownChoice("VALUE2", "VALUE2"));
+              new DropdownChoice("Value one", "value1"), new DropdownChoice("Value two", "value2"));
       assertThat(property.isOptional()).isNull();
       assertThat(property.getGroup()).isEqualTo(null);
       assertThat(property.getFeel()).isEqualTo(null);
