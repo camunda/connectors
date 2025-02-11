@@ -74,15 +74,14 @@ public class BoxUtil {
   }
 
   public static BoxResult.Item item(BoxFile file) {
-    return new BoxResult.Item(file.getID(), file.getInfo().getName(), file.getInfo().getType());
+    return new BoxResult.Item(file.getID(), "file");
   }
 
   public static BoxResult.Item item(BoxFolder folder) {
-    return new BoxResult.Item(
-        folder.getID(), folder.getInfo().getName(), folder.getInfo().getType());
+    return new BoxResult.Item(folder.getID(), "folder");
   }
 
   public static BoxResult.Item item(BoxItem.Info info) {
-    return new BoxResult.Item(info.getID(), info.getName(), info.getType());
+    return new BoxResult.Item(info.getID(), info.getType());
   }
 }
