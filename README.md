@@ -50,7 +50,6 @@ When in doubt, refer to the `LICENSE` file in the respective module.
 
 Download these utilities:
 
-* [`make`](https://www.gnu.org/software/make/) for building
 * [`asdf`](https://asdf-vm.com/) for managing Java and Maven versions
 
 The [Connector SDK](connector-sdk) uses Java 17, unlike the rest of this repository.
