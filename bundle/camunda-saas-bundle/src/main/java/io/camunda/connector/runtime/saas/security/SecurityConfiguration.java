@@ -56,7 +56,7 @@ public class SecurityConfiguration {
   @Bean
   @Order(0)
   public SecurityFilterChain filterChain2(HttpSecurity http) throws Exception {
-    return http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
+    return http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**", "/inbound-instances/**"))
         .securityMatchers(
             requestMatcherConfigurer ->
                 requestMatcherConfigurer
@@ -85,12 +85,12 @@ public class SecurityConfiguration {
   @Bean
   @Order(1)
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**", "/inbound-instances"))
+    http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**", "/inbound-instances/**"))
         .securityMatchers(
             requestMatcherConfigurer ->
                 requestMatcherConfigurer
                     .requestMatchers("/inbound/**")
-                    .requestMatchers("/inbound-instances")
+                    .requestMatchers("/inbound-instances/**")
                     .requestMatchers("/tenants/**"))
         .authorizeHttpRequests(
             auth ->
