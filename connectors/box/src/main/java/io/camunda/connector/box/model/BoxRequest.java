@@ -220,12 +220,13 @@ public record BoxRequest(
 
     @TemplateSubType(id = "search", label = "Search")
     record Search(
-        @TemplateProperty(id = "searchQuery", group = "operation") String query,
+        @TemplateProperty(id = "searchQuery", group = "operation") @NotBlank String query,
         @TemplateProperty(
                 id = "searchSortColumn",
                 defaultValue = "modified_at",
                 description = "Column for sorting search results",
                 group = "operation")
+            @NotBlank
             String sortColumn,
         @TemplateProperty(
                 id = "searchSortDirection",

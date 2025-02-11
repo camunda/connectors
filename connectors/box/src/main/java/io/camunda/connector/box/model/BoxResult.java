@@ -11,7 +11,7 @@ import java.util.List;
 
 public sealed interface BoxResult
     permits BoxResult.Download, BoxResult.Generic, BoxResult.Search, BoxResult.Upload {
-  record Item(String id, String name, String type) {}
+  record Item(String id, String type) {}
 
   record Download(Item item, Document document) implements BoxResult {}
 

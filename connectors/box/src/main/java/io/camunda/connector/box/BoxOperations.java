@@ -20,8 +20,6 @@ import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
 import com.box.sdk.BoxSearch;
 import com.box.sdk.BoxSearchParameters;
-import com.box.sdk.IAccessTokenCache;
-import com.box.sdk.InMemoryLRUAccessTokenCache;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.box.model.BoxRequest;
 import io.camunda.connector.box.model.BoxRequest.Operation.Search.SortDirection;
@@ -51,15 +49,17 @@ public class BoxOperations {
     return switch (authentication) {
       case BoxRequest.Authentication.DeveloperToken developerToken ->
           new BoxAPIConnection(developerToken.accessToken());
+
       case BoxRequest.Authentication.ClientCredentialsUser user ->
           BoxCCGAPIConnection.userConnection(user.clientId(), user.clientSecret(), user.userId());
+
       case BoxRequest.Authentication.ClientCredentialsEnterprise enterprise ->
           BoxCCGAPIConnection.applicationServiceAccountConnection(
               enterprise.clientId(), enterprise.clientSecret(), enterprise.enterpriseId());
+
       case BoxRequest.Authentication.JWTJsonConfig jwtJsonConfig -> {
         BoxConfig boxConfig = BoxConfig.readFrom(jwtJsonConfig.jsonConfig());
-        IAccessTokenCache tokenCache = new InMemoryLRUAccessTokenCache(100);
-        yield BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig, tokenCache);
+        yield BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
       }
     };
   }
