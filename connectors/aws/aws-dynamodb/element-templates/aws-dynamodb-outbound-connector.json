@@ -256,6 +256,7 @@
     "label" : "Partition key role",
     "description" : "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : false,
+    "value" : "HASH",
     "constraints" : {
       "notEmpty" : true
     },
@@ -288,6 +289,7 @@
     "label" : "Partition key attribute data type",
     "description" : "Represents the data for an attribute",
     "optional" : false,
+    "value" : "B",
     "constraints" : {
       "notEmpty" : true
     },
@@ -346,6 +348,7 @@
     "label" : "Sort key role",
     "description" : "The role that this key attribute will assume",
     "optional" : true,
+    "value" : "HASH",
     "group" : "input",
     "binding" : {
       "name" : "input.sortKeyRole",
@@ -375,6 +378,7 @@
     "label" : "Sort key attribute data type",
     "description" : "Represents the data for an attribute",
     "optional" : true,
+    "value" : "B",
     "group" : "input",
     "binding" : {
       "name" : "input.sortKeyType",
@@ -459,6 +463,7 @@
     "label" : "Billing mode",
     "description" : "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>",
     "optional" : false,
+    "value" : "PROVISIONED",
     "constraints" : {
       "notEmpty" : true
     },
@@ -928,6 +933,7 @@
     "label" : "Attribute action",
     "description" : "Specifies how to perform the update",
     "optional" : false,
+    "value" : "put",
     "constraints" : {
       "notEmpty" : true
     },

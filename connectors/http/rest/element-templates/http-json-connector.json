@@ -280,6 +280,7 @@
     "label" : "Client authentication",
     "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
+    "value" : "credentialsBody",
     "constraints" : {
       "notEmpty" : true
     },
@@ -333,14 +334,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "DELETE",
-      "value" : "DELETE"
-    }, {
       "name" : "POST",
       "value" : "POST"
     }, {
       "name" : "GET",
       "value" : "GET"
+    }, {
+      "name" : "DELETE",
+      "value" : "DELETE"
     }, {
       "name" : "PATCH",
       "value" : "PATCH"

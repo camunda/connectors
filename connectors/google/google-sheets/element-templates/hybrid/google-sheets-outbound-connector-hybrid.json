@@ -351,6 +351,7 @@
     "label" : "Dimension",
     "description" : "Choose what to add: column or row",
     "optional" : false,
+    "value" : "ROWS",
     "constraints" : {
       "notEmpty" : true
     },
@@ -366,11 +367,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "COLUMNS",
-      "value" : "COLUMNS"
-    }, {
       "name" : "ROWS",
       "value" : "ROWS"
+    }, {
+      "name" : "COLUMNS",
+      "value" : "COLUMNS"
     } ]
   }, {
     "id" : "startIndex",

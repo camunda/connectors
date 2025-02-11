@@ -17,15 +17,12 @@
 package io.camunda.connector.generator.java.example.outbound;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.generator.java.annotation.NestedProperties;
-import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.*;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
-import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.FirstAnnotatedSubType;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.IgnoredSubType;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.NestedAnnotatedSealedType;
@@ -120,16 +117,23 @@ public record MyConnectorInput(
         @Pattern(regexp = "xxx", message = "Oh no!")
         String mayBeEmptyOrRegexValidatedJakartaStyle) {
 
+  enum MyEnum {
+    @EnumLabel(value = "value1", label = "Value one", order = 0)
+    VALUE1,
+    @EnumLabel(value = "value2", label = "Value two", order = 1)
+    VALUE2
+  }
+
   sealed interface NonAnnotatedSealedType permits FirstSubType, NestedSealedType, SecondSubType {
-
-    record FirstSubType(String firstSubTypeValue) implements NonAnnotatedSealedType {}
-
-    record SecondSubType(String secondSubTypeValue) implements NonAnnotatedSealedType {}
 
     sealed interface NestedSealedType extends NonAnnotatedSealedType permits NestedSubType {
 
       record NestedSubType(String thirdSubTypeValue) implements NestedSealedType {}
     }
+
+    record FirstSubType(String firstSubTypeValue) implements NonAnnotatedSealedType {}
+
+    record SecondSubType(String secondSubTypeValue) implements NonAnnotatedSealedType {}
   }
 
   @TemplateDiscriminatorProperty(
@@ -141,19 +145,6 @@ public record MyConnectorInput(
           IgnoredSubType,
           NestedAnnotatedSealedType,
           SecondAnnotatedSubType {
-
-    @TemplateSubType(id = "firstAnnotatedOverride", label = "First annotated override")
-    record FirstAnnotatedSubType(
-        @TemplateProperty(label = "First annotated override value") String firstAnnotatedValue)
-        implements AnnotatedSealedType {}
-
-    @TemplateSubType(id = "secondAnnotatedOverride", label = "Second annotated override")
-    record SecondAnnotatedSubType(
-        @TemplateProperty(label = "Second annotated override value") String secondAnnotatedValue)
-        implements AnnotatedSealedType {}
-
-    @TemplateSubType(ignore = true)
-    record IgnoredSubType() implements AnnotatedSealedType {}
 
     @TemplateSubType(
         id = "nestedAnnotatedSealedType",
@@ -173,6 +164,19 @@ public record MyConnectorInput(
               String firstNestedSubTypeValue)
           implements NestedAnnotatedSealedType {}
     }
+
+    @TemplateSubType(id = "firstAnnotatedOverride", label = "First annotated override")
+    record FirstAnnotatedSubType(
+        @TemplateProperty(label = "First annotated override value") String firstAnnotatedValue)
+        implements AnnotatedSealedType {}
+
+    @TemplateSubType(id = "secondAnnotatedOverride", label = "Second annotated override")
+    record SecondAnnotatedSubType(
+        @TemplateProperty(label = "Second annotated override value") String secondAnnotatedValue)
+        implements AnnotatedSealedType {}
+
+    @TemplateSubType(ignore = true)
+    record IgnoredSubType() implements AnnotatedSealedType {}
   }
 
   @TemplateDiscriminatorProperty(
@@ -183,11 +187,6 @@ public record MyConnectorInput(
     record ConditionalSubType(
         @TemplateProperty(label = "Conditional sub type value") String conditionalSubTypeValue)
         implements SealedTypeWithCondition {}
-  }
-
-  enum MyEnum {
-    VALUE1,
-    VALUE2
   }
 
   record NestedWithoutDefinedGroup(@TemplateProperty(id = "nestedA") String a) {}

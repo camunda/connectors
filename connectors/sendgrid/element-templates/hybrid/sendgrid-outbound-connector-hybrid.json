@@ -124,6 +124,7 @@
     "id" : "unMappedFieldNotUseInModel.mailType",
     "label" : "Mail contents",
     "optional" : false,
+    "value" : "mail",
     "group" : "content",
     "binding" : {
       "name" : "unMappedFieldNotUseInModel.mailType",

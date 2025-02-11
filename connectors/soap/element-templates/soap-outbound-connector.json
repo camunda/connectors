@@ -123,6 +123,7 @@
     "id" : "authentication.encoded",
     "label" : "Encoded",
     "optional" : false,
+    "value" : "Yes",
     "constraints" : {
       "notEmpty" : true
     },
@@ -138,11 +139,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "No",
-      "value" : "No"
-    }, {
       "name" : "Yes",
       "value" : "Yes"
+    }, {
+      "name" : "No",
+      "value" : "No"
     } ]
   }, {
     "id" : "authentication.certificate.certificateType",
@@ -315,6 +316,7 @@
     "label" : "Use binary security token",
     "description" : "Whether a binary security token should be inserted",
     "optional" : false,
+    "value" : "Yes",
     "constraints" : {
       "notEmpty" : true
     },
@@ -330,11 +332,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "No",
-      "value" : "No"
-    }, {
       "name" : "Yes",
       "value" : "Yes"
+    }, {
+      "name" : "No",
+      "value" : "No"
     } ]
   }, {
     "id" : "authentication.signatureAlgorithm",

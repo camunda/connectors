@@ -37,26 +37,15 @@ import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
-import io.camunda.connector.generator.java.annotation.NestedProperties;
-import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.*;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
-import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.generator.java.processor.FieldProcessor;
 import io.camunda.connector.generator.java.processor.JakartaValidationFieldProcessor;
 import io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -264,18 +253,36 @@ public class TemplatePropertiesUtil {
     }
   }
 
+  private static List<DropdownModel> createDropdownModelList(Class<?> enumType) {
+    return Arrays.stream(enumType.getEnumConstants())
+        .map(
+            enumConstant -> {
+              try {
+                Field enumValue = enumType.getField(((Enum<?>) enumConstant).name());
+                if (enumValue.isAnnotationPresent(EnumLabel.class)) {
+                  EnumLabel enumLabel = enumValue.getAnnotation(EnumLabel.class);
+                  return new DropdownModel(enumLabel.label(), enumLabel.value(), enumLabel.order());
+                } else {
+                  return new DropdownModel(
+                      enumConstant.toString(), transformIdIntoLabel((enumConstant).toString()), 0);
+                }
+              } catch (NoSuchFieldException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .toList();
+  }
+
   private static PropertyBuilder createPropertyBuilder(Field field, TemplateProperty annotation) {
     PropertyType type;
-    Map<String, String> dropdownChoices = new HashMap<>();
+    List<DropdownModel> dropdownChoices = new ArrayList<>();
 
     if (field.getType() == Boolean.class) {
       type = PropertyType.Boolean;
     } else if (field.getType().isEnum()) {
       type = PropertyType.Dropdown;
-      dropdownChoices =
-          Arrays.stream(field.getType().getEnumConstants())
-              .collect(
-                  Collectors.toMap(Object::toString, val -> transformIdIntoLabel(val.toString())));
+      Class<?> enumType = field.getType();
+      dropdownChoices = createDropdownModelList(enumType);
     } else {
       type = PropertyType.String;
     }
@@ -287,28 +294,30 @@ public class TemplatePropertiesUtil {
       if (annotation.choices().length > 0) {
         dropdownChoices =
             Arrays.stream(annotation.choices())
-                .collect(
-                    Collectors.toMap(
-                        DropdownPropertyChoice::value,
-                        DropdownPropertyChoice::label,
-                        (a, b) -> a,
-                        LinkedHashMap::new));
+                .map(
+                    dropdownPropertyChoice ->
+                        new DropdownModel(
+                            dropdownPropertyChoice.label(), dropdownPropertyChoice.value(), 0))
+                .toList();
       }
     }
+
+    List<DropdownChoice> dropdownChoiceList =
+        dropdownChoices.stream()
+            .sorted(Comparator.comparingInt(DropdownModel::order))
+            .map(dropdownModel -> new DropdownChoice(dropdownModel.label(), dropdownModel.value()))
+            .toList();
 
     var builder =
         switch (type) {
           case Boolean -> BooleanProperty.builder();
-          case Dropdown ->
-              DropdownProperty.builder()
-                  .choices(
-                      dropdownChoices.entrySet().stream()
-                          .map(
-                              entry ->
-                                  new DropdownProperty.DropdownChoice(
-                                      entry.getValue(), entry.getKey()))
-                          .toList())
-                  .feel(FeelMode.disabled);
+          case Dropdown -> {
+            PropertyBuilder propertyBuilder =
+                DropdownProperty.builder().choices(dropdownChoiceList).feel(FeelMode.disabled);
+            if (!dropdownChoices.isEmpty()) {
+              yield propertyBuilder.value(dropdownChoiceList.getFirst().value());
+            } else yield propertyBuilder;
+          }
           case Hidden -> HiddenProperty.builder();
           case String -> StringProperty.builder();
           case Text -> TextProperty.builder();
@@ -496,9 +505,9 @@ public class TemplatePropertiesUtil {
   private static PropertyBinding createBinding(
       String propertyName, TemplateGenerationContext context) {
     if (context instanceof Outbound) {
-      return new PropertyBinding.ZeebeInput(propertyName);
+      return new ZeebeInput(propertyName);
     } else {
-      return new PropertyBinding.ZeebeProperty(propertyName);
+      return new ZeebeProperty(propertyName);
     }
   }
 }
