@@ -12,9 +12,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.jdbc.model.client.JdbcClient;
 import io.camunda.connector.jdbc.model.client.JdbiJdbcClient;
+import io.camunda.connector.jdbc.model.client.JdbiJsonHelper;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
 import io.camunda.connector.jdbc.model.request.JdbcRequestData;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
@@ -29,9 +34,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.result.NoResultsException;
+import org.jdbi.v3.core.statement.Query;
 import org.jdbi.v3.core.statement.UnableToCreateStatementException;
+import org.jdbi.v3.jackson2.Jackson2Plugin;
 
 public abstract class IntegrationBaseTest {
+
+  static final String DEFAULT_ADDRESS_JSON =
+      "{\"street\":\"123 Main St\",\"city\":\"New York\",\"zip\":\"10001\"}";
   static final Employee NEW_EMPLOYEE = new Employee(7, "Eve", 55, "HR");
 
   static final List<Employee> DEFAULT_EMPLOYEES =
@@ -56,19 +66,55 @@ public abstract class IntegrationBaseTest {
     }
   }
 
+  void addJsonColumn(IntegrationTestConfig config, String jsonDatabaseType) throws SQLException {
+    try (Connection conn =
+            DriverManager.getConnection(config.url(), config.username(), config.password());
+        Statement stmt = conn.createStatement()) {
+
+      if (config.databaseName() != null) {
+        stmt.executeUpdate("USE " + config.databaseName());
+      }
+
+      String addColumnSQL = "ALTER TABLE Employee ADD json " + jsonDatabaseType;
+      stmt.executeUpdate(addColumnSQL);
+      String dummyJson;
+      switch (config.database()) {
+        case MYSQL, MARIADB -> dummyJson = "'" + DEFAULT_ADDRESS_JSON + "'";
+        case POSTGRESQL -> dummyJson = "'" + DEFAULT_ADDRESS_JSON + "'::json";
+        case MSSQL -> dummyJson = "'" + DEFAULT_ADDRESS_JSON + "'";
+        default ->
+            throw new UnsupportedOperationException("Unsupported database: " + config.database());
+      }
+      String updateSQL = "UPDATE Employee SET json = " + dummyJson;
+      stmt.executeUpdate(updateSQL);
+    }
+  }
+
+  void dropJsonColumn(IntegrationTestConfig config) throws SQLException {
+    try (Connection conn =
+            DriverManager.getConnection(config.url(), config.username(), config.password());
+        Statement stmt = conn.createStatement()) {
+
+      if (config.databaseName() != null) {
+        stmt.executeUpdate("USE " + config.databaseName());
+      }
+      stmt.executeUpdate("ALTER TABLE Employee DROP COLUMN json");
+    }
+  }
+
   List<Map<String, Object>> selectAll(IntegrationTestConfig config, String tableName)
       throws SQLException {
     try (Connection conn =
         DriverManager.getConnection(config.url(), config.username(), config.password())) {
       // using jdbi
-      try (var handle = Jdbi.create(conn).open()) {
+      var jdbi = Jdbi.create(conn);
+      jdbi.installPlugin(new Jackson2Plugin());
+      try (var handle = jdbi.open()) {
         if (config.databaseName() != null) {
           handle.execute("USE " + config.databaseName());
         }
-        return handle
-            .createQuery("SELECT * FROM " + tableName + " ORDER BY id ASC")
-            .mapToMap()
-            .list();
+        Query q = handle.createQuery("SELECT * FROM " + tableName + " ORDER BY id ASC");
+        return JdbiJsonHelper.mapToParsedMap(conn.getMetaData().getDatabaseProductName(), q).list();
       }
     }
   }
@@ -272,12 +318,12 @@ public abstract class IntegrationBaseTest {
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
     assertEquals(2, response.resultSet().size());
-    assertEquals(
+    assertTrue(
         DEFAULT_EMPLOYEES.stream()
             .filter(e -> e.name().equals("John Doe") || e.name().equals("Jane Doe"))
             .map(Employee::toMap)
-            .collect(Collectors.toList()),
-        response.resultSet());
+            .toList()
+            .containsAll(response.resultSet()));
   }
 
   void selectDataWithBindingParametersWhereInAndAssertSuccess(IntegrationTestConfig config) {
@@ -305,6 +351,27 @@ public abstract class IntegrationBaseTest {
             .map(Employee::toMap)
             .collect(Collectors.toList()),
         response.resultSet());
+  }
+
+  void selectJsonDataAndAssertSuccess(IntegrationTestConfig config) throws JsonProcessingException {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(true, "SELECT * FROM Employee ORDER BY Id ASC"));
+    var response = jdbiJdbcClient.executeRequest(request);
+
+    var row = response.resultSet().get(0);
+    ObjectMapper objectMapper = new ObjectMapper();
+    var expected = objectMapper.readTree(DEFAULT_ADDRESS_JSON);
+    assertEquals(
+        expected.get("street").asText(), ((ObjectNode) row.get("json")).get("street").asText());
   }
 
   void updateDataAndAssertSuccess(IntegrationTestConfig config) {
@@ -546,7 +613,7 @@ public abstract class IntegrationBaseTest {
             new JdbcRequestData(
                 false,
                 "INSERT INTO Employee (id, name, age, department) VALUES (:id, :name, :age, :department)",
-                NEW_EMPLOYEE.toMap()));
+                NEW_EMPLOYEE.toUnparsedMap()));
     var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
@@ -705,6 +772,10 @@ public abstract class IntegrationBaseTest {
     }
 
     Map<String, Object> toMap() {
+      return Map.of("id", id, "name", name, "age", age, "department", department);
+    }
+
+    Map<String, Object> toUnparsedMap() {
       return Map.of("id", id, "name", name, "age", age, "department", department);
     }
   }
