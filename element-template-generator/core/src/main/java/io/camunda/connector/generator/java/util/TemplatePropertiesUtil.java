@@ -264,7 +264,9 @@ public class TemplatePropertiesUtil {
                   return new DropdownModel(enumLabel.label(), enumLabel.value(), enumLabel.order());
                 } else {
                   return new DropdownModel(
-                      enumConstant.toString(), transformIdIntoLabel((enumConstant).toString()), 0);
+                      transformIdIntoLabel(((Enum<?>) enumConstant).name()),
+                      ((Enum<?>) enumConstant).name(),
+                      0);
                 }
               } catch (NoSuchFieldException e) {
                 throw new RuntimeException(e);
@@ -311,13 +313,8 @@ public class TemplatePropertiesUtil {
     var builder =
         switch (type) {
           case Boolean -> BooleanProperty.builder();
-          case Dropdown -> {
-            PropertyBuilder propertyBuilder =
-                DropdownProperty.builder().choices(dropdownChoiceList).feel(FeelMode.disabled);
-            if (!dropdownChoices.isEmpty()) {
-              yield propertyBuilder.value(dropdownChoiceList.getFirst().value());
-            } else yield propertyBuilder;
-          }
+          case Dropdown ->
+              DropdownProperty.builder().choices(dropdownChoiceList).feel(FeelMode.disabled);
           case Hidden -> HiddenProperty.builder();
           case String -> StringProperty.builder();
           case Text -> TextProperty.builder();

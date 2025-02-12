@@ -45,6 +45,7 @@ public record ImapListEmails(
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            defaultValue = "RECEIVED_DATE",
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.sortField"))
         @NotNull
         SortFieldImap sortField,

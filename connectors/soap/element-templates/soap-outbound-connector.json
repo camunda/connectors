@@ -123,7 +123,6 @@
     "id" : "authentication.encoded",
     "label" : "Encoded",
     "optional" : false,
-    "value" : "Yes",
     "constraints" : {
       "notEmpty" : true
     },
@@ -316,7 +315,6 @@
     "label" : "Use binary security token",
     "description" : "Whether a binary security token should be inserted",
     "optional" : false,
-    "value" : "Yes",
     "constraints" : {
       "notEmpty" : true
     },
