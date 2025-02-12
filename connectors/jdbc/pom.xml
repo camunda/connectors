@@ -13,6 +13,10 @@
   <artifactId>connector-jdbc</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <version.jdbi>3.47.0</version.jdbi>
+  </properties>
+
   <licenses>
     <license>
       <name>Camunda Self-Managed Free Edition license</name>
@@ -36,7 +40,12 @@
     <dependency>
       <groupId>org.jdbi</groupId>
       <artifactId>jdbi3-core</artifactId>
-      <version>3.47.0</version>
+      <version>${version.jdbi}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jdbi</groupId>
+      <artifactId>jdbi3-jackson2</artifactId>
+      <version>${version.jdbi}</version>
     </dependency>
 
     <dependency>
