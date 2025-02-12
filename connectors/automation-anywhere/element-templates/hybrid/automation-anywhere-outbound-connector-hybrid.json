@@ -146,7 +146,6 @@
     "id" : "authentication.multipleLogin",
     "label" : "Multiple login",
     "optional" : false,
-    "value" : "true",
     "constraints" : {
       "notEmpty" : true
     },

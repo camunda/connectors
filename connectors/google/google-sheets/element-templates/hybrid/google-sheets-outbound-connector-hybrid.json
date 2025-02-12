@@ -351,7 +351,6 @@
     "label" : "Dimension",
     "description" : "Choose what to add: column or row",
     "optional" : false,
-    "value" : "ROWS",
     "constraints" : {
       "notEmpty" : true
     },

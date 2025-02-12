@@ -51,7 +51,6 @@
     "id" : "database",
     "label" : "Select a database",
     "optional" : false,
-    "value" : "MARIADB",
     "constraints" : {
       "notEmpty" : true
     },

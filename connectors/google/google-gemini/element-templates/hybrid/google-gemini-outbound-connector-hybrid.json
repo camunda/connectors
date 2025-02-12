@@ -178,7 +178,6 @@
     "label" : "Model",
     "description" : "Select gemini model.",
     "optional" : false,
-    "value" : "GEMINI_1_5_FLASH_001",
     "constraints" : {
       "notEmpty" : true
     },

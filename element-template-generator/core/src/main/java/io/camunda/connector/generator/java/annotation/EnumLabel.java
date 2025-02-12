@@ -21,7 +21,10 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface EnumLabel {
-  /** Represents the order in which the dropdown will be shown Order 1 will be default value */
+  /**
+   * Represents the order in which the dropdown will be shown, will be {@link Integer#MAX_VALUE } if
+   * not precised
+   */
   int order() default Integer.MAX_VALUE;
 
   String value();
