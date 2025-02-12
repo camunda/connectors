@@ -153,7 +153,7 @@ jobs:
           java-version: '21'
 
       - name: Compile Project
-        run: mvn clean compile -DskipTests
+        run: mvn clean package -DskipTests
 
       - name: Import Secrets
         id: secrets
