@@ -270,7 +270,7 @@ jobs:
 
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
-          RELEASE_BRANCH: ${{ sneeds.setup.outputs.releaseBranch }}
+          RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
 
       - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
