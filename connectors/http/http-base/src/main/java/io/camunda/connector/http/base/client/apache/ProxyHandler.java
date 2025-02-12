@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.auth.AuthScope;
@@ -136,12 +137,22 @@ public class ProxyHandler {
 
   private boolean doesTargetMatchNonProxy(String protocol, String requestUri) {
     ProxyDetails p = proxyConfigForProtocols.get(protocol);
-    return (p != null
-        && p.nonProxyHosts() != null
-        && Arrays.stream(p.nonProxyHosts().split("\\|"))
-            .anyMatch(
-                nonProxyHost ->
-                    requestUri.matches(nonProxyHost.replace(".", "\\.").replace("*", ".*"))));
+    if (p == null || p.nonProxyHosts() == null) {
+      return false;
+    }
+
+    return Arrays.stream(p.nonProxyHosts().split("\\|"))
+        .map(
+            nonProxyHost -> {
+              // If entry is "example.de", it should match example.de and *.example.de
+              if (!nonProxyHost.contains("*")) {
+                return "^(.*\\.)?" + Pattern.quote(nonProxyHost) + "$";
+              }
+
+              // Otherwise, process as wildcard domain
+              return nonProxyHost.replace(".", "\\.").replace("*", ".*");
+            })
+        .anyMatch(regex -> requestUri.matches(regex));
   }
 
   public HttpRoutePlanner getRoutePlanner(String protocol, HttpHost proxyHost) {
