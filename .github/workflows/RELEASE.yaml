@@ -14,6 +14,12 @@ jobs:
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.validate_tag.outputs.previousTag }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
+          ref: ${{ github.event.release.target_commitish }}
+          fetch-depth: 0
+
       - name: Validate release tag and determine previous tag
         id: validate_tag
         run: |
