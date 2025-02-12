@@ -146,6 +146,15 @@ jobs:
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Compile Project
+        run: mvn clean compile -DskipTests
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v3.0.0
