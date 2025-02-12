@@ -286,6 +286,12 @@ jobs:
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
 
+      - name: Configure git user
+        run: |
+          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Commit and tag
         run: |
           git commit -am "ci: release version ${RELEASE_VERSION}"
