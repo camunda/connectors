@@ -13,13 +13,6 @@ jobs:
       tagType: ${{ steps.validate_tag.outputs.type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.validate_tag.outputs.previousTag }}
-      artifactoryUsr: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-      artifactoryPsw: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-      mavenCentralDeploymentUsr: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
-      mavenCentralDeploymentPsw: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
-      mavenCentralGpgSigningKeyPassphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
-      dockerhubUser: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-      dockerhubPassword: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,24 +41,6 @@ jobs:
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
-      - name: Import Secrets
-        id: secrets
-        uses: hashicorp/vault-action@v3.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: |
-            secret/data/products/connectors/ci/common DOCKERHUB_USER;
-            secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
-
       - name: Import GPG key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v6
@@ -91,6 +66,22 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v3.1.0
         with:
@@ -98,13 +89,13 @@ jobs:
           servers: |
             [{
                "id": "camunda-nexus",
-               "username": "${{ needs.setup.outputs.artifactoryUsr }}",
-               "password": "${{ needs.setup.outputs.artifactoryPsw }}"
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
              },
             {
                "id": "central",
-               "username": "${{ needs.setup.outputs.mavenCentralDeploymentUsr }}",
-               "password": "${{ needs.setup.outputs.mavenCentralDeploymentPsw }}"
+               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
+               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
              }
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
@@ -128,11 +119,11 @@ jobs:
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         run: mvn -B -q compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release
         env:
-          NEXUS_USR: ${{ needs.setup.outputs.artifactoryUsr }}
-          NEXUS_PSW: ${{ needs.setup.outputs.artifactoryPsw }}
-          MAVEN_USR: ${{ needs.setup.outputs.mavenCentralDeploymentUsr }}
-          MAVEN_PSW: ${{ needs.setup.outputs.mavenCentralDeploymentPsw }}
-          MAVEN_GPG_PASSPHRASE: ${{ needs.setup.outputs.mavenCentralGpgSigningKeyPassphrase }}
+          NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+          NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+          MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
+          MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
+          MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
       - name: Generate sbom reports
         run: |
@@ -142,6 +133,19 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/common DOCKERHUB_USER;
+            secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
@@ -153,8 +157,8 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ needs.setup.outputs.dockerhubUser }}
-          password: ${{ needs.setup.outputs.dockerhubPassword }}
+          username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+          password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
       # Build & push bundle docker images (with version tag)
 
@@ -222,8 +226,8 @@ jobs:
         if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
-          DOCKER_USER: ${{ needs.setup.outputs.dockerhubUser }}
-          DOCKER_PASS: ${{ needs.setup.outputs.dockerhubPassword }}
+          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
         with:
           destination_container_repo: camunda/connectors-bundle
           provider: dockerhub
@@ -234,8 +238,8 @@ jobs:
         if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
-          DOCKER_USER: ${{ needs.setup.outputs.dockerhubUser }}
-          DOCKER_PASS: ${{ needs.setup.outputs.dockerhubPassword }}
+          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
         with:
           destination_container_repo: camunda/connectors-bundle-saas
           provider: dockerhub
