@@ -268,8 +268,18 @@ jobs:
           readme_file: bundle/README.md
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
-      # Update GitHub release
+  bundle-and-build-changelog:
+    needs: [ maven-release, docker-release ]
+    name: Bundle and generate changelogs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
+          ref: ${{ github.event.release.target_commitish }}
+          fetch-depth: 0
 
+      # Update GitHub release
       - name: Bundle element templates
         run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
         env:
@@ -298,7 +308,6 @@ jobs:
           git push --force-with-lease origin ${RELEASE_BRANCH}
           git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
           git push --force origin ${RELEASE_VERSION}
-
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
           RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
