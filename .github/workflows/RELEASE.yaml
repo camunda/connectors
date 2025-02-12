@@ -14,12 +14,6 @@ jobs:
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.validate_tag.outputs.previousTag }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
-          ref: ${{ github.event.release.target_commitish }}
-          fetch-depth: 0
-
       - name: Validate release tag and determine previous tag
         id: validate_tag
         run: |
@@ -41,6 +35,16 @@ jobs:
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
+  maven-release:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
+          ref: ${{ github.event.release.target_commitish }}
+          fetch-depth: 0
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v3.0.0
@@ -51,6 +55,10 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           exportEnv: false # we rely on step outputs, no need for environment variables
           secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
 
@@ -74,26 +82,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
-
-  maven-release:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - name: Import Secrets
-        id: secrets
-        uses: hashicorp/vault-action@v3.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false # we rely on step outputs, no need for environment variables
-          secrets: |
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
 
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v3.1.0
@@ -146,6 +134,12 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
+          ref: ${{ github.event.release.target_commitish }}
+          fetch-depth: 0
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v3.0.0
