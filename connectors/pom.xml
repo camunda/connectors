@@ -26,6 +26,7 @@
     <module>http</module>
     <module>jdbc</module>
     <module>kafka</module>
+    <module>message</module>
     <module>microsoft-teams</module>
     <module>rabbitmq</module>
     <module>sendgrid</module>
