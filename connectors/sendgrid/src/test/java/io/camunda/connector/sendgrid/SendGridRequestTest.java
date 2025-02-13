@@ -98,8 +98,7 @@ public class SendGridRequestTest extends BaseTest {
 
     Exception exception =
         assertThrows(
-            ConnectorInputException.class,
-            () -> context.bindVariables(SendGridRequest.class));
+            ConnectorInputException.class, () -> context.bindVariables(SendGridRequest.class));
 
     assertThat(exception.getMessage()).contains("attachmentsShouldContainsFileName");
   }
