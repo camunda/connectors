@@ -123,6 +123,7 @@ jobs:
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
+
       - name: Generate sbom reports
         run: |
           mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
