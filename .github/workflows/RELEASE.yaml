@@ -6,11 +6,13 @@ on:
     types: [ created ]
 
 jobs:
-  build-and-push:
-    name: Build and push Docker images
+  setup:
+    name: Prepare the repository
     runs-on: ubuntu-latest
     outputs:
+      tagType: ${{ steps.validate_tag.outputs.type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+      previousTag: ${{ steps.validate_tag.outputs.previousTag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,6 +41,36 @@ jobs:
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
+          ref: ${{ github.event.release.target_commitish }}
+          fetch-depth: 0
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Compile and Test
+        run: mvn clean install
+
+      - name: Upload repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository
+          path: .
+
+  maven-release:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download repository
+        uses: actions/download-artifact@v4
+        with:
+          name: repository
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v3.0.0
@@ -49,8 +81,6 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           exportEnv: false # we rely on step outputs, no need for environment variables
           secrets: |
-            secret/data/products/connectors/ci/common DOCKERHUB_USER;
-            secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
             secret/data/products/connectors/ci/common ARTIFACTORY_USR;
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
@@ -79,7 +109,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v3.1.0
         with:
@@ -126,6 +155,28 @@ jobs:
       - name: Generate sbom reports
         run: |
           mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+
+  docker-release:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download repository
+        uses: actions/download-artifact@v4
+        with:
+          name: repository
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/common DOCKERHUB_USER;
+            secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -182,7 +233,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-default
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
@@ -192,7 +243,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-saas
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
@@ -204,7 +255,7 @@ jobs:
       # Update README in Dockerhub
 
       - name: Push README to Dockerhub - bundle-default
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -216,7 +267,7 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle'
 
       - name: Push README to Dockerhub - bundle-saas
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -227,8 +278,17 @@ jobs:
           readme_file: bundle/README.md
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
-      # Update GitHub release
+  bundle-and-build-changelog:
+    needs: [ maven-release, docker-release ]
+    name: Bundle and generate changelogs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download repository
+        uses: actions/download-artifact@v4
+        with:
+          name: repository
 
+      # Update GitHub release
       - name: Bundle element templates
         run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
         env:
@@ -240,10 +300,16 @@ jobs:
         with:
           token: ${{ github.token }}
           fromTag: ${{ github.event.release.tag_name }}
-          toTag: ${{ steps.validate_tag.outputs.previousTag }}
+          toTag: ${{ needs.setup.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
+
+      - name: Configure git user
+        run: |
+          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Commit and tag
         run: |
@@ -251,15 +317,14 @@ jobs:
           git push --force-with-lease origin ${RELEASE_BRANCH}
           git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
           git push --force origin ${RELEASE_VERSION}
-
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
-          RELEASE_BRANCH: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+          RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
 
       - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ steps.validate_tag.outputs.type != 'NORMAL' }}
+          prerelease: ${{ needs.setup.outputs.tagType != 'NORMAL' }}
           body: ${{ steps.changelog.outputs.changes }}
           tag_name: ${{ github.event.release.tag_name }}
           files: |
@@ -269,10 +334,10 @@ jobs:
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
 
   helm-deploy:
-    needs: build-and-push
+    needs: [maven-release, docker-release]
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
       connectors-version: ${{ github.event.release.tag_name }}
-      release-branch: ${{ needs.build-and-push.outputs.releaseBranch }}
+      release-branch: ${{ needs.setup.outputs.releaseBranch }}
