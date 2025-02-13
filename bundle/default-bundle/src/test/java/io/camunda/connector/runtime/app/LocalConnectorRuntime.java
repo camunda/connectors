@@ -24,7 +24,7 @@ public class LocalConnectorRuntime {
   public static void main(String[] args) {
     // Comment this line if you are using the docker-compose.yml file instead of the
     // docker-compose-core.yml file
-    System.setProperty(AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME, "docker-core");
+    System.setProperty(AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME, "local");
     SpringApplication.run(ConnectorRuntimeApplication.class, args);
   }
 }
