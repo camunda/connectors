@@ -71,8 +71,11 @@ jobs:
         with:
           name: repository
 
-      - name: Change directory
-        run: cd repository
+      - name: know directory
+        run: pwd
+
+      - name: list directory
+        run: ls -la
 
       - name: Import Secrets
         id: secrets
@@ -167,9 +170,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: repository
-
-      - name: Change directory
-        run: cd repository
 
       - name: Import Secrets
         id: secrets
@@ -293,9 +293,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: repository
-
-      - name: Change directory
-        run: cd repository
 
       # Update GitHub release
       - name: Bundle element templates
