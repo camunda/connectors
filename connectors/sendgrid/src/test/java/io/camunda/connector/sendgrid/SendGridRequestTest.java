@@ -91,6 +91,19 @@ public class SendGridRequestTest extends BaseTest {
     assertThat(thrown.getMessage()).contains("receiverName");
   }
 
+  @ParameterizedTest
+  @MethodSource("failTestWithEmptyFileName")
+  public void validate_shouldThrowExceptionWhenDocumentsNamesAreEmpty(String input) {
+    var context = getContextBuilderWithSecrets().variables(input).build();
+
+    Exception exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> context.bindVariables(SendGridRequest.class));
+
+    assertThat(exception.getMessage()).contains("attachmentsShouldContainsFileName");
+  }
+
   @ParameterizedTest(name = "Should replace secrets in template")
   @MethodSource("successReplaceSecretsTemplateRequestCases")
   void replaceSecrets_shouldReplaceSecretsWhenExistTemplateRequest(String input) {

@@ -12,26 +12,29 @@ import com.sendgrid.Method;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Attachments;
 import com.sendgrid.helpers.mail.objects.Personalization;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sendgrid.model.SendGridRequest;
+import io.camunda.document.Document;
 import java.io.IOException;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "SendGrid",
-    inputVariables = {"apiKey", "from", "to", "template", "content"},
+    inputVariables = {"apiKey", "from", "to", "template", "content", "attachments"},
     type = "io.camunda:sendgrid:1")
 @ElementTemplate(
     id = "io.camunda.connectors.SendGrid.v2",
     name = "SendGrid Outbound Connector",
     description = "Send an email via SendGrid",
     inputDataClass = SendGridRequest.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "sender", label = "Sender"),
@@ -43,11 +46,9 @@ import org.slf4j.LoggerFactory;
     icon = "icon.svg")
 public class SendGridFunction implements OutboundConnectorFunction {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SendGridFunction.class);
-
   protected static final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(SendGridFunction.class);
   private final SendGridClientSupplier sendGridSupplier;
 
   public SendGridFunction() {
@@ -84,6 +85,7 @@ public class SendGridFunction implements OutboundConnectorFunction {
     mail.setFrom(request.getInnerSenGridEmailFrom());
     addContentIfPresent(mail, request);
     addTemplateIfPresent(mail, request);
+    addAttachmentIfPresent(mail, request.getAttachments());
 
     return mail;
   }
@@ -95,6 +97,18 @@ public class SendGridFunction implements OutboundConnectorFunction {
       personalization.addTo(request.getInnerSenGridEmailTo());
       request.getTemplate().data().forEach(personalization::addDynamicTemplateData);
       mail.addPersonalization(personalization);
+    }
+  }
+
+  private void addAttachmentIfPresent(final Mail mail, List<Document> documents) {
+    if (documents != null && !documents.isEmpty()) {
+      documents.forEach(
+          document -> {
+            Attachments attachments =
+                new Attachments.Builder(document.metadata().getFileName(), document.asInputStream())
+                    .build();
+            mail.addAttachments(attachments);
+          });
     }
   }
 

@@ -1,6 +1,6 @@
 [
   {
-    "apiKey": "{{secrets.SENDGRID_API_KEY}}",
+    "apiKey": "send_grid_key",
     "from": {
       "name": "John Doe",
       "email": "john.doe@example.com"
@@ -9,10 +9,13 @@
       "name": "Jane Doe",
       "email": "jane.doe@example.com"
     },
-    "content": {
-      "subject": "{{secrets.CONTENT_SUBJECT}}",
-      "type": "{{secrets.CONTENT_TYPE}}",
-      "value": "{{secrets.CONTENT_VALUE}}"
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245"
+      }
     },
     "attachments" : [ {
       "camunda.document.type" : "camunda",
@@ -20,7 +23,7 @@
       "documentId" : "2ea3bfcc-7683-4cb6-b0ce-8052ca1d6da0",
       "metadata" : {
         "contentType" : "image/png",
-        "fileName" : "google-my-business-logo-png-transparent.png",
+        "fileName" : "",
         "size" : 66497,
         "customProperties" : { }
       }
@@ -36,10 +39,13 @@
       "name": "Jane Doe",
       "email": "jane.doe@example.com"
     },
-    "content": {
-      "subject": "subject_test",
-      "type": "text/json",
-      "value": "Hello world"
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245"
+      }
     },
     "attachments" : [ {
       "camunda.document.type" : "camunda",
@@ -47,10 +53,22 @@
       "documentId" : "2ea3bfcc-7683-4cb6-b0ce-8052ca1d6da0",
       "metadata" : {
         "contentType" : "image/png",
-        "fileName" : "google-my-business-logo-png-transparent.png",
+        "fileName" : "file.png",
         "size" : 66497,
         "customProperties" : { }
       }
-    }]
+    },
+      {
+        "camunda.document.type" : "camunda",
+        "storeId" : "in-memory",
+        "documentId" : "2ea3bfcc-7683-4cb6-b0ce-8052ca1d6da1",
+        "metadata" : {
+          "contentType" : "image/png",
+          "fileName" : " ",
+          "size" : 66497,
+          "customProperties" : { }
+        }
+      }
+    ]
   }
 ]

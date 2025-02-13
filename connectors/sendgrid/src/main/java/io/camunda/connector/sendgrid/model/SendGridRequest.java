@@ -16,12 +16,15 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 
 public class SendGridRequest {
   @TemplateProperty(group = "authentication", label = "SendGrid API key")
@@ -99,6 +102,16 @@ public class SendGridRequest {
   @Valid
   private Content content;
 
+  @TemplateProperty(
+      id = "attachments",
+      group = "content",
+      label = "attachments",
+      optional = true,
+      feel = Property.FeelMode.required,
+      description =
+          "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>")
+  private List<Document> attachments;
+
   @AssertTrue(message = "must not be empty")
   private boolean isSenderName() {
     return from != null && isNotBlank(from.name());
@@ -126,6 +139,16 @@ public class SendGridRequest {
   @AssertTrue
   private boolean isHasContentOrTemplate() {
     return content != null || template != null;
+  }
+
+  @AssertTrue(message = "each attached document must contain a file name")
+  private boolean isAttachmentsShouldContainsFileName() {
+    if (this.attachments == null || this.attachments.isEmpty()) {
+      return true;
+    }
+    return this.attachments.stream()
+        .map(doc -> doc.metadata().getFileName())
+        .noneMatch(StringUtils::isBlank);
   }
 
   public String getApiKey() {
@@ -192,6 +215,14 @@ public class SendGridRequest {
     this.mailType = mailType;
   }
 
+  public List<Document> getAttachments() {
+    return attachments;
+  }
+
+  public void setAttachments(List<Document> attachments) {
+    this.attachments = attachments;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -205,12 +236,13 @@ public class SendGridRequest {
         && Objects.equals(from, that.from)
         && Objects.equals(to, that.to)
         && Objects.equals(template, that.template)
-        && Objects.equals(content, that.content);
+        && Objects.equals(content, that.content)
+        && Objects.equals(attachments, that.attachments);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(apiKey, from, to, template, content);
+    return Objects.hash(apiKey, from, to, template, content, attachments);
   }
 
   @Override
@@ -225,6 +257,8 @@ public class SendGridRequest {
         + template
         + ", content="
         + content
+        + ", attachments="
+        + attachments
         + '}';
   }
 }
