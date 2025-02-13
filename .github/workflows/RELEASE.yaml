@@ -71,6 +71,9 @@ jobs:
         with:
           name: repository
 
+      - name: Change directory
+        run: cd repository
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v3.0.0
@@ -164,6 +167,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: repository
+
+      - name: Change directory
+        run: cd repository
 
       - name: Import Secrets
         id: secrets
@@ -287,6 +293,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: repository
+
+      - name: Change directory
+        run: cd repository
 
       # Update GitHub release
       - name: Bundle element templates
