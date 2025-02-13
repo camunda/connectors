@@ -61,6 +61,7 @@ jobs:
         with:
           name: repository
           path: .
+          include-hidden-files: 'true'
 
   maven-release:
     needs: setup
@@ -70,12 +71,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: repository
-
-      - name: know directory
-        run: pwd
-
-      - name: list directory
-        run: ls -la
 
       - name: Import Secrets
         id: secrets
