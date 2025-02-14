@@ -24,12 +24,14 @@ import io.camunda.connector.http.base.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import javax.annotation.Nullable;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
@@ -96,15 +98,24 @@ public class CustomApacheHttpClient implements HttpClient {
    */
   @Override
   public HttpCommonResult execute(
-      HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
-    var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+      HttpCommonRequest request,
+      ProxyHandler proxyHandler,
+      @Nullable ExecutionEnvironment executionEnvironment) {
     try {
+      var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+      HttpHost proxy =
+          proxyHandler.getProxyHost(
+              apacheRequest.getUri().getScheme(), apacheRequest.getUri().getHost());
+      var routePlanner = proxyHandler.getRoutePlanner(apacheRequest.getUri().getScheme(), proxy);
       var result =
           httpClientBuilder
               .setDefaultRequestConfig(getRequestConfig(request))
-              // Will allow customers to use system properties for proxy configuration
-              // (http.proxyHost, http.proxyPort, etc)
-              .useSystemProperties()
+              .setRoutePlanner(routePlanner)
+              .setProxy(proxy)
+              .setDefaultCredentialsProvider(
+                  proxyHandler.getCredentialsProvider(apacheRequest.getScheme()))
+              .useSystemProperties() // Will fallback on system properties for unset values,
+              // e.g. http.keepAlive, http.agent
               .build()
               .execute(
                   apacheRequest,
@@ -121,7 +132,7 @@ public class CustomApacheHttpClient implements HttpClient {
           String.valueOf(HttpStatus.SC_SERVER_ERROR),
           "An error with the HTTP protocol occurred",
           e);
-    } catch (IOException e) {
+    } catch (IOException | URISyntaxException e) {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
           "An error occurred while executing the request, or the connection was aborted",
