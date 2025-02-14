@@ -6,8 +6,13 @@
  */
 package io.camunda.connector.textract.model;
 
+import io.camunda.connector.generator.java.annotation.EnumValue;
+
 public enum TextractExecutionType {
+  @EnumValue(label = "Real-time", order = 1)
   SYNC,
+  @EnumValue(label = "Polling", order = 2)
   POLLING,
-  ASYNC
+  @EnumValue(label = "Asynchronous", order = 0)
+  ASYNC;
 }

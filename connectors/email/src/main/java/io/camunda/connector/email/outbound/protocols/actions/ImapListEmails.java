@@ -46,13 +46,6 @@ public record ImapListEmails(
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "RECEIVED_DATE",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(
-                  label = "Received Date",
-                  value = "RECEIVED_DATE"),
-              @TemplateProperty.DropdownPropertyChoice(label = "Sent Date", value = "SENT_DATE"),
-              @TemplateProperty.DropdownPropertyChoice(label = "Size", value = "SIZE")
-            },
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.sortField"))
         @NotNull
         SortFieldImap sortField,
@@ -66,10 +59,6 @@ public record ImapListEmails(
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "ASC",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(label = "ASC", value = "ASC"),
-              @TemplateProperty.DropdownPropertyChoice(label = "DESC", value = "DESC")
-            },
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.sortOrder"))
         @NotNull
         SortOrder sortOrder)
