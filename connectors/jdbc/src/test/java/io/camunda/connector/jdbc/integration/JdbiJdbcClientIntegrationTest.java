@@ -9,6 +9,7 @@ package io.camunda.connector.jdbc.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import java.sql.SQLException;
 import java.util.List;
@@ -142,7 +143,8 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
               Optional.ofNullable(config.rootUser()).orElse(config.username()),
               config.password(),
               "mydb",
-              config.properties()),
+              config.properties(),
+              config.jsonType()),
           "TestTable",
           "id INT PRIMARY KEY, name VARCHAR(255)");
       cleanUpDatabase(config, "mydb");
@@ -216,7 +218,8 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
                           config.username(),
                           config.password() + "wrong",
                           config.databaseName(),
-                          config.properties())));
+                          config.properties(),
+                          config.jsonType())));
       assertThat(exception.getMessage()).contains("Cannot create the Database connection");
     }
 
@@ -238,7 +241,8 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
                           config.username(),
                           config.password() + "wrong",
                           config.databaseName(),
-                          config.properties())));
+                          config.properties(),
+                          config.jsonType())));
       assertThat(exception.getMessage()).contains("Cannot create the Database connection");
     }
   }
@@ -392,6 +396,28 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
         // "SELECT * FROM Employee WHERE name IN (?, ?)", List.of("John Doe", "Jane Doe")
         selectDataWithBindingParametersWhereInAndAssertSuccess(config);
       }
+    }
+  }
+
+  @Nested
+  class JsonTests {
+
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldParseJson_whenJsonColumnTypeSupported(IntegrationTestConfig config)
+        throws SQLException {
+      config
+          .jsonType()
+          .forEach(
+              jsonType -> {
+                try {
+                  addJsonColumn(config, jsonType);
+                  selectJsonDataAndAssertSuccess(config);
+                  dropJsonColumn(config);
+                } catch (SQLException | JsonProcessingException e) {
+                  throw new RuntimeException(e);
+                }
+              });
     }
   }
 }

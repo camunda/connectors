@@ -23,7 +23,8 @@ record IntegrationTestConfig(
     String username,
     String password,
     String databaseName,
-    Map<String, String> properties) {
+    Map<String, String> properties,
+    List<String> jsonType) {
 
   public static List<IntegrationTestConfig> from(
       MySQLContainer mySqlServer,
@@ -40,7 +41,8 @@ record IntegrationTestConfig(
             msSqlServer.getUsername(),
             msSqlServer.getPassword(),
             null,
-            Map.of("encrypt", "false")),
+            Map.of("encrypt", "false"),
+            List.of()),
         new IntegrationTestConfig(
             SupportedDatabase.MYSQL,
             mySqlServer.getJdbcUrl(),
@@ -50,7 +52,8 @@ record IntegrationTestConfig(
             mySqlServer.getUsername(),
             mySqlServer.getPassword(),
             mySqlServer.getDatabaseName(),
-            null),
+            null,
+            List.of("JSON")),
         new IntegrationTestConfig(
             SupportedDatabase.POSTGRESQL,
             postgreServer.getJdbcUrl(),
@@ -60,7 +63,8 @@ record IntegrationTestConfig(
             postgreServer.getUsername(),
             postgreServer.getPassword(),
             null,
-            null),
+            null,
+            List.of("JSON", "JSONB")),
         new IntegrationTestConfig(
             SupportedDatabase.MARIADB,
             mariaDbContainer.getJdbcUrl(),
@@ -70,6 +74,7 @@ record IntegrationTestConfig(
             mariaDbContainer.getUsername(),
             mariaDbContainer.getPassword(),
             mariaDbContainer.getDatabaseName(),
-            null));
+            null,
+            List.of("JSON")));
   }
 }
