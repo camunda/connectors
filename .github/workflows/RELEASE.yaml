@@ -72,6 +72,9 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Install element templates CLI
+        run: npm install --global element-templates-cli
+
       - name: Compile and Test
         run: mvn clean install
 
