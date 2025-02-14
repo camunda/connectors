@@ -73,7 +73,7 @@ jobs:
           java-version: '21'
 
       - name: Compile and Test
-        run: mvn clean install -DskipTests
+        run: mvn clean install
 
       - name: Upload repository
         uses: actions/upload-artifact@v4
