@@ -15,7 +15,6 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownP
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 public record Resource(
@@ -28,7 +27,9 @@ public record Resource(
             constraints = @PropertyConstraints(notEmpty = true),
             choices = {
               @DropdownPropertyChoice(label = "Create folder", value = "folder"),
-              @DropdownPropertyChoice(label = "Create file from template", value = "file")
+              @DropdownPropertyChoice(label = "Create file from template", value = "file"),
+              @DropdownPropertyChoice(label = "Upload file", value = "upload"),
+              @DropdownPropertyChoice(label = "Download file", value = "download")
             })
         @NotNull
         Type type,
@@ -36,8 +37,12 @@ public record Resource(
             id = "name",
             label = "New resource name",
             group = "operationDetails",
-            feel = FeelMode.optional)
-        @NotEmpty
+            feel = FeelMode.optional,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "resource.type",
+                    oneOf = {"folder", "file"}),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String name,
     @TemplateProperty(
             id = "parent",
@@ -47,7 +52,11 @@ public record Resource(
                     + "If left empty, a new resource will appear in the root folder",
             group = "operationDetails",
             optional = true,
-            feel = FeelMode.optional)
+            feel = FeelMode.optional,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "resource.type",
+                    oneOf = {"folder", "file", "upload"}))
         String parent,
     @TemplateProperty(
             id = "additionalGoogleDriveProperties",
@@ -57,4 +66,6 @@ public record Resource(
             optional = true,
             condition = @PropertyCondition(property = "resource.type", equals = "folder"))
         JsonNode additionalGoogleDriveProperties,
-    @Valid Template template) {}
+    @Valid Template template,
+    @Valid DownloadData downloadData,
+    @Valid UploadData uploadData) {}
