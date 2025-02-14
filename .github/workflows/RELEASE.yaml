@@ -299,7 +299,7 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
   bundle-and-build-changelog:
-    needs: [ maven-release, docker-release ]
+    needs: [ setup, maven-release, docker-release ]
     name: Bundle and generate changelogs
     runs-on: ubuntu-latest
     steps:
@@ -354,7 +354,7 @@ jobs:
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
 
   helm-deploy:
-    needs: docker-release
+    needs: [setup, docker-release]
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
