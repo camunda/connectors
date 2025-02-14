@@ -17,6 +17,7 @@
 package io.camunda.connector.http.base.client;
 
 import io.camunda.connector.http.base.ExecutionEnvironment;
+import io.camunda.connector.http.base.client.apache.ProxyHandler;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import javax.annotation.Nullable;
@@ -32,7 +33,9 @@ public interface HttpClient {
    * @return the result of the request as a {@link HttpCommonResult}
    */
   HttpCommonResult execute(
-      HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment);
+      HttpCommonRequest request,
+      ProxyHandler proxyHandler,
+      @Nullable ExecutionEnvironment executionEnvironment);
 
   /**
    * Executes the given {@link HttpCommonRequest} and returns the result as a {@link
@@ -40,9 +43,9 @@ public interface HttpClient {
    *
    * @param request the {@link HttpCommonRequest} to execute
    * @return the result of the request as a {@link HttpCommonResult}
-   * @see #execute(HttpCommonRequest, ExecutionEnvironment)
+   * @see #execute(HttpCommonRequest, ProxyHandler, ExecutionEnvironment)
    */
   default HttpCommonResult execute(HttpCommonRequest request) {
-    return execute(request, null);
+    return execute(request, new ProxyHandler(), null);
   }
 }
