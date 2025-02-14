@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import org.jdbi.v3.core.mapper.ColumnMapper;
 import org.jdbi.v3.core.qualifier.QualifiedType;
 import org.jdbi.v3.core.result.ResultIterable;
 import org.jdbi.v3.core.result.UnableToProduceResultException;
@@ -33,6 +34,9 @@ public class JdbiJsonHelper {
     return query.map(
         (rs, ctx) -> {
           Map<String, Object> row = new HashMap<>();
+          ColumnMapper<JsonNode> jsonMapper =
+              ctx.findColumnMapperFor(QualifiedType.of(JsonNode.class).with(Json.class))
+                  .orElseThrow();
           // Java SQL ResultSet and ResultSetMetadata columns start with index 1:
           // https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/ResultSetMetaData.html#getColumnTypeName(int)
           for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
@@ -40,10 +44,7 @@ public class JdbiJsonHelper {
             Object value = rs.getObject(i);
             if (isJsonColumn(databaseProductName, rs.getMetaData().getColumnTypeName(i))) {
               try {
-                value =
-                    ctx.findColumnMapperFor(QualifiedType.of(JsonNode.class).with(Json.class))
-                        .orElseThrow()
-                        .map(rs, i, ctx);
+                value = jsonMapper.map(rs, i, ctx);
               } catch (UnableToProduceResultException ignored) {
                 row.put(columnName, value);
               }
