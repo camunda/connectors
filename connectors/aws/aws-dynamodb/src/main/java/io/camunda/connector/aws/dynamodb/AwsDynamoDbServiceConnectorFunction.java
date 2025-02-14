@@ -35,7 +35,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
               "update item"
             }),
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/",
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
