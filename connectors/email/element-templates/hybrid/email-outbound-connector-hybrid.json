@@ -222,11 +222,11 @@
       "name" : "TLS",
       "value" : "TLS"
     }, {
-      "name" : "None",
-      "value" : "NONE"
-    }, {
       "name" : "SSL",
       "value" : "SSL"
+    }, {
+      "name" : "None",
+      "value" : "NONE"
     } ]
   }, {
     "id" : "data.pop3Host",
@@ -293,11 +293,11 @@
       "name" : "TLS",
       "value" : "TLS"
     }, {
-      "name" : "None",
-      "value" : "NONE"
-    }, {
       "name" : "SSL",
       "value" : "SSL"
+    }, {
+      "name" : "None",
+      "value" : "NONE"
     } ]
   }, {
     "id" : "data.smtpHost",
@@ -364,11 +364,11 @@
       "name" : "TLS",
       "value" : "TLS"
     }, {
-      "name" : "None",
-      "value" : "NONE"
-    }, {
       "name" : "SSL",
       "value" : "SSL"
+    }, {
+      "name" : "None",
+      "value" : "NONE"
     } ]
   }, {
     "id" : "data.smtpActionDiscriminator",

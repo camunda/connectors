@@ -90,13 +90,6 @@ public record SmtpSendEmail(
             id = "contentType",
             defaultValue = "PLAIN",
             type = TemplateProperty.PropertyType.Dropdown,
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(label = "PLAIN", value = "PLAIN"),
-              @TemplateProperty.DropdownPropertyChoice(label = "HTML", value = "HTML"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  label = "HTML & Plaintext",
-                  value = "MULTIPART")
-            },
             tooltip = "Email's contentType",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.contentType"))
         @Valid

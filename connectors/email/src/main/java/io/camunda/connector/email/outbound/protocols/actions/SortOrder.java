@@ -6,10 +6,13 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
+import io.camunda.connector.generator.java.annotation.EnumValue;
 import java.util.function.Function;
 
 public enum SortOrder {
+  @EnumValue(order = 0, label = "ASC")
   ASC(comparison -> comparison),
+  @EnumValue(order = 1, label = "DESC")
   DESC(comparison -> -comparison);
 
   private final Function<Integer, Integer> comparator;
