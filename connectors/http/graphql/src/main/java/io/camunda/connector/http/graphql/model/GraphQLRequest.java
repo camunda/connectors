@@ -33,7 +33,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               id = "query",
               label = "Query/Mutation",
               description =
-                  "See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+                  "See <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">documentation</a>",
               type = TemplateProperty.PropertyType.Text,
               // TODO add support for language property supported by element templates: language:
               // graphql

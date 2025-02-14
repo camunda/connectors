@@ -73,7 +73,7 @@ public sealed interface WebhookAuthorization permits None, BasicAuth, ApiKeyAuth
       @TemplateProperty(
               label = "API key locator",
               description =
-                  "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
+                  "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
               group = "authorization",
               feel = FeelMode.required,
               defaultValue = "=split(request.headers.authorization, \" \")[2]")

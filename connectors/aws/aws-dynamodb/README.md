@@ -1,7 +1,7 @@
 # Camunda AWS SNS Connector
 
 Find the user documentation in
-our [Camunda Docs](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/)
+our [Camunda Docs](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/)
 .
 
 ## Build

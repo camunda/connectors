@@ -24,7 +24,7 @@ public record JWTProperties(
     @TemplateProperty(
             label = "JWT role property expression",
             description =
-                "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
+                "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
             group = "authorization",
             feel = FeelMode.required)
         Function<Object, List<String>> permissionsExpression,

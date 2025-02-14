@@ -55,7 +55,7 @@ AWS-specific services.
 
 ### AWS DynamoDB Connector
 
-The [AWS DynamoDB Connector](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/)
+The [AWS DynamoDB Connector](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/)
 allows you to connect your BPMN service with [Amazon Web Service's DynamoDB Service](https://aws.amazon.com/dynamodb/).
 This can be useful for performing CRUD operations on AWS DynamoDB tables from within a BPMN process.
 
