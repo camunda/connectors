@@ -14,9 +14,27 @@ jobs:
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.validate_tag.outputs.previousTag }}
     steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v3.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          secrets: |
+            products/connectors/ci/common GITHUB_APP_ID;
+            products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
+          token: ${{ steps.app-token.outputs.token }}
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
