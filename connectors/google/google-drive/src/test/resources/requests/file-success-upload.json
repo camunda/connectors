@@ -1,0 +1,25 @@
+[
+  {
+    "resource": {
+      "type": "upload",
+      "parent": "1naPUVnG7at2Z058e1uMYHj3PHo3DrdCZ",
+      "uploadData": {
+        "document": {
+          "camunda.document.type": "camunda",
+          "storeId": "in-memory",
+          "documentId": "ffcf4b5e-6427-40aa-9131-65c142a8f380",
+          "metadata": {
+            "contentType": "image/png",
+            "fileName": "google-my-business-logo-png-transparent.png",
+            "size": 66497,
+            "customProperties": {}
+          }
+        }
+      }
+    },
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "{{secrets.MyToken}}"
+    }
+  }
+]

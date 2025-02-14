@@ -12,5 +12,9 @@ public enum Type {
   @JsonProperty("folder")
   FOLDER,
   @JsonProperty("file")
-  FILE
+  FILE,
+  @JsonProperty("upload")
+  UPLOAD,
+  @JsonProperty("download")
+  DOWNLOAD
 }

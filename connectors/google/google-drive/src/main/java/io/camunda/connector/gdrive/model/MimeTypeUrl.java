@@ -18,6 +18,8 @@ public enum MimeTypeUrl {
       "application/vnd.google-apps.presentation", "https://docs.google.com/presentation/d/%s"),
   FORM("application/vnd.google-apps.form", "https://docs.google.com/forms/d/%s");
 
+  public static final String FILE_TEMPLATE_URL = "https://drive.google.com/file/d/%s/view";
+
   private String mimeType;
   private String templateUrl;
 
@@ -39,6 +41,10 @@ public enum MimeTypeUrl {
         .map(type -> values.get(type))
         .map(type -> String.format(type, id))
         .orElse(null);
+  }
+
+  public static String getFileUrl(final String id) {
+    return String.format(FILE_TEMPLATE_URL, id);
   }
 
   public String getMimeType() {
