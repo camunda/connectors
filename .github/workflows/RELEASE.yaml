@@ -72,6 +72,12 @@ jobs:
         with:
           name: repository
 
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v3.0.0
@@ -103,12 +109,6 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-
-      - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
 
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v3.1.0
