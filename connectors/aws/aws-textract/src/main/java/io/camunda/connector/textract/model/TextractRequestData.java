@@ -21,11 +21,6 @@ public record TextractRequestData(
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "ASYNC",
             feel = FeelMode.disabled,
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(value = "ASYNC", label = "Asynchronous"),
-              @TemplateProperty.DropdownPropertyChoice(value = "SYNC", label = "Real-time"),
-              @TemplateProperty.DropdownPropertyChoice(value = "POLLING", label = "Polling")
-            },
             description = "Endpoint inference type")
         @NotNull
         TextractExecutionType executionType,
@@ -36,12 +31,6 @@ public record TextractRequestData(
             feel = FeelMode.disabled,
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "UPLOADED",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(value = "S3", label = "S3"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "UPLOADED",
-                  label = "Camunda Document")
-            },
             tooltip =
                 "<a href=\"https://docs.camunda.io/docs/next/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
             condition =

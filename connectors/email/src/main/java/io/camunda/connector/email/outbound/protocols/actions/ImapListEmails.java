@@ -59,10 +59,6 @@ public record ImapListEmails(
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "ASC",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(label = "ASC", value = "ASC"),
-              @TemplateProperty.DropdownPropertyChoice(label = "DESC", value = "DESC")
-            },
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.sortOrder"))
         @NotNull
         SortOrder sortOrder)

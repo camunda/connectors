@@ -6,13 +6,13 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
-import io.camunda.connector.generator.java.annotation.EnumLabel;
+import io.camunda.connector.generator.java.annotation.EnumValue;
 
 public enum SortFieldImap {
-  @EnumLabel(label = "Received Date", value = "RECEIVED_DATE", order = 0)
+  @EnumValue(label = "Received Date", order = 0)
   RECEIVED_DATE,
-  @EnumLabel(label = "Sent Date", value = "SENT_DATE", order = 1)
+  @EnumValue(label = "Sent Date", order = 1)
   SENT_DATE,
-  @EnumLabel(label = "Size", value = "SIZE", order = 2)
+  @EnumValue(label = "Size", order = 2)
   SIZE;
 }

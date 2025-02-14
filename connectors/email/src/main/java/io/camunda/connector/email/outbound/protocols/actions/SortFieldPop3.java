@@ -6,7 +6,11 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
+import io.camunda.connector.generator.java.annotation.EnumValue;
+
 public enum SortFieldPop3 {
+  @EnumValue(label = "Sent Date", order = 0)
   SENT_DATE,
+  @EnumValue(label = "Size", order = 1)
   SIZE;
 }

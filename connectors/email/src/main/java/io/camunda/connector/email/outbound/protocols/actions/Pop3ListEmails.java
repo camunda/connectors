@@ -36,10 +36,6 @@ public record Pop3ListEmails(
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "SENT_DATE",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(label = "Sent Date", value = "SENT_DATE"),
-              @TemplateProperty.DropdownPropertyChoice(label = "Size", value = "SIZE")
-            },
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.sortField"))
         @NotNull
         SortFieldPop3 sortField,
@@ -53,10 +49,6 @@ public record Pop3ListEmails(
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "ASC",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(label = "ASC", value = "ASC"),
-              @TemplateProperty.DropdownPropertyChoice(label = "DESC", value = "DESC")
-            },
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.sortOrder"))
         @NotNull
         SortOrder sortOrder)

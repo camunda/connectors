@@ -118,9 +118,9 @@ public record MyConnectorInput(
         String mayBeEmptyOrRegexValidatedJakartaStyle) {
 
   enum MyEnum {
-    @EnumLabel(value = "value1", label = "Value one", order = 0)
+    @EnumValue(label = "Value one", order = 0)
     VALUE1,
-    @EnumLabel(value = "value2", label = "Value two", order = 1)
+    @EnumValue(label = "Value two", order = 1)
     VALUE2
   }
 
