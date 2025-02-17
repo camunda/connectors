@@ -5,14 +5,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: zeebe
+  name: core
   labels:
     {{- include "commonLabels" $ | nindent 4 }}
   annotations: 
     {{- include "commonAnnotations" $ | nindent 4 }}
 spec:
   type: ExternalName
-  externalName: {{ include "zeebe.names.gateway" $camundaPlatform }}.{{ .Release.Namespace }}.svc.cluster.local
+  externalName: {{ include "core.legacyName" $camundaPlatform }}.{{ .Release.Namespace }}.svc.cluster.local
 ---
 {{- $identityKeyCloak := $camundaPlatform.Subcharts.identityKeycloak -}}
 apiVersion: v1
