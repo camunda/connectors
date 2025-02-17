@@ -86,6 +86,7 @@ jobs:
           include-hidden-files: 'true'
 
   maven-release:
+    if: "! contains(github.event.release.tag_name, 'rc')"
     needs: setup
     runs-on: ubuntu-latest
     steps:
@@ -333,6 +334,7 @@ jobs:
           # https://github.com/actions/checkout/issues/13#issuecomment-724415212
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.filemode false
 
       - name: Commit and tag
         run: |
