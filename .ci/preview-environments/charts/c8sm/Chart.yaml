@@ -15,4 +15,4 @@ dependencies:
 - name: camunda-platform
   # @camunda-cloud references https://helm.camunda.io repository configured as camunda-cloud in Argo CD
   repository: oci://ghcr.io/camunda/helm
-  version: 0.0.0-rc-alpha8.8
+  version: 0.0.0-rc-alpha-8.8
