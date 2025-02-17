@@ -6,6 +6,7 @@ on:
     types: [ created ]
 
 jobs:
+
   setup:
     name: Prepare the repository
     runs-on: ubuntu-latest
@@ -70,7 +71,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Compile and Test
-        run: mvn -B -q package generate-sources source:jar javadoc:jar -DskipTests
+        run: mvn -B package generate-sources source:jar javadoc:jar
 
       - name: Generate sbom reports
         run: |
@@ -81,7 +82,6 @@ jobs:
           # https://github.com/actions/checkout/issues/13#issuecomment-724415212
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config core.filemode false
 
       - name: Commit and tag
         run: |
@@ -103,6 +103,7 @@ jobs:
   maven-release:
     if: "! contains(github.event.release.tag_name, 'rc')"
     needs: setup
+    name: Create a maven release
     runs-on: ubuntu-latest
     steps:
       - name: Download repository
@@ -178,6 +179,7 @@ jobs:
   docker-release:
     needs: setup
     runs-on: ubuntu-latest
+    name: Perform the docker release
     steps:
       - name: Download repository
         uses: actions/download-artifact@v4
@@ -335,6 +337,7 @@ jobs:
             bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
+
 
   helm-deploy:
     needs: [setup, docker-release]
