@@ -125,7 +125,7 @@ public class ProxyHandler {
                 true));
       } catch (NumberFormatException e) {
         throw new ConnectorInputException(
-            "Invalid proxy port in system properties", e); // TODO add protocol
+            "Invalid proxy port in system properties for " + protocol, e);
       }
     }
     return Optional.empty();
