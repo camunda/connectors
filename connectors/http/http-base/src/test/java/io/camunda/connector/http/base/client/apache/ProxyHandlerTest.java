@@ -28,6 +28,7 @@ import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
 import org.apache.hc.client5.http.impl.routing.SystemDefaultRoutePlanner;
 import org.apache.hc.core5.http.HttpHost;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,17 @@ public class ProxyHandlerTest {
 
   @Nested
   class LoadProxyConfigTests {
+    @AfterEach
+    public void unsetAllSystemProperties() {
+      System.setProperty("http.proxyHost", "");
+      System.setProperty("http.proxyPort", "");
+      System.setProperty("http.nonProxyHosts", "");
+      System.setProperty("https.proxyHost", "");
+      System.setProperty("https.proxyPort", "");
+      System.setProperty("https.nonProxyHosts", "");
+      System.setProperty("http.proxyUser", "");
+      System.setProperty("http.proxyPassword", "");
+    }
 
     @Test
     public void shouldUseCorrectProtocol_whenMultipleProtocolsSet() {
@@ -110,16 +122,16 @@ public class ProxyHandlerTest {
           Arguments.of("www.camunda.de", "www.camunda.de", true),
           Arguments.of("www.example.de", "www.camunda.de", false),
           Arguments.of("www.example.de|www.camunda.de", "www.camunda.io", false),
-          Arguments.of("example.de", "www.example.de", true), // sollte auch Subdomains matchen
+          Arguments.of("example.de", "www.example.de", true),
           Arguments.of("example.de", "api.example.de", true),
           Arguments.of("example.de", "another.example.de", true),
-          Arguments.of("example.de", "example.com", false), // andere Domain
+          Arguments.of("example.de", "example.com", false),
           Arguments.of("example.de|camunda.de", "www.example.de", true),
           Arguments.of("example.de|camunda.de", "www.camunda.de", true),
           Arguments.of("example.de|camunda.de", "www.google.de", false),
           Arguments.of("*.example.de", "api.example.de", true),
           Arguments.of("*.example.de", "www.example.de", true),
-          Arguments.of("*.example.de", "example.de", false), // Wildcard greift nur auf Subdomains
+          Arguments.of("*.example.de", "example.de", false),
           Arguments.of("*.example.de", "example.com", false),
           Arguments.of("*.example.de|*.camunda.io", "sub.example.de", true),
           Arguments.of("*.example.de|*.camunda.io", "api.camunda.io", true),
