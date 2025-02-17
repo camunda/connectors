@@ -14,28 +14,8 @@ jobs:
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.validate_tag.outputs.previousTag }}
     steps:
-      - name: Import Secrets
-        id: vault-secrets
-        uses: hashicorp/vault-action@v3.0.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID}}
-          secrets: |
-            secret/data/products/connectors/ci/common GITHUB_APP_ID;
-            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
-
-      - name: Generate a GitHub token for connectors
-        id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
-          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
-
       - uses: actions/checkout@v4
         with:
-          token: ${{ steps.app-token.outputs.token }}
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
@@ -72,11 +52,46 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Install element templates CLI
         run: npm install --global element-templates-cli
 
+      # Maven build & version bump
+      - name: Set Connectors release version
+        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+
       - name: Compile and Test
-        run: mvn clean install
+        run: mvn -B -q package generate-sources source:jar javadoc:jar -DskipTests
+
+      - name: Generate sbom reports
+        run: |
+          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+
+      - name: Configure git user
+        run: |
+          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.filemode false
+
+      - name: Commit and tag
+        run: |
+          git commit -am "ci: release version ${RELEASE_VERSION}"
+          git push --force-with-lease origin ${RELEASE_BRANCH}
+          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
+          git push --force origin ${RELEASE_VERSION}
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
 
       - name: Upload repository
         uses: actions/upload-artifact@v4
@@ -125,14 +140,6 @@ jobs:
           gpg_private_key: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
           passphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v3.1.0
         with:
@@ -151,34 +158,22 @@ jobs:
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
 
-      - name: Configure git user
-        run: |
-          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Install element templates CLI
-        run: npm install --global element-templates-cli
-
-      # Maven build & version bump
-
-      - name: Set Connectors release version
-        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
-        env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
-        run: mvn -B -q compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release
+        run: mvn deploy -DskipTests -PcheckFormat -Psonatype-oss-release
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
           MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
-
-      - name: Generate sbom reports
-        run: |
-          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
 
   docker-release:
     needs: setup
@@ -303,7 +298,7 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
   bundle-and-build-changelog:
-    needs: [ setup, maven-release, docker-release ]
+    needs: setup
     name: Bundle and generate changelogs
     runs-on: ubuntu-latest
     steps:
@@ -328,23 +323,6 @@ jobs:
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
-
-      - name: Configure git user
-        run: |
-          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config core.filemode false
-
-      - name: Commit and tag
-        run: |
-          git commit -am "ci: release version ${RELEASE_VERSION}"
-          git push --force-with-lease origin ${RELEASE_BRANCH}
-          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
-          git push --force origin ${RELEASE_VERSION}
-        env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
-          RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
 
       - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
