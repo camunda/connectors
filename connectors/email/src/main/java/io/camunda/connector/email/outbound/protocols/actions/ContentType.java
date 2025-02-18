@@ -11,11 +11,11 @@ import io.camunda.connector.generator.java.annotation.DropdownItem;
 
 public enum ContentType {
   @JsonEnumDefaultValue
-  @DropdownItem(label = "PLAIN", order = 0)
+  @DropdownItem(label = "PLAIN")
   PLAIN("text/plain; charset=utf-8"),
-  @DropdownItem(label = "HTML", order = 1)
+  @DropdownItem(label = "HTML")
   HTML("text/html; charset=utf-8"),
-  @DropdownItem(label = "HTML & Plaintext", order = 2)
+  @DropdownItem(label = "HTML & Plaintext")
   MULTIPART("multipart/mixed; charset=utf-8");
 
   private final String value;

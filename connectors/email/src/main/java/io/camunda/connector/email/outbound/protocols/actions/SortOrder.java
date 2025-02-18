@@ -10,9 +10,9 @@ import io.camunda.connector.generator.java.annotation.DropdownItem;
 import java.util.function.Function;
 
 public enum SortOrder {
-  @DropdownItem(order = 0, label = "ASC")
+  @DropdownItem(label = "ASC")
   ASC(comparison -> comparison),
-  @DropdownItem(order = 1, label = "DESC")
+  @DropdownItem(label = "DESC")
   DESC(comparison -> -comparison);
 
   private final Function<Integer, Integer> comparator;

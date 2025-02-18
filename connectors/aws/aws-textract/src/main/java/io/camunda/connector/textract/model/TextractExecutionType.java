@@ -9,10 +9,10 @@ package io.camunda.connector.textract.model;
 import io.camunda.connector.generator.java.annotation.DropdownItem;
 
 public enum TextractExecutionType {
-  @DropdownItem(label = "Real-time", order = 1)
+  @DropdownItem(label = "Asynchronous")
+  ASYNC,
+  @DropdownItem(label = "Real-time")
   SYNC,
-  @DropdownItem(label = "Polling", order = 2)
-  POLLING,
-  @DropdownItem(label = "Asynchronous", order = 0)
-  ASYNC;
+  @DropdownItem(label = "Polling")
+  POLLING
 }
