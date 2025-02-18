@@ -1,0 +1,20 @@
+[
+  {
+    "authentication": {
+      "username": "test@camunda.com",
+      "password": "password"
+    },
+    "data": {
+      "imapConfig": {
+        "imapHost": "localhost",
+        "imapPort": "55555",
+        "imapCryptographicProtocol": "NONE"
+      },
+      "pollingWaitTime": "PT2S",
+      "pollingConfigDiscriminator": "allPollingConfig",
+      "pollingConfig": {
+        "handlingStrategy": "DELETE"
+      }
+    }
+  }
+]
