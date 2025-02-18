@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.JsonMapper;
 import io.camunda.client.impl.CamundaObjectMapper;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -94,19 +93,10 @@ public class OutboundConnectorsAutoConfiguration {
     return new SecretProviderAggregator(secretProviders);
   }
 
-  @Bean(name = "zeebeJsonMapper")
+  @Bean(name = "camundaJsonMapper")
   @ConditionalOnMissingBean
   public CamundaObjectMapper jsonMapper() {
     return new CamundaObjectMapper(ConnectorsObjectMapperSupplier.getCopy());
-  }
-
-  @Bean(name = "commonJsonMapper")
-  @ConditionalOnMissingBean
-  public JsonMapper commonJsonMapper(ObjectMapper objectMapper) {
-    if (objectMapper == null) {
-      return new CamundaObjectMapper();
-    }
-    return new CamundaObjectMapper(objectMapper.copy());
   }
 
   @Bean

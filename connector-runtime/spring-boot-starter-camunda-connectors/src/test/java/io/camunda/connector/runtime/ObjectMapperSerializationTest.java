@@ -60,8 +60,8 @@ public class ObjectMapperSerializationTest {
     assertNotEquals(objectMapper, objectMapperOfJsonMapper);
 
     assertThat(jsonMapperBeans.size()).isEqualTo(1);
-    assertThat(jsonMapperBeans.containsKey("zeebeJsonMapper")).isTrue();
-    assertThat(jsonMapperBeans.get("zeebeJsonMapper")).isSameAs(jsonMapper);
+    assertThat(jsonMapperBeans.containsKey("camundaJsonMapper")).isTrue();
+    assertThat(jsonMapperBeans.get("camundaJsonMapper")).isSameAs(jsonMapper);
 
     assertThat(objectMapper).isNotNull();
     assertThat(objectMapper).isInstanceOf(ObjectMapper.class);
