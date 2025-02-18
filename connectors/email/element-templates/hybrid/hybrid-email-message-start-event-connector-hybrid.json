@@ -162,11 +162,11 @@
       "name" : "TLS",
       "value" : "TLS"
     }, {
-      "name" : "None",
-      "value" : "NONE"
-    }, {
       "name" : "SSL",
       "value" : "SSL"
+    }, {
+      "name" : "None",
+      "value" : "NONE"
     } ]
   }, {
     "id" : "data.folderToListen",

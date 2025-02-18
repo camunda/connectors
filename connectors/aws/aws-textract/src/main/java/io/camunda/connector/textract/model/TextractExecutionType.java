@@ -6,8 +6,13 @@
  */
 package io.camunda.connector.textract.model;
 
+import io.camunda.connector.generator.java.annotation.DropdownItem;
+
 public enum TextractExecutionType {
+  @DropdownItem(label = "Asynchronous")
+  ASYNC,
+  @DropdownItem(label = "Real-time")
   SYNC,
-  POLLING,
-  ASYNC
+  @DropdownItem(label = "Polling")
+  POLLING
 }

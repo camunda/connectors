@@ -6,8 +6,13 @@
  */
 package io.camunda.connector.email.config;
 
+import io.camunda.connector.generator.java.annotation.DropdownItem;
+
 public enum CryptographicProtocol {
-  NONE,
+  @DropdownItem(label = "TLS")
   TLS,
-  SSL;
+  @DropdownItem(label = "SSL")
+  SSL,
+  @DropdownItem(label = "None")
+  NONE
 }

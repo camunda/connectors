@@ -338,14 +338,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "DELETE",
-      "value" : "DELETE"
-    }, {
       "name" : "POST",
       "value" : "POST"
     }, {
       "name" : "GET",
       "value" : "GET"
+    }, {
+      "name" : "DELETE",
+      "value" : "DELETE"
     }, {
       "name" : "PATCH",
       "value" : "PATCH"

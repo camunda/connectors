@@ -138,11 +138,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "No",
-      "value" : "No"
-    }, {
       "name" : "Yes",
       "value" : "Yes"
+    }, {
+      "name" : "No",
+      "value" : "No"
     } ]
   }, {
     "id" : "authentication.certificate.certificateType",
@@ -330,11 +330,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "No",
-      "value" : "No"
-    }, {
       "name" : "Yes",
       "value" : "Yes"
+    }, {
+      "name" : "No",
+      "value" : "No"
     } ]
   }, {
     "id" : "authentication.signatureAlgorithm",

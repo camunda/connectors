@@ -175,11 +175,11 @@
     "tooltip" : "<a href=\"https://docs.camunda.io/docs/next/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "S3",
-      "value" : "S3"
-    }, {
       "name" : "Camunda Document",
       "value" : "UPLOADED"
+    }, {
+      "name" : "S3",
+      "value" : "S3"
     } ]
   }, {
     "id" : "input.documentS3Bucket",

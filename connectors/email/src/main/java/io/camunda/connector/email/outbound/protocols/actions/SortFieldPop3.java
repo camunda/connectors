@@ -6,7 +6,11 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
+import io.camunda.connector.generator.java.annotation.DropdownItem;
+
 public enum SortFieldPop3 {
+  @DropdownItem(label = "Sent Date")
   SENT_DATE,
+  @DropdownItem(label = "Size")
   SIZE;
 }
