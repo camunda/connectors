@@ -7,15 +7,15 @@
 package io.camunda.connector.email.outbound.protocols.actions;
 
 import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
-import io.camunda.connector.generator.java.annotation.EnumValue;
+import io.camunda.connector.generator.java.annotation.DropdownItem;
 
 public enum ContentType {
   @JsonEnumDefaultValue
-  @EnumValue(label = "PLAIN", order = 0)
+  @DropdownItem(label = "PLAIN", order = 0)
   PLAIN("text/plain; charset=utf-8"),
-  @EnumValue(label = "HTML", order = 1)
+  @DropdownItem(label = "HTML", order = 1)
   HTML("text/html; charset=utf-8"),
-  @EnumValue(label = "HTML & Plaintext", order = 2)
+  @DropdownItem(label = "HTML & Plaintext", order = 2)
   MULTIPART("multipart/mixed; charset=utf-8");
 
   private final String value;

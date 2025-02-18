@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.textract.model;
 
-import io.camunda.connector.generator.java.annotation.EnumValue;
+import io.camunda.connector.generator.java.annotation.DropdownItem;
 
 public enum DocumentLocationType {
-  @EnumValue(label = "S3", order = 1)
+  @DropdownItem(label = "S3", order = 1)
   S3,
-  @EnumValue(label = "Camunda Document", order = 0)
+  @DropdownItem(label = "Camunda Document", order = 0)
   UPLOADED;
 }

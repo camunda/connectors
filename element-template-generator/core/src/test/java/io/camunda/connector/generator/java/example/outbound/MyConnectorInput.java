@@ -118,9 +118,9 @@ public record MyConnectorInput(
         String mayBeEmptyOrRegexValidatedJakartaStyle) {
 
   enum MyEnum {
-    @EnumValue(label = "Value one", order = 0)
+    @DropdownItem(label = "Value one", order = 0)
     VALUE1,
-    @EnumValue(label = "Value two", order = 1)
+    @DropdownItem(label = "Value two", order = 1)
     VALUE2
   }
 

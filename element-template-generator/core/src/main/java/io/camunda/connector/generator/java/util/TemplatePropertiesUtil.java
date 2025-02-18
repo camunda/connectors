@@ -259,8 +259,8 @@ public class TemplatePropertiesUtil {
             enumConstant -> {
               try {
                 Field enumValue = enumType.getField(((Enum<?>) enumConstant).name());
-                if (enumValue.isAnnotationPresent(EnumValue.class)) {
-                  EnumValue enumLabel = enumValue.getAnnotation(EnumValue.class);
+                if (enumValue.isAnnotationPresent(DropdownItem.class)) {
+                  DropdownItem enumLabel = enumValue.getAnnotation(DropdownItem.class);
                   return new DropdownModel(
                       enumLabel.label(), enumValue.getName(), enumLabel.order());
                 } else {

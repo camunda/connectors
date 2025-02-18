@@ -20,7 +20,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
-public @interface EnumValue {
+public @interface DropdownItem {
   /**
    * Represents the order in which the dropdown will be shown, will be {@link Integer#MAX_VALUE } if
    * not precised
