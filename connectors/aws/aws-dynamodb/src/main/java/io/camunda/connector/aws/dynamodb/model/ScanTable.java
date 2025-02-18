@@ -26,7 +26,7 @@ public record ScanTable(
             group = "input",
             optional = true,
             description =
-                "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+                "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
         String filterExpression,
     @TemplateProperty(
             label = "Projection expression",
@@ -41,7 +41,7 @@ public record ScanTable(
             feel = Property.FeelMode.required,
             optional = true,
             description =
-                "Is a placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+                "Is a placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
         Map<String, String> expressionAttributeNames,
     @TemplateProperty(
             label = "Expression attribute values",
@@ -49,6 +49,6 @@ public record ScanTable(
             feel = Property.FeelMode.required,
             optional = true,
             description =
-                "Expression attribute values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+                "Expression attribute values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
         Map<String, Object> expressionAttributeValues)
     implements TableInput {}

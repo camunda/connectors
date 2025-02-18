@@ -96,7 +96,7 @@
   }, {
     "id" : "inbound.shouldValidateHmac",
     "label" : "HMAC authentication",
-    "description" : "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
+    "description" : "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
     "optional" : false,
     "value" : "disabled",
     "group" : "authentication",
@@ -176,7 +176,7 @@
   }, {
     "id" : "inbound.hmacScopes",
     "label" : "HMAC scopes",
-    "description" : "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/' target='_blank'>documentation</a>",
+    "description" : "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/' target='_blank'>documentation</a>",
     "optional" : true,
     "feel" : "required",
     "group" : "authentication",
@@ -268,7 +268,7 @@
   }, {
     "id" : "inbound.auth.apiKeyLocator",
     "label" : "API key locator",
-    "description" : "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
+    "description" : "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
     "optional" : false,
     "value" : "=split(request.headers.authorization, \" \")[2]",
     "constraints" : {
@@ -306,7 +306,7 @@
   }, {
     "id" : "inbound.auth.jwt.permissionsExpression",
     "label" : "JWT role property expression",
-    "description" : "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
+    "description" : "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
     "optional" : false,
     "feel" : "required",
     "group" : "authorization",

@@ -35,7 +35,7 @@ import java.util.function.Function;
       @ElementTemplate.PropertyGroup(id = "downloadObject", label = "Download an object"),
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-s3/",
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-s3/",
     icon = "icon.svg")
 public class S3ConnectorFunction implements OutboundConnectorFunction {
 

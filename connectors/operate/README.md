@@ -28,4 +28,4 @@ Note: basic authentication (username & password) is not supported.
 
 ## Operate API documentation
 
-Please refer to [Operate API documentation](https://docs.camunda.io/docs/apis-clients/operate-api/) for a complete overview of API entities and endpoints.
+Please refer to [Operate API documentation](https://docs.camunda.io/docs/apis-tools/operate-api/overview/) for a complete overview of API entities and endpoints.
