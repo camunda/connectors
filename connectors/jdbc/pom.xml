@@ -14,7 +14,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.jdbi>3.47.0</version.jdbi>
+    <version.jdbi>3.48.0</version.jdbi>
   </properties>
 
   <licenses>
