@@ -16,10 +16,6 @@
  */
 package io.camunda.connector.http.base;
 
-import io.camunda.client.impl.response.DocumentMetadataImpl;
-import io.camunda.client.protocol.rest.DocumentMetadata;
-import io.camunda.connector.api.outbound.JobContext;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
