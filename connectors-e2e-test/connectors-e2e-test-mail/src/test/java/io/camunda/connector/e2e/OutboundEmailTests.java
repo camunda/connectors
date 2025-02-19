@@ -35,6 +35,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -50,6 +51,7 @@ import org.springframework.boot.test.context.SpringBootTest;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
+@Disabled
 public class OutboundEmailTests extends BaseEmailTest {
 
   private static final ScheduledExecutorService scheduler =

@@ -1,0 +1,23 @@
+[
+  {
+    "authentication":{
+      "type":"simple",
+      "username":"test@camunda.com",
+      "password":"password"
+    },
+    "protocol":"pop3",
+    "data":{
+      "pop3Config":{
+        "pop3Host":"localhost",
+        "pop3Port":"{{PORT}}",
+        "pop3CryptographicProtocol":"NONE"
+      },
+      "pop3ActionDiscriminator":"listEmailsPop3",
+      "pop3Action":{
+        "maxToBeRead":"100",
+        "sortField":"SENT_DATE",
+        "sortOrder":"ASC"
+      }
+    }
+  }
+]

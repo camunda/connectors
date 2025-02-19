@@ -1,0 +1,21 @@
+[
+  {
+    "authentication":{
+      "type":"simple",
+      "username":"test@camunda.com",
+      "password":"password"
+    },
+    "protocol":"imap",
+    "data":{
+      "imapConfig":{
+        "imapHost":"localhost",
+        "imapPort":"{{PORT}}",
+        "imapCryptographicProtocol":"NONE"
+      },
+      "imapActionDiscriminator": "readEmailImap",
+      "imapAction": {
+        "messageId": "{{MESSAGE_ID}}"
+      }
+    }
+  }
+]

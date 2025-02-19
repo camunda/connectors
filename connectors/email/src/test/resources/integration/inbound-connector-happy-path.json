@@ -1,19 +1,93 @@
 [
   {
-    "authentication": {
-      "username": "test@camunda.com",
-      "password": "password"
+    "authentication":{
+      "username":"test@camunda.com",
+      "password":"password"
     },
-    "data": {
-      "imapConfig": {
-        "imapHost": "localhost",
-        "imapPort": "55555",
-        "imapCryptographicProtocol": "NONE"
+    "data":{
+      "imapConfig":{
+        "imapHost":"",
+        "imapPort":"",
+        "imapCryptographicProtocol":"NONE"
       },
-      "pollingWaitTime": "PT2S",
-      "pollingConfigDiscriminator": "allPollingConfig",
-      "pollingConfig": {
-        "handlingStrategy": "DELETE"
+      "pollingWaitTime":"PT2S",
+      "pollingConfigDiscriminator":"allPollingConfig",
+      "pollingConfig":{
+        "handlingStrategy":"DELETE"
+      }
+    }
+  },
+  {
+    "authentication":{
+      "username":"test@camunda.com",
+      "password":"password"
+    },
+    "data":{
+      "imapConfig":{
+        "imapHost":"",
+        "imapPort":"",
+        "imapCryptographicProtocol":"NONE"
+      },
+      "pollingWaitTime":"PT2S",
+      "pollingConfigDiscriminator":"allPollingConfig",
+      "pollingConfig":{
+        "handlingStrategy":"MOVE",
+        "targetFolder":"testFolder"
+      }
+    }
+  },
+  {
+    "authentication":{
+      "username":"test@camunda.com",
+      "password":"password"
+    },
+    "data":{
+      "imapConfig":{
+        "imapHost":"",
+        "imapPort":"",
+        "imapCryptographicProtocol":"NONE"
+      },
+      "pollingWaitTime":"PT2S",
+      "pollingConfigDiscriminator":"unseenPollingConfig",
+      "pollingConfig":{
+        "handlingStrategy":"MOVE",
+        "targetFolder":"testFolder"
+      }
+    }
+  },
+  {
+    "authentication":{
+      "username":"test@camunda.com",
+      "password":"password"
+    },
+    "data":{
+      "imapConfig":{
+        "imapHost":"",
+        "imapPort":"",
+        "imapCryptographicProtocol":"NONE"
+      },
+      "pollingWaitTime":"PT2S",
+      "pollingConfigDiscriminator":"unseenPollingConfig",
+      "pollingConfig":{
+        "handlingStrategy":"READ"
+      }
+    }
+  },
+  {
+    "authentication":{
+      "username":"test@camunda.com",
+      "password":"password"
+    },
+    "data":{
+      "imapConfig":{
+        "imapHost":"",
+        "imapPort":"",
+        "imapCryptographicProtocol":"NONE"
+      },
+      "pollingWaitTime":"PT2S",
+      "pollingConfigDiscriminator":"allPollingConfig",
+      "pollingConfig":{
+        "handlingStrategy":"DELETE"
       }
     }
   }

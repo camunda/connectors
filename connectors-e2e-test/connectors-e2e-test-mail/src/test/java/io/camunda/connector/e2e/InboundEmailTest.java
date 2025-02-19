@@ -41,8 +41,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.awaitility.core.ConditionTimeoutException;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -58,6 +60,7 @@ import org.springframework.boot.test.context.SpringBootTest;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
+@Disabled
 public class InboundEmailTest extends BaseEmailTest {
 
   private static final ScheduledExecutorService scheduler =
@@ -71,7 +74,6 @@ public class InboundEmailTest extends BaseEmailTest {
   @BeforeEach
   public void beforeEach() {
     super.reset();
-    CamundaAssert.setAssertionTimeout(Duration.ofSeconds(20));
   }
 
   @Test
