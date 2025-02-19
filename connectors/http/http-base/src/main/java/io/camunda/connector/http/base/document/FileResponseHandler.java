@@ -59,8 +59,8 @@ public class FileResponseHandler {
     if (storeResponseSelected()
         && executionEnvironment instanceof ExecutionEnvironment.StoresDocument env) {
       try (var byteArrayInputStream = new ByteArrayInputStream(content)) {
-        return env.context()
-            .createDocument(
+        return env.documentFactory()
+            .create(
                 DocumentCreationRequest.from(byteArrayInputStream)
                     .contentType(getContentType(headers))
                     .build());

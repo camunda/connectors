@@ -33,7 +33,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "invokeModel", label = "Invoke Model"),
       @ElementTemplate.PropertyGroup(id = "converse", label = "Converse"),
     },
-    documentationRef = "https://docs.camunda.io/docs/",
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/",
     icon = "icon.svg")
 public class BedrockConnectorFunction implements OutboundConnectorFunction {
 

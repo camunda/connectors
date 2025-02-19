@@ -20,7 +20,7 @@ public class DocumentMapper {
   }
 
   public Document mapToDocument(byte[] bytes, File fileMetaData) {
-    return context.createDocument(
+    return context.create(
         DocumentCreationRequest.from(bytes)
             .contentType(fileMetaData.getMimeType())
             .fileName(fileMetaData.getName())

@@ -6,7 +6,7 @@
   "metadata" : {
     "keywords" : [ "invoke model", "run inference", "invokemodel API", "converse API" ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/",
   "version" : 2,
   "category" : {
     "id" : "connectors",
