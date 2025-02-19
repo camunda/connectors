@@ -22,15 +22,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.http.base.TestDocumentFactory;
 import io.camunda.connector.http.base.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.store.DocumentCreationRequest;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,11 +45,65 @@ public class CloudFunctionServiceTest {
       mock(CloudFunctionCredentials.class);
   private static final CloudFunctionService cloudFunctionService =
       spy(new CloudFunctionService(cloudFunctionCredentials));
+  private static final DocumentFactory documentFactory = new TestDocumentFactory();
 
   @BeforeAll
   public static void setUp() {
     when(cloudFunctionService.getProxyFunctionUrl()).thenReturn("proxyUrl");
     when(cloudFunctionCredentials.getOAuthToken(anyString())).thenReturn("token");
+  }
+
+  @Test
+  public void shouldConvertToCloudFunctionRequestWithDocumentContent_whenBodyContainsDocuments()
+      throws IOException {
+    // given
+    var document =
+        documentFactory.create(
+            DocumentCreationRequest.from("the content".getBytes(StandardCharsets.UTF_8)).build());
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setUrl("theUrl");
+    request.setMethod(HttpMethod.POST);
+    request.setHeaders(
+        Map.of(
+            "header",
+            "value",
+            "Content-Type",
+            ContentType.APPLICATION_FORM_URLENCODED.getMimeType()));
+    request.setBody(Map.of("bodyKey", "bodyValue", "myDocument", document));
+    request.setConnectionTimeoutInSeconds(50);
+    request.setReadTimeoutInSeconds(60);
+    request.setAuthentication(new BearerAuthentication("token"));
+
+    // when
+    HttpCommonRequest cloudFunctionRequest = cloudFunctionService.toCloudFunctionRequest(request);
+
+    // then
+    assertThat(cloudFunctionRequest.getUrl()).isEqualTo("proxyUrl");
+    assertThat(cloudFunctionRequest.getMethod()).isEqualTo(HttpMethod.POST);
+    assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of())).hasSize(1);
+    assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of()))
+        .containsEntry("Content-Type", "application/json");
+    Map<String, Object> body =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue((String) cloudFunctionRequest.getBody(), Map.class);
+    assertThat(body).containsEntry("url", "theUrl");
+    assertThat(body).containsEntry("method", "POST");
+    assertThat(body)
+        .containsEntry(
+            "headers",
+            Map.of("header", "value", "Content-Type", "application/x-www-form-urlencoded"));
+    assertThat(body)
+        .containsEntry(
+            "body",
+            Map.of(
+                "bodyKey",
+                "bodyValue",
+                "myDocument",
+                Base64.getEncoder()
+                    .encodeToString("the content".getBytes(StandardCharsets.UTF_8))));
+    assertThat(body).containsEntry("connectionTimeoutInSeconds", 50);
+    assertThat(body).containsEntry("readTimeoutInSeconds", 60);
+    assertThat(body).containsEntry("authentication", Map.of("token", "token", "type", "bearer"));
   }
 
   @Test
@@ -90,7 +148,7 @@ public class CloudFunctionServiceTest {
   }
 
   @Test
-  public void shouldUpdateError_whenExceptionMessageIsJson() throws JsonProcessingException {
+  public void shouldUpdateError_whenExceptionMessageIsJson() {
     // given
     HttpCommonResult result =
         new HttpCommonResult(404, Map.of("Content-Type", "text/plain"), "text_body", "the Reason");

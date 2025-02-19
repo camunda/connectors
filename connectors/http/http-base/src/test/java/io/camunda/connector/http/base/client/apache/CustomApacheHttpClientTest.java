@@ -30,8 +30,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.http.base.DocumentOutboundContext;
 import io.camunda.connector.http.base.ExecutionEnvironment;
+import io.camunda.connector.http.base.TestDocumentFactory;
 import io.camunda.connector.http.base.authentication.OAuthConstants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -98,7 +98,7 @@ public class CustomApacheHttpClientTest {
           customApacheHttpClient.execute(
               request,
               new ProxyHandler(),
-              new ExecutionEnvironment.SelfManaged(new DocumentOutboundContext()));
+              new ExecutionEnvironment.SelfManaged(new TestDocumentFactory()));
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.headers().get(HttpHeaders.CONTENT_TYPE))

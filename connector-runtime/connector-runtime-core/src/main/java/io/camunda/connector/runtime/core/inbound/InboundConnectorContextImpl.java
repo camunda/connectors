@@ -29,6 +29,7 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
@@ -179,11 +180,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   @Override
-  public Document createDocument(DocumentCreationRequest request) {
-    return documentFactory.create(request);
-  }
-
-  @Override
   public Long getActivationTimestamp() {
     return activationTimestamp;
   }
@@ -217,5 +213,15 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public String toString() {
     return "InboundConnectorContextImpl{" + "connectorDetails=" + connectorDetails + '}';
+  }
+
+  @Override
+  public Document resolve(DocumentReference reference) {
+    return documentFactory.resolve(reference);
+  }
+
+  @Override
+  public Document create(DocumentCreationRequest request) {
+    return documentFactory.create(request);
   }
 }
