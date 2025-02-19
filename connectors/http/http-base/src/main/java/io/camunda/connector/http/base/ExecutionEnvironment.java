@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.base;
 
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.document.factory.DocumentFactory;
 
 public sealed interface ExecutionEnvironment
     permits ExecutionEnvironment.SaaSCluster,
@@ -34,32 +34,33 @@ public sealed interface ExecutionEnvironment
    * here, the initial HttpCommonRequest will be serialized as JSON and passed to the Cloud
    * Function.
    */
-  record SaaSCluster(OutboundConnectorContext context)
+  record SaaSCluster(DocumentFactory documentFactory)
       implements ExecutionEnvironment, StoresDocument {}
 
-  record SelfManaged(OutboundConnectorContext context)
+  record SelfManaged(DocumentFactory documentFactory)
       implements ExecutionEnvironment, StoresDocument {}
 
   /**
    * Factory method to create an ExecutionEnvironment based on the given parameters.
    *
    * @param cloudFunctionEnabled whether the connector is executed in the context of a cloud
+   *     function
    * @param isRunningInCloudFunction whether the connector is executed in the cloud function
    */
   static ExecutionEnvironment from(
       boolean cloudFunctionEnabled,
       boolean isRunningInCloudFunction,
-      OutboundConnectorContext context) {
+      DocumentFactory documentFactory) {
     if (cloudFunctionEnabled) {
-      return new SaaSCluster(context);
+      return new SaaSCluster(documentFactory);
     }
     if (isRunningInCloudFunction) {
       return new SaaSCloudFunction();
     }
-    return new SelfManaged(context);
+    return new SelfManaged(documentFactory);
   }
 
   interface StoresDocument {
-    OutboundConnectorContext context();
+    DocumentFactory documentFactory();
   }
 }

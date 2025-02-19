@@ -6,7 +6,7 @@
   "metadata" : {
     "keywords" : [ "invoke model", "run inference", "invokemodel API", "converse API" ]
   },
-  "documentationRef" : "https://docs.camunda.io/",
+  "documentationRef" : "https://docs.camunda.io/docs/",
   "version" : 2,
   "category" : {
     "id" : "connectors",

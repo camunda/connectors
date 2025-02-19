@@ -24,6 +24,9 @@ import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.base.utils.DocumentHelper;
+import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
@@ -118,6 +121,9 @@ public class CloudFunctionService {
 
   private HttpCommonRequest createCloudFunctionRequest(HttpCommonRequest request, String token)
       throws JsonProcessingException {
+    Object parsedBody =
+        new DocumentHelper().parseDocumentsInBody(request.getBody(), Document::asByteArray);
+    request.setBody(parsedBody);
     String contentAsJson = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(request);
     HttpCommonRequest cloudFunctionRequest = new HttpCommonRequest();
     cloudFunctionRequest.setMethod(HttpMethod.POST);
