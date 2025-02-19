@@ -92,8 +92,10 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   }
 
   private HttpEntity createStringEntity(HttpCommonRequest request) {
-    Object body =
-        new DocumentHelper().parseDocumentsInBody(request.getBody(), Document::asByteArray);
+    Object body = request.getBody();
+    if (body instanceof Map map) {
+      body = new DocumentHelper().parseDocumentsInBody(map, Document::asByteArray);
+    }
     Optional<ContentType> contentType = tryGetContentType(request);
     try {
       return body instanceof String s
