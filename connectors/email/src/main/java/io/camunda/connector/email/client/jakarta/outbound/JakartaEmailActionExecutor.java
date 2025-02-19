@@ -401,7 +401,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
     return attachments.stream()
         .map(
             document ->
-                connectorContext.createDocument(
+                connectorContext.create(
                     DocumentCreationRequest.from(document.inputStream())
                         .fileName(document.name())
                         .contentType(document.contentType())

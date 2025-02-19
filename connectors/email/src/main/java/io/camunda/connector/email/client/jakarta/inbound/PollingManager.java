@@ -180,7 +180,7 @@ public class PollingManager {
       return email.body().attachments().stream()
           .map(
               document ->
-                  connectorContext.createDocument(
+                  connectorContext.create(
                       DocumentCreationRequest.from(document.inputStream())
                           .contentType(document.contentType())
                           .fileName(document.name())

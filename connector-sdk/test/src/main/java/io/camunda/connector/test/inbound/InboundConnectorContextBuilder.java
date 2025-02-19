@@ -32,6 +32,7 @@ import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.ArrayList;
@@ -339,11 +340,6 @@ public class InboundConnectorContextBuilder {
     public void log(Activity activity) {}
 
     @Override
-    public Document createDocument(DocumentCreationRequest request) {
-      return documentFactory.create(request);
-    }
-
-    @Override
     public Queue<Activity> getLogs() {
       return new ConcurrentLinkedQueue<>();
     }
@@ -357,6 +353,16 @@ public class InboundConnectorContextBuilder {
     @Override
     public Long getActivationTimestamp() {
       return activationTimestamp;
+    }
+
+    @Override
+    public Document resolve(DocumentReference reference) {
+      return documentFactory.resolve(reference);
+    }
+
+    @Override
+    public Document create(DocumentCreationRequest request) {
+      return documentFactory.create(request);
     }
   }
 

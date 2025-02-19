@@ -30,6 +30,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -117,11 +118,6 @@ public class JobHandlerContext extends AbstractConnectorContext
   }
 
   @Override
-  public Document createDocument(DocumentCreationRequest document) {
-    return documentFactory.create(document);
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -136,5 +132,15 @@ public class JobHandlerContext extends AbstractConnectorContext
   @Override
   public int hashCode() {
     return Objects.hash(job);
+  }
+
+  @Override
+  public Document resolve(DocumentReference reference) {
+    return documentFactory.resolve(reference);
+  }
+
+  @Override
+  public Document create(DocumentCreationRequest request) {
+    return documentFactory.create(request);
   }
 }

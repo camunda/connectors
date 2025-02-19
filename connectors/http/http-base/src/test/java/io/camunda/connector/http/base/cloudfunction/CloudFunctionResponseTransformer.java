@@ -27,8 +27,8 @@ import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.http.base.DocumentOutboundContext;
 import io.camunda.connector.http.base.HttpService;
+import io.camunda.connector.http.base.TestDocumentFactory;
 import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -50,7 +50,7 @@ public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
       HttpCommonRequest request =
           ConnectorsObjectMapperSupplier.getCopy().readValue(body, HttpCommonRequest.class);
       HttpCommonResult value =
-          httpService.executeConnectorRequest(request, new DocumentOutboundContext());
+          httpService.executeConnectorRequest(request, new TestDocumentFactory());
       return Response.Builder.like(response)
           .but()
           .status(200)
