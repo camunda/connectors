@@ -74,7 +74,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Third party dependencies -->
 
-    <version.jakarta-validation>3.1.0</version.jakarta-validation>
+    <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.12.0</version.mockito>
     <version.junit-jupiter>5.10.3</version.junit-jupiter>
     <version.assertj>3.25.3</version.assertj>
@@ -87,7 +87,7 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>3.3.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>5.3.0</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.13</version.logback>
+    <version.logback>1.5.16</version.logback>
 
     <version.aws-java-sdk>1.12.781</version.aws-java-sdk>
 
@@ -449,13 +449,13 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.25.5</version>
+        <version>3.25.6</version>
       </dependency>
       <!-- Fix CVE-2024-7254 -->
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java-util</artifactId>
-        <version>3.25.5</version>
+        <version>3.25.6</version>
       </dependency>
 
       <dependency>
