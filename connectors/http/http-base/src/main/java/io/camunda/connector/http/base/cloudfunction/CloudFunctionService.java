@@ -26,7 +26,6 @@ import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.utils.DocumentHelper;
 import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
