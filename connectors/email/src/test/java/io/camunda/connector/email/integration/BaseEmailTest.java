@@ -125,8 +125,7 @@ public class BaseEmailTest {
       if (message.getContent() instanceof Multipart multipart) {
         for (int i = 0; i < multipart.getCount(); i++) {
           MimeBodyPart bodyPart = (MimeBodyPart) multipart.getBodyPart(i);
-          if (Part.ATTACHMENT.equalsIgnoreCase(
-                  bodyPart.getDisposition())) {
+          if (Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition())) {
             return bodyPart.getInputStream().readAllBytes();
           }
         }

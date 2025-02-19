@@ -11,22 +11,18 @@ import io.camunda.connector.email.config.CryptographicProtocol;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
 import io.camunda.connector.email.inbound.model.EmailListenerConfig;
+import io.camunda.connector.email.inbound.model.HandlingStrategy;
+import jakarta.mail.Flags;
+import jakarta.mail.MessagingException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-
-import io.camunda.connector.email.inbound.model.HandlingStrategy;
-import jakarta.mail.Flags;
-import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.verification.VerificationMode;
 
 public class InboundEmailTest extends BaseEmailTest {
 
@@ -51,8 +47,8 @@ public class InboundEmailTest extends BaseEmailTest {
 
   @ParameterizedTest
   @MethodSource("createEmailInboundConnectorProperties")
-  public void shouldReceiveEmail(
-      EmailInboundConnectorProperties emailInboundConnectorProperties) throws MessagingException {
+  public void shouldReceiveEmail(EmailInboundConnectorProperties emailInboundConnectorProperties)
+      throws MessagingException {
     InboundConnectorContext inboundConnectorContext = mock(InboundConnectorContext.class);
 
     ImapConfig pollingConfig =

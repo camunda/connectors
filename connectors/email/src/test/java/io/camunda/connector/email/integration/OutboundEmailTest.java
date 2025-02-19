@@ -78,22 +78,22 @@ public class OutboundEmailTest extends BaseEmailTest {
 
   public static Stream<String> createEmailOutboundImapDeleteConnectorProperties() {
     return getStreamFromPath(
-            "src/test/resources/integration/outbound-imap-delete-connector-happy-path.json");
+        "src/test/resources/integration/outbound-imap-delete-connector-happy-path.json");
   }
 
   public static Stream<String> createEmailOutboundImapSearchConnectorProperties() {
     return getStreamFromPath(
-            "src/test/resources/integration/outbound-imap-search-connector-happy-path.json");
+        "src/test/resources/integration/outbound-imap-search-connector-happy-path.json");
   }
 
   public static Stream<String> createEmailOutboundImapListConnectorProperties() {
     return getStreamFromPath(
-            "src/test/resources/integration/outbound-imap-list-connector-happy-path.json");
+        "src/test/resources/integration/outbound-imap-list-connector-happy-path.json");
   }
 
   public static Stream<String> createEmailOutboundImapReadConnectorProperties() {
     return getStreamFromPath(
-            "src/test/resources/integration/outbound-imap-read-connector-happy-path.json");
+        "src/test/resources/integration/outbound-imap-read-connector-happy-path.json");
   }
 
   @BeforeEach
@@ -169,7 +169,7 @@ public class OutboundEmailTest extends BaseEmailTest {
     emailRequest = emailRequest.replace("{{PORT}}", super.getUnsecureImapPort());
     emailRequest = emailRequest.replace("{{MESSAGE_ID}}", messageId);
     OutboundConnectorContext outboundConnectorContext =
-            this.contextBuilder.variables(emailRequest).build();
+        this.contextBuilder.variables(emailRequest).build();
 
     Object object = this.jakartaEmailActionExecutor.execute(outboundConnectorContext);
 
@@ -203,7 +203,7 @@ public class OutboundEmailTest extends BaseEmailTest {
 
     emailRequest = emailRequest.replace("{{PORT}}", super.getUnsecureImapPort());
     OutboundConnectorContext outboundConnectorContext =
-            this.contextBuilder.variables(emailRequest).build();
+        this.contextBuilder.variables(emailRequest).build();
 
     Object object = this.jakartaEmailActionExecutor.execute(outboundConnectorContext);
 
@@ -212,7 +212,7 @@ public class OutboundEmailTest extends BaseEmailTest {
     Assertions.assertInstanceOf(SearchEmailsResponse.class, searchResult);
     Assertions.assertEquals("subject", ((SearchEmailsResponse) searchResult).subject());
     Assertions.assertEquals(
-            super.getLastMessageId(), ((SearchEmailsResponse) searchResult).messageId());
+        super.getLastMessageId(), ((SearchEmailsResponse) searchResult).messageId());
   }
 
   @ParameterizedTest
@@ -259,7 +259,7 @@ public class OutboundEmailTest extends BaseEmailTest {
 
     emailRequest = emailRequest.replace("{{PORT}}", super.getUnsecureImapPort());
     OutboundConnectorContext outboundConnectorContext =
-            this.contextBuilder.variables(emailRequest).build();
+        this.contextBuilder.variables(emailRequest).build();
 
     Object object = this.jakartaEmailActionExecutor.execute(outboundConnectorContext);
 
@@ -272,14 +272,14 @@ public class OutboundEmailTest extends BaseEmailTest {
       case "SENT_DATE", "RECEIVED_DATE" -> {
         if (jsonNodeValue.get("sortOrder").asText().equals("ASC")) {
           Assertions.assertEquals(
-                  "subject 1", ((ListEmailsResponse) ((List<?>) object).getFirst()).subject());
+              "subject 1", ((ListEmailsResponse) ((List<?>) object).getFirst()).subject());
           Assertions.assertEquals(
-                  "subject 2", ((ListEmailsResponse) ((List<?>) object).get(1)).subject());
+              "subject 2", ((ListEmailsResponse) ((List<?>) object).get(1)).subject());
         }
       }
-        default ->
-              throw new IllegalStateException(
-                      "Unexpected value: " + jsonNodeValue.get("sortField").asText());
+      default ->
+          throw new IllegalStateException(
+              "Unexpected value: " + jsonNodeValue.get("sortField").asText());
     }
   }
 
@@ -311,7 +311,7 @@ public class OutboundEmailTest extends BaseEmailTest {
     emailRequest = emailRequest.replace("{{PORT}}", super.getUnsecureImapPort());
     emailRequest = emailRequest.replace("{{MESSAGE_ID}}", messageId);
     OutboundConnectorContext outboundConnectorContext =
-            this.contextBuilder.variables(emailRequest).build();
+        this.contextBuilder.variables(emailRequest).build();
 
     Object object = this.jakartaEmailActionExecutor.execute(outboundConnectorContext);
 
