@@ -18,23 +18,16 @@ package io.camunda.connector.http.base.client.apache;
 
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.net.*;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.CredentialsProvider;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
-import org.apache.hc.client5.http.impl.DefaultSchemePortResolver;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
-import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
-import org.apache.hc.client5.http.impl.routing.SystemDefaultRoutePlanner;
-import org.apache.hc.client5.http.routing.HttpRoutePlanner;
-import org.apache.hc.core5.http.HttpHost;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +49,7 @@ public class ProxyHandler {
   public ProxyHandler() {
     this.proxyConfigForProtocols = loadProxyConfig();
     this.credentialsProvidersForProtocols = initializeCredentialsProviders();
+    this.syncEnvVarsToSystemProperties();
   }
 
   private Map<String, ProxyDetails> loadProxyConfig() {
@@ -99,7 +93,7 @@ public class ProxyHandler {
                 System.getenv()
                     .getOrDefault("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_PASSWORD", "")
                     .toCharArray(),
-                System.getenv("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_NON_PROXY_HOSTS"),
+                System.getenv("CONNECTOR_HTTP_PROXY_NON_PROXY_HOSTS"),
                 false));
       } catch (NumberFormatException e) {
         throw new ConnectorInputException("Invalid proxy port in environment variables", e);
@@ -135,56 +129,31 @@ public class ProxyHandler {
     return credentialsProvidersForProtocols.getOrDefault(protocol, new BasicCredentialsProvider());
   }
 
-  public HttpHost getProxyHost(String protocol, String requestUrl) {
-    ProxyDetails p = proxyConfigForProtocols.get(protocol);
-    if (p == null || doesTargetMatchNonProxy(protocol, requestUrl)) {
-      LOGGER.debug("No proxy used for request URL: {}", requestUrl);
-      return null;
+  /*
+   Set the system properties for the proxy settings from env vars, if needed, because
+   the default proxy selector does enforce a set of System Properties related to proxy settings.
+   https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/ProxySelector.html
+  */
+  private void syncEnvVarsToSystemProperties() {
+    for (Map.Entry<String, ProxyDetails> entry : proxyConfigForProtocols.entrySet()) {
+      ProxyDetails p = entry.getValue();
+      if (!p.sourceIsSystemProperties()) {
+        setSystemPropertyIfUnset(p.protocol + ".proxyHost", p.host());
+        setSystemPropertyIfUnset(p.protocol + ".proxyPort", String.valueOf(p.port()));
+        setSystemPropertyIfUnset(p.protocol + ".proxyUser", p.user());
+        setSystemPropertyIfUnset(p.protocol + ".proxyPassword", String.valueOf(p.password()));
+        setSystemPropertyIfUnset(
+            "http.nonProxyHosts",
+            p.nonProxyHosts()); // The HTTPS protocol handler will use the same nonProxyHosts
+        // property as the HTTP protocol. See here:
+        // https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/net/doc-files/net-properties.html#Proxies
+      }
     }
-    LOGGER.debug(
-        "Using proxy for {} - Host: {}, Port: {}, Source: {}",
-        protocol,
-        p.host(),
-        p.port(),
-        p.sourceIsSystemProperties() ? "System Properties" : "Environment Variables");
-
-    return new HttpHost(p.protocol(), p.host(), p.port());
   }
 
-  private boolean doesTargetMatchNonProxy(String protocol, String requestUri) {
-    ProxyDetails p = proxyConfigForProtocols.get(protocol);
-    if (p == null || p.nonProxyHosts() == null) {
-      return false;
+  private void setSystemPropertyIfUnset(String name, String value) {
+    if (System.getProperty(name) == null || System.getProperty(name).isBlank()) {
+      System.setProperty(name, value != null ? value : "");
     }
-
-    return Arrays.stream(p.nonProxyHosts().split("\\|"))
-        .map(
-            nonProxyHost -> {
-              // If entry is "example.de", it should match example.de and *.example.de
-              if (!nonProxyHost.contains("*")) {
-                return "^(.*\\.)?" + Pattern.quote(nonProxyHost) + "$";
-              }
-
-              // Otherwise, process as wildcard domain
-              return nonProxyHost.replace(".", "\\.").replace("*", ".*");
-            })
-        .anyMatch(regex -> requestUri.matches(regex));
-  }
-
-  public HttpRoutePlanner getRoutePlanner(String protocol, HttpHost proxyHost) {
-    ProxyDetails p = proxyConfigForProtocols.get(protocol);
-
-    if (p != null && p.sourceIsSystemProperties()) {
-      LOGGER.debug("Using system default route planner for protocol: {}", protocol);
-      return new SystemDefaultRoutePlanner(
-          DefaultSchemePortResolver.INSTANCE, ProxySelector.getDefault());
-    } else if (proxyHost != null) {
-      LOGGER.debug(
-          "Using default proxy route planner for protocol: {} with proxy: {}", protocol, proxyHost);
-      return new DefaultProxyRoutePlanner(proxyHost);
-    }
-
-    LOGGER.debug("No proxy route planner used for protocol: {}", protocol);
-    return null;
   }
 }
