@@ -476,13 +476,13 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.25.5</version>
+        <version>3.25.6</version>
       </dependency>
       <!-- Fix CVE-2024-7254 -->
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java-util</artifactId>
-        <version>3.25.5</version>
+        <version>3.25.6</version>
       </dependency>
 
       <dependency>
