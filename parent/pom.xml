@@ -90,15 +90,15 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>5.11.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.16</version.logback>
 
-    <version.aws-java-sdk>1.12.781</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.30.23</version.software-aws-java-sdk>
-    <version.aws-java-sdk-sts>1.12.781</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.30.23</version.software-aws-java-sdk-sts>
+    <version.aws-java-sdk>1.12.782</version.aws-java-sdk>
+    <version.software-aws-java-sdk>2.30.24</version.software-aws-java-sdk>
+    <version.aws-java-sdk-sts>1.12.782</version.aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.30.24</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.15.0</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
 
-    <version.localstack>1.20.4</version.localstack>
+    <version.localstack>1.20.5</version.localstack>
 
     <version.google-api-client>2.7.2</version.google-api-client>
     <version.google-api-services-drive>v3-rev20250210-2.0.0</version.google-api-services-drive>
@@ -124,13 +124,13 @@ limitations under the License.</license.inlineheader>
     <version.azure-identity>1.15.2</version.azure-identity>
 
     <version.bouncycastle>1.80</version.bouncycastle>
-    <version.box-sdk>4.14.0</version.box-sdk>
+    <version.box-sdk>4.15.0</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
     <version.slack>1.45.3</version.slack>
 
-    <version.testcontainers>1.20.4</version.testcontainers>
+    <version.testcontainers>1.20.5</version.testcontainers>
     <version.awaitility>4.2.2</version.awaitility>
     <version.json-path>2.9.0</version.json-path>
 

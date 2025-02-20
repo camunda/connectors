@@ -30,8 +30,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.http.base.DocumentOutboundContext;
 import io.camunda.connector.http.base.ExecutionEnvironment;
+import io.camunda.connector.http.base.TestDocumentFactory;
 import io.camunda.connector.http.base.authentication.OAuthConstants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -98,7 +98,7 @@ public class CustomApacheHttpClientTest {
           customApacheHttpClient.execute(
               request,
               new ProxyHandler(),
-              new ExecutionEnvironment.SelfManaged(new DocumentOutboundContext()));
+              new ExecutionEnvironment.SelfManaged(new TestDocumentFactory()));
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.headers().get(HttpHeaders.CONTENT_TYPE))
@@ -177,14 +177,12 @@ public class CustomApacheHttpClientTest {
       Testcontainers.exposeHostPorts(proxy.port());
       proxyContainer.withAccessToHost(true);
       proxyContainer.start();
-      // Set up the HttpClient to use the proxy
-      String proxyHost = proxyContainer.getHost();
-      Integer proxyPort = proxyContainer.getMappedPort(3128);
-      setAllSystemProperties(proxyHost, proxyPort);
       proxiedApacheHttpClient = CustomApacheHttpClient.create(HttpClients.custom());
     }
 
-    private static void setAllSystemProperties(String proxyHost, Integer proxyPort) {
+    private static void setAllSystemProperties() {
+      String proxyHost = proxyContainer.getHost();
+      Integer proxyPort = proxyContainer.getMappedPort(3128);
       System.setProperty("http.proxyHost", proxyHost);
       System.setProperty("http.proxyPort", proxyPort.toString());
       System.setProperty("http.nonProxyHosts", "");
@@ -208,13 +206,14 @@ public class CustomApacheHttpClientTest {
 
     @AfterAll
     public static void tearDown() {
-      proxyContainer.stop();
       unsetAllSystemProperties();
+      proxyContainer.stop();
       proxy.stop();
     }
 
-    @AfterEach
+    @BeforeEach
     public void resetProxy() {
+      unsetAllSystemProperties();
       proxy.resetAll();
     }
 
@@ -222,6 +221,7 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn200_whenAuthenticationRequiredAndProvidedAsSystemProperty(
         WireMockRuntimeInfo wmRuntimeInfo) {
       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
+      setAllSystemProperties();
 
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
@@ -261,7 +261,6 @@ public class CustomApacheHttpClientTest {
                 .execute(
                     () -> {
                       proxy.stubFor(get(path).willReturn(ok().withBody("Hello, world!")));
-                      unsetAllSystemProperties();
 
                       HttpCommonRequest request = new HttpCommonRequest();
                       request.setMethod(HttpMethod.GET);
@@ -284,6 +283,7 @@ public class CustomApacheHttpClientTest {
         shouldThrowException_whenAuthenticationRequiredAndNotProvidedOrInvalidAsSystemProperty(
             String input, WireMockRuntimeInfo wmRuntimeInfo) {
       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
+      setAllSystemProperties();
       System.setProperty("http.proxyUser", input);
       System.setProperty("http.proxyPassword", input);
 
@@ -313,7 +313,6 @@ public class CustomApacheHttpClientTest {
                 .execute(
                     () -> {
                       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
-                      unsetAllSystemProperties();
                       HttpCommonRequest request = new HttpCommonRequest();
                       request.setMethod(HttpMethod.GET);
                       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
@@ -343,6 +342,7 @@ public class CustomApacheHttpClientTest {
                 .execute(
                     () -> {
                       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
+                      setAllSystemProperties();
 
                       HttpCommonRequest request = new HttpCommonRequest();
                       request.setMethod(HttpMethod.GET);
@@ -360,6 +360,7 @@ public class CustomApacheHttpClientTest {
     @Test
     public void shouldReturn200_whenGetAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
       proxy.stubFor(get("/path").willReturn(ok().withBody("Hello, world!")));
+      setAllSystemProperties();
 
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
@@ -376,6 +377,7 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn200_whenPostAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
       proxy.stubFor(
           post("/path").willReturn(created().withJsonBody(new POJONode(Map.of("key1", "value1")))));
+      setAllSystemProperties();
 
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
@@ -392,6 +394,7 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn200_whenPutAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
       proxy.stubFor(
           put("/path").willReturn(ok().withJsonBody(new POJONode(Map.of("key1", "value1")))));
+      setAllSystemProperties();
 
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.PUT);
@@ -407,6 +410,7 @@ public class CustomApacheHttpClientTest {
     @Test
     public void shouldReturn200_whenDeleteAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
       proxy.stubFor(delete("/path").willReturn(noContent()));
+      setAllSystemProperties();
 
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.DELETE);
