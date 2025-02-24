@@ -142,10 +142,16 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   private void streamDocumentContent(
       Map.Entry<?, ?> entry, Document document, MultipartEntityBuilder builder) {
     DocumentMetadata metadata = document.metadata();
+    ContentType contentType;
+    try {
+      contentType = ContentType.create(metadata.getContentType());
+    } catch (IllegalArgumentException e) {
+      contentType = ContentType.DEFAULT_BINARY;
+    }
     builder.addBinaryBody(
         String.valueOf(entry.getKey()),
         new BufferedInputStream(document.asInputStream()),
-        ContentType.DEFAULT_BINARY,
+        contentType,
         metadata.getFileName());
   }
 }

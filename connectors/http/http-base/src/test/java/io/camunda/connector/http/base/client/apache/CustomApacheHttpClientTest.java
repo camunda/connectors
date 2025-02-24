@@ -126,6 +126,7 @@ public class CustomApacheHttpClientTest {
           store.createDocument(
               DocumentCreationRequest.from("The content of this file".getBytes())
                   .fileName("file.txt")
+                  .contentType("text/plain")
                   .build());
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
@@ -153,6 +154,7 @@ public class CustomApacheHttpClientTest {
                   new MultipartValuePatternBuilder()
                       .withName("document")
                       .withBody(equalTo("The content of this file"))
+                      .withHeader("Content-Type", equalTo("text/plain"))
                       .build()));
     }
   }
