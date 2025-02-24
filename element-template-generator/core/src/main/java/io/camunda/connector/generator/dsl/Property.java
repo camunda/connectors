@@ -16,8 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.Objects;
 
@@ -43,6 +42,8 @@ public abstract sealed class Property
   public enum FeelMode {
     optional,
     required,
+    @JsonProperty("static")
+    staticFeel,
     @JsonIgnore
     disabled,
     @JsonIgnore

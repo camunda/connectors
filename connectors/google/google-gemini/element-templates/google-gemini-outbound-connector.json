@@ -242,6 +242,7 @@
     "description" : "Customize grounding by Vertex AI Search.",
     "optional" : false,
     "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.grounding",
@@ -278,6 +279,7 @@
     "description" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful.<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more.</a>",
     "optional" : false,
     "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.safetySettings",
