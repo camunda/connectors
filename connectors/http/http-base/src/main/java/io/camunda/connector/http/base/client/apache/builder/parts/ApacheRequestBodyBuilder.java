@@ -145,7 +145,7 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
     ContentType contentType;
     try {
       contentType = ContentType.create(metadata.getContentType());
-    } catch(IllegalArgumentException e){
+    } catch (IllegalArgumentException e) {
       contentType = ContentType.DEFAULT_BINARY;
     }
     builder.addBinaryBody(
