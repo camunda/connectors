@@ -401,6 +401,7 @@
     "description" : "Store the response as a document in the document store",
     "optional" : false,
     "value" : false,
+    "feel" : "static",
     "group" : "endpoint",
     "binding" : {
       "name" : "storeResponse",

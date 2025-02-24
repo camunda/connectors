@@ -320,7 +320,7 @@
     "description" : "Deletes all items contained by the folder",
     "optional" : false,
     "value" : "true",
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.recursive",
