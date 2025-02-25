@@ -365,7 +365,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(manualModeFlagProperty.getBinding().type()).isEqualTo("zeebe:property");
       assertThat(((ZeebeProperty) manualModeFlagProperty.getBinding()).name())
           .isEqualTo("deduplicationModeManualFlag");
-      assertThat(manualModeFlagProperty.getValue()).isEqualTo(Boolean.FALSE);
+      assertThat(manualModeFlagProperty.getValue()).isEqualTo("=false");
 
       var manualModeProperty = getPropertyById("deduplicationModeManual", template);
       assertThat(manualModeProperty).isNotNull();
