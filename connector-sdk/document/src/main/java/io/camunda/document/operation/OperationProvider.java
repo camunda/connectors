@@ -16,19 +16,11 @@
  */
 package io.camunda.document.operation;
 
-import io.camunda.document.Document;
+import java.util.List;
 
-public class AggregatingOperationExecutor implements DocumentOperationExecutor {
+public interface OperationProvider {
 
-  public AggregatingOperationExecutor() {}
+  Operation getOperation(String operationName);
 
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return true;
-  }
-
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
-  }
+  List<String> getOperationNames();
 }

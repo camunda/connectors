@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.annotation.jackson;
+package io.camunda.connector.document.jackson;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.camunda.connector.document.annotation.jackson.serializer.DocumentSerializer;
+import io.camunda.connector.document.jackson.serializer.DocumentSerializer;
 import io.camunda.document.Document;
 
 public class JacksonModuleDocumentSerializer extends SimpleModule {
