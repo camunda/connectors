@@ -18,6 +18,8 @@ package io.camunda.connector.runtime.saas.security;
 
 import static org.springframework.security.web.access.IpAddressAuthorizationManager.hasIpAddress;
 
+import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +35,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @EnableWebSecurity
 @Configuration
@@ -45,6 +49,29 @@ public class SecurityConfiguration {
 
   @Value("${camunda.connector.auth.issuer}")
   private String issuer;
+
+  @Value("${camunda.endpoints.cors.allowed-origins:}")
+  private String allowedOrigins;
+
+  private static final List<String> corsEndpoints = List.of("/inbound-instances/**", "/tenants/**");
+
+  @Bean
+  public WebMvcConfigurer corsConfigurer() {
+    return new WebMvcConfigurer() {
+      @Override
+      public void addCorsMappings(CorsRegistry registry) {
+        if (StringUtils.isNotBlank(allowedOrigins)) {
+          String[] allowedOriginsArray = allowedOrigins.split(",");
+          corsEndpoints.forEach(
+              endpoint ->
+                  registry
+                      .addMapping(endpoint)
+                      .allowedOrigins(allowedOriginsArray)
+                      .allowedMethods("*"));
+        }
+      }
+    };
+  }
 
   /**
    * This is the first (spring priority order) filter chain. This is going to be applied first, if
