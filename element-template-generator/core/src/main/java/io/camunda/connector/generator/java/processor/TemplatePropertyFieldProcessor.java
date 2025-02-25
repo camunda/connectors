@@ -16,11 +16,8 @@
  */
 package io.camunda.connector.generator.java.processor;
 
+import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuilder;
-import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.dsl.PropertyBuilder;
-import io.camunda.connector.generator.dsl.PropertyCondition;
-import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
@@ -128,10 +125,8 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     builder.optional(FieldProcessor.isOptional(field));
 
     if (!(builder instanceof DropdownPropertyBuilder)) {
-      if (Boolean.class.equals(field.getType()) || boolean.class.equals(field.getType())) {
-        builder.feel(Property.FeelMode.staticFeel);
-      } else if (annotation.feel() == Property.FeelMode.system_default) {
-        builder.feel(determineDefaultFeelModeBasedOnContext(context));
+      if (annotation.feel() == Property.FeelMode.system_default) {
+        builder.feel(determineDefaultFeelModeBasedOnContext(context, builder));
       } else {
         builder.feel(annotation.feel());
       }
@@ -145,16 +140,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     }
     if (!annotation.defaultValue().isBlank()) {
       var value = annotation.defaultValue();
-      switch (annotation.defaultValueType()) {
-        case Boolean:
-          builder.value(Boolean.parseBoolean(value));
-          break;
-        case String:
-          builder.value(value);
-          break;
-        default:
-          throw new IllegalStateException("Unexpected value: " + annotation.defaultValueType());
-      }
+      builder.value(value);
     }
     if (!annotation.group().isBlank()) {
       builder.group(annotation.group());
@@ -164,10 +150,15 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
   }
 
   private Property.FeelMode determineDefaultFeelModeBasedOnContext(
-      final TemplateGenerationContext context) {
-    return context instanceof TemplateGenerationContext.Inbound
-        ? Property.FeelMode.disabled
-        : Property.FeelMode.optional;
+      final TemplateGenerationContext context, PropertyBuilder builder) {
+    if (builder instanceof NumberProperty.NumberPropertyBuilder
+        || builder instanceof BooleanProperty.BooleanPropertyBuilder) {
+      return Property.FeelMode.staticFeel;
+    } else {
+      return context instanceof TemplateGenerationContext.Inbound
+          ? Property.FeelMode.disabled
+          : Property.FeelMode.optional;
+    }
   }
 
   private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {

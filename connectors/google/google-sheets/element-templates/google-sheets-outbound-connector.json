@@ -340,7 +340,7 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "dimension",
     "label" : "Dimension",
@@ -383,7 +383,7 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "endIndex",
     "label" : "End index",
@@ -400,7 +400,7 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "createRow.spreadsheetId",
     "label" : "Spreadsheet ID",
@@ -464,7 +464,7 @@
       "equals" : "createRow",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "values",
     "label" : "Enter values",
@@ -541,7 +541,7 @@
       "equals" : "createWorksheet",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "deleteColumn.spreadsheetId",
     "label" : "Spreadsheet ID",
@@ -581,7 +581,7 @@
       "equals" : "deleteColumn",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "columnIndexType",
     "label" : "Index format",
@@ -631,7 +631,7 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "columnLetterIndex",
     "label" : "Column letter index",
@@ -694,7 +694,7 @@
       "equals" : "deleteWorksheet",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "getRowByIndex.spreadsheetId",
     "label" : "Spreadsheet ID",
@@ -751,7 +751,7 @@
       "equals" : "getRowByIndex",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "spreadsheetsDetails.spreadsheetId",
     "label" : "Spreadsheet ID",

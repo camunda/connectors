@@ -27,6 +27,7 @@ public record ImapConfig(
             label = "IMAP Port",
             group = "protocol",
             id = "data.imapPort",
+            defaultValueType = TemplateProperty.DefaultValueType.Number,
             tooltip =
                 "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
             defaultValue = "993",

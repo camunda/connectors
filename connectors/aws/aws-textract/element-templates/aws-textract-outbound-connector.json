@@ -237,7 +237,7 @@
     "id" : "input.analyzeTables",
     "label" : "Analyze tables",
     "optional" : false,
-    "value" : true,
+    "value" : "=true",
     "constraints" : {
       "notEmpty" : true
     },
@@ -252,7 +252,7 @@
     "id" : "input.analyzeForms",
     "label" : "Analyze form",
     "optional" : false,
-    "value" : true,
+    "value" : "=true",
     "constraints" : {
       "notEmpty" : true
     },
@@ -267,7 +267,7 @@
     "id" : "input.analyzeSignatures",
     "label" : "Analyze signatures",
     "optional" : false,
-    "value" : true,
+    "value" : "=true",
     "constraints" : {
       "notEmpty" : true
     },
@@ -282,7 +282,7 @@
     "id" : "input.analyzeLayout",
     "label" : "Analyze layout",
     "optional" : false,
-    "value" : true,
+    "value" : "=true",
     "constraints" : {
       "notEmpty" : true
     },

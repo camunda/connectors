@@ -16,11 +16,13 @@
  */
 package io.camunda.connector.generator.dsl;
 
-public final class BooleanProperty extends Property {
+import org.apache.commons.lang3.StringUtils;
 
-  public static final String TYPE = "Boolean";
+public final class NumberProperty extends Property {
 
-  public BooleanProperty(
+  public static final String TYPE = "Number";
+
+  public NumberProperty(
       String name,
       String label,
       String description,
@@ -51,26 +53,25 @@ public final class BooleanProperty extends Property {
         TYPE);
   }
 
-  public static BooleanPropertyBuilder builder() {
-    return new BooleanPropertyBuilder();
+  public static NumberPropertyBuilder builder() {
+    return new NumberPropertyBuilder();
   }
 
-  public static class BooleanPropertyBuilder extends PropertyBuilder {
+  public static class NumberPropertyBuilder extends PropertyBuilder {
 
-    private BooleanPropertyBuilder() {}
+    private NumberPropertyBuilder() {}
 
-    public BooleanProperty build() {
+    public NumberProperty build() {
       if (value != null) {
         String valueWithoutFeel =
             value.toString().startsWith("=") ? value.toString().substring(1) : value.toString();
-        if (!(valueWithoutFeel.equals(Boolean.TRUE.toString())
-            || valueWithoutFeel.equals(Boolean.FALSE.toString()))) {
-          throw new IllegalStateException("Value of a boolean property must be a boolean");
+        if (!StringUtils.isNumeric(valueWithoutFeel)) {
+          throw new IllegalArgumentException("Value must be a numeric value");
         }
         value = "=" + valueWithoutFeel;
       }
 
-      return new BooleanProperty(
+      return new NumberProperty(
           id,
           label,
           description,

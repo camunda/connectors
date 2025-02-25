@@ -283,7 +283,7 @@
   }, {
     "id" : "consumeUnmatchedEvents",
     "label" : "Consume unmatched events",
-    "value" : true,
+    "value" : "=true",
     "group" : "activation",
     "binding" : {
       "name" : "consumeUnmatchedEvents",
@@ -393,7 +393,7 @@
     "id" : "deduplicationModeManualFlag",
     "label" : "Manual mode",
     "description" : "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode",
-    "value" : false,
+    "value" : "=false",
     "group" : "deduplication",
     "binding" : {
       "name" : "deduplicationModeManualFlag",

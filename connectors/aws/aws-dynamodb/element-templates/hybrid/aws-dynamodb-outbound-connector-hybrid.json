@@ -415,7 +415,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.readCapacityUnits",
@@ -432,7 +432,7 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "input.writeCapacityUnits",
     "label" : "Write capacity units",
@@ -441,7 +441,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.writeCapacityUnits",
@@ -458,7 +458,7 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "input.billingModeStr",
     "label" : "Billing mode",
