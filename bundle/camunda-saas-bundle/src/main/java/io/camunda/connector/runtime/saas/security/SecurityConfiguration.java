@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.saas.security;
 
 import static org.springframework.security.web.access.IpAddressAuthorizationManager.hasIpAddress;
 
+import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -49,8 +50,10 @@ public class SecurityConfiguration {
   @Value("${camunda.connector.auth.issuer}")
   private String issuer;
 
-  @Value("${camunda.endpoints.cors.allowed-origins.inbound-instances:}")
+  @Value("${camunda.endpoints.cors.allowed-origins:}")
   private String allowedOrigins;
+
+  private static final List<String> corsEndpoints = List.of("/inbound-instances/**", "/tenants/**");
 
   @Bean
   public WebMvcConfigurer corsConfigurer() {
@@ -58,10 +61,13 @@ public class SecurityConfiguration {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
         if (StringUtils.isNotBlank(allowedOrigins)) {
-          registry
-              .addMapping("/inbound-instances/**")
-              .allowedOrigins(allowedOrigins.split(","))
-              .allowedMethods("*");
+          String[] allowedOriginsArray = allowedOrigins.split(",");
+          corsEndpoints.forEach(
+              endpoint ->
+                  registry
+                      .addMapping(endpoint)
+                      .allowedOrigins(allowedOriginsArray)
+                      .allowedMethods("*"));
         }
       }
     };
