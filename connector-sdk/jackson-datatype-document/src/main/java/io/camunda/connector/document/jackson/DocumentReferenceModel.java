@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.annotation.jackson;
+package io.camunda.connector.document.jackson;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -24,9 +24,9 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import io.camunda.client.api.response.DocumentMetadata;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.document.operation.DocumentOperation;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import io.camunda.document.operation.DocumentOperationPayload;
 import io.camunda.document.reference.DocumentReference;
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -52,7 +52,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
    * processing must take place in the context of the connector.
    */
   @JsonInclude(Include.NON_EMPTY)
-  Optional<DocumentOperation> operation();
+  Optional<DocumentOperationPayload> operation();
 
   @JsonInclude(Include.NON_EMPTY)
   record CamundaDocumentMetadataModel(
@@ -117,7 +117,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
       String documentId,
       String contentHash,
       CamundaDocumentMetadataModel metadata,
-      Optional<DocumentOperation> operation)
+      Optional<DocumentOperationPayload> operation)
       implements DocumentReferenceModel, CamundaDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)
@@ -146,7 +146,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     }
   }
 
-  record ExternalDocumentReferenceModel(String url, Optional<DocumentOperation> operation)
+  record ExternalDocumentReferenceModel(String url, Optional<DocumentOperationPayload> operation)
       implements DocumentReferenceModel, ExternalDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)
