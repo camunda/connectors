@@ -164,6 +164,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.documents",
+    "label" : "attachments",
+    "description" : "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "message",
+    "binding" : {
+      "name" : "data.documents",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "chat.postMessage",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "data.channel",
     "label" : "Channel/user name/email",
     "optional" : false,
