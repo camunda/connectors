@@ -22,7 +22,12 @@ import java.util.Objects;
 
 @JsonInclude(Include.NON_NULL)
 public abstract sealed class Property
-    permits BooleanProperty, DropdownProperty, HiddenProperty, StringProperty, TextProperty {
+    permits BooleanProperty,
+        DropdownProperty,
+        HiddenProperty,
+        NumberProperty,
+        StringProperty,
+        TextProperty {
 
   protected final String id;
   protected final String label;
