@@ -49,7 +49,7 @@ public class SecurityConfiguration {
   @Value("${camunda.connector.auth.issuer}")
   private String issuer;
 
-  @Value("${camunda.endpoints.inbound-instances.cors.allowed-origins:}")
+  @Value("${camunda.endpoints.cors.allowed-origins.inbound-instances:}")
   private String allowedOrigins;
 
   @Bean
