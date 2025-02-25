@@ -52,6 +52,7 @@ public class HttpCommonRequest {
   @TemplateProperty(
       group = "timeout",
       label = "Connection timeout in seconds",
+      defaultValueType = TemplateProperty.DefaultValueType.Number,
       defaultValue = "20",
       constraints =
           @TemplateProperty.PropertyConstraints(
@@ -63,6 +64,7 @@ public class HttpCommonRequest {
   @TemplateProperty(
       group = "timeout",
       label = "Read timeout in seconds",
+      defaultValueType = TemplateProperty.DefaultValueType.Number,
       defaultValue = "20",
       constraints =
           @TemplateProperty.PropertyConstraints(

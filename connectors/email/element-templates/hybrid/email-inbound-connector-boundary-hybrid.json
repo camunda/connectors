@@ -131,7 +131,7 @@
     "id" : "data.imapPort",
     "label" : "IMAP Port",
     "optional" : false,
-    "value" : "993",
+    "value" : "=993",
     "constraints" : {
       "notEmpty" : true
     },
@@ -142,7 +142,7 @@
       "type" : "zeebe:property"
     },
     "tooltip" : "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "imapCryptographicProtocol",
     "label" : "Encryption protocol",
@@ -331,7 +331,7 @@
   }, {
     "id" : "consumeUnmatchedEvents",
     "label" : "Consume unmatched events",
-    "value" : true,
+    "value" : "=true",
     "group" : "activation",
     "binding" : {
       "name" : "consumeUnmatchedEvents",
@@ -413,7 +413,7 @@
     "id" : "deduplicationModeManualFlag",
     "label" : "Manual mode",
     "description" : "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode",
-    "value" : false,
+    "value" : "=false",
     "group" : "deduplication",
     "binding" : {
       "name" : "deduplicationModeManualFlag",

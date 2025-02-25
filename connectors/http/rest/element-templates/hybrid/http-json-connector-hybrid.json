@@ -400,8 +400,7 @@
     "label" : "Store response",
     "description" : "Store the response as a document in the document store",
     "optional" : false,
-    "value" : false,
-    "feel" : "static",
+    "value" : "=false",
     "group" : "endpoint",
     "binding" : {
       "name" : "storeResponse",
@@ -435,7 +434,7 @@
     "label" : "Connection timeout in seconds",
     "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
     "optional" : false,
-    "value" : "20",
+    "value" : "=20",
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
@@ -443,19 +442,19 @@
         "message" : "Must be a number"
       }
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "timeout",
     "binding" : {
       "name" : "connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "readTimeoutInSeconds",
     "label" : "Read timeout in seconds",
     "description" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
     "optional" : false,
-    "value" : "20",
+    "value" : "=20",
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
@@ -463,13 +462,13 @@
         "message" : "Must be a number"
       }
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "timeout",
     "binding" : {
       "name" : "readTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "body",
     "label" : "Request body",
