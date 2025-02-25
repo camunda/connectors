@@ -35,7 +35,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
               "move emails"
             }),
     inputDataClass = EmailRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "protocol", label = "Protocol"),
