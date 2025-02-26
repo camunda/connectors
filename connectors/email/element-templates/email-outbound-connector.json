@@ -120,6 +120,7 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.password",

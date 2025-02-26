@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.email.authentication;
 
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -24,7 +23,6 @@ public record SimpleAuthentication(
     @TemplateProperty(
             group = "authentication",
             label = "Email password",
-            feel = Property.FeelMode.disabled,
             tooltip =
                 "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
             id = "simpleAuthenticationPassword")
