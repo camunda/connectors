@@ -246,7 +246,8 @@
     "label" : "Grounding",
     "description" : "Customize grounding by Vertex AI Search.",
     "optional" : false,
-    "value" : "=false",
+    "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.grounding",
@@ -282,7 +283,8 @@
     "label" : "Safety Filter Settings",
     "description" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful.<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more.</a>",
     "optional" : false,
-    "value" : "=false",
+    "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.safetySettings",
@@ -433,6 +435,7 @@
         "message" : "value must be in the range from 0 to 2 in increments of 0.1"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.temperature",
@@ -451,6 +454,7 @@
         "message" : "value must be in the range from 1 to 8192 in increments of 1"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.maxOutputTokens",
@@ -469,6 +473,7 @@
         "message" : "value must be whole numbers that range from -2,147,483,647 to 2,147,483,647"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.seed",
@@ -487,6 +492,7 @@
         "message" : "value must be an integer between 1 and 40"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.topK",
@@ -510,6 +516,7 @@
         "message" : "value must be in the range from 0 to 1 in increments of 0.1"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.topP",

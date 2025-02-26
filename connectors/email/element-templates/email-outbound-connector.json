@@ -177,7 +177,7 @@
     "id" : "data.imapPort",
     "label" : "IMAP Port",
     "optional" : false,
-    "value" : "=993",
+    "value" : 993,
     "constraints" : {
       "notEmpty" : true
     },
@@ -248,7 +248,7 @@
     "id" : "data.pop3Port",
     "label" : "POP3 Port",
     "optional" : false,
-    "value" : "=995",
+    "value" : 995,
     "constraints" : {
       "notEmpty" : true
     },
@@ -319,7 +319,7 @@
     "id" : "data.smtpPort",
     "label" : "SMTP Port",
     "optional" : false,
-    "value" : "=587",
+    "value" : 587,
     "constraints" : {
       "notEmpty" : true
     },
@@ -709,10 +709,11 @@
     "id" : "pop3maxToBeRead",
     "label" : "Maximum number of emails to be read",
     "optional" : false,
-    "value" : "=100",
+    "value" : 100,
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "static",
     "group" : "listEmailsPop3",
     "binding" : {
       "name" : "data.pop3Action.maxToBeRead",
@@ -877,10 +878,11 @@
     "id" : "imapMaxToBeRead",
     "label" : "Maximum number of emails to be read",
     "optional" : false,
-    "value" : "=100",
+    "value" : 100,
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "static",
     "group" : "listEmailsImap",
     "binding" : {
       "name" : "data.imapAction.maxToBeRead",
