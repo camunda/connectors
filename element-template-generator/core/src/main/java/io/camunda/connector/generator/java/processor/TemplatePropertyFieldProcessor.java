@@ -125,8 +125,8 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     builder.optional(FieldProcessor.isOptional(field));
 
     switch (builder) {
-      case DropdownProperty.DropdownPropertyBuilder $ -> {}
-      case NumberProperty.NumberPropertyBuilder $ -> {
+      case DropdownProperty.DropdownPropertyBuilder ignored -> {}
+      case NumberProperty.NumberPropertyBuilder ignored -> {
         if (annotation.feel() == Property.FeelMode.disabled) {
           throw new IllegalStateException("`disabled` is not a valid feel property for Number");
         } else if (annotation.feel() == Property.FeelMode.system_default) {
@@ -135,7 +135,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
           builder.feel(annotation.feel());
         }
       }
-      case BooleanProperty.BooleanPropertyBuilder $ -> builder.feel(Property.FeelMode.staticFeel);
+      case BooleanProperty.BooleanPropertyBuilder ignored -> builder.feel(Property.FeelMode.staticFeel);
       default -> {
         if (annotation.feel() == Property.FeelMode.system_default) {
           builder.feel(determineDefaultFeelModeBasedOnContext(context));
