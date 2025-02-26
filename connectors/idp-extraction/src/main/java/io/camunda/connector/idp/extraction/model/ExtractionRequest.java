@@ -10,4 +10,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public record ExtractionRequest(
-    @Valid @NotNull ExtractionRequestData input, BaseRequest baseRequest) {}
+    @Valid @NotNull ExtractionRequestData input,
+    BaseRequest baseRequest, // need to keep this here for backwards compatibility
+    ProviderConfiguration providerConfiguration) {}

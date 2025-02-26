@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public enum LlmModel {
-  CLAUDE("anthropic", getCommonSystemPrompt(), getCommonMessageTemplate()),
+  CLAUDE("anthropic", getCommonSystemPrompt(), getCommonMessageTemplate(), false),
+  GEMINI("gemini", getCommonSystemPrompt(), getMultimodalMessageTemplate(), true),
   LLAMA(
       "meta",
       """
@@ -57,12 +58,14 @@ public enum LlmModel {
             Only respond with the function output, no preamble.
             <|eot_id|><|start_header_id|>assistant<|end_header_id|>
       """
-          .formatted(getCommonMessageTemplate())),
-  TITAN("amazon", getCommonSystemPrompt(), getCommonMessageTemplate());
+          .formatted(getCommonMessageTemplate()),
+      false),
+  TITAN("amazon", getCommonSystemPrompt(), getCommonMessageTemplate(), false);
 
   private final String vendor;
   private final String systemPrompt;
   private final String messageTemplate;
+  private final boolean multimodal;
 
   private static final String EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE = "{{extractedText}}";
   private static final String TAXONOMY_PLACEHOLDER_FOR_MESSAGE = "{{taxonomy}}";
@@ -74,10 +77,11 @@ public enum LlmModel {
             </VAR>
       """;
 
-  LlmModel(String vendor, String systemPrompt, String messageTemplate) {
+  LlmModel(String vendor, String systemPrompt, String messageTemplate, boolean multimodal) {
     this.vendor = vendor;
     this.systemPrompt = systemPrompt;
     this.messageTemplate = messageTemplate;
+    this.multimodal = multimodal;
   }
 
   public String getSystemPrompt() {
@@ -86,6 +90,18 @@ public enum LlmModel {
 
   public String getVendor() {
     return vendor;
+  }
+
+  public boolean isMultimodal() {
+    return multimodal;
+  }
+
+  public String getMessage(List<TaxonomyItem> taxonomyItems) {
+    String taxonomies =
+        taxonomyItems.stream()
+            .map(item -> String.format(SYSTEM_PROMPT_VARIABLE_TEMPLATE, item.name(), item.prompt()))
+            .collect(Collectors.joining());
+    return messageTemplate.replace(TAXONOMY_PLACEHOLDER_FOR_MESSAGE, taxonomies);
   }
 
   public String getMessage(String extractedText, List<TaxonomyItem> taxonomyItems) {
@@ -111,6 +127,8 @@ public enum LlmModel {
       return LLAMA;
     } else if (modelId.contains(TITAN.getVendor())) {
       return TITAN;
+    } else if (modelId.contains(GEMINI.getVendor())) {
+      return GEMINI;
     } else {
       return CLAUDE;
     }
@@ -146,5 +164,13 @@ public enum LlmModel {
             <EXTRACTION>%s</EXTRACTION>
       """
         .formatted(EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE, TAXONOMY_PLACEHOLDER_FOR_MESSAGE);
+  }
+
+  private static String getMultimodalMessageTemplate() {
+    return """
+            Here is the instructions on which variables to extract:
+            <EXTRACTION>%s</EXTRACTION>
+      """
+        .formatted(TAXONOMY_PLACEHOLDER_FOR_MESSAGE);
   }
 }

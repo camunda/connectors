@@ -6,8 +6,5 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-public enum TextExtractionEngineType {
-  AWS_TEXTRACT,
-  APACHE_PDFBOX,
-  GCP_GEMINI
-}
+public record GeminiRequestConfiguration(
+    String region, String projectId, String bucketName, String grounding, String safetySettings) {}
