@@ -1,0 +1,92 @@
+name: bump_element_template_docs_links
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 1 * *"  # Runs monthly on the 1st at 03:00 UTC
+
+permissions:
+  contents: write  # Allows pushing changes to the target repo
+  pull-requests: write  # Allows creating a PR
+
+jobs:
+  bump_element_template_docs_links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Collect connector template links
+        run: |
+          chmod +x ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
+          ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
+        shell: bash
+
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v3.1.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+          owner: camunda
+          repositories: camunda-docs
+
+      - name: Checkout camunda-docs repo
+        uses: actions/checkout@v4
+        with:
+          repository: camunda/camunda-docs
+          token: ${{ steps.app-token.outputs.token }}
+          path: camunda-docs
+
+      - name: Compare files
+        id: check_diff
+        run: |
+          cd camunda-docs
+          if diff -q connectors-element-template-links.txt ../connectors-element-template-links.txt > /dev/null; then
+            echo "No changes to commit."
+            echo "NO_CHANGES=true" >> $GITHUB_ENV
+          else
+            echo "Changes detected."
+            echo "NO_CHANGES=false" >> $GITHUB_ENV
+          fi
+
+      - name: Exit if no changes
+        if: env.NO_CHANGES == 'true'
+        run: |
+          echo "No changes detected, exiting successfully."
+          exit 0
+
+      - name: Create branch, commit, and push changes
+        if: env.NO_CHANGES == 'false'
+        run: |
+          cd camunda-docs
+          git config --local user.email "github-actions@github.com"
+          git config --local user.name "connectors-automation"
+          BRANCH_NAME="update-connector-links-$(date +'%m-%Y')"
+          git checkout -b "$BRANCH_NAME"
+          mv ../connectors-element-template-links.txt connectors-element-template-links.txt
+          git add connectors-element-template-links.txt
+          git commit -m "Update connector element template links for $(date +'%B %Y')"
+          # Authenticate Git using App Token
+          git remote set-url origin https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/camunda/camunda-docs.git
+          git push --set-upstream origin "$BRANCH_NAME"
+          gh pr create \
+          --base main \
+          --title "Update Connector Element Template Links - $(date +'%B %Y')" \
+          --body "This PR updates the connector element template links for $(date +'%B %Y')." \
+          --reviewer camunda/tech-writers
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
