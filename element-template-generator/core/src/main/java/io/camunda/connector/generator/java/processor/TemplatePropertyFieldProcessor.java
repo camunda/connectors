@@ -135,7 +135,8 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
           builder.feel(annotation.feel());
         }
       }
-      case BooleanProperty.BooleanPropertyBuilder ignored -> builder.feel(Property.FeelMode.staticFeel);
+      case BooleanProperty.BooleanPropertyBuilder ignored ->
+          builder.feel(Property.FeelMode.staticFeel);
       default -> {
         if (annotation.feel() == Property.FeelMode.system_default) {
           builder.feel(determineDefaultFeelModeBasedOnContext(context));
