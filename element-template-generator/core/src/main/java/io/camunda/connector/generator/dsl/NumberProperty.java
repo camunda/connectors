@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import org.apache.commons.lang3.StringUtils;
-
 public final class NumberProperty extends Property {
 
   public static final String TYPE = "Number";
@@ -27,7 +25,7 @@ public final class NumberProperty extends Property {
       String label,
       String description,
       Boolean required,
-      String value,
+      Number value,
       GeneratedValue generatedValue,
       PropertyConstraints constraints,
       FeelMode feel,
@@ -62,21 +60,15 @@ public final class NumberProperty extends Property {
     private NumberPropertyBuilder() {}
 
     public NumberProperty build() {
-      if (value != null) {
-        String valueWithoutFeel =
-            value.toString().startsWith("=") ? value.toString().substring(1) : value.toString();
-        if (!StringUtils.isNumeric(valueWithoutFeel)) {
-          throw new IllegalArgumentException("Value must be a numeric value");
-        }
-        value = "=" + valueWithoutFeel;
+      if (value != null && !(value instanceof Number)) {
+        throw new IllegalStateException("Value of a Number property must be a Number");
       }
-
       return new NumberProperty(
           id,
           label,
           description,
           optional,
-          (String) value,
+          (Number) value,
           generatedValue,
           constraints,
           feel,

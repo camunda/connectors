@@ -161,6 +161,7 @@ public record BoxRequest(
             String folderPath,
         @TemplateProperty(
                 defaultValue = "true",
+                defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 group = "operation",
                 label = "Recursive",
                 description = "Deletes all items contained by the folder")
