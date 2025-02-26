@@ -59,6 +59,7 @@ public final class BooleanProperty extends Property {
 
     private BooleanPropertyBuilder() {}
 
+    @Override
     public BooleanProperty build() {
       if (value != null && !(value instanceof Boolean)) {
         throw new IllegalStateException("Value of a boolean property must be a boolean");
