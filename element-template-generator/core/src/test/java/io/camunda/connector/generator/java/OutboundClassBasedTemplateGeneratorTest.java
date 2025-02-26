@@ -551,7 +551,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var property = getPropertyById("booleanProperty", template);
       assertThat(property.getType()).isEqualTo("Boolean");
       assertThat(property.getBinding()).isEqualTo(new ZeebeInput("booleanProperty"));
-      assertThat(property.getValue()).isEqualTo("=false");
+      assertThat(property.getValue()).isEqualTo(Boolean.FALSE);
     }
 
     @Test
