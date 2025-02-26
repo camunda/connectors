@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.saas.security;
 import static org.springframework.security.web.access.IpAddressAuthorizationManager.hasIpAddress;
 
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,25 +53,25 @@ public class SecurityConfiguration {
   @Value("${camunda.endpoints.cors.allowed-origins:}")
   private String allowedOrigins;
 
-  private static final List<String> corsEndpoints = List.of("/inbound-instances/**", "/tenants/**");
+  @Value("${camunda.endpoints.cors.mappings:}")
+  private String mappings;
 
   @Bean
   public WebMvcConfigurer corsConfigurer() {
     return new WebMvcConfigurer() {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**").allowedOrigins("*").allowedMethods("*");
+        if (StringUtils.isNotBlank(allowedOrigins) && StringUtils.isNotBlank(mappings)) {
+          String[] allowedOriginsArray = allowedOrigins.split(",");
+          List<String> mappingsList = List.of(mappings.split(","));
+          mappingsList.forEach(
+              mapping ->
+                  registry
+                      .addMapping(mapping)
+                      .allowedOrigins(allowedOriginsArray)
+                      .allowedMethods("*"));
+        }
       }
-      //      @Override
-      //      public void addCorsMappings(CorsRegistry registry) {
-      //        if (StringUtils.isNotBlank(allowedOrigins)) {
-      //          String[] allowedOriginsArray = allowedOrigins.split(",");
-      //          corsEndpoints.forEach(
-      //              endpoint ->
-      //
-      // registry.addMapping("*").allowedOrigins(allowedOriginsArray).allowedMethods("*"));
-      //        }
-      //      }
     };
   }
 
