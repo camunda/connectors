@@ -129,7 +129,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
       var missingKeys = taxonomyItemsNames.stream().filter(name -> !result.containsKey(name)).toList();
       if (!missingKeys.isEmpty()) {
-        LOGGER.warn("LLM model response is the following missing keys: ({})", String.join(", ", missingKeys));
+        LOGGER.warn("LLM model response is missing the following keys: ({})", String.join(", ", missingKeys));
       }
 
       return result;
