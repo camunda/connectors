@@ -59,6 +59,7 @@ public final class NumberProperty extends Property {
 
     private NumberPropertyBuilder() {}
 
+    @Override
     public NumberProperty build() {
       if (value != null && !(value instanceof Number)) {
         throw new IllegalStateException("Value of a Number property must be a Number");

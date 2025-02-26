@@ -138,7 +138,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       case BooleanProperty.BooleanPropertyBuilder $ -> builder.feel(Property.FeelMode.staticFeel);
       default -> {
         if (annotation.feel() == Property.FeelMode.system_default) {
-          builder.feel(determineDefaultFeelModeBasedOnContext(context, builder));
+          builder.feel(determineDefaultFeelModeBasedOnContext(context));
         } else {
           builder.feel(annotation.feel());
         }
@@ -180,7 +180,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
   }
 
   private Property.FeelMode determineDefaultFeelModeBasedOnContext(
-      final TemplateGenerationContext context, PropertyBuilder builder) {
+      final TemplateGenerationContext context) {
     return context instanceof TemplateGenerationContext.Inbound
         ? Property.FeelMode.disabled
         : Property.FeelMode.optional;
