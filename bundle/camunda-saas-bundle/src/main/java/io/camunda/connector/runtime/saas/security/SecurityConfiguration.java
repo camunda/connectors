@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.saas.security;
 import static org.springframework.security.web.access.IpAddressAuthorizationManager.hasIpAddress;
 
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -60,16 +59,18 @@ public class SecurityConfiguration {
     return new WebMvcConfigurer() {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
-        if (StringUtils.isNotBlank(allowedOrigins)) {
-          String[] allowedOriginsArray = allowedOrigins.split(",");
-          corsEndpoints.forEach(
-              endpoint ->
-                  registry
-                      .addMapping(endpoint)
-                      .allowedOrigins(allowedOriginsArray)
-                      .allowedMethods("*"));
-        }
+        registry.addMapping("/**").allowedOrigins("*").allowedMethods("*");
       }
+      //      @Override
+      //      public void addCorsMappings(CorsRegistry registry) {
+      //        if (StringUtils.isNotBlank(allowedOrigins)) {
+      //          String[] allowedOriginsArray = allowedOrigins.split(",");
+      //          corsEndpoints.forEach(
+      //              endpoint ->
+      //
+      // registry.addMapping("*").allowedOrigins(allowedOriginsArray).allowedMethods("*"));
+      //        }
+      //      }
     };
   }
 
