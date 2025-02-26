@@ -123,13 +123,17 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
         }
       }
 
-      var result = taxonomyItemsNames.stream()
-          .filter(llmResponseJson::has)
-          .collect(Collectors.toMap(name -> name, llmResponseJson::get));
+      var result =
+          taxonomyItemsNames.stream()
+              .filter(llmResponseJson::has)
+              .collect(Collectors.toMap(name -> name, llmResponseJson::get));
 
-      var missingKeys = taxonomyItemsNames.stream().filter(name -> !result.containsKey(name)).toList();
+      var missingKeys =
+          taxonomyItemsNames.stream().filter(name -> !result.containsKey(name)).toList();
       if (!missingKeys.isEmpty()) {
-        LOGGER.warn("LLM model response is missing the following keys: ({})", String.join(", ", missingKeys));
+        LOGGER.warn(
+            "LLM model response is missing the following keys: ({})",
+            String.join(", ", missingKeys));
       }
 
       return result;

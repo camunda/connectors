@@ -55,7 +55,9 @@ class ExtractionConnectorFunctionTest {
   }
 
   @Test
-  void executeExtractionReturnsPartiallyCorrectResult_whenLlmResponseIsMissingValueForSomeTaxonomyItems() throws Exception {
+  void
+      executeExtractionReturnsPartiallyCorrectResult_whenLlmResponseIsMissingValueForSomeTaxonomyItems()
+          throws Exception {
     var outBounderContext = prepareConnectorContext();
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
@@ -69,8 +71,7 @@ class ExtractionConnectorFunctionTest {
                         """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    assertExtractionResult(
-        result, Map.of("sum", new TextNode("$12.25")));
+    assertExtractionResult(result, Map.of("sum", new TextNode("$12.25")));
   }
 
   @Test
