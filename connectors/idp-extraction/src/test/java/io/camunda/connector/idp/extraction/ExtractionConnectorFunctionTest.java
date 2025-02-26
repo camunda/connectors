@@ -138,7 +138,7 @@ class ExtractionConnectorFunctionTest {
   }
 
   @Test
-  void executeExtractionReturnsEmptyResult_whenLlmResponseContainsInValidStringifiedObject()
+  void executeExtractionReturnsEmptyResult_whenLlmResponseContainsInvalidStringifiedObject()
       throws Exception {
     var outBounderContext = prepareConnectorContext();
 
