@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
@@ -51,6 +52,25 @@ class ExtractionConnectorFunctionTest {
     var result = extractionConnectorFunction.execute(outBounderContext);
     assertExtractionResult(
         result, Map.of("sum", new TextNode("$12.25"), "supplier", new TextNode("Camunda Inc.")));
+  }
+
+  @Test
+  void executeExtractionReturnsPartiallyCorrectResult_whenLlmResponseIsMissingValueForSomeTaxonomyItems() throws Exception {
+    var outBounderContext = prepareConnectorContext();
+
+    when(pollingTextractCaller.call(any(), any(), any(), any()))
+        .thenReturn("Test extracted text from test document.pdf");
+    when(bedrockCaller.call(any(), any(), any()))
+        .thenReturn(
+            """
+                        {
+                        	"sum": "$12.25"
+                        }
+                        """);
+
+    var result = extractionConnectorFunction.execute(outBounderContext);
+    assertExtractionResult(
+        result, Map.of("sum", new TextNode("$12.25")));
   }
 
   @Test
@@ -134,7 +154,7 @@ class ExtractionConnectorFunctionTest {
     assertExtractionResult(result, Map.of());
   }
 
-  private void assertExtractionResult(Object result, Map<String, Object> expectedResponse) {
+  private void assertExtractionResult(Object result, Map<String, JsonNode> expectedResponse) {
     assertThat(result)
         .isNotNull()
         .isInstanceOf(ExtractionResult.class)

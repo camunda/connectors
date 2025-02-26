@@ -104,7 +104,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
-  private Map<String, Object> buildResponseJsonIfPossible(
+  private Map<String, JsonNode> buildResponseJsonIfPossible(
       String llmResponse, List<TaxonomyItem> taxonomyItems) {
     try {
       var llmResponseJson = objectMapper.readValue(llmResponse, JsonNode.class);
@@ -123,9 +123,16 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
         }
       }
 
-      return taxonomyItemsNames.stream()
+      var result = taxonomyItemsNames.stream()
           .filter(llmResponseJson::has)
           .collect(Collectors.toMap(name -> name, llmResponseJson::get));
+
+      var missingKeys = taxonomyItemsNames.stream().filter(name -> !result.containsKey(name)).toList();
+      if (!missingKeys.isEmpty()) {
+        LOGGER.warn("LLM model response is the following missing keys: ({})", String.join(", ", missingKeys));
+      }
+
+      return result;
     } catch (JsonProcessingException e) {
       LOGGER.error(
           String.format("Failed to parse the JSON response from LLM: %s", llmResponse),
