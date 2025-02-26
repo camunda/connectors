@@ -247,7 +247,8 @@
     "id" : "input.async.featureTypeTables",
     "label" : "Analyze tables",
     "optional" : false,
-    "value" : "=false",
+    "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.featureTypeTables",
@@ -269,7 +270,8 @@
     "id" : "input.async.featureTypeForms",
     "label" : "Analyze forms",
     "optional" : false,
-    "value" : "=false",
+    "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.featureTypeForms",

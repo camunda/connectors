@@ -301,7 +301,7 @@
     "id" : "downloadActionAsFile",
     "label" : "Create document",
     "optional" : false,
-    "value" : "=true",
+    "value" : true,
     "feel" : "static",
     "group" : "downloadObject",
     "binding" : {

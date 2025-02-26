@@ -17,12 +17,12 @@
 package io.camunda.connector.generator.java.processor;
 
 import io.camunda.connector.generator.dsl.*;
-import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuilder;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 /** {@link TemplateProperty} annotation processor */
@@ -34,7 +34,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     if (!conditionAnnotation.equals().isBlank()) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equals());
-    } else if (conditionAnnotation.equalsBoolean() != TemplateProperty.EqualsBoolean.NULL) {
+    } else if (conditionAnnotation.equalsBoolean() != EqualsBoolean.NULL) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equalsBoolean().toBoolean());
     } else if (conditionAnnotation.oneOf().length > 0) {
@@ -53,7 +53,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
   }
 
   public static PropertyCondition transformToNestedCondition(
-      TemplateProperty.NestedPropertyCondition conditionAnnotation) {
+      NestedPropertyCondition conditionAnnotation) {
     validateCondition(
         conditionAnnotation.property(),
         conditionAnnotation.equals(),
@@ -63,7 +63,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     if (!conditionAnnotation.equals().isBlank()) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equals());
-    } else if (conditionAnnotation.equalsBoolean() != TemplateProperty.EqualsBoolean.NULL) {
+    } else if (conditionAnnotation.equalsBoolean() != EqualsBoolean.NULL) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equalsBoolean().toBoolean());
     } else if (conditionAnnotation.oneOf().length > 0) {
@@ -83,7 +83,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       String[] oneOf,
       NestedPropertyCondition[] allMatch) {
     var equalsSet = !equals.isBlank();
-    var equalsBooleanSet = !equalsBoolean.equals(TemplateProperty.EqualsBoolean.NULL);
+    var equalsBooleanSet = !equalsBoolean.equals(EqualsBoolean.NULL);
     var oneOfSet = oneOf != null && oneOf.length > 0;
     var allMatchSet = allMatch != null && allMatch.length > 0;
     // equalsBoolean always has a value, so it's not included in the check
@@ -124,11 +124,24 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     }
     builder.optional(FieldProcessor.isOptional(field));
 
-    if (!(builder instanceof DropdownPropertyBuilder)) {
-      if (annotation.feel() == Property.FeelMode.system_default) {
-        builder.feel(determineDefaultFeelModeBasedOnContext(context, builder));
-      } else {
-        builder.feel(annotation.feel());
+    switch (builder) {
+      case DropdownProperty.DropdownPropertyBuilder $ -> {}
+      case NumberProperty.NumberPropertyBuilder $ -> {
+        if (annotation.feel() == Property.FeelMode.disabled) {
+          throw new IllegalStateException("`disabled` is not a valid feel property for Number");
+        } else if (annotation.feel() == Property.FeelMode.system_default) {
+          builder.feel(Property.FeelMode.staticFeel);
+        } else {
+          builder.feel(annotation.feel());
+        }
+      }
+      case BooleanProperty.BooleanPropertyBuilder $ -> builder.feel(Property.FeelMode.staticFeel);
+      default -> {
+        if (annotation.feel() == Property.FeelMode.system_default) {
+          builder.feel(determineDefaultFeelModeBasedOnContext(context, builder));
+        } else {
+          builder.feel(annotation.feel());
+        }
       }
     }
 
@@ -140,7 +153,13 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     }
     if (!annotation.defaultValue().isBlank()) {
       var value = annotation.defaultValue();
-      builder.value(value);
+      switch (annotation.defaultValueType()) {
+        case Boolean -> builder.value(Boolean.parseBoolean(value));
+        case String -> builder.value(value);
+        case Number -> builder.value(parseNumber(value, field.getType()));
+        default ->
+            throw new IllegalStateException("Unexpected value: " + annotation.defaultValueType());
+      }
     }
     if (!annotation.group().isBlank()) {
       builder.group(annotation.group());
@@ -149,16 +168,22 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     builder.constraints(buildConstraints(annotation, builder.build().getConstraints()));
   }
 
+  private Number parseNumber(String value, Class<?> type) {
+    try {
+      return (Number) type.getDeclaredConstructor(String.class).newInstance(value);
+    } catch (InstantiationException
+        | IllegalAccessException
+        | InvocationTargetException
+        | NoSuchMethodException e) {
+      throw new IllegalStateException(e.getMessage(), e.getCause());
+    }
+  }
+
   private Property.FeelMode determineDefaultFeelModeBasedOnContext(
       final TemplateGenerationContext context, PropertyBuilder builder) {
-    if (builder instanceof NumberProperty.NumberPropertyBuilder
-        || builder instanceof BooleanProperty.BooleanPropertyBuilder) {
-      return Property.FeelMode.staticFeel;
-    } else {
-      return context instanceof TemplateGenerationContext.Inbound
-          ? Property.FeelMode.disabled
-          : Property.FeelMode.optional;
-    }
+    return context instanceof TemplateGenerationContext.Inbound
+        ? Property.FeelMode.disabled
+        : Property.FeelMode.optional;
   }
 
   private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {

@@ -319,7 +319,7 @@
     "label" : "Recursive",
     "description" : "Deletes all items contained by the folder",
     "optional" : false,
-    "value" : "=true",
+    "value" : true,
     "feel" : "static",
     "group" : "operation",
     "binding" : {
@@ -533,7 +533,7 @@
     "label" : "Search offset",
     "description" : "Offset for search results",
     "optional" : false,
-    "value" : "=0",
+    "value" : 0,
     "feel" : "static",
     "group" : "operation",
     "binding" : {
@@ -551,7 +551,7 @@
     "label" : "Search limit",
     "description" : "Limit",
     "optional" : false,
-    "value" : "=30",
+    "value" : 30,
     "feel" : "static",
     "group" : "operation",
     "binding" : {

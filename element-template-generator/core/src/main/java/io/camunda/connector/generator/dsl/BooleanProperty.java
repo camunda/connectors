@@ -25,7 +25,7 @@ public final class BooleanProperty extends Property {
       String label,
       String description,
       Boolean required,
-      String value,
+      Boolean value,
       GeneratedValue generatedValue,
       PropertyConstraints constraints,
       FeelMode feel,
@@ -60,14 +60,8 @@ public final class BooleanProperty extends Property {
     private BooleanPropertyBuilder() {}
 
     public BooleanProperty build() {
-      if (value != null) {
-        String valueWithoutFeel =
-            value.toString().startsWith("=") ? value.toString().substring(1) : value.toString();
-        if (!(valueWithoutFeel.equals(Boolean.TRUE.toString())
-            || valueWithoutFeel.equals(Boolean.FALSE.toString()))) {
-          throw new IllegalStateException("Value of a boolean property must be a boolean");
-        }
-        value = "=" + valueWithoutFeel;
+      if (value != null && !(value instanceof Boolean)) {
+        throw new IllegalStateException("Value of a boolean property must be a boolean");
       }
 
       return new BooleanProperty(
@@ -75,7 +69,7 @@ public final class BooleanProperty extends Property {
           label,
           description,
           optional,
-          (String) value,
+          (Boolean) value,
           generatedValue,
           constraints,
           feel,

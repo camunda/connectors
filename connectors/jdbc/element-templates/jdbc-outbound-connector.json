@@ -234,7 +234,8 @@
     "label" : "Return results",
     "description" : "Check this box if the SQL statement return results, e.g. a SELECT or any statement with a RETURNING clause",
     "optional" : false,
-    "value" : "=false",
+    "value" : false,
+    "feel" : "static",
     "group" : "query",
     "binding" : {
       "name" : "data.returnResults",
