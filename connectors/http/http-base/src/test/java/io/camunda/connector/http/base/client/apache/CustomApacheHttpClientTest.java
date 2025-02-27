@@ -157,6 +157,61 @@ public class CustomApacheHttpClientTest {
                       .withHeader("Content-Type", equalTo("text/plain"))
                       .build()));
     }
+
+    @Test
+    public void shouldReturn201_whenUploadDocuments(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
+      var ref =
+          store.createDocument(
+              DocumentCreationRequest.from("The content of this file".getBytes())
+                  .fileName("file.txt")
+                  .contentType("text/plain")
+                  .build());
+      var ref2 =
+          store.createDocument(
+              DocumentCreationRequest.from("The content of this file 2".getBytes())
+                  .fileName("file2.txt")
+                  .contentType("text/plain")
+                  .build());
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      var bodyMap = new HashMap<>();
+      bodyMap.put(
+          "documents",
+          List.of(
+              new CamundaDocument(ref.metadata(), ref, store),
+              new CamundaDocument(ref2.metadata(), ref2, store)));
+      bodyMap.put("otherField", "otherValue");
+      bodyMap.put("nullField", null);
+      request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setBody(bodyMap);
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(201);
+
+      verify(
+          postRequestedFor(urlEqualTo("/path"))
+              .withHeader(
+                  "Content-Type", and(containing("multipart/form-data"), containing("boundary=")))
+              .withRequestBodyPart(
+                  new MultipartValuePatternBuilder()
+                      .withName("otherField")
+                      .withBody(equalTo("otherValue"))
+                      .build())
+              .withRequestBodyPart(
+                  new MultipartValuePatternBuilder()
+                      .withName("documents")
+                      .withBody(equalTo("The content of this file"))
+                      .withHeader("Content-Type", equalTo("text/plain"))
+                      .build())
+              .withRequestBodyPart(
+                  new MultipartValuePatternBuilder()
+                      .withName("documents")
+                      .withBody(equalTo("The content of this file 2"))
+                      .withHeader("Content-Type", equalTo("text/plain"))
+                      .build()));
+    }
   }
 
   @Nested
