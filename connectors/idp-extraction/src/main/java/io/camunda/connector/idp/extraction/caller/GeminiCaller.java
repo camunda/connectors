@@ -30,7 +30,6 @@ public class GeminiCaller {
   private static final Logger LOGGER = LoggerFactory.getLogger(GeminiCaller.class);
 
   public String generateContent(ExtractionRequest extractionRequest) throws Exception {
-    LOGGER.debug("Starting gemini generate content with request data: {}", extractionRequest);
     LlmModel llmModel = LlmModel.fromId(extractionRequest.input().converseData().modelId());
     String fileUri;
     try {
