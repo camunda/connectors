@@ -25,6 +25,7 @@ import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -110,38 +111,48 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
       var llmResponseJson = objectMapper.readValue(llmResponse, JsonNode.class);
       var taxonomyItemsNames = taxonomyItems.stream().map(TaxonomyItem::name).toList();
 
-      if (llmResponseJson.has("response")
-          && llmResponseJson.size() == 1
-          && !taxonomyItemsNames.contains("response")) {
-        var nestedResponse = llmResponseJson.get("response");
-        if (nestedResponse.isObject()) {
-          llmResponseJson = nestedResponse;
-        } else if (nestedResponse.isTextual()) {
-          llmResponseJson = objectMapper.readValue(nestedResponse.asText(), JsonNode.class);
-        } else {
-          llmResponseJson = objectMapper.createObjectNode();
+      if (llmResponseJson.isObject()) {
+        if (llmResponseJson.has("response")
+            && llmResponseJson.size() == 1
+            && !taxonomyItemsNames.contains("response")) {
+          var nestedResponse = llmResponseJson.get("response");
+          if (nestedResponse.isObject()) {
+            llmResponseJson = nestedResponse;
+          } else if (nestedResponse.isTextual()) {
+            llmResponseJson = objectMapper.readValue(nestedResponse.asText(), JsonNode.class);
+          } else {
+            throw new ConnectorException(
+                String.valueOf(HttpStatus.SC_SERVER_ERROR),
+                String.format(
+                    "LLM response is neither a JSON object nor a string: %s", llmResponse));
+          }
         }
+
+        var result =
+            taxonomyItemsNames.stream()
+                .filter(llmResponseJson::has)
+                .collect(Collectors.toMap(name -> name, llmResponseJson::get));
+
+        var missingKeys =
+            taxonomyItemsNames.stream().filter(name -> !result.containsKey(name)).toList();
+        if (!missingKeys.isEmpty()) {
+          LOGGER.warn(
+              "LLM model response is missing the following keys: ({})",
+              String.join(", ", missingKeys));
+        }
+
+        return result;
+
+      } else {
+        throw new ConnectorException(
+            String.valueOf(HttpStatus.SC_SERVER_ERROR),
+            String.format("LLM response is not a JSON object: %s", llmResponse));
       }
-
-      var result =
-          taxonomyItemsNames.stream()
-              .filter(llmResponseJson::has)
-              .collect(Collectors.toMap(name -> name, llmResponseJson::get));
-
-      var missingKeys =
-          taxonomyItemsNames.stream().filter(name -> !result.containsKey(name)).toList();
-      if (!missingKeys.isEmpty()) {
-        LOGGER.warn(
-            "LLM model response is missing the following keys: ({})",
-            String.join(", ", missingKeys));
-      }
-
-      return result;
     } catch (JsonProcessingException e) {
-      LOGGER.error(
+      throw new ConnectorException(
+          String.valueOf(HttpStatus.SC_SERVER_ERROR),
           String.format("Failed to parse the JSON response from LLM: %s", llmResponse),
-          e.getMessage());
-      return Map.of();
+          e);
     }
   }
 

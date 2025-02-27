@@ -7,11 +7,13 @@
 package io.camunda.connector.idp.extraction;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
@@ -120,7 +122,44 @@ class ExtractionConnectorFunctionTest {
 
   @Test
   void
-      executeExtractionReturnsEmptyResult_whenLlmResponseContainsNestedResponseWithInvalidStringifiedObject()
+      executeExtractionShouldThrowConnectorException_whenLlmResponseContainsInvalidStringifiedObject()
+          throws Exception {
+    var outBounderContext = prepareConnectorContext();
+
+    when(pollingTextractCaller.call(any(), any(), any(), any()))
+        .thenReturn("Test extracted text from test document.pdf");
+    when(bedrockCaller.call(any(), any(), any()))
+        .thenReturn(
+            """
+                        {
+                        """);
+
+    assertThatThrownBy(() -> extractionConnectorFunction.execute(outBounderContext))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Failed to parse the JSON response");
+  }
+
+  @Test
+  void executeExtractionShouldThrowConnectorException_whenLlmResponseIsNotJsonObject()
+      throws Exception {
+    var outBounderContext = prepareConnectorContext();
+
+    when(pollingTextractCaller.call(any(), any(), any(), any()))
+        .thenReturn("Test extracted text from test document.pdf");
+    when(bedrockCaller.call(any(), any(), any()))
+        .thenReturn(
+            """
+                        []
+                        """);
+
+    assertThatThrownBy(() -> extractionConnectorFunction.execute(outBounderContext))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("LLM response is not a JSON object");
+  }
+
+  @Test
+  void
+      executeExtractionShouldThrowConnectorException_whenLlmResponseContainsNestedResponseWithInvalidStringifiedObject()
           throws Exception {
     var outBounderContext = prepareConnectorContext();
 
@@ -134,13 +173,15 @@ class ExtractionConnectorFunctionTest {
                         }
                         """);
 
-    var result = extractionConnectorFunction.execute(outBounderContext);
-    assertExtractionResult(result, Map.of());
+    assertThatThrownBy(() -> extractionConnectorFunction.execute(outBounderContext))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Failed to parse the JSON response");
   }
 
   @Test
-  void executeExtractionReturnsEmptyResult_whenLlmResponseContainsInvalidStringifiedObject()
-      throws Exception {
+  void
+      executeExtractionShouldThrowConnectorException_whenLlmResponseContainsNestedResponseWithJsonArray()
+          throws Exception {
     var outBounderContext = prepareConnectorContext();
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
@@ -149,10 +190,13 @@ class ExtractionConnectorFunctionTest {
         .thenReturn(
             """
                         {
+                          "response": []
+                        }
                         """);
 
-    var result = extractionConnectorFunction.execute(outBounderContext);
-    assertExtractionResult(result, Map.of());
+    assertThatThrownBy(() -> extractionConnectorFunction.execute(outBounderContext))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("LLM response is neither a JSON object nor a string");
   }
 
   private void assertExtractionResult(Object result, Map<String, JsonNode> expectedResponse) {
