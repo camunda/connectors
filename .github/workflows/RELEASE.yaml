@@ -101,7 +101,6 @@ jobs:
           include-hidden-files: 'true'
 
   maven-release:
-    if: "! contains(github.event.release.tag_name, 'rc')"
     needs: setup
     name: Create a maven release
     runs-on: ubuntu-latest
@@ -168,7 +167,18 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
+        if: "! contains(github.event.release.tag_name, 'rc')"
         run: mvn deploy -DskipTests -PcheckFormat -Psonatype-oss-release
+        env:
+          NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+          NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+          MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
+          MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
+          MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+
+      - name: Deploy artifacts to Artifactory and Maven Central (Staging)
+        if: "contains(github.event.release.tag_name, 'rc')"
+        run: mvn deploy -DskipTests -PcheckFormat -Psonatype-oss-release -Dskip.central.release=true
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
