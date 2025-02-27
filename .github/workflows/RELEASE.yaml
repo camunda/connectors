@@ -176,7 +176,7 @@ jobs:
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
-      - name: Deploy artifacts to Artifactory and Maven Central (Staging)
+      - name: Deploy artifacts to Artifactory
         if: "contains(github.event.release.tag_name, 'rc')"
         run: mvn deploy -DskipTests -PcheckFormat -Psonatype-oss-release -Dskip.central.release=true
         env:
