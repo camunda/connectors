@@ -28,6 +28,7 @@ import io.camunda.document.Document;
 import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -128,6 +129,7 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
     for (Map.Entry<?, ?> entry : body.entrySet()) {
       switch (entry.getValue()) {
         case Document document -> streamDocumentContent(entry, document, builder);
+        case List<?> list -> tryStreamDocumentListContent(entry, list, builder);
         case null -> {}
         default ->
             builder.addTextBody(
@@ -137,6 +139,17 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
       }
     }
     return builder.build();
+  }
+
+  private void tryStreamDocumentListContent(
+      Map.Entry<?, ?> entry, List<?> list, MultipartEntityBuilder builder) {
+    for (Object item : list) {
+      if (item instanceof Document document) {
+        streamDocumentContent(entry, document, builder);
+      } else {
+        builder.addTextBody(String.valueOf(entry.getKey()), String.valueOf(item));
+      }
+    }
   }
 
   private void streamDocumentContent(
