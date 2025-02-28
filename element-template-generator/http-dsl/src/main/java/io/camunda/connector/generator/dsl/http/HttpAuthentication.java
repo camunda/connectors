@@ -87,14 +87,15 @@ public interface HttpAuthentication {
               .group("authentication")
               .binding(new ZeebeInput("authentication.scopes")));
     }
-    if (auth instanceof BasicAuth) {
+    if (auth instanceof BasicAuth basic) {
       return List.of(
           HiddenProperty.builder()
+              .id(BasicAuthentication.TYPE + "." + basic.key)
               .value(BasicAuthentication.TYPE)
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")),
           StringProperty.builder()
-              .id("authentication.username")
+              .id("authentication.username" + "." + auth.id())
               .label("Username")
               .optional(false)
               .constraints(PropertyConstraints.builder().notEmpty(true).build())
@@ -102,7 +103,7 @@ public interface HttpAuthentication {
               .group("authentication")
               .binding(new ZeebeInput("authentication.username")),
           StringProperty.builder()
-              .id("authentication.password")
+              .id("authentication.password" + "." + auth.id())
               .label("Password")
               .optional(false)
               .constraints(PropertyConstraints.builder().notEmpty(true).build())
@@ -136,24 +137,25 @@ public interface HttpAuthentication {
     if (auth instanceof ApiKey apiKey) {
       return List.of(
           HiddenProperty.builder()
+              .id(ApiKeyAuthentication.TYPE + "." + apiKey.key)
               .value(ApiKeyAuthentication.TYPE)
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")),
           HiddenProperty.builder()
+              .id("authentication.apiKeyLocation." + apiKey.key)
               .value(apiKey.in)
               .group("authentication")
               .binding(new ZeebeInput("authentication.apiKeyLocation")),
-          StringProperty.builder()
-              .id("authentication.name")
+          HiddenProperty.builder()
+              .id("authentication.name." + apiKey.key)
               .label("API key name")
               .value(apiKey.key() != null ? apiKey.key() : "")
               .optional(false)
               .constraints(PropertyConstraints.builder().notEmpty(true).build())
-              .feel(FeelMode.optional)
               .group("authentication")
               .binding(new ZeebeInput("authentication.name")),
           StringProperty.builder()
-              .id("authentication.value")
+              .id("authentication.value." + apiKey.key)
               .label("API key value")
               .value(apiKey.value() != null ? apiKey.value() : "")
               .optional(false)
@@ -189,7 +191,19 @@ public interface HttpAuthentication {
 
   class BasicAuth implements HttpAuthentication {
 
-    public static final BasicAuth INSTANCE = new BasicAuth();
+    public final String key;
+
+    public BasicAuth(String key) {
+      this.key = key;
+    }
+
+    public BasicAuth() {
+      this.key = "";
+    }
+
+    public static BasicAuth of(String key) {
+      return new BasicAuth(key);
+    }
 
     @Override
     public String label() {
@@ -198,7 +212,7 @@ public interface HttpAuthentication {
 
     @Override
     public String id() {
-      return BasicAuthentication.TYPE;
+      return BasicAuthentication.TYPE + "." + key;
     }
   }
 
@@ -211,7 +225,7 @@ public interface HttpAuthentication {
 
     @Override
     public String id() {
-      return ApiKeyAuthentication.TYPE;
+      return ApiKeyAuthentication.TYPE + "." + key;
     }
   }
 

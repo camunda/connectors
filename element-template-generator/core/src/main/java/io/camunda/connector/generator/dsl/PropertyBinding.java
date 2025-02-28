@@ -25,6 +25,22 @@ public sealed interface PropertyBinding {
 
   record ZeebeInput(String name) implements PropertyBinding {
 
+    public ZeebeInput(String name) {
+      this.name = sanitizeName(name);
+    }
+
+    private static String sanitizeName(String name) {
+      // Replace invalid characters (e.g., dashes) with underscores
+      String sanitized = name.replaceAll("[^a-zA-Z0-9_.]", "_");
+
+      // Ensure it starts with a letter or underscore
+      if (!sanitized.matches("[a-zA-Z_].*")) {
+        sanitized = "_" + sanitized;
+      }
+
+      return sanitized;
+    }
+
     @Override
     public String type() {
       return "zeebe:input";
