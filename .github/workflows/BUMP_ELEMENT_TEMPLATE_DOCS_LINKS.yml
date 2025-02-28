@@ -56,20 +56,20 @@ jobs:
           cd camunda-docs
           if diff -q connectors-element-template-links.txt ../connectors-element-template-links.txt > /dev/null; then
             echo "No changes to commit."
-            echo "NO_CHANGES=true" >> $GITHUB_ENV
+            echo "CHANGES_DETECTED=false" >> $GITHUB_ENV
           else
             echo "Changes detected."
-            echo "NO_CHANGES=false" >> $GITHUB_ENV
+            echo "CHANGES_DETECTED=true" >> $GITHUB_ENV
           fi
 
       - name: Exit if no changes
-        if: env.NO_CHANGES == 'true'
+        if: env.CHANGES_DETECTED == 'false'
         run: |
           echo "No changes detected, exiting successfully."
           exit 0
 
-      - name: Create branch, commit, and push changes
-        if: env.NO_CHANGES == 'false'
+      - name: Create Docs Pull Request
+        if: env.CHANGES_DETECTED == 'true'
         run: |
           cd camunda-docs
           git config --local user.email "github-actions@github.com"
