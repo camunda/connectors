@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 
-public record ExtractionResult(Map<String, JsonNode> response) {}
+public record ExtractionResult(Map<String, Object> response) {}

@@ -105,7 +105,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
-  private Map<String, JsonNode> buildResponseJsonIfPossible(
+  private Map<String, Object> buildResponseJsonIfPossible(
       String llmResponse, List<TaxonomyItem> taxonomyItems) {
     try {
       var llmResponseJson = objectMapper.readValue(llmResponse, JsonNode.class);
@@ -128,7 +128,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
           }
         }
 
-        var result =
+        Map<String, Object> result =
             taxonomyItemsNames.stream()
                 .filter(llmResponseJson::has)
                 .collect(Collectors.toMap(name -> name, llmResponseJson::get));
