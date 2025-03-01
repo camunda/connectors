@@ -7,6 +7,10 @@
 package io.camunda.connector.idp.extraction.model;
 
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
-@Deprecated
-public class BaseRequest extends AwsBaseRequest {}
+public record ProviderConfiguration(
+    @TemplateProperty(group = "awsRequest", type = TemplateProperty.PropertyType.Hidden)
+        AwsBaseRequest awsRequest,
+    @TemplateProperty(group = "geminiRequest", type = TemplateProperty.PropertyType.Hidden)
+        GeminiBaseRequest geminiRequest) {}
