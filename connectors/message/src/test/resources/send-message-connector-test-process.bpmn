@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1ngtngx" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.32.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
-  <bpmn:process id="SendMessageConnectorTestProcess" name="Send Message Connector Test Process" isExecutable="true">
-    <bpmn:startEvent id="StartEvent_1" name="test with message connector">
+  <bpmn:process id="PublishMessageConnectorTestProcess" name="Publish Message Connector Test Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Test of message connector requested">
       <bpmn:outgoing>Flow_1phz57v</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_1phz57v" sourceRef="StartEvent_1" targetRef="Activity_1o5b0m7" />
     <bpmn:sequenceFlow id="Flow_18fej0t" sourceRef="Activity_0guy275" targetRef="Event_068f4p6" />
     <bpmn:sequenceFlow id="Flow_19d8dkm" sourceRef="Event_068f4p6" targetRef="Event_1teg028" />
-    <bpmn:sendTask id="Activity_0guy275" name="Send message" zeebe:modelerTemplate="io.camunda.connectors.message.sendtask.v1" zeebe:modelerTemplateVersion="0">
+    <bpmn:sendTask id="Activity_0guy275" name="Publish message" zeebe:modelerTemplate="io.camunda.connectors.message.sendtask.v1" zeebe:modelerTemplateVersion="0">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda:sendMessage:1" retries="3" />
         <zeebe:ioMapping>
@@ -23,7 +23,7 @@
       <bpmn:incoming>Flow_0ms30wg</bpmn:incoming>
       <bpmn:outgoing>Flow_18fej0t</bpmn:outgoing>
     </bpmn:sendTask>
-    <bpmn:intermediateThrowEvent id="Event_068f4p6" name="intermediate message sent" zeebe:modelerTemplate="io.camunda.connectors.message.intermediate.v1" zeebe:modelerTemplateVersion="0">
+    <bpmn:intermediateThrowEvent id="Event_068f4p6" name="Intermediate message published" zeebe:modelerTemplate="io.camunda.connectors.message.intermediate.v1" zeebe:modelerTemplateVersion="0">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda:sendMessage:1" retries="3" />
         <zeebe:ioMapping>
@@ -41,7 +41,7 @@
       <bpmn:outgoing>Flow_19d8dkm</bpmn:outgoing>
       <bpmn:messageEventDefinition id="MessageEventDefinition_1m7cbvq" />
     </bpmn:intermediateThrowEvent>
-    <bpmn:endEvent id="Event_1teg028" name="Message test done" zeebe:modelerTemplate="io.camunda.connectors.message.end.v1" zeebe:modelerTemplateVersion="0">
+    <bpmn:endEvent id="Event_1teg028" name="Publish message test done" zeebe:modelerTemplate="io.camunda.connectors.message.end.v1" zeebe:modelerTemplateVersion="0">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda:sendMessage:1" retries="3" />
         <zeebe:ioMapping>
@@ -68,26 +68,27 @@
     </bpmn:scriptTask>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="SendMessageConnectorTestProcess">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="PublishMessageConnectorTestProcess">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
         <dc:Bounds x="182" y="102" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="156" y="145" width="89" height="27" />
+          <dc:Bounds x="161" y="145" width="81" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1pmmy19_di" bpmnElement="Activity_0guy275">
         <dc:Bounds x="400" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_0vmy9hs_di" bpmnElement="Event_068f4p6">
         <dc:Bounds x="532" y="102" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="516" y="145" width="69" height="27" />
+          <dc:Bounds x="520" y="145" width="62" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_0swh9zq_di" bpmnElement="Event_1teg028">
         <dc:Bounds x="612" y="102" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="597" y="145" width="66" height="27" />
+          <dc:Bounds x="591" y="145" width="84" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0v9v47y_di" bpmnElement="Activity_1o5b0m7">

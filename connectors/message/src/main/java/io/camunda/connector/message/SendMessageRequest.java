@@ -18,11 +18,12 @@ public record SendMessageRequest(
             defaultValue = "publish",
             type = TemplateProperty.PropertyType.Dropdown,
             choices = {
-              @TemplateProperty.DropdownPropertyChoice(label = "publish message", value = "publish")
-              //              ,
-              //              @TemplateProperty.DropdownPropertyChoice(
-              //                  label = "correlate message",
-              //                  value = "correlate")
+              @TemplateProperty.DropdownPropertyChoice(
+                  label = "publish message (buffered)",
+                  value = "publish"),
+              @TemplateProperty.DropdownPropertyChoice(
+                  label = "correlate message (with result)",
+                  value = "correlate")
             })
         String mode,
     @NotBlank String messageName,
@@ -30,11 +31,13 @@ public record SendMessageRequest(
     @TemplateProperty(optional = true, label = "Payload") Map<String, Object> variables,
     @TemplateProperty(
             condition = @PropertyCondition(property = "mode", equals = "publish"),
-            optional = true)
+            optional = true,
+            label = "Time to live (in ms)")
         Duration timeToLive,
     @TemplateProperty(
             condition = @PropertyCondition(property = "mode", equals = "publish"),
-            optional = true)
+            optional = true,
+            label = "Message id (optional)")
         String messageId,
     @TemplateProperty(optional = true) String tenantId,
     @TemplateProperty(optional = true) Duration requestTimeout) {}

@@ -47,8 +47,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "publish message",
+      "name" : "publish message (buffered)",
       "value" : "publish"
+    }, {
+      "name" : "correlate message (with result)",
+      "value" : "correlate"
     } ]
   }, {
     "id" : "messageName",
@@ -87,7 +90,7 @@
     "type" : "String"
   }, {
     "id" : "timeToLive",
-    "label" : "Time to live",
+    "label" : "Time to live (in ms)",
     "optional" : true,
     "feel" : "optional",
     "group" : "default",
@@ -103,7 +106,7 @@
     "type" : "String"
   }, {
     "id" : "messageId",
-    "label" : "Message id",
+    "label" : "Message id (optional)",
     "optional" : true,
     "feel" : "optional",
     "group" : "default",
@@ -194,5 +197,8 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
-  } ]
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZwogICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHdpZHRoPSIyMDAwIgogICBoZWlnaHQ9IjIwMDAiCiAgIHZpZXdCb3g9IjAgMCAyMDAwIDIwMDAiCiAgIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIj4KICA8cGF0aAogICAgIHN0eWxlPSJjb2xvcjojMDAwMDAwIgogICAgIGQ9Im0gMCwyODQgMjAwMCwwIC0xMDAwLDU1NCB6Ii8+CiAgPHBhdGgKICAgICBzdHlsZT0iY29sb3I6IzAwMDAwMCIKICAgICBkPSJtIDAsNDUyIDEwMDAsNTQ4IDEwMDAsLTU0OCAwLDEwOTYgLTIwMDAsMCB6Ii8+Cjwvc3ZnPgo="
+  }
 }

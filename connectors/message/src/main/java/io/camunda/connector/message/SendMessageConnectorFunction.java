@@ -14,8 +14,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.runtime.app.ZeebeClientContext;
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.command.CorrelateMessageCommandStep1.CorrelateMessageCommandStep2;
+import io.camunda.zeebe.client.api.command.CorrelateMessageCommandStep1.CorrelateMessageCommandStep3;
 import io.camunda.zeebe.client.api.command.PublishMessageCommandStep1.PublishMessageCommandStep2;
 import io.camunda.zeebe.client.api.command.PublishMessageCommandStep1.PublishMessageCommandStep3;
+import io.camunda.zeebe.client.api.response.CorrelateMessageResponse;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +40,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.message.v1",
     inputDataClass = SendMessageRequest.class,
     name = "Send Message Connector",
+    icon = "send.svg",
     elementTypes = {
       @ConnectorElementType(
           elementType = BpmnType.INTERMEDIATE_THROW_EVENT,
@@ -90,32 +94,34 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
         publishMessageCommand.requestTimeout(messageRequest.requestTimeout());
       }
       PublishMessageResponse publishMessageResponse = publishMessageCommand.send().join();
-      LOG.debug("message published: {}", publishMessageResponse);
+      LOG.debug("message published with messageKey {}", publishMessageResponse.getMessageKey());
       return publishMessageResponse;
-      //    } else if ("correlate".equals(messageRequest.mode())) {
-      //      CorrelateMessageCommandStep2 correlateMessageCommand =
-      //
-      // zeebeClient.newCorrelateMessageCommand().messageName(messageRequest.messageName());
-      //      CorrelateMessageCommandStep3 correlateMessageCommandStep3;
-      //      if (messageRequest.correlationKey().isBlank()) {
-      //        correlateMessageCommandStep3 = correlateMessageCommand.withoutCorrelationKey();
-      //      } else {
-      //        correlateMessageCommandStep3 =
-      //            correlateMessageCommand.correlationKey(messageRequest.correlationKey());
-      //      }
-      //      if (messageRequest.variables() != null) {
-      //        correlateMessageCommandStep3.variables(messageRequest.variables());
-      //      }
-      //      if (messageRequest.tenantId() != null) {
-      //        correlateMessageCommandStep3.tenantId(messageRequest.tenantId());
-      //      }
-      //      if (messageRequest.requestTimeout() != null) {
-      //        correlateMessageCommandStep3.requestTimeout(messageRequest.requestTimeout());
-      //      }
-      //      CorrelateMessageResponse correlateMessageResponse =
-      //          correlateMessageCommandStep3.send().join();
-      //      LOG.debug("message correlated: {}", correlateMessageResponse);
-      //      return correlateMessageResponse;
+    } else if ("correlate".equals(messageRequest.mode())) {
+      CorrelateMessageCommandStep2 correlateMessageCommand =
+          zeebeClient.newCorrelateMessageCommand().messageName(messageRequest.messageName());
+      CorrelateMessageCommandStep3 correlateMessageCommandStep3;
+      if (messageRequest.correlationKey() == null || messageRequest.correlationKey().isBlank()) {
+        correlateMessageCommandStep3 = correlateMessageCommand.withoutCorrelationKey();
+      } else {
+        correlateMessageCommandStep3 =
+            correlateMessageCommand.correlationKey(messageRequest.correlationKey());
+      }
+      if (messageRequest.variables() != null) {
+        correlateMessageCommandStep3.variables(messageRequest.variables());
+      }
+      if (messageRequest.tenantId() != null) {
+        correlateMessageCommandStep3.tenantId(messageRequest.tenantId());
+      }
+      if (messageRequest.requestTimeout() != null) {
+        correlateMessageCommandStep3.requestTimeout(messageRequest.requestTimeout());
+      }
+      CorrelateMessageResponse correlateMessageResponse =
+          correlateMessageCommandStep3.send().join();
+      LOG.debug(
+          "message correlated with message key {} and process instance key {}",
+          correlateMessageResponse.getMessageKey(),
+          correlateMessageResponse.getProcessInstanceKey());
+      return correlateMessageResponse;
     } else {
       throw new Exception("mode '" + messageRequest.mode() + "' not supported");
     }
