@@ -161,6 +161,7 @@ public record BoxRequest(
             String folderPath,
         @TemplateProperty(
                 defaultValue = "true",
+                defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 group = "operation",
                 label = "Recursive",
                 description = "Deletes all items contained by the folder")
@@ -236,12 +237,14 @@ public record BoxRequest(
             SortDirection sortDirection,
         @TemplateProperty(
                 id = "searchOffset",
+                defaultValueType = TemplateProperty.DefaultValueType.Number,
                 defaultValue = "0",
                 description = "Offset for search results",
                 group = "operation")
             Long offset,
         @TemplateProperty(
                 id = "searchLimit",
+                defaultValueType = TemplateProperty.DefaultValueType.Number,
                 defaultValue = "30",
                 description = "Limit",
                 group = "operation")

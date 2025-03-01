@@ -241,7 +241,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.analyzeTables",
@@ -256,7 +256,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.analyzeForms",
@@ -271,7 +271,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.analyzeSignatures",
@@ -286,7 +286,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.analyzeLayout",
