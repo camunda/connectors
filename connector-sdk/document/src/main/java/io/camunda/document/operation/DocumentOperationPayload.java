@@ -16,11 +16,6 @@
  */
 package io.camunda.document.operation;
 
-import io.camunda.document.Document;
+import java.util.List;
 
-public interface DocumentOperationExecutor {
-
-  boolean matches(DocumentOperation operationReference);
-
-  Object execute(DocumentOperation operationReference, Document document);
-}
+public record DocumentOperationPayload(List<Object> params) {}

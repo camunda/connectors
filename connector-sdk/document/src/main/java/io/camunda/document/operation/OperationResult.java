@@ -16,6 +16,39 @@
  */
 package io.camunda.document.operation;
 
-import java.util.Map;
+public sealed interface OperationResult<T> {
 
-public record DocumentOperation(String name, Map<String, Object> params) {}
+  record Success<T>(T result) implements OperationResult<T> {}
+
+  sealed interface Failure<T> extends OperationResult<T> {
+    String errorMessage();
+
+    Throwable cause();
+
+    record ValidationFailure<T>(String errorMessage) implements Failure<T> {
+      @Override
+      public Throwable cause() {
+        return null;
+      }
+    }
+
+    record ExecutionFailure<T>(String errorMessage, Throwable cause) implements Failure<T> {
+
+      public ExecutionFailure(String errorMessage) {
+        this(errorMessage, null);
+      }
+
+      public ExecutionFailure(Throwable cause) {
+        this(null, cause);
+      }
+    }
+  }
+
+  default boolean isSuccess() {
+    return this instanceof Success;
+  }
+
+  default boolean isFailure() {
+    return this instanceof Failure;
+  }
+}

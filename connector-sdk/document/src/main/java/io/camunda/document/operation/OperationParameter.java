@@ -18,15 +18,31 @@ package io.camunda.document.operation;
 
 import io.camunda.document.Document;
 
-public class Base64OperationExecutor implements DocumentOperationExecutor {
+/** Represents a parameter of an operation. */
+public sealed interface OperationParameter {
 
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return "base64".equalsIgnoreCase(operationReference.name());
+  /** Represents a document parameter that is passed to an operation. */
+  record DocumentParameter(Document document) implements OperationParameter {}
+
+  /**
+   * Represents a value parameter that is passed to an operation. A value parameter is any value
+   * other than a document.
+   */
+  record ValueParameter(Object object) implements OperationParameter {}
+
+  default boolean isDocumentParameter() {
+    return this instanceof DocumentParameter;
   }
 
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return document.asBase64();
+  default boolean isValueParameter() {
+    return this instanceof ValueParameter;
+  }
+
+  default Document asDocumentParameter() {
+    return ((DocumentParameter) this).document;
+  }
+
+  default Object asValueParameter() {
+    return ((ValueParameter) this).object;
   }
 }
