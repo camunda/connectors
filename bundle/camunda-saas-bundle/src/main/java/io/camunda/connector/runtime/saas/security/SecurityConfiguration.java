@@ -53,19 +53,21 @@ public class SecurityConfiguration {
   @Value("${camunda.endpoints.cors.allowed-origins:}")
   private String allowedOrigins;
 
-  private static final List<String> corsEndpoints = List.of("/inbound-instances/**", "/tenants/**");
+  @Value("${camunda.endpoints.cors.mappings:}")
+  private String mappings;
 
   @Bean
   public WebMvcConfigurer corsConfigurer() {
     return new WebMvcConfigurer() {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
-        if (StringUtils.isNotBlank(allowedOrigins)) {
+        if (StringUtils.isNotBlank(allowedOrigins) && StringUtils.isNotBlank(mappings)) {
           String[] allowedOriginsArray = allowedOrigins.split(",");
-          corsEndpoints.forEach(
-              endpoint ->
+          List<String> mappingsList = List.of(mappings.split(","));
+          mappingsList.forEach(
+              mapping ->
                   registry
-                      .addMapping(endpoint)
+                      .addMapping(mapping)
                       .allowedOrigins(allowedOriginsArray)
                       .allowedMethods("*"));
         }
