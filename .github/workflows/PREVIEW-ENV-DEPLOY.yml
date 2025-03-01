@@ -7,10 +7,15 @@ on:
 
 jobs:
   deploy-preview:
+    # permission needed for the camunda/infra-global-github-actions/preview-env/create
+    # action to have access to Kubernetes events
+    permissions:
+      contents: read
+      deployments: write
+      id-token: write
     # checks that the PR isn't closed AND check whether the labeled event contains deploy-preview as substring || check whether on new commit of PR the label deploy-preview is part of label array
     if: github.event.pull_request.state != 'closed' && (contains( github.event.label.name, 'deploy-preview') || contains( github.event.pull_request.labels.*.name, 'deploy-preview'))
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
     name: deploy-preview-env-${{ matrix.product_context }}
     env:
       BRANCH_NAME: ${{ github.head_ref }} # head_ref = branch on PR
@@ -78,6 +83,8 @@ jobs:
         app_url: https://${{ steps.sanitize.outputs.branch_name }}-${{ matrix.product_context }}.connectors.camunda.cloud
         argocd_arguments: ${{ env.argocd_arguments }}
         argocd_server: argocd.int.camunda.com
+        argocd_wait_for_sync_timeout: "7200" # waits up to 120 minutes
+        github_token: ${{ secrets.GITHUB_TOKEN }}
   conflicts:
     if: always() && github.event_name == 'pull_request' && (contains( github.event.label.name, 'deploy-preview') || contains( github.event.pull_request.labels.*.name, 'deploy-preview'))
     runs-on: ubuntu-24.04
