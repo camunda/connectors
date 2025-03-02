@@ -15,9 +15,8 @@ import io.camunda.connector.idp.extraction.model.GeminiRequestConfiguration;
 import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
 import io.camunda.google.model.Authentication;
 import io.camunda.google.model.AuthenticationType;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
+import org.junit.jupiter.api.Test;
 
 class VertexAISupplierTest {
 
@@ -28,7 +27,8 @@ class VertexAISupplierTest {
   @Test
   void getVertexAI_withBearerToken() throws IOException {
     // Given
-    GeminiBaseRequest baseRequest = createBaseRequest(
+    GeminiBaseRequest baseRequest =
+        createBaseRequest(
             new Authentication(AuthenticationType.BEARER, "test-token", null, null, null));
 
     // When
@@ -39,14 +39,17 @@ class VertexAISupplierTest {
     assertThat(vertexAI).isInstanceOf(VertexAI.class);
     assertThat(vertexAI.getProjectId()).isEqualTo(PROJECT_ID);
     assertThat(vertexAI.getLocation()).isEqualTo(REGION);
-    assertThat(vertexAI.getCredentials()).isEqualTo(getCredentials(baseRequest.getAuthentication()));
+    assertThat(vertexAI.getCredentials())
+        .isEqualTo(getCredentials(baseRequest.getAuthentication()));
   }
 
   @Test
   void getVertexAI_withRefreshToken() throws IOException {
     // Given
-    GeminiBaseRequest baseRequest = createBaseRequest(
-            new Authentication(AuthenticationType.REFRESH, null, "refresh-token", "client-id", "client-secret"));
+    GeminiBaseRequest baseRequest =
+        createBaseRequest(
+            new Authentication(
+                AuthenticationType.REFRESH, null, "refresh-token", "client-id", "client-secret"));
 
     // When
     VertexAI vertexAI = VertexAISupplier.getVertexAI(baseRequest);
@@ -56,12 +59,13 @@ class VertexAISupplierTest {
     assertThat(vertexAI).isInstanceOf(VertexAI.class);
     assertThat(vertexAI.getProjectId()).isEqualTo(PROJECT_ID);
     assertThat(vertexAI.getLocation()).isEqualTo(REGION);
-    assertThat(vertexAI.getCredentials()).isEqualTo(getCredentials(baseRequest.getAuthentication()));
+    assertThat(vertexAI.getCredentials())
+        .isEqualTo(getCredentials(baseRequest.getAuthentication()));
   }
 
   private GeminiBaseRequest createBaseRequest(Authentication authentication) {
-    GeminiRequestConfiguration configuration = new GeminiRequestConfiguration(
-            REGION, PROJECT_ID, BUCKET_NAME, null, null);
+    GeminiRequestConfiguration configuration =
+        new GeminiRequestConfiguration(REGION, PROJECT_ID, BUCKET_NAME, null, null);
 
     GeminiBaseRequest baseRequest = new GeminiBaseRequest();
     baseRequest.setAuthentication(authentication);

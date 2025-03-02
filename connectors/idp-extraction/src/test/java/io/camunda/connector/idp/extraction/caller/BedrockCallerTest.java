@@ -11,9 +11,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
-import io.camunda.connector.idp.extraction.model.ProviderConfiguration;
+import io.camunda.connector.idp.extraction.model.ProviderConfig;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
@@ -44,13 +43,12 @@ class BedrockCallerTest {
     when(converseResponse.output().message().content().getFirst().text())
         .thenReturn(expectedResponse);
 
-    AwsBaseRequest baseRequest = new AwsBaseRequest();
-    ProviderConfiguration providerConfiguration = new ProviderConfiguration(baseRequest, null);
+    ProviderConfig.AwsConfiguration baseRequest = new ProviderConfig.AwsConfiguration();
     ExtractionRequest extractionRequest =
-        new ExtractionRequest(
-            ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, null, providerConfiguration);
+        new ExtractionRequest(ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, baseRequest);
 
-    String bedrockResponse = bedrockCaller.call(extractionRequest, "", bedrockRuntimeClient);
+    String bedrockResponse =
+        bedrockCaller.call(extractionRequest.input(), "", bedrockRuntimeClient);
 
     assertEquals(expectedResponse, bedrockResponse);
   }

@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "IDP extraction outbound Connector",
-    inputVariables = {"baseRequest", "providerConfiguration", "input"},
+    inputVariables = {"baseRequest", "input"},
     type = "io.camunda:idp-extraction-connector-template:1")
 @ElementTemplate(
     id = "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
@@ -78,45 +78,43 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) {
     final var extractionRequest = context.bindVariables(ExtractionRequest.class);
-
-    return switch (extractionRequest.input().extractionEngineType()) {
-      case GCP_GEMINI -> extractUsingGcp(extractionRequest);
-      case APACHE_PDFBOX, AWS_TEXTRACT -> extractUsingAws(extractionRequest);
+    final var input = extractionRequest.input();
+    return switch (extractionRequest.baseRequest()) {
+      case ProviderConfig.AwsConfiguration aws -> extractUsingAws(input, aws);
+      case ProviderConfig.GeminiConfiguration gemini -> extractUsingGcp(input, gemini);
     };
   }
 
-  private ExtractionResult extractUsingGcp(ExtractionRequest extractionRequest) {
+  private ExtractionResult extractUsingGcp(
+      ExtractionRequestData input, GeminiBaseRequest baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
-      Object result = geminiCaller.generateContent(extractionRequest);
+      Object result = geminiCaller.generateContent(input, baseRequest);
       long endTime = System.currentTimeMillis();
       LOGGER.info("Gemini content extraction took {} ms", (endTime - startTime));
       return new ExtractionResult(result);
     } catch (Exception e) {
       LOGGER.error(
-          "Document extraction via {} failed: {}",
-          extractionRequest.input().extractionEngineType(),
-          e.getMessage());
+          "Document extraction via {} failed: {}", input.extractionEngineType(), e.getMessage());
       throw new ConnectorException(e);
     }
   }
 
-  private ExtractionResult extractUsingAws(ExtractionRequest extractionRequest) {
-    AwsBaseRequest baseRequest = getAwsBaseRequest(extractionRequest);
+  private ExtractionResult extractUsingAws(
+      ExtractionRequestData input, AwsBaseRequest baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
       String extractedText =
-          switch (extractionRequest.input().extractionEngineType()) {
-            case AWS_TEXTRACT ->
-                extractTextUsingAwsTextract(extractionRequest.input(), baseRequest);
-            case APACHE_PDFBOX -> extractTextUsingApachePdf(extractionRequest);
+          switch (input.extractionEngineType()) {
+            case AWS_TEXTRACT -> extractTextUsingAwsTextract(input, baseRequest);
+            case APACHE_PDFBOX -> extractTextUsingApachePdf(input);
             default ->
                 throw new ConnectorException("Unsupported extraction engine for AWS provider");
           };
 
       String bedrockResponse =
           bedrockCaller.call(
-              extractionRequest,
+              input,
               extractedText,
               bedrockRuntimeClientSupplier.getBedrockRuntimeClient(baseRequest));
       long endTime = System.currentTimeMillis();
@@ -137,21 +135,9 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
         s3ClientSupplier.getAsyncS3Client(baseRequest));
   }
 
-  private String extractTextUsingApachePdf(ExtractionRequest extractionRequest) throws Exception {
-    PDDocument document = Loader.loadPDF(extractionRequest.input().document().asByteArray());
+  private String extractTextUsingApachePdf(ExtractionRequestData input) throws Exception {
+    PDDocument document = Loader.loadPDF(input.document().asByteArray());
     PDFTextStripper pdfStripper = new PDFTextStripper();
     return pdfStripper.getText(document);
-  }
-
-  // for compatibility with older versions of web-modeler
-  private AwsBaseRequest getAwsBaseRequest(ExtractionRequest extractionRequest) {
-    if (extractionRequest.baseRequest() != null) {
-      return extractionRequest.baseRequest();
-    } else if (extractionRequest.providerConfiguration() != null
-        && extractionRequest.providerConfiguration().awsRequest() != null) {
-      return extractionRequest.providerConfiguration().awsRequest();
-    } else {
-      throw new ConnectorException("Aws request is not provided");
-    }
   }
 }

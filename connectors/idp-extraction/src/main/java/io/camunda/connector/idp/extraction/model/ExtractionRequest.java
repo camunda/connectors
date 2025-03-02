@@ -6,10 +6,11 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public record ExtractionRequest(
     @Valid @NotNull ExtractionRequestData input,
-    BaseRequest baseRequest, // need to keep this here for backwards compatibility
-    ProviderConfiguration providerConfiguration) {}
+    @TemplateProperty(group = "baseRequest", type = TemplateProperty.PropertyType.Hidden)
+        ProviderConfig baseRequest) {}

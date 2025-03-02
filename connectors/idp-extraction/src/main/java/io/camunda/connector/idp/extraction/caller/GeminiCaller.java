@@ -14,8 +14,8 @@ import com.google.cloud.vertexai.generativeai.ContentMaker;
 import com.google.cloud.vertexai.generativeai.GenerativeModel;
 import com.google.cloud.vertexai.generativeai.PartMaker;
 import com.google.cloud.vertexai.generativeai.ResponseHandler;
-import io.camunda.connector.idp.extraction.model.ExtractionRequest;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
+import io.camunda.connector.idp.extraction.model.GeminiBaseRequest;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
@@ -29,40 +29,31 @@ public class GeminiCaller {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GeminiCaller.class);
 
-  public String generateContent(ExtractionRequest extractionRequest) throws Exception {
-    LlmModel llmModel = LlmModel.fromId(extractionRequest.input().converseData().modelId());
+  public String generateContent(ExtractionRequestData input, GeminiBaseRequest baseRequest)
+      throws Exception {
+    LlmModel llmModel = LlmModel.fromId(input.converseData().modelId());
     String fileUri;
     try {
       fileUri =
           GcsUtil.uploadNewFileFromDocument(
-              extractionRequest.input().document(),
-              extractionRequest
-                  .providerConfiguration()
-                  .geminiRequest()
-                  .getConfiguration()
-                  .bucketName(),
-              extractionRequest
-                  .providerConfiguration()
-                  .geminiRequest()
-                  .getConfiguration()
-                  .projectId(),
-              extractionRequest.providerConfiguration().geminiRequest().getAuthentication());
+              input.document(),
+              baseRequest.getConfiguration().bucketName(),
+              baseRequest.getConfiguration().projectId(),
+              baseRequest.getAuthentication());
       LOGGER.debug("File uploaded to GCS with URI: {}", fileUri);
     } catch (IOException e) {
       LOGGER.error("Error while uploading file to GCS", e);
       throw new RuntimeException(e);
     }
 
-    try (VertexAI vertexAi =
-        VertexAISupplier.getVertexAI(extractionRequest.providerConfiguration().geminiRequest())) {
+    try (VertexAI vertexAi = VertexAISupplier.getVertexAI(baseRequest)) {
       GenerativeModel model =
-          getGenerativeModel(extractionRequest, vertexAi)
+          getGenerativeModel(input, vertexAi)
               .withSystemInstruction(ContentMaker.fromString(llmModel.getSystemPrompt()));
       var content =
           ContentMaker.fromMultiModalData(
-              llmModel.getMessage(extractionRequest.input().taxonomyItems()),
-              PartMaker.fromMimeTypeAndData(
-                  extractionRequest.input().document().metadata().getContentType(), fileUri));
+              llmModel.getMessage(input.taxonomyItems()),
+              PartMaker.fromMimeTypeAndData(input.document().metadata().getContentType(), fileUri));
       GenerateContentResponse response = model.generateContent(content);
       String output = ResponseHandler.getText(response);
       LOGGER.debug("Gemini generate content response: {}", output);
@@ -72,18 +63,10 @@ public class GeminiCaller {
           () -> {
             try {
               GcsUtil.deleteObjectFromBucket(
-                  extractionRequest
-                      .providerConfiguration()
-                      .geminiRequest()
-                      .getConfiguration()
-                      .bucketName(),
-                  extractionRequest.input().document().metadata().getFileName(),
-                  extractionRequest
-                      .providerConfiguration()
-                      .geminiRequest()
-                      .getConfiguration()
-                      .projectId(),
-                  extractionRequest.providerConfiguration().geminiRequest().getAuthentication());
+                  baseRequest.getConfiguration().bucketName(),
+                  input.document().metadata().getFileName(),
+                  baseRequest.getConfiguration().projectId(),
+                  baseRequest.getAuthentication());
               LOGGER.debug("File deleted from GCS");
             } catch (Exception e) {
               LOGGER.error("Error while deleting file from GCS", e);
@@ -92,12 +75,12 @@ public class GeminiCaller {
     }
   }
 
-  private GenerativeModel getGenerativeModel(ExtractionRequest requestData, VertexAI vertexAi) {
+  private GenerativeModel getGenerativeModel(ExtractionRequestData input, VertexAI vertexAi) {
     GenerativeModel.Builder modelBuilder =
         new GenerativeModel.Builder()
-            .setModelName(requestData.input().converseData().modelId())
+            .setModelName(input.converseData().modelId())
             .setVertexAi(vertexAi)
-            .setGenerationConfig(buildGenerationConfig(requestData.input()))
+            .setGenerationConfig(buildGenerationConfig(input))
             .setSafetySettings(prepareSafetySettings());
 
     return modelBuilder.build();
