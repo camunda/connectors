@@ -6,12 +6,16 @@
  */
 package io.camunda.connector.slack.outbound.model;
 
+import static io.camunda.connector.slack.outbound.mapper.BlocksMapper.mapBlocks;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
+import com.slack.api.model.File;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
@@ -19,10 +23,13 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
+import io.camunda.connector.slack.outbound.caller.FileUploader;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
+import io.camunda.document.Document;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
+import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
 @TemplateSubType(id = "chat.postMessage", label = "Post message")
@@ -91,10 +98,21 @@ public record ChatPostMessageData(
                     equals = "messageBlock"),
             defaultValue =
                 "=[\n\t{\n\t\t\"type\": \"header\",\n\t\t\"text\": {\n\t\t\t\"type\": \"plain_text\",\n\t\t\t\"text\": \"New request\"\n\t\t}\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Type:*\\nPaid Time Off\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Created by:*\\n<example.com|John Doe>\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*When:*\\nAug 10 - Aug 13\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"text\": {\n\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\"text\": \"<https://example.com|View request>\"\n\t\t}\n\t}\n]")
-        JsonNode blockContent)
+        JsonNode blockContent,
+    @TemplateProperty(
+            id = "data.documents",
+            group = "message",
+            label = "attachments",
+            feel = Property.FeelMode.required,
+            binding = @PropertyBinding(name = "data.documents"),
+            type = TemplateProperty.PropertyType.String,
+            optional = true,
+            description =
+                "<a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda documents</a> can be added as attachments")
+        List<Document> documents)
     implements SlackRequestData {
   @Override
-  public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {
+  public SlackResponse invoke(MethodsClient methodsClient) throws IOException, SlackApiException {
     if (!isContentSupplied()) {
       throw new ConnectorException("Text or block content required to post a message");
     }
@@ -108,20 +126,16 @@ public record ChatPostMessageData(
 
     var requestBuilder = ChatPostMessageRequest.builder().channel(filteredChannel);
 
-    // Note: both text and block content can co-exist
-    if (StringUtils.isNotBlank(text)) {
-      requestBuilder.text(text);
-      // Enables plain text message formatting
-      requestBuilder.linkNames(true);
-    }
     if (StringUtils.isNotBlank(thread)) {
       requestBuilder.threadTs(thread);
     }
-    if (blockContent != null) {
-      if (!blockContent.isArray()) {
-        throw new ConnectorException("Block section must be an array");
-      }
-      requestBuilder.blocksAsString(blockContent.toString());
+
+    if (this.documents != null && !this.documents.isEmpty()) {
+      var fileUploader = new FileUploader(methodsClient);
+      List<File> files = fileUploader.uploadDocuments(documents);
+      requestBuilder.blocks(mapBlocks(files, text, blockContent));
+    } else {
+      requestBuilder.blocks(mapBlocks(text, blockContent));
     }
 
     var request = requestBuilder.build();
