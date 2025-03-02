@@ -42,7 +42,6 @@ class GeminiCallerTest {
         }
         """;
 
-    // Create a test-specific subclass of GeminiCaller
     class TestGeminiCaller extends GeminiCaller {
       private final GenerativeModel mockModel;
 
