@@ -19,10 +19,11 @@ package io.camunda.connector.runtime.inbound.executable;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public record ActiveExecutableResponse(
     UUID executableId,
@@ -30,4 +31,24 @@ public record ActiveExecutableResponse(
     List<InboundConnectorElement> elements,
     Health health,
     Collection<Activity> logs,
-    Long activationTimestamp) {}
+    Long activationTimestamp) {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ActiveExecutableResponse.class);
+
+  public Map<String, String> data() {
+    Map<String, String> data = new HashMap<>(elements().getFirst().connectorLevelProperties());
+    var executableClass = executableClass();
+
+    if (executableClass != null
+        && WebhookConnectorExecutable.class.isAssignableFrom(executableClass)) {
+      try {
+        var properties = elements().getFirst().connectorLevelProperties();
+        var contextPath = properties.get("inbound.context");
+        data.put("path", contextPath);
+      } catch (Exception e) {
+        LOG.error("ERROR: webhook connector doesn't have context path property", e);
+      }
+    }
+    return data;
+  }
+}

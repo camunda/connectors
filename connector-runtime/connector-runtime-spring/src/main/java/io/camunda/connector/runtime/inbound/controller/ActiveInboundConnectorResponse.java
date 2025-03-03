@@ -18,6 +18,9 @@ package io.camunda.connector.runtime.inbound.controller;
 
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,4 +32,19 @@ public record ActiveInboundConnectorResponse(
     List<ProcessElement> elements,
     Map<String, String> data,
     Health health,
-    Long activationTimestamp) {}
+    Long activationTimestamp) {
+
+  public static ActiveInboundConnectorResponse from(ActiveExecutableResponse connector) {
+    var elements = connector.elements();
+    var type = elements.getFirst().type();
+    var tenantId = elements.getFirst().element().tenantId();
+    return new ActiveInboundConnectorResponse(
+        connector.executableId(),
+        type,
+        tenantId,
+        elements.stream().map(InboundConnectorElement::element).toList(),
+        connector.data(),
+        connector.health(),
+        connector.activationTimestamp());
+  }
+}
