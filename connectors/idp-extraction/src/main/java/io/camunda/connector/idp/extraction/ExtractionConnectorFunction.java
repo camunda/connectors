@@ -95,8 +95,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
       LOGGER.info("Gemini content extraction took {} ms", (endTime - startTime));
       return new ExtractionResult(result);
     } catch (Exception e) {
-      LOGGER.error(
-          "Document extraction via {} failed: {}", input.extractionEngineType(), e.getMessage());
+      LOGGER.error("Document extraction via GCP failed: {}", e.getMessage());
       throw new ConnectorException(e);
     }
   }
@@ -105,7 +104,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     try {
       long startTime = System.currentTimeMillis();
       String extractedText =
-          switch (input.extractionEngineType()) {
+          switch (baseRequest.getExtractionEngineType()) {
             case AWS_TEXTRACT -> extractTextUsingAwsTextract(input, baseRequest);
             case APACHE_PDFBOX -> extractTextUsingApachePdf(input);
           };

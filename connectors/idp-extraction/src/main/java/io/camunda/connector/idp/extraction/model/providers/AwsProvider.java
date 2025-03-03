@@ -9,6 +9,7 @@ package io.camunda.connector.idp.extraction.model.providers;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.idp.extraction.model.TextExtractionEngineType;
 import jakarta.validation.constraints.NotNull;
 
 public final class AwsProvider extends AwsBaseRequest implements ProviderConfig {
@@ -16,7 +17,7 @@ public final class AwsProvider extends AwsBaseRequest implements ProviderConfig 
   @TemplateProperty(
       id = "s3BucketName",
       label = "AWS S3 Bucket name",
-      group = "bucket",
+      group = "awsConfig",
       type = TemplateProperty.PropertyType.Text,
       description =
           "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
@@ -27,7 +28,23 @@ public final class AwsProvider extends AwsBaseRequest implements ProviderConfig 
   @NotNull
   String s3BucketName;
 
+  @TemplateProperty(
+      id = "extractionEngineType",
+      label = "Extraction engine type",
+      group = "awsConfig",
+      type = TemplateProperty.PropertyType.Hidden,
+      description = "Specify extraction engine to be used",
+      binding = @TemplateProperty.PropertyBinding(name = "extractionEngineType"),
+      feel = Property.FeelMode.disabled,
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+  @NotNull
+  TextExtractionEngineType extractionEngineType;
+
   public String getS3BucketName() {
     return s3BucketName;
+  }
+
+  public TextExtractionEngineType getExtractionEngineType() {
+    return extractionEngineType;
   }
 }

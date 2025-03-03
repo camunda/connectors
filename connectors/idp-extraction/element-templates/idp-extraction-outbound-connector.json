@@ -37,21 +37,6 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.extractionEngineType",
-    "label" : "Extraction engine type",
-    "description" : "Specify extraction engine to be used",
-    "optional" : false,
-    "value" : "= input.extractionEngineType",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "input",
-    "binding" : {
-      "name" : "input.extractionEngineType",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "input.document",
     "label" : "Document",
     "description" : "Specify the document",

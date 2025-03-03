@@ -16,18 +16,6 @@ import java.util.List;
 
 public record ExtractionRequestData(
     @TemplateProperty(
-            id = "extractionEngineType",
-            label = "Extraction engine type",
-            group = "input",
-            type = TemplateProperty.PropertyType.Hidden,
-            description = "Specify extraction engine to be used",
-            defaultValue = "= input.extractionEngineType",
-            binding = @PropertyBinding(name = "extractionEngineType"),
-            feel = Property.FeelMode.disabled,
-            constraints = @PropertyConstraints(notEmpty = true))
-        @NotNull
-        TextExtractionEngineType extractionEngineType,
-    @TemplateProperty(
             id = "document",
             label = "Document",
             group = "input",

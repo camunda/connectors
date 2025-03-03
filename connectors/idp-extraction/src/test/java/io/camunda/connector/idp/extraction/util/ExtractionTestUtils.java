@@ -11,7 +11,6 @@ import static org.apache.hc.core5.http.ContentType.APPLICATION_PDF;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
-import io.camunda.connector.idp.extraction.model.TextExtractionEngineType;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
@@ -59,14 +58,14 @@ public class ExtractionTestUtils {
             "accessKey": "{{secrets.ACCESS_KEY}}",
             "secretKey": "{{secrets.SECRET_KEY}}"
           },
-          "s3BucketName": "test-aws-s3-bucket-name"
+          "s3BucketName": "test-aws-s3-bucket-name",
+          "extractionEngineType": "AWS_TEXTRACT"
         }
       }
       """;
 
   public static final ExtractionRequestData TEXTRACT_EXTRACTION_REQUEST_DATA =
       new ExtractionRequestData(
-          TextExtractionEngineType.AWS_TEXTRACT,
           loadTestFile(),
           List.of(
               new TaxonomyItem("sum", "the total amount that was paid for this invoice"),
