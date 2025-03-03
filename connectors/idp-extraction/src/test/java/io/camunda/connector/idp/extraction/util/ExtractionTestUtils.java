@@ -52,14 +52,14 @@ public class ExtractionTestUtils {
         },
         "baseRequest": {
           "configuration": {
-            "region": "us-east-1",
-            "s3BucketName": "test-aws-s3-bucket-name",
+            "region": "us-east-1"
           },
           "authentication": {
             "type": "defaultCredentialsChain",
             "accessKey": "{{secrets.ACCESS_KEY}}",
             "secretKey": "{{secrets.SECRET_KEY}}"
-          }
+          },
+          "s3BucketName": "test-aws-s3-bucket-name"
         }
       }
       """;
