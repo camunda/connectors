@@ -11,8 +11,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
@@ -30,6 +32,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ExtractionConnectorFunctionTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   @Mock private PollingTextractCaller pollingTextractCaller;
 
   @Mock private BedrockCaller bedrockCaller;
@@ -39,21 +43,20 @@ class ExtractionConnectorFunctionTest {
   @Test
   void executeExtractionReturnsCorrectResult() throws Exception {
     var outBounderContext = prepareConnectorContext();
+    var responseJson =
+        """
+            {
+            	"sum": "$12.25",
+            	"supplier": "Camunda Inc."
+            }
+        """;
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
-        .thenReturn(
-            """
-                        {
-                        	"sum": "$12.25",
-                        	"supplier": "Camunda Inc."
-                        }
-                        """);
+    when(bedrockCaller.call(any(), any(), any())).thenReturn(responseJson);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    assertExtractionResult(
-        result, Map.of("sum", new TextNode("$12.25"), "supplier", new TextNode("Camunda Inc.")));
+    assertExtractionResult(result, responseJson);
   }
 
   @Test
@@ -61,19 +64,19 @@ class ExtractionConnectorFunctionTest {
       executeExtractionReturnsPartiallyCorrectResult_whenLlmResponseIsMissingValueForSomeTaxonomyItems()
           throws Exception {
     var outBounderContext = prepareConnectorContext();
+    var responseJson =
+        """
+            {
+            	"sum": "$12.25"
+            }
+        """;
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
-        .thenReturn(
-            """
-                        {
-                        	"sum": "$12.25"
-                        }
-                        """);
+    when(bedrockCaller.call(any(), any(), any())).thenReturn(responseJson);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    assertExtractionResult(result, Map.of("sum", new TextNode("$12.25")));
+    assertExtractionResult(result, responseJson);
   }
 
   @Test
@@ -86,17 +89,100 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any()))
         .thenReturn(
             """
-                        {
-                          "response": {
-                                      "sum": "$12.25",
-                                      "supplier": "Camunda Inc."
-                                      }
-                        }
-                        """);
+                   {
+                     "response": {
+                                   "sum": "$12.25",
+                                   "supplier": "Camunda Inc."
+                                 }
+                   }
+               """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    assertExtractionResult(
-        result, Map.of("sum", new TextNode("$12.25"), "supplier", new TextNode("Camunda Inc.")));
+    var responseJson =
+        """
+            {
+              "sum": "$12.25",
+              "supplier": "Camunda Inc."
+            }
+        """;
+    assertExtractionResult(result, responseJson);
+  }
+
+  @Test
+  void executeExtractionReturnsCorrectResult_whenLlmResponseContainsObjectAsValueForTaxonomyItem()
+      throws Exception {
+    var outBounderContext = prepareConnectorContext();
+
+    when(pollingTextractCaller.call(any(), any(), any(), any()))
+        .thenReturn("Test extracted text from test document.pdf");
+    when(bedrockCaller.call(any(), any(), any()))
+        .thenReturn(
+            """
+                   {
+                     "sum": "$12.25",
+                     "supplier": {
+                                   "id": 12345,
+                                   "name": "Camunda Inc.",
+                                   "city": "Berlin",
+                                   "country": "Germany"
+                                 }
+                   }
+               """);
+
+    var result = extractionConnectorFunction.execute(outBounderContext);
+    var responseJson =
+        """
+            {
+              "sum": "$12.25",
+              "supplier": {
+                            "id": 12345,
+                            "name": "Camunda Inc.",
+                            "city": "Berlin",
+                            "country": "Germany"
+                          }
+            }
+        """;
+    assertExtractionResult(result, responseJson);
+  }
+
+  @Test
+  void
+      executeExtractionReturnsCorrectResult_whenLlmResponseContainsNestedObjectAsValueForTaxonomyItem()
+          throws Exception {
+    var outBounderContext = prepareConnectorContext();
+
+    when(pollingTextractCaller.call(any(), any(), any(), any()))
+        .thenReturn("Test extracted text from test document.pdf");
+    when(bedrockCaller.call(any(), any(), any()))
+        .thenReturn(
+            """
+                   {
+                     "response": {
+                                   "sum": "$12.25",
+                                   "supplier": {
+                                                 "id": 12345,
+                                                 "name": "Camunda Inc.",
+                                                 "city": "Berlin",
+                                                 "country": "Germany"
+                                               }
+                                 }
+                   }
+               """);
+
+    var result = extractionConnectorFunction.execute(outBounderContext);
+    var responseJson =
+        """
+            {
+              "sum": "$12.25",
+              "supplier": {
+                            "id": 12345,
+                            "name": "Camunda Inc.",
+                            "city": "Berlin",
+                            "country": "Germany"
+                          }
+            }
+        """;
+    assertExtractionResult(result, responseJson);
   }
 
   @Test
@@ -110,14 +196,20 @@ class ExtractionConnectorFunctionTest {
     when(bedrockCaller.call(any(), any(), any()))
         .thenReturn(
             """
-                        {
-                          "response": "\\n\\n{\\"sum\\":\\"$12.25\\",\\"supplier\\":\\"Camunda Inc.\\"}"
-                        }
-                        """);
+                   {
+                     "response": "\\n\\n{\\"sum\\":\\"$12.25\\",\\"supplier\\":\\"Camunda Inc.\\"}"
+                   }
+               """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    assertExtractionResult(
-        result, Map.of("sum", new TextNode("$12.25"), "supplier", new TextNode("Camunda Inc.")));
+    var responseJson =
+        """
+            {
+            	"sum": "$12.25",
+            	"supplier": "Camunda Inc."
+            }
+        """;
+    assertExtractionResult(result, responseJson);
   }
 
   @Test
@@ -199,7 +291,13 @@ class ExtractionConnectorFunctionTest {
         .hasMessageContaining("LLM response is neither a JSON object nor a string");
   }
 
-  private void assertExtractionResult(Object result, Map<String, JsonNode> expectedResponse) {
+  private void assertExtractionResult(Object result, String expectedResponse)
+      throws JsonProcessingException {
+    var expected =
+        OBJECT_MAPPER.convertValue(
+            OBJECT_MAPPER.readTree(expectedResponse),
+            new TypeReference<Map<String, JsonNode>>() {});
+
     assertThat(result)
         .isNotNull()
         .isInstanceOf(ExtractionResult.class)
@@ -207,7 +305,7 @@ class ExtractionConnectorFunctionTest {
         .satisfies(
             extractionResult ->
                 assertThat(extractionResult.response())
-                    .containsExactlyInAnyOrderEntriesOf(expectedResponse));
+                    .containsExactlyInAnyOrderEntriesOf(expected));
   }
 
   private OutboundConnectorContextBuilder.TestConnectorContext prepareConnectorContext() {
