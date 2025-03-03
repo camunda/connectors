@@ -43,7 +43,7 @@ class ExtractionConnectorFunctionTest {
   @Test
   void executeExtractionReturnsCorrectResult() throws Exception {
     var outBounderContext = prepareConnectorContext();
-    var responseJson =
+    var expectedResponseJson =
         """
             {
             	"sum": "$12.25",
@@ -53,10 +53,10 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any())).thenReturn(responseJson);
+    when(bedrockCaller.call(any(), any(), any())).thenReturn(expectedResponseJson);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    assertExtractionResult(result, responseJson);
+    assertExtractionResult(result, expectedResponseJson);
   }
 
   @Test
@@ -64,7 +64,7 @@ class ExtractionConnectorFunctionTest {
       executeExtractionReturnsPartiallyCorrectResult_whenLlmResponseIsMissingValueForSomeTaxonomyItems()
           throws Exception {
     var outBounderContext = prepareConnectorContext();
-    var responseJson =
+    var expectedResponseJson =
         """
             {
             	"sum": "$12.25"
@@ -73,10 +73,10 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any())).thenReturn(responseJson);
+    when(bedrockCaller.call(any(), any(), any())).thenReturn(expectedResponseJson);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    assertExtractionResult(result, responseJson);
+    assertExtractionResult(result, expectedResponseJson);
   }
 
   @Test
@@ -98,14 +98,14 @@ class ExtractionConnectorFunctionTest {
                """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    var responseJson =
+    var expectedResponseJson =
         """
             {
               "sum": "$12.25",
               "supplier": "Camunda Inc."
             }
         """;
-    assertExtractionResult(result, responseJson);
+    assertExtractionResult(result, expectedResponseJson);
   }
 
   @Test
@@ -130,7 +130,7 @@ class ExtractionConnectorFunctionTest {
                """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    var responseJson =
+    var expectedResponseJson =
         """
             {
               "sum": "$12.25",
@@ -142,7 +142,7 @@ class ExtractionConnectorFunctionTest {
                           }
             }
         """;
-    assertExtractionResult(result, responseJson);
+    assertExtractionResult(result, expectedResponseJson);
   }
 
   @Test
@@ -170,7 +170,7 @@ class ExtractionConnectorFunctionTest {
                """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    var responseJson =
+    var expectedResponseJson =
         """
             {
               "sum": "$12.25",
@@ -182,7 +182,7 @@ class ExtractionConnectorFunctionTest {
                           }
             }
         """;
-    assertExtractionResult(result, responseJson);
+    assertExtractionResult(result, expectedResponseJson);
   }
 
   @Test
@@ -202,14 +202,14 @@ class ExtractionConnectorFunctionTest {
                """);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
-    var responseJson =
+    var expectedResponseJson =
         """
             {
             	"sum": "$12.25",
             	"supplier": "Camunda Inc."
             }
         """;
-    assertExtractionResult(result, responseJson);
+    assertExtractionResult(result, expectedResponseJson);
   }
 
   @Test
