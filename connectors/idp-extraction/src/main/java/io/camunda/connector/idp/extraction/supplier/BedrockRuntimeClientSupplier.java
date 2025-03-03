@@ -7,13 +7,13 @@
 package io.camunda.connector.idp.extraction.supplier;
 
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
-import io.camunda.connector.aws.model.impl.AwsBaseRequest;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class BedrockRuntimeClientSupplier {
 
-  public BedrockRuntimeClient getBedrockRuntimeClient(final AwsBaseRequest request) {
+  public BedrockRuntimeClient getBedrockRuntimeClient(final AwsProvider request) {
     return BedrockRuntimeClient.builder()
         .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
         .region(Region.of(request.getConfiguration().region()))

@@ -7,6 +7,7 @@
 package io.camunda.connector.idp.extraction.model;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 

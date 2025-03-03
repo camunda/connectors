@@ -10,8 +10,8 @@ import static io.camunda.google.supplier.util.GoogleServiceSupplierUtil.getCrede
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.vertexai.VertexAI;
-import io.camunda.connector.idp.extraction.model.GeminiBaseRequest;
-import io.camunda.connector.idp.extraction.model.GeminiRequestConfiguration;
+import io.camunda.connector.idp.extraction.model.providers.GeminiProvider;
+import io.camunda.connector.idp.extraction.model.providers.GeminiRequestConfiguration;
 import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
 import io.camunda.google.model.Authentication;
 import io.camunda.google.model.AuthenticationType;
@@ -27,7 +27,7 @@ class VertexAISupplierTest {
   @Test
   void getVertexAI_withBearerToken() throws IOException {
     // Given
-    GeminiBaseRequest baseRequest =
+    GeminiProvider baseRequest =
         createBaseRequest(
             new Authentication(AuthenticationType.BEARER, "test-token", null, null, null));
 
@@ -46,7 +46,7 @@ class VertexAISupplierTest {
   @Test
   void getVertexAI_withRefreshToken() throws IOException {
     // Given
-    GeminiBaseRequest baseRequest =
+    GeminiProvider baseRequest =
         createBaseRequest(
             new Authentication(
                 AuthenticationType.REFRESH, null, "refresh-token", "client-id", "client-secret"));
@@ -63,11 +63,11 @@ class VertexAISupplierTest {
         .isEqualTo(getCredentials(baseRequest.getAuthentication()));
   }
 
-  private GeminiBaseRequest createBaseRequest(Authentication authentication) {
+  private GeminiProvider createBaseRequest(Authentication authentication) {
     GeminiRequestConfiguration configuration =
         new GeminiRequestConfiguration(REGION, PROJECT_ID, BUCKET_NAME, null, null);
 
-    GeminiBaseRequest baseRequest = new GeminiBaseRequest();
+    GeminiProvider baseRequest = new GeminiProvider();
     baseRequest.setAuthentication(authentication);
     baseRequest.setConfiguration(configuration);
     return baseRequest;

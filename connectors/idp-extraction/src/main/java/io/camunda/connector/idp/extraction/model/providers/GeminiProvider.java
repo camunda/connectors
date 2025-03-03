@@ -4,11 +4,11 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.idp.extraction.model;
+package io.camunda.connector.idp.extraction.model.providers;
 
 import io.camunda.google.model.GoogleBaseRequest;
 
-public class GeminiBaseRequest extends GoogleBaseRequest {
+public final class GeminiProvider extends GoogleBaseRequest implements ProviderConfig {
 
   private GeminiRequestConfiguration configuration;
 

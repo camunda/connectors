@@ -12,7 +12,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
-import io.camunda.connector.idp.extraction.model.ProviderConfig;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ class BedrockCallerTest {
     when(converseResponse.output().message().content().getFirst().text())
         .thenReturn(expectedResponse);
 
-    ProviderConfig.AwsConfiguration baseRequest = new ProviderConfig.AwsConfiguration();
+    AwsProvider baseRequest = new AwsProvider();
     ExtractionRequest extractionRequest =
         new ExtractionRequest(ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, baseRequest);
 

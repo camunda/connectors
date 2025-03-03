@@ -40,19 +40,6 @@ public record ExtractionRequestData(
         @NotNull
         Document document,
     @TemplateProperty(
-            id = "s3BucketName",
-            label = "AWS S3 Bucket name",
-            group = "input",
-            type = TemplateProperty.PropertyType.Text,
-            description =
-                "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
-            defaultValue = "idp-extraction-connector",
-            binding = @PropertyBinding(name = "s3BucketName"),
-            feel = Property.FeelMode.disabled,
-            constraints = @PropertyConstraints(notEmpty = true))
-        @NotNull
-        String s3BucketName,
-    @TemplateProperty(
             id = "taxonomyItems",
             label = "Taxonomy Items",
             group = "input",

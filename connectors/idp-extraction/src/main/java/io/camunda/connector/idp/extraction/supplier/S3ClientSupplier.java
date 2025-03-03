@@ -7,13 +7,13 @@
 package io.camunda.connector.idp.extraction.supplier;
 
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
-import io.camunda.connector.aws.model.impl.AwsBaseRequest;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 public class S3ClientSupplier {
 
-  public S3AsyncClient getAsyncS3Client(final AwsBaseRequest request) {
+  public S3AsyncClient getAsyncS3Client(final AwsProvider request) {
     return S3AsyncClient.builder()
         .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
         .region(Region.of(request.getConfiguration().region()))

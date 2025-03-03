@@ -19,8 +19,8 @@ import com.google.cloud.vertexai.api.Part;
 import com.google.cloud.vertexai.generativeai.GenerativeModel;
 import com.google.cloud.vertexai.generativeai.ResponseHandler;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
-import io.camunda.connector.idp.extraction.model.GeminiBaseRequest;
-import io.camunda.connector.idp.extraction.model.GeminiRequestConfiguration;
+import io.camunda.connector.idp.extraction.model.providers.GeminiProvider;
+import io.camunda.connector.idp.extraction.model.providers.GeminiRequestConfiguration;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import org.junit.jupiter.api.Test;
@@ -50,7 +50,7 @@ class GeminiCallerTest {
       }
 
       @Override
-      public String generateContent(ExtractionRequestData input, GeminiBaseRequest baseRequest)
+      public String generateContent(ExtractionRequestData input, GeminiProvider baseRequest)
           throws Exception {
         GenerateContentResponse response =
             mockModel.generateContent(
@@ -83,7 +83,7 @@ class GeminiCallerTest {
         GeminiRequestConfiguration configuration =
             new GeminiRequestConfiguration("region", "project-id", "bucket-name", null, null);
 
-        GeminiBaseRequest baseRequest = new GeminiBaseRequest();
+        GeminiProvider baseRequest = new GeminiProvider();
         baseRequest.setConfiguration(configuration);
 
         TestGeminiCaller testCaller = new TestGeminiCaller(mockGenerativeModel);

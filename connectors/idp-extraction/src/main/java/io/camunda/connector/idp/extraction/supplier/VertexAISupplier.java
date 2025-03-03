@@ -11,13 +11,13 @@ import static io.camunda.google.supplier.util.GoogleServiceSupplierUtil.getCrede
 import com.google.cloud.vertexai.Transport;
 import com.google.cloud.vertexai.VertexAI;
 import com.google.common.collect.ImmutableMap;
-import io.camunda.connector.idp.extraction.model.GeminiBaseRequest;
+import io.camunda.connector.idp.extraction.model.providers.GeminiProvider;
 
 public final class VertexAISupplier {
 
   private VertexAISupplier() {}
 
-  public static VertexAI getVertexAI(GeminiBaseRequest baseRequest) {
+  public static VertexAI getVertexAI(GeminiProvider baseRequest) {
     return new VertexAI.Builder()
         .setProjectId(baseRequest.getConfiguration().projectId())
         .setLocation(baseRequest.getConfiguration().region())

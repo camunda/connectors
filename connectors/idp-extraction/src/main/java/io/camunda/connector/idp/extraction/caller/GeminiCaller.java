@@ -15,8 +15,8 @@ import com.google.cloud.vertexai.generativeai.GenerativeModel;
 import com.google.cloud.vertexai.generativeai.PartMaker;
 import com.google.cloud.vertexai.generativeai.ResponseHandler;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
-import io.camunda.connector.idp.extraction.model.GeminiBaseRequest;
 import io.camunda.connector.idp.extraction.model.LlmModel;
+import io.camunda.connector.idp.extraction.model.providers.GeminiProvider;
 import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.io.IOException;
@@ -29,7 +29,7 @@ public class GeminiCaller {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GeminiCaller.class);
 
-  public String generateContent(ExtractionRequestData input, GeminiBaseRequest baseRequest)
+  public String generateContent(ExtractionRequestData input, GeminiProvider baseRequest)
       throws Exception {
     LlmModel llmModel = LlmModel.fromId(input.converseData().modelId());
     String fileUri;

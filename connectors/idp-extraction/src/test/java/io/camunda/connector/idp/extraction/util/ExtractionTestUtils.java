@@ -36,7 +36,6 @@ public class ExtractionTestUtils {
             "documentId": "test",
             "metadata": {}
           },
-          "s3BucketName": "test-aws-s3-bucket-name",
           "converseData": {
             "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0"
           },
@@ -53,7 +52,8 @@ public class ExtractionTestUtils {
         },
         "baseRequest": {
           "configuration": {
-            "region": "us-east-1"
+            "region": "us-east-1",
+            "s3BucketName": "test-aws-s3-bucket-name",
           },
           "authentication": {
             "type": "defaultCredentialsChain",
@@ -68,7 +68,6 @@ public class ExtractionTestUtils {
       new ExtractionRequestData(
           TextExtractionEngineType.AWS_TEXTRACT,
           loadTestFile(),
-          "test-aws-s3-bucket-name",
           List.of(
               new TaxonomyItem("sum", "the total amount that was paid for this invoice"),
               new TaxonomyItem("supplier", "who provided the goods or services")),

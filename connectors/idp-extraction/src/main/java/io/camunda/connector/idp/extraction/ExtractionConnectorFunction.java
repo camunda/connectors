@@ -10,12 +10,13 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.GeminiCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.model.*;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
+import io.camunda.connector.idp.extraction.model.providers.GeminiProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
@@ -80,13 +81,13 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     final var extractionRequest = context.bindVariables(ExtractionRequest.class);
     final var input = extractionRequest.input();
     return switch (extractionRequest.baseRequest()) {
-      case ProviderConfig.AwsConfiguration aws -> extractUsingAws(input, aws);
-      case ProviderConfig.GeminiConfiguration gemini -> extractUsingGcp(input, gemini);
+      case AwsProvider aws -> extractUsingAws(input, aws);
+      case GeminiProvider gemini -> extractUsingGcp(input, gemini);
     };
   }
 
   private ExtractionResult extractUsingGcp(
-      ExtractionRequestData input, GeminiBaseRequest baseRequest) {
+      ExtractionRequestData input, GeminiProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
       Object result = geminiCaller.generateContent(input, baseRequest);
@@ -100,16 +101,13 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
-  private ExtractionResult extractUsingAws(
-      ExtractionRequestData input, AwsBaseRequest baseRequest) {
+  private ExtractionResult extractUsingAws(ExtractionRequestData input, AwsProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
       String extractedText =
           switch (input.extractionEngineType()) {
             case AWS_TEXTRACT -> extractTextUsingAwsTextract(input, baseRequest);
             case APACHE_PDFBOX -> extractTextUsingApachePdf(input);
-            default ->
-                throw new ConnectorException("Unsupported extraction engine for AWS provider");
           };
 
       String bedrockResponse =
@@ -126,11 +124,11 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
-  private String extractTextUsingAwsTextract(
-      ExtractionRequestData input, AwsBaseRequest baseRequest) throws Exception {
+  private String extractTextUsingAwsTextract(ExtractionRequestData input, AwsProvider baseRequest)
+      throws Exception {
     return pollingTextractCaller.call(
         input.document(),
-        input.s3BucketName(),
+        baseRequest.getS3BucketName(),
         textractClientSupplier.getTextractClient(baseRequest),
         s3ClientSupplier.getAsyncS3Client(baseRequest));
   }
