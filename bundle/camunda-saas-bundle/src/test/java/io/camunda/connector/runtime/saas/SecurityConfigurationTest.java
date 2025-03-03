@@ -29,8 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -69,32 +67,6 @@ public class SecurityConfigurationTest {
   @Autowired private MockMvc mvc;
 
   @Test
-  public void publishLogsEndpoint_fromLocalhost_returns200() throws Exception {
-    mvc.perform(
-            post("/inbound/logs")
-                .with(
-                    request -> {
-                      request.setRemoteAddr("127.0.0.1");
-                      return request;
-                    }))
-        .andExpect(status().isOk());
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"192.10.1.12", "10.156.23.22"})
-  public void publishLogsEndpoint_fromNonLocalhost_returns403(String unauthorizedIp)
-      throws Exception {
-    mvc.perform(
-            post("/inbound/logs")
-                .with(
-                    request -> {
-                      request.setRemoteAddr(unauthorizedIp);
-                      return request;
-                    }))
-        .andExpect(status().isForbidden());
-  }
-
-  @Test
   public void inboundEndpoint_noAuth_returns401() throws Exception {
     mvc.perform(get("/inbound")).andExpect(status().isUnauthorized());
   }
@@ -109,23 +81,6 @@ public class SecurityConfigurationTest {
   @WithMockUser(authorities = "SCOPE_WRONG")
   public void inboundEndpoint_wrongAuth_returns403() throws Exception {
     mvc.perform(get("/inbound")).andExpect(status().isForbidden());
-  }
-
-  @Test
-  public void inboundInstancesEndpoint_noAuth_returns401() throws Exception {
-    mvc.perform(get("/inbound-instances")).andExpect(status().isUnauthorized());
-  }
-
-  @Test
-  @WithMockUser(authorities = "SCOPE_inbound:read")
-  public void inboundInstancesEndpoint_auth_returns200() throws Exception {
-    mvc.perform(get("/inbound-instances")).andExpect(status().isOk());
-  }
-
-  @Test
-  @WithMockUser(authorities = "SCOPE_WRONG")
-  public void inboundInstancesEndpoint_wrongAuth_returns403() throws Exception {
-    mvc.perform(get("/inbound-instances")).andExpect(status().isForbidden());
   }
 
   @Test

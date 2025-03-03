@@ -154,4 +154,8 @@ public class Health {
     this.error = error;
     this.details = details;
   }
+
+  private Health() {
+    this(Status.UNKNOWN, null, null);
+  }
 }
