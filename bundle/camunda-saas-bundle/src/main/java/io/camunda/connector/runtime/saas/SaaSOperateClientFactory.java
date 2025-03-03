@@ -22,7 +22,6 @@ import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.CamundaOperateClientConfiguration;
 import io.camunda.operate.auth.JwtAuthentication;
 import io.camunda.operate.auth.JwtCredential;
-import io.camunda.operate.auth.TokenResponseMapper.JacksonTokenResponseMapper;
 import io.camunda.operate.spring.OperateClientConfiguration;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -61,8 +60,7 @@ public class SaaSOperateClientFactory {
       ObjectMapper objectMapper, OperateClientConfiguration configuration) {
 
     var jwtCredential = configureJwtCredential();
-    var authentication =
-        new JwtAuthentication(jwtCredential, new JacksonTokenResponseMapper(objectMapper));
+    var authentication = new JwtAuthentication(jwtCredential);
     URL convertedOperateUrl;
     try {
       convertedOperateUrl = new URI(removeTrailingSlash(operateUrl)).toURL();
