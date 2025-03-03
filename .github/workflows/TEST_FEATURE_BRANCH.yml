@@ -78,3 +78,15 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: bundle/default-bundle/Dockerfile
+
+      - name: Check element templates for forbidden links to /next/ documentation
+        run: |
+          chmod +x ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
+          ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
+          if grep -q "/next/" connectors-element-template-links.txt; then
+            echo "❌ Forbidden link to '/next/' documentation found!"
+            exit 1
+          fi
+        shell: bash
+
+
