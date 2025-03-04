@@ -22,13 +22,11 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
+import io.camunda.document.operation.OperationExecutor;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import java.util.Optional;
 import org.json.JSONException;
@@ -39,7 +37,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 public class DocumentSerializationTest {
 
   @Mock private DocumentFactory factory;
-  @Mock private DocumentOperationExecutor operationExecutor;
+  @Mock private OperationExecutor operationExecutor;
 
   private final ObjectMapper objectMapper =
       new ObjectMapper()

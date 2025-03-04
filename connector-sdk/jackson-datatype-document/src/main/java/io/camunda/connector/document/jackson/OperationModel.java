@@ -14,8 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.annotation.jackson;
+package io.camunda.connector.document.jackson;
 
-import java.util.function.Supplier;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
-public interface DocumentOperationResult<T> extends Supplier<T> {}
+public record OperationModel(@JsonProperty(DISCRIMINATOR_KEY) String name, List<Object> params) {
+
+  public static final String DISCRIMINATOR_KEY = "camunda.operation.type";
+}
