@@ -6,7 +6,7 @@
   "metadata" : {
     "keywords" : [ "extract text", "extract data", "extract text from image", "extract data from image", "ocr" ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-textract/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-textract/",
   "version" : 2,
   "category" : {
     "id" : "connectors",
@@ -167,7 +167,7 @@
       "equals" : "SYNC",
       "type" : "simple"
     },
-    "tooltip" : "<a href=\"https://docs.camunda.io/docs/next/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
+    "tooltip" : "<a href=\"https://docs.camunda.io/docs/8.7/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",
