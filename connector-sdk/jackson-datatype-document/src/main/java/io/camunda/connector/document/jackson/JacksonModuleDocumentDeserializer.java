@@ -22,23 +22,23 @@ import io.camunda.connector.document.jackson.deserializer.ByteArrayDeserializer;
 import io.camunda.connector.document.jackson.deserializer.DocumentDeserializer;
 import io.camunda.connector.document.jackson.deserializer.InputStreamDeserializer;
 import io.camunda.connector.document.jackson.deserializer.ObjectDeserializer;
-import io.camunda.connector.document.jackson.deserializer.OperationResultDeserializer;
+import io.camunda.connector.document.jackson.deserializer.IntrinsicOperationResultDeserializer;
 import io.camunda.connector.document.jackson.deserializer.StringDeserializer;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.OperationExecutor;
-import io.camunda.document.operation.OperationResult;
+import io.camunda.document.operation.IntrinsicOperationExecutor;
+import io.camunda.document.operation.IntrinsicOperationResult;
 import java.io.InputStream;
 
 public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
   private final DocumentFactory documentFactory;
-  private final OperationExecutor operationExecutor;
+  private final IntrinsicOperationExecutor operationExecutor;
   private final DocumentModuleSettings settings;
 
   public JacksonModuleDocumentDeserializer(
       DocumentFactory documentFactory,
-      OperationExecutor operationExecutor,
+      IntrinsicOperationExecutor operationExecutor,
       DocumentModuleSettings settings) {
     this.documentFactory = documentFactory;
     this.operationExecutor = operationExecutor;
@@ -46,7 +46,7 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
   }
 
   public JacksonModuleDocumentDeserializer(
-      DocumentFactory documentFactory, OperationExecutor operationExecutor) {
+      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
     this(documentFactory, operationExecutor, DocumentModuleSettings.create());
   }
 
@@ -64,7 +64,7 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
   @Override
   public void setupModule(SetupContext context) {
     addDeserializer(Document.class, new DocumentDeserializer(documentFactory, operationExecutor));
-    addDeserializer(OperationResult.class, new OperationResultDeserializer(operationExecutor));
+    addDeserializer(IntrinsicOperationResult.class, new IntrinsicOperationResultDeserializer(operationExecutor));
     addDeserializer(byte[].class, new ByteArrayDeserializer(documentFactory, operationExecutor));
     addDeserializer(
         InputStream.class, new InputStreamDeserializer(documentFactory, operationExecutor));

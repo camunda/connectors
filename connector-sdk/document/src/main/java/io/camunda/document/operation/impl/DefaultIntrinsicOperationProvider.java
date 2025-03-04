@@ -14,12 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.document.operation.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.document.operation.IntrinsicOperation;
+import io.camunda.document.operation.IntrinsicOperationProvider;
 import java.util.List;
+import java.util.Map;
 
-public interface OperationExecutor {
+public class DefaultIntrinsicOperationProvider implements IntrinsicOperationProvider {
 
-  <T> OperationResult<T> execute(
-      String operationName, List<? extends OperationParameter> arguments);
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  private final Map<String, IntrinsicOperation<?>> operations = Map.of(
+      "base64", new Base64Operation(),
+      "parseJson", new ParseJsonOperation(objectMapper)
+  );
+
+  @Override
+  public List<String> getOperationNames() {
+    return operations.keySet().stream().toList();
+  }
+
+  @Override
+  public IntrinsicOperation<?> getOperation(String operationName) {
+    return operations.get(operationName);
+  }
 }

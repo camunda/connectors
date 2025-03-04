@@ -18,4 +18,8 @@ package io.camunda.document.operation;
 
 import java.util.List;
 
-public record DocumentOperationPayload(List<Object> params) {}
+public interface IntrinsicOperationExecutor {
+
+  <T> IntrinsicOperationResult<T> execute(
+      String operationName, List<? extends IntrinsicOperationParameter> arguments);
+}

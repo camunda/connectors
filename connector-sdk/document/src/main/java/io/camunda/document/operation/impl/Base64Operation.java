@@ -14,17 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.document.operation.impl;
 
-import io.camunda.document.operation.OperationResult.Failure.ExecutionFailure;
-import io.camunda.document.operation.OperationResult.Failure.ValidationFailure;
-import io.camunda.document.operation.OperationResult.Success;
+import io.camunda.document.operation.IntrinsicOperation;
+import io.camunda.document.operation.IntrinsicOperationParameter;
+import io.camunda.document.operation.IntrinsicOperationResult;
+import io.camunda.document.operation.IntrinsicOperationResult.Failure.ExecutionFailure;
+import io.camunda.document.operation.IntrinsicOperationResult.Failure.ValidationFailure;
+import io.camunda.document.operation.IntrinsicOperationResult.Success;
 import java.util.List;
 
-public class Base64Operation implements Operation<String> {
+public class Base64Operation implements IntrinsicOperation<String> {
 
   @Override
-  public OperationResult<String> execute(List<? extends OperationParameter> arguments) {
+  public IntrinsicOperationResult<String> execute(List<? extends IntrinsicOperationParameter> arguments) {
     if (arguments.size() != 1) {
       return new ValidationFailure<>("Base64 operation expects a single document as argument");
     }

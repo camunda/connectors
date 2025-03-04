@@ -16,33 +16,39 @@
  */
 package io.camunda.document.operation;
 
-import io.camunda.document.Document;
+public sealed interface IntrinsicOperationResult<T> {
 
-/** Represents a parameter of an operation. */
-public sealed interface OperationParameter {
+  record Success<T>(T result) implements IntrinsicOperationResult<T> {}
 
-  /** Represents a document parameter that is passed to an operation. */
-  record DocumentParameter(Document document) implements OperationParameter {}
+  sealed interface Failure<T> extends IntrinsicOperationResult<T> {
+    String errorMessage();
 
-  /**
-   * Represents a value parameter that is passed to an operation. A value parameter is any value
-   * other than a document.
-   */
-  record ValueParameter(Object object) implements OperationParameter {}
+    Throwable cause();
 
-  default boolean isDocumentParameter() {
-    return this instanceof DocumentParameter;
+    record ValidationFailure<T>(String errorMessage) implements Failure<T> {
+      @Override
+      public Throwable cause() {
+        return null;
+      }
+    }
+
+    record ExecutionFailure<T>(String errorMessage, Throwable cause) implements Failure<T> {
+
+      public ExecutionFailure(String errorMessage) {
+        this(errorMessage, null);
+      }
+
+      public ExecutionFailure(Throwable cause) {
+        this(null, cause);
+      }
+    }
   }
 
-  default boolean isValueParameter() {
-    return this instanceof ValueParameter;
+  default boolean isSuccess() {
+    return this instanceof Success;
   }
 
-  default Document asDocumentParameter() {
-    return ((DocumentParameter) this).document;
-  }
-
-  default Object asValueParameter() {
-    return ((ValueParameter) this).object;
+  default boolean isFailure() {
+    return this instanceof Failure;
   }
 }

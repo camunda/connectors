@@ -26,4 +26,6 @@ public interface CamundaDocumentStore {
   InputStream getDocumentContent(CamundaDocumentReference reference);
 
   void deleteDocument(CamundaDocumentReference reference);
+
+  String generateLink(CamundaDocumentReference reference);
 }

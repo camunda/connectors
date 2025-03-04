@@ -23,7 +23,7 @@ import static io.camunda.connector.document.jackson.deserializer.Deserialization
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.OperationExecutor;
+import io.camunda.document.operation.IntrinsicOperationExecutor;
 import java.io.IOException;
 
 public class StringDeserializer extends AbstractDeserializer<String> {
@@ -32,11 +32,11 @@ public class StringDeserializer extends AbstractDeserializer<String> {
       new com.fasterxml.jackson.databind.deser.std.StringDeserializer();
 
   private final DocumentDeserializer documentDeserializer;
-  private final OperationResultDeserializer operationDeserializer;
+  private final IntrinsicOperationResultDeserializer operationDeserializer;
 
-  public StringDeserializer(DocumentFactory documentFactory, OperationExecutor operationExecutor) {
+  public StringDeserializer(DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
     this.documentDeserializer = new DocumentDeserializer(documentFactory, operationExecutor);
-    this.operationDeserializer = new OperationResultDeserializer(operationExecutor);
+    this.operationDeserializer = new IntrinsicOperationResultDeserializer(operationExecutor);
   }
 
   @Override

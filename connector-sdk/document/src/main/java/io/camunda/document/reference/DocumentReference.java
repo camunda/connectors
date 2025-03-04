@@ -16,18 +16,11 @@
  */
 package io.camunda.document.reference;
 
-import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.client.api.response.DocumentReferenceResponse;
 
 public interface DocumentReference {
 
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {
-    String storeId();
-
-    String documentId();
-
-    DocumentMetadata metadata();
-  }
+  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
 
   interface ExternalDocumentReference extends DocumentReference {
     String url();

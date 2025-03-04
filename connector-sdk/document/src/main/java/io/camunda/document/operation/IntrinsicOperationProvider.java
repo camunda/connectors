@@ -17,19 +17,10 @@
 package io.camunda.document.operation;
 
 import java.util.List;
-import java.util.Map;
 
-public class DefaultOperationProvider implements OperationProvider {
+public interface IntrinsicOperationProvider {
 
-  private final Map<String, Operation<?>> operations = Map.of("base64", new Base64Operation());
+  IntrinsicOperation getOperation(String operationName);
 
-  @Override
-  public List<String> getOperationNames() {
-    return operations.keySet().stream().toList();
-  }
-
-  @Override
-  public Operation<?> getOperation(String operationName) {
-    return operations.get(operationName);
-  }
+  List<String> getOperationNames();
 }
