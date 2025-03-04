@@ -6,4 +6,6 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-public record ExtractionResult(Object response) {}
+import java.util.Map;
+
+public record ExtractionResult(Map<String, Object> response) {}
