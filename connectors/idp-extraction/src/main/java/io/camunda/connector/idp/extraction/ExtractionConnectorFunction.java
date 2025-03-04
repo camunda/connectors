@@ -12,9 +12,11 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
+import io.camunda.connector.idp.extraction.caller.GeminiCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
-import io.camunda.connector.idp.extraction.model.ExtractionRequest;
-import io.camunda.connector.idp.extraction.model.ExtractionResult;
+import io.camunda.connector.idp.extraction.model.*;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
+import io.camunda.connector.idp.extraction.model.providers.GeminiProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
@@ -51,40 +53,69 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
   private final BedrockCaller bedrockCaller;
 
+  private final GeminiCaller geminiCaller;
+
   public ExtractionConnectorFunction() {
     this.textractClientSupplier = new TextractClientSupplier();
     this.s3ClientSupplier = new S3ClientSupplier();
     this.bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
     this.pollingTextractCaller = new PollingTextractCaller();
     this.bedrockCaller = new BedrockCaller();
+    this.geminiCaller = new GeminiCaller();
   }
 
   public ExtractionConnectorFunction(
-      PollingTextractCaller pollingTextractCaller, BedrockCaller bedrockCaller) {
+      PollingTextractCaller pollingTextractCaller,
+      BedrockCaller bedrockCaller,
+      GeminiCaller geminiCaller) {
     this.textractClientSupplier = new TextractClientSupplier();
     this.s3ClientSupplier = new S3ClientSupplier();
     this.bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
     this.pollingTextractCaller = pollingTextractCaller;
     this.bedrockCaller = bedrockCaller;
+    this.geminiCaller = geminiCaller;
   }
 
   @Override
   public Object execute(OutboundConnectorContext context) {
     final var extractionRequest = context.bindVariables(ExtractionRequest.class);
+    final var input = extractionRequest.input();
+    return switch (extractionRequest.baseRequest()) {
+      case AwsProvider aws -> extractUsingAws(input, aws);
+      case GeminiProvider gemini -> extractUsingGcp(input, gemini);
+    };
+  }
 
+  private ExtractionResult extractUsingGcp(
+      ExtractionRequestData input, GeminiProvider baseRequest) {
     try {
+      long startTime = System.currentTimeMillis();
+      Object result = geminiCaller.generateContent(input, baseRequest);
+      long endTime = System.currentTimeMillis();
+      LOGGER.info("Gemini content extraction took {} ms", (endTime - startTime));
+      return new ExtractionResult(result);
+    } catch (Exception e) {
+      LOGGER.error("Document extraction via GCP failed: {}", e.getMessage());
+      throw new ConnectorException(e);
+    }
+  }
+
+  private ExtractionResult extractUsingAws(ExtractionRequestData input, AwsProvider baseRequest) {
+    try {
+      long startTime = System.currentTimeMillis();
       String extractedText =
-          switch (extractionRequest.input().extractionEngineType()) {
-            case AWS_TEXTRACT -> extractTextUsingAwsTextract(extractionRequest);
-            case APACHE_PDFBOX -> extractTextUsingApachePdf(extractionRequest);
+          switch (baseRequest.getExtractionEngineType()) {
+            case AWS_TEXTRACT -> extractTextUsingAwsTextract(input, baseRequest);
+            case APACHE_PDFBOX -> extractTextUsingApachePdf(input);
           };
 
       String bedrockResponse =
           bedrockCaller.call(
-              extractionRequest,
+              input,
               extractedText,
-              bedrockRuntimeClientSupplier.getBedrockRuntimeClient(extractionRequest));
-
+              bedrockRuntimeClientSupplier.getBedrockRuntimeClient(baseRequest));
+      long endTime = System.currentTimeMillis();
+      LOGGER.info("Aws content extraction took {} ms", (endTime - startTime));
       return new ExtractionResult(bedrockResponse);
     } catch (Exception e) {
       LOGGER.error("Document extraction failed: {}", e.getMessage());
@@ -92,16 +123,17 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
-  private String extractTextUsingAwsTextract(ExtractionRequest extractionRequest) throws Exception {
+  private String extractTextUsingAwsTextract(ExtractionRequestData input, AwsProvider baseRequest)
+      throws Exception {
     return pollingTextractCaller.call(
-        extractionRequest.input().document(),
-        extractionRequest.input().s3BucketName(),
-        textractClientSupplier.getTextractClient(extractionRequest),
-        s3ClientSupplier.getAsyncS3Client(extractionRequest));
+        input.document(),
+        baseRequest.getS3BucketName(),
+        textractClientSupplier.getTextractClient(baseRequest),
+        s3ClientSupplier.getAsyncS3Client(baseRequest));
   }
 
-  private String extractTextUsingApachePdf(ExtractionRequest extractionRequest) throws Exception {
-    PDDocument document = Loader.loadPDF(extractionRequest.input().document().asByteArray());
+  private String extractTextUsingApachePdf(ExtractionRequestData input) throws Exception {
+    PDDocument document = Loader.loadPDF(input.document().asByteArray());
     PDFTextStripper pdfStripper = new PDFTextStripper();
     return pdfStripper.getText(document);
   }
