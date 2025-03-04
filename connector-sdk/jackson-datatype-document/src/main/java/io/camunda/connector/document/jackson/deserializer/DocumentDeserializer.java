@@ -25,8 +25,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.OperationExecutor;
-import io.camunda.document.operation.OperationResult;
+import io.camunda.document.operation.IntrinsicOperationExecutor;
+import io.camunda.document.operation.IntrinsicOperationResult;
 import java.io.IOException;
 
 /**
@@ -35,13 +35,13 @@ import java.io.IOException;
  */
 public class DocumentDeserializer extends AbstractDeserializer<Document> {
 
-  private final OperationResultDeserializer operationDeserializer;
+  private final IntrinsicOperationResultDeserializer operationDeserializer;
   private final DocumentFactory documentFactory;
 
   public DocumentDeserializer(
-      DocumentFactory documentFactory, OperationExecutor operationExecutor) {
+      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
     this.documentFactory = documentFactory;
-    this.operationDeserializer = new OperationResultDeserializer(operationExecutor);
+    this.operationDeserializer = new IntrinsicOperationResultDeserializer(operationExecutor);
   }
 
   @Override
@@ -52,7 +52,7 @@ public class DocumentDeserializer extends AbstractDeserializer<Document> {
       return documentFactory.resolve(reference);
     }
     if (isOperation(node)) {
-      final OperationResult<?> operation = operationDeserializer.handleJsonNode(node, context);
+      final IntrinsicOperationResult<?> operation = operationDeserializer.handleJsonNode(node, context);
       return requireOperationSuccessOrThrow(operation, Document.class);
     }
     throw new IllegalArgumentException(

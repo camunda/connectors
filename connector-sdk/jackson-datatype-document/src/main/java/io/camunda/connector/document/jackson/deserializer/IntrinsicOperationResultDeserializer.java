@@ -22,31 +22,31 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.OperationModel;
 import io.camunda.document.Document;
-import io.camunda.document.operation.OperationExecutor;
-import io.camunda.document.operation.OperationParameter;
-import io.camunda.document.operation.OperationParameter.DocumentParameter;
-import io.camunda.document.operation.OperationParameter.ValueParameter;
-import io.camunda.document.operation.OperationResult;
+import io.camunda.document.operation.IntrinsicOperationExecutor;
+import io.camunda.document.operation.IntrinsicOperationParameter;
+import io.camunda.document.operation.IntrinsicOperationParameter.DocumentParameter;
+import io.camunda.document.operation.IntrinsicOperationParameter.ValueParameter;
+import io.camunda.document.operation.IntrinsicOperationResult;
 import java.io.IOException;
 import java.util.List;
 
-public class OperationResultDeserializer extends AbstractDeserializer<OperationResult<?>> {
+public class IntrinsicOperationResultDeserializer extends AbstractDeserializer<IntrinsicOperationResult<?>> {
 
-  private final OperationExecutor operationExecutor;
+  private final IntrinsicOperationExecutor operationExecutor;
 
-  public OperationResultDeserializer(OperationExecutor operationExecutor) {
+  public IntrinsicOperationResultDeserializer(IntrinsicOperationExecutor operationExecutor) {
     this.operationExecutor = operationExecutor;
   }
 
   @Override
-  protected OperationResult<?> handleJsonNode(JsonNode node, DeserializationContext context)
+  protected IntrinsicOperationResult<?> handleJsonNode(JsonNode node, DeserializationContext context)
       throws IOException {
     if (!isOperation(node)) {
       throw new IllegalArgumentException(
           "Unsupported document format. Expected an operation, got: " + node);
     }
     final var operation = context.readTreeAsValue(node, OperationModel.class);
-    final List<? extends OperationParameter> transformedParams =
+    final List<? extends IntrinsicOperationParameter> transformedParams =
         operation.params().stream()
             .map(
                 param -> {

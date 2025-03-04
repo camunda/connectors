@@ -26,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.document.operation.DocumentOperationPayload;
+import io.camunda.document.operation.IntrinsicOperationPayload;
 import io.camunda.document.reference.DocumentReference;
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -45,14 +45,6 @@ import java.util.Optional;
 public sealed interface DocumentReferenceModel extends DocumentReference {
 
   String DISCRIMINATOR_KEY = "camunda.document.type";
-
-  /**
-   * Document references may have operations associated with them. Operation indicates that the
-   * document should not be used as is, but should be transformed or processed in some way. This
-   * processing must take place in the context of the connector.
-   */
-  @JsonInclude(Include.NON_EMPTY)
-  Optional<DocumentOperationPayload> operation();
 
   @JsonInclude(Include.NON_EMPTY)
   record CamundaDocumentMetadataModel(
@@ -116,8 +108,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
       String storeId,
       String documentId,
       String contentHash,
-      CamundaDocumentMetadataModel metadata,
-      Optional<DocumentOperationPayload> operation)
+      CamundaDocumentMetadataModel metadata)
       implements DocumentReferenceModel, CamundaDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)
@@ -146,7 +137,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     }
   }
 
-  record ExternalDocumentReferenceModel(String url, Optional<DocumentOperationPayload> operation)
+  record ExternalDocumentReferenceModel(String url, Optional<IntrinsicOperationPayload> operation)
       implements DocumentReferenceModel, ExternalDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)

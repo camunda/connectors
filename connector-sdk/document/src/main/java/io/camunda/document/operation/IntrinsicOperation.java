@@ -16,11 +16,7 @@
  */
 package io.camunda.document.operation;
 
-import java.util.List;
+public interface IntrinsicOperation<T> {
 
-public interface OperationProvider {
-
-  Operation getOperation(String operationName);
-
-  List<String> getOperationNames();
+  IntrinsicOperationResult<T> execute(IntrinsicOperationParams params);
 }

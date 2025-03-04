@@ -25,8 +25,8 @@ import static org.mockito.Mockito.spy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DefaultOperationExecutor;
-import io.camunda.document.operation.OperationExecutor;
+import io.camunda.document.operation.DefaultIntrinsicOperationExecutor;
+import io.camunda.document.operation.IntrinsicOperationExecutor;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class OperationDeserializationTest {
 
   private DocumentFactory factory = mock(DocumentFactory.class);
-  private final OperationExecutor operationExecutor = spy(new DefaultOperationExecutor(List.of()));
+  private final IntrinsicOperationExecutor operationExecutor = spy(new DefaultIntrinsicOperationExecutor(List.of()));
 
   private final ObjectMapper objectMapper =
       new ObjectMapper()
@@ -46,10 +46,12 @@ public class OperationDeserializationTest {
           .registerModule(new JacksonModuleDocumentSerializer())
           .registerModule(new Jdk8Module());
 
-  public record Base64InputModel(String document) {}
+  public record Base64InputModel(String document) {
+
+  }
 
   @Test
-  void operationInvoked() {
+  void base64operationInvoked() {
     var contentString = "Hello World";
     var ref = createDocumentMock(contentString, null, factory);
 
@@ -59,6 +61,17 @@ public class OperationDeserializationTest {
 
     assertThat(result.document())
         .isEqualTo(Base64.getEncoder().encodeToString(contentString.getBytes()));
+  }
+
+  @Test
+  void parseJsonOperationInvoked() {
+    var contentString = "{\"key\": \"value\"}";
+
+    final var payload =
+        Map.of("camunda.operation.type", "parseJson", "params", List.of(contentString));
+    final var result = objectMapper.convertValue(payload, Object.class);
+
+    assertThat(result).isEqualTo(Map.of("key", "value"));
   }
 
   @Test

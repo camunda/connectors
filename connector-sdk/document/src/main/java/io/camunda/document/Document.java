@@ -19,6 +19,7 @@ package io.camunda.document;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.document.reference.DocumentReference;
 import java.io.InputStream;
+import java.net.URL;
 
 /**
  * Represents a uniform document (file) object that can be passed between connectors and used in the
@@ -39,4 +40,6 @@ public interface Document {
   byte[] asByteArray();
 
   DocumentReference reference();
+
+  String generateLink();
 }

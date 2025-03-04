@@ -16,18 +16,19 @@
  */
 package io.camunda.document.operation;
 
+import io.camunda.document.operation.impl.DefaultIntrinsicOperationProvider;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class DefaultOperationExecutor implements OperationExecutor {
+public class DefaultIntrinsicOperationExecutor implements IntrinsicOperationExecutor {
 
-  private final Map<String, OperationProvider> operationProviders;
+  private final Map<String, IntrinsicOperationProvider> operationProviders;
 
-  public DefaultOperationExecutor(List<OperationProvider> operationProviders) {
-    List<OperationProvider> updatedProviders = new ArrayList<>(operationProviders);
-    updatedProviders.add(new DefaultOperationProvider());
+  public DefaultIntrinsicOperationExecutor(List<IntrinsicOperationProvider> operationProviders) {
+    List<IntrinsicOperationProvider> updatedProviders = new ArrayList<>(operationProviders);
+    updatedProviders.add(new DefaultIntrinsicOperationProvider());
 
     this.operationProviders =
         updatedProviders.stream()
@@ -37,8 +38,8 @@ public class DefaultOperationExecutor implements OperationExecutor {
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
-  private Operation<?> getOperation(String operationName) {
-    OperationProvider provider = operationProviders.get(operationName);
+  private IntrinsicOperation<?> getOperation(String operationName) {
+    IntrinsicOperationProvider provider = operationProviders.get(operationName);
     if (provider != null) {
       return provider.getOperation(operationName);
     }
@@ -46,9 +47,9 @@ public class DefaultOperationExecutor implements OperationExecutor {
   }
 
   @Override
-  public <T> OperationResult<T> execute(
-      String operationName, List<? extends OperationParameter> arguments) {
-    Operation<?> operation = getOperation(operationName);
-    return (OperationResult<T>) operation.execute(arguments);
+  public <T> IntrinsicOperationResult<T> execute(
+      String operationName, List<? extends IntrinsicOperationParameter> arguments) {
+    IntrinsicOperation<?> operation = getOperation(operationName);
+    return (IntrinsicOperationResult<T>) operation.execute(arguments);
   }
 }
