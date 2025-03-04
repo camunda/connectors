@@ -31,24 +31,4 @@ public record ActiveExecutableResponse(
     List<InboundConnectorElement> elements,
     Health health,
     Collection<Activity> logs,
-    Long activationTimestamp) {
-
-  private static final Logger LOG = LoggerFactory.getLogger(ActiveExecutableResponse.class);
-
-  public Map<String, String> data() {
-    Map<String, String> data = new HashMap<>(elements().getFirst().connectorLevelProperties());
-    var executableClass = executableClass();
-
-    if (executableClass != null
-        && WebhookConnectorExecutable.class.isAssignableFrom(executableClass)) {
-      try {
-        var properties = elements().getFirst().connectorLevelProperties();
-        var contextPath = properties.get("inbound.context");
-        data.put("path", contextPath);
-      } catch (Exception e) {
-        LOG.error("ERROR: webhook connector doesn't have context path property", e);
-      }
-    }
-    return data;
-  }
-}
+    Long activationTimestamp) {}
