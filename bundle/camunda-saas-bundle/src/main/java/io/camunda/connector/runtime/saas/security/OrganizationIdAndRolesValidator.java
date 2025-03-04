@@ -30,9 +30,9 @@ public class OrganizationIdAndRolesValidator implements OAuth2TokenValidator<Jwt
   private static final String ORGS_CLAIM_ID_KEY = "id";
   private final List<String> allowedRoles;
 
-  OrganizationIdAndRolesValidator(String organizationId, String allowedRoles) {
+  OrganizationIdAndRolesValidator(String organizationId, List<String> allowedRoles) {
     this.organizationId = organizationId;
-    this.allowedRoles = List.of(allowedRoles.split(","));
+    this.allowedRoles = allowedRoles;
   }
 
   @Override
