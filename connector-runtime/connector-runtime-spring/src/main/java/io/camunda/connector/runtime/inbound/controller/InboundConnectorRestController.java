@@ -31,9 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class InboundConnectorRestController {
 
-  private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorRestController.class);
-
   private final InboundExecutableRegistry executableRegistry;
+  private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
 
   public InboundConnectorRestController(InboundExecutableRegistry executableRegistry) {
     this.executableRegistry = executableRegistry;
@@ -72,7 +71,9 @@ public class InboundConnectorRestController {
     return executableRegistry
         .query(new ActiveExecutableQuery(bpmnProcessId, elementId, type, tenantId))
         .stream()
-        .map(ActiveInboundConnectorResponse::from)
+        .map(
+            response ->
+                ActiveInboundConnectorResponse.from(response, connectorDataMapper::webhookMapper))
         .collect(Collectors.toList());
   }
 }

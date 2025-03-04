@@ -38,6 +38,8 @@ public class InboundInstancesRestController {
 
   private final InboundExecutableRegistry executableRegistry;
 
+  private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
+
   public InboundInstancesRestController(InboundExecutableRegistry executableRegistry) {
     this.executableRegistry = executableRegistry;
   }
@@ -127,7 +129,10 @@ public class InboundInstancesRestController {
 
   private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(String type) {
     return executableRegistry.query(new ActiveExecutableQuery(null, null, type, null)).stream()
-        .map(ActiveInboundConnectorResponse::from)
+        .map(
+            response ->
+                ActiveInboundConnectorResponse.from(
+                    response, connectorDataMapper::allPropertiesMapper))
         .collect(Collectors.toList());
   }
 }
