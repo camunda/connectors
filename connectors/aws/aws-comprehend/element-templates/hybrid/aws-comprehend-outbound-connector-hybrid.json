@@ -253,6 +253,7 @@
     "label" : "Analyze tables",
     "optional" : false,
     "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.featureTypeTables",
@@ -275,6 +276,7 @@
     "label" : "Analyze forms",
     "optional" : false,
     "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.featureTypeForms",
