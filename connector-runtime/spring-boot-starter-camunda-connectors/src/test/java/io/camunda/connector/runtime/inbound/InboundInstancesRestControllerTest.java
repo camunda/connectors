@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -281,11 +282,9 @@ class InboundInstancesRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<Collection<Activity>> logs =
+    List<Activity> logs =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-    assertEquals(1, logs.size());
-    var log = logs.get(0);
-    assertEquals(0, log.size());
+    assertTrue(logs.isEmpty());
   }
 
   @Test
@@ -298,15 +297,13 @@ class InboundInstancesRestControllerTest {
             .getResponse()
             .getContentAsString();
 
-    List<Collection<Activity>> logs =
+    List<Activity> logs =
         ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-    assertEquals(1, logs.size());
-    var log = logs.get(0);
-    assertEquals(2, log.size());
-    var log1 = log.stream().filter(a -> a.severity() == Severity.INFO).findFirst().get();
+    assertEquals(2, logs.size());
+    var log1 = logs.stream().filter(a -> a.severity() == Severity.INFO).findFirst().get();
     assertEquals("myTag", log1.tag());
     assertEquals("myMessage", log1.message());
-    var log2 = log.stream().filter(a -> a.severity() == Severity.ERROR).findFirst().get();
+    var log2 = logs.stream().filter(a -> a.severity() == Severity.ERROR).findFirst().get();
     assertEquals("myTag2", log2.tag());
     assertEquals("myMessage2", log2.message());
   }
