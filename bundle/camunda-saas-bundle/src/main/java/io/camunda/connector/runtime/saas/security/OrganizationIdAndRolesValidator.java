@@ -35,6 +35,7 @@ public class OrganizationIdAndRolesValidator implements OAuth2TokenValidator<Jwt
     this.allowedRoles = List.of(allowedRoles.split(","));
   }
 
+  @Override
   public OAuth2TokenValidatorResult validate(Jwt jwt) {
     OAuth2Error error =
         new OAuth2Error(
@@ -57,9 +58,8 @@ public class OrganizationIdAndRolesValidator implements OAuth2TokenValidator<Jwt
             "invalid_token",
             "The 'https://camunda.com/orgs' claim has no id matching the organization id: ["
                 + organizationId
-                + "] or the roles are not in the allowed roles: ["
-                + allowedRoles
-                + "]",
+                + "] or the roles are not in the allowed roles: "
+                + allowedRoles,
             null);
 
     return hasOrganizationIdAndRoles
