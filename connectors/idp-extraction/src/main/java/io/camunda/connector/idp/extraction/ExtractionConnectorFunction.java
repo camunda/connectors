@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.idp.extraction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -15,9 +18,14 @@ import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
+import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -51,12 +59,15 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
   private final BedrockCaller bedrockCaller;
 
+  private final ObjectMapper objectMapper;
+
   public ExtractionConnectorFunction() {
     this.textractClientSupplier = new TextractClientSupplier();
     this.s3ClientSupplier = new S3ClientSupplier();
     this.bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
     this.pollingTextractCaller = new PollingTextractCaller();
     this.bedrockCaller = new BedrockCaller();
+    this.objectMapper = new ObjectMapper();
   }
 
   public ExtractionConnectorFunction(
@@ -64,6 +75,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     this.textractClientSupplier = new TextractClientSupplier();
     this.s3ClientSupplier = new S3ClientSupplier();
     this.bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
+    this.objectMapper = new ObjectMapper();
     this.pollingTextractCaller = pollingTextractCaller;
     this.bedrockCaller = bedrockCaller;
   }
@@ -85,10 +97,62 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
               extractedText,
               bedrockRuntimeClientSupplier.getBedrockRuntimeClient(extractionRequest));
 
-      return new ExtractionResult(bedrockResponse);
+      return new ExtractionResult(
+          buildResponseJsonIfPossible(bedrockResponse, extractionRequest.input().taxonomyItems()));
     } catch (Exception e) {
       LOGGER.error("Document extraction failed: {}", e.getMessage());
       throw new ConnectorException(e);
+    }
+  }
+
+  private Map<String, Object> buildResponseJsonIfPossible(
+      String llmResponse, List<TaxonomyItem> taxonomyItems) {
+    try {
+      var llmResponseJson = objectMapper.readValue(llmResponse, JsonNode.class);
+      var taxonomyItemsNames = taxonomyItems.stream().map(TaxonomyItem::name).toList();
+
+      if (llmResponseJson.isObject()) {
+        if (llmResponseJson.has("response")
+            && llmResponseJson.size() == 1
+            && !taxonomyItemsNames.contains("response")) {
+          var nestedResponse = llmResponseJson.get("response");
+          if (nestedResponse.isObject()) {
+            llmResponseJson = nestedResponse;
+          } else if (nestedResponse.isTextual()) {
+            llmResponseJson = objectMapper.readValue(nestedResponse.asText(), JsonNode.class);
+          } else {
+            throw new ConnectorException(
+                String.valueOf(HttpStatus.SC_SERVER_ERROR),
+                String.format(
+                    "LLM response is neither a JSON object nor a string: %s", llmResponse));
+          }
+        }
+
+        Map<String, Object> result =
+            taxonomyItemsNames.stream()
+                .filter(llmResponseJson::has)
+                .collect(Collectors.toMap(name -> name, llmResponseJson::get));
+
+        var missingKeys =
+            taxonomyItemsNames.stream().filter(name -> !result.containsKey(name)).toList();
+        if (!missingKeys.isEmpty()) {
+          LOGGER.warn(
+              "LLM model response is missing the following keys: ({})",
+              String.join(", ", missingKeys));
+        }
+
+        return result;
+
+      } else {
+        throw new ConnectorException(
+            String.valueOf(HttpStatus.SC_SERVER_ERROR),
+            String.format("LLM response is not a JSON object: %s", llmResponse));
+      }
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          String.valueOf(HttpStatus.SC_SERVER_ERROR),
+          String.format("Failed to parse the JSON response from LLM: %s", llmResponse),
+          e);
     }
   }
 
