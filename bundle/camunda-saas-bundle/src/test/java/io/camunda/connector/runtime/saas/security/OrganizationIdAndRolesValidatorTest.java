@@ -31,8 +31,8 @@ public class OrganizationIdAndRolesValidatorTest {
 
   private static final String ORGS_CLAIM = "https://camunda.com/orgs";
   private static final String ORGANIZATION_ID = "organizationId";
-  private static final String ALLOWED_ROLES_SINGLE = "allowedRoles";
-  private static final String ALLOWED_ROLES_MULTIPLE = "allowedRoles1,allowedRoles2";
+  private static final List<String> ALLOWED_ROLES_SINGLE = List.of("allowedRoles");
+  private static final List<String> ALLOWED_ROLES_MULTIPLE = List.of("allowedRoles1,allowedRoles2");
 
   @Test
   public void shouldReturnOK_whenOrganizationIdAndSingleRoleAreValid()
