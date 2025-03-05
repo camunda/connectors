@@ -19,7 +19,9 @@ package io.camunda.connector.http.base.client.apache.builder.parts;
 import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -94,6 +96,10 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
 
   private HttpEntity createStringEntity(HttpCommonRequest request) {
     Object body = request.getBody();
+    ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    if (request.isIgnoreNullValues()) {
+      objectMapper = objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    }
     if (body instanceof Map map) {
       body = new DocumentHelper().parseDocumentsInBody(map, Document::asByteArray);
     }
@@ -103,7 +109,7 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
           ? new StringEntity(
               s, contentType.orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
           : new StringEntity(
-              ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(body),
+              objectMapper.writeValueAsString(body),
               contentType.orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
     } catch (JsonProcessingException e) {
       throw new ConnectorException("Failed to serialize request body:" + body, e);
