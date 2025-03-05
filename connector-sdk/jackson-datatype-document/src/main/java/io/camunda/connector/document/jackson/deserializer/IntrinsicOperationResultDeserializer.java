@@ -21,16 +21,11 @@ import static io.camunda.connector.document.jackson.deserializer.Deserialization
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.OperationModel;
-import io.camunda.document.Document;
-import io.camunda.document.operation.IntrinsicOperationExecutor;
-import io.camunda.document.operation.IntrinsicOperationParameter;
-import io.camunda.document.operation.IntrinsicOperationParameter.DocumentParameter;
-import io.camunda.document.operation.IntrinsicOperationParameter.ValueParameter;
-import io.camunda.document.operation.IntrinsicOperationResult;
+import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.operation.IntrinsicOperationParams;
 import java.io.IOException;
-import java.util.List;
 
-public class IntrinsicOperationResultDeserializer extends AbstractDeserializer<IntrinsicOperationResult<?>> {
+public class IntrinsicOperationResultDeserializer extends AbstractDeserializer<Object> {
 
   private final IntrinsicOperationExecutor operationExecutor;
 
@@ -39,25 +34,16 @@ public class IntrinsicOperationResultDeserializer extends AbstractDeserializer<I
   }
 
   @Override
-  protected IntrinsicOperationResult<?> handleJsonNode(JsonNode node, DeserializationContext context)
+  protected Object handleJsonNode(JsonNode node, DeserializationContext context)
       throws IOException {
     if (!isOperation(node)) {
       throw new IllegalArgumentException(
           "Unsupported document format. Expected an operation, got: " + node);
     }
-    final var operation = context.readTreeAsValue(node, OperationModel.class);
-    final List<? extends IntrinsicOperationParameter> transformedParams =
-        operation.params().stream()
-            .map(
-                param -> {
-                  if (param instanceof Document) {
-                    return new DocumentParameter((Document) param);
-                  }
-                  // TODO: do we want to support nested operations?
-                  return new ValueParameter(param);
-                })
-            .toList();
+    final OperationModel operation = context.readTreeAsValue(node, OperationModel.class);
+    final IntrinsicOperationParams params =
+        new IntrinsicOperationParams.Positional(operation.params());
 
-    return operationExecutor.execute(operation.name(), transformedParams);
+    return operationExecutor.execute(operation.name(), params, Object.class);
   }
 }

@@ -18,12 +18,11 @@ package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isOperation;
-import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.requireOperationSuccessOrThrow;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.IntrinsicOperationExecutor;
+import io.camunda.operation.IntrinsicOperationExecutor;
 import java.io.IOException;
 
 public class StringDeserializer extends AbstractDeserializer<String> {
@@ -34,7 +33,8 @@ public class StringDeserializer extends AbstractDeserializer<String> {
   private final DocumentDeserializer documentDeserializer;
   private final IntrinsicOperationResultDeserializer operationDeserializer;
 
-  public StringDeserializer(DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
+  public StringDeserializer(
+      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
     this.documentDeserializer = new DocumentDeserializer(documentFactory, operationExecutor);
     this.operationDeserializer = new IntrinsicOperationResultDeserializer(operationExecutor);
   }
@@ -48,7 +48,11 @@ public class StringDeserializer extends AbstractDeserializer<String> {
     }
     if (isOperation(node)) {
       final var operationResult = operationDeserializer.handleJsonNode(node, context);
-      return requireOperationSuccessOrThrow(operationResult, String.class);
+      if (operationResult instanceof String) {
+        return (String) operationResult;
+      }
+      throw new IllegalArgumentException(
+          "Unsupported operation result, expected a string, got: " + operationResult);
     }
     // if not document or operation, fallback to default deserialization
     var parser = node.traverse(context.getParser().getCodec());

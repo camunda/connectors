@@ -14,13 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.operation.impl;
 
-import java.util.List;
+import io.camunda.document.Document;
+import io.camunda.operation.IntrinsicOperation;
+import io.camunda.operation.IntrinsicOperationProvider;
+import java.time.Duration;
+import javax.annotation.Nullable;
 
-public interface IntrinsicOperationProvider {
+public class CreateLinkOperation implements IntrinsicOperationProvider {
 
-  IntrinsicOperation getOperation(String operationName);
-
-  List<String> getOperationNames();
+  @IntrinsicOperation(name = "createLink")
+  public String execute(Document document, @Nullable Duration ttl) {
+    if (ttl != null) {
+      return document.generateLink(ttl);
+    }
+    return document.generateLink();
+  }
 }

@@ -20,8 +20,11 @@ import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.document.store.DocumentLinkCreationRequest;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Base64;
+import java.util.Optional;
 
 public class CamundaDocument implements Document {
 
@@ -69,6 +72,12 @@ public class CamundaDocument implements Document {
 
   @Override
   public String generateLink() {
-    return documentStore.generateLink(reference);
+    return documentStore.generateLink(new DocumentLinkCreationRequest(reference, Optional.empty()));
+  }
+
+  @Override
+  public String generateLink(Duration timeToLive) {
+    return documentStore.generateLink(
+        new DocumentLinkCreationRequest(reference, Optional.of(timeToLive)));
   }
 }

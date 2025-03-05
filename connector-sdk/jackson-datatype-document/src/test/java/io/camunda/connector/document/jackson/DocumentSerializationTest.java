@@ -26,9 +26,8 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocum
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.IntrinsicOperationExecutor;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
-import java.util.Optional;
+import io.camunda.operation.IntrinsicOperationExecutor;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -48,7 +47,7 @@ public class DocumentSerializationTest {
   @Test
   void sourceTypeDocument_jacksonInternalModel() throws JsonProcessingException, JSONException {
     var metadata = new CamundaDocumentMetadataModel(null, null, null, null, null, null, null);
-    var ref = new CamundaDocumentReferenceModel("test", "test", "hash", metadata, Optional.empty());
+    var ref = new CamundaDocumentReferenceModel("test", "test", "hash", metadata);
     var document = mock(Document.class);
     when(document.reference()).thenReturn(ref);
     var source = new SourceTypeDocument(document);

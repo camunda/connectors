@@ -17,13 +17,12 @@
 package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
-import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.requireOperationSuccessOrThrow;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.IntrinsicOperationExecutor;
+import io.camunda.operation.IntrinsicOperationExecutor;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -50,8 +49,11 @@ public class InputStreamDeserializer extends AbstractDeserializer<InputStream> {
     if (DeserializationUtil.isOperation(node)) {
       final var operationResult =
           new IntrinsicOperationResultDeserializer(operationExecutor).handleJsonNode(node, context);
-      final var document = requireOperationSuccessOrThrow(operationResult, Document.class);
-      return document.asInputStream();
+      if (operationResult instanceof Document document) {
+        return document.asInputStream();
+      }
+      throw new IllegalArgumentException(
+          "Unsupported operation result, expected a document, got: " + operationResult);
     }
     throw new IllegalArgumentException(
         "Node cannot be deserialized as InputStream, expected either a document reference or an operation, got: "

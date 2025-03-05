@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.store;
+package io.camunda.operation.impl;
 
-import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
-import java.io.InputStream;
+import io.camunda.document.Document;
+import io.camunda.operation.IntrinsicOperation;
+import io.camunda.operation.IntrinsicOperationProvider;
+import java.nio.charset.Charset;
+import javax.annotation.Nullable;
 
-public interface CamundaDocumentStore {
+public class GetTextOperation implements IntrinsicOperationProvider {
 
-  CamundaDocumentReference createDocument(DocumentCreationRequest request);
-
-  InputStream getDocumentContent(CamundaDocumentReference reference);
-
-  void deleteDocument(CamundaDocumentReference reference);
-
-  String generateLink(DocumentLinkCreationRequest request);
+  @IntrinsicOperation(name = "getText")
+  public String execute(Document document, @Nullable String charset) {
+    final var bytes = document.asByteArray();
+    final var charsetInstance =
+        charset != null ? Charset.forName(charset) : Charset.defaultCharset();
+    return new String(bytes, charsetInstance);
+  }
 }

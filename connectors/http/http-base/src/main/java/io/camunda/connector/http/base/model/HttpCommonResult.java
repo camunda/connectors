@@ -88,7 +88,7 @@ public record HttpCommonResult(
             });
     CamundaDocument doc =
         new CamundaDocument(
-            documentReference.metadata(), documentReference, InMemoryDocumentStore.INSTANCE);
+            documentReference.getMetadata(), documentReference, InMemoryDocumentStore.INSTANCE);
     var body = Map.of("order", Map.of("id", "123", "total", "100.00€"));
     return new HttpCommonResult(200, headers, body, doc);
   }

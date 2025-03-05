@@ -17,7 +17,7 @@
 package io.camunda.connector.document.jackson.deserializer;
 
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.IntrinsicOperationExecutor;
+import io.camunda.operation.IntrinsicOperationExecutor;
 
 /** Container for shared instances of deserializers that need to be cross-referenced. */
 public class DeserializerContainer {

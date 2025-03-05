@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.OperationModel;
-import io.camunda.document.operation.IntrinsicOperationResult;
 import java.io.IOException;
 
 public class DeserializationUtil {
@@ -51,27 +50,5 @@ public class DeserializationUtil {
           "Unsupported document format. Expected an operation, got: " + node);
     }
     return ctx.readTreeAsValue(node, OperationModel.class);
-  }
-
-  public static IntrinsicOperationResult.Success<?> requireOperationSuccessOrThrow(
-      IntrinsicOperationResult<?> result) {
-    if (result instanceof IntrinsicOperationResult.Success) {
-      return (IntrinsicOperationResult.Success<?>) result;
-    }
-    throw new IllegalArgumentException(
-        "Expected operation result to be a success, got: " + result.getClass());
-  }
-
-  public static <T> T requireOperationSuccessOrThrow(IntrinsicOperationResult<?> result, Class<T> clazz) {
-    final var success = requireOperationSuccessOrThrow(result);
-    final var value = success.result();
-    if (clazz.isInstance(value)) {
-      return clazz.cast(value);
-    }
-    throw new IllegalArgumentException(
-        "Expected operation result to be a success with value of type "
-            + clazz
-            + ", got: "
-            + value.getClass());
   }
 }

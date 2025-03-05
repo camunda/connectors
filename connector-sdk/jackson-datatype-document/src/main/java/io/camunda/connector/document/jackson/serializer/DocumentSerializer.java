@@ -24,7 +24,6 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocum
 import io.camunda.document.Document;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.IOException;
-import java.util.Optional;
 
 public class DocumentSerializer extends JsonSerializer<Document> {
 
@@ -44,11 +43,10 @@ public class DocumentSerializer extends JsonSerializer<Document> {
     } else {
       model =
           new CamundaDocumentReferenceModel(
-              camundaReference.storeId(),
-              camundaReference.documentId(),
+              camundaReference.getStoreId(),
+              camundaReference.getDocumentId(),
               camundaReference.getContentHash(),
-              new CamundaDocumentMetadataModel(camundaReference.metadata()),
-              Optional.empty());
+              new CamundaDocumentMetadataModel(camundaReference.getMetadata()));
     }
     jsonGenerator.writeObject(model);
   }
