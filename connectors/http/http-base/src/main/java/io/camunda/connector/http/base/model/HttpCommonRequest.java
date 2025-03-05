@@ -135,7 +135,7 @@ public class HttpCommonRequest {
       type = PropertyType.Boolean,
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       defaultValue = "false",
-      description = "Null values will not be sent")
+      tooltip = "Null values will not be sent")
   private boolean ignoreNullValues;
 
   public Object getBody() {

@@ -48,6 +48,10 @@ import org.apache.hc.core5.http.message.BasicNameValuePair;
  */
 public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   public static final String EMPTY_BODY = "";
+  public static final ObjectMapper mapperIgnoreNull =
+      ConnectorsObjectMapperSupplier.getCopy()
+          .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+  public static final ObjectMapper mapperSendNull = ConnectorsObjectMapperSupplier.getCopy();
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
@@ -96,10 +100,6 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
 
   private HttpEntity createStringEntity(HttpCommonRequest request) {
     Object body = request.getBody();
-    ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-    if (request.isIgnoreNullValues()) {
-      objectMapper = objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    }
     if (body instanceof Map map) {
       body = new DocumentHelper().parseDocumentsInBody(map, Document::asByteArray);
     }
@@ -109,7 +109,9 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
           ? new StringEntity(
               s, contentType.orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
           : new StringEntity(
-              objectMapper.writeValueAsString(body),
+              request.isIgnoreNullValues()
+                  ? mapperIgnoreNull.writeValueAsString(body)
+                  : mapperSendNull.writeValueAsString(body),
               contentType.orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
     } catch (JsonProcessingException e) {
       throw new ConnectorException("Failed to serialize request body:" + body, e);
