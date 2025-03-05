@@ -127,7 +127,7 @@ public class KafkaConnectorConsumer {
       context.log(
           Activity.level(Severity.ERROR)
               .tag("Subscription")
-              .message("Failed to initialize connector: " + ex.getMessage()));
+              .messageWithException("Failed to initialize connector: " + ex.getMessage(), ex));
       context.reportHealth(Health.down(ex));
       throw ex;
     }
@@ -221,7 +221,7 @@ public class KafkaConnectorConsumer {
     context.log(
         Activity.level(Severity.ERROR)
             .tag("Kafka Consumer")
-            .message("Kafka Consumer status changed to DOWN: " + newStatus));
+            .messageWithException("Kafka Consumer status changed to DOWN: " + newStatus, error));
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
       context.reportHealth(Health.down(error));
