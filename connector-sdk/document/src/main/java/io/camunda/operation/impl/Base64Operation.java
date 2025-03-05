@@ -19,11 +19,17 @@ package io.camunda.operation.impl;
 import io.camunda.document.Document;
 import io.camunda.operation.IntrinsicOperation;
 import io.camunda.operation.IntrinsicOperationProvider;
+import java.util.Base64;
 
 public class Base64Operation implements IntrinsicOperationProvider {
 
   @IntrinsicOperation(name = "base64")
-  public String execute(Document document) {
-    return document.asBase64();
+  public String execute(Object input) {
+    if (input instanceof Document) {
+      return ((Document) input).asBase64();
+    }
+    if (input instanceof String) {
+      return Base64.getEncoder().encodeToString(((String) input).getBytes());
+    }
   }
 }
