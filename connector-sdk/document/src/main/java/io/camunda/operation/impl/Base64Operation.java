@@ -31,5 +31,7 @@ public class Base64Operation implements IntrinsicOperationProvider {
     if (input instanceof String) {
       return Base64.getEncoder().encodeToString(((String) input).getBytes());
     }
+    throw new IllegalArgumentException(
+        "Unsupported input type: " + input.getClass() + ". Expected Document or String.");
   }
 }
