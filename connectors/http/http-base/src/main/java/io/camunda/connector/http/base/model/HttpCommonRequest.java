@@ -107,7 +107,6 @@ public class HttpCommonRequest {
   @TemplateProperty(
       group = "endpoint",
       type = PropertyType.Boolean,
-      feel = Property.FeelMode.disabled,
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       defaultValue = "false",
       description = "Store the response as a document in the document store")

@@ -126,17 +126,8 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
 
     switch (builder) {
       case DropdownProperty.DropdownPropertyBuilder ignored -> {}
-      case NumberProperty.NumberPropertyBuilder ignored -> {
-        if (annotation.feel() == Property.FeelMode.disabled) {
-          throw new IllegalStateException("`disabled` is not a valid feel property for Number");
-        } else if (annotation.feel() == Property.FeelMode.system_default) {
-          builder.feel(Property.FeelMode.staticFeel);
-        } else {
-          builder.feel(annotation.feel());
-        }
-      }
-      case BooleanProperty.BooleanPropertyBuilder ignored ->
-          builder.feel(Property.FeelMode.staticFeel);
+      case NumberProperty.NumberPropertyBuilder ignored -> manageFeelMode(annotation, builder);
+      case BooleanProperty.BooleanPropertyBuilder ignored -> manageFeelMode(annotation, builder);
       default -> {
         if (annotation.feel() == Property.FeelMode.system_default) {
           builder.feel(determineDefaultFeelModeBasedOnContext(context));
@@ -167,6 +158,17 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     }
     builder.condition(buildCondition(annotation));
     builder.constraints(buildConstraints(annotation, builder.build().getConstraints()));
+  }
+
+  private void manageFeelMode(TemplateProperty annotation, PropertyBuilder builder) {
+    if (annotation.feel() == Property.FeelMode.disabled) {
+      throw new IllegalStateException(
+          "`disabled` is not a valid feel property for " + annotation.type());
+    } else if (annotation.feel() == Property.FeelMode.system_default) {
+      builder.feel(Property.FeelMode.staticFeel);
+    } else {
+      builder.feel(annotation.feel());
+    }
   }
 
   private Number parseNumber(String value, Class<?> type) {
