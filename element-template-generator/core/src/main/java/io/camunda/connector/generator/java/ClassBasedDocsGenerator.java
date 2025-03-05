@@ -43,6 +43,7 @@ import io.camunda.connector.generator.java.util.TemplateGenerationContext;
 import io.camunda.connector.generator.java.util.TemplateGenerationContextUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import io.pebbletemplates.pebble.PebbleEngine;
+import io.pebbletemplates.pebble.extension.core.DisallowExtensionCustomizerBuilder;
 import io.pebbletemplates.pebble.loader.FileLoader;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
 import java.io.File;
@@ -97,6 +98,10 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
 
     PebbleEngine engine =
         new PebbleEngine.Builder()
+            .registerExtensionCustomizer(
+                new DisallowExtensionCustomizerBuilder()
+                    .disallowedTokenParserTags(List.of("include"))
+                    .build()) // Security fix for https://www.cve.org/CVERecord?id=CVE-2025-1686
             .loader(new FileLoader())
             .autoEscaping(false)
             .extension(new DocsPebbleExtension())
