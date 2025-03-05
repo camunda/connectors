@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
@@ -24,11 +25,12 @@ import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
-import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
 import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
+import io.camunda.connector.runtime.inbound.controller.InboundInstancesRestController;
+import io.camunda.connector.runtime.inbound.controller.exception.GlobalExceptionHandler;
 import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
@@ -53,7 +55,9 @@ import org.springframework.context.annotation.Import;
 @Import({
   ProcessDefinitionImportConfiguration.class,
   OperateClientConfiguration.class,
-  InboundConnectorRestController.class
+  InboundConnectorRestController.class,
+        InboundInstancesRestController.class,
+        GlobalExceptionHandler.class,
 })
 public class InboundConnectorRuntimeConfiguration {
   @Value("${camunda.connector.inbound.message.ttl:PT1H}")

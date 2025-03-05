@@ -14,19 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.operate;
+package io.camunda.connector.runtime.app;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
-import io.camunda.operate.CamundaOperateClient;
+import java.util.List;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class OperateClientConfiguration {
+@Profile("local")
+public class CorsConfiguration {
+  @Value("${camunda.endpoints.cors.allowed-origins:}")
+  private String allowedOrigins;
+
+  @Value("${camunda.endpoints.cors.mappings:}")
+  private String mappings;
+
   @Bean
-  public OperateClientAdapter springOperateClientAdapter(
-      CamundaOperateClient camundaOperateClient, ObjectMapper mapper) {
-    return new OperateClientAdapterImpl(camundaOperateClient, mapper);
+  public WebMvcConfigurer corsConfigurer() {
+    return new WebMvcConfigurer() {
+      @Override
+      public void addCorsMappings(CorsRegistry registry) {
+        if (StringUtils.isNotBlank(allowedOrigins) && StringUtils.isNotBlank(mappings)) {
+          String[] allowedOriginsArray = allowedOrigins.split(",");
+          List<String> mappingsList = List.of(mappings.split(","));
+          mappingsList.forEach(
+              mapping ->
+                  registry
+                      .addMapping(mapping)
+                      .allowedOrigins(allowedOriginsArray)
+                      .allowedMethods("*"));
+        }
+      }
+    };
   }
 }
