@@ -14,8 +14,8 @@ import jakarta.validation.constraints.NotNull;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = AwsProvider.class)
 @JsonSubTypes({
   @JsonSubTypes.Type(value = AwsProvider.class, name = "aws"),
-  @JsonSubTypes.Type(value = GeminiProvider.class, name = "gemini")
+  @JsonSubTypes.Type(value = VertexProvider.class, name = "vertex")
 })
 @NotNull
-@TemplateDiscriminatorProperty(label = "provider", group = "provider", name = "type")
-public sealed interface ProviderConfig permits AwsProvider, GeminiProvider {}
+@TemplateDiscriminatorProperty(label = "Hyperscaler providers", group = "provider", name = "type")
+public sealed interface ProviderConfig permits AwsProvider, VertexProvider {}

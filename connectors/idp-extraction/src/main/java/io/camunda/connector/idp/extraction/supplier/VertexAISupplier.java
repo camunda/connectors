@@ -6,18 +6,18 @@
  */
 package io.camunda.connector.idp.extraction.supplier;
 
-import static io.camunda.google.supplier.util.GoogleServiceSupplierUtil.getCredentials;
+import static io.camunda.connector.idp.extraction.utils.GcsUtil.getCredentials;
 
 import com.google.cloud.vertexai.Transport;
 import com.google.cloud.vertexai.VertexAI;
 import com.google.common.collect.ImmutableMap;
-import io.camunda.connector.idp.extraction.model.providers.GeminiProvider;
+import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
 
 public final class VertexAISupplier {
 
   private VertexAISupplier() {}
 
-  public static VertexAI getVertexAI(GeminiProvider baseRequest) {
+  public static VertexAI getVertexAI(VertexProvider baseRequest) {
     return new VertexAI.Builder()
         .setProjectId(baseRequest.getConfiguration().projectId())
         .setLocation(baseRequest.getConfiguration().region())

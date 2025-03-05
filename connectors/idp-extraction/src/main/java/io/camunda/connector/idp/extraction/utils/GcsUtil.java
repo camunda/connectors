@@ -6,13 +6,16 @@
  */
 package io.camunda.connector.idp.extraction.utils;
 
-import static io.camunda.google.supplier.util.GoogleServiceSupplierUtil.getCredentials;
-
+import com.google.auth.Credentials;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.UserCredentials;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import io.camunda.connector.idp.extraction.model.providers.GcpAuthentication;
 import io.camunda.document.Document;
-import io.camunda.google.model.Authentication;
+import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +27,7 @@ public class GcsUtil {
       final Document document,
       final String bucketName,
       final String projectId,
-      Authentication authentication)
+      GcpAuthentication authentication)
       throws IOException {
     LOGGER.debug("Starting document upload to Google Cloud Storage");
     Storage storage =
@@ -43,7 +46,7 @@ public class GcsUtil {
       final String bucketName,
       final String objectName,
       final String projectId,
-      final Authentication authentication) {
+      final GcpAuthentication authentication) {
 
     LOGGER.debug("Starting object deletion from Google Cloud Storage");
     Storage storage =
@@ -59,5 +62,17 @@ public class GcsUtil {
     } else {
       LOGGER.warn("Object {} was not found in bucket {}", objectName, bucketName);
     }
+  }
+
+  public static Credentials getCredentials(GcpAuthentication auth) {
+    if (auth.authType() == AuthenticationType.BEARER) {
+      AccessToken accessToken = new AccessToken(auth.bearerToken(), null);
+        return new GoogleCredentials(accessToken);
+    }
+    return UserCredentials.newBuilder()
+        .setClientId(auth.oauthClientId())
+        .setClientSecret(auth.oauthClientSecret())
+        .setRefreshToken(auth.oauthRefreshToken())
+        .build();
   }
 }

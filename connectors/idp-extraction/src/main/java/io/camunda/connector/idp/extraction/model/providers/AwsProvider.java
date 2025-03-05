@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.idp.extraction.model.providers;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
+
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -13,7 +15,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.idp.extraction.model.TextExtractionEngineType;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "aws", label = "Aws provider")
+@TemplateSubType(id = "aws", label = "Amazon Web Services Provider")
 public final class AwsProvider extends AwsBaseRequest implements ProviderConfig {
 
   @TemplateProperty(
@@ -34,11 +36,16 @@ public final class AwsProvider extends AwsBaseRequest implements ProviderConfig 
       id = "extractionEngineType",
       label = "Extraction engine type",
       group = "configuration",
-      type = TemplateProperty.PropertyType.Text,
+      type = Dropdown,
       description = "Specify extraction engine to be used",
       binding = @TemplateProperty.PropertyBinding(name = "extractionEngineType"),
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
       feel = Property.FeelMode.disabled,
-      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+      defaultValue = "AWS_TEXTRACT",
+      choices = {
+        @TemplateProperty.DropdownPropertyChoice(label = "Aws Textract", value = "AWS_TEXTRACT"),
+        @TemplateProperty.DropdownPropertyChoice(label = "Apache Pdfbox", value = "APACHE_PDFBOX")
+      })
   @NotNull
   TextExtractionEngineType extractionEngineType;
 

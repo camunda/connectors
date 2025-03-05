@@ -16,7 +16,7 @@ import io.camunda.connector.idp.extraction.caller.GeminiCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
-import io.camunda.connector.idp.extraction.model.providers.GeminiProvider;
+import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
     documentationRef = "https://docs.camunda.io/docs/guides/",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
+      //      When wanting to generate a full-featured connector template we need to uncomment this
       //      @ElementTemplate.PropertyGroup(id = "provider", label = "Provider selection"),
       //      @ElementTemplate.PropertyGroup(id = "authentication", label = "Provider
       // authentication"),
@@ -89,12 +90,12 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     final var input = extractionRequest.input();
     return switch (extractionRequest.baseRequest()) {
       case AwsProvider aws -> extractUsingAws(input, aws);
-      case GeminiProvider gemini -> extractUsingGcp(input, gemini);
+      case VertexProvider gemini -> extractUsingGcp(input, gemini);
     };
   }
 
   private ExtractionResult extractUsingGcp(
-      ExtractionRequestData input, GeminiProvider baseRequest) {
+      ExtractionRequestData input, VertexProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
       Object result = geminiCaller.generateContent(input, baseRequest);

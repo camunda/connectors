@@ -7,30 +7,29 @@
 package io.camunda.connector.idp.extraction.model.providers;
 
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import io.camunda.google.model.Authentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "gemini", label = "Gemini provider")
-public final class GeminiProvider implements ProviderConfig {
+@TemplateSubType(id = "vertex", label = "GCP VertexAI Provider")
+public final class VertexProvider implements ProviderConfig {
 
-  @Valid @NotNull private Authentication authentication;
+  @Valid @NotNull private GcpAuthentication authentication;
 
-  private GeminiRequestConfiguration configuration;
+  private VertexRequestConfiguration configuration;
 
-  public GeminiRequestConfiguration getConfiguration() {
+  public VertexRequestConfiguration getConfiguration() {
     return configuration;
   }
 
-  public void setConfiguration(GeminiRequestConfiguration configuration) {
+  public void setConfiguration(VertexRequestConfiguration configuration) {
     this.configuration = configuration;
   }
 
-  public Authentication getAuthentication() {
+  public GcpAuthentication getAuthentication() {
     return authentication;
   }
 
-  public void setAuthentication(Authentication authentication) {
+  public void setAuthentication(GcpAuthentication authentication) {
     this.authentication = authentication;
   }
 }

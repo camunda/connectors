@@ -6,14 +6,14 @@
  */
 package io.camunda.connector.idp.extraction.suppliers;
 
-import static io.camunda.google.supplier.util.GoogleServiceSupplierUtil.getCredentials;
+import static io.camunda.connector.idp.extraction.utils.GcsUtil.getCredentials;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.vertexai.VertexAI;
-import io.camunda.connector.idp.extraction.model.providers.GeminiProvider;
-import io.camunda.connector.idp.extraction.model.providers.GeminiRequestConfiguration;
+import io.camunda.connector.idp.extraction.model.providers.GcpAuthentication;
+import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
+import io.camunda.connector.idp.extraction.model.providers.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
-import io.camunda.google.model.Authentication;
 import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
@@ -27,9 +27,9 @@ class VertexAISupplierTest {
   @Test
   void getVertexAI_withBearerToken() throws IOException {
     // Given
-    GeminiProvider baseRequest =
+    VertexProvider baseRequest =
         createBaseRequest(
-            new Authentication(AuthenticationType.BEARER, "test-token", null, null, null));
+            new GcpAuthentication(AuthenticationType.BEARER, "test-token", null, null, null));
 
     // When
     VertexAI vertexAI = VertexAISupplier.getVertexAI(baseRequest);
@@ -46,9 +46,9 @@ class VertexAISupplierTest {
   @Test
   void getVertexAI_withRefreshToken() throws IOException {
     // Given
-    GeminiProvider baseRequest =
+    VertexProvider baseRequest =
         createBaseRequest(
-            new Authentication(
+            new GcpAuthentication(
                 AuthenticationType.REFRESH, null, "refresh-token", "client-id", "client-secret"));
 
     // When
@@ -63,11 +63,11 @@ class VertexAISupplierTest {
         .isEqualTo(getCredentials(baseRequest.getAuthentication()));
   }
 
-  private GeminiProvider createBaseRequest(Authentication authentication) {
-    GeminiRequestConfiguration configuration =
-        new GeminiRequestConfiguration(REGION, PROJECT_ID, BUCKET_NAME, null, null);
+  private VertexProvider createBaseRequest(GcpAuthentication authentication) {
+    VertexRequestConfiguration configuration =
+        new VertexRequestConfiguration(REGION, PROJECT_ID, BUCKET_NAME);
 
-    GeminiProvider baseRequest = new GeminiProvider();
+    VertexProvider baseRequest = new VertexProvider();
     baseRequest.setAuthentication(authentication);
     baseRequest.setConfiguration(configuration);
     return baseRequest;
