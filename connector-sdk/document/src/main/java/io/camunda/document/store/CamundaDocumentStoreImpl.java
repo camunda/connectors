@@ -20,7 +20,6 @@ import io.camunda.client.CamundaClient;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.InputStream;
-import java.time.Duration;
 
 public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
 
@@ -52,24 +51,21 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
 
   @Override
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
-    return camundaClient
-        .newDocumentContentGetRequest(reference)
-        .storeId(reference.getStoreId())
-        .send()
-        .join();
+    return camundaClient.newDocumentContentGetRequest(reference).send().join();
   }
 
   @Override
   public void deleteDocument(CamundaDocumentReference reference) {
-    camundaClient
-        .newDeleteDocumentCommand(reference.getDocumentId())
-        .storeId(reference.getStoreId())
-        .send()
-        .join();
+    camundaClient.newDeleteDocumentCommand(reference).send().join();
   }
 
   @Override
-  public String generateLink(CamundaDocumentReference reference, Duration timeToLive) {
-    return camundaClient.newCreateDocumentLinkCommand(reference).timeToLive(timeToLive).send().join();
+  public String generateLink(DocumentLinkCreationRequest request) {
+    final var command = camundaClient.newCreateDocumentLinkCommand(request.reference());
+
+    if (request.timeToLive().isPresent()) {
+      command.timeToLive(request.timeToLive().get());
+    }
+    return command.send().join().getUrl();
   }
 }

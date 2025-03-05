@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.document.store;
 
-import java.util.List;
+import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import java.time.Duration;
+import java.util.Optional;
 
-public interface IntrinsicOperationExecutor {
-
-  <T> IntrinsicOperationResult<T> execute(
-      String operationName, List<? extends IntrinsicOperationParameter> arguments);
-}
+public record DocumentLinkCreationRequest(
+    CamundaDocumentReference reference, Optional<Duration> timeToLive) {}

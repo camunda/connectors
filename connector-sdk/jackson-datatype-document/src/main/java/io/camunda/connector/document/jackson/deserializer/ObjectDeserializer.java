@@ -18,14 +18,12 @@ package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isOperation;
-import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.requireOperationSuccessOrThrow;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.IntrinsicOperationExecutor;
-import io.camunda.document.operation.IntrinsicOperationResult;
+import io.camunda.operation.IntrinsicOperationExecutor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,7 +33,8 @@ public class ObjectDeserializer extends AbstractDeserializer<Object> {
   private final DocumentDeserializer documentDeserializer;
   private final IntrinsicOperationResultDeserializer operationDeserializer;
 
-  public ObjectDeserializer(DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
+  public ObjectDeserializer(
+      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
     this.documentDeserializer = new DocumentDeserializer(documentFactory, operationExecutor);
     this.operationDeserializer = new IntrinsicOperationResultDeserializer(operationExecutor);
   }
@@ -48,10 +47,8 @@ public class ObjectDeserializer extends AbstractDeserializer<Object> {
       return documentDeserializer.handleJsonNode(node, context);
     }
     if (isOperation(node)) {
-      final IntrinsicOperationResult<?> operationResultSupplier =
-          operationDeserializer.handleJsonNode(node, context);
       // return the result of the operation, type is irrelevant since the caller expects an Object
-      return requireOperationSuccessOrThrow(operationResultSupplier).result();
+      return operationDeserializer.handleJsonNode(node, context);
     }
     // fallback deserialization
     return fallback(node, context);

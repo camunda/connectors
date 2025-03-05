@@ -26,8 +26,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.document.operation.IntrinsicOperationPayload;
 import io.camunda.document.reference.DocumentReference;
+import io.camunda.operation.IntrinsicOperationPayload;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -105,10 +105,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
   }
 
   record CamundaDocumentReferenceModel(
-      String storeId,
-      String documentId,
-      String contentHash,
-      CamundaDocumentMetadataModel metadata)
+      String storeId, String documentId, String contentHash, CamundaDocumentMetadataModel metadata)
       implements DocumentReferenceModel, CamundaDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)

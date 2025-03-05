@@ -17,7 +17,6 @@
 package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
-import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.requireOperationSuccessOrThrow;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -25,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.PrimitiveArrayDeserializers;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.IntrinsicOperationExecutor;
+import io.camunda.operation.IntrinsicOperationExecutor;
 import java.io.IOException;
 
 public class ByteArrayDeserializer extends AbstractDeserializer<byte[]> {
@@ -52,8 +51,11 @@ public class ByteArrayDeserializer extends AbstractDeserializer<byte[]> {
     }
     if (DeserializationUtil.isOperation(node)) {
       final var operationResult = operationDeserializer.handleJsonNode(node, context);
-      final var document = requireOperationSuccessOrThrow(operationResult, Document.class);
-      return document.asByteArray();
+      if (operationResult instanceof Document document) {
+        return document.asByteArray();
+      }
+      throw new IllegalArgumentException(
+          "Unsupported operation result, expected a document, got: " + operationResult);
     }
 
     // if not document or operation, fallback to default deserialization

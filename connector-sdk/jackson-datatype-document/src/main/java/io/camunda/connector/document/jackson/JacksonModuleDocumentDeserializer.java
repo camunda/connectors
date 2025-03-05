@@ -22,12 +22,10 @@ import io.camunda.connector.document.jackson.deserializer.ByteArrayDeserializer;
 import io.camunda.connector.document.jackson.deserializer.DocumentDeserializer;
 import io.camunda.connector.document.jackson.deserializer.InputStreamDeserializer;
 import io.camunda.connector.document.jackson.deserializer.ObjectDeserializer;
-import io.camunda.connector.document.jackson.deserializer.IntrinsicOperationResultDeserializer;
 import io.camunda.connector.document.jackson.deserializer.StringDeserializer;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.IntrinsicOperationExecutor;
-import io.camunda.document.operation.IntrinsicOperationResult;
+import io.camunda.operation.IntrinsicOperationExecutor;
 import java.io.InputStream;
 
 public class JacksonModuleDocumentDeserializer extends SimpleModule {
@@ -64,7 +62,6 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
   @Override
   public void setupModule(SetupContext context) {
     addDeserializer(Document.class, new DocumentDeserializer(documentFactory, operationExecutor));
-    addDeserializer(IntrinsicOperationResult.class, new IntrinsicOperationResultDeserializer(operationExecutor));
     addDeserializer(byte[].class, new ByteArrayDeserializer(documentFactory, operationExecutor));
     addDeserializer(
         InputStream.class, new InputStreamDeserializer(documentFactory, operationExecutor));

@@ -22,12 +22,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DefaultIntrinsicOperationExecutor;
-import io.camunda.document.operation.IntrinsicOperationExecutor;
-import java.util.Base64;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.operation.DefaultIntrinsicOperationExecutor;
+import io.camunda.operation.IntrinsicOperationExecutor;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -37,55 +40,147 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class OperationDeserializationTest {
 
-  private DocumentFactory factory = mock(DocumentFactory.class);
-  private final IntrinsicOperationExecutor operationExecutor = spy(new DefaultIntrinsicOperationExecutor(List.of()));
+  private final CamundaDocumentStore documentStore = mock(CamundaDocumentStore.class);
 
-  private final ObjectMapper objectMapper =
-      new ObjectMapper()
-          .registerModule(new JacksonModuleDocumentDeserializer(factory, operationExecutor))
-          .registerModule(new JacksonModuleDocumentSerializer())
-          .registerModule(new Jdk8Module());
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public record Base64InputModel(String document) {
+  public OperationDeserializationTest() {
+    /*
+     * Order of initialization is important here. The operationExecutor is created first and then
+     * the objectMapper is created with the operationExecutor. This is because the operationExecutor
+     * needs an objectMapper configured with the same modules.
+     */
+    IntrinsicOperationExecutor operationExecutor =
+        spy(new DefaultIntrinsicOperationExecutor(objectMapper));
 
+    final DocumentFactory factory = new DocumentFactoryImpl(documentStore);
+    objectMapper
+        .registerModule(new JacksonModuleDocumentDeserializer(factory, operationExecutor))
+        .registerModule(new JacksonModuleDocumentSerializer())
+        .registerModule(new Jdk8Module());
   }
 
+  private record StringResultModel(String result) {}
+
   @Test
-  void base64operationInvoked() {
+  void operationWithDocumentParameter() {
     var contentString = "Hello World";
-    var ref = createDocumentMock(contentString, null, factory);
+    var ref = createDocumentMock(contentString, null, documentStore);
 
     final var payload =
-        Map.of("document", Map.of("camunda.operation.type", "base64", "params", List.of(ref)));
-    final var result = objectMapper.convertValue(payload, Base64InputModel.class);
+        Map.of(
+            "result",
+            Map.of("camunda.operation.type", "test_documentContent", "params", List.of(ref)));
+    final var result = objectMapper.convertValue(payload, StringResultModel.class);
 
-    assertThat(result.document())
-        .isEqualTo(Base64.getEncoder().encodeToString(contentString.getBytes()));
-  }
-
-  @Test
-  void parseJsonOperationInvoked() {
-    var contentString = "{\"key\": \"value\"}";
-
-    final var payload =
-        Map.of("camunda.operation.type", "parseJson", "params", List.of(contentString));
-    final var result = objectMapper.convertValue(payload, Object.class);
-
-    assertThat(result).isEqualTo(Map.of("key", "value"));
+    assertThat(result.result).isEqualTo(contentString);
   }
 
   @Test
   void wrongOperationName() {
     var contentString = "Hello World";
-    var ref = createDocumentMock(contentString, null, factory);
+    var ref = createDocumentMock(contentString, null, documentStore);
 
     final var payload =
-        Map.of("document", Map.of("camunda.operation.type", "wrong", "params", List.of(ref)));
+        Map.of("result", Map.of("camunda.operation.type", "wrong", "params", List.of(ref)));
     final var e =
         assertThrows(
             IllegalArgumentException.class,
-            () -> objectMapper.convertValue(payload, Base64InputModel.class));
+            () -> objectMapper.convertValue(payload, StringResultModel.class));
 
-    assertThat(e).hasMessageContaining("No operation found with name 'wrong'");
+    assertThat(e).hasMessageContaining("No operation found with name: wrong");
+  }
+
+  @Test
+  void operationWithNullableParameter_acceptsNull() {
+    var contentString = "Hello World";
+    var ref = createDocumentMock(contentString, null, documentStore);
+
+    final var payload =
+        Map.of(
+            "result",
+            Map.of("camunda.operation.type", "test_documentContent", "params", List.of(ref)));
+    final var result = objectMapper.convertValue(payload, StringResultModel.class);
+
+    assertThat(result.result).isEqualTo(contentString);
+  }
+
+  @Test
+  void operationWithNullableParameter_acceptsNonNull() {
+    var contentString = "Hello World";
+    var contentStringInAnotherCharset = contentString.getBytes(StandardCharsets.UTF_16);
+    var ref = createDocumentMock(contentStringInAnotherCharset, null, documentStore);
+
+    final var payload =
+        Map.of(
+            "result",
+            Map.of(
+                "camunda.operation.type",
+                "test_documentContent",
+                "params",
+                List.of(ref, "UTF-16")));
+    final var result = objectMapper.convertValue(payload, StringResultModel.class);
+
+    assertThat(result.result).isEqualTo(contentString);
+  }
+
+  @Test
+  void nestedOperation() {
+    var contentString = " World";
+    var ref = createDocumentMock(contentString, null, documentStore);
+
+    final var payload =
+        Map.of(
+            "result",
+            Map.of(
+                "camunda.operation.type",
+                "test_concat",
+                "params",
+                List.of(
+                    "Hello",
+                    Map.of(
+                        "camunda.operation.type",
+                        "test_documentContent",
+                        "params",
+                        List.of(ref)))));
+
+    final var result = objectMapper.convertValue(payload, StringResultModel.class);
+    assertThat(result.result).isEqualTo("Hello World");
+  }
+
+  @Test
+  void operationWithObjectParameter_acceptsString() throws JsonProcessingException {
+    var string = "Hello World";
+
+    final var payload =
+        Map.of(
+            "result",
+            Map.of("camunda.operation.type", "test_anythingToString", "params", List.of(string)));
+    final var result = objectMapper.convertValue(payload, StringResultModel.class);
+
+    assertThat(result.result).isEqualTo(objectMapper.writeValueAsString(string));
+  }
+
+  @Test
+  void operationWithObjectParameter_nestedOperation() throws JsonProcessingException {
+    var contentString = " World";
+    var ref = createDocumentMock(contentString, null, documentStore);
+
+    final var payload =
+        Map.of(
+            "result",
+            Map.of(
+                "camunda.operation.type",
+                "test_anythingToString",
+                "params",
+                List.of(
+                    Map.of(
+                        "camunda.operation.type",
+                        "test_documentContent",
+                        "params",
+                        List.of(ref)))));
+
+    final var result = objectMapper.convertValue(payload, StringResultModel.class);
+    assertThat(result.result).isEqualTo(objectMapper.writeValueAsString(contentString));
   }
 }

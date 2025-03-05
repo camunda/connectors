@@ -14,18 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.store;
+package io.camunda.operation;
 
-import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
-import java.io.InputStream;
-
-public interface CamundaDocumentStore {
-
-  CamundaDocumentReference createDocument(DocumentCreationRequest request);
-
-  InputStream getDocumentContent(CamundaDocumentReference reference);
-
-  void deleteDocument(CamundaDocumentReference reference);
-
-  String generateLink(DocumentLinkCreationRequest request);
-}
+/**
+ * Marker interface for intrinsic operation providers. Used to discover intrinsic operations at
+ * runtime.
+ */
+public interface IntrinsicOperationProvider {}
