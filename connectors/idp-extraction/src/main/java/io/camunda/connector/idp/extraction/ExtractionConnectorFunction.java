@@ -18,9 +18,9 @@ import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.GeminiCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.model.*;
+import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
-import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
@@ -113,7 +113,8 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
       Object result = geminiCaller.generateContent(input, baseRequest);
       long endTime = System.currentTimeMillis();
       LOGGER.info("Gemini content extraction took {} ms", (endTime - startTime));
-      return new ExtractionResult(result);
+      return new ExtractionResult(
+          buildResponseJsonIfPossible(result.toString(), input.taxonomyItems()));
     } catch (Exception e) {
       LOGGER.error("Document extraction via GCP failed: {}", e.getMessage());
       throw new ConnectorException(e);

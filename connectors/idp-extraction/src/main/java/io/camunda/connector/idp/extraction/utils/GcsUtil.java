@@ -67,7 +67,7 @@ public class GcsUtil {
   public static Credentials getCredentials(GcpAuthentication auth) {
     if (auth.authType() == AuthenticationType.BEARER) {
       AccessToken accessToken = new AccessToken(auth.bearerToken(), null);
-        return new GoogleCredentials(accessToken);
+      return new GoogleCredentials(accessToken);
     }
     return UserCredentials.newBuilder()
         .setClientId(auth.oauthClientId())
