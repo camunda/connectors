@@ -37,7 +37,14 @@ import org.slf4j.LoggerFactory;
     description = "Execute IDP extraction requests",
     icon = "icon.svg",
     documentationRef = "https://docs.camunda.io/docs/guides/",
-    propertyGroups = {@ElementTemplate.PropertyGroup(id = "input", label = "Input message data")},
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
+      //      @ElementTemplate.PropertyGroup(id = "provider", label = "Provider selection"),
+      //      @ElementTemplate.PropertyGroup(id = "authentication", label = "Provider
+      // authentication"),
+      //      @ElementTemplate.PropertyGroup(id = "configuration", label = "Provider
+      // configuration"),
+    },
     inputDataClass = ExtractionRequest.class)
 public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 

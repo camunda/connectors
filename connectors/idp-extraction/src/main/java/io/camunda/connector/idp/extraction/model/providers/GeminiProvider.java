@@ -6,9 +6,15 @@
  */
 package io.camunda.connector.idp.extraction.model.providers;
 
-import io.camunda.google.model.GoogleBaseRequest;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.google.model.Authentication;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
-public final class GeminiProvider extends GoogleBaseRequest implements ProviderConfig {
+@TemplateSubType(id = "gemini", label = "Gemini provider")
+public final class GeminiProvider implements ProviderConfig {
+
+  @Valid @NotNull private Authentication authentication;
 
   private GeminiRequestConfiguration configuration;
 
@@ -18,5 +24,13 @@ public final class GeminiProvider extends GoogleBaseRequest implements ProviderC
 
   public void setConfiguration(GeminiRequestConfiguration configuration) {
     this.configuration = configuration;
+  }
+
+  public Authentication getAuthentication() {
+    return authentication;
+  }
+
+  public void setAuthentication(Authentication authentication) {
+    this.authentication = authentication;
   }
 }

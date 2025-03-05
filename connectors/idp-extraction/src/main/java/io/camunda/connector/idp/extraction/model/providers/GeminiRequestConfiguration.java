@@ -6,5 +6,11 @@
  */
 package io.camunda.connector.idp.extraction.model.providers;
 
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+
 public record GeminiRequestConfiguration(
-    String region, String projectId, String bucketName, String grounding, String safetySettings) {}
+    @TemplateProperty(group = "configuration", id = "gcpRegion") String region,
+    @TemplateProperty(group = "configuration") String projectId,
+    @TemplateProperty(group = "configuration") String bucketName,
+    @TemplateProperty(group = "configuration") String grounding,
+    @TemplateProperty(group = "configuration") String safetySettings) {}

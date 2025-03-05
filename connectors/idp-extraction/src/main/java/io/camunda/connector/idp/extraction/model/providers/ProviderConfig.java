@@ -8,6 +8,7 @@ package io.camunda.connector.idp.extraction.model.providers;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import jakarta.validation.constraints.NotNull;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = AwsProvider.class)
@@ -16,4 +17,5 @@ import jakarta.validation.constraints.NotNull;
   @JsonSubTypes.Type(value = GeminiProvider.class, name = "gemini")
 })
 @NotNull
+@TemplateDiscriminatorProperty(label = "provider", group = "provider", name = "type")
 public sealed interface ProviderConfig permits AwsProvider, GeminiProvider {}
