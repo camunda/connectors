@@ -129,10 +129,7 @@ public class InboundInstancesRestController {
 
   private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(String type) {
     return executableRegistry.query(new ActiveExecutableQuery(null, null, type, null)).stream()
-        .map(
-            response ->
-                ActiveInboundConnectorResponse.from(
-                    response, connectorDataMapper::allPropertiesMapper))
+        .map(connectorDataMapper::createActiveInboundConnectorResponse)
         .collect(Collectors.toList());
   }
 }

@@ -71,7 +71,8 @@ public class InboundConnectorRestController {
         .stream()
         .map(
             response ->
-                ActiveInboundConnectorResponse.from(response, connectorDataMapper::webhookMapper))
+                connectorDataMapper.createActiveInboundConnectorResponse(
+                    response, ConnectorDataMapper.WEBHOOK_MAPPER))
         .collect(Collectors.toList());
   }
 }
