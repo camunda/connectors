@@ -338,14 +338,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "DELETE",
+      "value" : "DELETE"
+    }, {
       "name" : "POST",
       "value" : "POST"
     }, {
       "name" : "GET",
       "value" : "GET"
-    }, {
-      "name" : "DELETE",
-      "value" : "DELETE"
     }, {
       "name" : "PATCH",
       "value" : "PATCH"
@@ -415,17 +415,6 @@
     "group" : "endpoint",
     "binding" : {
       "name" : "skipEncoding",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "groupSetCookieHeaders",
-    "label" : "Group set-cookie headers to a list",
-    "description" : "Group incoming headers with same name into a List to support <a href=\"https://datatracker.ietf.org/doc/html/rfc6265\">multiple Set-Cookie headers</a>.",
-    "optional" : true,
-    "group" : "endpoint",
-    "binding" : {
-      "name" : "groupSetCookieHeaders",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
