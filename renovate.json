@@ -2,34 +2,62 @@
   "extends": [
     "config:base"
   ],
-  "labels": ["dependencies", "no milestone"],
+  "labels": [
+    "dependencies",
+    "no milestone"
+  ],
   "packageRules": [
     {
-      "matchManagers": ["maven"],
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "matchManagers": [
+        "maven"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
       "automerge": true
     },
     {
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "automerge": true
     },
     {
-      "matchBaseBranches": ["/^release/.*/"],
-      "matchUpdateTypes": ["major", "minor"],
+      "matchBaseBranches": [
+        "/^release/.*/"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
       "enabled": false
     },
     {
-      "matchPackagePrefixes": ["io.camunda.connector"],
+      "matchPackagePrefixes": [
+        "io.camunda.connector"
+      ],
       "enabled": false
     },
     {
       "matchManagers": [
         "maven"
       ],
-      "description" : "Exclude SNAPSHOT versions, renovate may suggest them for pre-release values.",
-      "matchPackagePatterns": [".*"],
+      "description": "Exclude SNAPSHOT versions, renovate may suggest them for pre-release values.",
+      "matchPackagePatterns": [
+        ".*"
+      ],
       "allowedVersions": "!/-SNAPSHOT$/"
     }
   ],
-  "baseBranches": ["main", "release/8.3", "release/8.4", "release/8.5", "release/8.6"]
+  "baseBranches": [
+    "main",
+    "release/8.3",
+    "release/8.4",
+    "release/8.5",
+    "release/8.6",
+    "release/8.7"
+  ]
 }
