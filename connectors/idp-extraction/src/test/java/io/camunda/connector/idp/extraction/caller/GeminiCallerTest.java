@@ -42,10 +42,10 @@ class GeminiCallerTest {
         }
         """;
 
-    class TestGeminiCaller extends GeminiCaller {
+    class TestVertexCaller extends VertexCaller {
       private final GenerativeModel mockModel;
 
-      public TestGeminiCaller(GenerativeModel mockModel) {
+      public TestVertexCaller(GenerativeModel mockModel) {
         this.mockModel = mockModel;
       }
 
@@ -86,7 +86,7 @@ class GeminiCallerTest {
         VertexProvider baseRequest = new VertexProvider();
         baseRequest.setConfiguration(configuration);
 
-        TestGeminiCaller testCaller = new TestGeminiCaller(mockGenerativeModel);
+        TestVertexCaller testCaller = new TestVertexCaller(mockGenerativeModel);
 
         String result =
             testCaller.generateContent(

@@ -14,9 +14,11 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import io.camunda.connector.idp.extraction.model.providers.GcpAuthentication;
+import io.camunda.connector.idp.extraction.model.providers.GcpAuthenticationType;
 import io.camunda.document.Document;
-import io.camunda.google.model.AuthenticationType;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,9 +67,17 @@ public class GcsUtil {
   }
 
   public static Credentials getCredentials(GcpAuthentication auth) {
-    if (auth.authType() == AuthenticationType.BEARER) {
+    if (auth.authType() == GcpAuthenticationType.BEARER) {
       AccessToken accessToken = new AccessToken(auth.bearerToken(), null);
       return GoogleCredentials.create(accessToken);
+    } else if (auth.authType() == GcpAuthenticationType.SERVICE_ACCOUNT) {
+      ByteArrayInputStream credentialsStream =
+          new ByteArrayInputStream(auth.serviceAccountJson().getBytes(StandardCharsets.UTF_8));
+      try {
+        return GoogleCredentials.fromStream(credentialsStream);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
     return UserCredentials.newBuilder()
         .setClientId(auth.oauthClientId())

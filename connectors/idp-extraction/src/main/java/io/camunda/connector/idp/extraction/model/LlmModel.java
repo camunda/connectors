@@ -11,7 +11,16 @@ import java.util.stream.Collectors;
 
 public enum LlmModel {
   CLAUDE("anthropic", getCommonSystemPrompt(), getCommonMessageTemplate(), false),
-  GEMINI("gemini", getCommonSystemPrompt(), getMultimodalMessageTemplate(), true),
+  GEMINI(
+      "gemini",
+      """
+            %s
+
+            Respond with a json object, not an array.
+      """
+          .formatted(getCommonSystemPrompt()),
+      getMultimodalMessageTemplate(),
+      true),
   LLAMA(
       "meta",
       """

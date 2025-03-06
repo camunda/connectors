@@ -13,7 +13,6 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
-import io.camunda.google.model.AuthenticationType;
 
 public record GcpAuthentication(
     @TemplateProperty(
@@ -25,9 +24,10 @@ public record GcpAuthentication(
             constraints = @PropertyConstraints(notEmpty = true),
             choices = {
               @DropdownPropertyChoice(label = "Bearer token", value = "bearer"),
-              @DropdownPropertyChoice(label = "Refresh token", value = "refresh")
+              @DropdownPropertyChoice(label = "Refresh token", value = "refresh"),
+              @DropdownPropertyChoice(label = "Service account", value = "service_account")
             })
-        AuthenticationType authType,
+        GcpAuthenticationType authType,
     @TemplateProperty(
             id = "bearerToken",
             label = "Bearer token",
@@ -75,7 +75,19 @@ public record GcpAuthentication(
                 @PropertyCondition(
                     property = "baseRequest.authentication.authType",
                     equals = "refresh"))
-        String oauthRefreshToken) {
+        String oauthRefreshToken,
+    @TemplateProperty(
+            id = "serviceAccountJson",
+            label = "Service account json",
+            description = "Enter a the contents of your service account json file",
+            group = "authentication",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            condition =
+                @PropertyCondition(
+                    property = "baseRequest.authentication.authType",
+                    equals = "service_account"))
+        String serviceAccountJson) {
 
   @Override
   public String toString() {

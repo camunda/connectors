@@ -25,9 +25,9 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GeminiCaller {
+public class VertexCaller {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(GeminiCaller.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(VertexCaller.class);
 
   public String generateContent(ExtractionRequestData input, VertexProvider baseRequest)
       throws Exception {
@@ -91,6 +91,7 @@ public class GeminiCaller {
         GenerationConfig.newBuilder()
             .setMaxOutputTokens(input.converseData().maxTokens())
             .setTemperature(input.converseData().temperature())
+            .setResponseMimeType("application/json")
             .setTopP(input.converseData().topP());
     return builder.build();
   }

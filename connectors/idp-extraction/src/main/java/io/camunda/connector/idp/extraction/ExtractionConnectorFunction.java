@@ -15,8 +15,8 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
-import io.camunda.connector.idp.extraction.caller.GeminiCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
+import io.camunda.connector.idp.extraction.caller.VertexCaller;
 import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
@@ -71,7 +71,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
   private final ObjectMapper objectMapper;
 
-  private final GeminiCaller geminiCaller;
+  private final VertexCaller vertexCaller;
 
   public ExtractionConnectorFunction() {
     this.textractClientSupplier = new TextractClientSupplier();
@@ -79,21 +79,21 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     this.bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
     this.pollingTextractCaller = new PollingTextractCaller();
     this.bedrockCaller = new BedrockCaller();
-    this.geminiCaller = new GeminiCaller();
+    this.vertexCaller = new VertexCaller();
     this.objectMapper = new ObjectMapper();
   }
 
   public ExtractionConnectorFunction(
       PollingTextractCaller pollingTextractCaller,
       BedrockCaller bedrockCaller,
-      GeminiCaller geminiCaller) {
+      VertexCaller vertexCaller) {
     this.textractClientSupplier = new TextractClientSupplier();
     this.s3ClientSupplier = new S3ClientSupplier();
     this.bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
     this.objectMapper = new ObjectMapper();
     this.pollingTextractCaller = pollingTextractCaller;
     this.bedrockCaller = bedrockCaller;
-    this.geminiCaller = geminiCaller;
+    this.vertexCaller = vertexCaller;
   }
 
   @Override
@@ -110,7 +110,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
       ExtractionRequestData input, VertexProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
-      Object result = geminiCaller.generateContent(input, baseRequest);
+      Object result = vertexCaller.generateContent(input, baseRequest);
       long endTime = System.currentTimeMillis();
       LOGGER.info("Gemini content extraction took {} ms", (endTime - startTime));
       return new ExtractionResult(

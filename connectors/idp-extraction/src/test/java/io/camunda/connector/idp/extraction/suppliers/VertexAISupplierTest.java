@@ -11,10 +11,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.vertexai.VertexAI;
 import io.camunda.connector.idp.extraction.model.providers.GcpAuthentication;
+import io.camunda.connector.idp.extraction.model.providers.GcpAuthenticationType;
 import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
 import io.camunda.connector.idp.extraction.model.providers.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
-import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +29,8 @@ class VertexAISupplierTest {
     // Given
     VertexProvider baseRequest =
         createBaseRequest(
-            new GcpAuthentication(AuthenticationType.BEARER, "test-token", null, null, null));
+            new GcpAuthentication(
+                GcpAuthenticationType.BEARER, "test-token", null, null, null, null));
 
     // When
     VertexAI vertexAI = VertexAISupplier.getVertexAI(baseRequest);
@@ -49,7 +50,12 @@ class VertexAISupplierTest {
     VertexProvider baseRequest =
         createBaseRequest(
             new GcpAuthentication(
-                AuthenticationType.REFRESH, null, "refresh-token", "client-id", "client-secret"));
+                GcpAuthenticationType.REFRESH,
+                null,
+                "refresh-token",
+                "client-id",
+                "client-secret",
+                null));
 
     // When
     VertexAI vertexAI = VertexAISupplier.getVertexAI(baseRequest);

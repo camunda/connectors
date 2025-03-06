@@ -29,13 +29,6 @@
     </dependency>
 
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-google-base</artifactId>
-      <version>${project.version}</version>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>bedrockruntime</artifactId>
       <version>${version.software-aws-java-sdk}</version>
@@ -90,7 +83,6 @@
           </connectors>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
-            <includeDependency>io.camunda.connector:connector-google-base</includeDependency>
           </includeDependencies>
         </configuration>
       </plugin>
