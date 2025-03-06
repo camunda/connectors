@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
 
 /**
@@ -33,13 +33,14 @@ import java.io.IOException;
  */
 public class DocumentDeserializer extends AbstractDeserializer<Document> {
 
-  private final IntrinsicOperationResultDeserializer operationDeserializer;
+  private final IntrinsicFunctionObjectResultDeserializer operationDeserializer;
   private final DocumentFactory documentFactory;
 
   public DocumentDeserializer(
-      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
+      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
     this.documentFactory = documentFactory;
-    this.operationDeserializer = new IntrinsicOperationResultDeserializer(operationExecutor);
+    this.operationDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor);
   }
 
   @Override

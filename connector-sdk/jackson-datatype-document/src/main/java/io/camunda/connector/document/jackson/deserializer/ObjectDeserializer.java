@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -31,12 +31,14 @@ import java.util.LinkedHashMap;
 public class ObjectDeserializer extends AbstractDeserializer<Object> {
 
   private final DocumentDeserializer documentDeserializer;
-  private final IntrinsicOperationResultDeserializer operationDeserializer;
+  private final IntrinsicFunctionObjectResultDeserializer operationDeserializer;
 
   public ObjectDeserializer(
-      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
-    this.documentDeserializer = new DocumentDeserializer(documentFactory, operationExecutor);
-    this.operationDeserializer = new IntrinsicOperationResultDeserializer(operationExecutor);
+      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+    this.documentDeserializer =
+        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor);
+    this.operationDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor);
   }
 
   @Override

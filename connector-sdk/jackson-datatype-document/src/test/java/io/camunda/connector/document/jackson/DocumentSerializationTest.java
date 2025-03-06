@@ -27,7 +27,7 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocum
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
-import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -36,7 +36,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 public class DocumentSerializationTest {
 
   @Mock private DocumentFactory factory;
-  @Mock private IntrinsicOperationExecutor operationExecutor;
+  @Mock private IntrinsicFunctionExecutor operationExecutor;
 
   private final ObjectMapper objectMapper =
       new ObjectMapper()

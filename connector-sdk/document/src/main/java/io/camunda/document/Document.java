@@ -19,7 +19,6 @@ package io.camunda.document;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.document.reference.DocumentReference;
 import java.io.InputStream;
-import java.time.Duration;
 
 /**
  * Represents a uniform document (file) object that can be passed between connectors and used in the
@@ -41,7 +40,5 @@ public interface Document {
 
   DocumentReference reference();
 
-  String generateLink(Duration timeToLive);
-
-  String generateLink();
+  String generateLink(DocumentLinkParameters parameters);
 }

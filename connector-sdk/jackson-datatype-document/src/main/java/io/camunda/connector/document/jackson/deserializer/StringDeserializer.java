@@ -22,7 +22,7 @@ import static io.camunda.connector.document.jackson.deserializer.Deserialization
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
 
 public class StringDeserializer extends AbstractDeserializer<String> {
@@ -31,12 +31,14 @@ public class StringDeserializer extends AbstractDeserializer<String> {
       new com.fasterxml.jackson.databind.deser.std.StringDeserializer();
 
   private final DocumentDeserializer documentDeserializer;
-  private final IntrinsicOperationResultDeserializer operationDeserializer;
+  private final IntrinsicFunctionObjectResultDeserializer intrinsicFunctionDeserializer;
 
   public StringDeserializer(
-      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
-    this.documentDeserializer = new DocumentDeserializer(documentFactory, operationExecutor);
-    this.operationDeserializer = new IntrinsicOperationResultDeserializer(operationExecutor);
+      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+    this.documentDeserializer =
+        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor);
+    this.intrinsicFunctionDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor);
   }
 
   @Override
@@ -47,7 +49,7 @@ public class StringDeserializer extends AbstractDeserializer<String> {
       return document.asBase64();
     }
     if (isOperation(node)) {
-      final var operationResult = operationDeserializer.handleJsonNode(node, context);
+      final var operationResult = intrinsicFunctionDeserializer.handleJsonNode(node, context);
       if (operationResult instanceof String) {
         return (String) operationResult;
       }

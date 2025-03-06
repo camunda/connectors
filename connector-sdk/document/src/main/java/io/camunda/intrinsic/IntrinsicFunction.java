@@ -14,21 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.operation.impl;
+package io.camunda.intrinsic;
 
-import io.camunda.document.Document;
-import io.camunda.operation.IntrinsicOperation;
-import io.camunda.operation.IntrinsicOperationProvider;
-import java.nio.charset.Charset;
-import javax.annotation.Nullable;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class GetTextOperation implements IntrinsicOperationProvider {
+/**
+ * Marks a method as an intrinsic operation. Positional parameters from the operation payload are
+ * passed to the method as arguments. The parameters are resolved by position, so the order of
+ * parameters in the method signature must match the order of parameters in the operation payload.
+ *
+ * <p>By default, all arguments are required. If an argument is nullable, it must be annotated with
+ * {@link javax.annotation.Nullable}.
+ */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface IntrinsicFunction {
 
-  @IntrinsicOperation(name = "getText")
-  public String execute(Document document, @Nullable String charset) {
-    final var bytes = document.asByteArray();
-    final var charsetInstance =
-        charset != null ? Charset.forName(charset) : Charset.defaultCharset();
-    return new String(bytes, charsetInstance);
-  }
+  String name();
 }

@@ -20,16 +20,16 @@ import static io.camunda.connector.document.jackson.deserializer.Deserialization
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.document.jackson.OperationModel;
-import io.camunda.operation.IntrinsicOperationExecutor;
-import io.camunda.operation.IntrinsicOperationParams;
+import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionParams;
 import java.io.IOException;
 
-public class IntrinsicOperationResultDeserializer extends AbstractDeserializer<Object> {
+public class IntrinsicFunctionObjectResultDeserializer extends AbstractDeserializer<Object> {
 
-  private final IntrinsicOperationExecutor operationExecutor;
+  private final IntrinsicFunctionExecutor operationExecutor;
 
-  public IntrinsicOperationResultDeserializer(IntrinsicOperationExecutor operationExecutor) {
+  public IntrinsicFunctionObjectResultDeserializer(IntrinsicFunctionExecutor operationExecutor) {
     this.operationExecutor = operationExecutor;
   }
 
@@ -40,10 +40,11 @@ public class IntrinsicOperationResultDeserializer extends AbstractDeserializer<O
       throw new IllegalArgumentException(
           "Unsupported document format. Expected an operation, got: " + node);
     }
-    final OperationModel operation = context.readTreeAsValue(node, OperationModel.class);
-    final IntrinsicOperationParams params =
-        new IntrinsicOperationParams.Positional(operation.params());
+    final IntrinsicFunctionModel operation =
+        context.readTreeAsValue(node, IntrinsicFunctionModel.class);
+    final IntrinsicFunctionParams params =
+        new IntrinsicFunctionParams.Positional(operation.params());
 
-    return operationExecutor.execute(operation.name(), params, Object.class);
+    return operationExecutor.execute(operation.name(), params);
   }
 }

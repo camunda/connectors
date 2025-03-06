@@ -28,8 +28,8 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.CamundaDocumentStore;
-import io.camunda.operation.DefaultIntrinsicOperationExecutor;
-import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -38,20 +38,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class OperationDeserializationTest {
+public class IntrinsicFunctionDeserializationTest {
 
   private final CamundaDocumentStore documentStore = mock(CamundaDocumentStore.class);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public OperationDeserializationTest() {
+  public IntrinsicFunctionDeserializationTest() {
     /*
      * Order of initialization is important here. The operationExecutor is created first and then
      * the objectMapper is created with the operationExecutor. This is because the operationExecutor
      * needs an objectMapper configured with the same modules.
      */
-    IntrinsicOperationExecutor operationExecutor =
-        spy(new DefaultIntrinsicOperationExecutor(objectMapper));
+    IntrinsicFunctionExecutor operationExecutor =
+        spy(new DefaultIntrinsicFunctionExecutor(objectMapper));
 
     final DocumentFactory factory = new DocumentFactoryImpl(documentStore);
     objectMapper

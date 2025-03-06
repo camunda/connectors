@@ -1,3 +1,0 @@
-io.camunda.operation.impl.Base64Operation
-io.camunda.operation.impl.CreateLinkOperation
-io.camunda.operation.impl.GetTextOperation

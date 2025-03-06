@@ -17,6 +17,7 @@
 package io.camunda.document.store;
 
 import io.camunda.client.api.response.DocumentMetadata;
+import io.camunda.document.DocumentLinkParameters;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.ByteArrayInputStream;
@@ -117,7 +118,8 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   }
 
   @Override
-  public String generateLink(DocumentLinkCreationRequest request) {
+  public String generateLink(
+      CamundaDocumentReference reference, DocumentLinkParameters parameters) {
     logWarning();
     throw new UnsupportedOperationException("Not implemented");
   }

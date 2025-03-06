@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.operation;
+package io.camunda.intrinsic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.annotation.Annotation;
@@ -23,15 +23,15 @@ import java.lang.reflect.Parameter;
 import java.util.List;
 import javax.annotation.Nullable;
 
-public class IntrinsicOperationParameterBinder {
+public class IntrinsicFunctionParameterBinder {
 
   private final ObjectMapper objectMapper;
 
-  public IntrinsicOperationParameterBinder(ObjectMapper objectMapper) {
+  public IntrinsicFunctionParameterBinder(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
   }
 
-  public Object[] bindParameters(Method method, IntrinsicOperationParams params) {
+  public Object[] bindParameters(Method method, IntrinsicFunctionParams params) {
     var parameterTypes = method.getParameterTypes();
     var parameterCount = parameterTypes.length;
     var parameterAnnotations = method.getParameterAnnotations();
@@ -52,9 +52,9 @@ public class IntrinsicOperationParameterBinder {
       Class<?> type,
       List<Annotation> annotations,
       int index,
-      IntrinsicOperationParams params) {
+      IntrinsicFunctionParams params) {
 
-    if (params instanceof IntrinsicOperationParams.Positional positionalParams) {
+    if (params instanceof IntrinsicFunctionParams.Positional positionalParams) {
       if (index >= positionalParams.params().size()) {
         if (annotations.stream().noneMatch(a -> a instanceof Nullable)) {
           throw new IllegalArgumentException(

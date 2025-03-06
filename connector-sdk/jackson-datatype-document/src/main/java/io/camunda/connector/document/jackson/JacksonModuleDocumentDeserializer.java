@@ -25,27 +25,27 @@ import io.camunda.connector.document.jackson.deserializer.ObjectDeserializer;
 import io.camunda.connector.document.jackson.deserializer.StringDeserializer;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.InputStream;
 
 public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
   private final DocumentFactory documentFactory;
-  private final IntrinsicOperationExecutor operationExecutor;
+  private final IntrinsicFunctionExecutor intrinsicFunctionExecutor;
   private final DocumentModuleSettings settings;
 
   public JacksonModuleDocumentDeserializer(
       DocumentFactory documentFactory,
-      IntrinsicOperationExecutor operationExecutor,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
       DocumentModuleSettings settings) {
     this.documentFactory = documentFactory;
-    this.operationExecutor = operationExecutor;
+    this.intrinsicFunctionExecutor = intrinsicFunctionExecutor;
     this.settings = settings;
   }
 
   public JacksonModuleDocumentDeserializer(
-      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
-    this(documentFactory, operationExecutor, DocumentModuleSettings.create());
+      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+    this(documentFactory, intrinsicFunctionExecutor, DocumentModuleSettings.create());
   }
 
   @Override
@@ -61,15 +61,19 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
   @Override
   public void setupModule(SetupContext context) {
-    addDeserializer(Document.class, new DocumentDeserializer(documentFactory, operationExecutor));
-    addDeserializer(byte[].class, new ByteArrayDeserializer(documentFactory, operationExecutor));
     addDeserializer(
-        InputStream.class, new InputStreamDeserializer(documentFactory, operationExecutor));
+        Document.class, new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor));
+    addDeserializer(
+        byte[].class, new ByteArrayDeserializer(documentFactory, intrinsicFunctionExecutor));
+    addDeserializer(
+        InputStream.class, new InputStreamDeserializer(documentFactory, intrinsicFunctionExecutor));
     if (settings.enableObject) {
-      addDeserializer(Object.class, new ObjectDeserializer(documentFactory, operationExecutor));
+      addDeserializer(
+          Object.class, new ObjectDeserializer(documentFactory, intrinsicFunctionExecutor));
     }
     if (settings.enableString) {
-      addDeserializer(String.class, new StringDeserializer(documentFactory, operationExecutor));
+      addDeserializer(
+          String.class, new StringDeserializer(documentFactory, intrinsicFunctionExecutor));
     }
     super.setupModule(context);
   }

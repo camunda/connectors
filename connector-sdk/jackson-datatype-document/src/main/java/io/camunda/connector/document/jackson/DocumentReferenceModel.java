@@ -27,10 +27,8 @@ import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.document.reference.DocumentReference;
-import io.camunda.operation.IntrinsicOperationPayload;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.Optional;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -134,7 +132,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     }
   }
 
-  record ExternalDocumentReferenceModel(String url, Optional<IntrinsicOperationPayload> operation)
+  record ExternalDocumentReferenceModel(String url)
       implements DocumentReferenceModel, ExternalDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)

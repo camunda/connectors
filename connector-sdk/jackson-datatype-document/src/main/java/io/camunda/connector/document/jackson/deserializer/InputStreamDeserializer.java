@@ -22,19 +22,19 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class InputStreamDeserializer extends AbstractDeserializer<InputStream> {
 
   private final DocumentFactory documentFactory;
-  private final IntrinsicOperationExecutor operationExecutor;
+  private final IntrinsicFunctionExecutor operationExecutor;
 
   public InputStreamDeserializer(
-      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
+      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
     this.documentFactory = documentFactory;
-    this.operationExecutor = operationExecutor;
+    this.operationExecutor = intrinsicFunctionExecutor;
   }
 
   @Override
@@ -48,7 +48,8 @@ public class InputStreamDeserializer extends AbstractDeserializer<InputStream> {
     }
     if (DeserializationUtil.isOperation(node)) {
       final var operationResult =
-          new IntrinsicOperationResultDeserializer(operationExecutor).handleJsonNode(node, context);
+          new IntrinsicFunctionObjectResultDeserializer(operationExecutor)
+              .handleJsonNode(node, context);
       if (operationResult instanceof Document document) {
         return document.asInputStream();
       }

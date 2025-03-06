@@ -29,7 +29,7 @@ import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.CamundaDocumentStore;
-import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,8 +48,7 @@ public class DocumentDeserializationTest {
 
   private final CamundaDocumentStore documentStoreMock = mock(CamundaDocumentStore.class);
   private final DocumentFactory factory = new DocumentFactoryImpl(documentStoreMock);
-  private final IntrinsicOperationExecutor operationExecutor =
-      mock(IntrinsicOperationExecutor.class);
+  private final IntrinsicFunctionExecutor operationExecutor = mock(IntrinsicFunctionExecutor.class);
 
   private ObjectMapper objectMapper;
 
