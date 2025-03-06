@@ -41,7 +41,7 @@ public class InboundInstancesSecurityConfiguration {
   @Value("${camunda.connector.auth.console.audience:}")
   private String consoleAudience;
 
-  @Value("${camunda.connector.auth.allowed-roles:owner,admin}")
+  @Value("${camunda.connector.auth.allowed.roles:owner,admin}")
   private List<String> allowedRoles;
 
   @Value("${camunda.connector.auth.issuer}")
@@ -49,6 +49,9 @@ public class InboundInstancesSecurityConfiguration {
 
   @Value("${camunda.endpoints.cors.allowed.origins:*}")
   private String[] allowedOrigins;
+
+  @Value("${camunda.endpoints.cors.allow.credentials:false}")
+  private boolean allowCredentials;
 
   @Value("${camunda.endpoints.cors.mappings:/**}")
   private List<String> mappings;
@@ -65,7 +68,7 @@ public class InboundInstancesSecurityConfiguration {
             mapping ->
                 registry
                     .addMapping(mapping)
-                    .allowCredentials(true)
+                    .allowCredentials(allowCredentials)
                     .allowedOrigins(allowedOrigins)
                     .allowedMethods("*"));
       }
