@@ -84,7 +84,7 @@ public class BoxOperations {
     var fileContent = download(file);
     var documentCreationRequest =
         DocumentCreationRequest.from(fileContent).fileName(file.getInfo().getName()).build();
-    return context.createDocument(documentCreationRequest);
+    return context.create(documentCreationRequest);
   }
 
   private static BoxResult deleteFile(

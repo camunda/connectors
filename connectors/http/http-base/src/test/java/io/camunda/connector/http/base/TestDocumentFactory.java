@@ -16,31 +16,28 @@
  */
 package io.camunda.connector.http.base;
 
-import io.camunda.connector.api.outbound.JobContext;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.client.impl.response.DocumentMetadataImpl;
 import io.camunda.zeebe.client.protocol.rest.DocumentMetadata;
 
-public class DocumentOutboundContext implements OutboundConnectorContext {
+public class TestDocumentFactory implements DocumentFactory {
 
   public static final InMemoryDocumentStore store = InMemoryDocumentStore.INSTANCE;
+  private final DocumentFactory factory = new DocumentFactoryImpl(store);
 
   @Override
-  public JobContext getJobContext() {
-    return null;
+  public Document resolve(DocumentReference reference) {
+    return factory.resolve(reference);
   }
 
   @Override
-  public <T> T bindVariables(Class<T> cls) {
-    return null;
-  }
-
-  @Override
-  public Document createDocument(DocumentCreationRequest request) {
+  public Document create(DocumentCreationRequest request) {
     var reference = store.createDocument(request);
     var metadata = new DocumentMetadata();
     metadata.setContentType(reference.metadata().getContentType());

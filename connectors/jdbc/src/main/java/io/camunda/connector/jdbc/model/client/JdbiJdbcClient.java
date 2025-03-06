@@ -18,7 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.statement.Query;
 import org.jdbi.v3.core.statement.SqlStatement;
+import org.jdbi.v3.jackson2.Jackson2Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,12 +42,24 @@ public record JdbiJdbcClient() implements JdbcClient {
       throws SQLException, IllegalAccessException {
     JdbcResponse response;
     Jdbi jdbi = Jdbi.create(connection);
+    jdbi.installPlugin(new Jackson2Plugin());
+    String databaseProductName =
+        jdbi.withHandle(
+            handle -> {
+              try {
+                return handle.getConnection().getMetaData().getDatabaseProductName();
+              } catch (SQLException e) {
+                LOG.error("Failed to retrieve database dialect", e);
+                return "Unknown";
+              }
+            });
+
     if (data.returnResults()) {
       // SELECT query, or RETURNING clause
       LOG.debug("Executing query: {}", data.query());
+      Query q = jdbi.withHandle(handle -> bindVariables(handle.createQuery(data.query()), data));
       List<Map<String, Object>> result =
-          jdbi.withHandle(
-              handle -> bindVariables(handle.createQuery(data.query()), data).mapToMap().list());
+          JdbiJsonHelper.mapToParsedMap(databaseProductName, q).list();
       response = JdbcResponse.of(result);
       LOG.debug("JdbcResponse: {}", response);
     } else {

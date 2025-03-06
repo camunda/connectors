@@ -22,8 +22,6 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.operate.auth.Authentication;
 import io.camunda.operate.auth.JwtAuthentication;
 import io.camunda.operate.auth.JwtCredential;
-import io.camunda.operate.auth.TokenResponseMapper;
-import io.camunda.operate.auth.TokenResponseMapper.JacksonTokenResponseMapper;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -47,9 +45,7 @@ public class ConsoleSecretApiClient {
       new TypeReference<>() {};
 
   public ConsoleSecretApiClient(String secretsEndpoint, JwtCredential jwt) {
-    TokenResponseMapper tokenResponseMapper =
-        new JacksonTokenResponseMapper(ConnectorsObjectMapperSupplier.getCopy());
-    this.authentication = new JwtAuthentication(jwt, tokenResponseMapper);
+    this.authentication = new JwtAuthentication(jwt);
     this.secretsEndpoint = secretsEndpoint;
   }
 

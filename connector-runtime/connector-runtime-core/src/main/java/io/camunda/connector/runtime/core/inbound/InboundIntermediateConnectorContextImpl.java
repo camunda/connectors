@@ -22,6 +22,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.document.Document;
+import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.operate.model.FlowNodeInstance;
 import java.util.List;
@@ -135,11 +136,6 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
-  public Document createDocument(DocumentCreationRequest request) {
-    return inboundContext.createDocument(request);
-  }
-
-  @Override
   public List<InboundConnectorElement> connectorElements() {
     return inboundContext.connectorElements();
   }
@@ -147,5 +143,15 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public Long getActivationTimestamp() {
     return activationTimestamp;
+  }
+
+  @Override
+  public Document resolve(DocumentReference reference) {
+    return inboundContext.resolve(reference);
+  }
+
+  @Override
+  public Document create(DocumentCreationRequest request) {
+    return inboundContext.create(request);
   }
 }

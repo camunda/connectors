@@ -35,10 +35,11 @@ import io.camunda.connector.http.base.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.document.store.DocumentCreationRequest;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.jupiter.api.BeforeAll;
@@ -61,7 +62,7 @@ public class HttpServiceTest {
   private final HttpService httpServiceWithoutCloudFunction =
       new HttpService(disabledCloudFunctionService);
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-  private final InMemoryDocumentStore store = InMemoryDocumentStore.INSTANCE;
+  private final TestDocumentFactory documentFactory = new TestDocumentFactory();
 
   @BeforeAll
   public static void setUp() {
@@ -87,6 +88,48 @@ public class HttpServiceTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
+  public void shouldReturn200WithFileBodyParam_whenPostFileRequest(
+      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    var documentBytes =
+        Objects.requireNonNull(ClassLoader.getSystemResourceAsStream("__files/fileName.jpg"))
+            .readAllBytes();
+    var document = documentFactory.create(DocumentCreationRequest.from(documentBytes).build());
+
+    stubCloudFunction(wmRuntimeInfo);
+    HttpService httpService =
+        cloudFunctionEnabled ? HttpServiceTest.this.httpService : httpServiceWithoutCloudFunction;
+    stubFor(post("/upload").willReturn(ok()));
+
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.POST);
+    request.setBody(Map.of("myFile", document));
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/upload");
+
+    // when
+    HttpCommonResult result =
+        httpService.executeConnectorRequest(request, new TestDocumentFactory());
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(200);
+    assertThat(result.body()).isNull();
+    assertThat(result.document()).isNull();
+
+    verify(
+        postRequestedFor(urlEqualTo("/upload"))
+            .withRequestBody(
+                matchingJsonPath(
+                    "$.myFile", equalTo(Base64.getEncoder().encodeToString(documentBytes)))));
+    if (cloudFunctionEnabled) {
+      verify(
+          postRequestedFor(urlEqualTo("/proxy"))
+              .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
   public void shouldReturn200WithFileBody_whenGetFileRequest(
       boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
     stubCloudFunction(wmRuntimeInfo);
@@ -106,17 +149,15 @@ public class HttpServiceTest {
 
     // when
     HttpCommonResult result =
-        httpService.executeConnectorRequest(request, new DocumentOutboundContext());
+        httpService.executeConnectorRequest(request, new TestDocumentFactory());
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
     assertThat(result.body()).isNull();
     assertThat(result.document()).isNotNull();
-    var documentId =
-        ((DocumentReference.CamundaDocumentReference) (result.document().reference())).documentId();
-    var content = store.getDocuments().get(documentId);
-    assertThat(content)
+    var content = documentFactory.resolve(result.document().reference());
+    assertThat(content.asByteArray())
         .isEqualTo(getClass().getResourceAsStream("/__files/fileName.jpg").readAllBytes());
     verify(getRequestedFor(urlEqualTo("/download")));
     if (cloudFunctionEnabled) {

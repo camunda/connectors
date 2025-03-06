@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-parent</artifactId>
-    <version>8.7.0-alpha4</version>
+    <version>8.7.0-alpha5</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -12,6 +12,10 @@
   <description>Camunda JDBC Connector</description>
   <artifactId>connector-jdbc</artifactId>
   <packaging>jar</packaging>
+
+  <properties>
+    <version.jdbi>3.47.0</version.jdbi>
+  </properties>
 
   <licenses>
     <license>
@@ -36,7 +40,12 @@
     <dependency>
       <groupId>org.jdbi</groupId>
       <artifactId>jdbi3-core</artifactId>
-      <version>3.47.0</version>
+      <version>${version.jdbi}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jdbi</groupId>
+      <artifactId>jdbi3-jackson2</artifactId>
+      <version>${version.jdbi}</version>
     </dependency>
 
     <dependency>

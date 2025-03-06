@@ -16,15 +16,14 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.factory.DocumentFactory;
 import java.util.Map;
 
 /**
  * The context object provided to an inbound connector function. The context allows to fetch
  * information injected by the environment runtime.
  */
-public interface InboundConnectorContext {
+public interface InboundConnectorContext extends DocumentFactory {
 
   /**
    * Checks if the Connector can be activated. The Connector can be activated if the activation
@@ -125,7 +124,4 @@ public interface InboundConnectorContext {
    * implementation requires it.
    */
   void log(Activity activity);
-
-  /** Creates a new document in the Camunda Document Store. */
-  Document createDocument(DocumentCreationRequest request);
 }

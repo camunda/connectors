@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>8.7.0-alpha4</version>
+  <version>8.7.0-alpha5</version>
   <packaging>pom</packaging>
 
   <name>Camunda Connector Parent</name>
@@ -73,7 +73,7 @@ limitations under the License.</license.inlineheader>
     <!-- Camunda internal libraries -->
     <version.zeebe>8.7.0-alpha4-rc3</version.zeebe>
     <version.camunda-process-test>8.6.7</version.camunda-process-test>
-    <version.operate-client>8.6.2</version.operate-client>
+    <version.operate-client>8.6.5</version.operate-client>
     <version.feel-engine>1.19.0</version.feel-engine>
     <!-- Third party dependencies -->
 
@@ -645,6 +645,20 @@ limitations under the License.</license.inlineheader>
       <id>identity</id>
       <name>Identity Repository</name>
       <url>https://artifacts.camunda.com/artifactory/camunda-identity/</url>
+    </repository>
+
+    <!-- opensaml dependencies for soap connector -->
+    <repository>
+      <id>shibboleth</id>
+      <name>Shibboleth Releases Repository</name>
+      <url>https://build.shibboleth.net/maven/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+        <checksumPolicy>warn</checksumPolicy>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
     </repository>
   </repositories>
 

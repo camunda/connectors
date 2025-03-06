@@ -7,7 +7,7 @@
     "keywords" : [ "extract text", "extract data", "extract text from image", "extract data from image", "ocr" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-textract/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -152,6 +152,31 @@
       "value" : "POLLING"
     } ]
   }, {
+    "id" : "input.documentLocationType",
+    "label" : "Document location type",
+    "description" : "Document location",
+    "optional" : false,
+    "value" : "UPLOADED",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.documentLocationType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.executionType",
+      "equals" : "SYNC",
+      "type" : "simple"
+    },
+    "tooltip" : "<a href=\"https://docs.camunda.io/docs/next/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "S3",
+      "value" : "S3"
+    }, {
+      "name" : "Camunda Document",
+      "value" : "UPLOADED"
+    } ]
+  }, {
     "id" : "input.documentS3Bucket",
     "label" : "Document bucket",
     "description" : "S3 bucket that contains document that needs to be processed",
@@ -164,6 +189,11 @@
     "binding" : {
       "name" : "input.documentS3Bucket",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.documentLocationType",
+      "equals" : "S3",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -180,6 +210,11 @@
       "name" : "input.documentName",
       "type" : "zeebe:input"
     },
+    "condition" : {
+      "property" : "input.documentLocationType",
+      "equals" : "S3",
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
     "id" : "input.documentVersion",
@@ -191,6 +226,11 @@
     "binding" : {
       "name" : "input.documentVersion",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.documentLocationType",
+      "equals" : "S3",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -369,6 +409,25 @@
     "condition" : {
       "property" : "input.executionType",
       "equals" : "ASYNC",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document",
+    "label" : "Document",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.document",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.documentLocationType",
+      "equals" : "UPLOADED",
       "type" : "simple"
     },
     "type" : "String"

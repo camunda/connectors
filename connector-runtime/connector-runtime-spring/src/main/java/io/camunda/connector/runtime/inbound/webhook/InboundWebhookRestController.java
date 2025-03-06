@@ -161,7 +161,7 @@ public class InboundWebhookRestController {
     return parts.stream()
         .map(
             part ->
-                context.createDocument(
+                context.create(
                     DocumentCreationRequest.from(part.inputStream())
                         .fileName(part.submittedFileName())
                         .contentType(part.contentType())
