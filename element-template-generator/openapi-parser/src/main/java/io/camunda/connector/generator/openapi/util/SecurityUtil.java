@@ -60,7 +60,7 @@ public class SecurityUtil {
               var customScopes = new HashSet<>(schemeRef.getValue());
               var scheme = components.getSecuritySchemes().get(schemeRef.getKey());
               try {
-                return transformToAuthentication(scheme, customScopes);
+                return transformToAuthentication(scheme, customScopes, schemeRef.getKey());
               } catch (Exception e) {
                 foundErrors.set(true);
                 LOG.warn("Could not parse security scheme {}", schemeRef.getKey(), e);
@@ -78,11 +78,11 @@ public class SecurityUtil {
   }
 
   private static HttpAuthentication transformToAuthentication(
-      SecurityScheme scheme, Set<String> customScopes) {
+      SecurityScheme scheme, Set<String> customScopes, String key) {
 
     if (Type.HTTP.equals(scheme.getType())) {
       if (scheme.getScheme().equals("basic")) {
-        return new HttpAuthentication.BasicAuth();
+        return new HttpAuthentication.BasicAuth(key);
       } else if (scheme.getScheme().equals("bearer")) {
         return new HttpAuthentication.BearerAuth();
       } else {
@@ -99,6 +99,14 @@ public class SecurityUtil {
               ? customScopes
               : clientCredentialsFlow.getScopes().keySet();
       return new HttpAuthentication.OAuth2(clientCredentialsFlow.getTokenUrl(), scopes);
+    } else if (Type.APIKEY.equals(scheme.getType())) {
+      SecurityScheme.In inType = scheme.getIn();
+      if (SecurityScheme.In.HEADER.equals(inType)) {
+        return new HttpAuthentication.ApiKey("headers", scheme.getName(), "");
+      } else if (SecurityScheme.In.QUERY.equals(inType)) {
+        return new HttpAuthentication.ApiKey("query", scheme.getName(), "");
+      }
+      throw new IllegalArgumentException("In: " + inType + " is not supported for apiKey");
     } else {
       throw new IllegalArgumentException(
           "SecurityScheme type " + scheme.getType() + " is not supported");
