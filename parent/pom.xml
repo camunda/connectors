@@ -72,7 +72,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.zeebe>8.7.0-alpha4-rc3</version.zeebe>
-    <version.camunda-process-test>8.6.10</version.camunda-process-test>
+    <version.camunda-process-test>8.6.11</version.camunda-process-test>
     <version.operate-client>8.6.5</version.operate-client>
     <version.feel-engine>1.19.0</version.feel-engine>
     <!-- Third party dependencies -->
