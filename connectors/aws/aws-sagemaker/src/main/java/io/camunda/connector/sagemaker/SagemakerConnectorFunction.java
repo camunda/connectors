@@ -45,7 +45,7 @@ import java.util.function.BiFunction;
       @ElementTemplate.PropertyGroup(id = "input", label = "Configure input")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-sagemaker/",
+        "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-sagemaker/",
     icon = "icon.svg")
 public class SagemakerConnectorFunction implements OutboundConnectorFunction {
 
