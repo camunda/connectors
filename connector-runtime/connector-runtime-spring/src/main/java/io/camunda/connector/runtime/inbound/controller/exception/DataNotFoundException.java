@@ -14,18 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.executable;
+package io.camunda.connector.runtime.inbound.controller.exception;
 
-import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import java.util.*;
+public class DataNotFoundException extends RuntimeException {
 
-public record ActiveExecutableResponse(
-    UUID executableId,
-    Class<? extends InboundConnectorExecutable> executableClass,
-    List<InboundConnectorElement> elements,
-    Health health,
-    Collection<Activity> logs,
-    Long activationTimestamp) {}
+  public DataNotFoundException(Class<?> dataClass, String dataId) {
+    super(
+        String.format(
+            "Data of type '%s' with id '%s' not found", dataClass.getSimpleName(), dataId));
+  }
+}
