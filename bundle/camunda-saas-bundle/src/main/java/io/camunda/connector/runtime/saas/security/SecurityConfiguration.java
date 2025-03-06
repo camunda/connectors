@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.saas.security;
 
-import static org.springframework.security.web.access.IpAddressAuthorizationManager.hasIpAddress;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,8 +35,6 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @Configuration
 public class SecurityConfiguration {
-
-  public static final String LOCALHOST_IPV4 = "127.0.0.1";
 
   @Value("${camunda.connector.auth.audience}")
   private String audience;
@@ -65,12 +61,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.PUT, "/inbound/*")
                     .requestMatchers(HttpMethod.DELETE, "/inbound/*")
                     .requestMatchers("/actuator/**"))
-        .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers("/inbound/logs")
-                    .access(hasIpAddress(LOCALHOST_IPV4))
-                    .anyRequest()
-                    .permitAll())
+        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
         .build();
   }
 
@@ -85,17 +76,15 @@ public class SecurityConfiguration {
   @Bean
   @Order(1)
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**", "/inbound-instances"))
+    http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
         .securityMatchers(
             requestMatcherConfigurer ->
                 requestMatcherConfigurer
                     .requestMatchers("/inbound/**")
-                    .requestMatchers("/inbound-instances")
                     .requestMatchers("/tenants/**"))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(
-                        HttpMethod.GET, "/inbound", "/inbound-instances", "/tenants/**")
+                auth.requestMatchers(HttpMethod.GET, "/inbound", "/tenants/**")
                     .hasAuthority("SCOPE_inbound:read"))
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     return http.build();
