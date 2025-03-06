@@ -14,24 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.operation.impl;
+package io.camunda.intrinsic.functions;
 
 import io.camunda.document.Document;
-import io.camunda.operation.IntrinsicOperation;
-import io.camunda.operation.IntrinsicOperationProvider;
-import java.util.Base64;
+import io.camunda.document.DocumentLinkParameters;
+import io.camunda.intrinsic.IntrinsicFunction;
+import io.camunda.intrinsic.IntrinsicFunctionProvider;
+import java.time.Duration;
+import java.util.Optional;
+import javax.annotation.Nullable;
 
-public class Base64Operation implements IntrinsicOperationProvider {
+public class CreateLinkFunction implements IntrinsicFunctionProvider {
 
-  @IntrinsicOperation(name = "base64")
-  public String execute(Object input) {
-    if (input instanceof Document) {
-      return ((Document) input).asBase64();
-    }
-    if (input instanceof String) {
-      return Base64.getEncoder().encodeToString(((String) input).getBytes());
-    }
-    throw new IllegalArgumentException(
-        "Unsupported input type: " + input.getClass() + ". Expected Document or String.");
+  @IntrinsicFunction(name = "createLink")
+  public String execute(Document document, @Nullable Duration timeToLive) {
+    return document.generateLink(new DocumentLinkParameters(Optional.ofNullable(timeToLive)));
   }
 }

@@ -14,13 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.operation;
+package io.camunda.intrinsic;
 
-import java.util.List;
-
-public sealed interface IntrinsicOperationParams {
-
-  record Positional(List<Object> params) implements IntrinsicOperationParams {}
-
-  // TODO: named parameters
-}
+/**
+ * Marker interface for intrinsic function providers. Used to discover intrinsic functions at
+ * runtime.
+ */
+public interface IntrinsicFunctionProvider {}

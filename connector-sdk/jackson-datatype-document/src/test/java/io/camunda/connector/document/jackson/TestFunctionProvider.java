@@ -19,20 +19,20 @@ package io.camunda.connector.document.jackson;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.document.Document;
-import io.camunda.operation.IntrinsicOperation;
-import io.camunda.operation.IntrinsicOperationProvider;
+import io.camunda.intrinsic.IntrinsicFunction;
+import io.camunda.intrinsic.IntrinsicFunctionProvider;
 import java.nio.charset.Charset;
 import javax.annotation.Nullable;
 
 /** Some test operations that show possible serialization and deserialization use cases. */
-public class TestOperationProvider implements IntrinsicOperationProvider {
+public class TestFunctionProvider implements IntrinsicFunctionProvider {
 
-  @IntrinsicOperation(name = "test_documentSize")
+  @IntrinsicFunction(name = "test_documentSize")
   public int documentSize(Document document) {
     return document.asByteArray().length;
   }
 
-  @IntrinsicOperation(name = "test_documentContent")
+  @IntrinsicFunction(name = "test_documentContent")
   public String documentContent(Document document, @Nullable String charset) {
     if (charset == null) {
       return new String(document.asByteArray());
@@ -40,14 +40,14 @@ public class TestOperationProvider implements IntrinsicOperationProvider {
     return new String(document.asByteArray(), Charset.forName(charset));
   }
 
-  @IntrinsicOperation(name = "test_concat")
+  @IntrinsicFunction(name = "test_concat")
   public String concat(String a, String b) {
     return a + b;
   }
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  @IntrinsicOperation(name = "test_anythingToString")
+  @IntrinsicFunction(name = "test_anythingToString")
   public String anythingToJson(Object anything) throws JsonProcessingException {
     return objectMapper.writeValueAsString(anything);
   }

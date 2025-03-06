@@ -19,7 +19,7 @@ package io.camunda.connector.document.jackson.deserializer;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
-import io.camunda.connector.document.jackson.OperationModel;
+import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 import java.io.IOException;
 
 public class DeserializationUtil {
@@ -29,7 +29,7 @@ public class DeserializationUtil {
   }
 
   public static boolean isOperation(JsonNode node) {
-    return node.has(OperationModel.DISCRIMINATOR_KEY);
+    return node.has(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
   }
 
   public static DocumentReferenceModel readAsDocumentReference(
@@ -42,13 +42,13 @@ public class DeserializationUtil {
     return ctx.readTreeAsValue(node, DocumentReferenceModel.class);
   }
 
-  public static OperationModel readAsOperation(JsonNode node, DeserializationContext ctx)
+  public static IntrinsicFunctionModel readAsOperation(JsonNode node, DeserializationContext ctx)
       throws IOException {
 
     if (!isOperation(node)) {
       throw new IllegalArgumentException(
           "Unsupported document format. Expected an operation, got: " + node);
     }
-    return ctx.readTreeAsValue(node, OperationModel.class);
+    return ctx.readTreeAsValue(node, IntrinsicFunctionModel.class);
   }
 }

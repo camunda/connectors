@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.operation;
+package io.camunda.intrinsic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Method;
@@ -27,25 +27,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An implementation of {@link IntrinsicOperationExecutor} that discovers operations via the service
+ * An implementation of {@link IntrinsicFunctionExecutor} that discovers operations via the service
  * provider interface.
  */
-public class DefaultIntrinsicOperationExecutor implements IntrinsicOperationExecutor {
+public class DefaultIntrinsicFunctionExecutor implements IntrinsicFunctionExecutor {
 
-  private final Logger LOGGER = LoggerFactory.getLogger(DefaultIntrinsicOperationExecutor.class);
+  private final Logger LOGGER = LoggerFactory.getLogger(DefaultIntrinsicFunctionExecutor.class);
 
-  private record OperationSource(IntrinsicOperationProvider provider, Method method) {}
+  private record OperationSource(IntrinsicFunctionProvider provider, Method method) {}
 
   private final Map<String, OperationSource> operationSources = new HashMap<>();
-  private final IntrinsicOperationParameterBinder parameterBinder;
-  private final ObjectMapper objectMapper;
+  private final IntrinsicFunctionParameterBinder parameterBinder;
 
-  public DefaultIntrinsicOperationExecutor(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
-    this.parameterBinder = new IntrinsicOperationParameterBinder(objectMapper);
+  public DefaultIntrinsicFunctionExecutor(ObjectMapper objectMapper) {
+    this.parameterBinder = new IntrinsicFunctionParameterBinder(objectMapper);
 
     final var operationProviders =
-        ServiceLoader.load(IntrinsicOperationProvider.class).stream()
+        ServiceLoader.load(IntrinsicFunctionProvider.class).stream()
             .map(ServiceLoader.Provider::get)
             .toList();
 
@@ -74,32 +72,31 @@ public class DefaultIntrinsicOperationExecutor implements IntrinsicOperationExec
   }
 
   @Override
-  public <T> T execute(String operationName, IntrinsicOperationParams params, Class<T> resultType) {
+  public Object execute(String operationName, IntrinsicFunctionParams params) {
     final var source = operationSources.get(operationName);
     if (source == null) {
       throw new IllegalArgumentException("No operation found with name: " + operationName);
     }
     final var arguments = parameterBinder.bindParameters(source.method, params);
     try {
-      final Object result = source.method.invoke(source.provider, arguments);
-      return objectMapper.convertValue(result, resultType);
+      return source.method.invoke(source.provider, arguments);
     } catch (Exception e) {
       throw new RuntimeException(
           "Failed to execute operation: "
               + operationName
-              + " and retrieve a result of type: "
-              + resultType.getName(),
+              + " with arguments: "
+              + Arrays.toString(arguments),
           e);
     }
   }
 
-  private Map<String, Method> getDeclaredMethods(IntrinsicOperationProvider provider) {
+  private Map<String, Method> getDeclaredMethods(IntrinsicFunctionProvider provider) {
     final var methodsByOperationName =
         Arrays.stream(provider.getClass().getDeclaredMethods())
-            .filter(method -> method.isAnnotationPresent(IntrinsicOperation.class))
+            .filter(method -> method.isAnnotationPresent(IntrinsicFunction.class))
             .collect(
                 Collectors.toMap(
-                    method -> method.getAnnotation(IntrinsicOperation.class).name(),
+                    method -> method.getAnnotation(IntrinsicFunction.class).name(),
                     method -> method));
     if (methodsByOperationName.isEmpty()) {
       throw new IllegalArgumentException(

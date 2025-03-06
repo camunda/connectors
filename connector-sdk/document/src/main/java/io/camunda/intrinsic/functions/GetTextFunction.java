@@ -14,12 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.jackson;
+package io.camunda.intrinsic.functions;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
+import io.camunda.document.Document;
+import io.camunda.intrinsic.IntrinsicFunction;
+import io.camunda.intrinsic.IntrinsicFunctionProvider;
+import java.nio.charset.Charset;
+import javax.annotation.Nullable;
 
-public record OperationModel(@JsonProperty(DISCRIMINATOR_KEY) String name, List<Object> params) {
+public class GetTextFunction implements IntrinsicFunctionProvider {
 
-  public static final String DISCRIMINATOR_KEY = "camunda.operation.type";
+  @IntrinsicFunction(name = "getText")
+  public String execute(Document document, @Nullable String charset) {
+    final var bytes = document.asByteArray();
+    final var charsetInstance =
+        charset != null ? Charset.forName(charset) : Charset.defaultCharset();
+    return new String(bytes, charsetInstance);
+  }
 }

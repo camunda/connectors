@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.operation;
+package io.camunda.intrinsic;
 
-/**
- * Marker interface for intrinsic operation providers. Used to discover intrinsic operations at
- * runtime.
- */
-public interface IntrinsicOperationProvider {}
+public interface IntrinsicFunctionExecutor {
+
+  Object execute(String operationName, IntrinsicFunctionParams params);
+}

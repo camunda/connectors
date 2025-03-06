@@ -17,6 +17,7 @@
 package io.camunda.document.store;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.document.DocumentLinkParameters;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.InputStream;
@@ -60,11 +61,12 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
   }
 
   @Override
-  public String generateLink(DocumentLinkCreationRequest request) {
-    final var command = camundaClient.newCreateDocumentLinkCommand(request.reference());
+  public String generateLink(
+      CamundaDocumentReference reference, DocumentLinkParameters parameters) {
+    final var command = camundaClient.newCreateDocumentLinkCommand(reference);
 
-    if (request.timeToLive().isPresent()) {
-      command.timeToLive(request.timeToLive().get());
+    if (parameters.timeToLive().isPresent()) {
+      command.timeToLive(parameters.timeToLive().get());
     }
     return command.send().join().getUrl();
   }

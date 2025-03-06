@@ -14,9 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.operation;
+package io.camunda.intrinsic;
 
-public interface IntrinsicOperationExecutor {
+import java.util.List;
 
-  <T> T execute(String operationName, IntrinsicOperationParams params, Class<T> resultType);
+public sealed interface IntrinsicFunctionParams {
+
+  record Positional(List<Object> params) implements IntrinsicFunctionParams {}
+
+  // TODO: named parameters
 }

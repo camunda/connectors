@@ -17,25 +17,26 @@
 package io.camunda.connector.document.jackson.deserializer;
 
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.operation.IntrinsicOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 
 /** Container for shared instances of deserializers that need to be cross-referenced. */
 public class DeserializerContainer {
 
   private final DocumentDeserializer documentDeserializer;
-  private final IntrinsicOperationResultDeserializer operationResultDeserializer;
+  private final IntrinsicFunctionObjectResultDeserializer operationResultDeserializer;
 
   public DeserializerContainer(
-      DocumentFactory documentFactory, IntrinsicOperationExecutor operationExecutor) {
+      DocumentFactory documentFactory, IntrinsicFunctionExecutor operationExecutor) {
     this.documentDeserializer = new DocumentDeserializer(documentFactory, operationExecutor);
-    this.operationResultDeserializer = new IntrinsicOperationResultDeserializer(operationExecutor);
+    this.operationResultDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(operationExecutor);
   }
 
   public DocumentDeserializer getDocumentDeserializer() {
     return documentDeserializer;
   }
 
-  public IntrinsicOperationResultDeserializer getOperationResultDeserializer() {
+  public IntrinsicFunctionObjectResultDeserializer getOperationResultDeserializer() {
     return operationResultDeserializer;
   }
 }
