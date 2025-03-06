@@ -14,18 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.executable;
+package io.camunda.connector.runtime.inbound.controller.exception;
 
-import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import java.util.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-public record ActiveExecutableResponse(
-    UUID executableId,
-    Class<? extends InboundConnectorExecutable> executableClass,
-    List<InboundConnectorElement> elements,
-    Health health,
-    Collection<Activity> logs,
-    Long activationTimestamp) {}
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+  @ExceptionHandler(DataNotFoundException.class)
+  public ResponseEntity<String> handleNotFound(DataNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<String> handleGenericException(Exception ex) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body("An unexpected error occurred: " + ex.getMessage());
+  }
+}
