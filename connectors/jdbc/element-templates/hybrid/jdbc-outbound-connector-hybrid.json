@@ -6,7 +6,7 @@
   "metadata" : {
     "keywords" : [ "relational", "database" ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql",
+  "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql",
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -93,7 +93,7 @@
   }, {
     "id" : "connection.uri",
     "label" : "URI",
-    "description" : "URI should contain JDBC driver, host name, and port number. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">documentation</a>.)",
+    "description" : "URI should contain JDBC driver, host name, and port number. For more information, see the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">documentation</a>.)",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true,
@@ -117,7 +117,7 @@
   }, {
     "id" : "connection.uriProperties",
     "label" : "Properties",
-    "description" : "Additional properties for the connection ('user' and 'password' for instance). For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
+    "description" : "Additional properties for the connection ('user' and 'password' for instance). For more information, see the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "connection",
@@ -220,7 +220,7 @@
   }, {
     "id" : "connection.properties",
     "label" : "Properties",
-    "description" : "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
+    "description" : "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "connection",
@@ -249,7 +249,7 @@
   }, {
     "id" : "data.query",
     "label" : "SQL Query to execute",
-    "description" : "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>",
+    "description" : "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -264,7 +264,7 @@
   }, {
     "id" : "data.variables",
     "label" : "SQL Query variables",
-    "description" : "The <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.",
+    "description" : "The <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.",
     "optional" : true,
     "feel" : "required",
     "group" : "query",

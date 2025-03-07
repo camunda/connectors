@@ -41,7 +41,7 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
       @ElementTemplate.PropertyGroup(id = "input", label = "Configure input")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-textract/",
+        "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-textract/",
     icon = "icon.svg")
 public class TextractConnectorFunction implements OutboundConnectorFunction {
 
