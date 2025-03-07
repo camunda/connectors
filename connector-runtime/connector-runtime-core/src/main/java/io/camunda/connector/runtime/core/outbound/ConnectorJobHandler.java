@@ -93,57 +93,9 @@ public class ConnectorJobHandler implements JobHandler {
     this.objectMapper = objectMapper;
   }
 
-  protected static Map<String, Object> exceptionToMap(Exception exception) {
-    Map<String, Object> result = new HashMap<>();
-    result.put("type", exception.getClass().getName());
-    var message = exception.getMessage();
-    if (message != null) {
-      result.put(
-          "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
-    }
-    if (exception instanceof ConnectorException connectorException) {
-      var code = connectorException.getErrorCode();
-      var variables = connectorException.getErrorVariables();
-
-      if (code != null) {
-        result.put("code", code);
-      }
-
-      if (variables != null) {
-        result.put("variables", variables);
-      }
-    }
-    return Map.copyOf(result);
-  }
-
   protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
       JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
     return client.newCompleteCommand(job).variables(result.variables());
-  }
-
-  protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
-    var retries = result.retries();
-    var errorMessage = truncateErrorMessage(result.exception().getMessage());
-    Duration backoff = result.retryBackoff();
-    var command =
-        client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
-    if (backoff != null) {
-      command = command.retryBackoff(backoff);
-    }
-    if (result.responseValue() != null) {
-      command = command.variables(result.responseValue());
-    }
-    return command;
-  }
-
-  protected static FinalCommandStep<Void> prepareThrowBpmnErrorCommand(
-      JobClient client, ActivatedJob job, BpmnError error) {
-    return client
-        .newThrowErrorCommand(job)
-        .errorCode(error.code())
-        .variables(error.variables())
-        .errorMessage(truncateErrorMessage(error.message()));
   }
 
   private static Duration getBackoffDuration(ActivatedJob job) {
@@ -168,6 +120,54 @@ public class ConnectorJobHandler implements JobHandler {
         : null;
   }
 
+  protected FinalCommandStep<Void> prepareThrowBpmnErrorCommand(
+      JobClient client, ActivatedJob job, BpmnError error) {
+    return client
+        .newThrowErrorCommand(job)
+        .errorCode(error.code())
+        .variables(error.variables())
+        .errorMessage(truncateErrorMessage( hideSecretsFromLog(error.message())));
+  }
+
+  protected FinalCommandStep<FailJobResponse> prepareFailJobCommand(
+      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+    var retries = result.retries();
+    var errorMessage = truncateErrorMessage( hideSecretsFromLog(result.exception().getMessage()));
+    Duration backoff = result.retryBackoff();
+    var command =
+        client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
+    if (backoff != null) {
+      command = command.retryBackoff(backoff);
+    }
+    if (result.responseValue() != null) {
+      command = command.variables(result.responseValue());
+    }
+    return command;
+  }
+
+  protected Map<String, Object> exceptionToMap(Exception exception) {
+    Map<String, Object> result = new HashMap<>();
+    result.put("type", exception.getClass().getName());
+    var message = exception.getMessage();
+    if (message != null) {
+      result.put(
+          "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
+    }
+    if (exception instanceof ConnectorException connectorException) {
+      var code = connectorException.getErrorCode();
+      var variables = connectorException.getErrorVariables();
+
+      if (code != null) {
+        result.put("code", code);
+      }
+
+      if (variables != null) {
+        result.put("variables", variables);
+      }
+    }
+    return Map.copyOf(result);
+  }
+
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
     LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
@@ -183,7 +183,6 @@ public class ConnectorJobHandler implements JobHandler {
     }
 
     ConnectorResult result;
-
     try {
       var context =
           new JobHandlerContext(
@@ -275,15 +274,25 @@ public class ConnectorJobHandler implements JobHandler {
 
   private ConnectorResult handleSDKException(
       ActivatedJob job, Exception ex, Integer retries, String errorCode, Duration backoffDuration) {
-    LOGGER.debug(
-        "Failing job with retry config => job: {} for tenant: {} with error code: {}, retries: {} and remaining backoffDuration: {}",
-        job.getKey(),
-        job.getTenantId(),
-        errorCode,
-        retries,
-        backoffDuration);
+    try{
+      LOGGER.debug(
+              "Failing job with retry config => job: {} for tenant: {} with error code: {}, retries: {} and remaining backoffDuration: {}",
+              job.getKey(),
+              job.getTenantId(),
+              errorCode,
+              retries,
+              backoffDuration);
 
-    return new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, retries, backoffDuration);
+      return new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, retries, backoffDuration);
+    }catch (Exception e){
+      System.out.println("Exception while processing job with retry config => job: " + job.getKey());
+    }
+    return null;
+  }
+
+  private String hideSecretsFromLog(String input) {
+    return getSecretProvider().getSecretValues().stream()
+        .reduce(input, (s, s2) -> s.replace(s2, "***"));
   }
 
   protected SecretProvider getSecretProvider() {

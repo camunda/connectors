@@ -485,6 +485,24 @@ class ConnectorJobHandlerTest {
     }
 
     @Test
+    void shouldHideSecretsInJobErrorMessage() {
+      // given
+      var errorMessage = "Something went wrong: bar is not the correct password";
+      var jobHandler =
+              newConnectorJobHandler(
+                      context -> {
+                        throw new IllegalArgumentException(errorMessage);
+                      });
+
+      // when
+      var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage())
+              .isEqualTo("Something went wrong: *** is not the correct password");
+    }
+
+    @Test
     void shouldTruncateBpmnErrorMessage() {
       // given
       var veryLongMessage = "This is quite a long message".repeat(300); // 8400 chars

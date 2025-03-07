@@ -18,12 +18,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,7 +78,7 @@ public class GraphQLFunctionTest extends BaseTest {
         OutboundConnectorContextBuilder.create()
             .variables(input)
             .validation(new DefaultValidationProvider())
-            .secrets(name -> "foo")
+            .secrets(secretProvider())
             .build();
 
     // when
@@ -93,7 +95,7 @@ public class GraphQLFunctionTest extends BaseTest {
   void execute_shouldSetConnectTime(final String input) throws Exception {
     // given - minimal required entity
     final var context =
-        OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+        OutboundConnectorContextBuilder.create().variables(input).secrets(secretProvider()).build();
     final var expectedTimeInSeconds =
         objectMapper
             .readValue(
@@ -111,7 +113,21 @@ public class GraphQLFunctionTest extends BaseTest {
 
   private HttpCommonResult arrange(String input) throws Exception {
     final var context =
-        OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+        OutboundConnectorContextBuilder.create().variables(input).secrets(secretProvider()).build();
     return (HttpCommonResult) functionUnderTest.execute(context);
+  }
+
+  private SecretProvider secretProvider() {
+    return new SecretProvider() {
+      @Override
+      public String getSecret(String name) {
+        return "foo";
+      }
+
+      @Override
+      public List<String> getSecretValues() {
+        return List.of();
+      }
+    };
   }
 }

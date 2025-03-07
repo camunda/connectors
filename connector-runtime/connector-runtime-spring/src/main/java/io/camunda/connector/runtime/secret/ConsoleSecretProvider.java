@@ -22,6 +22,7 @@ import com.google.common.cache.LoadingCache;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,5 +58,10 @@ public class ConsoleSecretProvider implements SecretProvider {
   public String getSecret(String name) {
     LOGGER.debug("Resolving secret for key: " + name);
     return secretsCache.getUnchecked(CACHE_KEY).getOrDefault(name, null);
+  }
+
+  @Override
+  public List<String> getSecretValues() {
+    return secretsCache.getUnchecked(CACHE_KEY).values().stream().toList();
   }
 }
