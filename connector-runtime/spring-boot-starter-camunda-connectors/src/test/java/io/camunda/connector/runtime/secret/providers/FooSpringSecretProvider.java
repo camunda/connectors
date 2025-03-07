@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.secret.providers;
 
 import io.camunda.connector.api.secret.SecretProvider;
+import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -29,5 +30,10 @@ public class FooSpringSecretProvider implements SecretProvider {
     } else {
       return null;
     }
+  }
+
+  @Override
+  public List<String> getSecretValues() {
+    return List.of();
   }
 }
