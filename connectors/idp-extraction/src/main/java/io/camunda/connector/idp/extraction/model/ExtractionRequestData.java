@@ -16,18 +16,6 @@ import java.util.List;
 
 public record ExtractionRequestData(
     @TemplateProperty(
-            id = "extractionEngineType",
-            label = "Extraction engine type",
-            group = "input",
-            type = TemplateProperty.PropertyType.Hidden,
-            description = "Specify extraction engine to be used",
-            defaultValue = "= input.extractionEngineType",
-            binding = @PropertyBinding(name = "extractionEngineType"),
-            feel = Property.FeelMode.disabled,
-            constraints = @PropertyConstraints(notEmpty = true))
-        @NotNull
-        TextExtractionEngineType extractionEngineType,
-    @TemplateProperty(
             id = "document",
             label = "Document",
             group = "input",
@@ -39,19 +27,6 @@ public record ExtractionRequestData(
             constraints = @PropertyConstraints(notEmpty = true))
         @NotNull
         Document document,
-    @TemplateProperty(
-            id = "s3BucketName",
-            label = "AWS S3 Bucket name",
-            group = "input",
-            type = TemplateProperty.PropertyType.Text,
-            description =
-                "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
-            defaultValue = "idp-extraction-connector",
-            binding = @PropertyBinding(name = "s3BucketName"),
-            feel = Property.FeelMode.disabled,
-            constraints = @PropertyConstraints(notEmpty = true))
-        @NotNull
-        String s3BucketName,
     @TemplateProperty(
             id = "taxonomyItems",
             label = "Taxonomy Items",
