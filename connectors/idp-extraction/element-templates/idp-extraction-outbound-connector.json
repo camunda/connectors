@@ -37,21 +37,6 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.extractionEngineType",
-    "label" : "Extraction engine type",
-    "description" : "Specify extraction engine to be used",
-    "optional" : false,
-    "value" : "= input.extractionEngineType",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "input",
-    "binding" : {
-      "name" : "input.extractionEngineType",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "input.document",
     "label" : "Document",
     "description" : "Specify the document",
@@ -66,21 +51,6 @@
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
-  }, {
-    "id" : "input.s3BucketName",
-    "label" : "AWS S3 Bucket name",
-    "description" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
-    "optional" : false,
-    "value" : "idp-extraction-connector",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "input",
-    "binding" : {
-      "name" : "input.s3BucketName",
-      "type" : "zeebe:input"
-    },
-    "type" : "Text"
   }, {
     "id" : "input.taxonomyItems",
     "label" : "Taxonomy Items",

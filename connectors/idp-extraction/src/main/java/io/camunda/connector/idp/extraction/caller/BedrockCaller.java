@@ -7,7 +7,7 @@
 package io.camunda.connector.idp.extraction.caller;
 
 import io.camunda.connector.idp.extraction.model.ConverseData;
-import io.camunda.connector.idp.extraction.model.ExtractionRequest;
+import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,19 +23,18 @@ public class BedrockCaller {
   private static final Logger LOGGER = LoggerFactory.getLogger(BedrockCaller.class);
 
   public String call(
-      ExtractionRequest extractionRequest,
+      ExtractionRequestData input,
       String extractedText,
       BedrockRuntimeClient bedrockRuntimeClient) {
-    LOGGER.debug("Calling AWS Bedrock model with extraction request: {}", extractionRequest);
+    LOGGER.debug("Calling AWS Bedrock model with extraction request data: {}", input);
 
-    ConverseData converseData = extractionRequest.input().converseData();
+    ConverseData converseData = input.converseData();
     LlmModel llmModel = LlmModel.fromId(converseData.modelId());
 
     ConverseResponse response =
         bedrockRuntimeClient.converse(
             request -> {
-              String userMessage =
-                  llmModel.getMessage(extractedText, extractionRequest.input().taxonomyItems());
+              String userMessage = llmModel.getMessage(extractedText, input.taxonomyItems());
 
               if (llmModel.isSystemPromptAllowed()) {
                 SystemContentBlock prompt =

@@ -7,17 +7,16 @@
 package io.camunda.connector.idp.extraction.supplier;
 
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
-import io.camunda.connector.idp.extraction.model.ExtractionRequest;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.textract.TextractClient;
 
 public class TextractClientSupplier {
 
-  public TextractClient getTextractClient(final ExtractionRequest request) {
+  public TextractClient getTextractClient(final AwsProvider request) {
     return TextractClient.builder()
-        .credentialsProvider(
-            CredentialsProviderSupportV2.credentialsProvider(request.baseRequest()))
-        .region(Region.of(request.baseRequest().getConfiguration().region()))
+        .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request))
+        .region(Region.of(request.getConfiguration().region()))
         .build();
   }
 }

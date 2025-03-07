@@ -4,13 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.google.model;
+package io.camunda.connector.idp.extraction.model.providers;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.api.client.util.Value;
 import com.google.gson.annotations.SerializedName;
 
-public enum AuthenticationType {
+public enum GcpAuthenticationType {
   @JsonProperty("bearer")
   @Value("bearer")
   @SerializedName("bearer")
