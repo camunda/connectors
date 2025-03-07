@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.secret.providers;
 
 import io.camunda.connector.api.secret.SecretProvider;
+import java.util.List;
 
 // note this is not defined as a Spring bean
 public class SpiSecretProvider implements SecretProvider {
@@ -28,5 +29,10 @@ public class SpiSecretProvider implements SecretProvider {
     } else {
       return null;
     }
+  }
+
+  @Override
+  public List<String> getSecretValues() {
+    return List.of();
   }
 }

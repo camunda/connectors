@@ -18,8 +18,13 @@ package io.camunda.connector.runtime.secret;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import jakarta.annotation.PostConstruct;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.AbstractEnvironment;
+import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
@@ -49,5 +54,27 @@ public class EnvironmentSecretProvider implements SecretProvider {
   public String getSecret(String name) {
     String prefixedName = !StringUtils.hasText(prefix) ? name : prefix + name;
     return environment.getProperty(prefixedName);
+  }
+
+  @Override
+  public List<String> getSecretValues() {
+    if (environment instanceof AbstractEnvironment abstractEnvironment) {
+      return abstractEnvironment.getPropertySources().stream()
+          .filter(
+              propertySource ->
+                  !propertySource.getName().equals("systemProperties")
+                      && !propertySource.getName().equals("systemEnvironment"))
+          .filter(propertySource -> propertySource instanceof EnumerablePropertySource<?>)
+          .map(propertySource -> (EnumerablePropertySource<?>) propertySource)
+          .flatMap(
+              enumerablePropertySource ->
+                  Arrays.stream(enumerablePropertySource.getPropertyNames())
+                      .filter(name -> name.startsWith(prefix))
+                      .map(enumerablePropertySource::getProperty))
+          .filter(Objects::nonNull)
+          .map(Object::toString)
+          .toList();
+    }
+    return List.of();
   }
 }

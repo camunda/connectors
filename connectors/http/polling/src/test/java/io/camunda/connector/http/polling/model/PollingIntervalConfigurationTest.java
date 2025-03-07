@@ -15,6 +15,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,9 +35,37 @@ public class PollingIntervalConfigurationTest {
   @Mock
   private ValidInboundConnectorDetails connectorData; // Initialize or mock the connector definition
 
+  private static Stream<Arguments> httpRequestIntervalTestCases() {
+    return Stream.of(
+        Arguments.of("PT3M", 180000L),
+        Arguments.of("P1D", 86400000L),
+        Arguments.of("PT1H30M10.5S", 5410500L),
+        Arguments.of(null, 50000));
+  }
+
+  private static Stream<Arguments> processPollingIntervalTestCases() {
+    return Stream.of(
+        Arguments.of("PT1M", 60000L),
+        Arguments.of("PT45S", 45000L),
+        Arguments.of("PT2H", 7200000L),
+        Arguments.of("P1DT12H", 129600000L),
+        Arguments.of(null, 5000));
+  }
+
   @BeforeEach
   public void setUp() {
-    SecretProvider secretProvider = name -> name; // Simplified secret provider for testing purposes
+    SecretProvider secretProvider =
+        new SecretProvider() {
+          @Override
+          public String getSecret(String name) {
+            return name;
+          }
+
+          @Override
+          public List<String> getSecretValues() {
+            return List.of();
+          }
+        };
     properties = new HashMap<>();
     when(connectorData.rawPropertiesWithoutKeywords()).thenReturn(properties);
     inboundConnectorContext =
@@ -68,22 +97,5 @@ public class PollingIntervalConfigurationTest {
         inboundConnectorContext.bindProperties(PollingIntervalConfiguration.class);
     long interval = intervals.getProcessPollingInterval().toMillis();
     assertThat(interval).isEqualTo(expected);
-  }
-
-  private static Stream<Arguments> httpRequestIntervalTestCases() {
-    return Stream.of(
-        Arguments.of("PT3M", 180000L),
-        Arguments.of("P1D", 86400000L),
-        Arguments.of("PT1H30M10.5S", 5410500L),
-        Arguments.of(null, 50000));
-  }
-
-  private static Stream<Arguments> processPollingIntervalTestCases() {
-    return Stream.of(
-        Arguments.of("PT1M", 60000L),
-        Arguments.of("PT45S", 45000L),
-        Arguments.of("PT2H", 7200000L),
-        Arguments.of("P1DT12H", 129600000L),
-        Arguments.of(null, 5000));
   }
 }

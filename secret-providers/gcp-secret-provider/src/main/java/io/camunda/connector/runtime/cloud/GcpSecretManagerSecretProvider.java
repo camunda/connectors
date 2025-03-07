@@ -30,6 +30,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -133,6 +134,15 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
       return secretsCache.get(CACHE_KEY).get(name);
     } catch (ExecutionException e) {
       throw new ConnectorException("Could not resolve secrets: " + e.getMessage(), e);
+    }
+  }
+
+  @Override
+  public List<String> getSecretValues() {
+    try {
+      return secretsCache.get(CACHE_KEY).values().stream().toList();
+    } catch (ExecutionException e) {
+      throw new RuntimeException(e);
     }
   }
 }
