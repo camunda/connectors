@@ -75,7 +75,6 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
       @TemplateProperty(
               group = "endpoint",
               type = TemplateProperty.PropertyType.Boolean,
-              feel = Property.FeelMode.disabled,
               defaultValueType = TemplateProperty.DefaultValueType.Boolean,
               defaultValue = "false",
               description = "Store the response as a document in the document store")
@@ -83,6 +82,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
       @TemplateProperty(
               group = "timeout",
               defaultValue = "20",
+              defaultValueType = TemplateProperty.DefaultValueType.Number,
               optional = true,
               description =
                   "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout")

@@ -52,6 +52,7 @@ public class HttpCommonRequest {
   @TemplateProperty(
       group = "timeout",
       label = "Connection timeout in seconds",
+      defaultValueType = TemplateProperty.DefaultValueType.Number,
       defaultValue = "20",
       constraints =
           @TemplateProperty.PropertyConstraints(
@@ -63,6 +64,7 @@ public class HttpCommonRequest {
   @TemplateProperty(
       group = "timeout",
       label = "Read timeout in seconds",
+      defaultValueType = TemplateProperty.DefaultValueType.Number,
       defaultValue = "20",
       constraints =
           @TemplateProperty.PropertyConstraints(
@@ -105,7 +107,6 @@ public class HttpCommonRequest {
   @TemplateProperty(
       group = "endpoint",
       type = PropertyType.Boolean,
-      feel = Property.FeelMode.disabled,
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       defaultValue = "false",
       description = "Store the response as a document in the document store")

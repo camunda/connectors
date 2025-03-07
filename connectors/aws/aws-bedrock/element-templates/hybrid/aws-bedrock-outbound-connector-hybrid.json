@@ -266,7 +266,7 @@
       "equals" : "converse",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "data.temperature",
     "label" : "Temperature",
@@ -282,7 +282,7 @@
       "equals" : "converse",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "data.topP",
     "label" : "top P",
@@ -298,7 +298,7 @@
       "equals" : "converse",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "data.newDocuments",
     "label" : "documents",

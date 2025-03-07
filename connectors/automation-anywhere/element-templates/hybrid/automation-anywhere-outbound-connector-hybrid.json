@@ -292,7 +292,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "operation.workItemId",
@@ -303,20 +303,20 @@
       "equals" : "listWorkItemsInQueue",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "configuration.connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
     "description" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
     "optional" : true,
-    "value" : "20",
-    "feel" : "optional",
+    "value" : 20,
+    "feel" : "static",
     "group" : "timeout",
     "binding" : {
       "name" : "configuration.connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
