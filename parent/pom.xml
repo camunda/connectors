@@ -74,7 +74,7 @@ limitations under the License.</license.inlineheader>
     <version.zeebe>8.7.0-alpha4-rc3</version.zeebe>
     <version.camunda-process-test>8.6.11</version.camunda-process-test>
     <version.operate-client>8.6.5</version.operate-client>
-    <version.feel-engine>1.19.0</version.feel-engine>
+    <version.feel-engine>1.19.1</version.feel-engine>
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
