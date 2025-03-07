@@ -14,15 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.connector.document.jackson.deserializer;
 
-import io.camunda.client.api.response.DocumentReferenceResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
+import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 
-public interface DocumentReference {
+public class DeserializationUtil {
 
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
+  public static boolean isDocumentReference(JsonNode node) {
+    return node.has(DocumentReferenceModel.DISCRIMINATOR_KEY);
+  }
 
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
+  public static boolean isOperation(JsonNode node) {
+    return node.has(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
   }
 }

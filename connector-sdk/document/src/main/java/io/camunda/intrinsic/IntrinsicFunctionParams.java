@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.intrinsic;
 
-import io.camunda.client.api.response.DocumentReferenceResponse;
+import java.util.List;
 
-public interface DocumentReference {
+public sealed interface IntrinsicFunctionParams {
 
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
+  record Positional(List<Object> params) implements IntrinsicFunctionParams {}
 
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
-  }
+  // TODO: named parameters
 }

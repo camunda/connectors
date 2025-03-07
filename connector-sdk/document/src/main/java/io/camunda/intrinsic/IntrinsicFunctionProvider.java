@@ -14,19 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.intrinsic;
 
-import io.camunda.document.Document;
-
-public class Base64OperationExecutor implements DocumentOperationExecutor {
-
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return "base64".equalsIgnoreCase(operationReference.name());
-  }
-
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return document.asBase64();
-  }
-}
+/**
+ * Marker interface for intrinsic function providers. Used to discover intrinsic functions at
+ * runtime.
+ */
+public interface IntrinsicFunctionProvider {}

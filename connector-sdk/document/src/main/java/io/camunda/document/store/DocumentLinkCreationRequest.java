@@ -14,21 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.document.store;
 
-import io.camunda.document.Document;
+import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import java.time.Duration;
+import java.util.Optional;
 
-public class AggregatingOperationExecutor implements DocumentOperationExecutor {
-
-  public AggregatingOperationExecutor() {}
-
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return true;
-  }
-
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
-  }
-}
+public record DocumentLinkCreationRequest(
+    CamundaDocumentReference reference, Optional<Duration> timeToLive) {}

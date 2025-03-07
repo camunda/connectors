@@ -14,8 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.intrinsic.functions;
 
-import java.util.Map;
+import io.camunda.document.Document;
+import io.camunda.intrinsic.IntrinsicFunction;
+import io.camunda.intrinsic.IntrinsicFunctionProvider;
+import java.nio.charset.Charset;
+import javax.annotation.Nullable;
 
-public record DocumentOperation(String name, Map<String, Object> params) {}
+public class GetTextFunction implements IntrinsicFunctionProvider {
+
+  @IntrinsicFunction(name = "getText")
+  public String execute(Document document, @Nullable String charset) {
+    final var bytes = document.asByteArray();
+    final var charsetInstance =
+        charset != null ? Charset.forName(charset) : Charset.defaultCharset();
+    return new String(bytes, charsetInstance);
+  }
+}

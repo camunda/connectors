@@ -14,13 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.connector.document.jackson;
 
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.camunda.connector.document.jackson.serializer.DocumentSerializer;
 import io.camunda.document.Document;
 
-public interface DocumentOperationExecutor {
+public class JacksonModuleDocumentSerializer extends SimpleModule {
 
-  boolean matches(DocumentOperation operationReference);
+  public JacksonModuleDocumentSerializer() {}
 
-  Object execute(DocumentOperation operationReference, Document document);
+  @Override
+  public String getModuleName() {
+    return "JacksonModuleDocumentSerializer";
+  }
+
+  @Override
+  public Version version() {
+    // TODO: get version from pom.xml
+    return new Version(0, 1, 0, null, "io.camunda", "jackson-datatype-document");
+  }
+
+  @Override
+  public void setupModule(SetupContext context) {
+    addSerializer(Document.class, new DocumentSerializer());
+    super.setupModule(context);
+  }
 }

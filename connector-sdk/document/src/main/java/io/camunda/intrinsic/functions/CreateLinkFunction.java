@@ -14,15 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.intrinsic.functions;
 
-import io.camunda.client.api.response.DocumentReferenceResponse;
+import io.camunda.document.Document;
+import io.camunda.document.DocumentLinkParameters;
+import io.camunda.intrinsic.IntrinsicFunction;
+import io.camunda.intrinsic.IntrinsicFunctionProvider;
+import java.time.Duration;
+import java.util.Optional;
+import javax.annotation.Nullable;
 
-public interface DocumentReference {
+public class CreateLinkFunction implements IntrinsicFunctionProvider {
 
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
-
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
+  @IntrinsicFunction(name = "createLink")
+  public String execute(Document document, @Nullable Duration timeToLive) {
+    return document.generateLink(new DocumentLinkParameters(Optional.ofNullable(timeToLive)));
   }
 }

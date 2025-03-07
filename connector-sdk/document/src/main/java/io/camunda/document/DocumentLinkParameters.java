@@ -14,31 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.annotation.jackson;
+package io.camunda.document;
 
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.camunda.connector.document.annotation.jackson.serializer.DocumentSerializer;
-import io.camunda.document.Document;
+import java.time.Duration;
+import java.util.Optional;
 
-public class JacksonModuleDocumentSerializer extends SimpleModule {
+public record DocumentLinkParameters(Optional<Duration> timeToLive) {
 
-  public JacksonModuleDocumentSerializer() {}
-
-  @Override
-  public String getModuleName() {
-    return "JacksonModuleDocumentSerializer";
-  }
-
-  @Override
-  public Version version() {
-    // TODO: get version from pom.xml
-    return new Version(0, 1, 0, null, "io.camunda", "jackson-datatype-document");
-  }
-
-  @Override
-  public void setupModule(SetupContext context) {
-    addSerializer(Document.class, new DocumentSerializer());
-    super.setupModule(context);
+  public static DocumentLinkParameters withDefaultTtl() {
+    return new DocumentLinkParameters(Optional.empty());
   }
 }

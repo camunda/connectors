@@ -18,15 +18,14 @@ package io.camunda.connector.api.json;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -58,8 +57,7 @@ class ConnectorsObjectMapperSupplierTest {
             new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
             DocumentModuleSettings.create());
     final var documentReference =
-        new CamundaDocumentReferenceModel(
-            "default", UUID.randomUUID().toString(), "hash", null, Optional.empty());
+        new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "hash", null);
     final var json = "{\"documents\":" + objectMapper.writeValueAsString(documentReference) + "}";
     var actual = objectMapper.readValue(json, TestRecordWithDocumentList.class);
     Assertions.assertThat(actual.documents()).hasSize(1);
