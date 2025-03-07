@@ -16,9 +16,11 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
-import io.camunda.connector.idp.extraction.model.ExtractionRequest;
-import io.camunda.connector.idp.extraction.model.ExtractionResult;
+import io.camunda.connector.idp.extraction.caller.VertexCaller;
+import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
+import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
@@ -43,7 +45,15 @@ import org.slf4j.LoggerFactory;
     description = "Execute IDP extraction requests",
     icon = "icon.svg",
     documentationRef = "https://docs.camunda.io/docs/guides/",
-    propertyGroups = {@ElementTemplate.PropertyGroup(id = "input", label = "Input message data")},
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
+      //      When wanting to generate a full-featured connector template we need to uncomment this
+      //      @ElementTemplate.PropertyGroup(id = "provider", label = "Provider selection"),
+      //      @ElementTemplate.PropertyGroup(id = "authentication", label = "Provider
+      // authentication"),
+      //      @ElementTemplate.PropertyGroup(id = "configuration", label = "Provider
+      // configuration"),
+    },
     inputDataClass = ExtractionRequest.class)
 public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
@@ -61,44 +71,74 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
   private final ObjectMapper objectMapper;
 
+  private final VertexCaller vertexCaller;
+
   public ExtractionConnectorFunction() {
     this.textractClientSupplier = new TextractClientSupplier();
     this.s3ClientSupplier = new S3ClientSupplier();
     this.bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
     this.pollingTextractCaller = new PollingTextractCaller();
     this.bedrockCaller = new BedrockCaller();
+    this.vertexCaller = new VertexCaller();
     this.objectMapper = new ObjectMapper();
   }
 
   public ExtractionConnectorFunction(
-      PollingTextractCaller pollingTextractCaller, BedrockCaller bedrockCaller) {
+      PollingTextractCaller pollingTextractCaller,
+      BedrockCaller bedrockCaller,
+      VertexCaller vertexCaller) {
     this.textractClientSupplier = new TextractClientSupplier();
     this.s3ClientSupplier = new S3ClientSupplier();
     this.bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
     this.objectMapper = new ObjectMapper();
     this.pollingTextractCaller = pollingTextractCaller;
     this.bedrockCaller = bedrockCaller;
+    this.vertexCaller = vertexCaller;
   }
 
   @Override
   public Object execute(OutboundConnectorContext context) {
     final var extractionRequest = context.bindVariables(ExtractionRequest.class);
+    final var input = extractionRequest.input();
+    return switch (extractionRequest.baseRequest()) {
+      case AwsProvider aws -> extractUsingAws(input, aws);
+      case VertexProvider gemini -> extractUsingGcp(input, gemini);
+    };
+  }
 
+  private ExtractionResult extractUsingGcp(
+      ExtractionRequestData input, VertexProvider baseRequest) {
     try {
+      long startTime = System.currentTimeMillis();
+      Object result = vertexCaller.generateContent(input, baseRequest);
+      long endTime = System.currentTimeMillis();
+      LOGGER.info("Gemini content extraction took {} ms", (endTime - startTime));
+      return new ExtractionResult(
+          buildResponseJsonIfPossible(result.toString(), input.taxonomyItems()));
+    } catch (Exception e) {
+      LOGGER.error("Document extraction via GCP failed: {}", e.getMessage());
+      throw new ConnectorException(e);
+    }
+  }
+
+  private ExtractionResult extractUsingAws(ExtractionRequestData input, AwsProvider baseRequest) {
+    try {
+      long startTime = System.currentTimeMillis();
       String extractedText =
-          switch (extractionRequest.input().extractionEngineType()) {
-            case AWS_TEXTRACT -> extractTextUsingAwsTextract(extractionRequest);
-            case APACHE_PDFBOX -> extractTextUsingApachePdf(extractionRequest);
+          switch (baseRequest.getExtractionEngineType()) {
+            case AWS_TEXTRACT -> extractTextUsingAwsTextract(input, baseRequest);
+            case APACHE_PDFBOX -> extractTextUsingApachePdf(input);
           };
 
       String bedrockResponse =
           bedrockCaller.call(
-              extractionRequest,
+              input,
               extractedText,
-              bedrockRuntimeClientSupplier.getBedrockRuntimeClient(extractionRequest));
-
+              bedrockRuntimeClientSupplier.getBedrockRuntimeClient(baseRequest));
+      long endTime = System.currentTimeMillis();
+      LOGGER.info("Aws content extraction took {} ms", (endTime - startTime));
       return new ExtractionResult(
-          buildResponseJsonIfPossible(bedrockResponse, extractionRequest.input().taxonomyItems()));
+          buildResponseJsonIfPossible(bedrockResponse, input.taxonomyItems()));
     } catch (Exception e) {
       LOGGER.error("Document extraction failed: {}", e.getMessage());
       throw new ConnectorException(e);
@@ -156,16 +196,17 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
-  private String extractTextUsingAwsTextract(ExtractionRequest extractionRequest) throws Exception {
+  private String extractTextUsingAwsTextract(ExtractionRequestData input, AwsProvider baseRequest)
+      throws Exception {
     return pollingTextractCaller.call(
-        extractionRequest.input().document(),
-        extractionRequest.input().s3BucketName(),
-        textractClientSupplier.getTextractClient(extractionRequest),
-        s3ClientSupplier.getAsyncS3Client(extractionRequest));
+        input.document(),
+        baseRequest.getS3BucketName(),
+        textractClientSupplier.getTextractClient(baseRequest),
+        s3ClientSupplier.getAsyncS3Client(baseRequest));
   }
 
-  private String extractTextUsingApachePdf(ExtractionRequest extractionRequest) throws Exception {
-    PDDocument document = Loader.loadPDF(extractionRequest.input().document().asByteArray());
+  private String extractTextUsingApachePdf(ExtractionRequestData input) throws Exception {
+    PDDocument document = Loader.loadPDF(input.document().asByteArray());
     PDFTextStripper pdfStripper = new PDFTextStripper();
     return pdfStripper.getText(document);
   }

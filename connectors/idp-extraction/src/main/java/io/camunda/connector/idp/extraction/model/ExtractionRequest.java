@@ -6,8 +6,15 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public record ExtractionRequest(
-    @Valid @NotNull ExtractionRequestData input, BaseRequest baseRequest) {}
+    @Valid @NotNull ExtractionRequestData input,
+    @TemplateProperty(
+            group = "baseRequest",
+            // remove this when you want to create a fully-featured connector template
+            type = TemplateProperty.PropertyType.Hidden)
+        ProviderConfig baseRequest) {}
