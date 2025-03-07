@@ -19,7 +19,9 @@ package io.camunda.connector.http.base.client.apache.builder.parts;
 import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -46,6 +48,10 @@ import org.apache.hc.core5.http.message.BasicNameValuePair;
  */
 public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   public static final String EMPTY_BODY = "";
+  public static final ObjectMapper mapperIgnoreNull =
+      ConnectorsObjectMapperSupplier.getCopy()
+          .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+  public static final ObjectMapper mapperSendNull = ConnectorsObjectMapperSupplier.getCopy();
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
@@ -103,7 +109,9 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
           ? new StringEntity(
               s, contentType.orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
           : new StringEntity(
-              ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(body),
+              request.isIgnoreNullValues()
+                  ? mapperIgnoreNull.writeValueAsString(body)
+                  : mapperSendNull.writeValueAsString(body),
               contentType.orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
     } catch (JsonProcessingException e) {
       throw new ConnectorException("Failed to serialize request body:" + body, e);
