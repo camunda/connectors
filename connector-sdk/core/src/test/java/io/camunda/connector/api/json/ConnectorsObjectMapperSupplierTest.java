@@ -24,6 +24,7 @@ import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -64,5 +65,29 @@ class ConnectorsObjectMapperSupplierTest {
     Assertions.assertThat(actual.documents().get(0).reference()).isEqualTo(documentReference);
   }
 
+  @Test
+  void intrinsicFunctionShouldBeDeserialized() throws JsonProcessingException {
+    final var objectMapper =
+        ConnectorsObjectMapperSupplier.getCopy(
+            new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+            DocumentModuleSettings.create());
+
+    final var json =
+        """
+        {
+          "value": {
+            "camunda.operation.type": "base64",
+            "params": ["hello"]
+          }
+        }
+        """;
+
+    var actual = objectMapper.readValue(json, TestRecordWithString.class);
+    Assertions.assertThat(actual.value())
+        .isEqualTo(Base64.getEncoder().encodeToString("hello".getBytes()));
+  }
+
   private record TestRecordWithDocumentList(List<Document> documents) {}
+
+  private record TestRecordWithString(String value) {}
 }

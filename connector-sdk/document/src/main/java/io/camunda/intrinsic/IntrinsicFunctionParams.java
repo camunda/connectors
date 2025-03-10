@@ -22,5 +22,5 @@ public sealed interface IntrinsicFunctionParams {
 
   record Positional(List<Object> params) implements IntrinsicFunctionParams {}
 
-  // TODO: named parameters
+  // TODO: named parameters: https://github.com/camunda/connectors/issues/4263
 }

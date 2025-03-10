@@ -17,11 +17,5 @@
 package io.camunda.document;
 
 import java.time.Duration;
-import java.util.Optional;
 
-public record DocumentLinkParameters(Optional<Duration> timeToLive) {
-
-  public static DocumentLinkParameters withDefaultTtl() {
-    return new DocumentLinkParameters(Optional.empty());
-  }
-}
+public record DocumentLinkParameters(Duration timeToLive) {}

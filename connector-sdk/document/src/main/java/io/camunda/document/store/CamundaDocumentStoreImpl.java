@@ -65,8 +65,8 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
       CamundaDocumentReference reference, DocumentLinkParameters parameters) {
     final var command = camundaClient.newCreateDocumentLinkCommand(reference);
 
-    if (parameters.timeToLive().isPresent()) {
-      command.timeToLive(parameters.timeToLive().get());
+    if (parameters.timeToLive() != null) {
+      command.timeToLive(parameters.timeToLive());
     }
     return command.send().join().getUrl();
   }

@@ -21,13 +21,12 @@ import io.camunda.document.DocumentLinkParameters;
 import io.camunda.intrinsic.IntrinsicFunction;
 import io.camunda.intrinsic.IntrinsicFunctionProvider;
 import java.time.Duration;
-import java.util.Optional;
 import javax.annotation.Nullable;
 
 public class CreateLinkFunction implements IntrinsicFunctionProvider {
 
   @IntrinsicFunction(name = "createLink")
   public String execute(Document document, @Nullable Duration timeToLive) {
-    return document.generateLink(new DocumentLinkParameters(Optional.ofNullable(timeToLive)));
+    return document.generateLink(new DocumentLinkParameters(timeToLive));
   }
 }
