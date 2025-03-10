@@ -30,8 +30,7 @@
         "/^release/.*/"
       ],
       "matchUpdateTypes": [
-        "major",
-        "minor"
+        "major"
       ],
       "enabled": false
     },
