@@ -112,9 +112,7 @@ public class CustomApacheHttpClient implements HttpClient {
               .execute(
                   apacheRequest,
                   new HttpCommonResultResponseHandler(
-                      executionEnvironment,
-                      request.isStoreResponse(),
-                      request.getGroupSetCookieHeaders()));
+                      executionEnvironment, request.isStoreResponse()));
       if (HttpStatusHelper.isError(result.status())) {
         throw ConnectorExceptionMapper.from(result);
       }
