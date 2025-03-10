@@ -32,6 +32,8 @@ import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
+
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -82,9 +84,9 @@ public class ConsoleSecretProviderTest {
     // Mock successful response
     var secretsResponse = Map.of("secretKey", "secretValue", "secretKey2", "secretValue2");
     wm.stubFor(
-            get(urlPathMatching("/secrets"))
-                    .withHeader("Authorization", matching("Bearer XXX"))
-                    .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
+        get(urlPathMatching("/secrets"))
+            .withHeader("Authorization", matching("Bearer XXX"))
+            .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
 
     // Test the client
     var secrets = client.getSecrets();
@@ -92,7 +94,7 @@ public class ConsoleSecretProviderTest {
 
     // Test the provider
     var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofSeconds(1));
-    assertArrayEquals(new String[] {"secretValue", "secretValue2"}, consoleSecretProvider.getSecretValues().toArray());
+    Assertions.assertArrayEquals(new String[] {"secretValue", "secretValue2"}, consoleSecretProvider.getSecretValues().toArray());
   }
 
   @Test

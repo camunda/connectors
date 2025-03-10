@@ -126,13 +126,13 @@ public class ConnectorJobHandler implements JobHandler {
         .newThrowErrorCommand(job)
         .errorCode(error.code())
         .variables(error.variables())
-        .errorMessage(truncateErrorMessage( hideSecretsFromLog(error.message())));
+        .errorMessage(truncateErrorMessage(hideSecretsFromLog(error.message())));
   }
 
   protected FinalCommandStep<FailJobResponse> prepareFailJobCommand(
       JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
     var retries = result.retries();
-    var errorMessage = truncateErrorMessage( hideSecretsFromLog(result.exception().getMessage()));
+    var errorMessage = truncateErrorMessage(hideSecretsFromLog(result.exception().getMessage()));
     Duration backoff = result.retryBackoff();
     var command =
         client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
@@ -274,18 +274,19 @@ public class ConnectorJobHandler implements JobHandler {
 
   private ConnectorResult handleSDKException(
       ActivatedJob job, Exception ex, Integer retries, String errorCode, Duration backoffDuration) {
-    try{
+    try {
       LOGGER.debug(
-              "Failing job with retry config => job: {} for tenant: {} with error code: {}, retries: {} and remaining backoffDuration: {}",
-              job.getKey(),
-              job.getTenantId(),
-              errorCode,
-              retries,
-              backoffDuration);
+          "Failing job with retry config => job: {} for tenant: {} with error code: {}, retries: {} and remaining backoffDuration: {}",
+          job.getKey(),
+          job.getTenantId(),
+          errorCode,
+          retries,
+          backoffDuration);
 
       return new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, retries, backoffDuration);
-    }catch (Exception e){
-      System.out.println("Exception while processing job with retry config => job: " + job.getKey());
+    } catch (Exception e) {
+      System.out.println(
+          "Exception while processing job with retry config => job: " + job.getKey());
     }
     return null;
   }
