@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.HttpJson.v2",
   "description" : "Invoke REST API",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 8,
+  "version" : 10,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -395,6 +395,17 @@
     "group" : "endpoint",
     "binding" : {
       "name" : "groupSetCookieHeaders",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "skipEncoding",
+    "label" : "Skip URL encoding",
+    "description" : "Skip the default URL decoding and encoding behavior",
+    "optional" : true,
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "skipEncoding",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
