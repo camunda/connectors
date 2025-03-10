@@ -38,8 +38,8 @@ public class ServiceLoaderIntrinsicFunctionRegistry implements IntrinsicFunction
     final var operationProviders = loadProviders();
     if (operationProviders.isEmpty()) {
       LOGGER.warn(
-          "No intrinsic operation providers found. "
-              + "Please make sure to provide at least one implementation of IntrinsicOperationProvider.");
+          "No intrinsic function providers found. "
+              + "Please make sure to provide at least one implementation of IntrinsicFunctionProvider.");
       operationSources = Map.of();
       return;
     }
@@ -65,7 +65,7 @@ public class ServiceLoaderIntrinsicFunctionRegistry implements IntrinsicFunction
       for (var entry : methodsByOperationName.entrySet()) {
         if (sources.containsKey(entry.getKey())) {
           throw new IllegalArgumentException(
-              "Operation with name: "
+              "Intrinsic function with name: "
                   + entry.getKey()
                   + " duplicated in providers: "
                   + provider.getClass().getName()
@@ -75,6 +75,9 @@ public class ServiceLoaderIntrinsicFunctionRegistry implements IntrinsicFunction
         sources.put(entry.getKey(), new IntrinsicFunctionSource(provider, entry.getValue()));
       }
     }
+    LOGGER.info(
+        "Intrinsic functions loaded: {}",
+        sources.keySet().stream().sorted().collect(Collectors.joining(", ")));
     return sources;
   }
 
