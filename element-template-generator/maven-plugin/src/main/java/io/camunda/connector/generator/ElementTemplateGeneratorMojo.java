@@ -20,6 +20,8 @@ import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.ConnectorConfig.FileNameById;
 import io.camunda.connector.generator.api.DocsGenerator;
 import io.camunda.connector.generator.api.DocsGeneratorConfiguration;
@@ -31,11 +33,15 @@ import io.camunda.connector.generator.java.ClassBasedDocsGenerator;
 import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -136,7 +142,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
           generateDocs(connector, classLoader);
         }
       }
-
+      writeMetaInfFiles();
     } catch (ClassNotFoundException e) {
       throw new MojoFailureException("Failed to find connector class: " + e.getMessage(), e);
     } catch (TypeNotPresentException e) {
@@ -147,6 +153,59 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     } catch (Exception e) {
       throw new MojoFailureException("Failed to generate element templates: " + e.getMessage(), e);
     }
+  }
+
+  private void writeMetaInfFiles() throws MojoFailureException {
+    try {
+      String uriString = getResourcesDirectory().toString().replaceFirst("^file:", "");
+      Path path = Paths.get(uriString + File.separator + "META-INF" + File.separator + "services");
+      Files.createDirectories(path);
+
+      Map<Class<?>, String> connectorFileMap =
+          Map.of(
+              InboundConnectorExecutable.class,
+                  "io.camunda.connector.api.inbound.InboundConnectorExecutable",
+              OutboundConnectorFunction.class,
+                  "io.camunda.connector.api.outbound.OutboundConnectorFunction");
+
+      ClassLoader projectClassLoader = getProjectClassLoader();
+      for (ConnectorConfig connector : connectors) {
+        Class<?> connectorClass =
+            Class.forName(connector.getConnectorClass(), false, projectClassLoader);
+
+        String fileName =
+            connectorFileMap.entrySet().stream()
+                .filter(entry -> entry.getKey().isAssignableFrom(connectorClass))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElseThrow(
+                    () ->
+                        new IllegalArgumentException(
+                            "Connector class must be either 'InboundConnectorExecutable' or 'OutboundConnectorFunction': "
+                                + connector.getConnectorClass()));
+        Path filePath = path.resolve(fileName);
+        if (!Files.exists(filePath)) {
+          Files.writeString(
+              filePath,
+              connector.getConnectorClass(),
+              StandardOpenOption.CREATE,
+              StandardOpenOption.TRUNCATE_EXISTING);
+        }
+      }
+    } catch (IOException | ClassNotFoundException e) {
+      throw new MojoFailureException(
+          "Failed to create META-INF.service files: " + e.getMessage(), e);
+    }
+  }
+
+  private ClassLoader getProjectClassLoader() throws MalformedURLException {
+    List<URL> urls = new ArrayList<>();
+    for (Object obj : project.getArtifacts()) {
+      Artifact artifact = (Artifact) obj;
+      urls.add(artifact.getFile().toURI().toURL());
+    }
+    return new URLClassLoader(
+        urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
   }
 
   private void generateDocs(ConnectorConfig connectorConfig, ClassLoader classLoader)
