@@ -21,6 +21,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,8 @@ import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
+
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -74,6 +77,24 @@ public class ConsoleSecretProviderTest {
     // Test the provider
     var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofSeconds(1));
     assertThat(consoleSecretProvider.getSecret("secretKey")).isEqualTo("secretValue");
+  }
+
+  @Test
+  void testAllSecretsValues() {
+    // Mock successful response
+    var secretsResponse = Map.of("secretKey", "secretValue", "secretKey2", "secretValue2");
+    wm.stubFor(
+        get(urlPathMatching("/secrets"))
+            .withHeader("Authorization", matching("Bearer XXX"))
+            .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
+
+    // Test the client
+    var secrets = client.getSecrets();
+    assertThat(secrets).isEqualTo(secretsResponse);
+
+    // Test the provider
+    var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofSeconds(1));
+    Assertions.assertArrayEquals(new String[] {"secretValue", "secretValue2"}, consoleSecretProvider.getSecretValues().toArray());
   }
 
   @Test

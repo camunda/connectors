@@ -14,16 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core;
+package io.camunda.connector.test.secretsprovider;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.List;
+import java.util.Map;
 
-public class NoOpSecretProvider implements SecretProvider {
+public class SecretProviderConnectorContextBuilder implements SecretProvider {
+
+  private final Map<String, String> secrets;
+
+  public SecretProviderConnectorContextBuilder(Map<String, String> secrets) {
+    this.secrets = secrets;
+  }
 
   @Override
-  public String getSecret(String value) {
-    return null;
+  public String getSecret(String name) {
+    return secrets.get(name);
   }
 
   @Override

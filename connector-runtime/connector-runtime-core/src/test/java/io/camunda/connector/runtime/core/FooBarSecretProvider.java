@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core;
 import static java.util.Collections.singletonMap;
 
 import io.camunda.connector.api.secret.SecretProvider;
+import java.util.List;
 import java.util.Map;
 
 public class FooBarSecretProvider implements SecretProvider {
@@ -31,5 +32,10 @@ public class FooBarSecretProvider implements SecretProvider {
   @Override
   public String getSecret(String value) {
     return SECRETS.get(value);
+  }
+
+  @Override
+  public List<String> getSecretValues() {
+    return SECRETS.values().stream().toList();
   }
 }

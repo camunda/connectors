@@ -16,8 +16,10 @@
  */
 package io.camunda.connector.runtime.secret;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.Assert.assertArrayEquals;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -30,5 +32,15 @@ public class EnvironmentSecretProviderTest {
     EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "secrets.");
     String myTotalSecret = secretProvider.getSecret("my-total-secret");
     assertThat(myTotalSecret).isEqualTo("beebop");
+  }
+
+  @Test
+  void shouldReturnAllSecretsValues() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("secrets.my-total-secret", "beebop");
+    env.setProperty("secrets.my-total-secret2", "beebop2");
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "secrets.");
+    List<String> myTotalSecret = secretProvider.getSecretValues();
+    assertArrayEquals(new String[] {"beebop", "beebop2"}, myTotalSecret.toArray());
   }
 }

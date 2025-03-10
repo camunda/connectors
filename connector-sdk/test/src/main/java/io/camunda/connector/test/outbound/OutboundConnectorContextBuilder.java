@@ -27,6 +27,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
+import io.camunda.connector.test.secretsprovider.SecretProviderConnectorContextBuilder;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
@@ -41,7 +42,7 @@ public class OutboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
   protected final Map<String, String> headers = new HashMap<>();
-  protected SecretProvider secretProvider = secrets::get;
+  protected SecretProvider secretProvider = new SecretProviderConnectorContextBuilder(secrets);
   protected ValidationProvider validationProvider;
   protected Map<String, Object> variables;
   protected DocumentFactory documentFactory =
