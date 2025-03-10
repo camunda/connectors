@@ -70,7 +70,7 @@ public class IntrinsicFunctionDeserializationTest {
     final var payload =
         Map.of(
             "result",
-            Map.of("camunda.operation.type", "test_documentContent", "params", List.of(ref)));
+            Map.of("camunda.function.type", "test_documentContent", "params", List.of(ref)));
     final var result = objectMapper.convertValue(payload, StringResultModel.class);
 
     assertThat(result.result).isEqualTo(contentString);
@@ -82,13 +82,13 @@ public class IntrinsicFunctionDeserializationTest {
     var ref = createDocumentMock(contentString, null, documentStore);
 
     final var payload =
-        Map.of("result", Map.of("camunda.operation.type", "wrong", "params", List.of(ref)));
+        Map.of("result", Map.of("camunda.function.type", "wrong", "params", List.of(ref)));
     final var e =
         assertThrows(
             IllegalArgumentException.class,
             () -> objectMapper.convertValue(payload, StringResultModel.class));
 
-    assertThat(e).hasMessageContaining("No operation found with name: wrong");
+    assertThat(e).hasMessageContaining("No intrinsic function found with name: wrong");
   }
 
   @Test
@@ -99,7 +99,7 @@ public class IntrinsicFunctionDeserializationTest {
     final var payload =
         Map.of(
             "result",
-            Map.of("camunda.operation.type", "test_documentContent", "params", List.of(ref)));
+            Map.of("camunda.function.type", "test_documentContent", "params", List.of(ref)));
     final var result = objectMapper.convertValue(payload, StringResultModel.class);
 
     assertThat(result.result).isEqualTo(contentString);
@@ -115,10 +115,7 @@ public class IntrinsicFunctionDeserializationTest {
         Map.of(
             "result",
             Map.of(
-                "camunda.operation.type",
-                "test_documentContent",
-                "params",
-                List.of(ref, "UTF-16")));
+                "camunda.function.type", "test_documentContent", "params", List.of(ref, "UTF-16")));
     final var result = objectMapper.convertValue(payload, StringResultModel.class);
 
     assertThat(result.result).isEqualTo(contentString);
@@ -133,16 +130,13 @@ public class IntrinsicFunctionDeserializationTest {
         Map.of(
             "result",
             Map.of(
-                "camunda.operation.type",
+                "camunda.function.type",
                 "test_concat",
                 "params",
                 List.of(
                     "Hello",
                     Map.of(
-                        "camunda.operation.type",
-                        "test_documentContent",
-                        "params",
-                        List.of(ref)))));
+                        "camunda.function.type", "test_documentContent", "params", List.of(ref)))));
 
     final var result = objectMapper.convertValue(payload, StringResultModel.class);
     assertThat(result.result).isEqualTo("Hello World");
@@ -155,7 +149,7 @@ public class IntrinsicFunctionDeserializationTest {
     final var payload =
         Map.of(
             "result",
-            Map.of("camunda.operation.type", "test_anythingToString", "params", List.of(string)));
+            Map.of("camunda.function.type", "test_anythingToString", "params", List.of(string)));
     final var result = objectMapper.convertValue(payload, StringResultModel.class);
 
     assertThat(result.result).isEqualTo(objectMapper.writeValueAsString(string));
@@ -170,15 +164,12 @@ public class IntrinsicFunctionDeserializationTest {
         Map.of(
             "result",
             Map.of(
-                "camunda.operation.type",
+                "camunda.function.type",
                 "test_anythingToString",
                 "params",
                 List.of(
                     Map.of(
-                        "camunda.operation.type",
-                        "test_documentContent",
-                        "params",
-                        List.of(ref)))));
+                        "camunda.function.type", "test_documentContent", "params", List.of(ref)))));
 
     final var result = objectMapper.convertValue(payload, StringResultModel.class);
     assertThat(result.result).isEqualTo(objectMapper.writeValueAsString(contentString));

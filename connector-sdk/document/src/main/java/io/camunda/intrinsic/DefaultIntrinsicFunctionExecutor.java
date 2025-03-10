@@ -17,14 +17,7 @@
 package io.camunda.intrinsic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * An implementation of {@link IntrinsicFunctionExecutor} that discovers operations via the service
@@ -32,79 +25,30 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultIntrinsicFunctionExecutor implements IntrinsicFunctionExecutor {
 
-  private final Logger LOGGER = LoggerFactory.getLogger(DefaultIntrinsicFunctionExecutor.class);
-
-  private record OperationSource(IntrinsicFunctionProvider provider, Method method) {}
-
-  private final Map<String, OperationSource> operationSources = new HashMap<>();
   private final IntrinsicFunctionParameterBinder parameterBinder;
+  private final IntrinsicFunctionRegistry registry;
 
   public DefaultIntrinsicFunctionExecutor(ObjectMapper objectMapper) {
     this.parameterBinder = new IntrinsicFunctionParameterBinder(objectMapper);
-
-    final var operationProviders =
-        ServiceLoader.load(IntrinsicFunctionProvider.class).stream()
-            .map(ServiceLoader.Provider::get)
-            .toList();
-
-    if (operationProviders.isEmpty()) {
-      LOGGER.warn(
-          "No intrinsic operation providers found. "
-              + "Please make sure to provide at least one implementation of IntrinsicOperationProvider.");
-      return;
-    }
-
-    for (var provider : operationProviders) {
-      final var methodsByOperationName = getDeclaredMethods(provider);
-      for (var entry : methodsByOperationName.entrySet()) {
-        if (operationSources.containsKey(entry.getKey())) {
-          throw new IllegalArgumentException(
-              "Operation with name: "
-                  + entry.getKey()
-                  + " duplicated in providers: "
-                  + provider.getClass().getName()
-                  + " and "
-                  + operationSources.get(entry.getKey()).provider.getClass().getName());
-        }
-        operationSources.put(entry.getKey(), new OperationSource(provider, entry.getValue()));
-      }
-    }
+    this.registry = new ServiceLoaderIntrinsicFunctionRegistry();
   }
 
   @Override
-  public Object execute(String operationName, IntrinsicFunctionParams params) {
-    final var source = operationSources.get(operationName);
+  public Object execute(String functionName, IntrinsicFunctionParams params) {
+    final var source = registry.getIntrinsicFunction(functionName);
     if (source == null) {
-      throw new IllegalArgumentException("No operation found with name: " + operationName);
+      throw new IllegalArgumentException("No intrinsic function found with name: " + functionName);
     }
-    final var arguments = parameterBinder.bindParameters(source.method, params);
+    final var arguments = parameterBinder.bindParameters(source.method(), params);
     try {
-      return source.method.invoke(source.provider, arguments);
+      return source.method().invoke(source.provider(), arguments);
     } catch (Exception e) {
       throw new RuntimeException(
-          "Failed to execute operation: "
-              + operationName
+          "Failed to execute intrinsic function: "
+              + functionName
               + " with arguments: "
               + Arrays.toString(arguments),
           e);
     }
-  }
-
-  private Map<String, Method> getDeclaredMethods(IntrinsicFunctionProvider provider) {
-    final var methodsByOperationName =
-        Arrays.stream(provider.getClass().getDeclaredMethods())
-            .filter(method -> method.isAnnotationPresent(IntrinsicFunction.class))
-            .collect(
-                Collectors.toMap(
-                    method -> method.getAnnotation(IntrinsicFunction.class).name(),
-                    method -> method));
-    if (methodsByOperationName.isEmpty()) {
-      throw new IllegalArgumentException(
-          "No intrinsic operations found in provider "
-              + provider.getClass().getName()
-              + ". "
-              + "At least one method with @IntrinsicOperation expected.");
-    }
-    return methodsByOperationName;
   }
 }

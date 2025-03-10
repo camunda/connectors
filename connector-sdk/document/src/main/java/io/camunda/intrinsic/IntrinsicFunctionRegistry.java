@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.jackson;
+package io.camunda.intrinsic;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
+import java.lang.reflect.Method;
 
-public record IntrinsicFunctionModel(
-    @JsonProperty(DISCRIMINATOR_KEY) String name, List<Object> params) {
+public interface IntrinsicFunctionRegistry {
 
-  public static final String DISCRIMINATOR_KEY = "camunda.function.type";
+  record IntrinsicFunctionSource(IntrinsicFunctionProvider provider, Method method) {}
+
+  /** Get an intrinsic function by name. */
+  IntrinsicFunctionSource getIntrinsicFunction(String name);
 }

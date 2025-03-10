@@ -76,7 +76,7 @@ class ConnectorsObjectMapperSupplierTest {
         """
         {
           "value": {
-            "camunda.operation.type": "base64",
+            "camunda.function.type": "base64",
             "params": ["hello"]
           }
         }
