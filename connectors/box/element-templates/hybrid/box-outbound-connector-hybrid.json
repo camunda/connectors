@@ -324,8 +324,8 @@
     "label" : "Recursive",
     "description" : "Deletes all items contained by the folder",
     "optional" : false,
-    "value" : "true",
-    "feel" : "optional",
+    "value" : true,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.recursive",
@@ -336,7 +336,7 @@
       "equals" : "deleteFolder",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Boolean"
   }, {
     "id" : "operation.uploadFileName",
     "label" : "File name",
@@ -538,8 +538,8 @@
     "label" : "Search offset",
     "description" : "Offset for search results",
     "optional" : false,
-    "value" : "0",
-    "feel" : "optional",
+    "value" : 0,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.offset",
@@ -550,14 +550,14 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "operation.searchLimit",
     "label" : "Search limit",
     "description" : "Limit",
     "optional" : false,
-    "value" : "30",
-    "feel" : "optional",
+    "value" : 30,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.limit",
@@ -568,7 +568,7 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
