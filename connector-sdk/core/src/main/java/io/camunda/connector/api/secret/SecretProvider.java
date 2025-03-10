@@ -34,7 +34,6 @@ public interface SecretProvider {
   String getSecret(String name);
 
   /**
-   *
    * @return
    */
   List<String> getSecretValues();
