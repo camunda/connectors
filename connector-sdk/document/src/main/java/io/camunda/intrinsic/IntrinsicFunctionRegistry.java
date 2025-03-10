@@ -14,19 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.intrinsic;
 
-import io.camunda.document.Document;
+import java.lang.reflect.Method;
 
-public class Base64OperationExecutor implements DocumentOperationExecutor {
+public interface IntrinsicFunctionRegistry {
 
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return "base64".equalsIgnoreCase(operationReference.name());
-  }
+  record IntrinsicFunctionSource(IntrinsicFunctionProvider provider, Method method) {}
 
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return document.asBase64();
-  }
+  /** Get an intrinsic function by name. */
+  IntrinsicFunctionSource getIntrinsicFunction(String name);
 }

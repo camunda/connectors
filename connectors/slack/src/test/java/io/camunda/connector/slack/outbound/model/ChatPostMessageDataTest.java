@@ -31,7 +31,7 @@ import com.slack.api.util.http.SlackHttpClient;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
 import io.camunda.document.reference.DocumentReference;

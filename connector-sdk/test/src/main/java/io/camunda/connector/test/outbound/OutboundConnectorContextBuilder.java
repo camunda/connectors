@@ -24,7 +24,7 @@ import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.document.Document;

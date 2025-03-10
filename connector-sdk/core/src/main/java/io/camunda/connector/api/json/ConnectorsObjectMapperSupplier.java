@@ -23,11 +23,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.document.factory.DocumentFactory;
+import io.camunda.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 
 /** Default ObjectMapper supplier to be used by the connector runtime. */
 public class ConnectorsObjectMapperSupplier {
@@ -55,8 +57,9 @@ public class ConnectorsObjectMapperSupplier {
   }
 
   public static ObjectMapper getCopy(DocumentFactory factory, DocumentModuleSettings settings) {
-    return DEFAULT_MAPPER
-        .copy()
-        .registerModule(new JacksonModuleDocumentDeserializer(factory, null, settings));
+    final ObjectMapper copy = DEFAULT_MAPPER.copy();
+    final IntrinsicFunctionExecutor functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    return copy.registerModule(
+        new JacksonModuleDocumentDeserializer(factory, functionExecutor, settings));
   }
 }

@@ -14,8 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.annotation.jackson;
+package io.camunda.intrinsic.functions;
 
-import java.util.function.Supplier;
+import io.camunda.document.Document;
+import io.camunda.document.DocumentLinkParameters;
+import io.camunda.intrinsic.IntrinsicFunction;
+import io.camunda.intrinsic.IntrinsicFunctionProvider;
+import java.time.Duration;
+import javax.annotation.Nullable;
 
-public interface DocumentOperationResult<T> extends Supplier<T> {}
+public class CreateLinkFunction implements IntrinsicFunctionProvider {
+
+  @IntrinsicFunction(name = "createLink")
+  public String execute(Document document, @Nullable Duration timeToLive) {
+    return document.generateLink(new DocumentLinkParameters(timeToLive));
+  }
+}

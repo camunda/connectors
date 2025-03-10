@@ -18,7 +18,7 @@ import com.google.api.services.docs.v1.model.BatchUpdateDocumentResponse;
 import com.google.api.services.docs.v1.model.Request;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;

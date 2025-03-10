@@ -14,21 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.intrinsic;
 
-import io.camunda.document.Document;
-
-public class AggregatingOperationExecutor implements DocumentOperationExecutor {
-
-  public AggregatingOperationExecutor() {}
-
-  @Override
-  public boolean matches(DocumentOperation operationReference) {
-    return true;
-  }
-
-  @Override
-  public Object execute(DocumentOperation operationReference, Document document) {
-    return null;
-  }
-}
+/**
+ * Marker interface for intrinsic function providers. Used to discover intrinsic functions at
+ * runtime.
+ */
+public interface IntrinsicFunctionProvider {}

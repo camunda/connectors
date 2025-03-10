@@ -14,47 +14,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.annotation.jackson.deserializer;
+package io.camunda.connector.document.jackson.deserializer;
+
+import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
+import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isOperation;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
-public class ObjectDocumentDeserializer extends DocumentDeserializerBase<Object> {
+public class ObjectDeserializer extends AbstractDeserializer<Object> {
 
-  private final UntypedObjectDeserializer fallbackDeserializer =
-      new UntypedObjectDeserializer(null, null);
-  private final boolean lazy;
+  private final DocumentDeserializer documentDeserializer;
+  private final IntrinsicFunctionObjectResultDeserializer operationDeserializer;
 
-  public ObjectDocumentDeserializer(
-      DocumentOperationExecutor operationExecutor, DocumentFactory documentFactory, boolean lazy) {
-    super(operationExecutor, documentFactory);
-    this.lazy = lazy;
+  public ObjectDeserializer(
+      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+    this.documentDeserializer =
+        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor);
+    this.operationDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor);
   }
 
   @Override
-  public Object deserializeDocumentReference(
-      DocumentReferenceModel reference, DeserializationContext ctx) throws IOException {
-
-    if (reference.operation().isPresent()) {
-      var operationResultSupplier = deserializeOperation(reference, reference.operation().get());
-      if (lazy) {
-        return operationResultSupplier;
-      }
-      // TODO: check output type
-      return operationResultSupplier.get();
+  protected Object handleJsonNode(JsonNode node, DeserializationContext context)
+      throws IOException {
+    if (isDocumentReference(node)) {
+      // return Document object
+      return documentDeserializer.handleJsonNode(node, context);
     }
-    // if no operation, return the document
-    return createDocument(reference);
+    if (isOperation(node)) {
+      // return the result of the operation, type is irrelevant since the caller expects an Object
+      return operationDeserializer.handleJsonNode(node, context);
+    }
+    // fallback deserialization
+    return fallback(node, context);
   }
 
-  @Override
+  /** Fallback deserialization when the object is neither a document reference nor an operation. */
   public Object fallback(JsonNode node, DeserializationContext ctx) throws IOException {
     if (node.isObject()) {
       var fields = node.fields();
@@ -82,6 +84,8 @@ public class ObjectDocumentDeserializer extends DocumentDeserializerBase<Object>
 
     var parser = node.traverse(ctx.getParser().getCodec());
     parser.nextToken();
+
+    final var fallbackDeserializer = new UntypedObjectDeserializer(null, null);
     return fallbackDeserializer.deserialize(parser, ctx);
   }
 }

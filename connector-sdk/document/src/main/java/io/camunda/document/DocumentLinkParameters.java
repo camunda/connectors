@@ -14,15 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.document;
 
-import io.camunda.client.api.response.DocumentReferenceResponse;
+import java.time.Duration;
 
-public interface DocumentReference {
-
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
-
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
-  }
-}
+public record DocumentLinkParameters(Duration timeToLive) {}

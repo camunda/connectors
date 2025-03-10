@@ -66,4 +66,9 @@ public class CamundaDocument implements Document {
   public DocumentReference reference() {
     return reference;
   }
+
+  @Override
+  public String generateLink(DocumentLinkParameters parameters) {
+    return documentStore.generateLink(reference, parameters);
+  }
 }
