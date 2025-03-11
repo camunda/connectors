@@ -63,10 +63,12 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) throws Exception {
 
     SendMessageRequest messageRequest = context.bindVariables(SendMessageRequest.class);
-    LOG.debug("Invoke send message connector with {}", messageRequest);
+    LOG.debug(
+        "Invoke send message connector with name {} and correlation key {}",
+        messageRequest.messageName(),
+        messageRequest.correlationKey());
 
     ZeebeClient zeebeClient = ZeebeClientContext.getZeebeClient();
-    LOG.debug("using Zeebe client {}", zeebeClient);
 
     if ("publish".equals(messageRequest.mode())) {
       PublishMessageCommandStep3 publishMessageCommand;
