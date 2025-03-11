@@ -134,7 +134,7 @@ public class ProxyHandler {
         setSystemPropertyIfUnset(p.protocol + ".proxyHost", p.host());
         setSystemPropertyIfUnset(p.protocol + ".proxyPort", String.valueOf(p.port()));
         setSystemPropertyIfUnset(p.protocol + ".proxyUser", p.user());
-        setSystemPropertyIfUnset(p.protocol + ".proxyPassword", String.valueOf(p.password()));
+        setSystemPropertyIfUnset(p.protocol + ".proxyPassword", p.password());
         setSystemPropertyIfUnset(
             "http.nonProxyHosts",
             p.nonProxyHosts()); // The HTTPS protocol handler will use the same nonProxyHosts
@@ -145,8 +145,8 @@ public class ProxyHandler {
   }
 
   private void setSystemPropertyIfUnset(String name, String value) {
-    if (System.getProperty(name) == null || System.getProperty(name).isBlank()) {
-      System.setProperty(name, value != null ? value : "");
+    if (StringUtils.isBlank(System.getProperty(name)) && StringUtils.isNotBlank(value)) {
+      System.setProperty(name, value);
     }
   }
 }
