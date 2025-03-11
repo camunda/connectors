@@ -27,6 +27,7 @@ public class GcsUtil {
 
   public static String uploadNewFileFromDocument(
       final Document document,
+      final String fileName,
       final String bucketName,
       final String projectId,
       GcpAuthentication authentication)
@@ -39,9 +40,9 @@ public class GcsUtil {
             .build()
             .getService();
 
-    BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, document.metadata().getFileName()).build();
+    BlobInfo blobInfo = BlobInfo.newBuilder(bucketName, fileName).build();
     storage.createFrom(blobInfo, document.asInputStream());
-    return String.format("gs://%s/%s", bucketName, document.metadata().getFileName());
+    return String.format("gs://%s/%s", bucketName, fileName);
   }
 
   public static void deleteObjectFromBucket(
