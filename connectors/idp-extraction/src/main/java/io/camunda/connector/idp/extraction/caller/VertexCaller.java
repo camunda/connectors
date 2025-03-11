@@ -33,10 +33,15 @@ public class VertexCaller {
       throws Exception {
     LlmModel llmModel = LlmModel.fromId(input.converseData().modelId());
     String fileUri;
+    final String fileName =
+        input.document().metadata().getFileName() == null
+            ? "temporaryDocument"
+            : input.document().metadata().getFileName();
     try {
       fileUri =
           GcsUtil.uploadNewFileFromDocument(
               input.document(),
+              fileName,
               baseRequest.getConfiguration().bucketName(),
               baseRequest.getConfiguration().projectId(),
               baseRequest.getAuthentication());
@@ -64,7 +69,7 @@ public class VertexCaller {
             try {
               GcsUtil.deleteObjectFromBucket(
                   baseRequest.getConfiguration().bucketName(),
-                  input.document().metadata().getFileName(),
+                  fileName,
                   baseRequest.getConfiguration().projectId(),
                   baseRequest.getAuthentication());
               LOGGER.debug("File deleted from GCS");
