@@ -21,7 +21,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +31,6 @@ import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -94,7 +92,9 @@ public class ConsoleSecretProviderTest {
 
     // Test the provider
     var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofSeconds(1));
-    Assertions.assertArrayEquals(new String[] {"secretValue", "secretValue2"}, consoleSecretProvider.getSecretValues().toArray());
+    Assertions.assertArrayEquals(
+        new String[] {"secretValue", "secretValue2"},
+        consoleSecretProvider.getSecretValues().toArray());
   }
 
   @Test

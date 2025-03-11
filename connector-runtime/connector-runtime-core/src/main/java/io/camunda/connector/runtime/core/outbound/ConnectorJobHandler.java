@@ -126,7 +126,7 @@ public class ConnectorJobHandler implements JobHandler {
         .newThrowErrorCommand(job)
         .errorCode(error.code())
         .variables(error.variables())
-        .errorMessage(truncateErrorMessage(hideSecretsFromLog(error.message())));
+        .errorMessage(truncateErrorMessage(error.message()));
   }
 
   protected FinalCommandStep<FailJobResponse> prepareFailJobCommand(
@@ -148,7 +148,7 @@ public class ConnectorJobHandler implements JobHandler {
   protected Map<String, Object> exceptionToMap(Exception exception) {
     Map<String, Object> result = new HashMap<>();
     result.put("type", exception.getClass().getName());
-    var message = exception.getMessage();
+    var message = hideSecretsFromLog(exception.getMessage());
     if (message != null) {
       result.put(
           "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
@@ -261,12 +261,13 @@ public class ConnectorJobHandler implements JobHandler {
       throwBpmnError(client, job, bpmnError);
     } else if (error instanceof JobError jobError) {
       LOGGER.debug("Throwing incident for job {}", job.getKey());
+      String errorMessage = hideSecretsFromLog(jobError.message());
       failJob(
           client,
           job,
           new ErrorResult(
-              Map.of("error", jobError.message()),
-              new RuntimeException(jobError.message()),
+              Map.of("error", errorMessage),
+              new RuntimeException(errorMessage),
               jobError.retries(),
               jobError.retryBackoff()));
     }

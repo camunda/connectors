@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.secret;
 
 import io.camunda.connector.api.secret.SecretProvider;
-import jakarta.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -34,20 +33,17 @@ public class EnvironmentSecretProvider implements SecretProvider {
   private final String prefix;
 
   public EnvironmentSecretProvider(Environment environment, String prefix) {
-    this.environment = environment;
-    this.prefix = prefix;
-  }
-
-  @PostConstruct
-  public void init() {
     if (!StringUtils.hasText(prefix)) {
-      LOG.info(
-          "No prefix has been configured, all environment variables are available as connector secrets");
+      LOG.warn(
+          "No prefix has been configured, only environment variables prefixed by `SECRET_` are available as connector secrets");
+      this.prefix = "SECRET_";
     } else {
       LOG.debug(
           "Prefix '{}' has been configured, only environment variables with this prefix are available as connector secrets",
           prefix);
+      this.prefix = prefix;
     }
+    this.environment = environment;
   }
 
   @Override
@@ -60,10 +56,6 @@ public class EnvironmentSecretProvider implements SecretProvider {
   public List<String> getSecretValues() {
     if (environment instanceof AbstractEnvironment abstractEnvironment) {
       return abstractEnvironment.getPropertySources().stream()
-          .filter(
-              propertySource ->
-                  !propertySource.getName().equals("systemProperties")
-                      && !propertySource.getName().equals("systemEnvironment"))
           .filter(propertySource -> propertySource instanceof EnumerablePropertySource<?>)
           .map(propertySource -> (EnumerablePropertySource<?>) propertySource)
           .flatMap(
