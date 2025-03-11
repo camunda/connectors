@@ -22,14 +22,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.CredentialsProvider;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ProxyHandler {
   record ProxyDetails(
@@ -37,14 +34,13 @@ public class ProxyHandler {
       String host,
       int port,
       String user,
-      char[] password,
+      String password,
       String nonProxyHosts,
       boolean sourceIsSystemProperties) {}
 
   private static final List<String> PROTOCOLS = List.of("http", "https");
   private Map<String, ProxyDetails> proxyConfigForProtocols = new HashMap<>();
   private Map<String, CredentialsProvider> credentialsProvidersForProtocols = new HashMap<>();
-  private static final Logger LOGGER = LoggerFactory.getLogger(ProxyHandler.class);
 
   public ProxyHandler() {
     this.proxyConfigForProtocols = loadProxyConfig();
@@ -55,9 +51,9 @@ public class ProxyHandler {
   private Map<String, ProxyDetails> loadProxyConfig() {
     Map<String, ProxyDetails> config = new HashMap<>();
     for (String protocol : PROTOCOLS) {
-      Optional<ProxyDetails> details =
-          getConfigFromSystemProperties(protocol).or(() -> getConfigFromEnvVars(protocol));
-      details.ifPresent(d -> config.put(protocol, d));
+      getConfigFromSystemProperties(protocol)
+          .or(() -> getConfigFromEnvVars(protocol))
+          .ifPresent(d -> config.put(protocol, d));
     }
     return config;
   }
@@ -66,11 +62,11 @@ public class ProxyHandler {
     Map<String, CredentialsProvider> providers = new HashMap<>();
     for (Map.Entry<String, ProxyDetails> entry : proxyConfigForProtocols.entrySet()) {
       ProxyDetails p = entry.getValue();
-      if (StringUtils.isNotBlank(p.user()) && ArrayUtils.isNotEmpty(p.password())) {
+      if (StringUtils.isNotBlank(p.user()) && StringUtils.isNotEmpty(p.password())) {
         BasicCredentialsProvider provider = new BasicCredentialsProvider();
         provider.setCredentials(
             new AuthScope(p.host(), p.port()),
-            new UsernamePasswordCredentials(p.user(), p.password()));
+            new UsernamePasswordCredentials(p.user(), p.password().toCharArray()));
         providers.put(entry.getKey(), provider);
       }
     }
@@ -89,10 +85,9 @@ public class ProxyHandler {
                 Integer.parseInt(
                     System.getenv("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_PORT")),
                 System.getenv()
-                    .getOrDefault("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_USER", ""),
+                    .getOrDefault("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_USER", null),
                 System.getenv()
-                    .getOrDefault("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_PASSWORD", "")
-                    .toCharArray(),
+                    .getOrDefault("CONNECTOR_" + protocol.toUpperCase() + "_PROXY_PASSWORD", null),
                 System.getenv("CONNECTOR_HTTP_PROXY_NON_PROXY_HOSTS"),
                 false));
       } catch (NumberFormatException e) {
@@ -112,9 +107,7 @@ public class ProxyHandler {
                 System.getProperty(protocol + ".proxyHost"),
                 Integer.parseInt(System.getProperty(protocol + ".proxyPort")),
                 System.getProperty(protocol + ".proxyUser"),
-                Optional.ofNullable(System.getProperty(protocol + ".proxyPassword"))
-                    .map(String::toCharArray)
-                    .orElseGet(() -> new char[0]),
+                System.getProperty(protocol + ".proxyPassword"),
                 System.getProperty(protocol + ".nonProxyHosts"),
                 true));
       } catch (NumberFormatException e) {
@@ -141,7 +134,7 @@ public class ProxyHandler {
         setSystemPropertyIfUnset(p.protocol + ".proxyHost", p.host());
         setSystemPropertyIfUnset(p.protocol + ".proxyPort", String.valueOf(p.port()));
         setSystemPropertyIfUnset(p.protocol + ".proxyUser", p.user());
-        setSystemPropertyIfUnset(p.protocol + ".proxyPassword", String.valueOf(p.password()));
+        setSystemPropertyIfUnset(p.protocol + ".proxyPassword", p.password());
         setSystemPropertyIfUnset(
             "http.nonProxyHosts",
             p.nonProxyHosts()); // The HTTPS protocol handler will use the same nonProxyHosts
@@ -152,8 +145,8 @@ public class ProxyHandler {
   }
 
   private void setSystemPropertyIfUnset(String name, String value) {
-    if (System.getProperty(name) == null || System.getProperty(name).isBlank()) {
-      System.setProperty(name, value != null ? value : "");
+    if (StringUtils.isBlank(System.getProperty(name)) && StringUtils.isNotBlank(value)) {
+      System.setProperty(name, value);
     }
   }
 }

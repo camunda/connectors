@@ -47,8 +47,7 @@ public class ProxyHandlerTest {
     System.setProperty("http.proxyHost", "");
     System.setProperty("http.proxyPort", "");
     System.setProperty("http.nonProxyHosts", "");
-    System.setProperty("http.proxyUser", "");
-    System.setProperty("http.proxyPassword", "");
+    // user and password kept to null to make tests easier. You can still test https value if needed
 
     System.setProperty("https.proxyHost", "");
     System.setProperty("https.proxyPort", "");
@@ -79,13 +78,13 @@ public class ProxyHandlerTest {
 
   @Test
   public void shouldReturnCredentialsProvider_whenConfigured() {
-    System.setProperty("http.proxyHost", "localhost");
-    System.setProperty("http.proxyPort", "8080");
-    System.setProperty("http.proxyUser", "user");
-    System.setProperty("http.proxyPassword", "password");
+    System.setProperty("https.proxyHost", "localhost");
+    System.setProperty("https.proxyPort", "8080");
+    System.setProperty("https.proxyUser", "user");
+    System.setProperty("https.proxyPassword", "password");
 
     ProxyHandler handler = new ProxyHandler();
-    CredentialsProvider provider = handler.getCredentialsProvider("http");
+    CredentialsProvider provider = handler.getCredentialsProvider("https");
 
     assertThat(provider).isInstanceOf(CredentialsProvider.class);
   }
@@ -102,30 +101,60 @@ public class ProxyHandlerTest {
     restoreSystemProperties(
         () -> {
           withEnvironmentVariables(
+                  "CONNECTOR_HTTPS_PROXY_HOST",
+                  "localhost",
+                  "CONNECTOR_HTTPS_PROXY_PORT",
+                  "3128",
+                  "CONNECTOR_HTTPS_PROXY_USER",
+                  "my-user",
+                  "CONNECTOR_HTTPS_PROXY_PASSWORD",
+                  "demo",
+                  "CONNECTOR_HTTP_PROXY_NON_PROXY_HOSTS",
+                  "www.test.de")
+              .execute(
+                  () -> {
+                    assertThat(System.getProperty("https.proxyHost")).isEmpty();
+                    assertThat(System.getProperty("https.proxyPort")).isEmpty();
+                    assertThat(System.getProperty("https.proxyUser")).isEmpty();
+                    assertThat(System.getProperty("https.proxyPassword")).isEmpty();
+                    assertThat(System.getProperty("http.nonProxyHosts")).isEmpty();
+
+                    new ProxyHandler();
+
+                    assertThat(System.getProperty("https.proxyHost")).isEqualTo("localhost");
+                    assertThat(System.getProperty("https.proxyPort")).isEqualTo("3128");
+                    assertThat(System.getProperty("https.proxyUser")).isEqualTo("my-user");
+                    assertThat(System.getProperty("https.proxyPassword")).isEqualTo("demo");
+                    assertThat(System.getProperty("http.nonProxyHosts")).isEqualTo("www.test.de");
+                  });
+        });
+  }
+
+  @Test
+  public void shouldNotSetAuthSystemProperties_whenProxySettingsEnvVarsNoAuth() throws Exception {
+    restoreSystemProperties(
+        () -> {
+          withEnvironmentVariables(
                   "CONNECTOR_HTTP_PROXY_HOST",
                   "localhost",
                   "CONNECTOR_HTTP_PROXY_PORT",
                   "3128",
-                  "CONNECTOR_HTTP_PROXY_USER",
-                  "my-user",
-                  "CONNECTOR_HTTP_PROXY_PASSWORD",
-                  "demo",
                   "CONNECTOR_HTTP_PROXY_NON_PROXY_HOSTS",
                   "www.test.de")
               .execute(
                   () -> {
                     assertThat(System.getProperty("http.proxyHost")).isEmpty();
                     assertThat(System.getProperty("http.proxyPort")).isEmpty();
-                    assertThat(System.getProperty("http.proxyUser")).isEmpty();
-                    assertThat(System.getProperty("http.proxyPassword")).isEmpty();
+                    assertThat(System.getProperty("http.proxyUser")).isNull();
+                    assertThat(System.getProperty("http.proxyPassword")).isNull();
                     assertThat(System.getProperty("http.nonProxyHosts")).isEmpty();
 
                     new ProxyHandler();
 
                     assertThat(System.getProperty("http.proxyHost")).isEqualTo("localhost");
                     assertThat(System.getProperty("http.proxyPort")).isEqualTo("3128");
-                    assertThat(System.getProperty("http.proxyUser")).isEqualTo("my-user");
-                    assertThat(System.getProperty("http.proxyPassword")).isEqualTo("demo");
+                    assertThat(System.getProperty("http.proxyUser")).isEqualTo(null);
+                    assertThat(System.getProperty("http.proxyPassword")).isEqualTo(null);
                     assertThat(System.getProperty("http.nonProxyHosts")).isEqualTo("www.test.de");
                   });
         });
@@ -137,30 +166,30 @@ public class ProxyHandlerTest {
     restoreSystemProperties(
         () -> {
           withEnvironmentVariables(
-                  "CONNECTOR_HTTP_PROXY_HOST",
+                  "CONNECTOR_HTTPS_PROXY_HOST",
                   "localhost",
-                  "CONNECTOR_HTTP_PROXY_PORT",
+                  "CONNECTOR_HTTPS_PROXY_PORT",
                   "3128",
-                  "CONNECTOR_HTTP_PROXY_USER",
+                  "CONNECTOR_HTTPS_PROXY_USER",
                   "my-user",
-                  "CONNECTOR_HTTP_PROXY_PASSWORD",
+                  "CONNECTOR_HTTPS_PROXY_PASSWORD",
                   "demo",
                   "CONNECTOR_HTTP_PROXY_NON_PROXY_HOSTS",
                   "www.env-var.de")
               .execute(
                   () -> {
-                    System.setProperty("http.proxyHost", "localhost");
-                    System.setProperty("http.proxyPort", "8080");
-                    System.setProperty("http.proxyUser", "user");
-                    System.setProperty("http.proxyPassword", "password");
+                    System.setProperty("https.proxyHost", "localhost");
+                    System.setProperty("https.proxyPort", "8080");
+                    System.setProperty("https.proxyUser", "user");
+                    System.setProperty("https.proxyPassword", "password");
                     System.setProperty("http.nonProxyHosts", "www.system-property.de");
 
                     new ProxyHandler();
 
-                    assertThat(System.getProperty("http.proxyHost")).isEqualTo("localhost");
-                    assertThat(System.getProperty("http.proxyPort")).isEqualTo("8080");
-                    assertThat(System.getProperty("http.proxyUser")).isEqualTo("user");
-                    assertThat(System.getProperty("http.proxyPassword")).isEqualTo("password");
+                    assertThat(System.getProperty("https.proxyHost")).isEqualTo("localhost");
+                    assertThat(System.getProperty("https.proxyPort")).isEqualTo("8080");
+                    assertThat(System.getProperty("https.proxyUser")).isEqualTo("user");
+                    assertThat(System.getProperty("https.proxyPassword")).isEqualTo("password");
                     assertThat(System.getProperty("http.nonProxyHosts"))
                         .isEqualTo("www.system-property.de");
                   });
