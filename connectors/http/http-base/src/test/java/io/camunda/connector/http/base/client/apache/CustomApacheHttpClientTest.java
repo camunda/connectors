@@ -251,14 +251,14 @@ public class CustomApacheHttpClientTest {
     }
 
     private static void unsetAllSystemProperties() {
-      System.setProperty("http.proxyHost", "");
-      System.setProperty("http.proxyPort", "");
-      System.setProperty("http.nonProxyHosts", "");
-      System.setProperty("https.proxyHost", "");
-      System.setProperty("https.proxyPort", "");
-      System.setProperty("https.nonProxyHosts", "");
-      System.setProperty("http.proxyUser", "");
-      System.setProperty("http.proxyPassword", "");
+      System.clearProperty("http.proxyHost");
+      System.clearProperty("http.proxyPort");
+      System.clearProperty("http.nonProxyHosts");
+      System.clearProperty("https.proxyHost");
+      System.clearProperty("https.proxyPort");
+      System.clearProperty("https.nonProxyHosts");
+      System.clearProperty("http.proxyUser");
+      System.clearProperty("http.proxyPassword");
     }
 
     @AfterAll

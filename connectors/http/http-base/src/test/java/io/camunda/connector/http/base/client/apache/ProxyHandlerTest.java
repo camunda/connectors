@@ -44,15 +44,15 @@ public class ProxyHandlerTest {
   }
 
   public static void unsetAllSystemProperties() {
-    System.setProperty("http.proxyHost", "");
-    System.setProperty("http.proxyPort", "");
-    System.setProperty("http.nonProxyHosts", "");
+    System.clearProperty("http.proxyHost");
+    System.clearProperty("http.proxyPort");
+    System.clearProperty("http.nonProxyHosts");
     // user and password kept to null to make tests easier. You can still test https value if needed
 
-    System.setProperty("https.proxyHost", "");
-    System.setProperty("https.proxyPort", "");
-    System.setProperty("https.proxyUser", "");
-    System.setProperty("https.proxyPassword", "");
+    System.clearProperty("https.proxyHost");
+    System.clearProperty("https.proxyPort");
+    System.clearProperty("https.proxyUser");
+    System.clearProperty("https.proxyPassword");
   }
 
   @Test
@@ -113,11 +113,11 @@ public class ProxyHandlerTest {
                   "www.test.de")
               .execute(
                   () -> {
-                    assertThat(System.getProperty("https.proxyHost")).isEmpty();
-                    assertThat(System.getProperty("https.proxyPort")).isEmpty();
-                    assertThat(System.getProperty("https.proxyUser")).isEmpty();
-                    assertThat(System.getProperty("https.proxyPassword")).isEmpty();
-                    assertThat(System.getProperty("http.nonProxyHosts")).isEmpty();
+                    assertThat(System.getProperty("https.proxyHost")).isNull();
+                    assertThat(System.getProperty("https.proxyPort")).isNull();
+                    assertThat(System.getProperty("https.proxyUser")).isNull();
+                    assertThat(System.getProperty("https.proxyPassword")).isNull();
+                    assertThat(System.getProperty("http.nonProxyHosts")).isNull();
 
                     new ProxyHandler();
 
@@ -143,11 +143,11 @@ public class ProxyHandlerTest {
                   "www.test.de")
               .execute(
                   () -> {
-                    assertThat(System.getProperty("http.proxyHost")).isEmpty();
-                    assertThat(System.getProperty("http.proxyPort")).isEmpty();
+                    assertThat(System.getProperty("http.proxyHost")).isNull();
+                    assertThat(System.getProperty("http.proxyPort")).isNull();
                     assertThat(System.getProperty("http.proxyUser")).isNull();
                     assertThat(System.getProperty("http.proxyPassword")).isNull();
-                    assertThat(System.getProperty("http.nonProxyHosts")).isEmpty();
+                    assertThat(System.getProperty("http.nonProxyHosts")).isNull();
 
                     new ProxyHandler();
 
