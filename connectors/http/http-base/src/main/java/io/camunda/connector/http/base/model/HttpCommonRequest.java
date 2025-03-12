@@ -130,6 +130,14 @@ public class HttpCommonRequest {
       optional = true)
   private String groupSetCookieHeaders;
 
+  @TemplateProperty(
+      group = "payload",
+      type = PropertyType.Boolean,
+      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+      defaultValue = "false",
+      tooltip = "Null values will not be sent")
+  private boolean ignoreNullValues;
+
   public Object getBody() {
     return body;
   }
@@ -298,5 +306,13 @@ public class HttpCommonRequest {
         + ", storeResponse="
         + storeResponse
         + '}';
+  }
+
+  public boolean isIgnoreNullValues() {
+    return ignoreNullValues;
+  }
+
+  public void setIgnoreNullValues(boolean ignoreNullValues) {
+    this.ignoreNullValues = ignoreNullValues;
   }
 }
