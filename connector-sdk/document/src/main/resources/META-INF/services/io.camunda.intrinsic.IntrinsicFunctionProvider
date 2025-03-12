@@ -1,0 +1,3 @@
+io.camunda.intrinsic.functions.Base64Function
+io.camunda.intrinsic.functions.CreateLinkFunction
+io.camunda.intrinsic.functions.GetTextFunction

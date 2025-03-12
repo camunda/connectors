@@ -39,4 +39,6 @@ public interface Document {
   byte[] asByteArray();
 
   DocumentReference reference();
+
+  String generateLink(DocumentLinkParameters parameters);
 }

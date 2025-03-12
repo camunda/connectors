@@ -110,7 +110,7 @@ public class CustomApacheHttpClientTest {
       DocumentReference.CamundaDocumentReference responseDocumentReference =
           (DocumentReference.CamundaDocumentReference) responseDocument.reference();
       assertThat(responseDocumentReference).isNotNull();
-      var documentContent = documents.get(responseDocumentReference.documentId());
+      var documentContent = documents.get(responseDocumentReference.getDocumentId());
       assertThat(documentContent)
           .isEqualTo(getClass().getResourceAsStream("/__files/fileName.jpg").readAllBytes());
     }
@@ -131,7 +131,7 @@ public class CustomApacheHttpClientTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
       var bodyMap = new HashMap<>();
-      bodyMap.put("document", new CamundaDocument(ref.metadata(), ref, store));
+      bodyMap.put("document", new CamundaDocument(ref.getMetadata(), ref, store));
       bodyMap.put("otherField", "otherValue");
       bodyMap.put("nullField", null);
       request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
@@ -179,8 +179,8 @@ public class CustomApacheHttpClientTest {
       bodyMap.put(
           "documents",
           List.of(
-              new CamundaDocument(ref.metadata(), ref, store),
-              new CamundaDocument(ref2.metadata(), ref2, store)));
+              new CamundaDocument(ref.getMetadata(), ref, store),
+              new CamundaDocument(ref2.getMetadata(), ref2, store)));
       bodyMap.put("otherField", "otherValue");
       bodyMap.put("nullField", null);
       request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
