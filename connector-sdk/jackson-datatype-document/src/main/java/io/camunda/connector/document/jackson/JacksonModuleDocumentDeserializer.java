@@ -14,40 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.annotation.jackson;
+package io.camunda.connector.document.jackson;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.camunda.connector.document.annotation.jackson.deserializer.ByteArrayDocumentDeserializer;
-import io.camunda.connector.document.annotation.jackson.deserializer.DocumentDeserializer;
-import io.camunda.connector.document.annotation.jackson.deserializer.DocumentOperationResultDeserializer;
-import io.camunda.connector.document.annotation.jackson.deserializer.InputStreamDocumentDeserializer;
-import io.camunda.connector.document.annotation.jackson.deserializer.ObjectDocumentDeserializer;
-import io.camunda.connector.document.annotation.jackson.deserializer.StringDocumentDeserializer;
-import io.camunda.connector.document.annotation.jackson.serializer.DocumentSerializer;
+import io.camunda.connector.document.jackson.deserializer.ByteArrayDeserializer;
+import io.camunda.connector.document.jackson.deserializer.DocumentDeserializer;
+import io.camunda.connector.document.jackson.deserializer.InputStreamDeserializer;
+import io.camunda.connector.document.jackson.deserializer.ObjectDeserializer;
+import io.camunda.connector.document.jackson.deserializer.StringDeserializer;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
+import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.InputStream;
 
 public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
   private final DocumentFactory documentFactory;
-  private final DocumentOperationExecutor operationExecutor;
+  private final IntrinsicFunctionExecutor intrinsicFunctionExecutor;
   private final DocumentModuleSettings settings;
 
   public JacksonModuleDocumentDeserializer(
       DocumentFactory documentFactory,
-      DocumentOperationExecutor operationExecutor,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
       DocumentModuleSettings settings) {
     this.documentFactory = documentFactory;
-    this.operationExecutor = operationExecutor;
+    this.intrinsicFunctionExecutor = intrinsicFunctionExecutor;
     this.settings = settings;
   }
 
   public JacksonModuleDocumentDeserializer(
-      DocumentFactory documentFactory, DocumentOperationExecutor operationExecutor) {
-    this(documentFactory, operationExecutor, DocumentModuleSettings.create());
+      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+    this(documentFactory, intrinsicFunctionExecutor, DocumentModuleSettings.create());
   }
 
   @Override
@@ -63,29 +61,25 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
   @Override
   public void setupModule(SetupContext context) {
-    addDeserializer(Document.class, new DocumentDeserializer(operationExecutor, documentFactory));
     addDeserializer(
-        DocumentOperationResult.class,
-        new DocumentOperationResultDeserializer(operationExecutor, documentFactory));
+        Document.class, new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor));
     addDeserializer(
-        byte[].class, new ByteArrayDocumentDeserializer(operationExecutor, documentFactory));
+        byte[].class, new ByteArrayDeserializer(documentFactory, intrinsicFunctionExecutor));
     addDeserializer(
-        InputStream.class, new InputStreamDocumentDeserializer(operationExecutor, documentFactory));
+        InputStream.class, new InputStreamDeserializer(documentFactory, intrinsicFunctionExecutor));
     if (settings.enableObject) {
       addDeserializer(
-          Object.class,
-          new ObjectDocumentDeserializer(operationExecutor, documentFactory, settings.lazy));
+          Object.class, new ObjectDeserializer(documentFactory, intrinsicFunctionExecutor));
     }
     if (settings.enableString) {
       addDeserializer(
-          String.class, new StringDocumentDeserializer(operationExecutor, documentFactory));
+          String.class, new StringDeserializer(documentFactory, intrinsicFunctionExecutor));
     }
     super.setupModule(context);
   }
 
   public static class DocumentModuleSettings {
 
-    private boolean lazy = true;
     private boolean enableObject = true;
     private boolean enableString = true;
 
@@ -93,23 +87,6 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
     public static DocumentModuleSettings create() {
       return new DocumentModuleSettings();
-    }
-
-    /**
-     * Enable lazy operations for document deserialization.
-     *
-     * <p>When enabled, given that the connector consumes a document as a generic {@link Object}
-     * type, and an operation is present in the document reference, the operation is not executed in
-     * the deserialization phase. Instead, the operation is executed during serialization using the
-     * {@link DocumentSerializer}.
-     *
-     * <p>Disable lazy operations if your connector doesn't use the document module for
-     * serialization (or doesn't use Jackson at all).
-     *
-     * <p>This takes no effect if {@link #enableObject(boolean)} is disabled.
-     */
-    public void lazyOperations(boolean lazy) {
-      this.lazy = lazy;
     }
 
     /** Enable deserialization of document references into objects. */

@@ -16,6 +16,7 @@
  */
 package io.camunda.document.store;
 
+import io.camunda.document.DocumentLinkParameters;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import io.camunda.zeebe.client.ZeebeClient;
@@ -51,19 +52,22 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
 
   @Override
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
-    return zeebeClient
-        .newDocumentContentGetRequest(reference)
-        .storeId(reference.storeId())
-        .send()
-        .join();
+    return zeebeClient.newDocumentContentGetRequest(reference).send().join();
   }
 
   @Override
   public void deleteDocument(CamundaDocumentReference reference) {
-    zeebeClient
-        .newDeleteDocumentCommand(reference.documentId())
-        .storeId(reference.storeId())
-        .send()
-        .join();
+    zeebeClient.newDeleteDocumentCommand(reference).send().join();
+  }
+
+  @Override
+  public String generateLink(
+      CamundaDocumentReference reference, DocumentLinkParameters parameters) {
+    final var command = zeebeClient.newCreateDocumentLinkCommand(reference);
+
+    if (parameters.timeToLive() != null) {
+      command.timeToLive(parameters.timeToLive());
+    }
+    return command.send().join().getUrl();
   }
 }

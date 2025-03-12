@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.annotation.jackson;
+package io.camunda.connector.document.jackson;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -23,14 +23,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.document.operation.DocumentOperation;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.Optional;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -45,14 +43,6 @@ import java.util.Optional;
 public sealed interface DocumentReferenceModel extends DocumentReference {
 
   String DISCRIMINATOR_KEY = "camunda.document.type";
-
-  /**
-   * Document references may have operations associated with them. Operation indicates that the
-   * document should not be used as is, but should be transformed or processed in some way. This
-   * processing must take place in the context of the connector.
-   */
-  @JsonInclude(Include.NON_EMPTY)
-  Optional<DocumentOperation> operation();
 
   @JsonInclude(Include.NON_EMPTY)
   record CamundaDocumentMetadataModel(
@@ -113,11 +103,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
   }
 
   record CamundaDocumentReferenceModel(
-      String storeId,
-      String documentId,
-      String contentHash,
-      CamundaDocumentMetadataModel metadata,
-      Optional<DocumentOperation> operation)
+      String storeId, String documentId, String contentHash, CamundaDocumentMetadataModel metadata)
       implements DocumentReferenceModel, CamundaDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)
@@ -146,7 +132,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     }
   }
 
-  record ExternalDocumentReferenceModel(String url, Optional<DocumentOperation> operation)
+  record ExternalDocumentReferenceModel(String url)
       implements DocumentReferenceModel, ExternalDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)

@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.connector.document.jackson;
 
-import io.camunda.zeebe.client.api.response.DocumentReferenceResponse;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
-public interface DocumentReference {
+public record IntrinsicFunctionModel(
+    @JsonProperty(DISCRIMINATOR_KEY) String name, List<Object> params) {
 
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
-
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
-  }
+  public static final String DISCRIMINATOR_KEY = "camunda.function.type";
 }
