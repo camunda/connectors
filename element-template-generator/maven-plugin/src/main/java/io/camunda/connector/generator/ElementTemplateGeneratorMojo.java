@@ -157,6 +157,11 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
   private void writeMetaInfFiles() throws MojoFailureException {
     try {
+      List<ConnectorConfig> filteredConnectors =
+          Arrays.stream(connectors).filter(ConnectorConfig::isWriteMetaInfFileGeneration).toList();
+      if (filteredConnectors.isEmpty()) {
+        return;
+      }
       String uriString = getResourcesDirectory().toString().replaceFirst("^file:", "");
       Path path = Paths.get(uriString + File.separator + "META-INF" + File.separator + "services");
       Files.createDirectories(path);
@@ -169,7 +174,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
                   "io.camunda.connector.api.outbound.OutboundConnectorFunction");
 
       ClassLoader projectClassLoader = getProjectClassLoader();
-      for (ConnectorConfig connector : connectors) {
+      for (ConnectorConfig connector : filteredConnectors) {
         Class<?> connectorClass =
             Class.forName(connector.getConnectorClass(), false, projectClassLoader);
 
