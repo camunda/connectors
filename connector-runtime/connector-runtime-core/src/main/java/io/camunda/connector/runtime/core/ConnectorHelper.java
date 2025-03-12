@@ -21,6 +21,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -59,11 +60,14 @@ public class ConnectorHelper {
       var mappedResponseJson =
           FEEL_ENGINE_WRAPPER.evaluateToJson(
               resultExpression, responseContent, wrapResponse(responseContent));
-      var mappedResponse =
-          parseJsonVarsAsTypeOrThrow(mappedResponseJson, Map.class, resultExpression);
-      outputVariables.putAll(mappedResponse);
+      if (mappedResponseJson != null) {
+        var mappedResponse =
+            parseJsonVarsAsTypeOrThrow(mappedResponseJson, Map.class, resultExpression);
+        if (mappedResponse != null) {
+          outputVariables.putAll(mappedResponse);
+        }
+      }
     }
-
     return outputVariables;
   }
 
@@ -78,7 +82,6 @@ public class ConnectorHelper {
             expression ->
                 FEEL_ENGINE_WRAPPER.evaluateToJson(
                     expression, responseContent, wrapResponse(responseContent), jobContext))
-        .filter(json -> !json.equals("null"))
         .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
         .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
         .filter(
@@ -109,11 +112,12 @@ public class ConnectorHelper {
     try {
       return OBJECT_MAPPER.readValue(jsonVars, type);
     } catch (JsonProcessingException e) {
-      throw new FeelEngineWrapperException(
-          String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
-          expression,
-          jsonVars,
-          e);
+      throw new ConnectorInputException(
+          new FeelEngineWrapperException(
+              String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
+              expression,
+              jsonVars,
+              e));
     }
   }
 }

@@ -76,7 +76,7 @@ public class HttpCommonResultResponseHandler
           return getResultForCloudFunction(code, content, headers, reason);
         }
         var bytes = content.readAllBytes();
-        var documentReference = handleFileResponse(headers, bytes);
+        var documentReference = fileResponseHandler.handle(headers, bytes);
         return new HttpCommonResult(
             code,
             headers,
@@ -111,12 +111,6 @@ public class HttpCommonResultResponseHandler
                   }
                   return existingValue;
                 }));
-  }
-
-  private Document handleFileResponse(Map<String, Object> headers, byte[] content) {
-    var document = fileResponseHandler.handle(headers, content);
-    LOGGER.debug("Stored response as document. Document reference: {}", document);
-    return document;
   }
 
   /**

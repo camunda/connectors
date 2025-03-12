@@ -59,11 +59,14 @@ public class FileResponseHandler {
     if (storeResponseSelected()
         && executionEnvironment instanceof ExecutionEnvironment.StoresDocument env) {
       try (var byteArrayInputStream = new ByteArrayInputStream(content)) {
-        return env.documentFactory()
-            .create(
-                DocumentCreationRequest.from(byteArrayInputStream)
-                    .contentType(getContentType(headers))
-                    .build());
+        var document =
+            env.documentFactory()
+                .create(
+                    DocumentCreationRequest.from(byteArrayInputStream)
+                        .contentType(getContentType(headers))
+                        .build());
+        LOGGER.debug("Stored response as document. Document reference: {}", document);
+        return document;
       } catch (IOException e) {
         LOGGER.error("Failed to create document", e);
         throw new RuntimeException(e);
