@@ -125,7 +125,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-identity>1.15.4</version.azure-identity>
 
     <version.bouncycastle>1.80</version.bouncycastle>
-    <version.box-sdk>4.15.2</version.box-sdk>
+    <version.box-sdk>4.15.3</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
