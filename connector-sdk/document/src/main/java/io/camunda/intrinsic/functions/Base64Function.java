@@ -14,15 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.intrinsic.functions;
 
-import io.camunda.zeebe.client.api.response.DocumentReferenceResponse;
+import io.camunda.document.Document;
+import io.camunda.intrinsic.IntrinsicFunction;
+import io.camunda.intrinsic.IntrinsicFunctionProvider;
+import java.util.Base64;
 
-public interface DocumentReference {
+public class Base64Function implements IntrinsicFunctionProvider {
 
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
-
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
+  @IntrinsicFunction(name = "base64")
+  public String execute(Object input) {
+    if (input instanceof Document) {
+      return ((Document) input).asBase64();
+    }
+    if (input instanceof String) {
+      return Base64.getEncoder().encodeToString(((String) input).getBytes());
+    }
+    throw new IllegalArgumentException(
+        "Unsupported input type: " + input.getClass() + ". Expected Document or String.");
   }
 }

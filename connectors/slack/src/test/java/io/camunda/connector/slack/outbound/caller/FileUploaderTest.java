@@ -22,7 +22,7 @@ import com.slack.api.methods.response.files.FilesCompleteUploadExternalResponse;
 import com.slack.api.methods.response.files.FilesGetUploadURLExternalResponse;
 import com.slack.api.model.File;
 import com.slack.api.util.http.SlackHttpClient;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
 import io.camunda.document.reference.DocumentReference;

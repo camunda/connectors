@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.operation;
+package io.camunda.intrinsic;
 
-import io.camunda.document.Document;
+import java.util.List;
 
-public interface DocumentOperationExecutor {
+public sealed interface IntrinsicFunctionParams {
 
-  boolean matches(DocumentOperation operationReference);
+  record Positional(List<Object> params) implements IntrinsicFunctionParams {}
 
-  Object execute(DocumentOperation operationReference, Document document);
+  // TODO: named parameters: https://github.com/camunda/connectors/issues/4263
 }

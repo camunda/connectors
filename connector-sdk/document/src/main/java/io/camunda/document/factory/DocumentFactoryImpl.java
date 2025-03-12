@@ -39,7 +39,7 @@ public class DocumentFactoryImpl implements DocumentFactory {
     }
     if (reference instanceof CamundaDocumentReference camundaDocumentReference) {
       return new CamundaDocument(
-          camundaDocumentReference.metadata(), camundaDocumentReference, documentStore);
+          camundaDocumentReference.getMetadata(), camundaDocumentReference, documentStore);
     }
     if (reference instanceof ExternalDocumentReference ignored) {
       throw new IllegalArgumentException(

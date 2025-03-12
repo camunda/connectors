@@ -14,15 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.intrinsic;
 
-import io.camunda.zeebe.client.api.response.DocumentReferenceResponse;
+public interface IntrinsicFunctionExecutor {
 
-public interface DocumentReference {
-
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
-
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
-  }
+  Object execute(String operationName, IntrinsicFunctionParams params);
 }

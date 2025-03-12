@@ -40,8 +40,8 @@ public class TestDocumentFactory implements DocumentFactory {
   public Document create(DocumentCreationRequest request) {
     var reference = store.createDocument(request);
     var metadata = new DocumentMetadata();
-    metadata.setContentType(reference.metadata().getContentType());
-    metadata.setFileName(reference.metadata().getFileName());
+    metadata.setContentType(reference.getMetadata().getContentType());
+    metadata.setFileName(reference.getMetadata().getFileName());
     return new CamundaDocument(new DocumentMetadataImpl(metadata), reference, store);
   }
 }

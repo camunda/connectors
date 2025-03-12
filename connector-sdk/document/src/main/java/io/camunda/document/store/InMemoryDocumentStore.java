@@ -16,6 +16,7 @@
  */
 package io.camunda.document.store;
 
+import io.camunda.document.DocumentLinkParameters;
 import io.camunda.document.reference.CamundaDocumentReferenceImpl;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import io.camunda.zeebe.client.api.response.DocumentMetadata;
@@ -97,15 +98,15 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
     logWarning();
     if (reference.getContentHash() == null || reference.getContentHash().isEmpty()) {
-      throw new RuntimeException("Content hash is missing: " + reference.documentId());
+      throw new RuntimeException("Content hash is missing: " + reference.getDocumentId());
     }
     var hash = reference.getContentHash();
-    var content = documents.get(reference.documentId());
+    var content = documents.get(reference.getDocumentId());
     if (content == null) {
-      throw new RuntimeException("Document not found: " + reference.documentId());
+      throw new RuntimeException("Document not found: " + reference.getDocumentId());
     }
     if (!hash.equals(String.valueOf(content.length))) {
-      throw new RuntimeException("Content hash mismatch: " + reference.documentId());
+      throw new RuntimeException("Content hash mismatch: " + reference.getDocumentId());
     }
     return new ByteArrayInputStream(content);
   }
@@ -113,7 +114,14 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   @Override
   public void deleteDocument(CamundaDocumentReference reference) {
     logWarning();
-    documents.remove(reference.documentId());
+    documents.remove(reference.getDocumentId());
+  }
+
+  @Override
+  public String generateLink(
+      CamundaDocumentReference reference, DocumentLinkParameters parameters) {
+    logWarning();
+    throw new UnsupportedOperationException("Not implemented");
   }
 
   public void clear() {
