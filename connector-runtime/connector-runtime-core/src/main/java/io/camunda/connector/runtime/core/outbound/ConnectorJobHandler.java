@@ -40,10 +40,12 @@ import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
+import io.camunda.connector.runtime.core.secret.SecretUtil;
 import io.camunda.document.factory.DocumentFactory;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -95,13 +97,13 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected static Map<String, Object> exceptionToMap(Exception exception) {
     Map<String, Object> result = new HashMap<>();
-    result.put("type", exception.getClass().getName());
+    result.put("type", exception.getCause().getClass().getName());
     var message = exception.getMessage();
     if (message != null) {
       result.put(
           "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
     }
-    if (exception instanceof ConnectorException connectorException) {
+    if (exception.getCause() instanceof ConnectorException connectorException) {
       var code = connectorException.getErrorCode();
       var variables = connectorException.getErrorVariables();
 
@@ -168,16 +170,23 @@ public class ConnectorJobHandler implements JobHandler {
         : null;
   }
 
+  public String hideSecretsFromMessage(String message, List<String> secrets) {
+    return secrets.stream().reduce(message, (s, s2) -> s.replace(s2, "***"));
+  }
+
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
     LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
+    List<String> secrets = SecretUtil.retrieveSecretValues(job.getVariables(), getSecretProvider());
 
     Duration retryBackoff;
     try {
       retryBackoff = getBackoffDuration(job);
     } catch (Exception e) {
+      Exception newException = new Exception(hideSecretsFromMessage(e.getMessage(), secrets), e);
       ConnectorResult.ErrorResult result =
-          new ConnectorResult.ErrorResult(Map.of("error", exceptionToMap(e)), e, 0);
+          new ConnectorResult.ErrorResult(
+              Map.of("error", exceptionToMap(newException)), newException, 0);
       failJob(client, job, result);
       return;
     }
@@ -196,22 +205,27 @@ public class ConnectorJobHandler implements JobHandler {
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
       result = new ConnectorResult.SuccessResult(response, responseVariables);
     } catch (ConnectorRetryException ex) {
+      Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
       LOGGER.debug(
-          "ConnectorRetryException while processing job: {} for tenant: {}",
+          "ConnectorRetryException while processing job: {} for tenant: {}, error message: {}",
           job.getKey(),
           job.getTenantId(),
-          ex);
+          newException.getMessage());
       String errorCode = ex.getErrorCode();
       result =
           handleSDKException(
               job,
-              ex,
+              newException,
               Optional.ofNullable(ex.getRetries()).orElse(job.getRetries() - 1),
               errorCode,
               Optional.ofNullable(ex.getBackoffDuration()).orElse(retryBackoff));
     } catch (Exception ex) {
+      Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
       LOGGER.debug(
-          "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
+          "Exception while processing job: {} for tenant: {}, message: {}",
+          job.getKey(),
+          job.getTenantId(),
+          newException.getMessage());
 
       String errorCode = null;
       int retries = job.getRetries() - 1;
@@ -223,7 +237,7 @@ public class ConnectorJobHandler implements JobHandler {
           || ex.getCause() instanceof ConnectorInputException) {
         retries = 0;
       }
-      result = handleSDKException(job, ex, retries, errorCode, retryBackoff);
+      result = handleSDKException(job, newException, retries, errorCode, retryBackoff);
     }
 
     try {
@@ -250,9 +264,13 @@ public class ConnectorJobHandler implements JobHandler {
                 }
               });
     } catch (Exception ex) {
+      Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
       logError(job, ex);
       // failure while parsing the error expression
-      failJob(client, job, new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, 0));
+      failJob(
+          client,
+          job,
+          new ErrorResult(Map.of("error", exceptionToMap(newException)), newException, 0));
     }
   }
 
@@ -297,7 +315,10 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected void logError(ActivatedJob job, Exception ex) {
     LOGGER.error(
-        "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
+        "Exception while processing job: {} for tenant: {}, message: {}",
+        job.getKey(),
+        job.getTenantId(),
+        ex.getMessage());
   }
 
   protected void completeJob(
