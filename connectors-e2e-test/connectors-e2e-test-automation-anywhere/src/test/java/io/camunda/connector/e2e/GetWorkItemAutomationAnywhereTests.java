@@ -24,7 +24,7 @@ import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.connector.test.ConnectorsIntegrationTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.File;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@CamundaSpringProcessTest
+@ConnectorsIntegrationTest
 @ExtendWith(MockitoExtension.class)
 public class GetWorkItemAutomationAnywhereTests extends BaseAutomationAnywhereTest {
 

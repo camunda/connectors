@@ -46,7 +46,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.connector.test.ConnectorsIntegrationTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,7 +68,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
     })
-@CamundaSpringProcessTest
+@ConnectorsIntegrationTest
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class WebhookControllerTestZeebeTests {
@@ -87,6 +87,7 @@ class WebhookControllerTestZeebeTests {
 
   @BeforeEach
   public void beforeEach() {
+    System.out.println("System property 'quickly': " + System.getProperty("quickly"));
     webhookConnectorRegistry.reset();
   }
 

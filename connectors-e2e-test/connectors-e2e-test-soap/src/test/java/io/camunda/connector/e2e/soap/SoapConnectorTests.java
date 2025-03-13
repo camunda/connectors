@@ -25,7 +25,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
+import io.camunda.connector.test.ConnectorsIntegrationTest;
 import java.io.File;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@CamundaSpringProcessTest
+@ConnectorsIntegrationTest
 @ExtendWith(MockitoExtension.class)
 public class SoapConnectorTests extends SoapConnectorBaseTest {
 
