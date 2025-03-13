@@ -38,6 +38,7 @@ import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.document.store.DocumentCreationRequest;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.hc.core5.http.ContentType;
@@ -200,8 +201,7 @@ public class HttpServiceTest {
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
-    assertThat(result.headers()).contains(Map.entry("Set-Cookie", "key=value"));
-    assertThat(result.headers()).doesNotContain(Map.entry("Set-Cookie", "key2=value2"));
+    assertThat(result.headers()).containsEntry("Set-Cookie", List.of("key=value", "key2=value2"));
     JSONAssert.assertEquals(
         "{\"responseKey1\":\"value1\",\"responseKey2\":40,\"responseKey3\":null}",
         objectMapper.writeValueAsString(result.body()),
