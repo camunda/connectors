@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
-import io.camunda.connector.api.secret.SecretProvider;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -98,14 +97,13 @@ public class SecretUtil {
     return output.toString();
   }
 
-  public static List<String> retrieveSecretValues(String input, SecretProvider secretProvider) {
+  public static List<String> retrieveSecretKeysInInput(String input) {
     return Objects.isNull(input)
         ? List.of()
         : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
             .map(pattern -> pattern.matcher(input))
             .flatMap(Matcher::results)
             .map(matchResult -> matchResult.group("secret"))
-            .map(secretProvider::getSecret)
             .distinct()
             .toList();
   }

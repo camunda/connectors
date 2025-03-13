@@ -34,6 +34,7 @@ import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
+import io.camunda.connector.runtime.core.error.InvalidBackOffDuration;
 import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
@@ -95,15 +96,16 @@ public class ConnectorJobHandler implements JobHandler {
     this.objectMapper = objectMapper;
   }
 
-  protected static Map<String, Object> exceptionToMap(Exception exception) {
+  protected static Map<String, Object> exceptionToMap(Exception wrappedException) {
     Map<String, Object> result = new HashMap<>();
-    result.put("type", exception.getCause().getClass().getName());
-    var message = exception.getMessage();
+    Throwable originalCause = wrappedException.getCause();
+    result.put("type", originalCause.getClass().getName());
+    var message = wrappedException.getMessage();
     if (message != null) {
       result.put(
           "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
     }
-    if (exception.getCause() instanceof ConnectorException connectorException) {
+    if (originalCause instanceof ConnectorException connectorException) {
       var code = connectorException.getErrorCode();
       var variables = connectorException.getErrorVariables();
 
@@ -119,12 +121,12 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
+      JobClient client, ActivatedJob job, SuccessResult result) {
     return client.newCompleteCommand(job).variables(result.variables());
   }
 
   protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+      JobClient client, ActivatedJob job, ErrorResult result) {
     var retries = result.retries();
     var errorMessage = truncateErrorMessage(result.exception().getMessage());
     Duration backoff = result.retryBackoff();
@@ -156,7 +158,7 @@ public class ConnectorJobHandler implements JobHandler {
     try {
       return Duration.parse(backoffHeader);
     } catch (DateTimeParseException e) {
-      throw new RuntimeException(
+      throw new InvalidBackOffDuration(
           "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
               + "got: "
               + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD),
@@ -177,23 +179,13 @@ public class ConnectorJobHandler implements JobHandler {
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
     LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
-    List<String> secrets = SecretUtil.retrieveSecretValues(job.getVariables(), getSecretProvider());
-
-    Duration retryBackoff;
-    try {
-      retryBackoff = getBackoffDuration(job);
-    } catch (Exception e) {
-      Exception newException = new Exception(hideSecretsFromMessage(e.getMessage(), secrets), e);
-      ConnectorResult.ErrorResult result =
-          new ConnectorResult.ErrorResult(
-              Map.of("error", exceptionToMap(newException)), newException, 0);
-      failJob(client, job, result);
-      return;
-    }
+    List<String> secrets =
+        getSecretProvider().fetchAll(SecretUtil.retrieveSecretKeysInInput(job.getVariables()));
 
     ConnectorResult result;
-
+    Duration retryBackoff = null;
     try {
+      retryBackoff = getBackoffDuration(job);
       var context =
           new JobHandlerContext(
               job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
@@ -203,43 +195,21 @@ public class ConnectorJobHandler implements JobHandler {
               response,
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
-      result = new ConnectorResult.SuccessResult(response, responseVariables);
+      result = new SuccessResult(response, responseVariables);
+    } catch (InvalidBackOffDuration e) {
+      handleBackOffException(client, job, e, secrets);
+      return;
     } catch (ConnectorRetryException ex) {
-      Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
-      LOGGER.debug(
-          "ConnectorRetryException while processing job: {} for tenant: {}, error message: {}",
-          job.getKey(),
-          job.getTenantId(),
-          newException.getMessage());
-      String errorCode = ex.getErrorCode();
-      result =
-          handleSDKException(
-              job,
-              newException,
-              Optional.ofNullable(ex.getRetries()).orElse(job.getRetries() - 1),
-              errorCode,
-              Optional.ofNullable(ex.getBackoffDuration()).orElse(retryBackoff));
+      result = handleConnectorRetryException(job, ex, secrets, retryBackoff);
     } catch (Exception ex) {
-      Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
-      LOGGER.debug(
-          "Exception while processing job: {} for tenant: {}, message: {}",
-          job.getKey(),
-          job.getTenantId(),
-          newException.getMessage());
-
-      String errorCode = null;
-      int retries = job.getRetries() - 1;
-
-      if (ex instanceof ConnectorException connectorException) {
-        errorCode = connectorException.getErrorCode();
-      }
-      if (ex instanceof ConnectorInputException
-          || ex.getCause() instanceof ConnectorInputException) {
-        retries = 0;
-      }
-      result = handleSDKException(job, newException, retries, errorCode, retryBackoff);
+      result = handleGenericException(job, ex, secrets, retryBackoff);
     }
 
+    processFinalResult(client, job, result, secrets);
+  }
+
+  private void processFinalResult(
+      JobClient client, ActivatedJob job, ConnectorResult result, List<String> secrets) {
     try {
       final ConnectorResult finalResult = result;
       ConnectorHelper.examineErrorExpression(
@@ -266,12 +236,62 @@ public class ConnectorJobHandler implements JobHandler {
     } catch (Exception ex) {
       Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
       logError(job, ex);
-      // failure while parsing the error expression
       failJob(
           client,
           job,
           new ErrorResult(Map.of("error", exceptionToMap(newException)), newException, 0));
     }
+  }
+
+  private ConnectorResult handleGenericException(
+      ActivatedJob job, Exception ex, List<String> secrets, Duration retryBackoff) {
+    ConnectorResult result;
+    Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
+    LOGGER.debug(
+        "Exception while processing job: {} for tenant: {}, message: {}",
+        job.getKey(),
+        job.getTenantId(),
+        newException.getMessage());
+
+    String errorCode = null;
+    int retries = job.getRetries() - 1;
+
+    if (ex instanceof ConnectorException connectorException) {
+      errorCode = connectorException.getErrorCode();
+    }
+    if (ex instanceof ConnectorInputException || ex.getCause() instanceof ConnectorInputException) {
+      retries = 0;
+    }
+    result = handleSDKException(job, newException, retries, errorCode, retryBackoff);
+    return result;
+  }
+
+  private ConnectorResult handleConnectorRetryException(
+      ActivatedJob job, ConnectorRetryException ex, List<String> secrets, Duration retryBackoff) {
+    ConnectorResult result;
+    Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
+    LOGGER.debug(
+        "ConnectorRetryException while processing job: {} for tenant: {}, error message: {}",
+        job.getKey(),
+        job.getTenantId(),
+        newException.getMessage());
+    String errorCode = ex.getErrorCode();
+    result =
+        handleSDKException(
+            job,
+            newException,
+            Optional.ofNullable(ex.getRetries()).orElse(job.getRetries() - 1),
+            errorCode,
+            Optional.ofNullable(ex.getBackoffDuration()).orElse(retryBackoff));
+    return result;
+  }
+
+  private void handleBackOffException(
+      JobClient client, ActivatedJob job, Exception e, List<String> secrets) {
+    Exception newException = new Exception(hideSecretsFromMessage(e.getMessage(), secrets), e);
+    ErrorResult result =
+        new ErrorResult(Map.of("error", exceptionToMap(newException)), newException, 0);
+    failJob(client, job, result);
   }
 
   private void handleBPMNError(JobClient client, ActivatedJob job, ConnectorError error) {
@@ -321,12 +341,11 @@ public class ConnectorJobHandler implements JobHandler {
         ex.getMessage());
   }
 
-  protected void completeJob(
-      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
+  protected void completeJob(JobClient client, ActivatedJob job, SuccessResult result) {
     prepareCompleteJobCommand(client, job, result).send().join();
   }
 
-  protected void failJob(JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+  protected void failJob(JobClient client, ActivatedJob job, ErrorResult result) {
     prepareFailJobCommand(client, job, result).send().join();
   }
 
