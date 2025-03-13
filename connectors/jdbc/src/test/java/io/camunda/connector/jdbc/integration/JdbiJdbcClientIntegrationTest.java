@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.test.SlowTest;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @ExtendWith(MockitoExtension.class)
+@SlowTest
 public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
 
   public static final String PROVIDE_SQL_SERVERS_CONFIG =

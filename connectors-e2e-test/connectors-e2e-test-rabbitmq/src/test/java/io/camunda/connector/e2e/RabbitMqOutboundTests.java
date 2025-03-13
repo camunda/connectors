@@ -26,7 +26,8 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
-import io.camunda.connector.test.ConnectorsIntegrationTest;
+import io.camunda.connector.test.SlowTest;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -51,7 +52,8 @@ import org.testcontainers.utility.DockerImageName;
       "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ConnectorsIntegrationTest
+@CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public class RabbitMqOutboundTests extends BaseRabbitMqTest {
   private static final String QUEUE_NAME = "testQueue";

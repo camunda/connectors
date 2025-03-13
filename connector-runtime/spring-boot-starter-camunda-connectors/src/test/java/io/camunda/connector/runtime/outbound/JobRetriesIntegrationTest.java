@@ -30,7 +30,8 @@ import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.outbound.JobRetriesIntegrationTest.CustomConfiguration;
-import io.camunda.connector.test.ConnectorsIntegrationTest;
+import io.camunda.connector.test.SlowTest;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +52,8 @@ import org.springframework.context.annotation.Primary;
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false"
     })
-@ConnectorsIntegrationTest
+@CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public class JobRetriesIntegrationTest {
 

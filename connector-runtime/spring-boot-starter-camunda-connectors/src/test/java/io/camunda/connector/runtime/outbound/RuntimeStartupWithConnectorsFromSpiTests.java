@@ -19,7 +19,8 @@ package io.camunda.connector.runtime.outbound;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.test.ConnectorsIntegrationTest;
+import io.camunda.connector.test.SlowTest;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.spring.client.annotation.value.JobWorkerValue;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
 import java.util.Optional;
@@ -33,7 +34,8 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=false"
     },
     classes = {TestConnectorRuntimeApplication.class})
-@ConnectorsIntegrationTest
+@CamundaSpringProcessTest
+@SlowTest
 class RuntimeStartupWithConnectorsFromSpiTests {
 
   @Autowired private JobWorkerManager jobWorkerManager;

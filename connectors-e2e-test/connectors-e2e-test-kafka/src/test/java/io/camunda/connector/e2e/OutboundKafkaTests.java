@@ -21,8 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.e2e.helper.KafkaTestConsumer;
 import io.camunda.connector.kafka.inbound.KafkaInboundMessage;
-import io.camunda.connector.test.ConnectorsIntegrationTest;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -41,7 +42,8 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ConnectorsIntegrationTest
+@CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public class OutboundKafkaTests extends BaseKafkaTest {
   private static final String ELEMENT_TEMPLATE_PATH =

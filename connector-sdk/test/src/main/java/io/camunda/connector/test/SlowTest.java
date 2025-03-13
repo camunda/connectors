@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.test;
 
-import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -25,6 +24,5 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@CamundaSpringProcessTest
 @EnabledIfSystemProperty(named = "quickly", matches = "(?!true)")
-public @interface ConnectorsIntegrationTest {}
+public @interface SlowTest {}

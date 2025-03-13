@@ -25,7 +25,8 @@ import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.test.ConnectorsIntegrationTest;
+import io.camunda.connector.test.SlowTest;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.io.File;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +41,8 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ConnectorsIntegrationTest
+@CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public class EasyPostTests extends BaseEasyPostTest {
 
