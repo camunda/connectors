@@ -35,8 +35,7 @@ public class HttpCommonResultResponseHandlerTest {
   @Test
   public void shouldHandleJsonResponse_whenCloudFunctionDisabled() throws Exception {
     // given
-    HttpCommonResultResponseHandler handler =
-        new HttpCommonResultResponseHandler(null, false, false);
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler(null, false);
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
     response.setHeaders(headers);
@@ -56,8 +55,7 @@ public class HttpCommonResultResponseHandlerTest {
   @Test
   public void shouldHandleTextResponse_whenCloudFunctionDisabled() throws Exception {
     // given
-    HttpCommonResultResponseHandler handler =
-        new HttpCommonResultResponseHandler(null, false, false);
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler(null, false);
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "text/plain")};
     response.setHeaders(headers);
@@ -78,8 +76,7 @@ public class HttpCommonResultResponseHandlerTest {
   public void shouldHandleJsonResponse_whenCloudFunctionEnabled() throws Exception {
     // given
     HttpCommonResultResponseHandler handler =
-        new HttpCommonResultResponseHandler(
-            new ExecutionEnvironment.SaaSCluster(null), false, false);
+        new HttpCommonResultResponseHandler(new ExecutionEnvironment.SaaSCluster(null), false);
     ClassicHttpResponse response = new BasicClassicHttpResponse(201);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
     response.setHeaders(headers);
@@ -104,8 +101,7 @@ public class HttpCommonResultResponseHandlerTest {
   public void shouldHandleError_whenCloudFunctionEnabled() throws Exception {
     // given
     HttpCommonResultResponseHandler handler =
-        new HttpCommonResultResponseHandler(
-            new ExecutionEnvironment.SaaSCluster(null), false, false);
+        new HttpCommonResultResponseHandler(new ExecutionEnvironment.SaaSCluster(null), false);
     ClassicHttpResponse response = new BasicClassicHttpResponse(500);
     Header[] headers =
         new Header[] {
@@ -134,8 +130,7 @@ public class HttpCommonResultResponseHandlerTest {
   public void shouldHandleJsonAsTextResponse_whenCloudFunctionEnabled() throws Exception {
     // given
     HttpCommonResultResponseHandler handler =
-        new HttpCommonResultResponseHandler(
-            new ExecutionEnvironment.SaaSCluster(null), false, false);
+        new HttpCommonResultResponseHandler(new ExecutionEnvironment.SaaSCluster(null), false);
     ClassicHttpResponse response = new BasicClassicHttpResponse(201);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
     response.setHeaders(headers);

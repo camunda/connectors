@@ -602,17 +602,14 @@ public class CustomApacheHttpClientTest {
 
     private static Stream<Arguments> provideTestDataForHeaderTest() {
       return Stream.of(
-          Arguments.of("Set-Cookie", "false", false, "Test-Value-1"),
-          Arguments.of("Set-Cookie", "true", true, List.of("Test-Value-1", "Test-Value-2")),
-          Arguments.of("other-than-set-cookie", "false", false, "Test-Value-1"),
-          Arguments.of("other-than-set-cookie", "true", false, "Test-Value-1"));
+          Arguments.of("Set-Cookie", true, List.of("Test-Value-1", "Test-Value-2")),
+          Arguments.of("other-than-set-cookie", false, "Test-Value-1"));
     }
 
     @ParameterizedTest
     @MethodSource("provideTestDataForHeaderTest")
     public void shouldReturn200_whenDuplicatedHeadersAsListDisabled(
         String headerKey,
-        String groupSetCookieHeaders,
         Boolean expectedDoesReturnList,
         Object expectedValue,
         WireMockRuntimeInfo wmRuntimeInfo) {
@@ -620,7 +617,6 @@ public class CustomApacheHttpClientTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      request.setGroupSetCookieHeaders(groupSetCookieHeaders);
       HttpCommonResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
