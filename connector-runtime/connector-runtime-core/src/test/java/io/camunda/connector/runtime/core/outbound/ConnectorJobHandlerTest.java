@@ -863,6 +863,27 @@ class ConnectorJobHandlerTest {
     }
 
     @Test
+    void shouldHideSecretsInJobErrorMessage() {
+      // given
+      var errorMessage = "Something went wrong: bar is not the correct password";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new IllegalArgumentException(errorMessage);
+              });
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables("{{secrets.FOO}}")
+              .executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage())
+          .isEqualTo("Something went wrong: *** is not the correct password");
+    }
+
+    @Test
     void shouldCreateBpmnErro2r_UsingExceptionCodeAndErrorVariables() {
       // given
       var jobHandler =
