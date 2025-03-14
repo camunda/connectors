@@ -450,6 +450,16 @@ class ConnectorJobHandlerTest {
   @Nested
   class ExecutionTests {
 
+    private static Stream<RuntimeException> provideInputExceptions() {
+      return Stream.of(
+          new ConnectorExceptionBuilder()
+              .message("expected Connector Input Exception")
+              .cause(new ConnectorInputException(new Exception()))
+              .build(),
+          new ConnectorInputException(
+              "expected Connector Input Exception", new RuntimeException("cause")));
+    }
+
     @Test
     void shouldProduceFailCommandWhenCallThrowsException() {
       // given
@@ -523,16 +533,6 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorMessage()).isEqualTo("expected Connector Input Exception");
       assertThat(result.getRetries()).isEqualTo(0);
-    }
-
-    private static Stream<RuntimeException> provideInputExceptions() {
-      return Stream.of(
-          new ConnectorExceptionBuilder()
-              .message("expected Connector Input Exception")
-              .cause(new ConnectorInputException(new Exception()))
-              .build(),
-          new ConnectorInputException(
-              "expected Connector Input Exception", new RuntimeException("cause")));
     }
   }
 
@@ -876,6 +876,48 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withVariables("{{secrets.FOO}}")
+              .executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage())
+          .isEqualTo("Something went wrong: *** is not the correct password");
+    }
+
+    @Test
+    void shouldHideSecretsInJsonProcessingError() {
+      // given
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException(
+                    "JSON_PROCESSING_ERROR, bar could not be parsed as JSON String");
+              });
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables("{ \"integer\" : {{secrets.FOO}} }")
+              .executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage())
+          .isEqualTo("JSON_PROCESSING_ERROR, *** could not be parsed as JSON String");
+    }
+
+    @Test
+    void shouldHideSecretsInJobErrorJsonMessage() {
+      // given
+      var errorMessage = "Something went wrong: bar is not the correct password";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new IllegalArgumentException(errorMessage);
+              });
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables("{ \"integer\" : {{secrets.FOO}} }")
               .executeAndCaptureResult(jobHandler, false);
 
       // then

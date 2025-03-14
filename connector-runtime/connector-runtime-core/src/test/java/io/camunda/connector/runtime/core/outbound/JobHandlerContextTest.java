@@ -59,6 +59,27 @@ class JobHandlerContextTest {
   }
 
   @Test
+  void bindVariables_failedSecretAreBounded() {
+    String json = "{ \"integer\": \"{{secrets.FOO}}\"";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret("FOO")).thenReturn("secret");
+    Exception thrown =
+            assertThrows(
+                    ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+    assertThat(thrown.getMessage())
+            .isEqualTo("Json object contains an invalid field: integer. It Must be `Integer`");
+
+  }
+
+  @Test
+  void bindVariables_successSecretAreBounded() {
+    String json = "{ \"integer\": {{secrets.FOO}} }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret("FOO")).thenReturn("1");
+    assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(1);
+  }
+
+  @Test
   void bindVariables_nullValue() {
     String json = "{ \"integer\": null}";
     when(activatedJob.getVariables()).thenReturn(json);
