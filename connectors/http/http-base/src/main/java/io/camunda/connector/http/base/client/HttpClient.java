@@ -17,7 +17,7 @@
 package io.camunda.connector.http.base.client;
 
 import io.camunda.connector.http.base.ExecutionEnvironment;
-import io.camunda.connector.http.base.client.apache.ProxyHandler;
+import io.camunda.connector.http.base.client.apache.proxy.ProxyHandler;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import javax.annotation.Nullable;

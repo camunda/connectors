@@ -20,9 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.authentication.Base64Helper;
@@ -53,7 +51,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.MockedStatic;
+import org.mockito.MockedConstruction;
 
 public class ApacheRequestFactoryTest {
 
@@ -116,12 +114,11 @@ public class ApacheRequestFactoryTest {
       request.setAuthentication(
           new OAuthAuthentication(
               "url", "clientId", "secret", "audience", OAuthConstants.CREDENTIALS_BODY, "scopes"));
-      var mockedClient = mock(CustomApacheHttpClient.class);
-      try (MockedStatic<CustomApacheHttpClient> mockedClientSupplier =
-          mockStatic(CustomApacheHttpClient.class)) {
-        mockedClientSupplier.when(CustomApacheHttpClient::getDefault).thenReturn(mockedClient);
-        when(mockedClient.execute(any(HttpCommonRequest.class))).thenReturn(result);
-
+      try (MockedConstruction<CustomApacheHttpClient> mocked =
+          mockConstruction(
+              CustomApacheHttpClient.class,
+              (mock, context) ->
+                  when(mock.execute(any(HttpCommonRequest.class))).thenReturn(result))) {
         // when
         ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 

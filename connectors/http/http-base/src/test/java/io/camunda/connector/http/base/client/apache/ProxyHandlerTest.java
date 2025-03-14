@@ -22,6 +22,7 @@ import static uk.org.webcompere.systemstubs.SystemStubs.restoreSystemProperties;
 import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables;
 
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.http.base.client.apache.proxy.ProxyHandler;
 import org.apache.hc.client5.http.auth.CredentialsProvider;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.junit.jupiter.api.AfterAll;

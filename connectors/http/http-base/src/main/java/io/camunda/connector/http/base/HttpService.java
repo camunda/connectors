@@ -21,7 +21,6 @@ import io.camunda.connector.http.base.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.base.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.base.client.HttpClient;
 import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.base.client.apache.ProxyHandler;
 import io.camunda.connector.http.base.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -35,11 +34,11 @@ public class HttpService {
 
   private final CloudFunctionService cloudFunctionService;
 
-  private final HttpClient httpClient = CustomApacheHttpClient.getDefault();
+  private final HttpClient httpClient = new CustomApacheHttpClient();
 
   private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
 
-  private final ProxyHandler proxyHandler = new ProxyHandler();
+  // private final ProxyHandler proxyHandler = new ProxyHandler();
 
   public HttpService() {
     this(new CloudFunctionService());
@@ -73,7 +72,7 @@ public class HttpService {
   private HttpCommonResult executeRequest(
       HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
     try {
-      HttpCommonResult jsonResult = httpClient.execute(request, proxyHandler, executionEnvironment);
+      HttpCommonResult jsonResult = httpClient.execute(request, null, executionEnvironment);
       LOGGER.debug("Connector returned result: {}", jsonResult);
       return jsonResult;
     } catch (ConnectorException e) {

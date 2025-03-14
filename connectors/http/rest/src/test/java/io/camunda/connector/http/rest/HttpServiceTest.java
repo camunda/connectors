@@ -19,14 +19,14 @@ package io.camunda.connector.http.rest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 import io.camunda.connector.http.base.authentication.OAuthConstants;
 import io.camunda.connector.http.base.authentication.OAuthService;
 import io.camunda.connector.http.base.client.apache.ApacheRequestFactory;
 import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -68,10 +69,11 @@ class HttpServiceTest extends BaseTest {
     HttpCommonResult oauthResult =
         new HttpCommonResult(200, null, Map.of(OAuthConstants.ACCESS_TOKEN, ACCESS_TOKEN));
     var mockedClient = mock(CustomApacheHttpClient.class);
-    try (MockedStatic<CustomApacheHttpClient> mockedClientSupplier =
-        mockStatic(CustomApacheHttpClient.class)) {
-      mockedClientSupplier.when(CustomApacheHttpClient::getDefault).thenReturn(mockedClient);
-      when(mockedClient.execute(oauthRequest)).thenReturn(oauthResult);
+    try (MockedConstruction<CustomApacheHttpClient> mocked =
+        mockConstruction(
+            CustomApacheHttpClient.class,
+            (mock, ctx) ->
+                when(mock.execute(any(HttpCommonRequest.class))).thenReturn(oauthResult))) {
       // when
       String bearerToken = oAuthService.extractTokenFromResponse(oauthResult.body());
       var apacheRequest = ApacheRequestFactory.get().createHttpRequest(httpJsonRequest);
