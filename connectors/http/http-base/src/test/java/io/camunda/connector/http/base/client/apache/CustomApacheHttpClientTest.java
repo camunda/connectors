@@ -33,6 +33,7 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.ExecutionEnvironment;
 import io.camunda.connector.http.base.TestDocumentFactory;
 import io.camunda.connector.http.base.authentication.OAuthConstants;
+import io.camunda.connector.http.base.client.apache.proxy.ProxyHandler;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
@@ -51,7 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.commons.text.StringEscapeUtils;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
@@ -70,7 +70,7 @@ import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 @WireMockTest
 public class CustomApacheHttpClientTest {
 
-  private final CustomApacheHttpClient customApacheHttpClient = CustomApacheHttpClient.getDefault();
+  private final CustomApacheHttpClient customApacheHttpClient = new CustomApacheHttpClient();
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
   private final InMemoryDocumentStore store = InMemoryDocumentStore.INSTANCE;
 
@@ -234,7 +234,7 @@ public class CustomApacheHttpClientTest {
       Testcontainers.exposeHostPorts(proxy.port());
       proxyContainer.withAccessToHost(true);
       proxyContainer.start();
-      proxiedApacheHttpClient = CustomApacheHttpClient.create(HttpClients.custom());
+      proxiedApacheHttpClient = new CustomApacheHttpClient();
     }
 
     private static void setAllSystemProperties() {
