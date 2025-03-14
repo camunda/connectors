@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.core.error;
 
-public class InvalidBackOffDuration extends RuntimeException {
-  public InvalidBackOffDuration(String message, Throwable cause) {
+public class InvalidBackOffDurationException extends RuntimeException {
+  public InvalidBackOffDurationException(String message, Throwable cause) {
     super(message, cause);
   }
 }

@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
-import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
@@ -65,7 +65,7 @@ class JobHandlerContextTest {
     when(secretProvider.getSecret("FOO")).thenReturn("secret");
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
     assertThat(thrown.getMessage())
         .isEqualTo("Json object contains an invalid field: integer. It Must be `Integer`");
   }
@@ -91,7 +91,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage())
         .isEqualTo("Json object contains an invalid field: integer. It Must be `Integer`");
@@ -103,7 +103,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage()).isEqualTo("Json object contains an invalid field: invalid");
   }
@@ -114,7 +114,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage()).isEqualTo("This is not a JSON object");
   }
@@ -125,7 +125,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage())
         .isEqualTo("Json object contains an invalid field: integer. It Must be `Integer`");
@@ -137,7 +137,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage()).isEqualTo("No content to map due to end-of-input");
   }
@@ -148,7 +148,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage())
         .isEqualTo(
@@ -161,7 +161,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage())
         .isEqualTo(

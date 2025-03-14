@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.*;
 import io.camunda.client.api.response.ActivatedJob;
-import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -84,7 +84,7 @@ public class JobHandlerContext extends AbstractConnectorContext
     try {
       return objectMapper.readValue(jsonWithSecrets, cls);
     } catch (JsonParseException e) {
-      throw new ConnectorException("JSON_PARSE_ERROR", "This is not a JSON object");
+      throw new ConnectorInputException("This is not a JSON object", e);
     } catch (InvalidFormatException
         | InvalidNullException
         | InvalidTypeIdException
@@ -103,9 +103,9 @@ public class JobHandlerContext extends AbstractConnectorContext
                               .concat("`"))
               .orElse("Unexpected Error, Further investigation is needed");
 
-      throw new ConnectorException("JSON_FORMAT_ERROR", errorMessage);
+      throw new ConnectorInputException(errorMessage, e);
     } catch (JsonProcessingException e) {
-      throw new ConnectorException("JSON_PROCESSING_ERROR", e.getOriginalMessage(), e);
+      throw new ConnectorInputException(e.getOriginalMessage(), e);
     }
   }
 
