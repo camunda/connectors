@@ -21,7 +21,6 @@ import io.camunda.connector.http.base.ExecutionEnvironment;
 import io.camunda.connector.http.base.client.HttpClient;
 import io.camunda.connector.http.base.client.HttpStatusHelper;
 import io.camunda.connector.http.base.client.apache.proxy.ProxyAwareHttpClient;
-import io.camunda.connector.http.base.client.apache.proxy.ProxyHandler;
 import io.camunda.connector.http.base.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
