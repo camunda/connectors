@@ -64,11 +64,10 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     when(secretProvider.getSecret("FOO")).thenReturn("secret");
     Exception thrown =
-            assertThrows(
-                    ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+        assertThrows(
+            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
     assertThat(thrown.getMessage())
-            .isEqualTo("Json object contains an invalid field: integer. It Must be `Integer`");
-
+        .isEqualTo("Json object contains an invalid field: integer. It Must be `Integer`");
   }
 
   @Test
