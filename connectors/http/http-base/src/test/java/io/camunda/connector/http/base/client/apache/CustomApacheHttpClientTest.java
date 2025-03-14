@@ -33,7 +33,6 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.ExecutionEnvironment;
 import io.camunda.connector.http.base.TestDocumentFactory;
 import io.camunda.connector.http.base.authentication.OAuthConstants;
-import io.camunda.connector.http.base.client.apache.proxy.ProxyHandler;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
@@ -97,7 +96,6 @@ public class CustomApacheHttpClientTest {
       HttpCommonResult result =
           customApacheHttpClient.execute(
               request,
-              new ProxyHandler(),
               new ExecutionEnvironment.SelfManaged(new TestDocumentFactory()));
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
