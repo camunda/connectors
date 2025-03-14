@@ -34,7 +34,7 @@ import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
-import io.camunda.connector.runtime.core.error.InvalidBackOffDuration;
+import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
@@ -158,7 +158,7 @@ public class ConnectorJobHandler implements JobHandler {
     try {
       return Duration.parse(backoffHeader);
     } catch (DateTimeParseException e) {
-      throw new InvalidBackOffDuration(
+      throw new InvalidBackOffDurationException(
           "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
               + "got: "
               + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD),
@@ -181,8 +181,11 @@ public class ConnectorJobHandler implements JobHandler {
     LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
     List<String> secrets =
         getSecretProvider().fetchAll(SecretUtil.retrieveSecretKeysInInput(job.getVariables()));
+    ConnectorResult result = getConnectorResult(job, secrets);
+    processFinalResult(client, job, result, secrets);
+  }
 
-    ConnectorResult result;
+  private ConnectorResult getConnectorResult(ActivatedJob job, List<String> secrets) {
     Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
@@ -195,17 +198,14 @@ public class ConnectorJobHandler implements JobHandler {
               response,
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
-      result = new SuccessResult(response, responseVariables);
-    } catch (InvalidBackOffDuration e) {
-      handleBackOffException(client, job, e, secrets);
-      return;
+      return new SuccessResult(response, responseVariables);
+    } catch (InvalidBackOffDurationException e) {
+      return handleBackOffException(e, secrets);
     } catch (ConnectorRetryException ex) {
-      result = handleConnectorRetryException(job, ex, secrets, retryBackoff);
+      return handleConnectorRetryException(job, ex, secrets, retryBackoff);
     } catch (Exception ex) {
-      result = handleGenericException(job, ex, secrets, retryBackoff);
+      return handleGenericException(job, ex, secrets, retryBackoff);
     }
-
-    processFinalResult(client, job, result, secrets);
   }
 
   private void processFinalResult(
@@ -286,12 +286,9 @@ public class ConnectorJobHandler implements JobHandler {
     return result;
   }
 
-  private void handleBackOffException(
-      JobClient client, ActivatedJob job, Exception e, List<String> secrets) {
+  private ConnectorResult handleBackOffException(Exception e, List<String> secrets) {
     Exception newException = new Exception(hideSecretsFromMessage(e.getMessage(), secrets), e);
-    ErrorResult result =
-        new ErrorResult(Map.of("error", exceptionToMap(newException)), newException, 0);
-    failJob(client, job, result);
+    return new ErrorResult(Map.of("error", exceptionToMap(newException)), newException, 0);
   }
 
   private void handleBPMNError(JobClient client, ActivatedJob job, ConnectorError error) {
