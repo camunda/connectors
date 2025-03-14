@@ -1,12 +1,9 @@
-name: Test branch
+name: nightly_e2e_tests
 
 on:
-  push:
-    branches:
-      - '**'
-      - '!main'
-  merge_group:
-    branches: [ main ]
+  workflow_dispatch:
+  schedule: # Run nightly
+    - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
 
 jobs:
   run-tests:
@@ -63,31 +60,4 @@ jobs:
         run: npm install --global element-templates-cli
 
       - name: Build Connectors
-        run: mvn --batch-mode clean test -PcheckFormat -Dquickly
-
-      - name: Lint Dockerfile - connector-runtime
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: connector-runtime/connector-runtime-application/Dockerfile
-
-      - name: Lint Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: bundle/camunda-saas-bundle/Dockerfile
-
-      - name: Lint Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: bundle/default-bundle/Dockerfile
-
-      - name: Check element templates for forbidden links to /next/ documentation
-        run: |
-          chmod +x ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
-          ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
-          if grep -q "/next/" connectors-element-template-links.txt; then
-            echo "❌ Forbidden link to '/next/' documentation found!"
-            exit 1
-          fi
-        shell: bash
-
-
+        run: mvn --batch-mode clean test -PcheckFormat
