@@ -38,8 +38,6 @@ public class HttpService {
 
   private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
 
-  // private final ProxyHandler proxyHandler = new ProxyHandler();
-
   public HttpService() {
     this(new CloudFunctionService());
   }
@@ -72,7 +70,7 @@ public class HttpService {
   private HttpCommonResult executeRequest(
       HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
     try {
-      HttpCommonResult jsonResult = httpClient.execute(request, null, executionEnvironment);
+      HttpCommonResult jsonResult = httpClient.execute(request, executionEnvironment);
       LOGGER.debug("Connector returned result: {}", jsonResult);
       return jsonResult;
     } catch (ConnectorException e) {

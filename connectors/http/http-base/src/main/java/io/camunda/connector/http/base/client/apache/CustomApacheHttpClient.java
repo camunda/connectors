@@ -36,15 +36,15 @@ public class CustomApacheHttpClient implements HttpClient {
    * Converts the given {@link HttpCommonRequest} to an Apache {@link
    * org.apache.hc.core5.http.ClassicHttpRequest} and executes it.
    *
+   * <p>This method is thread-safe.
+   *
    * @param request the request to execute
    * @param executionEnvironment the {@link ExecutionEnvironment} we are in
    * @return the {@link HttpCommonResult}
    */
   @Override
   public HttpCommonResult execute(
-      HttpCommonRequest request,
-      ProxyHandler proxyHandler,
-      @Nullable ExecutionEnvironment executionEnvironment) {
+      HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
     try {
       var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
       var host = apacheRequest.getAuthority().getHostName();
