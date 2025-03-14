@@ -30,6 +30,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.exception.OperateException;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -57,6 +58,7 @@ import org.testcontainers.utility.DockerImageName;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
 

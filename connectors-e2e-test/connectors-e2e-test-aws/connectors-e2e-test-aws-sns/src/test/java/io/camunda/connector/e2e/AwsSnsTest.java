@@ -34,6 +34,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.sns.outbound.model.TopicType;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.File;
 import java.util.List;
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 
+@SlowTest
 public class AwsSnsTest extends BaseAwsTest {
 
   private static final String ELEMENT_TEMPLATE_PATH =

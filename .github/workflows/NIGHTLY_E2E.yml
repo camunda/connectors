@@ -1,25 +1,20 @@
-name: Test branch
+name: nightly_e2e_tests
 
 on:
-  pull_request_target:
-    branches:
-      - 'main'
-  push:
-    branches:
-      - '**'
-      - '!main'
-  merge_group:
-    branches: [ main ]
+  workflow_dispatch:
+  schedule: # Run nightly
+    - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
 
 jobs:
   run-tests:
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v3.0.0
+        uses: hashicorp/vault-action@v3.3.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -44,6 +39,7 @@ jobs:
           java-version: '21'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+
       - name: 'Create settings.xml'
         uses: s4u/maven-settings-action@v3.1.0
         with:
@@ -54,29 +50,14 @@ jobs:
                "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
                "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '22'
 
       - name: Install element templates CLI
         run: npm install --global element-templates-cli
 
       - name: Build Connectors
-        run: mvn --batch-mode clean test -PcheckFormat -Dquickly
-
-      - name: Lint Dockerfile - connector-runtime
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: connector-runtime/connector-runtime-application/Dockerfile
-
-      - name: Lint Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: bundle/camunda-saas-bundle/Dockerfile
-
-      - name: Lint Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: bundle/default-bundle/Dockerfile
+        run: mvn --batch-mode clean test -PcheckFormat

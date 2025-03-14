@@ -26,6 +26,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.model.ProcessDefinition;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -49,6 +50,7 @@ import org.springframework.boot.test.context.SpringBootTest;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public class InboundKafkaTests extends BaseKafkaTest {
 

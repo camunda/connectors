@@ -46,6 +46,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.process.test.api.CamundaProcessTestContext;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -75,6 +76,7 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public class HttpTests {
 
