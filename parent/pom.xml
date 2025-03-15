@@ -83,7 +83,7 @@ limitations under the License.</license.inlineheader>
     <version.hibernate-validator>8.0.2.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
-    <version.grpc>1.65.0</version.grpc>
+    <version.grpc>1.71.0</version.grpc>
 
     <version.spring-boot>3.3.9</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>5.3.0</version.spring-cloud-gcp-starter-logging>
