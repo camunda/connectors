@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.textract;
 
+import static io.camunda.connector.textract.model.TextractRequestData.WRONG_OUTPUT_VALUES_MSG;
 import static io.camunda.connector.textract.util.TextractTestUtils.ASYNC_EXECUTION_JSON_WITH_ROLE_ARN_AND_WITHOUT_SNS_TOPIC;
 import static io.camunda.connector.textract.util.TextractTestUtils.ASYNC_EXECUTION_JSON_WITH_SNS_TOPIC_AND_WITHOUT_ROLE_ARN;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -85,6 +86,7 @@ class TextractConnectorFunctionTest {
             ConnectorInputException.class,
             () -> textractConnectorFunction.execute(outBounderContext));
 
+    assertThat(exception).hasMessageContaining(WRONG_OUTPUT_VALUES_MSG);
     assertThat(exception).isInstanceOf(ConnectorInputException.class);
   }
 
