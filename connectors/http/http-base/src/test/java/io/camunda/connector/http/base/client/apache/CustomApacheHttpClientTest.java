@@ -51,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.commons.text.StringEscapeUtils;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
@@ -70,7 +69,7 @@ import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 @WireMockTest
 public class CustomApacheHttpClientTest {
 
-  private final CustomApacheHttpClient customApacheHttpClient = CustomApacheHttpClient.getDefault();
+  private final CustomApacheHttpClient customApacheHttpClient = new CustomApacheHttpClient();
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
   private final InMemoryDocumentStore store = InMemoryDocumentStore.INSTANCE;
 
@@ -96,9 +95,7 @@ public class CustomApacheHttpClientTest {
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/download");
       HttpCommonResult result =
           customApacheHttpClient.execute(
-              request,
-              new ProxyHandler(),
-              new ExecutionEnvironment.SelfManaged(new TestDocumentFactory()));
+              request, new ExecutionEnvironment.SelfManaged(new TestDocumentFactory()));
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.headers().get(HttpHeaders.CONTENT_TYPE))
@@ -234,7 +231,7 @@ public class CustomApacheHttpClientTest {
       Testcontainers.exposeHostPorts(proxy.port());
       proxyContainer.withAccessToHost(true);
       proxyContainer.start();
-      proxiedApacheHttpClient = CustomApacheHttpClient.create(HttpClients.custom());
+      proxiedApacheHttpClient = new CustomApacheHttpClient();
     }
 
     private static void setAllSystemProperties() {
