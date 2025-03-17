@@ -23,7 +23,6 @@ import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
 import io.camunda.connector.idp.extraction.model.providers.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
@@ -51,7 +50,7 @@ class VertexCallerTest {
       return ResponseHandler.getText(response);
     }
   }
-  
+
   private VertexProvider createBaseRequest() {
     VertexRequestConfiguration configuration =
         new VertexRequestConfiguration("region", "project-id", "bucket-name");
