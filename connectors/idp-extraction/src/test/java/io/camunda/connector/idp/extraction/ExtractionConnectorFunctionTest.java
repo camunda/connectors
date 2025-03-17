@@ -304,7 +304,7 @@ class ExtractionConnectorFunctionTest {
         .asInstanceOf(InstanceOfAssertFactories.type(ExtractionResult.class))
         .satisfies(
             extractionResult ->
-                assertThat(extractionResult.response())
+                assertThat(extractionResult.extractedFields())
                     .containsExactlyInAnyOrderEntriesOf(expected));
   }
 
