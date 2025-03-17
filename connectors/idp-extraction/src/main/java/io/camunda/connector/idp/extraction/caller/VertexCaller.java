@@ -58,6 +58,7 @@ public class VertexCaller {
       var content =
           ContentMaker.fromMultiModalData(
               llmModel.getMessage(input.taxonomyItems()),
+              // TODO: we need to always expose the content type and not assume its a PDF
               PartMaker.fromMimeTypeAndData(
                   input.document().metadata().getContentType() != null
                       ? input.document().metadata().getContentType()
