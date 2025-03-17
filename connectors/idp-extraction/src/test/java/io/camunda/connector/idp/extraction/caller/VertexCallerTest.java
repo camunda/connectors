@@ -29,11 +29,39 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class GeminiCallerTest {
+class VertexCallerTest {
+
+  private static class TestVertexCaller extends VertexCaller {
+    private final GenerativeModel mockModel;
+
+    public TestVertexCaller(GenerativeModel mockModel) {
+      this.mockModel = mockModel;
+    }
+
+    @Override
+    public String generateContent(ExtractionRequestData input, VertexProvider baseRequest)
+        throws Exception {
+      GenerateContentResponse response =
+          mockModel.generateContent(
+              Content.newBuilder()
+                  .addParts(Part.newBuilder().setText("just a text").build())
+                  .build());
+
+      return ResponseHandler.getText(response);
+    }
+  }
+
+  private VertexProvider createBaseRequest() {
+    VertexRequestConfiguration configuration =
+        new VertexRequestConfiguration("region", "project-id", "bucket-name");
+
+    VertexProvider baseRequest = new VertexProvider();
+    baseRequest.setConfiguration(configuration);
+    return baseRequest;
+  }
 
   @Test
   void executeSuccessfulExtraction() throws Exception {
-    // Expected response
     String expectedResponse =
         """
         {
@@ -42,27 +70,6 @@ class GeminiCallerTest {
         }
         """;
 
-    class TestVertexCaller extends VertexCaller {
-      private final GenerativeModel mockModel;
-
-      public TestVertexCaller(GenerativeModel mockModel) {
-        this.mockModel = mockModel;
-      }
-
-      @Override
-      public String generateContent(ExtractionRequestData input, VertexProvider baseRequest)
-          throws Exception {
-        GenerateContentResponse response =
-            mockModel.generateContent(
-                Content.newBuilder()
-                    .addParts(Part.newBuilder().setText("just a text").build())
-                    .build());
-
-        return ResponseHandler.getText(response);
-      }
-    }
-
-    // Mock the GCS upload utility
     String mockedFileUri = "gs://bucket-name/file-name";
     try (MockedStatic<GcsUtil> gcsUtilMockedStatic = mockStatic(GcsUtil.class)) {
       gcsUtilMockedStatic
@@ -73,7 +80,6 @@ class GeminiCallerTest {
           .thenReturn(mockedFileUri);
 
       GenerativeModel mockGenerativeModel = mock(GenerativeModel.class);
-
       GenerateContentResponse mockResponse = mock(GenerateContentResponse.class);
       when(mockGenerativeModel.generateContent(any(Content.class))).thenReturn(mockResponse);
 
@@ -83,17 +89,54 @@ class GeminiCallerTest {
             .when(() -> ResponseHandler.getText(any()))
             .thenReturn(expectedResponse);
 
-        VertexRequestConfiguration configuration =
-            new VertexRequestConfiguration("region", "project-id", "bucket-name");
-
-        VertexProvider baseRequest = new VertexProvider();
-        baseRequest.setConfiguration(configuration);
-
+        VertexProvider baseRequest = createBaseRequest();
         TestVertexCaller testCaller = new TestVertexCaller(mockGenerativeModel);
 
         String result =
             testCaller.generateContent(
                 ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, baseRequest);
+
+        assertEquals(expectedResponse, result);
+      }
+    }
+  }
+
+  @Test
+  void executeWithMissingDocumentMetadata() throws Exception {
+    // Expected response
+    String expectedResponse =
+        """
+        {
+          "name": "Unknown",
+          "age": 0
+        }
+        """;
+
+    // Mock the GCS upload utility
+    String mockedFileUri = "gs://bucket-name/unknown-file";
+    try (MockedStatic<GcsUtil> gcsUtilMockedStatic = mockStatic(GcsUtil.class)) {
+      gcsUtilMockedStatic
+          .when(
+              () ->
+                  GcsUtil.uploadNewFileFromDocument(
+                      any(), anyString(), anyString(), anyString(), any()))
+          .thenReturn(mockedFileUri);
+
+      GenerativeModel mockGenerativeModel = mock(GenerativeModel.class);
+      GenerateContentResponse mockResponse = mock(GenerateContentResponse.class);
+      when(mockGenerativeModel.generateContent(any(Content.class))).thenReturn(mockResponse);
+
+      try (MockedStatic<ResponseHandler> responseHandlerMockedStatic =
+          mockStatic(ResponseHandler.class)) {
+        responseHandlerMockedStatic
+            .when(() -> ResponseHandler.getText(any()))
+            .thenReturn(expectedResponse);
+
+        ExtractionRequestData requestData = ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA;
+        VertexProvider baseRequest = createBaseRequest();
+        TestVertexCaller testCaller = new TestVertexCaller(mockGenerativeModel);
+
+        String result = testCaller.generateContent(requestData, baseRequest);
 
         assertEquals(expectedResponse, result);
       }

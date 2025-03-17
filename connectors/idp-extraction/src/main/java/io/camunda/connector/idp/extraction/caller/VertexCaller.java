@@ -35,7 +35,7 @@ public class VertexCaller {
     String fileUri;
     final String fileName =
         input.document().metadata().getFileName() == null
-            ? "temporaryDocument"
+            ? "temporaryDocument.pdf"
             : input.document().metadata().getFileName();
     try {
       fileUri =
@@ -58,7 +58,12 @@ public class VertexCaller {
       var content =
           ContentMaker.fromMultiModalData(
               llmModel.getMessage(input.taxonomyItems()),
-              PartMaker.fromMimeTypeAndData(input.document().metadata().getContentType(), fileUri));
+              // TODO: we need to always expose the content type and not assume its a PDF
+              PartMaker.fromMimeTypeAndData(
+                  input.document().metadata().getContentType() != null
+                      ? input.document().metadata().getContentType()
+                      : "application/pdf",
+                  fileUri));
       GenerateContentResponse response = model.generateContent(content);
       String output = ResponseHandler.getText(response);
       LOGGER.debug("Gemini generate content response: {}", output);
