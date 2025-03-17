@@ -59,6 +59,7 @@ public final class StringProperty extends Property {
 
     private StringPropertyBuilder() {}
 
+    @Override
     public StringProperty build() {
       if (feel == null) {
         feel = FeelMode.optional;

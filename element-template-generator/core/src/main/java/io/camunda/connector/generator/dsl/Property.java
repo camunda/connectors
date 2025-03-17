@@ -16,14 +16,18 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.Objects;
 
 @JsonInclude(Include.NON_NULL)
 public abstract sealed class Property
-    permits BooleanProperty, DropdownProperty, HiddenProperty, StringProperty, TextProperty {
+    permits BooleanProperty,
+        DropdownProperty,
+        HiddenProperty,
+        NumberProperty,
+        StringProperty,
+        TextProperty {
 
   protected final String id;
   protected final String label;
@@ -43,6 +47,8 @@ public abstract sealed class Property
   public enum FeelMode {
     optional,
     required,
+    @JsonProperty("static")
+    staticFeel,
     @JsonIgnore
     disabled,
     @JsonIgnore

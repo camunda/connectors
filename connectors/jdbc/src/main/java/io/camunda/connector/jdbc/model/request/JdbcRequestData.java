@@ -15,7 +15,6 @@ public record JdbcRequestData(
     @TemplateProperty(
             id = "returnResults",
             label = "Return results",
-            feel = Property.FeelMode.disabled,
             defaultValue = "false",
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
             group = "query",

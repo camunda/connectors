@@ -119,6 +119,7 @@ public @interface TemplateProperty {
 
   enum PropertyType {
     Boolean,
+    Number,
     Dropdown,
     Hidden,
     String,
@@ -128,7 +129,8 @@ public @interface TemplateProperty {
 
   enum DefaultValueType {
     String,
-    Boolean
+    Boolean,
+    Number
   }
 
   @interface PropertyBinding {

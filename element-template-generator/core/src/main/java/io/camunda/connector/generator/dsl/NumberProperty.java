@@ -16,16 +16,16 @@
  */
 package io.camunda.connector.generator.dsl;
 
-public final class BooleanProperty extends Property {
+public final class NumberProperty extends Property {
 
-  public static final String TYPE = "Boolean";
+  public static final String TYPE = "Number";
 
-  public BooleanProperty(
+  public NumberProperty(
       String name,
       String label,
       String description,
       Boolean required,
-      Boolean value,
+      Number value,
       GeneratedValue generatedValue,
       PropertyConstraints constraints,
       FeelMode feel,
@@ -51,26 +51,25 @@ public final class BooleanProperty extends Property {
         TYPE);
   }
 
-  public static BooleanPropertyBuilder builder() {
-    return new BooleanPropertyBuilder();
+  public static NumberPropertyBuilder builder() {
+    return new NumberPropertyBuilder();
   }
 
-  public static class BooleanPropertyBuilder extends PropertyBuilder {
+  public static class NumberPropertyBuilder extends PropertyBuilder {
 
-    private BooleanPropertyBuilder() {}
+    private NumberPropertyBuilder() {}
 
     @Override
-    public BooleanProperty build() {
-      if (value != null && !(value instanceof Boolean)) {
-        throw new IllegalStateException("Value of a boolean property must be a boolean");
+    public NumberProperty build() {
+      if (value != null && !(value instanceof Number)) {
+        throw new IllegalStateException("Value of a Number property must be a Number");
       }
-
-      return new BooleanProperty(
+      return new NumberProperty(
           id,
           label,
           description,
           optional,
-          (Boolean) value,
+          (Number) value,
           generatedValue,
           constraints,
           feel,

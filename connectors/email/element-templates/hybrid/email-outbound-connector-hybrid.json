@@ -182,7 +182,7 @@
     "id" : "data.imapPort",
     "label" : "IMAP Port",
     "optional" : false,
-    "value" : "993",
+    "value" : 993,
     "constraints" : {
       "notEmpty" : true
     },
@@ -198,7 +198,7 @@
       "type" : "simple"
     },
     "tooltip" : "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "imapCryptographicProtocol",
     "label" : "Encryption protocol",
@@ -253,7 +253,7 @@
     "id" : "data.pop3Port",
     "label" : "POP3 Port",
     "optional" : false,
-    "value" : "995",
+    "value" : 995,
     "constraints" : {
       "notEmpty" : true
     },
@@ -269,7 +269,7 @@
       "type" : "simple"
     },
     "tooltip" : "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "pop3CryptographicProtocol",
     "label" : "Cryptographic protocol",
@@ -324,7 +324,7 @@
     "id" : "data.smtpPort",
     "label" : "SMTP Port",
     "optional" : false,
-    "value" : "587",
+    "value" : 587,
     "constraints" : {
       "notEmpty" : true
     },
@@ -340,7 +340,7 @@
       "type" : "simple"
     },
     "tooltip" : "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "smtpCryptographicProtocol",
     "label" : "Cryptographic protocol",
@@ -714,10 +714,11 @@
     "id" : "pop3maxToBeRead",
     "label" : "Maximum number of emails to be read",
     "optional" : false,
-    "value" : "100",
+    "value" : 100,
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "static",
     "group" : "listEmailsPop3",
     "binding" : {
       "name" : "data.pop3Action.maxToBeRead",
@@ -735,7 +736,7 @@
       } ]
     },
     "tooltip" : "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "pop3SortField",
     "label" : "Sort emails by",
@@ -882,10 +883,11 @@
     "id" : "imapMaxToBeRead",
     "label" : "Maximum number of emails to be read",
     "optional" : false,
-    "value" : "100",
+    "value" : 100,
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "static",
     "group" : "listEmailsImap",
     "binding" : {
       "name" : "data.imapAction.maxToBeRead",
@@ -903,7 +905,7 @@
       } ]
     },
     "tooltip" : "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "imapListEmailsFolder",
     "label" : "Folder",
