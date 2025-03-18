@@ -33,6 +33,7 @@ import com.amazonaws.services.sqs.model.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.File;
 import java.util.List;
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@SlowTest
 public class AwsEventBridgeTest extends BaseAwsTest {
   private static final String ELEMENT_TEMPLATE_PATH =
       "../../../connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-outbound-connector.json";

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
@@ -51,6 +52,7 @@ import org.testcontainers.utility.DockerImageName;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public abstract class BaseAwsTest {
   private static final DockerImageName localstackImage =

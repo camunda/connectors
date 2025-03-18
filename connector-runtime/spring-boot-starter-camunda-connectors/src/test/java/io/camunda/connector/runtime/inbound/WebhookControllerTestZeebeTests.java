@@ -45,6 +45,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -69,6 +70,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
       "camunda.connector.webhook.enabled=true"
     })
 @CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class WebhookControllerTestZeebeTests {
@@ -87,6 +89,7 @@ class WebhookControllerTestZeebeTests {
 
   @BeforeEach
   public void beforeEach() {
+    System.out.println("System property 'quickly': " + System.getProperty("quickly"));
     webhookConnectorRegistry.reset();
   }
 
