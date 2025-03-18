@@ -16,17 +16,15 @@ jobs:
         id: set-matrix
         run: |
           # Get all release/* branches
-          release_branches=$(gh api repos/${{ github.repository }}/branches --paginate -q '[].[.name]' | grep '^release/' || true)
-          
-          # Add 'main' manually and convert to JSON array
-          all_branches=$( (echo "main"; echo "$release_branches") | jq -R -s -c 'split("\n")[:-1]')
-          
+          git ls-remote --heads https://github.com/${{ github.repository }}.git | \
+          awk '{print $2}' | sed 's|refs/heads/||' | grep '^release/' > releases.txt || true
+          all_branches=$( (echo "main"; cat releases.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
           echo "branches=$all_branches" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   run-tests:
-    name: Nightly E2E test ${{ matrix.branch }}
+    name: Nightly E2E test (${{ matrix.branch }})
     needs: get-branches
     runs-on: ubuntu-latest
     strategy:
