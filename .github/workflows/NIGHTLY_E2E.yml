@@ -71,5 +71,5 @@ jobs:
           payload: |
             {
               "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
-              "text": "🚨 Nightly E2E test run failed on branch `${{ github.ref_name }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: Nightly E2E test run failed on branch `${{ github.ref_name }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
