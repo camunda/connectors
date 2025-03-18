@@ -29,10 +29,6 @@ import org.slf4j.LoggerFactory;
 
 public class ProxyRoutePlanner extends DefaultProxyRoutePlanner {
   private static final Logger LOG = LoggerFactory.getLogger(ProxyRoutePlanner.class.getName());
-  private static final String NON_PROXY_HOSTS_FROM_SYSTEM_PROPERTIES =
-      System.getProperty("http.nonProxyHosts");
-  private static final String NON_PROXY_HOSTS_FROM_ENV_VAR =
-      System.getenv(CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR);
 
   public ProxyRoutePlanner(HttpHost proxy) {
     super(proxy);
@@ -40,7 +36,7 @@ public class ProxyRoutePlanner extends DefaultProxyRoutePlanner {
 
   @Override
   protected HttpHost determineProxy(HttpHost target, HttpContext context) throws HttpException {
-    if (Stream.of(NON_PROXY_HOSTS_FROM_SYSTEM_PROPERTIES, NON_PROXY_HOSTS_FROM_ENV_VAR)
+    if (getNonProxyHosts()
         .filter(Objects::nonNull)
         .anyMatch(
             nonProxyHosts ->
@@ -61,5 +57,11 @@ public class ProxyRoutePlanner extends DefaultProxyRoutePlanner {
         ? nonProxyHosts.replace(
             "*", ".*") // This is required as the nonProxyHosts property uses * as a wildcard
         : null;
+  }
+
+  private Stream<String> getNonProxyHosts() {
+    return Stream.of(
+        System.getProperty("http.nonProxyHosts"),
+        System.getenv(CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR));
   }
 }

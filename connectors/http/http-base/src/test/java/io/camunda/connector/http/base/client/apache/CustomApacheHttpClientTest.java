@@ -380,19 +380,21 @@ public class CustomApacheHttpClientTest {
     }
 
     @Test
-    public void shouldUseSystemProperties_WhenEnvVarAndSystemPropertiesAreProvided(
+    public void shouldAlwaysUseEnvVars_WhenEnvVarAndSystemPropertiesAreProvided(
         WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       restoreSystemProperties(
           () -> {
             withEnvironmentVariables(
-                    "CONNECTOR_HTTPS_PROXY_HOST",
+                    "CONNECTOR_HTTP_PROXY_HOST",
                     "localhost",
-                    "CONNECTOR_HTTPS_PROXY_PORT",
+                    "CONNECTOR_HTTP_PROXY_PORT",
                     proxyContainer.getMappedPort(3128).toString(),
-                    "CONNECTOR_HTTPS_PROXY_USER",
-                    "my-user",
-                    "CONNECTOR_HTTPS_PROXY_PASSWORD",
-                    "demo")
+                    "CONNECTOR_HTTP_PROXY_USER",
+                    // Fake user/password to ensure this is used
+                    // The system properties contain the correct user/password
+                    "WRONG_USER",
+                    "CONNECTOR_HTTP_PROXY_PASSWORD",
+                    "WRONG_PASSWORD")
                 .execute(
                     () -> {
                       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
@@ -401,12 +403,11 @@ public class CustomApacheHttpClientTest {
                       HttpCommonRequest request = new HttpCommonRequest();
                       request.setMethod(HttpMethod.GET);
                       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
-                      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
-                      assertThat(result).isNotNull();
-                      assertThat(result.status()).isEqualTo(200);
-                      assertThat(result.body()).isEqualTo("Hello, world!");
-                      assertThat(result.headers().get("Via")).asString().contains("squid");
-                      proxy.verify(getRequestedFor(urlEqualTo("/protected")));
+                      ConnectorException e =
+                          assertThrows(
+                              ConnectorException.class,
+                              () -> proxiedApacheHttpClient.execute(request));
+                      assertThat(e.getMessage()).isEqualTo("Proxy Authentication Required");
                     });
           });
     }
