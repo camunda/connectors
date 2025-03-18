@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
-import io.camunda.operate.CamundaOperateClient;
 import io.camunda.connector.test.SlowTest;
+import io.camunda.operate.CamundaOperateClient;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.client.ZeebeClient;
 import java.io.File;
