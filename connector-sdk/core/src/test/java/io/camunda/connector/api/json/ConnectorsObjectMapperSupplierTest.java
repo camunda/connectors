@@ -35,7 +35,12 @@ class ConnectorsObjectMapperSupplierTest {
 
   @Test
   void java8DatesShouldBeSupported() throws JsonProcessingException {
-    throw new RuntimeException("Not implemented");
+    final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    final var json = "{\"data\":\"2024-01-01\"}";
+    final var jsonDeserialized = Map.of("data", LocalDate.of(2024, 1, 1));
+    Assertions.assertThat(objectMapper.writeValueAsString(jsonDeserialized)).isEqualTo(json);
+    var actual = objectMapper.readValue(json, new TypeReference<Map<String, LocalDate>>() {});
+    Assertions.assertThat(actual).isEqualTo(jsonDeserialized);
   }
 
   @Test
