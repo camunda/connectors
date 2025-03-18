@@ -6,11 +6,35 @@ on:
     - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
 
 jobs:
-  run-tests:
 
+  get-branches:
     runs-on: ubuntu-latest
+    outputs:
+      branches: ${{ steps.set-matrix.outputs.branches }}
+    steps:
+      - name: Fetch release branches
+        id: set-matrix
+        run: |
+          # Get all release/* branches
+          release_branches=$(gh api repos/${{ github.repository }}/branches --paginate -q '[].[.name]' | grep '^release/' || true)
+          
+          # Add 'main' manually and convert to JSON array
+          all_branches=$( (echo "main"; echo "$release_branches") | jq -R -s -c 'split("\n")[:-1]')
+          
+          echo "branches=$all_branches" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  run-tests:
+    needs: get-branches
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: ${{ fromJson(needs.get-branches.outputs.branches) }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
 
       - name: Import Secrets
         id: secrets
