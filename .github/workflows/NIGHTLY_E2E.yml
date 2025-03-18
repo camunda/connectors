@@ -24,7 +24,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   run-tests:
-    name: Nightly E2E test (${{ matrix.branch }})
+    name: [${{ matrix.branch }}] Nightly E2E test run
     needs: get-branches
     runs-on: ubuntu-latest
     strategy:
