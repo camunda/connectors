@@ -41,6 +41,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
+import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.Keywords;
 import java.time.Duration;
 import java.util.HashMap;
@@ -60,7 +61,6 @@ class ConnectorJobHandlerTest {
   private record TestConnectorResponsePojo(String value) {}
 
   private static class NonSerializable {
-
     private final UUID field = UUID.randomUUID();
   }
 
@@ -71,7 +71,8 @@ class ConnectorJobHandlerTest {
     class ResultVariableTests {
 
       protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-        return new ConnectorJobHandler(call, e -> {});
+        return new ConnectorJobHandler(
+            call, e -> {}, new OutboundConnectorExceptionHandler(new FooBarSecretProvider()));
       }
 
       @ParameterizedTest
@@ -410,7 +411,11 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldNotSetWithoutResultVariableAndExpression() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"), e -> {});
+        var jobHandler =
+            new ConnectorJobHandler(
+                (context) -> Map.of("hello", "world"),
+                e -> {},
+                new OutboundConnectorExceptionHandler(new FooBarSecretProvider()));
 
         // when
         var result = JobBuilder.create().executeAndCaptureResult(jobHandler);
@@ -424,7 +429,9 @@ class ConnectorJobHandlerTest {
         // given
         var jobHandler =
             new ConnectorJobHandler(
-                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")), e -> {});
+                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")),
+                e -> {},
+                new OutboundConnectorExceptionHandler(new FooBarSecretProvider()));
         var resultExpression = "{\"processedOutput\": response.callStatus, \"nullVar\": null}";
         var resultVariable = "result";
 
