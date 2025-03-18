@@ -66,10 +66,9 @@ jobs:
         if: failure()
         uses: slackapi/slack-github-action@v2.0.0
         with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           payload: |
             {
               "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
               "text": "🚨 Nightly E2E test run failed on branch `${{ github.ref_name }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
