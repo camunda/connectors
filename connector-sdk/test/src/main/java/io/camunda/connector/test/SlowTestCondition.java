@@ -16,13 +16,23 @@
  */
 package io.camunda.connector.test;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ConditionEvaluationResult;
+import org.junit.jupiter.api.extension.ExecutionCondition;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-@ExtendWith(SlowTestCondition.class)
-public @interface SlowTest {}
+public class SlowTestCondition implements ExecutionCondition {
+
+  private static final ConditionEvaluationResult ENABLED =
+      ConditionEvaluationResult.enabled("Running slow test");
+  private static final ConditionEvaluationResult DISABLED =
+      ConditionEvaluationResult.disabled("Disabled because 'quickly' system property is present");
+
+  @Override
+  public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
+    String quickly = System.getProperty("quickly");
+    if (quickly != null) {
+      return DISABLED;
+    }
+    return ENABLED;
+  }
+}
