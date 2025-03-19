@@ -36,6 +36,7 @@ import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.grpc.Status;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -105,7 +106,11 @@ public class InboundCorrelationHandler {
               variables,
               resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
       case MessageStartEventCorrelationPoint corPoint ->
-          triggerMessageStartEvent(activatedElement, corPoint, variables);
+          triggerMessageStartEvent(
+              activatedElement,
+              corPoint,
+              variables,
+              resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
     };
   }
 
@@ -145,21 +150,9 @@ public class InboundCorrelationHandler {
   protected CorrelationResult triggerMessageStartEvent(
       InboundConnectorElement activatedElement,
       MessageStartEventCorrelationPoint correlationPoint,
-      Object variables) {
+      Object variables,
+      String messageId) {
 
-    String messageId = extractMessageId(correlationPoint.messageIdExpression(), variables);
-
-    if (correlationPoint.messageIdExpression() != null
-        && !correlationPoint.messageIdExpression().isBlank()
-        && messageId == null) {
-      LOG.debug(
-          "Wasn't able to obtain idempotency key for expression {}.",
-          correlationPoint.messageIdExpression());
-      return new CorrelationResult.Failure.InvalidInput(
-          "Wasn't able to obtain idempotency key for expression "
-              + correlationPoint.messageIdExpression(),
-          null);
-    }
     var correlationKey =
         extractCorrelationKey(correlationPoint.correlationKeyExpression(), variables);
     return publishMessage(
@@ -303,31 +296,24 @@ public class InboundCorrelationHandler {
     return correlationKey;
   }
 
-  protected String extractMessageId(String messageIdExpression, Object context) {
-    if (messageIdExpression == null || messageIdExpression.isBlank()) {
-      return "";
-    }
-    try {
-      return feelEngine.evaluate(messageIdExpression, String.class, context);
-    } catch (Exception e) {
-      throw new ConnectorInputException(e);
-    }
-  }
-
   protected Object extractVariables(Object rawVariables, InboundConnectorElement definition) {
     return ConnectorHelper.createOutputVariables(
         rawVariables, definition.resultVariable(), definition.resultExpression());
   }
 
   private String resolveMessageId(String messageIdExpression, String messageId, Object context) {
-    if (messageId == null) {
-      if (messageIdExpression != null) {
-        return extractMessageId(messageIdExpression, context);
-      } else {
-        return UUID.randomUUID().toString();
+    if (!Objects.isNull(messageIdExpression) && !messageIdExpression.isBlank()) {
+      try {
+        return feelEngine.evaluate(messageIdExpression, String.class, context);
+      } catch (Exception e) {
+        throw new ConnectorInputException(
+            "Message expression could not be evaluated" + messageIdExpression, e);
       }
+    } else if (!Objects.isNull(messageId)) {
+      return messageId;
+    } else {
+      return UUID.randomUUID().toString();
     }
-    return messageId;
   }
 
   private ProcessElementContext getElementContext(InboundConnectorElement element) {

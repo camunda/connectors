@@ -43,6 +43,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import org.jetbrains.annotations.NotNull;
 
 /** Test helper class for creating an {@link InboundConnectorContext} with a fluent API. */
 public class InboundConnectorContextBuilder {
@@ -214,8 +215,8 @@ public class InboundConnectorContextBuilder {
     private final List<Object> correlatedEvents = new ArrayList<>();
     private final String propertiesWithSecrets;
     private final CorrelationResult result;
-    private Health health = Health.unknown();
     private final Long activationTimestamp;
+    private Health health = Health.unknown();
 
     protected TestInboundConnectorContext(
         SecretProvider secretProvider,
@@ -260,6 +261,16 @@ public class InboundConnectorContextBuilder {
 
     @Override
     public CorrelationResult correlateWithResult(Object variables) {
+      return getCorrelationResult(variables);
+    }
+
+    @Override
+    public CorrelationResult correlateWithResult(CorrelationRequest correlationRequest) {
+      return getCorrelationResult(correlationRequest.getVariables());
+    }
+
+    @NotNull
+    private CorrelationResult getCorrelationResult(Object variables) {
       correlate(variables);
       return Objects.requireNonNullElse(
           result,

@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -54,9 +55,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final Consumer<Throwable> cancellationCallback;
   private final EvictingQueue<Activity> logs;
   private final DocumentFactory documentFactory;
+  private final Long activationTimestamp;
   private Health health = Health.unknown();
   private Map<String, Object> propertiesWithSecrets;
-  private final Long activationTimestamp;
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -106,18 +107,35 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public CorrelationResult correlateWithResult(Object variables) {
+    return this.correlateWithResultInternal(variables, null);
+  }
+
+  @Override
+  public CorrelationResult correlateWithResult(CorrelationRequest correlationRequest) {
+    return this.correlateWithResultInternal(
+        correlationRequest.getVariables(), correlationRequest.getMessageId());
+  }
+
+  private CorrelationResult correlateWithResultInternal(Object variables, String messageId) {
     try {
-      return correlationHandler.correlate(connectorDetails.connectorElements(), variables);
-    } catch (FeelEngineWrapperException e) {
-      log(Activity.level(Severity.ERROR).tag("error").message(e.getMessage()));
-      return new CorrelationResult.Failure.Other(e);
-    } catch (Exception e) {
+      return correlationHandler.correlate(
+          connectorDetails.connectorElements(), variables, messageId);
+    } catch (ConnectorInputException connectorInputException) {
+      return new CorrelationResult.Failure.InvalidInput(
+          connectorInputException.getMessage(), connectorInputException);
+    } catch (FeelEngineWrapperException feelEngineWrapperException) {
       log(
           Activity.level(Severity.ERROR)
               .tag("error")
-              .message("Failed to correlate inbound event " + e.getMessage()));
-      LOG.error("Failed to correlate inbound event", e);
-      return new CorrelationResult.Failure.Other(e);
+              .message(feelEngineWrapperException.getMessage()));
+      return new CorrelationResult.Failure.Other(feelEngineWrapperException);
+    } catch (Exception exception) {
+      log(
+          Activity.level(Severity.ERROR)
+              .tag("error")
+              .message("Failed to correlate inbound event " + exception.getMessage()));
+      LOG.error("Failed to correlate inbound event", exception);
+      return new CorrelationResult.Failure.Other(exception);
     }
   }
 

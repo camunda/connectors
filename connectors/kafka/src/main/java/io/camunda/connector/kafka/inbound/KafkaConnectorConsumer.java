@@ -23,15 +23,11 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import dev.failsafe.function.CheckedSupplier;
-import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import java.time.Duration;
 import java.util.HashMap;
@@ -165,7 +161,10 @@ public class KafkaConnectorConsumer {
             .message("Received message with key : " + record.key()));
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
-    var result = context.correlateWithResult(mappedMessage);
+    String messageId = record.topic() + "-" + record.partition() + "-" + record.offset();
+    var result =
+        context.correlateWithResult(
+            CorrelationRequest.builder().variables(mappedMessage).messageId(messageId).build());
     handleCorrelationResult(result);
   }
 
