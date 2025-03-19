@@ -1,7 +1,6 @@
 {
-  "extends": [
-    "config:base"
-  ],
+  "extends": ["config:recommended"],
+  "configMigration": true,
   "labels": [
     "dependencies",
     "no milestone"
@@ -27,7 +26,7 @@
     },
     {
       "matchBaseBranches": [
-        "/^release/.*/"
+        "^release/.*"
       ],
       "matchUpdateTypes": [
         "major"
@@ -48,7 +47,7 @@
       "matchPackagePatterns": [
         ".*"
       ],
-      "allowedVersions": "!/-SNAPSHOT$/"
+      "allowedVersions": "^(?!.*-SNAPSHOT$).*$"
     }
   ],
   "baseBranches": [
