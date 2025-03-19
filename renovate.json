@@ -1,7 +1,6 @@
 {
-  "extends": [
-    "config:base"
-  ],
+  "extends": ["config:recommended"],
+  "configMigration": true,
   "labels": [
     "dependencies",
     "no milestone"
