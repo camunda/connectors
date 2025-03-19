@@ -25,6 +25,10 @@ public record SendMessageToChannelOperation(SendMessageToChannel model)
             .map(type -> BodyType.forValue(type.toLowerCase(Locale.ROOT)))
             .orElse(BodyType.Text));
     body.setContent(model.content());
+    if (model.documents() != null) {
+      DocumentHandler documentHandler = new DocumentHandler(model);
+      documentHandler.handleDocuments(graphClient, chatMessage);
+    }
     chatMessage.setBody(body);
     return graphClient
         .teams()
