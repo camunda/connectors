@@ -1,4 +1,4 @@
-name: nightly_e2e_tests
+name: Nightly E2E test run
 
 on:
   workflow_dispatch:
@@ -6,11 +6,35 @@ on:
     - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
 
 jobs:
-  run-tests:
 
+  get-branches:
     runs-on: ubuntu-latest
+    outputs:
+      branches: ${{ steps.set-matrix.outputs.branches }}
+    steps:
+      - name: Fetch release branches
+        id: set-matrix
+        run: |
+          # Get all release/* branches
+          git ls-remote --heads https://github.com/${{ github.repository }}.git | \
+          awk '{print $2}' | sed 's|refs/heads/||' | grep '^release/' > releases.txt || true
+          all_branches=$( (echo "main"; cat releases.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
+          echo "branches=$all_branches" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  run-tests:
+    name: (${{ matrix.branch }}) Nightly E2E test run
+    needs: get-branches
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJson(needs.get-branches.outputs.branches) }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
 
       - name: Import Secrets
         id: secrets
@@ -61,3 +85,15 @@ jobs:
 
       - name: Build Connectors
         run: mvn --batch-mode clean test -PcheckFormat
+
+      - name: Send Slack notification on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
+              "text": ":alarm: Nightly E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
