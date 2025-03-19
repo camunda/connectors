@@ -58,8 +58,25 @@ public interface InboundConnectorContext extends DocumentFactory {
   CorrelationResult correlateWithResult(Object variables);
 
   /**
-   * @param correlationRequest
-   * @return
+   * Correlates the inbound event to the matching process definition using the provided
+   * correlation request and returns the result.
+   *
+   * <p>Correlation may not succeed due to Connector configuration (e.g. if activation condition
+   * specified by user is not met). In this case, the response will contain the corresponding error
+   * code.
+   *
+   * <p>This method does not throw any exceptions. If correlation fails, the error is returned as a
+   * part of the response. The connector implementation should handle the error according to the
+   * {@link CorrelationFailureHandlingStrategy} provided in the response. If the strategy is {@link
+   * CorrelationFailureHandlingStrategy.ForwardErrorToUpstream}, the error should be forwarded to
+   * the upstream system. If the strategy is {@link CorrelationFailureHandlingStrategy.Ignore}, the
+   * error should be ignored.
+   *
+   * @param correlationRequest - an object containing the inbound connector variables and message ID
+   * @return correlation result that should be interpreted by the Connector implementation
+   * @see CorrelationResult
+   * @see CorrelationFailureHandlingStrategy
+   * @see CorrelationRequest
    */
   CorrelationResult correlateWithResult(CorrelationRequest correlationRequest);
 
