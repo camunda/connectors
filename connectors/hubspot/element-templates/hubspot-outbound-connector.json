@@ -113,12 +113,16 @@
       "type": "Dropdown",
       "choices": [
         {
+          "name": "Get all contacts",
+          "value": "get-/crm/v3/objects/contacts_getPage"
+        },
+        {
           "name": "Get contact by id",
           "value": "get-/crm/v3/objects/contacts/{contactId}"
         },
         {
-          "name": "Get all contacts",
-          "value": "get-/crm/v3/objects/contacts_getPage"
+          "name": "Create contact",
+          "value": "post-/crm/v3/objects/contacts"
         },
         {
           "name": "Update contact",
@@ -129,25 +133,26 @@
           "value": "delete-/crm/v3/objects/contacts/{contactId}"
         },
         {
-          "name": "Create contact",
-          "value": "post-/crm/v3/objects/contacts"
-        },
-        {
-          "name": "GET /crm/v3/objects/companies/{companyId}",
-          "value": "get-/crm/v3/objects/companies/{companyId}_getById"
-        },
-        {
-          "name": "DELETE /crm/v3/objects/companies/{companyId}",
-          "value": "delete-/crm/v3/objects/companies/{companyId}_archive"
-        },
-        {
-          "name": "GET /crm/v3/objects/companies",
+          "name": "Get all companies",
           "value": "get-/crm/v3/objects/companies_getPage"
         },
         {
-          "name": "POST /crm/v3/objects/companies",
+          "name": "Get company by id",
+          "value": "get-/crm/v3/objects/companies/{companyId}_getById"
+        },
+        {
+          "name": "Get all contacts of a company",
+          "value": "get-/crm/v3/objects/companies/{companyId}/associations/contacts"
+        },
+        {
+          "name": "Create company",
           "value": "post-/crm/v3/objects/companies"
+        },
+        {
+          "name": "Delete company",
+          "value": "delete-/crm/v3/objects/companies/{companyId}_archive"
         }
+
       ]
     },
 
@@ -540,12 +545,30 @@
       "value": "{\n  \"lastname\": \"Doe\",\n  \"firstname\": \"Jane\",\n  \"email\": \"jane.doe@example.com\"\n}"
     },
     {
-      "label": "Associations",
-      "description": "Associations of the contact",
-      "feel": "required",
+      "label": "Company id",
+      "description": "Company id of the contact",
+      "feel": "optional",
       "group": "input",
       "type": "String",
       "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "companyId"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/objects/contacts",
+          "patch-/crm/v3/objects/contacts/{contactId}"
+        ],
+        "type": "simple"
+      },
+      "value": "12345678"
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "=if companyId = null then [] else [{\"to\": {\"id\": companyId  }, \"types\": [{\"associationCategory\": \"HUBSPOT_DEFINED\",\"associationTypeId\": 1}]}]",
       "binding": {
         "type": "zeebe:input",
         "name": "associations"
@@ -558,12 +581,12 @@
         ],
         "type": "simple"
       },
-      "value": "[{\n  \"to\": {\n    \"id\": \"123456789\"\n  },\n  \"types\": [\n    {\n      \"associationCategory\": \"HUBSPOT_DEFINED\",\n      \"associationTypeId\": 1\n    }\n  ]\n}]"
+      "optional": true
     },
     {
       "group": "input",
       "type": "Hidden",
-      "value": "={\"properties\": if properties = null then null else properties, \"associations\": if associations = null then [] else associations}",
+      "value": "={\"properties\": if properties = null then null else properties, \"associations\": associations}",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
@@ -657,6 +680,89 @@
       "condition": {
         "property": "operationId",
         "equals": "get-/crm/v3/objects/companies/{companyId}_getById",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+      "label": "Company id",
+      "description": "The ID of the company",
+      "optional": false,
+      "value": "string",
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "parameters",
+      "binding": {
+        "name": "companyId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$path",
+      "value": "=\"/crm/v3/objects/companies/\"+companyId+\"/associations/contacts\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$method",
+      "value": "GET",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
         "type": "simple"
       },
       "type": "Hidden"
