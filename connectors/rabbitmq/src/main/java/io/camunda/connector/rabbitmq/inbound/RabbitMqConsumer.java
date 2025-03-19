@@ -15,15 +15,11 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
@@ -56,7 +52,12 @@ public class RabbitMqConsumer extends DefaultConsumer {
 
     try {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
-      var result = context.correlateWithResult(variables);
+      var result =
+          context.correlateWithResult(
+              CorrelationRequest.builder()
+                  .variables(variables)
+                  .messageId(properties.getMessageId())
+                  .build());
       handleCorrelationResult(envelope, result);
     } catch (Exception e) {
       LOGGER.debug("NACK (requeue) - unhandled exception", e);

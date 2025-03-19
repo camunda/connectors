@@ -92,6 +92,11 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
+  public CorrelationResult correlateWithResult(CorrelationRequest correlationRequest) {
+    return inboundContext.correlateWithResult(correlationRequest.getVariables());
+  }
+
+  @Override
   public ActivationCheckResult canActivate(Object variables) {
     return inboundContext.canActivate(variables);
   }

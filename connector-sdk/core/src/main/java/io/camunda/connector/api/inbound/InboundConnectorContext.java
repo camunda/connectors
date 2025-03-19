@@ -58,6 +58,12 @@ public interface InboundConnectorContext extends DocumentFactory {
   CorrelationResult correlateWithResult(Object variables);
 
   /**
+   * @param correlationRequest
+   * @return
+   */
+  CorrelationResult correlateWithResult(CorrelationRequest correlationRequest);
+
+  /**
    * /** Signals to the Connector runtime that inbound Connector execution was interrupted. As a
    * result of this call, the runtime may attempt to retry the execution or provide the user with an
    * appropriate alert.
