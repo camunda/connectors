@@ -35,7 +35,7 @@ import java.util.HashMap;
       @ElementTemplate.PropertyGroup(id = "input", label = "Configure input")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-gemini/",
+        "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/google-gemini/",
     icon = "icon.svg")
 public class GeminiConnectorFunction implements OutboundConnectorFunction {
 
