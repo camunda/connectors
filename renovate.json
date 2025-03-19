@@ -27,7 +27,7 @@
     },
     {
       "matchBaseBranches": [
-        "/^release/.*/"
+        "^release/.*"
       ],
       "matchUpdateTypes": [
         "major"
@@ -48,7 +48,7 @@
       "matchPackagePatterns": [
         ".*"
       ],
-      "allowedVersions": "!/-SNAPSHOT$/"
+      "allowedVersions": "^(?!.*-SNAPSHOT$).*$"
     }
   ],
   "baseBranches": [
