@@ -151,8 +151,19 @@
         {
           "name": "Delete company",
           "value": "delete-/crm/v3/objects/companies/{companyId}_archive"
+        },
+        {
+          "name": "Get all deals",
+          "value": "get-/crm/v3/objects/deals_getPage"
+        },
+        {
+          "name": "Get deal by id",
+          "value": "get-/crm/v3/objects/deals/{dealId}_getById"
+        },
+        {
+          "name": "Delete deal",
+          "value": "delete-/crm/v3/objects/deals/{dealId}_archive"
         }
-
       ]
     },
 
@@ -967,6 +978,231 @@
       "condition": {
         "property": "operationId",
         "equals": "post-/crm/v3/objects/companies",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "get-/crm/v3/objects/deals_getPage_$path",
+      "value": "=\"/crm/v3/objects/deals\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/deals_getPage",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/deals_getPage_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/deals_getPage",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/deals_getPage_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/deals_getPage",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/deals_getPage_$method",
+      "value": "GET",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/deals_getPage",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "get-/crm/v3/objects/deals/{dealId}_getById_path_dealId",
+      "label": "Deal id",
+      "optional": false,
+      "value": "string",
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "parameters",
+      "binding": {
+        "name": "dealId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/deals/{dealId}_getById",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "get-/crm/v3/objects/deals/{dealId}_getById_$path",
+      "value": "=\"/crm/v3/objects/deals/\"+dealId",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/deals/{dealId}_getById",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/deals/{dealId}_getById_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/deals/{dealId}_getById",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/deals/{dealId}_getById_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/deals/{dealId}_getById",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/deals/{dealId}_getById_$method",
+      "value": "GET",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/deals/{dealId}_getById",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "delete-/crm/v3/objects/deals/{dealId}_archive_path_dealId",
+      "label": "Deal id",
+      "optional": false,
+      "value": "string",
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "parameters",
+      "binding": {
+        "name": "dealId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "delete-/crm/v3/objects/deals/{dealId}_archive",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "delete-/crm/v3/objects/deals/{dealId}_archive_$path",
+      "value": "=\"/crm/v3/objects/deals/\"+dealId",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "delete-/crm/v3/objects/deals/{dealId}_archive",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "delete-/crm/v3/objects/deals/{dealId}_archive_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "delete-/crm/v3/objects/deals/{dealId}_archive",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "delete-/crm/v3/objects/deals/{dealId}_archive_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "delete-/crm/v3/objects/deals/{dealId}_archive",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "delete-/crm/v3/objects/deals/{dealId}_archive_$method",
+      "value": "DELETE",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "delete-/crm/v3/objects/deals/{dealId}_archive",
         "type": "simple"
       },
       "type": "Hidden"
