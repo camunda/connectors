@@ -107,19 +107,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public CorrelationResult correlateWithResult(Object variables) {
-    return this.correlateWithResultInternal(variables, null);
+    return this.correlateWithResultInternal(
+        CorrelationRequest.builder().variables(variables).build());
   }
 
   @Override
   public CorrelationResult correlateWithResult(CorrelationRequest correlationRequest) {
-    return this.correlateWithResultInternal(
-        correlationRequest.getVariables(), correlationRequest.getMessageId());
+    return this.correlateWithResultInternal(correlationRequest);
   }
 
-  private CorrelationResult correlateWithResultInternal(Object variables, String messageId) {
+  private CorrelationResult correlateWithResultInternal(CorrelationRequest correlationRequest) {
     try {
-      return correlationHandler.correlate(
-          connectorDetails.connectorElements(), variables, messageId);
+      return correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
     } catch (ConnectorInputException connectorInputException) {
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);

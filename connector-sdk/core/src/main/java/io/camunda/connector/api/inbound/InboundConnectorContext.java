@@ -58,8 +58,8 @@ public interface InboundConnectorContext extends DocumentFactory {
   CorrelationResult correlateWithResult(Object variables);
 
   /**
-   * Correlates the inbound event to the matching process definition using the provided
-   * correlation request and returns the result.
+   * Correlates the inbound event to the matching process definition using the provided correlation
+   * request and returns the result.
    *
    * <p>Correlation may not succeed due to Connector configuration (e.g. if activation condition
    * specified by user is not met). In this case, the response will contain the corresponding error
