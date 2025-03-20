@@ -8,9 +8,11 @@ package io.camunda.connector.operation.channel;
 
 import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.ChatMessage;
+import com.microsoft.graph.models.ChatMessageAttachment;
 import com.microsoft.graph.models.ItemBody;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.SendMessageToChannel;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -26,8 +28,9 @@ public record SendMessageToChannelOperation(SendMessageToChannel model)
             .orElse(BodyType.Text));
     body.setContent(model.content());
     if (model.documents() != null) {
-      DocumentHandler documentHandler = new DocumentHandler(model);
-      documentHandler.handleDocuments(graphClient, chatMessage);
+      DocumentHandler documentHandler = new DocumentHandler(graphClient, model);
+      List<ChatMessageAttachment> attachments = documentHandler.handleDocuments();
+      chatMessage.setAttachments(attachments);
     }
     chatMessage.setBody(body);
     return graphClient

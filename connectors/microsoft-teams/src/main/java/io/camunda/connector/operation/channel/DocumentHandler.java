@@ -9,7 +9,6 @@ package io.camunda.connector.operation.channel;
 import com.microsoft.graph.core.models.UploadResult;
 import com.microsoft.graph.core.tasks.LargeFileUploadTask;
 import com.microsoft.graph.drives.item.items.item.createuploadsession.CreateUploadSessionPostRequestBody;
-import com.microsoft.graph.models.ChatMessage;
 import com.microsoft.graph.models.ChatMessageAttachment;
 import com.microsoft.graph.models.DriveItem;
 import com.microsoft.graph.models.DriveItemUploadableProperties;
@@ -30,27 +29,23 @@ import java.util.concurrent.CancellationException;
 
 public class DocumentHandler {
 
-  SendMessageToChannel model;
+  private final SendMessageToChannel model;
+  private final GraphServiceClient graphClient;
 
-  public DocumentHandler(SendMessageToChannel model) {
+  public DocumentHandler(GraphServiceClient graphClient, SendMessageToChannel model) {
+    this.graphClient = graphClient;
     this.model = model;
   }
 
-  public void handleDocuments(GraphServiceClient graphClient, ChatMessage chatMessage) {
+  public List<ChatMessageAttachment> handleDocuments() {
     List<String> fileUrls =
         model.documents().stream()
             .filter(Objects::nonNull)
             .map(
                 document -> {
-                  try {
-                    return uploadDocument(
-                        graphClient, model.groupId(), document, document.metadata().getFileName());
-                  } catch (IOException
-                      | InvocationTargetException
-                      | IllegalAccessException
-                      | NoSuchMethodException e) {
-                    throw new ConnectorException("Error uploading document: " + e.getMessage(), e);
-                  }
+                  UploadSession uploadSession =
+                      getUploadSession(model.groupId(), document.metadata().getFileName());
+                  return uploadDocument(uploadSession, document);
                 })
             .filter(Objects::nonNull)
             .toList();
@@ -63,14 +58,39 @@ public class DocumentHandler {
           attachment.setContentType("reference");
           attachments.add(attachment);
         });
-    chatMessage.setAttachments(attachments);
+    return attachments;
   }
 
-  private String uploadDocument(
-      GraphServiceClient graphClient, String teamID, Document document, String filename)
-      throws IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+  private String uploadDocument(UploadSession uploadSession, Document document) {
+    try {
+      LargeFileUploadTask<DriveItem> largeFileUploadTask =
+          new LargeFileUploadTask<>(
+              graphClient.getRequestAdapter(),
+              uploadSession,
+              document.asInputStream(),
+              document.metadata().getSize(),
+              DriveItem::createFromDiscriminatorValue);
+      UploadResult<DriveItem> uploadResult =
+          largeFileUploadTask.upload(); // This will retry 3 times
+      if (uploadResult.isUploadSuccessful() && uploadResult.itemResponse != null) {
+        return uploadResult.itemResponse.getWebUrl();
+      } else {
+        throw new ConnectorInputException(
+            "Failed to upload document " + document.metadata().getFileName() + " with retries",
+            new RuntimeException());
+      }
+    } catch (CancellationException
+        | InterruptedException
+        | IOException
+        | IllegalAccessException
+        | NoSuchMethodException
+        | InvocationTargetException e) {
+      throw new ConnectorException("Error uploading document: " + e.getMessage(), e);
+    }
+  }
 
-    DriveItem driveItem = getDriveItem(graphClient, teamID);
+  private UploadSession getUploadSession(String teamID, String filename) {
+    DriveItem driveItem = getDriveItem(teamID);
     String driveItemId = getDriveItemId(driveItem, filename);
     String driveId = getMyDriveId(driveItem);
 
@@ -91,31 +111,10 @@ public class DocumentHandler {
                     .post(uploadSessionRequest))
             .orElseThrow(
                 () -> new IllegalStateException("Upload session is null, cannot proceed."));
-
-    LargeFileUploadTask<DriveItem> largeFileUploadTask =
-        new LargeFileUploadTask<>(
-            graphClient.getRequestAdapter(),
-            uploadSession,
-            document.asInputStream(),
-            document.metadata().getSize(),
-            DriveItem::createFromDiscriminatorValue);
-
-    try {
-      UploadResult<DriveItem> uploadResult =
-          largeFileUploadTask.upload(); // This will retry 3 times
-      if (uploadResult.isUploadSuccessful() && uploadResult.itemResponse != null) {
-        return uploadResult.itemResponse.getWebUrl();
-      } else {
-        throw new ConnectorInputException(
-            "Failed to upload document " + document.metadata().getFileName() + " with retries",
-            new RuntimeException());
-      }
-    } catch (CancellationException | InterruptedException e) {
-      throw new ConnectorException("Error uploading document: " + e.getMessage(), e);
-    }
+    return uploadSession;
   }
 
-  private DriveItem getDriveItem(GraphServiceClient graphClient, String teamID) {
+  private DriveItem getDriveItem(String teamID) {
     return Optional.ofNullable(
             graphClient
                 .teams()
