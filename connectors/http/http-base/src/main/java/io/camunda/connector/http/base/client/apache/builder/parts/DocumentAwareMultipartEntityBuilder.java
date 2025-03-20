@@ -107,7 +107,7 @@ public class DocumentAwareMultipartEntityBuilder {
           part.name(),
           new ByteArrayInputStream(part.content()),
           getContentType(part.contentType()),
-          part.submittedFileName());
+          part.fileName());
     } catch (IllegalArgumentException e) {
       LOG.error(
           "Failed to convert the provided map {} to CloudFunctionFilePart. A request with Content-Type: multipart/form-data can only contain maps that are convertible to CloudFunctionFilePart.",
