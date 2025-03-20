@@ -8,6 +8,11 @@ RUN mkdir /opt/app && mkdir /opt/custom
 
 COPY target/*-with-dependencies.jar /opt/app/
 
+RUN apt-get update && \
+    apt-get dist-upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Using the start script from the base connector runtime image
 COPY start.sh /start.sh
 RUN chmod +x start.sh
