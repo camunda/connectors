@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.cloudfunction.CloudFunctionCredentials;
@@ -36,6 +37,7 @@ import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.document.store.DocumentCreationRequest;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -85,6 +87,93 @@ public class HttpServiceTest {
                 aResponse()
                     .withTransformers(
                         CloudFunctionResponseTransformer.CLOUD_FUNCTION_TRANSFORMER)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void shouldReturn200WithFileBodyParam_whenPostMultipartFormDataRequest(
+      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    var documentBytes =
+        Objects.requireNonNull(ClassLoader.getSystemResourceAsStream("__files/fileName.jpg"))
+            .readAllBytes();
+    var document =
+        documentFactory.create(
+            DocumentCreationRequest.from(documentBytes)
+                .fileName("The filename")
+                .contentType("image/jpeg")
+                .build());
+    var document2 =
+        documentFactory.create(
+            DocumentCreationRequest.from("the content".getBytes(StandardCharsets.UTF_8))
+                .fileName("The filename 2")
+                .contentType("text/plain")
+                .build());
+
+    stubCloudFunction(wmRuntimeInfo);
+    HttpService httpService =
+        cloudFunctionEnabled ? HttpServiceTest.this.httpService : httpServiceWithoutCloudFunction;
+    stubFor(post("/upload").willReturn(ok()));
+
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.POST);
+    request.setBody(
+        Map.of(
+            "otherField",
+            "otherValue",
+            "myFile",
+            document,
+            "otherFiles",
+            List.of(document, document2)));
+    request.setHeaders(
+        Map.of(HttpHeaders.CONTENT_TYPE, ContentType.MULTIPART_FORM_DATA.getMimeType()));
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/upload");
+
+    // when
+    HttpCommonResult result =
+        httpService.executeConnectorRequest(request, new TestDocumentFactory());
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(200);
+    assertThat(result.body()).isNull();
+    assertThat(result.document()).isNull();
+
+    verify(
+        postRequestedFor(urlEqualTo("/upload"))
+            .withHeader(
+                "Content-Type", and(containing("multipart/form-data"), containing("boundary=")))
+            .withRequestBodyPart(
+                new MultipartValuePatternBuilder()
+                    .withName("otherField")
+                    .withBody(equalTo("otherValue"))
+                    .build())
+            .withRequestBodyPart(
+                new MultipartValuePatternBuilder()
+                    .withName("myFile")
+                    .withFileName("The filename")
+                    .withBody(binaryEqualTo(documentBytes))
+                    .withHeader("Content-Type", equalTo("image/jpeg"))
+                    .build())
+            .withRequestBodyPart(
+                new MultipartValuePatternBuilder()
+                    .withName("otherFiles")
+                    .withFileName("The filename")
+                    .withBody(binaryEqualTo(documentBytes))
+                    .withHeader("Content-Type", equalTo("image/jpeg"))
+                    .build())
+            .withRequestBodyPart(
+                new MultipartValuePatternBuilder()
+                    .withName("otherFiles")
+                    .withFileName("The filename 2")
+                    .withBody(equalTo("the content"))
+                    .withHeader("Content-Type", equalTo("text/plain"))
+                    .build()));
+    if (cloudFunctionEnabled) {
+      verify(
+          postRequestedFor(urlEqualTo("/proxy"))
+              .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
+    }
   }
 
   @ParameterizedTest

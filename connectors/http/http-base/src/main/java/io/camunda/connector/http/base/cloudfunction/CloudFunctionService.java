@@ -28,6 +28,7 @@ import io.camunda.connector.http.base.utils.DocumentHelper;
 import io.camunda.document.Document;
 import java.io.IOException;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.slf4j.Logger;
@@ -120,8 +121,7 @@ public class CloudFunctionService {
 
   private HttpCommonRequest createCloudFunctionRequest(HttpCommonRequest request, String token)
       throws JsonProcessingException {
-    Object parsedBody =
-        new DocumentHelper().parseDocumentsInBody(request.getBody(), Document::asByteArray);
+    Object parsedBody = prepareBodyForCloudFunction(request);
     request.setBody(parsedBody);
     String contentAsJson = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(request);
     HttpCommonRequest cloudFunctionRequest = new HttpCommonRequest();
@@ -134,5 +134,43 @@ public class CloudFunctionService {
         Map.of(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()));
     cloudFunctionRequest.setAuthentication(new BearerAuthentication(token));
     return cloudFunctionRequest;
+  }
+
+  private boolean isMultipartContentType(HttpCommonRequest request) {
+    return request
+        .getHeader(HttpHeaders.CONTENT_TYPE)
+        .map(contentType -> contentType.startsWith(ContentType.MULTIPART_FORM_DATA.getMimeType()))
+        .orElse(false);
+  }
+
+  /**
+   * Prepare the body for the Google Cloud Function. If the body is a multipart form data, it will
+   * be parsed and Documents will be converted into {@link CloudFunctionFilePart}.
+   */
+  private Object prepareBodyForCloudFunction(HttpCommonRequest request) {
+    boolean isMultipartContentType = isMultipartContentType(request);
+    Object body = request.getBody();
+    if (isMultipartContentType && body instanceof Map mapBody) {
+      return parseDocumentsAndConvertToFileParts(mapBody);
+    }
+    return new DocumentHelper().parseDocumentsInBody(body, Document::asByteArray);
+  }
+
+  private Map<String, Object> parseDocumentsAndConvertToFileParts(Map<String, ?> body) {
+    return body.entrySet().stream()
+        .map(
+            entry ->
+                Map.entry(
+                    entry.getKey(),
+                    new DocumentHelper()
+                        .parseDocumentsInBody(
+                            entry.getValue(),
+                            document ->
+                                new CloudFunctionFilePart(
+                                    entry.getKey(),
+                                    document.metadata().getFileName(),
+                                    document.asByteArray(),
+                                    document.metadata().getContentType()))))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 }
