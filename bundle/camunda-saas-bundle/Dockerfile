@@ -8,7 +8,7 @@ RUN mkdir /opt/app
 COPY target/*-with-dependencies.jar /opt/app/
 
 RUN apt-get update && \
-    apt-get dist-upgrade -y && \
+    apt-get upgrade -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

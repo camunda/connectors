@@ -15,7 +15,7 @@ COPY target/*-with-dependencies.jar /opt/app/
 # ADD https://s01.oss.sonatype.org/content/repositories/releases/io/camunda/connector/connector-runtime-application/${VERSION}/connector-runtime-application-${VERSION}-with-dependencies.jar /opt/app/runtime.jar
 
 RUN apt-get update && \
-    apt-get dist-upgrade -y && \
+    apt-get upgrade -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
