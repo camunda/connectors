@@ -151,7 +151,7 @@ public class CloudFunctionServiceTest {
                 Map.of(
                     "name",
                     "myDocument",
-                    "submittedFileName",
+                    "fileName",
                     "the filename",
                     "contentType",
                     "text/plain",
