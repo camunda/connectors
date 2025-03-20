@@ -29,4 +29,4 @@ package io.camunda.connector.http.base.cloudfunction;
  * @param contentType The content type of this part.
  */
 public record CloudFunctionFilePart(
-    String name, String submittedFileName, byte[] content, String contentType) {}
+    String name, String fileName, byte[] content, String contentType) {}
