@@ -89,7 +89,6 @@ public class DocumentHelperTest {
     Map<String, Object> input =
         Map.of("body", Map.of("content", Arrays.asList(document, document, document)));
 
-    var spiedDocument = spy(document);
     // when
     Object res = documentHelper.parseDocumentsInBody(input, Document::asByteArray);
 

@@ -20,7 +20,6 @@ import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.cloudfunction.CloudFunctionFilePart;
 import io.camunda.document.Document;
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Map;
@@ -131,7 +130,7 @@ public class DocumentAwareMultipartEntityBuilder {
     DocumentMetadata metadata = document.metadata();
     builder.addBinaryBody(
         String.valueOf(entry.getKey()),
-        new BufferedInputStream(document.asInputStream()),
+        document.asInputStream(),
         getContentType(metadata.getContentType()),
         metadata.getFileName());
   }
