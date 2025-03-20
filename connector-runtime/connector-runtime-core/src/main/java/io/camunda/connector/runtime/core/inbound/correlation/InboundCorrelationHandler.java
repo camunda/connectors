@@ -22,6 +22,7 @@ import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.response.PublishMessageResponse;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
@@ -66,15 +67,15 @@ public class InboundCorrelationHandler {
   }
 
   public CorrelationResult correlate(List<InboundConnectorElement> elements, Object variables) {
-    return correlate(elements, variables, null);
+    return correlate(elements, CorrelationRequest.builder().variables(variables).build());
   }
 
   public CorrelationResult correlate(
-      List<InboundConnectorElement> elements, Object variables, String messageId) {
+      List<InboundConnectorElement> elements, CorrelationRequest correlationRequest) {
 
     final ActivationCheckResult activationCheckResult;
     try {
-      activationCheckResult = canActivate(elements, variables);
+      activationCheckResult = canActivate(elements, correlationRequest.getVariables());
     } catch (ConnectorInputException e) {
       LOG.info("Failed to evaluate activation condition", e);
       return new CorrelationResult.Failure.InvalidInput(
@@ -88,7 +89,9 @@ public class InboundCorrelationHandler {
           new Failure.InvalidInput("Multiple connectors are activated for the same input", null);
       case ActivationCheckResult.Success.CanActivate canActivate ->
           correlateInternal(
-              findMatchingElement(elements, canActivate.activatedElement()), variables, messageId);
+              findMatchingElement(elements, canActivate.activatedElement()),
+              correlationRequest.getVariables(),
+              correlationRequest.getMessageId());
     };
   }
 

@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.ProcessElement;
@@ -709,7 +710,12 @@ public class InboundCorrelationHandlerTest {
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
-      handler.correlate(List.of(element), Collections.emptyMap(), "providedIdValue");
+      handler.correlate(
+          List.of(element),
+          CorrelationRequest.builder()
+              .variables(Collections.emptyMap())
+              .messageId("providedIdValue")
+              .build());
       // then
       verify(dummyCommand).messageId("providedIdValue");
     }
@@ -726,7 +732,12 @@ public class InboundCorrelationHandlerTest {
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
-      handler.correlate(List.of(element), Collections.emptyMap(), "providedIdValue");
+      handler.correlate(
+          List.of(element),
+          CorrelationRequest.builder()
+              .variables(Collections.emptyMap())
+              .messageId("providedIdValue")
+              .build());
       // then
       verify(dummyCommand).messageId("456");
     }
@@ -743,7 +754,8 @@ public class InboundCorrelationHandlerTest {
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
-      handler.correlate(List.of(element), Collections.emptyMap(), null);
+      handler.correlate(
+          List.of(element), CorrelationRequest.builder().variables(Collections.emptyMap()).build());
       // then
       verify(dummyCommand).messageId("456");
     }
@@ -760,7 +772,8 @@ public class InboundCorrelationHandlerTest {
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
-      handler.correlate(List.of(element), Collections.emptyMap(), null);
+      handler.correlate(
+          List.of(element), CorrelationRequest.builder().variables(Collections.emptyMap()).build());
       // then
       verify(dummyCommand)
           .messageId(
