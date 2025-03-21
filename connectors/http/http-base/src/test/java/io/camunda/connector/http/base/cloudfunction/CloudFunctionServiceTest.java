@@ -54,12 +54,67 @@ public class CloudFunctionServiceTest {
   }
 
   @Test
-  public void shouldConvertToCloudFunctionRequestWithDocumentContent_whenBodyContainsDocuments()
-      throws IOException {
+  public void
+      shouldConvertToCloudFunctionRequestWithDocumentContent_whenBodyContainsDocumentsAndJsonContentType()
+          throws IOException {
     // given
     var document =
         documentFactory.create(
-            DocumentCreationRequest.from("the content".getBytes(StandardCharsets.UTF_8)).build());
+            DocumentCreationRequest.from("the content".getBytes(StandardCharsets.UTF_8))
+                .fileName("the filename")
+                .contentType("text/plain")
+                .build());
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setUrl("theUrl");
+    request.setMethod(HttpMethod.POST);
+    request.setHeaders(
+        Map.of("header", "value", "Content-Type", ContentType.APPLICATION_JSON.getMimeType()));
+    request.setBody(Map.of("bodyKey", "bodyValue", "myDocument", document));
+    request.setConnectionTimeoutInSeconds(50);
+    request.setReadTimeoutInSeconds(60);
+    request.setAuthentication(new BearerAuthentication("token"));
+
+    // when
+    HttpCommonRequest cloudFunctionRequest = cloudFunctionService.toCloudFunctionRequest(request);
+
+    // then
+    assertThat(cloudFunctionRequest.getUrl()).isEqualTo("proxyUrl");
+    assertThat(cloudFunctionRequest.getMethod()).isEqualTo(HttpMethod.POST);
+    assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of())).hasSize(1);
+    assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of()))
+        .containsEntry("Content-Type", "application/json");
+    Map<String, Object> body =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue((String) cloudFunctionRequest.getBody(), Map.class);
+    assertThat(body).containsEntry("url", "theUrl");
+    assertThat(body).containsEntry("method", "POST");
+    assertThat(body)
+        .containsEntry("headers", Map.of("header", "value", "Content-Type", "application/json"));
+    assertThat(body)
+        .containsEntry(
+            "body",
+            Map.of(
+                "bodyKey",
+                "bodyValue",
+                "myDocument",
+                Base64.getEncoder()
+                    .encodeToString("the content".getBytes(StandardCharsets.UTF_8))));
+    assertThat(body).containsEntry("connectionTimeoutInSeconds", 50);
+    assertThat(body).containsEntry("readTimeoutInSeconds", 60);
+    assertThat(body).containsEntry("authentication", Map.of("token", "token", "type", "bearer"));
+  }
+
+  @Test
+  public void
+      shouldConvertToCloudFunctionRequestWithDocumentContent_whenBodyContainsDocumentsAndMultipartContentType()
+          throws IOException {
+    // given
+    var document =
+        documentFactory.create(
+            DocumentCreationRequest.from("the content".getBytes(StandardCharsets.UTF_8))
+                .fileName("the filename")
+                .contentType("text/plain")
+                .build());
     HttpCommonRequest request = new HttpCommonRequest();
     request.setUrl("theUrl");
     request.setMethod(HttpMethod.POST);
@@ -86,6 +141,68 @@ public class CloudFunctionServiceTest {
     assertThat(body).containsEntry("method", "POST");
     assertThat(body)
         .containsEntry("headers", Map.of("header", "value", "Content-Type", "multipart/form-data"));
+    assertThat(body)
+        .containsEntry(
+            "body",
+            Map.of(
+                "bodyKey",
+                "bodyValue",
+                "myDocument",
+                Map.of(
+                    "name",
+                    "myDocument",
+                    "fileName",
+                    "the filename",
+                    "contentType",
+                    "text/plain",
+                    "content",
+                    Base64.getEncoder()
+                        .encodeToString("the content".getBytes(StandardCharsets.UTF_8)))));
+    assertThat(body).containsEntry("connectionTimeoutInSeconds", 50);
+    assertThat(body).containsEntry("readTimeoutInSeconds", 60);
+    assertThat(body).containsEntry("authentication", Map.of("token", "token", "type", "bearer"));
+  }
+
+  @Test
+  public void
+      shouldConvertToCloudFunctionRequestWithDocumentContent_whenBodyContainsDocumentsAndFormUrlEncodedContentType()
+          throws IOException {
+    // given
+    var document =
+        documentFactory.create(
+            DocumentCreationRequest.from("the content".getBytes(StandardCharsets.UTF_8)).build());
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setUrl("theUrl");
+    request.setMethod(HttpMethod.POST);
+    request.setHeaders(
+        Map.of(
+            "header",
+            "value",
+            "Content-Type",
+            ContentType.APPLICATION_FORM_URLENCODED.getMimeType()));
+    request.setBody(Map.of("bodyKey", "bodyValue", "myDocument", document));
+    request.setConnectionTimeoutInSeconds(50);
+    request.setReadTimeoutInSeconds(60);
+    request.setAuthentication(new BearerAuthentication("token"));
+
+    // when
+    HttpCommonRequest cloudFunctionRequest = cloudFunctionService.toCloudFunctionRequest(request);
+
+    // then
+    assertThat(cloudFunctionRequest.getUrl()).isEqualTo("proxyUrl");
+    assertThat(cloudFunctionRequest.getMethod()).isEqualTo(HttpMethod.POST);
+    assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of())).hasSize(1);
+    assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of()))
+        .containsEntry("Content-Type", "application/json");
+    Map<String, Object> body =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue((String) cloudFunctionRequest.getBody(), Map.class);
+    assertThat(body).containsEntry("url", "theUrl");
+    assertThat(body).containsEntry("method", "POST");
+    assertThat(body)
+        .containsEntry(
+            "headers",
+            Map.of("header", "value", "Content-Type", "application/x-www-form-urlencoded"));
     assertThat(body)
         .containsEntry(
             "body",

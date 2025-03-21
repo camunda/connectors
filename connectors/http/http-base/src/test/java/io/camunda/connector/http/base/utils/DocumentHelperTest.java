@@ -17,14 +17,12 @@
 package io.camunda.connector.http.base.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-import io.camunda.client.api.response.DocumentMetadata;
+import io.camunda.connector.http.base.TestDocumentFactory;
 import io.camunda.document.CamundaDocument;
-import io.camunda.document.reference.CamundaDocumentReferenceImpl;
+import io.camunda.document.Document;
+import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -36,6 +34,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 public class DocumentHelperTest {
+
+  private final TestDocumentFactory factory = new TestDocumentFactory();
 
   @AfterEach
   public void tearDown() {
@@ -79,23 +79,21 @@ public class DocumentHelperTest {
   public void shouldParseDocuments_InBody_whenMapInput() {
     // given
     DocumentHelper documentHelper = new DocumentHelper();
-    var metadata = mock(DocumentMetadata.class);
-    CamundaDocument document =
-        new CamundaDocument(
-            metadata,
-            new CamundaDocumentReferenceImpl("store", "id1", "hash", metadata),
-            InMemoryDocumentStore.INSTANCE);
+    var document =
+        factory.create(
+            DocumentCreationRequest.from("transformed".getBytes(StandardCharsets.UTF_8))
+                .documentId("theId")
+                .fileName("theFileName")
+                .contentType("text/plain")
+                .build());
     Map<String, Object> input =
         Map.of("body", Map.of("content", Arrays.asList(document, document, document)));
-    Function<CamundaDocument, Object> transformer = mock(Function.class);
-    when(transformer.apply(document)).thenReturn("transformed".getBytes(StandardCharsets.UTF_8));
 
     // when
-    Object res = documentHelper.parseDocumentsInBody(input, transformer);
+    Object res = documentHelper.parseDocumentsInBody(input, Document::asByteArray);
 
     // then
     assertThat(res).isInstanceOf(Map.class);
-    verify(transformer, times(3)).apply(document);
     assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
     assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content")).isInstanceOf(List.class);
     assertThat((List<byte[]>) ((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content"))
@@ -110,22 +108,20 @@ public class DocumentHelperTest {
   public void shouldParseDocuments_InBody_whenListInput() {
     // given
     DocumentHelper documentHelper = new DocumentHelper();
-    var metadata = mock(DocumentMetadata.class);
-    CamundaDocument document =
-        new CamundaDocument(
-            metadata,
-            new CamundaDocumentReferenceImpl("store", "id1", "hash", metadata),
-            InMemoryDocumentStore.INSTANCE);
+    var document =
+        factory.create(
+            DocumentCreationRequest.from("transformed".getBytes(StandardCharsets.UTF_8))
+                .documentId("theId")
+                .fileName("theFileName")
+                .contentType("text/plain")
+                .build());
     List<Object> input = Arrays.asList(document, document, document);
-    Function<CamundaDocument, Object> transformer = mock(Function.class);
-    when(transformer.apply(document)).thenReturn("transformed".getBytes(StandardCharsets.UTF_8));
 
     // when
-    Object res = documentHelper.parseDocumentsInBody(input, transformer);
+    Object res = documentHelper.parseDocumentsInBody(input, Document::asByteArray);
 
     // then
     assertThat(res).isInstanceOf(List.class);
-    verify(transformer, times(3)).apply(document);
     assertThat((List<byte[]>) res)
         .containsAll(
             Arrays.asList(
