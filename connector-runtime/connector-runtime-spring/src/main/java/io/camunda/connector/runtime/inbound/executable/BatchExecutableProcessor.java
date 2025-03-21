@@ -24,6 +24,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
@@ -74,20 +75,21 @@ public class BatchExecutableProcessor {
    * (except non-registered connectors, which can be activated by a different runtime - those are
    * considered valid).
    */
-  public Map<UUID, RegisteredExecutable> activateBatch(
-      Map<UUID, InboundConnectorDetails> request,
+  public Map<ExecutableId, RegisteredExecutable> activateBatch(
+      Map<ExecutableId, InboundConnectorDetails> request,
       Consumer<InboundExecutableEvent.Cancelled> cancellationCallback) {
 
-    final Map<UUID, RegisteredExecutable> alreadyActivated = new HashMap<>();
+    final Map<ExecutableId, RegisteredExecutable> alreadyActivated = new HashMap<>();
 
     for (var entry : request.entrySet()) {
-      final UUID id = entry.getKey();
+      final ExecutableId deduplicationId = entry.getKey();
       final InboundConnectorDetails maybeValidData = entry.getValue();
       final ValidInboundConnectorDetails data;
 
       if (maybeValidData instanceof InvalidInboundConnectorDetails invalid) {
         alreadyActivated.put(
-            id, new RegisteredExecutable.InvalidDefinition(invalid, invalid.error().getMessage()));
+            deduplicationId,
+            new RegisteredExecutable.InvalidDefinition(invalid, invalid.error().getMessage()));
         continue;
       } else {
         data = (ValidInboundConnectorDetails) maybeValidData;
@@ -95,13 +97,18 @@ public class BatchExecutableProcessor {
 
       final RegisteredExecutable result =
           activateSingle(
-              data, t -> cancellationCallback.accept(new InboundExecutableEvent.Cancelled(id, t)));
+              data,
+              t ->
+                  cancellationCallback.accept(
+                      new InboundExecutableEvent.Cancelled(deduplicationId, t)));
 
       switch (result) {
-        case Activated activated -> alreadyActivated.put(id, activated);
-        case ConnectorNotRegistered notRegistered -> alreadyActivated.put(id, notRegistered);
-        case InvalidDefinition invalid -> alreadyActivated.put(id, invalid);
-        case RegisteredExecutable.Cancelled cancelled -> alreadyActivated.put(id, cancelled);
+        case Activated activated -> alreadyActivated.put(deduplicationId, activated);
+        case ConnectorNotRegistered notRegistered ->
+            alreadyActivated.put(deduplicationId, notRegistered);
+        case InvalidDefinition invalid -> alreadyActivated.put(deduplicationId, invalid);
+        case RegisteredExecutable.Cancelled cancelled ->
+            alreadyActivated.put(deduplicationId, cancelled);
         case FailedToActivate failed -> {
           LOG.error(
               "Failed to activate connector of type '{}' with deduplication ID '{}', reason: {}. "
@@ -123,15 +130,15 @@ public class BatchExecutableProcessor {
                   + ". Reason: "
                   + failed.reason();
 
-          Map<UUID, RegisteredExecutable> notActivated = new HashMap<>();
+          Map<ExecutableId, RegisteredExecutable> notActivated = new HashMap<>();
           for (var failedEntry : request.entrySet()) {
-            if (!failedEntry.getKey().equals(id)) {
+            if (!failedEntry.getKey().equals(deduplicationId)) {
               notActivated.put(
                   failedEntry.getKey(),
                   new FailedToActivate(failedEntry.getValue(), failureReasonForOthers));
             }
           }
-          notActivated.put(id, failed);
+          notActivated.put(deduplicationId, failed);
           return notActivated;
         }
       }
