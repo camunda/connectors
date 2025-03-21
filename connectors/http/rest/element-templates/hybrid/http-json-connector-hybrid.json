@@ -481,7 +481,7 @@
     "label" : "Ignore null values",
     "optional" : false,
     "value" : false,
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "payload",
     "binding" : {
       "name" : "ignoreNullValues",
