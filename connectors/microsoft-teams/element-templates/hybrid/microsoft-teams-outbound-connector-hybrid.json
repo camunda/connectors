@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
-  "version" : 3,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -1111,6 +1111,28 @@
       "name" : "HTML",
       "value" : "HTML"
     } ]
+  }, {
+    "id" : "data.sendMessageToChannel.documents",
+    "label" : "documents",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "data",
+    "binding" : {
+      "name" : "data.documents",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.channelMethod",
+        "equals" : "sendMessageToChannel",
+        "type" : "simple"
+      }, {
+        "property" : "data.type",
+        "equals" : "channel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "data.getChannelMessage.groupId",
     "label" : "Group ID",

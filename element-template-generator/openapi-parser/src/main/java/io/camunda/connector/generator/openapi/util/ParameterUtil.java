@@ -25,6 +25,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 /** Utility functions related to converting OpenAPI parameters to {@link HttpOperationProperty}s. */
@@ -34,7 +35,8 @@ public class ParameterUtil {
       Map.of(
           "path", HttpOperationProperty.Target.PATH,
           "query", HttpOperationProperty.Target.QUERY,
-          "header", HttpOperationProperty.Target.HEADER);
+          "header", HttpOperationProperty.Target.HEADER,
+          "headers", HttpOperationProperty.Target.HEADER);
 
   public static HttpOperationProperty transformToProperty(
       Parameter parameter, Components components) {
@@ -143,12 +145,24 @@ public class ParameterUtil {
   }
 
   private static Object generateFakeDataFromSchema(Schema<?> schema, Components components) {
+    return generateFakeDataFromSchema(schema, components, new HashSet<>());
+  }
+
+  private static Object generateFakeDataFromSchema(
+      Schema<?> schema, Components components, HashSet<Schema<?>> visitedSchemas) {
     switch (schema.getType()) {
       case "string" -> {
         return "string";
       }
       case "object" -> {
         Map<String, Object> nested = new HashMap<>();
+
+        boolean shouldEarlyExitWhenCircleDetected = visitedSchemas.contains(schema);
+        if (shouldEarlyExitWhenCircleDetected) {
+          return nested;
+        }
+        visitedSchemas.add(schema);
+
         schema.getProperties().entrySet().stream()
             .map(
                 entry ->
@@ -157,7 +171,9 @@ public class ParameterUtil {
             .forEach(
                 entry ->
                     nested.put(
-                        entry.getKey(), generateFakeDataFromSchema(entry.getValue(), components)));
+                        entry.getKey(),
+                        generateFakeDataFromSchema(
+                            entry.getValue(), components, new HashSet<>(visitedSchemas))));
         return nested;
       }
       case "array" -> {
