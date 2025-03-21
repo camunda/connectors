@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.ProcessElement;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -55,6 +57,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -707,9 +710,79 @@ public class InboundCorrelationHandlerTest {
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
-      handler.correlate(List.of(element), Collections.emptyMap(), "providedIdValue");
+      handler.correlate(
+          List.of(element),
+          CorrelationRequest.builder()
+              .variables(Collections.emptyMap())
+              .messageId("providedIdValue")
+              .build());
       // then
       verify(dummyCommand).messageId("providedIdValue");
+    }
+
+    @Test
+    void messageIdIsProvided_messageIdExpressionIsUsedInPriority() {
+      // given
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=123", "=456", null);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+
+      var dummyCommand = spy(new PublishMessageCommandDummy());
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      // when
+      handler.correlate(
+          List.of(element),
+          CorrelationRequest.builder()
+              .variables(Collections.emptyMap())
+              .messageId("providedIdValue")
+              .build());
+      // then
+      verify(dummyCommand).messageId("456");
+    }
+
+    @Test
+    void messageIdIsProvided_messageIdExpressionIsUsed() {
+      // given
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=123", "=456", null);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+
+      var dummyCommand = spy(new PublishMessageCommandDummy());
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      // when
+      handler.correlate(
+          List.of(element), CorrelationRequest.builder().variables(Collections.emptyMap()).build());
+      // then
+      verify(dummyCommand).messageId("456");
+    }
+
+    @Test
+    void messageIdIsProvided_messageIdIsUUIDifNothingHasBeenSet() {
+      // given
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=123", null, null);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.element())
+          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+
+      var dummyCommand = spy(new PublishMessageCommandDummy());
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      // when
+      handler.correlate(
+          List.of(element), CorrelationRequest.builder().variables(Collections.emptyMap()).build());
+      // then
+      verify(dummyCommand)
+          .messageId(
+              ArgumentMatchers.argThat(
+                  s ->
+                      Pattern.compile(
+                              "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+                          .matcher(s)
+                          .matches()));
     }
   }
 }
