@@ -19,33 +19,39 @@ package io.camunda.connector.http.base.client.apache.builder.parts;
 import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.utils.DocumentHelper;
 import io.camunda.document.Document;
-import io.camunda.zeebe.client.api.response.DocumentMetadata;
-import java.io.BufferedInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
-import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.HttpEntities;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Maps the request body of a {@link HttpCommonRequest} to an Apache {@link ClassicRequestBuilder}.
  */
 public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ApacheRequestBodyBuilder.class);
+
   public static final String EMPTY_BODY = "";
+  public static final ObjectMapper mapperIgnoreNull =
+      ConnectorsObjectMapperSupplier.getCopy()
+          .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+  public static final ObjectMapper mapperSendNull = ConnectorsObjectMapperSupplier.getCopy();
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
@@ -77,7 +83,7 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
       ContentType contentType, Map<?, ?> body, HttpCommonRequest request) {
     HttpEntity entity;
     if (contentType.getMimeType().equalsIgnoreCase(MULTIPART_FORM_DATA.getMimeType())) {
-      entity = createMultiPartEntity(body, contentType);
+      entity = new DocumentAwareMultipartEntityBuilder(body, contentType).build();
     } else if (contentType
         .getMimeType()
         .equalsIgnoreCase(ContentType.APPLICATION_FORM_URLENCODED.getMimeType())) {
@@ -103,7 +109,9 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
           ? new StringEntity(
               s, contentType.orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
           : new StringEntity(
-              ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(body),
+              request.isIgnoreNullValues()
+                  ? mapperIgnoreNull.writeValueAsString(body)
+                  : mapperSendNull.writeValueAsString(body),
               contentType.orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
     } catch (JsonProcessingException e) {
       throw new ConnectorException("Failed to serialize request body:" + body, e);
@@ -120,51 +128,5 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
                         Optional.ofNullable(e.getValue()).map(String::valueOf).orElse(null)))
             .collect(Collectors.toList()),
         StandardCharsets.UTF_8);
-  }
-
-  private HttpEntity createMultiPartEntity(Map<?, ?> body, ContentType contentType) {
-    final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-    builder.setMode(HttpMultipartMode.LEGACY);
-    Optional.ofNullable(contentType.getParameter("boundary")).ifPresent(builder::setBoundary);
-    for (Map.Entry<?, ?> entry : body.entrySet()) {
-      switch (entry.getValue()) {
-        case Document document -> streamDocumentContent(entry, document, builder);
-        case List<?> list -> tryStreamDocumentListContent(entry, list, builder);
-        case null -> {}
-        default ->
-            builder.addTextBody(
-                String.valueOf(entry.getKey()),
-                String.valueOf(entry.getValue()),
-                MULTIPART_FORM_DATA);
-      }
-    }
-    return builder.build();
-  }
-
-  private void tryStreamDocumentListContent(
-      Map.Entry<?, ?> entry, List<?> list, MultipartEntityBuilder builder) {
-    for (Object item : list) {
-      if (item instanceof Document document) {
-        streamDocumentContent(entry, document, builder);
-      } else {
-        builder.addTextBody(String.valueOf(entry.getKey()), String.valueOf(item));
-      }
-    }
-  }
-
-  private void streamDocumentContent(
-      Map.Entry<?, ?> entry, Document document, MultipartEntityBuilder builder) {
-    DocumentMetadata metadata = document.metadata();
-    ContentType contentType;
-    try {
-      contentType = ContentType.create(metadata.getContentType());
-    } catch (IllegalArgumentException e) {
-      contentType = ContentType.DEFAULT_BINARY;
-    }
-    builder.addBinaryBody(
-        String.valueOf(entry.getKey()),
-        new BufferedInputStream(document.asInputStream()),
-        contentType,
-        metadata.getFileName());
   }
 }
