@@ -125,6 +125,10 @@
           "value": "post-/crm/v3/objects/contacts"
         },
         {
+          "name": "Search contact",
+          "value": "post-/crm/v3/objects/contacts/search_doSearch"
+        },
+        {
           "name": "Update contact",
           "value": "patch-/crm/v3/objects/contacts/{contactId}"
         },
@@ -135,6 +139,10 @@
         {
           "name": "Get all companies",
           "value": "get-/crm/v3/objects/companies_getPage"
+        },
+        {
+          "name": "Search company",
+          "value": "post-/crm/v3/objects/companies/search_doSearch"
         },
         {
           "name": "Get company by id",
@@ -159,6 +167,10 @@
         {
           "name": "Get deal by id",
           "value": "get-/crm/v3/objects/deals/{dealId}_getById"
+        },
+        {
+          "name": "Search deal",
+          "value": "post-/crm/v3/objects/deals/search_doSearch"
         },
         {
           "name": "Delete deal",
@@ -410,6 +422,125 @@
       "condition": {
         "property": "operationId",
         "equals": "patch-/crm/v3/objects/contacts/{contactId}",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "label": "Search field",
+      "description": "The field within the object to perform the search on",
+      "feel": "optional",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "searchField"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/objects/contacts/search_doSearch",
+          "post-/crm/v3/objects/companies/search_doSearch",
+          "post-/crm/v3/objects/deals/search_doSearch"
+        ],
+        "type": "simple"
+      },
+      "value": ""
+    },
+    {
+      "label": "Search value",
+      "description": "The value to search for",
+      "feel": "optional",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "searchValue"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/objects/contacts/search_doSearch",
+          "post-/crm/v3/objects/companies/search_doSearch",
+          "post-/crm/v3/objects/deals/search_doSearch"
+        ],
+        "type": "simple"
+      },
+      "value": ""
+    },
+
+    {
+      "id": "post-/crm/v3/objects/contacts/search_doSearch_$path",
+      "value": "=\"/crm/v3/objects/contacts/search\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/search_doSearch_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/search_doSearch_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/search_doSearch_$method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/search_doSearch_body",
+      "value": "={\n    \"filterGroups\": [\n    {\n      \"filters\": [\n        {\n          \"highValue\": \"string\",\n          \"propertyName\": searchField,\n          \"value\": searchValue,\n          \"operator\": \"EQ\"\n        }\n      ]\n    }\n  ]\n}",
+      "group": "requestBody",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/search_doSearch",
         "type": "simple"
       },
       "type": "Hidden"
@@ -803,6 +934,82 @@
     },
 
     {
+      "id": "post-/crm/v3/objects/companies/search_doSearch_$path",
+      "value": "=\"/crm/v3/objects/companies/search\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/companies/search_doSearch_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/companies/search_doSearch_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/companies/search_doSearch_$method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/companies/search_doSearch_body",
+      "value": "={\n    \"filterGroups\": [\n    {\n      \"filters\": [\n        {\n          \"highValue\": \"string\",\n          \"propertyName\": searchField,\n          \"value\": searchValue,\n          \"operator\": \"EQ\"\n        }\n      ]\n    }\n  ]\n}",
+      "group": "requestBody",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
       "id": "delete-/crm/v3/objects/companies/{companyId}_archive_path_companyId",
       "label": "Company id",
       "optional": false,
@@ -1144,6 +1351,82 @@
       "condition": {
         "property": "operationId",
         "equals": "get-/crm/v3/objects/deals/{dealId}_getById",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "post-/crm/v3/objects/deals/search_doSearch_$path",
+      "value": "=\"/crm/v3/objects/deals/search\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/deals/search_doSearch_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/deals/search_doSearch_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/deals/search_doSearch_$method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/deals/search_doSearch_body",
+      "value": "={\n    \"filterGroups\": [\n    {\n      \"filters\": [\n        {\n          \"highValue\": \"string\",\n          \"propertyName\": searchField,\n          \"value\": searchValue,\n          \"operator\": \"EQ\"\n        }\n      ]\n    }\n  ]\n}",
+      "group": "requestBody",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/deals/search_doSearch",
         "type": "simple"
       },
       "type": "Hidden"
