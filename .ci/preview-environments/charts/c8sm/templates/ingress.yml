@@ -38,10 +38,10 @@ spec:
         pathType: Prefix
       - backend:
           service:
-            name: {{ template "operate.fullname" $camundaPlatform }}
+            name: {{ template "core.fullname" $camundaPlatform }}
             port:
-              number: {{ .Values.camundaPlatform.operate.service.port }}
-        path: {{ .Values.camundaPlatform.operate.contextPath }}
+              number: {{ .Values.camundaPlatform.core.service.httpPort }}
+        path: {{ .Values.camundaPlatform.core.contextPath }}
         pathType: Prefix
       - backend:
           service:
