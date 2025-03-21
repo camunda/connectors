@@ -177,13 +177,13 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test", "deduplicationMode", "MANUAL", "deduplicationId", "id"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElement("myProcess", 0, 12345, "element1", "<default>"));
 
     // when
     var result = testObj.deduplicationId(List.of());
 
     // then
-    assertThat(result).isEqualTo("<default>-myProcess-id");
+    assertThat(result).isEqualTo("<default>-12345-id");
   }
 
   @Test
