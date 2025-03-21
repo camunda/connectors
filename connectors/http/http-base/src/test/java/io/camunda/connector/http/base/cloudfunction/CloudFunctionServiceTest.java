@@ -119,11 +119,7 @@ public class CloudFunctionServiceTest {
     request.setUrl("theUrl");
     request.setMethod(HttpMethod.POST);
     request.setHeaders(
-        Map.of(
-            "header",
-            "value",
-            "Content-Type",
-            ContentType.APPLICATION_FORM_URLENCODED.getMimeType()));
+        Map.of("header", "value", "Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
     request.setBody(Map.of("bodyKey", "bodyValue", "myDocument", document));
     request.setConnectionTimeoutInSeconds(50);
     request.setReadTimeoutInSeconds(60);
@@ -146,7 +142,8 @@ public class CloudFunctionServiceTest {
     assertThat(body)
         .containsEntry(
             "headers",
-            Map.of("header", "value", "Content-Type", "application/x-www-form-urlencoded"));
+            Map.of(
+                "header", "value", "Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
     assertThat(body)
         .containsEntry(
             "body",
@@ -181,7 +178,11 @@ public class CloudFunctionServiceTest {
     request.setUrl("theUrl");
     request.setMethod(HttpMethod.POST);
     request.setHeaders(
-        Map.of("header", "value", "Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
+        Map.of(
+            "header",
+            "value",
+            "Content-Type",
+            ContentType.APPLICATION_FORM_URLENCODED.getMimeType()));
     request.setBody(Map.of("bodyKey", "bodyValue", "myDocument", document));
     request.setConnectionTimeoutInSeconds(50);
     request.setReadTimeoutInSeconds(60);
@@ -202,7 +203,13 @@ public class CloudFunctionServiceTest {
     assertThat(body).containsEntry("url", "theUrl");
     assertThat(body).containsEntry("method", "POST");
     assertThat(body)
-        .containsEntry("headers", Map.of("header", "value", "Content-Type", "multipart/form-data"));
+        .containsEntry(
+            "headers",
+            Map.of(
+                "header",
+                "value",
+                "Content-Type",
+                ContentType.APPLICATION_FORM_URLENCODED.getMimeType()));
     assertThat(body)
         .containsEntry(
             "body",
