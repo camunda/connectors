@@ -39,7 +39,6 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +51,7 @@ public class InboundExecutableRegistryTest {
   private BatchExecutableProcessor batchProcessor;
   private InboundExecutableRegistryImpl registry;
 
-  public static final String RANDOM_STRING = RandomStringUtils.insecure().next(10);
+  public static final String RANDOM_STRING = "thededuplicationId";
   private static final ExecutableId RANDOM_ID = new ExecutableId(RANDOM_STRING);
 
   @BeforeEach
