@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Objects;
 
 /**
  * This class represents the hashed deduplication id of an executable. The deduplication id is
@@ -54,5 +55,17 @@ public class ExecutableId {
   @JsonValue
   public String getId() {
     return id;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    ExecutableId that = (ExecutableId) o;
+    return Objects.equals(id, that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(id);
   }
 }
