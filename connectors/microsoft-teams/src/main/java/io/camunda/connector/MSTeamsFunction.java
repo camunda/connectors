@@ -24,7 +24,7 @@ import io.camunda.connector.suppliers.GraphServiceClientSupplier;
     name = "Microsoft Teams Outbound Connector",
     description = "Create, update, and send a message to your Microsoft Teams",
     inputDataClass = MSTeamsRequest.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
