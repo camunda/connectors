@@ -18,9 +18,6 @@
 package io.camunda.connector.runtime.core.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -28,6 +25,7 @@ import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
+import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
@@ -35,17 +33,17 @@ import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.Erro
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.document.factory.DocumentFactory;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
+import java.util.Map;
+import java.util.Optional;
+
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.response.CompleteJobResponse;
 import io.camunda.zeebe.client.api.response.FailJobResponse;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
-import java.time.Duration;
-import java.time.format.DateTimeParseException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,15 +62,21 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected ObjectMapper objectMapper;
 
+  private OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
+
   /**
    * Create a handler wrapper for the specified connector function.
    *
    * @param call - the connector function to call
+   * @param outboundConnectorExceptionHandler
    */
   public ConnectorJobHandler(
-      final OutboundConnectorFunction call, ValidationProvider validationProvider) {
+      final OutboundConnectorFunction call,
+      ValidationProvider validationProvider,
+      OutboundConnectorExceptionHandler outboundConnectorExceptionHandler) {
     this.call = call;
     this.validationProvider = validationProvider;
+    this.outboundConnectorExceptionHandler = outboundConnectorExceptionHandler;
   }
 
   /**
@@ -91,38 +95,17 @@ public class ConnectorJobHandler implements JobHandler {
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
-  }
-
-  protected static Map<String, Object> exceptionToMap(Exception exception) {
-    Map<String, Object> result = new HashMap<>();
-    result.put("type", exception.getClass().getName());
-    var message = exception.getMessage();
-    if (message != null) {
-      result.put(
-          "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
-    }
-    if (exception instanceof ConnectorException connectorException) {
-      var code = connectorException.getErrorCode();
-      var variables = connectorException.getErrorVariables();
-
-      if (code != null) {
-        result.put("code", code);
-      }
-
-      if (variables != null) {
-        result.put("variables", variables);
-      }
-    }
-    return Map.copyOf(result);
+    this.outboundConnectorExceptionHandler =
+        new OutboundConnectorExceptionHandler(getSecretProvider());
   }
 
   protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
+          JobClient client, ActivatedJob job, SuccessResult result) {
     return client.newCompleteCommand(job).variables(result.variables());
   }
 
   protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+      JobClient client, ActivatedJob job, ErrorResult result) {
     var retries = result.retries();
     var errorMessage = truncateErrorMessage(result.exception().getMessage());
     Duration backoff = result.retryBackoff();
@@ -146,22 +129,6 @@ public class ConnectorJobHandler implements JobHandler {
         .errorMessage(truncateErrorMessage(error.message()));
   }
 
-  private static Duration getBackoffDuration(ActivatedJob job) {
-    String backoffHeader = job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD);
-    if (backoffHeader == null) {
-      return null;
-    }
-    try {
-      return Duration.parse(backoffHeader);
-    } catch (DateTimeParseException e) {
-      throw new RuntimeException(
-          "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
-              + "got: "
-              + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD),
-          e);
-    }
-  }
-
   private static String truncateErrorMessage(String message) {
     return message != null
         ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
@@ -171,20 +138,14 @@ public class ConnectorJobHandler implements JobHandler {
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
     LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
+    ConnectorResult result = getConnectorResult(job);
+    processFinalResult(client, job, result);
+  }
 
-    Duration retryBackoff;
+  private ConnectorResult getConnectorResult(ActivatedJob job) {
+    Duration retryBackoff = null;
     try {
       retryBackoff = getBackoffDuration(job);
-    } catch (Exception e) {
-      ConnectorResult.ErrorResult result =
-          new ConnectorResult.ErrorResult(Map.of("error", exceptionToMap(e)), e, 0);
-      failJob(client, job, result);
-      return;
-    }
-
-    ConnectorResult result;
-
-    try {
       var context =
           new JobHandlerContext(
               job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
@@ -194,65 +155,59 @@ public class ConnectorJobHandler implements JobHandler {
               response,
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
-      result = new ConnectorResult.SuccessResult(response, responseVariables);
-    } catch (ConnectorRetryException ex) {
-      LOGGER.debug(
-          "ConnectorRetryException while processing job: {} for tenant: {}",
+      return new SuccessResult(response, responseVariables);
+    } catch (Exception e) {
+      return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
+          e, job, retryBackoff);
+    }
+  }
+
+  private Duration getBackoffDuration(ActivatedJob job) {
+    String backoffHeader = job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD);
+    if (backoffHeader == null) {
+      return null;
+    }
+    try {
+      return Duration.parse(backoffHeader);
+    } catch (DateTimeParseException e) {
+      throw new InvalidBackOffDurationException(
+          "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
+              + "got: "
+              + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD),
+          e);
+    }
+  }
+
+  private void processFinalResult(JobClient client, ActivatedJob job, ConnectorResult finalResult) {
+    try {
+      Optional<ConnectorError> optionalConnectorError =
+          ConnectorHelper.examineErrorExpression(
+              finalResult.responseValue(),
+              job.getCustomHeaders(),
+              new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())));
+      optionalConnectorError.ifPresentOrElse(
+          error -> handleBPMNError(client, job, error),
+          () -> handleSuccessResult(client, job, finalResult));
+    } catch (Exception ex) {
+      failJob(
+          client, job, this.outboundConnectorExceptionHandler.handleFinalResultException(ex, job));
+    }
+  }
+
+  private void handleSuccessResult(
+      JobClient jobClient, ActivatedJob job, ConnectorResult finalResult) {
+    if (finalResult instanceof SuccessResult successResult) {
+      LOGGER.debug("Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
+      completeJob(jobClient, job, successResult);
+    } else if (finalResult instanceof ErrorResult errorResult) {
+      // Handle Java error, e.g. ConnectorException
+      // these errors won't be handled ConnectorHelper.examineErrorExpression
+      LOGGER.error(
+          "Exception while completing job: {} for tenant: {}, message: {}",
           job.getKey(),
           job.getTenantId(),
-          ex);
-      String errorCode = ex.getErrorCode();
-      result =
-          handleSDKException(
-              job,
-              ex,
-              Optional.ofNullable(ex.getRetries()).orElse(job.getRetries() - 1),
-              errorCode,
-              Optional.ofNullable(ex.getBackoffDuration()).orElse(retryBackoff));
-    } catch (Exception ex) {
-      LOGGER.debug(
-          "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
-
-      String errorCode = null;
-      int retries = job.getRetries() - 1;
-
-      if (ex instanceof ConnectorException connectorException) {
-        errorCode = connectorException.getErrorCode();
-      }
-      if (ex instanceof ConnectorInputException
-          || ex.getCause() instanceof ConnectorInputException) {
-        retries = 0;
-      }
-      result = handleSDKException(job, ex, retries, errorCode, retryBackoff);
-    }
-
-    try {
-      final ConnectorResult finalResult = result;
-      ConnectorHelper.examineErrorExpression(
-              result.responseValue(),
-              job.getCustomHeaders(),
-              new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())))
-          .ifPresentOrElse(
-              error -> {
-                handleBPMNError(client, job, error);
-              },
-              () -> {
-                if (finalResult instanceof SuccessResult successResult) {
-                  LOGGER.debug(
-                      "Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
-                  completeJob(client, job, successResult);
-                } else {
-                  // Handle Java error, e.g. ConnectorException
-                  // these errors won't be handled ConnectorHelper.examineErrorExpression
-                  var errorResult = (ErrorResult) finalResult;
-                  logError(job, errorResult.exception());
-                  failJob(client, job, errorResult);
-                }
-              });
-    } catch (Exception ex) {
-      logError(job, ex);
-      // failure while parsing the error expression
-      failJob(client, job, new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, 0));
+          errorResult.exception().getMessage());
+      failJob(jobClient, job, errorResult);
     }
   }
 
@@ -273,19 +228,6 @@ public class ConnectorJobHandler implements JobHandler {
     }
   }
 
-  private ConnectorResult handleSDKException(
-      ActivatedJob job, Exception ex, Integer retries, String errorCode, Duration backoffDuration) {
-    LOGGER.debug(
-        "Failing job with retry config => job: {} for tenant: {} with error code: {}, retries: {} and remaining backoffDuration: {}",
-        job.getKey(),
-        job.getTenantId(),
-        errorCode,
-        retries,
-        backoffDuration);
-
-    return new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, retries, backoffDuration);
-  }
-
   protected SecretProvider getSecretProvider() {
     // if custom provider / aggregator is provided by the runtime, use it
     if (secretProvider != null) {
@@ -295,17 +237,11 @@ public class ConnectorJobHandler implements JobHandler {
     return new SecretProviderAggregator(SecretProviderDiscovery.discoverSecretProviders());
   }
 
-  protected void logError(ActivatedJob job, Exception ex) {
-    LOGGER.error(
-        "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
-  }
-
-  protected void completeJob(
-      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
+  protected void completeJob(JobClient client, ActivatedJob job, SuccessResult result) {
     prepareCompleteJobCommand(client, job, result).send().join();
   }
 
-  protected void failJob(JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+  protected void failJob(JobClient client, ActivatedJob job, ErrorResult result) {
     prepareFailJobCommand(client, job, result).send().join();
   }
 
