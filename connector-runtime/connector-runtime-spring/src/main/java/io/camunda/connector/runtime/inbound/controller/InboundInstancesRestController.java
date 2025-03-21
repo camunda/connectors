@@ -71,7 +71,7 @@ public class InboundInstancesRestController {
         instance.instances().stream()
             .filter(
                 activeInboundConnectorResponse ->
-                    activeInboundConnectorResponse.executableId().toString().equals(executableId))
+                    activeInboundConnectorResponse.executableId().getId().equals(executableId))
             .toList();
     if (executables.isEmpty()) {
       throw new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId);
@@ -88,7 +88,7 @@ public class InboundInstancesRestController {
         executable.elements().stream().map(ProcessElement::bpmnProcessId).distinct().toList();
     if (processIds.size() > 1) {
       throw new RuntimeException(
-          "Multiple process ids found for the executable id: "
+          "Multiple process ids found for the id: "
               + executableId
               + ". This is not supported yet.");
     }
@@ -99,7 +99,7 @@ public class InboundInstancesRestController {
             .stream()
             .filter(
                 activeExecutableResponse ->
-                    activeExecutableResponse.executableId().toString().equals(executableId))
+                    activeExecutableResponse.executableId().getId().equals(executableId))
             .findFirst();
     if (result.isEmpty()) {
       throw new DataNotFoundException(Activity.class, executableId);
