@@ -26,6 +26,7 @@ import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.BasicAuth;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.BearerAuth;
@@ -248,19 +249,22 @@ public class HttpOutboundElementTemplateBuilderTest {
     @Test
     void multipleAuths_dropdown() {
       // given
-      var auths = List.of(NoAuth.INSTANCE, BasicAuth.INSTANCE);
+      var auths = List.of(NoAuth.INSTANCE, BasicAuth.of("test"));
 
       // when
       var template = buildTemplate(List.of(), auths, List.of());
       var properties = template.properties();
 
       // then
-      var authProperty = findByBindingName("authentication.type", properties);
+      var authProperty = findByBindingName("authentication.dropdown", properties);
       assertThat(authProperty.getType()).isEqualTo("Dropdown");
-      assertThat(authProperty.getBinding()).isInstanceOf(ZeebeInput.class);
+      assertThat(authProperty.getBinding()).isInstanceOf(ZeebeProperty.class);
+      var basicAuthProperty = findByBindingName("authentication.type", properties);
+      assertThat(basicAuthProperty.getBinding()).isInstanceOf(ZeebeInput.class);
       assertThat(((DropdownProperty) authProperty).getChoices())
           .containsExactly(
-              new DropdownChoice("None", "noAuth"), new DropdownChoice("Basic", "basic"));
+              new DropdownChoice("None", "noAuth"),
+              new DropdownChoice("Basic (test)", "basic.test"));
     }
 
     @Test
@@ -319,7 +323,7 @@ public class HttpOutboundElementTemplateBuilderTest {
     @Test
     void basicAuth() {
       // given
-      List<HttpAuthentication> auths = List.of(BasicAuth.INSTANCE);
+      List<HttpAuthentication> auths = List.of(BasicAuth.of("test"));
 
       // when
       var template = buildTemplate(List.of(), auths, List.of());
@@ -401,9 +405,13 @@ public class HttpOutboundElementTemplateBuilderTest {
   private Property findByBindingName(String name, List<Property> properties) {
     return properties.stream()
         .filter(
-            p ->
-                p.getBinding() instanceof ZeebeInput
-                    && ((ZeebeInput) p.getBinding()).name().equals(name))
+            p -> {
+              Object binding = p.getBinding();
+              return (binding instanceof ZeebeInput
+                      && ((ZeebeInput) p.getBinding()).name().equals(name))
+                  || (binding instanceof ZeebeProperty
+                      && ((ZeebeProperty) p.getBinding()).name().equals(name));
+            })
         .findFirst()
         .get();
   }
