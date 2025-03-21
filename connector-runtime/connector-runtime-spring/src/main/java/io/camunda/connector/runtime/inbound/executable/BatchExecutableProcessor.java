@@ -82,14 +82,13 @@ public class BatchExecutableProcessor {
     final Map<ExecutableId, RegisteredExecutable> alreadyActivated = new HashMap<>();
 
     for (var entry : request.entrySet()) {
-      final ExecutableId deduplicationId = entry.getKey();
+      final ExecutableId id = entry.getKey();
       final InboundConnectorDetails maybeValidData = entry.getValue();
       final ValidInboundConnectorDetails data;
 
       if (maybeValidData instanceof InvalidInboundConnectorDetails invalid) {
         alreadyActivated.put(
-            deduplicationId,
-            new RegisteredExecutable.InvalidDefinition(invalid, invalid.error().getMessage()));
+            id, new RegisteredExecutable.InvalidDefinition(invalid, invalid.error().getMessage()));
         continue;
       } else {
         data = (ValidInboundConnectorDetails) maybeValidData;
@@ -97,18 +96,13 @@ public class BatchExecutableProcessor {
 
       final RegisteredExecutable result =
           activateSingle(
-              data,
-              t ->
-                  cancellationCallback.accept(
-                      new InboundExecutableEvent.Cancelled(deduplicationId, t)));
+              data, t -> cancellationCallback.accept(new InboundExecutableEvent.Cancelled(id, t)));
 
       switch (result) {
-        case Activated activated -> alreadyActivated.put(deduplicationId, activated);
-        case ConnectorNotRegistered notRegistered ->
-            alreadyActivated.put(deduplicationId, notRegistered);
-        case InvalidDefinition invalid -> alreadyActivated.put(deduplicationId, invalid);
-        case RegisteredExecutable.Cancelled cancelled ->
-            alreadyActivated.put(deduplicationId, cancelled);
+        case Activated activated -> alreadyActivated.put(id, activated);
+        case ConnectorNotRegistered notRegistered -> alreadyActivated.put(id, notRegistered);
+        case InvalidDefinition invalid -> alreadyActivated.put(id, invalid);
+        case RegisteredExecutable.Cancelled cancelled -> alreadyActivated.put(id, cancelled);
         case FailedToActivate failed -> {
           LOG.error(
               "Failed to activate connector of type '{}' with deduplication ID '{}', reason: {}. "
@@ -132,13 +126,13 @@ public class BatchExecutableProcessor {
 
           Map<ExecutableId, RegisteredExecutable> notActivated = new HashMap<>();
           for (var failedEntry : request.entrySet()) {
-            if (!failedEntry.getKey().equals(deduplicationId)) {
+            if (!failedEntry.getKey().equals(id)) {
               notActivated.put(
                   failedEntry.getKey(),
                   new FailedToActivate(failedEntry.getValue(), failureReasonForOthers));
             }
           }
-          notActivated.put(deduplicationId, failed);
+          notActivated.put(id, failed);
           return notActivated;
         }
       }
