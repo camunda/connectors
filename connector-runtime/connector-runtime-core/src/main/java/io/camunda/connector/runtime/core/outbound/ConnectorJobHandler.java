@@ -33,17 +33,16 @@ import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.Erro
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.document.factory.DocumentFactory;
-import java.time.Duration;
-import java.time.format.DateTimeParseException;
-import java.util.Map;
-import java.util.Optional;
-
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.response.CompleteJobResponse;
 import io.camunda.zeebe.client.api.response.FailJobResponse;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
+import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +99,7 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
-          JobClient client, ActivatedJob job, SuccessResult result) {
+      JobClient client, ActivatedJob job, SuccessResult result) {
     return client.newCompleteCommand(job).variables(result.variables());
   }
 
