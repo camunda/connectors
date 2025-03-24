@@ -601,6 +601,28 @@
       "type": "Text"
     },
     {
+      "id": "users.user.sendMail_attachments",
+      "label": "Attachments",
+      "description": "Attachments. Must be an array of document objects or an empty array",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "value": "=[]",
+      "feel": "required",
+      "group": "requestBody",
+      "binding": {
+        "name": "sendMail_attachments",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "users.user.sendMail",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
       "id": "users.user.sendMail_to_recipients",
       "label": "To recipients",
       "description": "Target recipients. Must be an array of emails",
@@ -717,7 +739,7 @@
     },
     {
       "id": "users.user.sendMail_body",
-      "value": "={\"message\":{\"subject\":sendMail_subject,\"body\":{\"contentType\":sendMail_body_content_type,\"content\":sendMail_body_content},\"toRecipients\": for currentEmail in sendMail_to_recipients return {\"emailAddress\":{\"address\":currentEmail}},\"ccRecipients\": if sendMail_cc_recipients != null then for currentEmailCC in sendMail_cc_recipients return {\"emailAddress\":{\"address\":currentEmailCC}} else null},\"saveToSentItems\":\"false\"}",
+      "value": "={\"message\":{\"subject\":sendMail_subject,\"body\":{\"contentType\":sendMail_body_content_type,\"content\":sendMail_body_content},\"toRecipients\": for currentEmail in sendMail_to_recipients return {\"emailAddress\":{\"address\":currentEmail}},\"ccRecipients\": if sendMail_cc_recipients != null then for currentEmailCC in sendMail_cc_recipients return {\"emailAddress\":{\"address\":currentEmailCC}} else null,\"attachments\": if sendMail_attachments != null then for document in sendMail_attachments return {\"@odata.type\":\"#microsoft.graph.fileAttachment\",\"name\":document.metadata.fileName,\"contentType\":document.metadata.contentType,\"contentBytes\":document} else null},\"saveToSentItems\":\"false\"}",
       "group": "requestBody",
       "binding": {
         "name": "body",
