@@ -32,6 +32,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
@@ -62,10 +63,11 @@ class InboundInstancesRestControllerTest {
   @InjectMocks private InboundInstancesRestController controller;
 
   private static final String TYPE_1 = "webhook";
-  private static final UUID UUID_1 = UUID.randomUUID();
+
+  private static final ExecutableId RANDOM_ID_1 = ExecutableId.fromDeduplicationId("theid1");
+  private static final ExecutableId RANDOM_ID_2 = ExecutableId.fromDeduplicationId("theid2");
+  private static final ExecutableId RANDOM_ID_3 = ExecutableId.fromDeduplicationId("theid3");
   private static final String TYPE_2 = "anotherType";
-  private static final UUID UUID_2 = UUID.randomUUID();
-  private static final UUID UUID_3 = UUID.randomUUID();
 
   static class AnotherExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 
@@ -96,7 +98,7 @@ class InboundInstancesRestControllerTest {
                     ? Collections.emptyList()
                     : Stream.of(
                             new ActiveExecutableResponse(
-                                UUID_1,
+                                RANDOM_ID_1,
                                 TestWebhookExecutable.class,
                                 List.of(
                                     new InboundConnectorElement(
@@ -108,7 +110,7 @@ class InboundInstancesRestControllerTest {
                                 Collections.emptyList(),
                                 System.currentTimeMillis()),
                             new ActiveExecutableResponse(
-                                UUID_2,
+                                RANDOM_ID_2,
                                 AnotherExecutable.class,
                                 List.of(
                                     new InboundConnectorElement(
@@ -124,7 +126,7 @@ class InboundInstancesRestControllerTest {
                                 Collections.emptyList(),
                                 System.currentTimeMillis()),
                             new ActiveExecutableResponse(
-                                UUID_3,
+                                RANDOM_ID_3,
                                 AnotherExecutable.class,
                                 List.of(
                                     new InboundConnectorElement(
@@ -160,10 +162,10 @@ class InboundInstancesRestControllerTest {
                                       .type();
                               return switch (providedType) {
                                 case null -> true;
-                                case TYPE_1 -> response.executableId().equals(UUID_1);
+                                case TYPE_1 -> response.executableId().equals(RANDOM_ID_1);
                                 case TYPE_2 ->
-                                    response.executableId().equals(UUID_2)
-                                        || response.executableId().equals(UUID_3);
+                                    response.executableId().equals(RANDOM_ID_2)
+                                        || response.executableId().equals(RANDOM_ID_3);
                                 default -> false;
                               };
                             })
@@ -187,16 +189,16 @@ class InboundInstancesRestControllerTest {
     assertEquals(TYPE_1, instance1.connectorId());
     assertEquals("Webhook", instance1.connectorName());
     assertEquals(1, instance1.instances().size());
-    assertEquals(UUID_1, instance1.instances().get(0).executableId());
+    assertEquals(RANDOM_ID_1, instance1.instances().get(0).executableId());
     assertEquals("ProcessA", instance1.instances().get(0).elements().getFirst().bpmnProcessId());
 
     var instance2 = instance.get(1);
     assertEquals(TYPE_2, instance2.connectorId());
     assertEquals("AnotherType", instance2.connectorName());
     assertEquals(2, instance2.instances().size());
-    assertEquals(UUID_2, instance2.instances().get(0).executableId());
+    assertEquals(RANDOM_ID_2, instance2.instances().get(0).executableId());
     assertEquals("ProcessB", instance2.instances().get(0).elements().getFirst().bpmnProcessId());
-    assertEquals(UUID_3, instance2.instances().get(1).executableId());
+    assertEquals(RANDOM_ID_3, instance2.instances().get(1).executableId());
     assertEquals("ProcessC", instance2.instances().get(1).elements().getFirst().bpmnProcessId());
   }
 
@@ -227,7 +229,7 @@ class InboundInstancesRestControllerTest {
     assertEquals(TYPE_1, instance.connectorId());
     assertEquals("Webhook", instance.connectorName());
     assertEquals(1, instance.instances().size());
-    assertEquals(UUID_1, instance.instances().get(0).executableId());
+    assertEquals(RANDOM_ID_1, instance.instances().get(0).executableId());
     assertEquals("ProcessA", instance.instances().get(0).elements().getFirst().bpmnProcessId());
   }
 
@@ -246,7 +248,7 @@ class InboundInstancesRestControllerTest {
   @Test
   public void shouldReturn404_whenUnknownConnectorTypeAndValidExecutableId() throws Exception {
     mockMvc
-        .perform(get("/inbound-instances/UNKNOWN-ID/executables/" + UUID_1))
+        .perform(get("/inbound-instances/UNKNOWN-ID/executables/" + RANDOM_ID_1.getId()))
         .andExpect(status().isNotFound())
         .andExpect(
             content()
@@ -259,7 +261,7 @@ class InboundInstancesRestControllerTest {
   public void shouldReturnSingleExecutable() throws Exception {
     var response =
         mockMvc
-            .perform(get("/inbound-instances/" + TYPE_1 + "/executables/" + UUID_1))
+            .perform(get("/inbound-instances/" + TYPE_1 + "/executables/" + RANDOM_ID_1.getId()))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -268,7 +270,7 @@ class InboundInstancesRestControllerTest {
     ActiveInboundConnectorResponse executable =
         ConnectorsObjectMapperSupplier.getCopy()
             .readValue(response, ActiveInboundConnectorResponse.class);
-    assertEquals(UUID_1, executable.executableId());
+    assertEquals(RANDOM_ID_1, executable.executableId());
     assertEquals("ProcessA", executable.elements().getFirst().bpmnProcessId());
   }
 
@@ -276,7 +278,13 @@ class InboundInstancesRestControllerTest {
   public void shouldReturnEmptyActivityLogs_whenNoLogs() throws Exception {
     var response =
         mockMvc
-            .perform(get("/inbound-instances/" + TYPE_1 + "/executables/" + UUID_1 + "/logs"))
+            .perform(
+                get(
+                    "/inbound-instances/"
+                        + TYPE_1
+                        + "/executables/"
+                        + RANDOM_ID_1.getId()
+                        + "/logs"))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -291,7 +299,13 @@ class InboundInstancesRestControllerTest {
   public void shouldReturnActivityLogs_whenTypeProvided() throws Exception {
     var response =
         mockMvc
-            .perform(get("/inbound-instances/" + TYPE_2 + "/executables/" + UUID_3 + "/logs"))
+            .perform(
+                get(
+                    "/inbound-instances/"
+                        + TYPE_2
+                        + "/executables/"
+                        + RANDOM_ID_3.getId()
+                        + "/logs"))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

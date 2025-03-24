@@ -28,6 +28,7 @@ import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
@@ -36,10 +37,13 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 
 public class InboundEndpointTest {
+
+  private static final ExecutableId RANDOM_ID =
+      ExecutableId.fromDeduplicationId(RandomStringUtils.insecure().next(10));
 
   static class AnotherExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 
@@ -66,7 +70,7 @@ public class InboundEndpointTest {
         .thenReturn(
             List.of(
                 new ActiveExecutableResponse(
-                    UUID.randomUUID(),
+                    RANDOM_ID,
                     TestWebhookExecutable.class,
                     List.of(
                         new InboundConnectorElement(
@@ -93,7 +97,7 @@ public class InboundEndpointTest {
         .thenReturn(
             List.of(
                 new ActiveExecutableResponse(
-                    UUID.randomUUID(),
+                    RANDOM_ID,
                     null, // executable class is null
                     List.of(
                         new InboundConnectorElement(

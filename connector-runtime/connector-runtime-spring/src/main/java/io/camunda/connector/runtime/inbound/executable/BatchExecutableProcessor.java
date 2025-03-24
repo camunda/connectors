@@ -24,6 +24,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
@@ -74,14 +75,14 @@ public class BatchExecutableProcessor {
    * (except non-registered connectors, which can be activated by a different runtime - those are
    * considered valid).
    */
-  public Map<UUID, RegisteredExecutable> activateBatch(
-      Map<UUID, InboundConnectorDetails> request,
+  public Map<ExecutableId, RegisteredExecutable> activateBatch(
+      Map<ExecutableId, InboundConnectorDetails> request,
       Consumer<InboundExecutableEvent.Cancelled> cancellationCallback) {
 
-    final Map<UUID, RegisteredExecutable> alreadyActivated = new HashMap<>();
+    final Map<ExecutableId, RegisteredExecutable> alreadyActivated = new HashMap<>();
 
     for (var entry : request.entrySet()) {
-      final UUID id = entry.getKey();
+      final ExecutableId id = entry.getKey();
       final InboundConnectorDetails maybeValidData = entry.getValue();
       final ValidInboundConnectorDetails data;
 
@@ -123,7 +124,7 @@ public class BatchExecutableProcessor {
                   + ". Reason: "
                   + failed.reason();
 
-          Map<UUID, RegisteredExecutable> notActivated = new HashMap<>();
+          Map<ExecutableId, RegisteredExecutable> notActivated = new HashMap<>();
           for (var failedEntry : request.entrySet()) {
             if (!failedEntry.getKey().equals(id)) {
               notActivated.put(
