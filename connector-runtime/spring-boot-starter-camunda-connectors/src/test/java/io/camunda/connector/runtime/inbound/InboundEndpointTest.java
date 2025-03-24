@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Test;
 public class InboundEndpointTest {
 
   private static final ExecutableId RANDOM_ID =
-      new ExecutableId(RandomStringUtils.insecure().next(10));
+      ExecutableId.fromDeduplicationId(RandomStringUtils.insecure().next(10));
 
   static class AnotherExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 

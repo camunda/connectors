@@ -37,7 +37,7 @@ public sealed interface InboundConnectorDetails {
   String deduplicationId();
 
   default ExecutableId id() {
-    return new ExecutableId(deduplicationId());
+    return ExecutableId.fromDeduplicationId(deduplicationId());
   }
 
   String tenantId();

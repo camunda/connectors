@@ -31,25 +31,26 @@ import java.util.Objects;
  * across different Connectors Runtime and remain stable.
  */
 public class ExecutableId {
-  private String id;
+  private final String id;
 
-  ExecutableId() {}
+  private ExecutableId(String id) {
+    this.id = id;
+  }
 
-  public ExecutableId(String deduplicationId) {
+  /** Only used for deserialization, in the InboundInstancesRestController for instance. */
+  @JsonCreator
+  private static ExecutableId fromHashedId(String id) {
+    return new ExecutableId(id);
+  }
+
+  public static ExecutableId fromDeduplicationId(String deduplicationId) {
     try {
       var digest = MessageDigest.getInstance("SHA-256");
       byte[] hash = digest.digest(deduplicationId.getBytes());
-      id = HexFormat.of().formatHex(hash);
+      return ExecutableId.fromHashedId(HexFormat.of().formatHex(hash));
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  @JsonCreator
-  public static ExecutableId fromString(String hashedValue) {
-    var hashed = new ExecutableId();
-    hashed.id = hashedValue;
-    return hashed;
   }
 
   @JsonValue

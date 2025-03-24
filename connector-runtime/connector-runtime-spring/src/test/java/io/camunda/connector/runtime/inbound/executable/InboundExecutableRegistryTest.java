@@ -52,7 +52,7 @@ public class InboundExecutableRegistryTest {
   private InboundExecutableRegistryImpl registry;
 
   public static final String RANDOM_STRING = "thededuplicationId";
-  private static final ExecutableId RANDOM_ID = new ExecutableId(RANDOM_STRING);
+  private static final ExecutableId RANDOM_ID = ExecutableId.fromDeduplicationId(RANDOM_STRING);
 
   @BeforeEach
   public void prepareMocks() {

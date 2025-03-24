@@ -64,9 +64,9 @@ class InboundInstancesRestControllerTest {
 
   private static final String TYPE_1 = "webhook";
 
-  private static final ExecutableId RANDOM_ID_1 = new ExecutableId("theid1");
-  private static final ExecutableId RANDOM_ID_2 = new ExecutableId("theid2");
-  private static final ExecutableId RANDOM_ID_3 = new ExecutableId("theid3");
+  private static final ExecutableId RANDOM_ID_1 = ExecutableId.fromDeduplicationId("theid1");
+  private static final ExecutableId RANDOM_ID_2 = ExecutableId.fromDeduplicationId("theid2");
+  private static final ExecutableId RANDOM_ID_3 = ExecutableId.fromDeduplicationId("theid3");
   private static final String TYPE_2 = "anotherType";
 
   static class AnotherExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
