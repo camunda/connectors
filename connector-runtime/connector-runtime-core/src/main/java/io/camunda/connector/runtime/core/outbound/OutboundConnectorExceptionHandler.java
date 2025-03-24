@@ -24,13 +24,12 @@ import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
+import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import io.camunda.zeebe.client.api.response.ActivatedJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +124,7 @@ public class OutboundConnectorExceptionHandler {
   }
 
   private ConnectorResult.ErrorResult handleGenericException(
-          ActivatedJob job, Exception ex, List<String> secrets, Duration retryBackoff) {
+      ActivatedJob job, Exception ex, List<String> secrets, Duration retryBackoff) {
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.debug(
         "Exception while processing job: {} for tenant: {}, message: {}",
