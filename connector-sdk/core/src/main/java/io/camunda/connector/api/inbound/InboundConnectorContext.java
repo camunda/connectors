@@ -79,7 +79,7 @@ public interface InboundConnectorContext extends DocumentFactory {
    * @see CorrelationFailureHandlingStrategy
    * @see CorrelationRequest
    */
-  CorrelationResult correlateWithResult(CorrelationRequest correlationRequest);
+  CorrelationResult correlate(CorrelationRequest correlationRequest);
 
   /**
    * /** Signals to the Connector runtime that inbound Connector execution was interrupted. As a

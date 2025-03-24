@@ -50,7 +50,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     var mockContext = mock(InboundConnectorContext.class);
     doReturn(new ZeebeClientStatus("BAD STATUS", "Meh, Zeebe is broken"))
         .when(mockContext)
-        .correlateWithResult(any(CorrelationRequest.class));
+        .correlate(any(CorrelationRequest.class));
     var consumer = new RabbitMqConsumer(mockChannel, mockContext);
 
     ArgumentCaptor<CorrelationRequest> captor = ArgumentCaptor.forClass(CorrelationRequest.class);
@@ -63,7 +63,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
 
     // Then
-    verify(mockContext, times(1)).correlateWithResult(captor.capture());
+    verify(mockContext, times(1)).correlate(captor.capture());
 
     RabbitMqInboundResult rabbitMqInboundResult =
         (RabbitMqInboundResult) captor.getValue().getVariables();
@@ -84,7 +84,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     var mockContext = mock(InboundConnectorContext.class);
     doReturn(new InvalidInput("Invalid input", new RuntimeException("It's just totally wrong")))
         .when(mockContext)
-        .correlateWithResult(any(CorrelationRequest.class));
+        .correlate(any(CorrelationRequest.class));
 
     var consumer = new RabbitMqConsumer(mockChannel, mockContext);
 
@@ -98,7 +98,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
 
     // Then
-    verify(mockContext, times(1)).correlateWithResult(captor.capture());
+    verify(mockContext, times(1)).correlate(captor.capture());
     RabbitMqInboundResult rabbitMqInboundResult =
         (RabbitMqInboundResult) captor.getValue().getVariables();
     RabbitMqInboundMessage message = rabbitMqInboundResult.message();
@@ -124,13 +124,13 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
 
     doReturn(new ActivationConditionNotMet(true))
         .when(mockContext)
-        .correlateWithResult(any(CorrelationRequest.class));
+        .correlate(any(CorrelationRequest.class));
 
     // When
     consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
 
     // Then
-    verify(mockContext, times(1)).correlateWithResult(any(CorrelationRequest.class));
+    verify(mockContext, times(1)).correlate(any(CorrelationRequest.class));
     verify(mockChannel, times(1)).basicAck(1, false);
   }
 

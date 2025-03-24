@@ -150,7 +150,7 @@ public class PollingManager {
   private void correlateEmail(Message message, InboundConnectorContext connectorContext) {
     Email email = this.jakartaUtils.createEmail(message);
     List<Document> documents = this.createDocumentList(email, connectorContext);
-    connectorContext.correlateWithResult(
+    connectorContext.correlate(
         CorrelationRequest.builder()
             .variables(
                 new ReadEmailResponse(

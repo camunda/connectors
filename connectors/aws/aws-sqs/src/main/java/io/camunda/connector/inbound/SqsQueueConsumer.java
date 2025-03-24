@@ -62,7 +62,7 @@ public class SqsQueueConsumer implements Runnable {
                   .tag("Message")
                   .message("Received SQS Message with ID " + message.getMessageId()));
           var result =
-              context.correlateWithResult(
+              context.correlate(
                   CorrelationRequest.builder()
                       .variables(MessageMapper.toSqsInboundMessage(message))
                       .messageId(message.getMessageId())

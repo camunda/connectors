@@ -53,7 +53,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
     try {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
       var result =
-          context.correlateWithResult(
+          context.correlate(
               CorrelationRequest.builder()
                   .variables(variables)
                   .messageId(properties.getMessageId())

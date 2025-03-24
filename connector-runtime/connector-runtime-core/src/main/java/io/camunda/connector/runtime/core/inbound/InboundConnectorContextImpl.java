@@ -112,7 +112,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   @Override
-  public CorrelationResult correlateWithResult(CorrelationRequest correlationRequest) {
+  public CorrelationResult correlate(CorrelationRequest correlationRequest) {
     return this.correlateWithResultInternal(correlationRequest);
   }
 

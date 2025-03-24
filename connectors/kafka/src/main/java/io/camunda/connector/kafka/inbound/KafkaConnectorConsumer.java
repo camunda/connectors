@@ -163,7 +163,7 @@ public class KafkaConnectorConsumer {
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
     String messageId = record.topic() + "-" + record.partition() + "-" + record.offset();
     var result =
-        context.correlateWithResult(
+        context.correlate(
             CorrelationRequest.builder().variables(mappedMessage).messageId(messageId).build());
     handleCorrelationResult(result);
   }

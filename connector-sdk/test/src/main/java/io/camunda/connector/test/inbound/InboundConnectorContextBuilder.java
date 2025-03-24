@@ -265,7 +265,7 @@ public class InboundConnectorContextBuilder {
     }
 
     @Override
-    public CorrelationResult correlateWithResult(CorrelationRequest correlationRequest) {
+    public CorrelationResult correlate(CorrelationRequest correlationRequest) {
       return getCorrelationResult(correlationRequest.getVariables());
     }
 

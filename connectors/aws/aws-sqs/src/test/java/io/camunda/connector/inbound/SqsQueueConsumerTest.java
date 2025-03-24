@@ -73,7 +73,7 @@ public class SqsQueueConsumerTest {
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
-    when(context.correlateWithResult(any(CorrelationRequest.class)))
+    when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new MessagePublished(null, 1L, null));
     // when
     Thread thread = new Thread(() -> consumer.run());
@@ -82,7 +82,7 @@ public class SqsQueueConsumerTest {
     thread.join();
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
-    verify(context).correlateWithResult(any(CorrelationRequest.class));
+    verify(context).correlate(any(CorrelationRequest.class));
     verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
 
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
@@ -105,7 +105,7 @@ public class SqsQueueConsumerTest {
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
-    when(context.correlateWithResult(any(CorrelationRequest.class)))
+    when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new MessagePublished(null, 1L, null));
 
     // when
@@ -120,7 +120,7 @@ public class SqsQueueConsumerTest {
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context)
-        .correlateWithResult(
+        .correlate(
             CorrelationRequest.builder()
                 .variables(MessageMapper.toSqsInboundMessage(message))
                 .messageId(message.getMessageId())
@@ -140,7 +140,7 @@ public class SqsQueueConsumerTest {
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
-    when(context.correlateWithResult(any(CorrelationRequest.class)))
+    when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new Other(new RuntimeException()));
     // when
     Thread thread =
@@ -153,7 +153,7 @@ public class SqsQueueConsumerTest {
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
-    verify(context).correlateWithResult(any(CorrelationRequest.class));
+    verify(context).correlate(any(CorrelationRequest.class));
     verifyNoMoreInteractions(sqsClient);
   }
 
@@ -166,7 +166,7 @@ public class SqsQueueConsumerTest {
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
-    when(context.correlateWithResult(any(CorrelationRequest.class)))
+    when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new ActivationConditionNotMet(true));
     // when
     Thread thread =
@@ -179,7 +179,7 @@ public class SqsQueueConsumerTest {
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
-    verify(context).correlateWithResult(any(CorrelationRequest.class));
+    verify(context).correlate(any(CorrelationRequest.class));
     verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
   }
 

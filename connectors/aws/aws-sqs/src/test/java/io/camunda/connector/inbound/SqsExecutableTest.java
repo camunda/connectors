@@ -112,7 +112,7 @@ class SqsExecutableTest {
     executorService.shutdown();
     executorService.awaitTermination(1, TimeUnit.SECONDS);
     verify(spyContext, atLeast(1))
-        .correlateWithResult(
+        .correlate(
             CorrelationRequest.builder()
                 .variables(MessageMapper.toSqsInboundMessage(message))
                 .messageId(message.getMessageId())
