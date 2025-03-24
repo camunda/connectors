@@ -39,7 +39,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -315,7 +314,7 @@ public class InboundCorrelationHandler {
     } else if (!Objects.isNull(messageId)) {
       return messageId;
     } else {
-      return UUID.randomUUID().toString();
+      return "";
     }
   }
 

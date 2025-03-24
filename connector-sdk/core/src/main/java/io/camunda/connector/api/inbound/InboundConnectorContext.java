@@ -55,6 +55,7 @@ public interface InboundConnectorContext extends DocumentFactory {
    * @see CorrelationResult
    * @see CorrelationFailureHandlingStrategy
    */
+  @Deprecated
   CorrelationResult correlateWithResult(Object variables);
 
   /**
