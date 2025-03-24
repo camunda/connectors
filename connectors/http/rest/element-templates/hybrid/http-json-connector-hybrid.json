@@ -481,7 +481,7 @@
     "description" : "Null values will not be sent",
     "optional" : false,
     "value" : false,
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "payload",
     "binding" : {
       "name" : "ignoreNullValues",

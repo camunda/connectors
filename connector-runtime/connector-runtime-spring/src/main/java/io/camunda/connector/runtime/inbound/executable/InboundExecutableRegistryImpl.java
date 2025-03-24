@@ -21,6 +21,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Health.Error;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
@@ -40,11 +41,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class InboundExecutableRegistryImpl implements InboundExecutableRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundExecutableRegistryImpl.class);
-  final Map<UUID, RegisteredExecutable> executables = new ConcurrentHashMap<>();
+  final Map<ExecutableId, RegisteredExecutable> executables = new ConcurrentHashMap<>();
   private final BlockingQueue<InboundExecutableEvent> eventQueue;
   private final ExecutorService executorService;
   private final BatchExecutableProcessor batchExecutableProcessor;
-  private final Map<ProcessElement, UUID> executablesByElement = new ConcurrentHashMap<>();
+  private final Map<ProcessElement, ExecutableId> executablesByElement = new ConcurrentHashMap<>();
   private final Map<String, List<String>> deduplicationScopesByType;
   private final Map<String, String> connectorsNamesByType;
 
@@ -95,17 +96,17 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   private void handleCancelled(InboundExecutableEvent.Cancelled cancelled) {
-    RegisteredExecutable executable = this.executables.get(cancelled.uuid());
+    RegisteredExecutable executable = this.executables.get(cancelled.id());
     if (executable instanceof Activated activated) {
       Cancelled cancelledExecutable =
           this.batchExecutableProcessor.cancelExecutable(activated, cancelled.throwable());
-      this.executables.replace(cancelled.uuid(), cancelledExecutable);
+      this.executables.replace(cancelled.id(), cancelledExecutable);
       if (cancelled.throwable() instanceof ConnectorRetryException retryException) {
         this.batchExecutableProcessor
             .restartFromContext(cancelledExecutable, retryException)
             .thenAccept(
                 registeredExecutable ->
-                    this.executables.replace(cancelled.uuid(), registeredExecutable))
+                    this.executables.replace(cancelled.id(), registeredExecutable))
             .exceptionally(
                 throwable -> {
                   LOG.error("The inbound connector could not be restarted", throwable);
@@ -134,9 +135,9 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     synchronized (processId.intern()) {
       try {
-        Map<UUID, InboundConnectorDetails> groupedConnectors =
+        Map<ExecutableId, InboundConnectorDetails> groupedConnectors =
             groupElements(elements).stream()
-                .collect(Collectors.toMap(connector -> UUID.randomUUID(), connector -> connector));
+                .collect(Collectors.toMap(InboundConnectorDetails::id, connector -> connector));
 
         groupedConnectors.forEach(
             (id, connectorDetails) ->
@@ -155,7 +156,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   public void createCancellation(InboundExecutableEvent.Cancelled cancelEvent) {
-    RegisteredExecutable executable = this.executables.get(cancelEvent.uuid());
+    RegisteredExecutable executable = this.executables.get(cancelEvent.id());
     if (executable instanceof Activated) {
       this.publishEvent(cancelEvent);
     } else throw new IllegalStateException();
@@ -284,7 +285,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     return query.elementId() == null || query.elementId().equals(elementId);
   }
 
-  private ActiveExecutableResponse mapToResponse(UUID id, RegisteredExecutable connector) {
+  private ActiveExecutableResponse mapToResponse(ExecutableId id, RegisteredExecutable connector) {
 
     return switch (connector) {
       case Activated activated ->
