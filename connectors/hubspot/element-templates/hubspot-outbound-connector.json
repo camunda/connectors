@@ -103,14 +103,37 @@
       "type": "Hidden"
     },
     {
-      "id": "operationId",
-      "value": "get-/crm/v3/objects/contacts/{contactId}",
+      "label": "Resource type",
+      "id": "resourceType",
       "group": "operation",
-      "binding": {
-        "name": "operationId",
-        "type": "zeebe:input"
-      },
+      "description": "Choose resource type",
+      "value": "contacts",
       "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Contacts",
+          "value": "contacts"
+        },
+        {
+          "name": "Companies",
+          "value": "companies"
+        },
+        {
+          "name": "Deals",
+          "value": "deals"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationGroup"
+      }
+    },
+    {
+      "label": "Operation type",
+      "id": "operationId",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "get-/crm/v3/objects/contacts_getPage",
       "choices": [
         {
           "name": "Get all contacts",
@@ -135,7 +158,26 @@
         {
           "name": "Delete contact",
           "value": "delete-/crm/v3/objects/contacts/{contactId}"
-        },
+        }
+      ],
+      "condition": {
+        "property": "resourceType",
+        "oneOf": [
+          "contacts"
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
+      "label": "Operation type",
+      "id": "operationId",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "get-/crm/v3/objects/companies_getPage",
+      "choices": [
         {
           "name": "Get all companies",
           "value": "get-/crm/v3/objects/companies_getPage"
@@ -159,7 +201,26 @@
         {
           "name": "Delete company",
           "value": "delete-/crm/v3/objects/companies/{companyId}_archive"
-        },
+        }
+      ],
+      "condition": {
+        "property": "resourceType",
+        "oneOf": [
+          "companies"
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
+      "label": "Operation type",
+      "id": "operationId",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "get-/crm/v3/objects/deals_getPage",
+      "choices": [
         {
           "name": "Get all deals",
           "value": "get-/crm/v3/objects/deals_getPage"
@@ -176,9 +237,18 @@
           "name": "Delete deal",
           "value": "delete-/crm/v3/objects/deals/{dealId}_archive"
         }
-      ]
+      ],
+      "condition": {
+        "property": "resourceType",
+        "oneOf": [
+          "deals"
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
     },
-
     {
       "label": "Page after object with id",
       "optional": true,
