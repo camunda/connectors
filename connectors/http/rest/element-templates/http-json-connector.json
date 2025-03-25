@@ -415,17 +415,6 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "groupSetCookieHeaders",
-    "label" : "Group set-cookie headers to a list",
-    "description" : "Group incoming headers with same name into a List to support <a href=\"https://datatracker.ietf.org/doc/html/rfc6265\">multiple Set-Cookie headers</a>.",
-    "optional" : true,
-    "group" : "endpoint",
-    "binding" : {
-      "name" : "groupSetCookieHeaders",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
     "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
@@ -487,7 +476,7 @@
     "label" : "Ignore null values",
     "optional" : false,
     "value" : false,
-    "feel" : "static",
+    "feel" : "optional",
     "group" : "payload",
     "binding" : {
       "name" : "ignoreNullValues",
