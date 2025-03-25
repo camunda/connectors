@@ -14,27 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.secret;
+package io.camunda.connector.runtime.utils;
 
-import java.util.List;
-import java.util.Objects;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotEmpty;
 
-/**
- * Provider of secrets for an environment. This class will be instantiated from an environment
- * runtime according to the <a
- * href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/ServiceLoader.html">Service
- * Provider Interface (SPI)</a> documentation.
- */
-public interface SecretProvider {
-
-  /**
-   * @param name - the secret's name to find a value for
-   * @return the secret's value for the given name, if it exists. Otherwise, <code>null</code> is
-   *     returned.
-   */
-  String getSecret(String name);
-
-  default List<String> fetchAll(List<String> keys) {
-    return keys.stream().map(this::getSecret).filter(Objects::nonNull).toList();
-  }
-}
+public record TestValidation(
+    @Digits(fraction = 0, integer = 2) String test, @NotEmpty String test2) {}

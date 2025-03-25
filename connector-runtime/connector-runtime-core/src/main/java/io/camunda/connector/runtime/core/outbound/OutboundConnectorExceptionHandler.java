@@ -26,10 +26,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +80,10 @@ public class OutboundConnectorExceptionHandler {
   }
 
   private String hideSecretsFromMessage(String message, List<String> secrets) {
-    return secrets.stream().reduce(message, (s, s2) -> s.replace(s2, "***"));
+    if (!Objects.isNull(message))
+      return secrets.stream()
+          .reduce(message, (newMessage, nextSecret) -> newMessage.replace(nextSecret, "***"));
+    else return "";
   }
 
   private ConnectorResult.ErrorResult handleBackOffException(Exception e, List<String> secrets) {

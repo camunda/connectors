@@ -71,8 +71,7 @@ class ConnectorJobHandlerTest {
     class ResultVariableTests {
 
       protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-        return new ConnectorJobHandler(
-            call, e -> {}, new OutboundConnectorExceptionHandler(new FooBarSecretProvider()));
+        return new ConnectorJobHandler(call, new FooBarSecretProvider(), e -> {}, null, null);
       }
 
       @ParameterizedTest
@@ -411,11 +410,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldNotSetWithoutResultVariableAndExpression() {
         // given
-        var jobHandler =
-            new ConnectorJobHandler(
-                (context) -> Map.of("hello", "world"),
-                e -> {},
-                new OutboundConnectorExceptionHandler(new FooBarSecretProvider()));
+        var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
         // when
         var result = JobBuilder.create().executeAndCaptureResult(jobHandler);
@@ -428,10 +423,9 @@ class ConnectorJobHandlerTest {
       void shouldSetBothResultVariableAndExpression() {
         // given
         var jobHandler =
-            new ConnectorJobHandler(
-                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")),
-                e -> {},
-                new OutboundConnectorExceptionHandler(new FooBarSecretProvider()));
+            newConnectorJobHandler(
+                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
+
         var resultExpression = "{\"processedOutput\": response.callStatus, \"nullVar\": null}";
         var resultVariable = "result";
 
