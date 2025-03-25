@@ -726,7 +726,7 @@ public class InboundCorrelationHandlerTest {
           .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
-      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
       handler.correlate(
           List.of(element),
@@ -748,7 +748,7 @@ public class InboundCorrelationHandlerTest {
           .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
-      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
       handler.correlate(
           List.of(element), CorrelationRequest.builder().variables(Collections.emptyMap()).build());
@@ -766,7 +766,7 @@ public class InboundCorrelationHandlerTest {
           .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
-      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
       handler.correlate(
           List.of(element), CorrelationRequest.builder().variables(Collections.emptyMap()).build());
