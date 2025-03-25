@@ -1,8 +1,31 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Hubspot Outbound Connector",
+  "description": "Manage contacts, companies, and deals in HubSpot",
+  "metadata": {
+    "keywords": [
+      "create contact",
+      "update contact",
+      "delete contact",
+      "get contact",
+      "get all contacts",
+      "search contact",
+      "create company",
+      "get company",
+      "get all companies",
+      "search company",
+      "delete company",
+      "get all deals",
+      "get deal",
+      "search deal",
+      "delete deal",
+      "batch read contacts",
+      "get all contacts of a company"
+    ]
+  },
   "id": "io.camunda.connectors.HubSpot.v1",
   "version": 1,
+  "documentationRef": "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/hubspot/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -75,6 +98,7 @@
     {
       "id": "authentication.token",
       "label": "Bearer token",
+      "description": "The access token of your Hubspot private app.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -144,16 +168,16 @@
           "value": "get-/crm/v3/objects/contacts/{contactId}"
         },
         {
-          "name": "Batch read contacts",
+          "name": "Get multiple contacts by id",
           "value": "post-/crm/v3/objects/contacts/batch/read"
-        },
-        {
-          "name": "Create contact",
-          "value": "post-/crm/v3/objects/contacts"
         },
         {
           "name": "Search contact",
           "value": "post-/crm/v3/objects/contacts/search_doSearch"
+        },
+        {
+          "name": "Create contact",
+          "value": "post-/crm/v3/objects/contacts"
         },
         {
           "name": "Update contact",
@@ -187,12 +211,12 @@
           "value": "get-/crm/v3/objects/companies_getPage"
         },
         {
-          "name": "Search company",
-          "value": "post-/crm/v3/objects/companies/search_doSearch"
-        },
-        {
           "name": "Get company by id",
           "value": "get-/crm/v3/objects/companies/{companyId}_getById"
+        },
+        {
+          "name": "Search company",
+          "value": "post-/crm/v3/objects/companies/search_doSearch"
         },
         {
           "name": "Get all contacts of a company",
@@ -253,10 +277,11 @@
         "name": "operationType"
       }
     },
+
     {
-      "label": "Page after object with id",
+      "label": "Next page after object id",
+      "description": "The id of the object from which to retrieve the next page.",
       "optional": true,
-      "value": "",
       "feel": "optional",
       "group": "parameters",
       "binding": {
@@ -276,15 +301,76 @@
     },
 
     {
+      "id": "get-/crm/v3/objects/contacts_getPage_$path",
+      "value": "=\"/crm/v3/objects/contacts\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/contacts_getPage",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/contacts_getPage_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/contacts_getPage",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/contacts_getPage_$queryParameters",
+      "value": "=if afterId != null then {\"after\": afterId, \"limit\": 100} else {\"limit\": 100}",
+      "group": "input",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/contacts_getPage",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/contacts_getPage_$method",
+      "value": "GET",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/contacts_getPage",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
       "id": "get-/crm/v3/objects/contacts/{contactId}_path_contactId",
       "label": "Contact id",
+      "description": "The id of the contact to get.",
       "optional": false,
-      "value": "string",
       "constraints": {
         "notEmpty": true
       },
       "feel": "optional",
-      "group": "parameters",
+      "group": "input",
       "binding": {
         "name": "contactId",
         "type": "zeebe:input"
@@ -358,91 +444,28 @@
     },
 
     {
-      "id": "get-/crm/v3/objects/contacts_getPage_$path",
-      "value": "=\"/crm/v3/objects/contacts\"",
-      "group": "parameters",
-      "binding": {
-        "name": "operationPath",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/contacts_getPage",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "get-/crm/v3/objects/contacts_getPage_$headers",
-      "value": "={}",
-      "group": "parameters",
-      "binding": {
-        "name": "headers",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/contacts_getPage",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "get-/crm/v3/objects/contacts_getPage_$queryParameters",
-      "value": "=if afterId != null then {\"after\": afterId, \"limit\": 100} else {\"limit\": 100}",
-      "group": "input",
-      "binding": {
-        "name": "queryParameters",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/contacts_getPage",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "get-/crm/v3/objects/contacts_getPage_$method",
-      "value": "GET",
-      "group": "parameters",
-      "binding": {
-        "name": "method",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/contacts_getPage",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-
-    {
-      "id": "patch-/crm/v3/objects/contacts/{contactId}_path_contactId",
-      "label": "Contact id",
-      "description": "The ID of the contact to update.",
-      "optional": false,
-      "value": "string",
-      "constraints": {
-        "notEmpty": true
-      },
+      "id": "post-/crm/v3/objects/contacts/batch/read_ids",
+      "label": "Contact ids",
+      "description": "The ids of the contacts to get.",
       "feel": "optional",
-      "group": "parameters",
+      "group": "input",
+      "type": "String",
       "binding": {
-        "name": "contactId",
-        "type": "zeebe:input"
+        "type": "zeebe:input",
+        "name": "batchReadIds"
       },
       "condition": {
         "property": "operationId",
-        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
+        "oneOf": [
+          "post-/crm/v3/objects/contacts/batch/read"
+        ],
         "type": "simple"
       },
-      "type": "String"
+      "value": "=[\"237433423042\", \"230280910052\"]"
     },
     {
-      "id": "patch-/crm/v3/objects/contacts/{contactId}_$path",
-      "value": "=\"/crm/v3/objects/contacts/\"+contactId",
+      "id": "post-/crm/v3/objects/contacts/batch/read_$path",
+      "value": "=\"/crm/v3/objects/contacts/batch/read\"",
       "group": "parameters",
       "binding": {
         "name": "operationPath",
@@ -450,13 +473,13 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
+        "equals": "post-/crm/v3/objects/contacts/batch/read",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "patch-/crm/v3/objects/contacts/{contactId}_$headers",
+      "id": "post-/crm/v3/objects/contacts/batch/read_$headers",
       "value": "={}",
       "group": "parameters",
       "binding": {
@@ -465,13 +488,13 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
+        "equals": "post-/crm/v3/objects/contacts/batch/read_doSearch",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "patch-/crm/v3/objects/contacts/{contactId}_$queryParameters",
+      "id": "post-/crm/v3/objects/contacts/batch/read_$queryParameters",
       "value": "={}",
       "group": "parameters",
       "binding": {
@@ -480,14 +503,14 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
+        "equals": "post-/crm/v3/objects/contacts/batch/read",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "patch-/crm/v3/objects/contacts/{contactId}_$method",
-      "value": "PATCH",
+      "id": "post-/crm/v3/objects/contacts/batch/read_$method",
+      "value": "POST",
       "group": "parameters",
       "binding": {
         "name": "method",
@@ -495,7 +518,22 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
+        "equals": "post-/crm/v3/objects/contacts/batch/read",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/batch/read_body",
+      "value": "={\"inputs\": for id in batchReadIds   return { id:  id  } }",
+      "group": "requestBody",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/batch/read",
         "type": "simple"
       },
       "type": "Hidden"
@@ -503,7 +541,7 @@
 
     {
       "label": "Search field",
-      "description": "The field within the object to perform the search on",
+      "description": "The field within the object to perform the search on, e.g. lastname",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -519,12 +557,11 @@
           "post-/crm/v3/objects/deals/search_doSearch"
         ],
         "type": "simple"
-      },
-      "value": ""
+      }
     },
     {
       "label": "Search value",
-      "description": "The value to search for",
+      "description": "The value to search for, e.g. Smith",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -540,8 +577,7 @@
           "post-/crm/v3/objects/deals/search_doSearch"
         ],
         "type": "simple"
-      },
-      "value": ""
+      }
     },
 
     {
@@ -621,27 +657,85 @@
     },
 
     {
-      "label": "Ids to batch read",
-      "description": "A list of Ids that should be batch read",
-      "feel": "optional",
+      "label": "Properties",
+      "description": "Properties of the contact",
+      "feel": "required",
       "group": "input",
       "type": "String",
       "binding": {
         "type": "zeebe:input",
-        "name": "batchReadIds"
+        "name": "properties"
       },
       "condition": {
         "property": "operationId",
         "oneOf": [
-          "post-/crm/v3/objects/contacts/batch/read"
+          "post-/crm/v3/objects/contacts",
+          "patch-/crm/v3/objects/contacts/{contactId}"
         ],
         "type": "simple"
       },
-      "value": "=for contact in contacts\n  return { id:  contact.id  }"
+      "value": "{\n  \"lastname\": \"Doe\",\n  \"firstname\": \"Jane\",\n  \"email\": \"jane.doe@example.com\"\n}"
     },
     {
-      "id": "post-/crm/v3/objects/contacts/batch/read_$path",
-      "value": "=\"/crm/v3/objects/contacts/batch/read\"",
+      "label": "Company id",
+      "description": "Company id the contact should be associated with",
+      "feel": "optional",
+      "group": "input",
+      "type": "String",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "companyId"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/objects/contacts",
+          "patch-/crm/v3/objects/contacts/{contactId}"
+        ],
+        "type": "simple"
+      }
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "=if companyId = null then [] else [{\"to\": {\"id\": companyId  }, \"types\": [{\"associationCategory\": \"HUBSPOT_DEFINED\",\"associationTypeId\": 1}]}]",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "associations"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/objects/contacts",
+          "patch-/crm/v3/objects/contacts/{contactId}"
+        ],
+        "type": "simple"
+      },
+      "optional": true
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "={\"properties\": if properties = null then null else properties, \"associations\": associations}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/objects/contacts",
+          "patch-/crm/v3/objects/contacts/{contactId}"
+        ],
+        "type": "simple"
+      },
+      "optional": true
+    },
+
+    {
+      "id": "post-/crm/v3/objects/contacts_$path",
+      "value": "=\"/crm/v3/objects/contacts\"",
       "group": "parameters",
       "binding": {
         "name": "operationPath",
@@ -649,13 +743,13 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts/batch/read",
+        "equals": "post-/crm/v3/objects/contacts",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "post-/crm/v3/objects/contacts/batch/read_$headers",
+      "id": "post-/crm/v3/objects/contacts_$headers",
       "value": "={}",
       "group": "parameters",
       "binding": {
@@ -664,13 +758,13 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts/batch/read_doSearch",
+        "equals": "post-/crm/v3/objects/contacts",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "post-/crm/v3/objects/contacts/batch/read_$queryParameters",
+      "id": "post-/crm/v3/objects/contacts_$queryParameters",
       "value": "={}",
       "group": "parameters",
       "binding": {
@@ -679,13 +773,13 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts/batch/read",
+        "equals": "post-/crm/v3/objects/contacts",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "post-/crm/v3/objects/contacts/batch/read_$method",
+      "id": "post-/crm/v3/objects/contacts_$method",
       "value": "POST",
       "group": "parameters",
       "binding": {
@@ -694,22 +788,89 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts/batch/read",
+        "equals": "post-/crm/v3/objects/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "patch-/crm/v3/objects/contacts/{contactId}_path_contactId",
+      "label": "Contact id",
+      "description": "The id of the contact that should be updated.",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "contactId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "patch-/crm/v3/objects/contacts/{contactId}_$path",
+      "value": "=\"/crm/v3/objects/contacts/\"+contactId",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "post-/crm/v3/objects/contacts/batch/read_body",
-      "value": "={\n\"inputs\": batchReadIds\n}",
-      "group": "requestBody",
+      "id": "patch-/crm/v3/objects/contacts/{contactId}_$headers",
+      "value": "={}",
+      "group": "parameters",
       "binding": {
-        "name": "body",
+        "name": "headers",
         "type": "zeebe:input"
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts/batch/read",
+        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "patch-/crm/v3/objects/contacts/{contactId}_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "patch-/crm/v3/objects/contacts/{contactId}_$method",
+      "value": "PATCH",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "patch-/crm/v3/objects/contacts/{contactId}",
         "type": "simple"
       },
       "type": "Hidden"
@@ -718,13 +879,13 @@
     {
       "id": "delete-/crm/v3/objects/contacts/{contactId}_path_contactId",
       "label": "Contact id",
+      "description": "The id of the contact that should be deleted.",
       "optional": false,
-      "value": "string",
       "constraints": {
         "notEmpty": true
       },
       "feel": "optional",
-      "group": "parameters",
+      "group": "input",
       "binding": {
         "name": "contactId",
         "type": "zeebe:input"
@@ -797,9 +958,10 @@
       "type": "Hidden"
     },
 
+
     {
-      "id": "post-/crm/v3/objects/contacts_$path",
-      "value": "=\"/crm/v3/objects/contacts\"",
+      "id": "get-/crm/v3/objects/companies_getPage_$path",
+      "value": "=\"/crm/v3/objects/companies\"",
       "group": "parameters",
       "binding": {
         "name": "operationPath",
@@ -807,13 +969,13 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts",
+        "equals": "get-/crm/v3/objects/companies_getPage",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "post-/crm/v3/objects/contacts_$headers",
+      "id": "get-/crm/v3/objects/companies_getPage_$headers",
       "value": "={}",
       "group": "parameters",
       "binding": {
@@ -822,29 +984,29 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts",
+        "equals": "get-/crm/v3/objects/companies_getPage",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "post-/crm/v3/objects/contacts_$queryParameters",
-      "value": "={}",
-      "group": "parameters",
+      "id": "get-/crm/v3/objects/companies_getPage_$queryParameters",
+      "value": "=if afterId != null then {\"after\": afterId, \"limit\": 100} else {\"limit\": 100}",
+      "group": "input",
       "binding": {
         "name": "queryParameters",
         "type": "zeebe:input"
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts",
+        "equals": "get-/crm/v3/objects/companies_getPage",
         "type": "simple"
       },
       "type": "Hidden"
     },
     {
-      "id": "post-/crm/v3/objects/contacts_$method",
-      "value": "POST",
+      "id": "get-/crm/v3/objects/companies_getPage_$method",
+      "value": "GET",
       "group": "parameters",
       "binding": {
         "name": "method",
@@ -852,101 +1014,22 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "post-/crm/v3/objects/contacts",
+        "equals": "get-/crm/v3/objects/companies_getPage",
         "type": "simple"
       },
       "type": "Hidden"
     },
 
     {
-      "label": "Properties",
-      "description": "Properties of the contact",
-      "feel": "required",
-      "group": "input",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "properties"
-      },
-      "condition": {
-        "property": "operationId",
-        "oneOf": [
-          "post-/crm/v3/objects/contacts",
-          "patch-/crm/v3/objects/contacts/{contactId}"
-        ],
-        "type": "simple"
-      },
-      "value": "{\n  \"lastname\": \"Doe\",\n  \"firstname\": \"Jane\",\n  \"email\": \"jane.doe@example.com\"\n}"
-    },
-    {
-      "label": "Company id",
-      "description": "Company id of the contact",
-      "feel": "optional",
-      "group": "input",
-      "type": "String",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:input",
-        "name": "companyId"
-      },
-      "condition": {
-        "property": "operationId",
-        "oneOf": [
-          "post-/crm/v3/objects/contacts",
-          "patch-/crm/v3/objects/contacts/{contactId}"
-        ],
-        "type": "simple"
-      },
-      "value": "12345678"
-    },
-    {
-      "group": "input",
-      "type": "Hidden",
-      "value": "=if companyId = null then [] else [{\"to\": {\"id\": companyId  }, \"types\": [{\"associationCategory\": \"HUBSPOT_DEFINED\",\"associationTypeId\": 1}]}]",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "associations"
-      },
-      "condition": {
-        "property": "operationId",
-        "oneOf": [
-          "post-/crm/v3/objects/contacts",
-          "patch-/crm/v3/objects/contacts/{contactId}"
-        ],
-        "type": "simple"
-      },
-      "optional": true
-    },
-    {
-      "group": "input",
-      "type": "Hidden",
-      "value": "={\"properties\": if properties = null then null else properties, \"associations\": associations}",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "body"
-      },
-      "condition": {
-        "property": "operationId",
-        "oneOf": [
-          "post-/crm/v3/objects/contacts",
-          "patch-/crm/v3/objects/contacts/{contactId}"
-        ],
-        "type": "simple"
-      },
-      "optional": true
-    },
-
-    {
       "id": "get-/crm/v3/objects/companies/{companyId}_getById_path_companyId",
       "label": "Company id",
-      "description": "The ID of the company",
+      "description": "The id of the company to get.",
       "optional": false,
-      "value": "string",
       "constraints": {
         "notEmpty": true
       },
       "feel": "optional",
-      "group": "parameters",
+      "group": "input",
       "binding": {
         "name": "companyId",
         "type": "zeebe:input"
@@ -1020,92 +1103,9 @@
     },
 
     {
-      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
-      "label": "Company id",
-      "description": "The ID of the company",
-      "optional": false,
-      "value": "string",
-      "constraints": {
-        "notEmpty": true
-      },
-      "feel": "optional",
-      "group": "parameters",
-      "binding": {
-        "name": "companyId",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
-        "type": "simple"
-      },
-      "type": "String"
-    },
-    {
-      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$path",
-      "value": "=\"/crm/v3/objects/companies/\"+companyId+\"/associations/contacts\"",
-      "group": "parameters",
-      "binding": {
-        "name": "operationPath",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$headers",
-      "value": "={}",
-      "group": "parameters",
-      "binding": {
-        "name": "headers",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$queryParameters",
-      "value": "={}",
-      "group": "parameters",
-      "binding": {
-        "name": "queryParameters",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$method",
-      "value": "GET",
-      "group": "parameters",
-      "binding": {
-        "name": "method",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-
-    {
       "id": "post-/crm/v3/objects/companies/search_doSearch_$path",
       "value": "=\"/crm/v3/objects/companies/search\"",
-      "group": "parameters",
+      "group": "input",
       "binding": {
         "name": "operationPath",
         "type": "zeebe:input"
@@ -1179,15 +1179,173 @@
     },
 
     {
-      "id": "delete-/crm/v3/objects/companies/{companyId}_archive_path_companyId",
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
       "label": "Company id",
+      "description": "The id of the company for which to retrieve the contacts.",
       "optional": false,
-      "value": "string",
       "constraints": {
         "notEmpty": true
       },
       "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "companyId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$path",
+      "value": "=\"/crm/v3/objects/companies/\"+companyId+\"/associations/contacts\"",
       "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "get-/crm/v3/objects/companies/{companyId}/associations/contacts_$method",
+      "value": "GET",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "get-/crm/v3/objects/companies/{companyId}/associations/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "post-/crm/v3/objects/companies_input",
+      "group": "input",
+      "type": "String",
+      "feel": "required",
+      "value": "{\n  \"properties\": {\n    \"name\": \"HubSpot\",\n    \"domain\": \"hubspot.com\"\n  }\n}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies",
+        "type": "simple"
+      }
+    },
+    {
+      "id": "post-/crm/v3/objects/companies_$path",
+      "value": "=\"/crm/v3/objects/companies\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/companies_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/companies_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/companies_$method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/companies",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "delete-/crm/v3/objects/companies/{companyId}_archive_path_companyId",
+      "label": "Company id",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "input",
       "binding": {
         "name": "companyId",
         "type": "zeebe:input"
@@ -1260,127 +1418,6 @@
       "type": "Hidden"
     },
 
-    {
-      "id": "get-/crm/v3/objects/companies_getPage_$path",
-      "value": "=\"/crm/v3/objects/companies\"",
-      "group": "parameters",
-      "binding": {
-        "name": "operationPath",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/companies_getPage",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "get-/crm/v3/objects/companies_getPage_$headers",
-      "value": "={}",
-      "group": "parameters",
-      "binding": {
-        "name": "headers",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/companies_getPage",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "get-/crm/v3/objects/companies_getPage_$queryParameters",
-      "value": "=if afterId != null then {\"after\": afterId, \"limit\": 100} else {\"limit\": 100}",
-      "group": "input",
-      "binding": {
-        "name": "queryParameters",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/companies_getPage",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "get-/crm/v3/objects/companies_getPage_$method",
-      "value": "GET",
-      "group": "parameters",
-      "binding": {
-        "name": "method",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "get-/crm/v3/objects/companies_getPage",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-
-    {
-      "id": "post-/crm/v3/objects/companies_$path",
-      "value": "=\"/crm/v3/objects/companies\"",
-      "group": "parameters",
-      "binding": {
-        "name": "operationPath",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "post-/crm/v3/objects/companies",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "post-/crm/v3/objects/companies_$headers",
-      "value": "={}",
-      "group": "parameters",
-      "binding": {
-        "name": "headers",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "post-/crm/v3/objects/companies",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "post-/crm/v3/objects/companies_$queryParameters",
-      "value": "={}",
-      "group": "parameters",
-      "binding": {
-        "name": "queryParameters",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "post-/crm/v3/objects/companies",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "post-/crm/v3/objects/companies_$method",
-      "value": "POST",
-      "group": "parameters",
-      "binding": {
-        "name": "method",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "post-/crm/v3/objects/companies",
-        "type": "simple"
-      },
-      "type": "Hidden"
-    },
 
     {
       "id": "get-/crm/v3/objects/deals_getPage_$path",
@@ -1446,13 +1483,13 @@
     {
       "id": "get-/crm/v3/objects/deals/{dealId}_getById_path_dealId",
       "label": "Deal id",
+      "description": "The id of the deal to get.",
       "optional": false,
-      "value": "string",
       "constraints": {
         "notEmpty": true
       },
       "feel": "optional",
-      "group": "parameters",
+      "group": "input",
       "binding": {
         "name": "dealId",
         "type": "zeebe:input"
@@ -1604,13 +1641,13 @@
     {
       "id": "delete-/crm/v3/objects/deals/{dealId}_archive_path_dealId",
       "label": "Deal id",
+      "description": "The id of the deal that should be deleted.",
       "optional": false,
-      "value": "string",
       "constraints": {
         "notEmpty": true
       },
       "feel": "optional",
-      "group": "parameters",
+      "group": "input",
       "binding": {
         "name": "dealId",
         "type": "zeebe:input"
@@ -1681,22 +1718,6 @@
         "type": "simple"
       },
       "type": "Hidden"
-    },
-
-    {
-      "group": "input",
-      "type": "String",
-      "feel": "required",
-      "value": "{\n  \"properties\": {\n    \"name\": \"HubSpot\",\n    \"domain\": \"hubspot.com\"\n  }\n}",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "body"
-      },
-      "condition": {
-        "property": "operationId",
-        "equals": "post-/crm/v3/objects/companies",
-        "type": "simple"
-      }
     },
 
     {
