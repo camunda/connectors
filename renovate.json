@@ -26,7 +26,7 @@
     },
     {
       "matchBaseBranches": [
-        "^release/.*"
+        "/^release/.*/"
       ],
       "matchUpdateTypes": [
         "major"
@@ -40,14 +40,10 @@
       "enabled": false
     },
     {
-      "matchManagers": [
-        "maven"
-      ],
       "description": "Exclude SNAPSHOT versions, renovate may suggest them for pre-release values.",
-      "matchPackagePatterns": [
-        ".*"
-      ],
-      "allowedVersions": "^(?!.*-SNAPSHOT$).*$"
+      "matchManagers": ["maven"],
+      "matchPackagePatterns": [".*"],
+      "allowedVersions": "!/-SNAPSHOT$/"
     }
   ],
   "baseBranches": [
