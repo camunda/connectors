@@ -30,6 +30,7 @@ import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +44,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(
@@ -54,7 +56,9 @@ import org.springframework.test.web.servlet.MockMvc;
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
       "camunda.connector.secretprovider.discovery.enabled=false",
-      "management.endpoints.web.exposure.include=*"
+      "management.endpoints.web.exposure.include=*",
+      "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
+      "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
     })
 @DirtiesContext
 @ActiveProfiles("test")
@@ -62,6 +66,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @CamundaSpringProcessTest
 @SlowTest
 public class SecurityConfigurationTest {
+
+  @MockitoBean(answers = Answers.RETURNS_MOCKS)
+  public SaaSSecretConfiguration saaSSecretConfiguration;
 
   // needed to access /actuator endpoints
   @Autowired RestTemplateBuilder restTemplateBuilder;
