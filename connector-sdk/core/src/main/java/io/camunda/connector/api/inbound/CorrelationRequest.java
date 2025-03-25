@@ -19,13 +19,14 @@ package io.camunda.connector.api.inbound;
 import java.util.Objects;
 
 /**
- * Represents a request to correlate an inbound event with a process definition.
- * This request includes the variables necessary for correlation and a message ID
- * @see <a href="https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview">Message correlation</a>
+ * Represents a request to correlate an inbound event with a process definition. This request
+ * includes the variables necessary for correlation and a message ID
  *
- * <p>Instances of this class are immutable and should be created using the
- * {@link Builder} inner class.
- *
+ * @see <a
+ *     href="https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview">Message
+ *     correlation</a>
+ *     <p>Instances of this class are immutable and should be created using the {@link Builder}
+ *     inner class.
  * @see CorrelationResult
  * @see CorrelationFailureHandlingStrategy
  */
@@ -83,9 +84,7 @@ public class CorrelationRequest {
     return Objects.hash(variables, messageId);
   }
 
-  /**
-   * A builder for creating instances of {@link CorrelationRequest}.
-   */
+  /** A builder for creating instances of {@link CorrelationRequest}. */
   public static class Builder {
     private Object variables;
     private String messageId;
