@@ -67,21 +67,6 @@ public class ConnectorJobHandler implements JobHandler {
    * Create a handler wrapper for the specified connector function.
    *
    * @param call - the connector function to call
-   * @param outboundConnectorExceptionHandler
-   */
-  public ConnectorJobHandler(
-      final OutboundConnectorFunction call,
-      ValidationProvider validationProvider,
-      OutboundConnectorExceptionHandler outboundConnectorExceptionHandler) {
-    this.call = call;
-    this.validationProvider = validationProvider;
-    this.outboundConnectorExceptionHandler = outboundConnectorExceptionHandler;
-  }
-
-  /**
-   * Create a handler wrapper for the specified connector function.
-   *
-   * @param call - the connector function to call
    */
   public ConnectorJobHandler(
       final OutboundConnectorFunction call,
