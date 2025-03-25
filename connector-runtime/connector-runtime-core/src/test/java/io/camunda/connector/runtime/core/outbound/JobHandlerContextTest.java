@@ -79,6 +79,15 @@ class JobHandlerContextTest {
   }
 
   @Test
+  void bindVariables_secretIsNotAvailable() {
+    String json = "{ \"integer\": {{secrets.FOO2}} }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret("FOO2")).thenReturn(null);
+    assertThrows(
+        ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+  }
+
+  @Test
   void bindVariables_nullValue() {
     String json = "{ \"integer\": null}";
     when(activatedJob.getVariables()).thenReturn(json);
