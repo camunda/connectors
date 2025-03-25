@@ -144,6 +144,10 @@
           "value": "get-/crm/v3/objects/contacts/{contactId}"
         },
         {
+          "name": "Batch read contacts",
+          "value": "post-/crm/v3/objects/contacts/batch/read"
+        },
+        {
           "name": "Create contact",
           "value": "post-/crm/v3/objects/contacts"
         },
@@ -611,6 +615,101 @@
       "condition": {
         "property": "operationId",
         "equals": "post-/crm/v3/objects/contacts/search_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "label": "Ids to batch read",
+      "description": "A list of Ids that should be batch read",
+      "feel": "optional",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "batchReadIds"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/objects/contacts/batch/read"
+        ],
+        "type": "simple"
+      },
+      "value": "=for contact in contacts\n  return { id:  contact.id  }"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/batch/read_$path",
+      "value": "=\"/crm/v3/objects/contacts/batch/read\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/batch/read",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/batch/read_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/batch/read_doSearch",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/batch/read_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/batch/read",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/batch/read_$method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/batch/read",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/objects/contacts/batch/read_body",
+      "value": "={\n\"inputs\": batchReadIds\n}",
+      "group": "requestBody",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/objects/contacts/batch/read",
         "type": "simple"
       },
       "type": "Hidden"
