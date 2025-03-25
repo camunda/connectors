@@ -739,7 +739,7 @@
     },
     {
       "id": "users.user.sendMail_body",
-      "value": "={\"message\":{\"subject\":sendMail_subject,\"body\":{\"contentType\":sendMail_body_content_type,\"content\":sendMail_body_content},\"toRecipients\": for currentEmail in sendMail_to_recipients return {\"emailAddress\":{\"address\":currentEmail}},\"ccRecipients\": if sendMail_cc_recipients != null then for currentEmailCC in sendMail_cc_recipients return {\"emailAddress\":{\"address\":currentEmailCC}} else null,\"attachments\": if sendMail_attachments != null then for document in sendMail_attachments return {\"@odata.type\":\"#microsoft.graph.fileAttachment\",\"name\":document.metadata.fileName,\"contentType\":document.metadata.contentType,\"contentBytes\":document} else null},\"saveToSentItems\":\"false\"}",
+      "value": "={\"message\":{\"subject\":sendMail_subject,\"body\":{\"contentType\":sendMail_body_content_type,\"content\":sendMail_body_content},\"toRecipients\": for currentEmail in sendMail_to_recipients return {\"emailAddress\":{\"address\":currentEmail}},\"ccRecipients\": if sendMail_cc_recipients != null then for currentEmailCC in sendMail_cc_recipients return {\"emailAddress\":{\"address\":currentEmailCC}} else null,\"attachments\": if sendMail_attachments != null then for document in sendMail_attachments return {\"@odata.type\":\"#microsoft.graph.fileAttachment\",\"name\":document.metadata.fileName,\"contentType\":document.metadata.contentType,\"contentBytes\":{\"camunda.function.type\":\"base64\",\"params\":[document]}} else null},\"saveToSentItems\":\"false\"}",
       "group": "requestBody",
       "binding": {
         "name": "body",
