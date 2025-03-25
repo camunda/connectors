@@ -88,12 +88,12 @@ public class InboundIntermediateConnectorContextImpl
 
   @Override
   public CorrelationResult correlateWithResult(Object variables) {
-    return inboundContext.correlateWithResult(variables);
+    return inboundContext.correlate(CorrelationRequest.builder().variables(variables).build());
   }
 
   @Override
   public CorrelationResult correlate(CorrelationRequest correlationRequest) {
-    return inboundContext.correlateWithResult(correlationRequest.getVariables());
+    return inboundContext.correlate(correlationRequest);
   }
 
   @Override
