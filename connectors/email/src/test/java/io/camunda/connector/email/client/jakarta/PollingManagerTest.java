@@ -84,6 +84,6 @@ class PollingManagerTest {
     when(jakartaUtils.createBodylessEmail(any())).thenCallRealMethod();
     pollingManager.poll();
 
-    verify(connectorContext, times(1)).correlateWithResult(argThat(Objects::nonNull));
+    verify(connectorContext, times(1)).correlate(argThat(Objects::nonNull));
   }
 }
