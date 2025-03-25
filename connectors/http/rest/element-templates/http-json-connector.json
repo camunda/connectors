@@ -484,15 +484,15 @@
   }, {
     "id" : "ignoreNullValues",
     "label" : "Ignore null values",
-    "description" : "Null values will not be sent",
     "optional" : false,
     "value" : false,
-    "feel" : "static",
+    "feel" : "optional",
     "group" : "payload",
     "binding" : {
       "name" : "ignoreNullValues",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Null values will not be sent",
     "type" : "Boolean"
   }, {
     "id" : "resultVariable",

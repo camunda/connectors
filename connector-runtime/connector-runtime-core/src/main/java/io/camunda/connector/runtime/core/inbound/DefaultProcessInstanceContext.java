@@ -25,7 +25,6 @@ import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.operate.model.FlowNodeInstance;
-
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -81,8 +80,8 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
 
   @Override
   public void correlate(final Object variables) {
-      String messageId = flowNodeInstance.getFlowNodeId() + flowNodeInstance.getKey();
-      correlationHandler.correlate(
+    String messageId = flowNodeInstance.getFlowNodeId() + flowNodeInstance.getKey();
+    correlationHandler.correlate(
         context.connectorElements(),
         CorrelationRequest.builder().variables(variables).messageId(messageId).build());
   }
