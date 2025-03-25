@@ -31,7 +31,7 @@ import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import org.junit.jupiter.api.Test;
 
-public class ConnectorJobHandlerEndTests {
+public class ConnectorJobHandlerTests {
 
   protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
     DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
