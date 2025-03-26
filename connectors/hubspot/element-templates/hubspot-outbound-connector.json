@@ -217,6 +217,14 @@
           "value": "get-/crm/v3/objects/companies/{companyId}/associations/contacts"
         },
         {
+          "name": "Add contact to company",
+          "value": "post-/crm/v3/associations/contact/company/batch/create"
+        },
+        {
+          "name": "Remove contact from company",
+          "value": "post-/crm/v3/associations/contact/company/batch/archive"
+        },
+        {
           "name": "Create company",
           "value": "post-/crm/v3/objects/companies"
         },
@@ -721,8 +729,7 @@
       "condition": {
         "property": "operationId",
         "oneOf": [
-          "post-/crm/v3/objects/contacts",
-          "patch-/crm/v3/objects/contacts/{contactId}"
+          "post-/crm/v3/objects/contacts"
         ],
         "type": "simple"
       }
@@ -738,8 +745,7 @@
       "condition": {
         "property": "operationId",
         "oneOf": [
-          "post-/crm/v3/objects/contacts",
-          "patch-/crm/v3/objects/contacts/{contactId}"
+          "post-/crm/v3/objects/contacts"
         ],
         "type": "simple"
       },
@@ -756,7 +762,23 @@
       "condition": {
         "property": "operationId",
         "oneOf": [
-          "post-/crm/v3/objects/contacts",
+          "post-/crm/v3/objects/contacts"
+        ],
+        "type": "simple"
+      },
+      "optional": true
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "={\"properties\": if properties = null then null else properties}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
           "patch-/crm/v3/objects/contacts/{contactId}"
         ],
         "type": "simple"
@@ -989,6 +1011,157 @@
       "type": "Hidden"
     },
 
+    {
+      "label": "Contact id",
+      "description": "The id of the contact",
+      "optional": false,
+      "value": "string",
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "contactId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/associations/contact/company/batch/create",
+          "post-/crm/v3/associations/contact/company/batch/archive"
+        ],
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "label": "Company id",
+      "description": "The id of the company",
+      "optional": false,
+      "value": "string",
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "companyId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/associations/contact/company/batch/create",
+          "post-/crm/v3/associations/contact/company/batch/archive"
+        ],
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "post-/crm/v3/associations/contact/company/batch/create_$path",
+      "value": "/crm/v3/associations/contact/company/batch/create",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/associations/contact/company/batch/create",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/associations/contact/company/batch/archive_$path",
+      "value": "/crm/v3/associations/contact/company/batch/archive",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/crm/v3/associations/contact/company/batch/archive",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+
+    {
+      "id": "post-/crm/v3/associations/contact/company/batch_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/associations/contact/company/batch/create",
+          "post-/crm/v3/associations/contact/company/batch/archive"
+        ],
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/associations/contact/company/batch_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/associations/contact/company/batch/create",
+          "post-/crm/v3/associations/contact/company/batch/archive"
+        ],
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/associations/contact/company/batch_$method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/associations/contact/company/batch/create",
+          "post-/crm/v3/associations/contact/company/batch/archive"
+        ],
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/crm/v3/associations/contact/company/batch_body",
+      "value": "={\n    \"inputs\":[\n        {\n            \"from\":\n                {\"id\":contactId}, \n            \"to\":\n                {\"id\":companyId},  \n            \"type\":\"contact_to_company\"}\n        ]\n}",
+      "group": "requestBody",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/crm/v3/associations/contact/company/batch/create",
+          "post-/crm/v3/associations/contact/company/batch/archive"
+        ],
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
 
     {
       "id": "get-/crm/v3/objects/companies_getPage_$path",
@@ -1852,7 +2025,7 @@
     },
     {
       "label": "Form fields",
-      "description": "The contenct to submit to the form. <a href=\"https://developers.hubspot.com/docs/reference/api/marketing/forms/v3-legacy\" target=\"_blank\">Learn more</a>.",
+      "description": "The contact to submit to the form. <a href=\"https://developers.hubspot.com/docs/reference/api/marketing/forms/v3-legacy\" target=\"_blank\">Learn more</a>.",
       "group": "input",
       "feel": "optional",
       "id": "post-api.hsforms.com/submissions_body",
@@ -2039,6 +2212,6 @@
     }
   ],
   "icon": {
-    "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IS0tIFVwbG9hZGVkIHRvOiBTVkcgUmVwbywgd3d3LnN2Z3JlcG8uY29tLCBHZW5lcmF0b3I6IFNWRyBSZXBvIE1peGVyIFRvb2xzIC0tPgo8c3ZnIHdpZHRoPSI4MDBweCIgaGVpZ2h0PSI4MDBweCIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgPGNpcmNsZSBjeD0iNTEyIiBjeT0iNTEyIiByPSI1MTIiIHN0eWxlPSJmaWxsOiNmZjdhNTkiLz4KICAgPHBhdGggZD0iTTYyMy44IDYyNC45NGMtMzguMjMgMC02OS4yNC0zMC42Ny02OS4yNC02OC41MXMzMS02OC41MiA2OS4yNC02OC41MiA2OS4yNiAzMC42NyA2OS4yNiA2OC41Mi0zMSA2OC41MS02OS4yNiA2OC41MW0yMC43NC0yMDAuNDJ2LTYxYTQ2LjgzIDQ2LjgzIDAgMCAwIDI3LjMzLTQyLjI5di0xLjQxYzAtMjUuNzgtMjEuMzItNDYuODYtNDcuMzUtNDYuODZoLTEuNDNjLTI2IDAtNDcuMzUgMjEuMDktNDcuMzUgNDYuODZ2MS40MWE0Ni44NSA0Ni44NSAwIDAgMCAyNy4zMyA0Mi4yOXY2MWExMzUuMDggMTM1LjA4IDAgMCAwLTYzLjg2IDI3Ljc5bC0xNjkuMS0xMzAuMTdBNTIuNDkgNTIuNDkgMCAwIDAgMzcyIDMwOWMwLTI5LjIxLTIzLjg5LTUyLjkyLTUzLjQtNTNzLTUzLjQ1IDIzLjU5LTUzLjQ4IDUyLjgxIDIzLjg1IDUyLjg4IDUzLjM2IDUyLjkzYTUzLjI5IDUzLjI5IDAgMCAwIDI2LjMzLTcuMDlsMTY2LjM4IDEyOC4xYTEzMi4xNCAxMzIuMTQgMCAwIDAgMi4wNyAxNTAuM2wtNTAuNjIgNTAuMUE0My40MiA0My40MiAwIDEgMCA0NTAuMSA3NjhjMjQuMjQgMCA0My45LTE5LjQ2IDQzLjktNDMuNDVhNDIuMjQgNDIuMjQgMCAwIDAtMi0xMi40Mmw1MC00OS41MmExMzUuMjggMTM1LjI4IDAgMCAwIDgxLjggMjcuNDdjNzQuNjEgMCAxMzUuMDYtNTkuODMgMTM1LjA2LTEzMy42NSAwLTY2LjgyLTQ5LjYyLTEyMi0xMTQuMzMtMTMxLjkxIiBzdHlsZT0iZmlsbDojZmZmZmZmO2ZpbGwtcnVsZTpldmVub2RkIi8+Cjwvc3ZnPg=="
+    "contents": "data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjI1MDAiIHZpZXdCb3g9IjYuMjA4NTYyODMgLjY0NDk4ODI0IDI0NC4yNjk0MzcxNyAyNTEuMjQ3MDExNzYiIHdpZHRoPSIyNTAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Im0xOTEuMzg1IDg1LjY5NHYtMjkuNTA2YTIyLjcyMiAyMi43MjIgMCAwIDAgMTMuMTAxLTIwLjQ4di0uNjc3YzAtMTIuNTQ5LTEwLjE3My0yMi43MjItMjIuNzIxLTIyLjcyMmgtLjY3OGMtMTIuNTQ5IDAtMjIuNzIyIDEwLjE3My0yMi43MjIgMjIuNzIydi42NzdhMjIuNzIyIDIyLjcyMiAwIDAgMCAxMy4xMDEgMjAuNDh2MjkuNTA2YTY0LjM0MiA2NC4zNDIgMCAwIDAgLTMwLjU5NCAxMy40N2wtODAuOTIyLTYzLjAzYy41NzctMi4wODMuODc4LTQuMjI1LjkxMi02LjM3NWEyNS42IDI1LjYgMCAxIDAgLTI1LjYzMyAyNS41NSAyNS4zMjMgMjUuMzIzIDAgMCAwIDEyLjYwNy0zLjQzbDc5LjY4NSA2Mi4wMDdjLTE0LjY1IDIyLjEzMS0xNC4yNTggNTAuOTc0Ljk4NyA3Mi43bC0yNC4yMzYgMjQuMjQzYy0xLjk2LS42MjYtNC0uOTU5LTYuMDU3LS45ODctMTEuNjA3LjAxLTIxLjAxIDkuNDIzLTIxLjAwNyAyMS4wMy4wMDMgMTEuNjA2IDkuNDEyIDIxLjAxNCAyMS4wMTggMjEuMDE3IDExLjYwNy4wMDMgMjEuMDItOS40IDIxLjAzLTIxLjAwN2EyMC43NDcgMjAuNzQ3IDAgMCAwIC0uOTg4LTYuMDU2bDIzLjk3Ni0yMy45ODVjMjEuNDIzIDE2LjQ5MiA1MC44NDYgMTcuOTEzIDczLjc1OSAzLjU2MiAyMi45MTItMTQuMzUyIDM0LjQ3NS00MS40NDYgMjguOTg1LTY3LjkxOC01LjQ5LTI2LjQ3My0yNi44NzMtNDYuNzM0LTUzLjYwMy01MC43OTJtLTkuOTM4IDk3LjA0NGEzMy4xNyAzMy4xNyAwIDEgMSAwLTY2LjMxNmMxNy44NS42MjUgMzIgMTUuMjcyIDMyLjAxIDMzLjEzNC4wMDggMTcuODYtMTQuMTI3IDMyLjUyMi0zMS45NzcgMzMuMTY1IiBmaWxsPSIjZmY3YTU5Ii8+PC9zdmc+"
   }
 }
