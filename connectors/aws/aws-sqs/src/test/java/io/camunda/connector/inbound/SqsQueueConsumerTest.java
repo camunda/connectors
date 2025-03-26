@@ -77,8 +77,8 @@ public class SqsQueueConsumerTest {
         .thenReturn(new MessagePublished(null, 1L, null));
     // when
     Thread thread = new Thread(() -> consumer.run());
-    thread.start();
     consumer.setQueueConsumerActive(false);
+    thread.start();
     thread.join();
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
@@ -114,8 +114,8 @@ public class SqsQueueConsumerTest {
             () -> {
               consumer.run();
             });
-    thread.start();
     consumer.setQueueConsumerActive(false);
+    thread.start();
     thread.join();
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
@@ -148,8 +148,8 @@ public class SqsQueueConsumerTest {
             () -> {
               consumer.run();
             });
-    thread.start();
     consumer.setQueueConsumerActive(false);
+    thread.start();
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
@@ -174,8 +174,8 @@ public class SqsQueueConsumerTest {
             () -> {
               consumer.run();
             });
-    thread.start();
     consumer.setQueueConsumerActive(false);
+    thread.start();
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
@@ -196,8 +196,8 @@ public class SqsQueueConsumerTest {
               consumer.run();
               verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
             });
-    thread.start();
     consumer.setQueueConsumerActive(false);
+    thread.start();
     thread.join();
     // then
     verify(context).reportHealth(Health.down());
