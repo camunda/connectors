@@ -14,13 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.saas;
+package io.camunda.connector.runtime.saas.auth;
 
+import static org.junit.Assert.assertThrows;
+
+import io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication;
+import io.camunda.connector.runtime.saas.SaaSSecretConfiguration;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -33,19 +38,21 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "camunda.connector.secretprovider.discovery.enabled=false",
       "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
+      "camunda.client.auth.client-id=client-id",
+      "camunda.client.auth.client-secret=client-secret"
     })
 @ActiveProfiles("test")
-@ExtendWith(MockitoExtension.class)
-public class TestSpringContextStartup {
+public class CustomCredentialsProviderNotUsedTest {
+
+  @Autowired private ApplicationContext applicationContext;
 
   @MockitoBean(answers = Answers.RETURNS_MOCKS)
   public SaaSSecretConfiguration saaSSecretConfiguration;
 
   @Test
-  public void contextLoaded() {
-    // This test case just verifies that the runtime comes up without problems around
-    // conflicting class files in logging or other wired behavior that can be observed
-    // when the Spring context is initialized (e.g.
-    // https://github.com/camunda/team-connectors/issues/251)
+  public void credentialsProvidedInProperties_customCredentialsProviderNotUsed() {
+    assertThrows(
+        NoSuchBeanDefinitionException.class,
+        () -> applicationContext.getBean("saasCamundaClientConfiguration"));
   }
 }
