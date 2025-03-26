@@ -117,16 +117,6 @@
       "type": "String"
     },
     {
-      "id": "baseUrl",
-      "value": "https://api.hubapi.com",
-      "group": "server",
-      "binding": {
-        "name": "baseUrl",
-        "type": "zeebe:input"
-      },
-      "type": "Hidden"
-    },
-    {
       "label": "Resource type",
       "id": "resourceType",
       "group": "operation",
@@ -145,6 +135,10 @@
         {
           "name": "Deals",
           "value": "deals"
+        },
+        {
+          "name": "Miscellaneous",
+          "value": "miscellaneous"
         }
       ],
       "binding": {
@@ -276,6 +270,39 @@
         "type": "zeebe:input",
         "name": "operationType"
       }
+    },
+    {
+      "label": "Operation type",
+      "id": "operationId",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "post-api.hsforms.com/submissions",
+      "choices": [
+        {
+          "name": "Submit form",
+          "value": "post-api.hsforms.com/submissions"
+        }
+      ],
+      "condition": {
+        "property": "resourceType",
+        "oneOf": [
+          "miscellaneous"
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
+      "id": "baseUrl",
+      "value": "=if list contains([\"post-api.hsforms.com/submissions\"], operationType) then \"https://api.hsforms.com\" else \"https://api.hubspot.com\"",
+      "group": "server",
+      "binding": {
+        "name": "baseUrl",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden"
     },
 
     {
@@ -1718,6 +1745,124 @@
         "type": "simple"
       },
       "type": "Hidden"
+    },
+
+
+    {
+      "label": "Portal id",
+      "description": "The HubSpot account that the form belongs to. <a href=\"https://knowledge.hubspot.com/account-management/manage-multiple-hubspot-accounts#check-your-current-account\" target=\"_blank\">Learn more</a>.",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "portalId"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-api.hsforms.com/submissions"
+        ],
+        "type": "simple"
+      },
+      "optional": true
+    },
+    {
+      "label": "Form id",
+      "description": "The unique ID of the form you're sending data to. <a href=\"https://knowledge.hubspot.com/forms/find-your-form-guid\" target=\"_blank\">Learn more</a>.",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "formId"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-api.hsforms.com/submissions"
+        ],
+        "type": "simple"
+      },
+      "optional": true
+    },
+    {
+      "id": "post-api.hsforms.com/submissions_$path",
+      "value": "=\"/submissions/v3/integration/submit/\"+portalId+\"/\"+formId",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-api.hsforms.com/submissions",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-api.hsforms.com/submissions_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-api.hsforms.com/submissions",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-api.hsforms.com/submissions_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-api.hsforms.com/submissions",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-api.hsforms.com/submissions_$method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-api.hsforms.com/submissions",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "label": "Form fields",
+      "description": "The contenct to submit to the form. <a href=\"https://developers.hubspot.com/docs/reference/api/marketing/forms/v3-legacy\" target=\"_blank\">Learn more</a>.",
+      "group": "input",
+      "feel": "optional",
+      "id": "post-api.hsforms.com/submissions_body",
+      "value": "={\n  \"fields\": [\n    { \"name\": \"firstname\", \"value\": \"Jane\" },\n    { \"name\": \"lasename\", \"value\": \"Doe\" },\n    { \"name\": \"email\", \"value\": \"jane.doe@example.com\" }\n  ]\n}",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-api.hsforms.com/submissions",
+        "type": "simple"
+      },
+      "type": "String"
     },
 
     {
