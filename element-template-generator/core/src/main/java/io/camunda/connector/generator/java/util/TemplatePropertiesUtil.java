@@ -292,7 +292,7 @@ public class TemplatePropertiesUtil {
       type = PropertyType.Dropdown;
       Class<?> enumType = field.getType();
       dropdownChoices = createDropdownModelList(enumType);
-    } else if (isNumberClass(field.getType()) && isOutbound(context)) { // To be removed
+    } else if (isNumberClass(field.getType()) && isOutbound(context)) { // TODO: To be removed
       type = PropertyType.Number;
     } else {
       type = PropertyType.String;
