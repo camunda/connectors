@@ -149,7 +149,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
         case Boolean -> builder.value(Boolean.parseBoolean(value));
         case String -> builder.value(value);
         case Number -> {
-          // To be removed
+          // TODO: To be removed
           if (context instanceof TemplateGenerationContext.Outbound) {
             builder.value(parseNumber(value, field.getType()));
           } else {
