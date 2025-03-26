@@ -37,12 +37,6 @@
         "io.camunda.connector"
       ],
       "enabled": false
-    },
-    {
-      "description": "Exclude SNAPSHOT versions, renovate may suggest them for pre-release values.",
-      "matchManagers": ["maven"],
-      "matchPackagePatterns": [".*"],
-      "allowedVersions": "!*-SNAPSHOT"
     }
   ],
   "baseBranches": [
