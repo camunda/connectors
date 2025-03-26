@@ -281,6 +281,10 @@
         {
           "name": "Submit form",
           "value": "post-api.hsforms.com/submissions"
+        },
+        {
+          "name": "Add element to list",
+          "value": "put-/crm/v3/lists/{listId}/memberships/add"
         }
       ],
       "condition": {
@@ -1860,6 +1864,104 @@
       "condition": {
         "property": "operationId",
         "equals": "post-api.hsforms.com/submissions",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+
+    {
+      "label": "List id",
+      "description": "The ID of the list where the object should be added to.",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "listId"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "put-/crm/v3/lists/{listId}/memberships/add"
+        ],
+        "type": "simple"
+      },
+      "optional": true
+    },
+    {
+      "id": "put-/crm/v3/lists/{listId}/memberships/add_$path",
+      "value": "=\"/crm/v3/lists/\"+listId+\"/memberships/add\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "put-/crm/v3/lists/{listId}/memberships/add",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "put-/crm/v3/lists/{listId}/memberships/add_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "put-/crm/v3/lists/{listId}/memberships/add",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "put-/crm/v3/lists/{listId}/memberships/add_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "put-/crm/v3/lists/{listId}/memberships/add",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "put-/crm/v3/lists/{listId}/memberships/add_$method",
+      "value": "PUT",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "put-/crm/v3/lists/{listId}/memberships/add",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "label": "Object ids",
+      "description": "The ids of the objects, e.g. contacts or companies, to add to the list",
+      "group": "input",
+      "feel": "optional",
+      "id": "put-/crm/v3/lists/{listId}/memberships/add_body",
+      "value": "=[\"12345678\"]",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "put-/crm/v3/lists/{listId}/memberships/add",
         "type": "simple"
       },
       "type": "String"
