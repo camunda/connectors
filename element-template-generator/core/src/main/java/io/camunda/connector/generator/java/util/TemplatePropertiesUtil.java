@@ -183,7 +183,7 @@ public class TemplatePropertiesUtil {
     }
 
     PropertyBuilder propertyBuilder =
-        createPropertyBuilder(field, annotation)
+        createPropertyBuilder(field, annotation, context)
             .id(name)
             .label(label)
             .tooltip(tooltip)
@@ -281,7 +281,8 @@ public class TemplatePropertiesUtil {
     return Number.class.isAssignableFrom(clazz);
   }
 
-  private static PropertyBuilder createPropertyBuilder(Field field, TemplateProperty annotation) {
+  private static PropertyBuilder createPropertyBuilder(
+      Field field, TemplateProperty annotation, TemplateGenerationContext context) {
     PropertyType type;
     List<DropdownModel> dropdownChoices = new ArrayList<>();
 
@@ -291,7 +292,7 @@ public class TemplatePropertiesUtil {
       type = PropertyType.Dropdown;
       Class<?> enumType = field.getType();
       dropdownChoices = createDropdownModelList(enumType);
-    } else if (isNumberClass(field.getType())) {
+    } else if (isNumberClass(field.getType()) && isOutbound(context)) { // To be removed
       type = PropertyType.Number;
     } else {
       type = PropertyType.String;
@@ -336,6 +337,13 @@ public class TemplatePropertiesUtil {
       builder.feel(FeelMode.required);
     }
     return builder;
+  }
+
+  private static boolean isOutbound(TemplateGenerationContext context) {
+    return switch (context) {
+      case TemplateGenerationContext.Inbound unused -> false;
+      case Outbound unused -> true;
+    };
   }
 
   private static List<PropertyBuilder> handleSealedType(

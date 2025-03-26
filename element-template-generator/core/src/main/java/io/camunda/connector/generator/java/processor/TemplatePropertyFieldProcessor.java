@@ -148,7 +148,14 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       switch (annotation.defaultValueType()) {
         case Boolean -> builder.value(Boolean.parseBoolean(value));
         case String -> builder.value(value);
-        case Number -> builder.value(parseNumber(value, field.getType()));
+        case Number -> {
+          // To be removed
+          if (context instanceof TemplateGenerationContext.Outbound) {
+            builder.value(parseNumber(value, field.getType()));
+          } else {
+            builder.value(value);
+          }
+        }
         default ->
             throw new IllegalStateException("Unexpected value: " + annotation.defaultValueType());
       }
