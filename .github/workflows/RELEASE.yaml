@@ -125,7 +125,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Build, Compile & Test Connectors
-        run: mvn -B -q compile generate-sources source:jar javadoc:jar -PcheckFormat
+        run: mvn -B compile generate-sources source:jar javadoc:jar -PcheckFormat
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -134,7 +134,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
-        run: mvn -B -q deploy -Psonatype-oss-release
+        run: mvn -B deploy -DskipTests -Psonatype-oss-release
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
