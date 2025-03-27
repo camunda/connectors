@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Hubspot Outbound Connector",
+  "name": "HubSpot Outbound Connector",
   "description": "Manage contacts, companies, and deals in HubSpot",
   "metadata": {
     "keywords": [
@@ -25,7 +25,7 @@
   },
   "id": "io.camunda.connectors.HubSpot.v1",
   "version": 1,
-  "documentationRef": "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/hubspot/",
+  "documentationRef": "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/hubspot/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -98,7 +98,7 @@
     {
       "id": "authentication.token",
       "label": "Bearer token",
-      "description": "The access token of your Hubspot private app.",
+      "description": "The access token of your HubSpot private app.",
       "optional": false,
       "constraints": {
         "notEmpty": true
@@ -1015,7 +1015,6 @@
       "label": "Contact id",
       "description": "The id of the contact",
       "optional": false,
-      "value": "string",
       "constraints": {
         "notEmpty": true
       },
@@ -1039,7 +1038,6 @@
       "label": "Company id",
       "description": "The id of the company",
       "optional": false,
-      "value": "string",
       "constraints": {
         "notEmpty": true
       },
@@ -2025,7 +2023,7 @@
     },
     {
       "label": "Form fields",
-      "description": "The contact to submit to the form. <a href=\"https://developers.hubspot.com/docs/reference/api/marketing/forms/v3-legacy\" target=\"_blank\">Learn more</a>.",
+      "description": "The values to submit to the form. <a href=\"https://developers.hubspot.com/docs/reference/api/marketing/forms/v3-legacy\" target=\"_blank\">Learn more</a>.",
       "group": "input",
       "feel": "optional",
       "id": "post-api.hsforms.com/submissions_body",
