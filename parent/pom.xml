@@ -112,7 +112,7 @@ limitations under the License.</license.inlineheader>
 
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.3.3</version.httpcore5>
-    <version.httpclient5>5.4.2</version.httpclient5>
+    <version.httpclient5>5.4.3</version.httpclient5>
     <version.pdfbox>3.0.4</version.pdfbox>
     <version.collections4>4.5.0-M3</version.collections4>
 
