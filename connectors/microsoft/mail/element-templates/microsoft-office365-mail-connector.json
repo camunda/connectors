@@ -4,6 +4,9 @@
   "id": "io.camunda.connectors.MSFT.O365.Mail.v1",
   "description": "Work with Office 365 Mail via your BPMN process",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
+  "engines": {
+    "camunda": "^8.7"
+  },
   "version": 2,
   "category": {
     "id": "connectors",

@@ -3,6 +3,9 @@
   "name": "Twilio Start Event Connector",
   "id": "io.camunda.connectors.TwilioWebhook.v1",
   "version": 2,
+  "engines":{
+    "camunda": "^8.7"
+  },
   "description": "Receive incoming message with Twilio service",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=inbound",
   "category": {

@@ -3,6 +3,9 @@
   "name": "Google Maps Platform Outbound Connector",
   "id": "io.camunda.connectors.GoogleMapsPlatform.v1",
   "version": 3,
+  "engines":{
+    "camunda": "^8.7"
+  },
   "description": "Validate addresses, retrieve postal addresses and calculate distances with Googe Maps",
   "metadata": {
     "keywords": [
