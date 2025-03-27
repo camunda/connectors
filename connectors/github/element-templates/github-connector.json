@@ -3,6 +3,9 @@
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
   "version": 7,
+  "engines": {
+    "camunda": "^8.7"
+  },
   "description": "Manage GitHub issues, branches, releases, and more",
   "metadata": {
     "keywords": [
