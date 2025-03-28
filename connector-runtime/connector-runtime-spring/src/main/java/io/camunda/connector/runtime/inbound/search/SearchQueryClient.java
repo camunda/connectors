@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.client.api.search.response.FlowNodeInstance;
 import io.camunda.client.api.search.response.ProcessDefinition;
-import io.camunda.client.api.search.response.SearchQueryResponse;
+import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.util.List;
@@ -26,12 +26,12 @@ import java.util.List;
 /** Wrapper over Zeebe client for search query methods. Enables easier mocking and testing. */
 public interface SearchQueryClient {
 
-  SearchQueryResponse<ProcessDefinition> queryProcessDefinitions(List<Object> paginationIndex);
+  SearchResponse<ProcessDefinition> queryProcessDefinitions(List<Object> paginationIndex);
 
-  SearchQueryResponse<FlowNodeInstance> queryActiveFlowNodes(
+  SearchResponse<FlowNodeInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, List<Object> paginationIndex);
 
-  SearchQueryResponse<Variable> queryVariables(
+  SearchResponse<Variable> queryVariables(
       long processInstanceKey, List<Object> variablePaginationIndex);
 
   BpmnModelInstance getProcessModel(long processDefinitionKey);
