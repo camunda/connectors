@@ -1,0 +1,68 @@
+name: Check Licenses
+
+on:
+  push:
+    branches:
+    - main
+
+jobs:
+  analyze:
+    name: Analyze dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v4
+    # Import FOSSA_API_KEY and other secrets from Vault
+    - name: Import secrets
+      id: secrets
+      uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+      with:
+        url: ${{ secrets.VAULT_ADDR }}
+        method: approle
+        roleId: ${{ secrets.VAULT_ROLE_ID }}
+        secretId: ${{ secrets.VAULT_SECRET_ID }}
+        secrets: |
+          secret/data/products/connectors/ci/common ARTIFACTORY_PSW | NEXUS_PASSWORD;
+          secret/data/products/connectors/ci/common ARTIFACTORY_USR | NEXUS_USER;
+          secret/data/products/connectors/ci/common FOSSA_API_KEY;
+    - name: Restore Maven cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+    - name: Update Maven settings.xml
+      uses: s4u/maven-settings-action@v3.1.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+              "id": "camunda-nexus",
+              "username": "${{ steps.secrets.outputs.NEXUS_USER }}",
+              "password": "${{ steps.secrets.outputs.NEXUS_PASSWORD }}"
+          }]
+        mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+    - name: Setup fossa-cli
+      uses: camunda/infra-global-github-actions/fossa/setup@main
+    - name: Adjust pom.xml files for FOSSA
+      run: |
+        # The parent/pom.xml must be the actual root, otherwise, FOSSA won't detect the hierarchy correctly
+        yq -i \
+          '.project.modules.module += "./.."' \
+          parent/pom.xml
+        # Remove parent from the list of modules of ./pom.xml
+        yq -i \
+          'del(.project.modules.module[] | select(. == "parent"))' \
+          pom.xml
+    - name: Analyze project
+      uses: camunda/infra-global-github-actions/fossa/analyze@main
+      with:
+        api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+        branch: ${{ github.ref_name }}
+        revision-id: ${{ github.sha }}
