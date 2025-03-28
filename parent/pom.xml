@@ -106,7 +106,7 @@ limitations under the License.</license.inlineheader>
     <version.google-auth-library-oauth2-http>1.33.1</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20250218-2.0.0</version.google-api-services-docs>
     <version.google-api-services-sheets>v4-rev20250211-2.0.0</version.google-api-services-sheets>
-    <version.google-libraries-bom>26.56.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.57.0</version.google-libraries-bom>
     <version.google-cloud-storage>2.50.0</version.google-cloud-storage>
     <version.gson-extras>3.1.0</version.gson-extras>
 
