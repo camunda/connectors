@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.client.api.search.response.ProcessDefinition;
-import io.camunda.client.api.search.response.SearchQueryResponse;
+import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -48,7 +48,7 @@ public class ProcessDefinitionSearch {
   public List<ProcessDefinition> query() {
     LOG.trace("Query process deployments...");
     List<ProcessDefinition> processDefinitions = new ArrayList<>();
-    SearchQueryResponse<ProcessDefinition> processDefinitionResult;
+    SearchResponse<ProcessDefinition> processDefinitionResult;
     LOG.trace("Running paginated query");
 
     List<Object> paginationIndex = null;
