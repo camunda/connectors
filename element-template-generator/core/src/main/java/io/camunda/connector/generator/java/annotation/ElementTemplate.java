@@ -60,6 +60,9 @@ public @interface ElementTemplate {
    */
   String documentationRef() default "";
 
+  /** Semantic version range */
+  String runtimeSemanticVersion() default "";
+
   /**
    * Element template description. Will be displayed along with the connector name in Camunda
    * Modeler.

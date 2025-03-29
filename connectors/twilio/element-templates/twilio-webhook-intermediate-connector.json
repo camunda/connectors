@@ -3,6 +3,9 @@
   "name": "Twilio Intermediate Catch Event Connector",
   "id": "io.camunda.connectors.Twilio.Webhook.Intermediate.v1",
   "version": 3,
+  "engines":{
+    "camunda": "^8.7"
+  },
   "description": "Receive incoming message with Twilio service",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=inbound",
   "category": {
