@@ -433,6 +433,12 @@ limitations under the License.</license.inlineheader>
         <artifactId>azure-identity</artifactId>
         <version>${version.azure-identity}</version>
         <scope>compile</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver-dns-native-macos</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
