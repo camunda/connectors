@@ -83,4 +83,28 @@
       </exclusions>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.agents.schema.AdHocToolsSchemaFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agents.adhoctoolschema.v1</templateId>
+                  <templateFileName>agents-adhoctoolschema-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
