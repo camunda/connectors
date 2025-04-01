@@ -1,1 +1,2 @@
 io.camunda.connector.agents.schema.AdHocToolsSchemaFunction
+io.camunda.connector.agents.aiagent.AiAgentFunction

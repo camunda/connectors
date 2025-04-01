@@ -6,12 +6,10 @@
  */
 package io.camunda.connector.agents.autoconfigure;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.agents.core.AgentsApplicationContext;
-import io.camunda.connector.agents.core.AgentsApplicationContext.DefaultAgentsApplicationContext;
 import io.camunda.connector.agents.core.AgentsApplicationContextHolder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,10 +18,9 @@ public class AgentsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentsApplicationContext agentsApplicationContext(
-      CamundaClient camundaClient, ObjectMapper objectMapper) {
-    final var context = new DefaultAgentsApplicationContext(objectMapper, camundaClient);
-    AgentsApplicationContextHolder.instance().setCurrentContext(context);
+  public AgentsApplicationContext agentsApplicationContext(ApplicationContext applicationContext) {
+    final var context = new SpringBasedAgentsApplicationContext(applicationContext);
+    AgentsApplicationContextHolder.setCurrentContext(context);
     return context;
   }
 }
