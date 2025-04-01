@@ -1,0 +1,37 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-parent</artifactId>
+    <version>8.8.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>connector-agents-parent</artifactId>
+  <packaging>pom</packaging>
+  <name>agents-connector-parent</name>
+  <description>Parent POM for Agentic AI Connectors</description>
+  <inceptionYear>2025</inceptionYear>
+  <modules>
+    <module>agents-spring-boot-starter</module>
+    <module>agents-connectors</module>
+  </modules>
+
+  <properties>
+    <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+under one or more contributor license agreements. Licensed under a proprietary license.
+See the License.txt file for more information. You may not use this file
+except in compliance with the proprietary license.
+    </license.inlineheader>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
+  </dependencies>
+</project>
