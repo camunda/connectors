@@ -14,19 +14,19 @@ public class AgentsApplicationContextHolder {
 
   private AgentsApplicationContextHolder() {}
 
-  public static AgentsApplicationContextHolder instance() {
-    return INSTANCE;
+  private AgentsApplicationContext getContext() {
+    return this.context;
+  }
+
+  private void setContext(AgentsApplicationContext context) {
+    this.context = context;
   }
 
   public static AgentsApplicationContext currentContext() {
-    return instance().getCurrentContext();
+    return INSTANCE.getContext();
   }
 
-  public AgentsApplicationContext getCurrentContext() {
-    return context;
-  }
-
-  public void setCurrentContext(AgentsApplicationContext context) {
-    this.context = context;
+  public static void setCurrentContext(AgentsApplicationContext context) {
+    INSTANCE.setContext(context);
   }
 }
