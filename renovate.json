@@ -1,5 +1,7 @@
 {
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended"
+  ],
   "labels": [
     "dependencies",
     "no milestone"
@@ -36,9 +38,12 @@
       "matchBaseBranches": [
         "/^release/.*/"
       ],
-      "matchPackageNames": ["io.camunda.*"],
+      "matchPackageNames": [
+        "io.camunda.*"
+      ],
       "matchUpdateTypes": [
-        "major", "minor"
+        "major",
+        "minor"
       ],
       "enabled": false
     },
