@@ -53,6 +53,10 @@
     </dependency>
     <dependency>
       <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-anthropic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-bedrock</artifactId>
     </dependency>
     <dependency>
