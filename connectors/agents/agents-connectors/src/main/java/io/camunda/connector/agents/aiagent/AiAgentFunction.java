@@ -47,10 +47,10 @@ import org.slf4j.LoggerFactory;
     inputDataClass = AgentRequest.class,
     version = 1,
     propertyGroups = {
-      @PropertyGroup(id = "provider", label = "Model Provider"),
+      @PropertyGroup(id = "provider", label = "Provider"),
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "model", label = "Model"),
-      @PropertyGroup(id = "context", label = "AI Agent Context"),
+      @PropertyGroup(id = "context", label = "Context"),
       @PropertyGroup(id = "prompt", label = "Prompt"),
       @PropertyGroup(id = "tools", label = "Tools"),
       @PropertyGroup(id = "history", label = "History"),
