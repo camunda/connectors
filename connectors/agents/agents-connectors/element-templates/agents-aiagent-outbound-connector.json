@@ -18,7 +18,7 @@
   },
   "groups" : [ {
     "id" : "provider",
-    "label" : "Model Provider"
+    "label" : "Provider"
   }, {
     "id" : "authentication",
     "label" : "Authentication"
@@ -27,7 +27,7 @@
     "label" : "Model"
   }, {
     "id" : "context",
-    "label" : "AI Agent Context"
+    "label" : "Context"
   }, {
     "id" : "prompt",
     "label" : "Prompt"
@@ -59,8 +59,8 @@
     "type" : "Hidden"
   }, {
     "id" : "provider.type",
-    "label" : "Model Provider",
-    "description" : "Specify the model provider to use.",
+    "label" : "Provider",
+    "description" : "Specify the model provider to use",
     "group" : "provider",
     "binding" : {
       "name" : "provider.type",
@@ -361,7 +361,7 @@
   }, {
     "id" : "data.agentContext",
     "label" : "Agent Context",
-    "description" : "The agent context variable containing the conversation history.",
+    "description" : "The agent context variable containing the conversation history",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
