@@ -28,7 +28,6 @@ import org.springframework.test.context.ActiveProfiles;
     properties = {
       "camunda.saas.secrets.projectId=42",
       "camunda.client.cloud.clusterId=42",
-      "camunda.client.cloud.region=bru-1",
       "camunda.client.zeebe.grpc-address=http://zeebe-service:26500",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
