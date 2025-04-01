@@ -20,17 +20,14 @@
     "id" : "taskDefinitionType",
     "label" : "Task definition type"
   }, {
-    "id" : "provider",
-    "label" : "Provider"
+    "id" : "model",
+    "label" : "Model"
   }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
-    "id" : "model",
-    "label" : "Model"
-  }, {
     "id" : "parameters",
-    "label" : "Model Parameters"
+    "label" : "Parameters"
   }, {
     "id" : "context",
     "label" : "Context"
@@ -69,7 +66,7 @@
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the model provider to use",
-    "group" : "provider",
+    "group" : "model",
     "binding" : {
       "name" : "provider.type",
       "type" : "zeebe:input"
@@ -90,7 +87,7 @@
     "label" : "Endpoint",
     "description" : "Specify endpoint if need to use a custom API endpoint",
     "optional" : true,
-    "group" : "provider",
+    "group" : "model",
     "binding" : {
       "name" : "provider.anthropic.endpoint",
       "type" : "zeebe:input"
@@ -102,6 +99,26 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "provider.anthropic.model.model",
+    "label" : "Model",
+    "optional" : false,
+    "value" : "claude-3-5-sonnet-20240620",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.bedrock.region",
     "label" : "Region",
     "description" : "Specify the AWS region",
@@ -110,7 +127,7 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "provider",
+    "group" : "model",
     "binding" : {
       "name" : "provider.bedrock.region",
       "type" : "zeebe:input"
@@ -126,7 +143,7 @@
     "label" : "Endpoint",
     "description" : "Specify endpoint if need to use a custom API endpoint",
     "optional" : true,
-    "group" : "provider",
+    "group" : "model",
     "binding" : {
       "name" : "provider.bedrock.endpoint",
       "type" : "zeebe:input"
@@ -138,11 +155,31 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "provider.bedrock.model.model",
+    "label" : "Model",
+    "optional" : false,
+    "value" : "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.bedrock.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.openai.endpoint",
     "label" : "Endpoint",
     "description" : "Specify endpoint if need to use a custom API endpoint",
     "optional" : true,
-    "group" : "provider",
+    "group" : "model",
     "binding" : {
       "name" : "provider.openai.endpoint",
       "type" : "zeebe:input"
@@ -153,6 +190,26 @@
       "type" : "simple"
     },
     "type" : "Hidden"
+  }, {
+    "id" : "provider.openai.model.model",
+    "label" : "Model",
+    "optional" : false,
+    "value" : "gpt-4o",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "provider.anthropic.authentication.apiKey",
     "label" : "Anthropic API Key",
@@ -292,66 +349,6 @@
     "group" : "authentication",
     "binding" : {
       "name" : "provider.openai.authentication.project",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.model.model",
-    "label" : "Model",
-    "optional" : false,
-    "value" : "claude-3-5-sonnet-20240620",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.model",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.bedrock.model.model",
-    "label" : "Model",
-    "optional" : false,
-    "value" : "anthropic.claude-3-5-sonnet-20240620-v1:0",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.bedrock.model.model",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.model.model",
-    "label" : "Model",
-    "optional" : false,
-    "value" : "gpt-4o",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openai.model.model",
       "type" : "zeebe:input"
     },
     "condition" : {

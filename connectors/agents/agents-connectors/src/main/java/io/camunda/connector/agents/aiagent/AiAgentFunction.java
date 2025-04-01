@@ -47,10 +47,9 @@ import org.slf4j.LoggerFactory;
     inputDataClass = AgentRequest.class,
     version = 1,
     propertyGroups = {
-      @PropertyGroup(id = "provider", label = "Provider"),
-      @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "model", label = "Model"),
-      @PropertyGroup(id = "parameters", label = "Model Parameters"),
+      @PropertyGroup(id = "authentication", label = "Authentication"),
+      @PropertyGroup(id = "parameters", label = "Parameters"),
       @PropertyGroup(id = "context", label = "Context"),
       @PropertyGroup(id = "prompt", label = "Prompt"),
       @PropertyGroup(id = "tools", label = "Tools"),

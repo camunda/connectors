@@ -32,7 +32,7 @@ import jakarta.validation.constraints.NotBlank;
 })
 @TemplateDiscriminatorProperty(
     label = "Provider",
-    group = "provider",
+    group = "model",
     name = "type",
     description = "Specify the model provider to use")
 public sealed interface ProviderConfiguration
@@ -46,7 +46,7 @@ public sealed interface ProviderConfiguration
 
     public record AnthropicConnection(
         @TemplateProperty(
-                group = "provider",
+                group = "model",
                 description = "Specify endpoint if need to use a custom API endpoint",
                 type = TemplateProperty.PropertyType.Hidden,
                 feel = Property.FeelMode.disabled,
@@ -81,13 +81,13 @@ public sealed interface ProviderConfiguration
   record BedrockProviderConfiguration(BedrockConnection bedrock) implements ProviderConfiguration {
     public record BedrockConnection(
         @TemplateProperty(
-                group = "provider",
+                group = "model",
                 description = "Specify the AWS region",
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String region,
         @FEEL
             @TemplateProperty(
-                group = "provider",
+                group = "model",
                 description = "Specify endpoint if need to use a custom API endpoint",
                 type = TemplateProperty.PropertyType.Hidden,
                 feel = Property.FeelMode.disabled,
@@ -114,7 +114,7 @@ public sealed interface ProviderConfiguration
 
     public record OpenAiConnection(
         @TemplateProperty(
-                group = "provider",
+                group = "model",
                 description = "Specify endpoint if need to use a custom API endpoint",
                 type = TemplateProperty.PropertyType.Hidden,
                 feel = Property.FeelMode.disabled,
