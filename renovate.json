@@ -33,6 +33,16 @@
       "enabled": false
     },
     {
+      "matchBaseBranches": [
+        "/^release/.*/"
+      ],
+      "matchPackageNames": ["io.camunda.*"],
+      "matchUpdateTypes": [
+        "major", "minor"
+      ],
+      "enabled": false
+    },
+    {
       "matchPackagePrefixes": [
         "io.camunda.connector"
       ],
