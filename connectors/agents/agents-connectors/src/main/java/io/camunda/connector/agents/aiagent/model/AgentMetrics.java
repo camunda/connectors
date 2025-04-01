@@ -1,0 +1,29 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agents.aiagent.model;
+
+public record AgentMetrics(int modelCalls, int tokenUsage) {
+  public AgentMetrics withModelCalls(int modelCalls) {
+    return new AgentMetrics(modelCalls, tokenUsage);
+  }
+
+  public AgentMetrics incrementModelCalls(int additionalModelCalls) {
+    return withModelCalls(modelCalls + additionalModelCalls);
+  }
+
+  public AgentMetrics withTokenUsage(int tokenUsage) {
+    return new AgentMetrics(modelCalls, tokenUsage);
+  }
+
+  public AgentMetrics incrementTokenUsage(int additionalTokenUsage) {
+    return withTokenUsage(tokenUsage + additionalTokenUsage);
+  }
+
+  public static AgentMetrics empty() {
+    return new AgentMetrics(0, 0);
+  }
+}

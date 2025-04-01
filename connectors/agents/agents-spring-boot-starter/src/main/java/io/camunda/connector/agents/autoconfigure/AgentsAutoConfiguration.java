@@ -23,7 +23,7 @@ public class AgentsAutoConfiguration {
   public AgentsApplicationContext agentsApplicationContext(
       CamundaClient camundaClient, ObjectMapper objectMapper) {
     final var context = new DefaultAgentsApplicationContext(objectMapper, camundaClient);
-    AgentsApplicationContextHolder.getInstance().setCurrentContext(context);
+    AgentsApplicationContextHolder.instance().setCurrentContext(context);
     return context;
   }
 }
