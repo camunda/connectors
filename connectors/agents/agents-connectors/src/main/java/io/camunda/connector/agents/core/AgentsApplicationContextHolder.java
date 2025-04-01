@@ -14,8 +14,12 @@ public class AgentsApplicationContextHolder {
 
   private AgentsApplicationContextHolder() {}
 
-  public static AgentsApplicationContextHolder getInstance() {
+  public static AgentsApplicationContextHolder instance() {
     return INSTANCE;
+  }
+
+  public static AgentsApplicationContext currentContext() {
+    return instance().getCurrentContext();
   }
 
   public AgentsApplicationContext getCurrentContext() {
