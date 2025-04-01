@@ -18,7 +18,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
-// TODO add support for more model parameters (e.g. topP, ...)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(
@@ -75,15 +74,7 @@ public sealed interface ProviderConfiguration
                 defaultValue = "claude-3-5-sonnet-20240620",
                 defaultValueType = TemplateProperty.DefaultValueType.String)
             String model,
-        @Valid AnthropicParameters parameters) {
-      public record AnthropicParameters(
-          @Min(0) @TemplateProperty(group = "model", label = "Temperature", optional = true)
-              Double temperature,
-          @Min(0)
-              @TemplateProperty(group = "model", label = "Maximum Output Tokens", optional = true)
-              Integer maxOutputTokens)
-          implements ModelParameters {}
-    }
+        @Valid ModelParameters parameters) {}
   }
 
   @TemplateSubType(id = "bedrock", label = "AWS Bedrock")
@@ -115,15 +106,7 @@ public sealed interface ProviderConfiguration
                 defaultValue = "anthropic.claude-3-5-sonnet-20240620-v1:0",
                 defaultValueType = TemplateProperty.DefaultValueType.String)
             String model,
-        @Valid BedrockModelParameters parameters) {
-      public record BedrockModelParameters(
-          @Min(0) @TemplateProperty(group = "model", label = "Temperature", optional = true)
-              Double temperature,
-          @Min(0)
-              @TemplateProperty(group = "model", label = "Maximum Output Tokens", optional = true)
-              Integer maxOutputTokens)
-          implements ModelParameters {}
-    }
+        @Valid ModelParameters parameters) {}
   }
 
   @TemplateSubType(id = "openai", label = "OpenAI")
@@ -176,20 +159,16 @@ public sealed interface ProviderConfiguration
                 defaultValue = "gpt-4o",
                 defaultValueType = TemplateProperty.DefaultValueType.String)
             String model,
-        @Valid OpenAiModelParameters parameters) {
-      public record OpenAiModelParameters(
-          @Min(0) @TemplateProperty(group = "model", label = "Temperature", optional = true)
-              Double temperature,
-          @Min(0)
-              @TemplateProperty(group = "model", label = "Maximum Output Tokens", optional = true)
-              Integer maxOutputTokens)
-          implements ModelParameters {}
-    }
+        @Valid ModelParameters parameters) {}
   }
 
-  interface ModelParameters {
-    Double temperature();
-
-    Integer maxOutputTokens();
-  }
+  record ModelParameters(
+      @Min(0) @TemplateProperty(group = "parameters", label = "Temperature", optional = true)
+          Double temperature,
+      @Min(0)
+          @TemplateProperty(group = "parameters", label = "Maximum Output Tokens", optional = true)
+          Integer maxOutputTokens,
+      @Min(0) @TemplateProperty(group = "parameters", label = "top P", optional = true) Double topP,
+      @Min(0) @TemplateProperty(group = "parameters", label = "top K", optional = true)
+          Integer topK) {}
 }
