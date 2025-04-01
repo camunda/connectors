@@ -53,6 +53,8 @@ public class ChatModelFactory {
     final var modelParameters = connection.model().parameters();
     Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
     Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxTokens);
+    Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
+    Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
 
     return builder.build();
   }
@@ -111,6 +113,8 @@ public class ChatModelFactory {
       ProviderConfiguration.ModelParameters modelParameters) {
     Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
     Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxOutputTokens);
+    Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
+    Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     return builder;
   }
 }
