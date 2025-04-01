@@ -36,7 +36,6 @@ public class ToolCallingHandler {
     this.toolSpecificationConverter = toolSpecificationConverter;
   }
 
-  // TODO this could be cached
   public List<ToolSpecification> loadToolSpecifications(
       Long processDefinitionKey, String toolsContainerId) {
     if (toolsContainerId == null || toolsContainerId.isBlank()) {

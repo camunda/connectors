@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agents.schema;
 
-public interface AdHocToolsSchemaResolver {
-  AdHocToolsSchema resolveSchema(Long processDefinitionKey, String adHocSubprocessId);
-}
+import io.modelcontextprotocol.spec.McpSchema;
+import java.util.List;
+
+public record AdHocToolsSchema(List<McpSchema.Tool> tools) {}

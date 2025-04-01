@@ -6,7 +6,8 @@
  */
 package io.camunda.connector.agents.schema;
 
-import io.camunda.connector.agents.core.AgentsApplicationContextHolder;
+import static io.camunda.connector.agents.schema.AdHocToolsSchemaResolverFactory.cachingSchemaResolverFromStaticContext;
+
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -33,16 +34,11 @@ public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
   private final AdHocToolsSchemaResolver schemaResolver;
 
   public AdHocToolsSchemaFunction() {
-    this(schemaResolverFromStaticContext());
+    this(cachingSchemaResolverFromStaticContext());
   }
 
   public AdHocToolsSchemaFunction(AdHocToolsSchemaResolver schemaResolver) {
     this.schemaResolver = schemaResolver;
-  }
-
-  private static AdHocToolsSchemaResolver schemaResolverFromStaticContext() {
-    final var camundaClient = AgentsApplicationContextHolder.currentContext().camundaClient();
-    return new AdHocToolsSchemaResolver(camundaClient);
   }
 
   @Override

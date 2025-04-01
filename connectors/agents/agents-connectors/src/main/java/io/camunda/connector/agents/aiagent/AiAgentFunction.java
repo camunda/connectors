@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agents.aiagent;
 
+import static io.camunda.connector.agents.schema.AdHocToolsSchemaResolverFactory.cachingSchemaResolverFromStaticContext;
+
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -25,7 +27,6 @@ import io.camunda.connector.agents.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agents.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agents.aiagent.tools.ToolSpecificationConverter;
 import io.camunda.connector.agents.core.AgentsApplicationContextHolder;
-import io.camunda.connector.agents.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -95,7 +96,7 @@ public class AiAgentFunction implements OutboundConnectorFunction {
 
     return new ToolCallingHandler(
         applicationContext.objectMapper(),
-        new AdHocToolsSchemaResolver(applicationContext.camundaClient()),
+        cachingSchemaResolverFromStaticContext(),
         new ToolSpecificationConverter());
   }
 
