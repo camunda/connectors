@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-agents-parent</artifactId>
+    <version>8.8.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <name>agents-connectors</name>
+  <description>Agents Connectors</description>
+  <artifactId>agents-connectors</artifactId>
+  <packaging>jar</packaging>
+
+  <properties>
+    <version.langchain4j>1.0.0-beta2</version.langchain4j>
+    <version.mcp-sdk>0.8.1</version.mcp-sdk>
+    <version.json-schema-validator>1.5.6</version.json-schema-validator>
+  </properties>
+
+  <!-- TODO licensing -->
+  <licenses>
+    <license>
+      <name>Camunda Self-Managed Free Edition license</name>
+      <url>
+        https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
+      </url>
+    </license>
+    <license>
+      <name>Camunda Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-bom</artifactId>
+        <version>${version.langchain4j}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-bedrock</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-open-ai</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp</artifactId>
+      <version>${version.mcp-sdk}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+      <version>${version.json-schema-validator}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.fasterxml.jackson.dataformat</groupId>
+          <artifactId>jackson-dataformat-yaml</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.ethlo.time</groupId>
+          <artifactId>itu</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+  </dependencies>
+</project>
