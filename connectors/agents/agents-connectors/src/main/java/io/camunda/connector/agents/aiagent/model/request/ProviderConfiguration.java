@@ -22,6 +22,9 @@ import jakarta.validation.constraints.NotBlank;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(
+      value = ProviderConfiguration.AnthropicProviderConfiguration.class,
+      name = "anthropic"),
+  @JsonSubTypes.Type(
       value = ProviderConfiguration.BedrockProviderConfiguration.class,
       name = "bedrock"),
   @JsonSubTypes.Type(
@@ -34,8 +37,54 @@ import jakarta.validation.constraints.NotBlank;
     name = "type",
     description = "Specify the model provider to use")
 public sealed interface ProviderConfiguration
-    permits ProviderConfiguration.BedrockProviderConfiguration,
+    permits ProviderConfiguration.AnthropicProviderConfiguration,
+        ProviderConfiguration.BedrockProviderConfiguration,
         ProviderConfiguration.OpenAiProviderConfiguration {
+
+  @TemplateSubType(id = "anthropic", label = "Anthropic")
+  record AnthropicProviderConfiguration(AnthropicConnection anthropic)
+      implements ProviderConfiguration {
+
+    public record AnthropicConnection(
+        @TemplateProperty(
+                group = "provider",
+                description = "Specify endpoint if need to use a custom API endpoint",
+                type = TemplateProperty.PropertyType.Hidden,
+                feel = Property.FeelMode.disabled,
+                optional = true)
+            String endpoint,
+        AnthropicAuthentication authentication,
+        AnthropicModel model) {}
+
+    public record AnthropicAuthentication(
+        @NotBlank
+            @TemplateProperty(
+                group = "authentication",
+                label = "Anthropic API Key",
+                type = TemplateProperty.PropertyType.String,
+                feel = Property.FeelMode.optional)
+            String apiKey) {}
+
+    public record AnthropicModel(
+        @NotBlank
+            @TemplateProperty(
+                group = "model",
+                label = "Model",
+                type = TemplateProperty.PropertyType.String,
+                feel = Property.FeelMode.optional,
+                defaultValue = "claude-3-5-sonnet-20240620",
+                defaultValueType = TemplateProperty.DefaultValueType.String)
+            String model,
+        @Valid AnthropicParameters parameters) {
+      public record AnthropicParameters(
+          @Min(0) @TemplateProperty(group = "model", label = "Temperature", optional = true)
+              Double temperature,
+          @Min(0)
+              @TemplateProperty(group = "model", label = "Maximum Output Tokens", optional = true)
+              Integer maxOutputTokens)
+          implements ModelParameters {}
+    }
+  }
 
   @TemplateSubType(id = "bedrock", label = "AWS Bedrock")
   record BedrockProviderConfiguration(BedrockConnection bedrock) implements ProviderConfiguration {

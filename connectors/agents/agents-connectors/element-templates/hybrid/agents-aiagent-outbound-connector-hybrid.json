@@ -73,12 +73,31 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "Anthropic",
+      "value" : "anthropic"
+    }, {
       "name" : "AWS Bedrock",
       "value" : "bedrock"
     }, {
       "name" : "OpenAI",
       "value" : "openai"
     } ]
+  }, {
+    "id" : "provider.anthropic.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use a custom API endpoint",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "provider.bedrock.region",
     "label" : "Region",
@@ -131,6 +150,25 @@
       "type" : "simple"
     },
     "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.authentication.apiKey",
+    "label" : "Anthropic API Key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "provider.anthropic.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "provider.bedrock.authentication.type",
     "label" : "Authentication",
@@ -256,6 +294,58 @@
     "condition" : {
       "property" : "provider.type",
       "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.model.model",
+    "label" : "Model",
+    "optional" : false,
+    "value" : "claude-3-5-sonnet-20240620",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.model.parameters.maxOutputTokens",
+    "label" : "Maximum Output Tokens",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.maxOutputTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
       "type" : "simple"
     },
     "type" : "String"

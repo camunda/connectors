@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agents.aiagent.provider;
 
+import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
@@ -13,6 +14,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agents.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agents.aiagent.model.request.ProviderConfiguration;
+import io.camunda.connector.agents.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration;
 import io.camunda.connector.agents.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration;
 import io.camunda.connector.agents.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration;
 import io.camunda.connector.aws.model.impl.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
@@ -29,9 +31,30 @@ public class ChatModelFactory {
 
   public ChatLanguageModel createChatModel(AgentRequest request) {
     return switch (request.provider()) {
+      case AnthropicProviderConfiguration anthropic -> createAnthropicChatModel(anthropic);
       case BedrockProviderConfiguration bedrock -> createBedrockChatModel(bedrock);
       case OpenAiProviderConfiguration openai -> createOpenaiChatModel(openai);
     };
+  }
+
+  private AnthropicChatModel createAnthropicChatModel(
+      AnthropicProviderConfiguration configuration) {
+    final var connection = configuration.anthropic();
+
+    final var builder =
+        AnthropicChatModel.builder()
+            .apiKey(connection.authentication().apiKey())
+            .modelName(connection.model().model());
+
+    if (connection.endpoint() != null) {
+      builder.baseUrl(connection.endpoint());
+    }
+
+    final var modelParameters = connection.model().parameters();
+    Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
+    Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxTokens);
+
+    return builder.build();
   }
 
   private BedrockChatModel createBedrockChatModel(BedrockProviderConfiguration configuration) {
