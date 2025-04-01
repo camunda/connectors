@@ -53,7 +53,7 @@ import org.springframework.test.web.servlet.MockMvc;
     properties = {
       "camunda.saas.secrets.projectId=42",
       "camunda.client.zeebe.enabled=true",
-      "camunda.client.cloud.cluster-id=42",
+      "camunda.client.cloud.clusterId=42",
       "camunda.client.zeebe.grpc-address=http://zeebe-service:26500",
       "camunda.client.cloud.region=bru-1",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
