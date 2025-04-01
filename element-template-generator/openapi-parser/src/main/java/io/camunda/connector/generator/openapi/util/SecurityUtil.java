@@ -23,7 +23,6 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -39,7 +38,13 @@ public class SecurityUtil {
   public static List<HttpAuthentication> parseAuthentication(
       List<SecurityRequirement> security, Components components) {
     if (security == null) {
-      return Collections.emptyList();
+      LOG.info("No security schemes found, providing default security section");
+      return List.of(
+          new HttpAuthentication.NoAuth(),
+          new HttpAuthentication.BasicAuth(""),
+          new HttpAuthentication.BearerAuth(),
+          new HttpAuthentication.OAuth2("", Set.of("")),
+          new HttpAuthentication.ApiKey("", "", ""));
     }
 
     List<HttpAuthentication> result = new ArrayList<>();
