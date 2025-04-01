@@ -37,7 +37,7 @@ public class SaaSConfiguration {
   @Value("${camunda.saas.secrets.internalPrefix:internal-connector-secrets}")
   private String secretsInternalNamePrefix;
 
-  @Value("${camunda.client.cluster-id}")
+  @Value("${camunda.client.cloud.cluster-id}")
   private String clusterId;
 
   @Bean
