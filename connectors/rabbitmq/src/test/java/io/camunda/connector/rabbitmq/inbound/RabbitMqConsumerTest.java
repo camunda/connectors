@@ -266,7 +266,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
   }
 
   @Test
-  void consumer_shouldHandleShutdown() {
+  void consumer_shouldNotHandleShutdown() {
     // Given
     String consumerTag = "consumerTag";
     ShutdownSignalException cause = new ShutdownSignalException(true, false, null, null);
@@ -277,6 +277,37 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     consumer.handleShutdownSignal(consumerTag, cause);
 
     // Then
-    verify(spyContext, times(1)).cancel(cause);
+    verify(spyContext, times(0)).cancel(cause);
+  }
+
+  @Test
+  void consumer_shouldBeAbleToParseSpecialCharsInJsonString() throws IOException {
+    // Given JSON payload
+    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
+    BasicProperties properties = new BasicProperties.Builder().build();
+    String jsonBody =
+        """
+        {"key":"value with \\"quotes\\" special chars: \\" \\n \\t \\r"}
+        """;
+    var context = getContextBuilderWithSecrets().build();
+
+    // When
+    RabbitMqConsumer consumer = new RabbitMqConsumer(mockChannel, context);
+    consumer.handleDelivery("consumerTag", envelope, properties, jsonBody.getBytes());
+
+    // Then
+    var correlatedEvents = context.getCorrelations();
+    assertThat(correlatedEvents).hasSize(1);
+    assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
+    RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
+
+    assertThat(message.body()).isInstanceOf(Map.class);
+    Map<String, Object> body = (Map<String, Object>) message.body();
+    assertThat(body).containsEntry("key", "value with \"quotes\" special chars: \" \n \t \r");
+
+    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+    assertThat(message.consumerTag()).isEqualTo("consumerTag");
+
+    verify(mockChannel, times(1)).basicAck(1, false);
   }
 }

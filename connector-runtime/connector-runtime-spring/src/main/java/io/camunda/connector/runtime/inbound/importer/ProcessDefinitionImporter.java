@@ -37,7 +37,7 @@ public class ProcessDefinitionImporter {
   private final Set<Long> registeredProcessDefinitionKeys = new HashSet<>();
   private final Map<String, ProcessDefinition> versionByBpmnProcessId = new HashMap<>();
 
-  private boolean ready = false;
+  private boolean ready = true;
 
   @Autowired
   public ProcessDefinitionImporter(
@@ -52,7 +52,12 @@ public class ProcessDefinitionImporter {
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
   public synchronized void scheduleImport() {
     try {
-      search.query(this::handleImportedDefinitions);
+      var result = search.query();
+      try {
+        handleImportedDefinitions(result);
+      } catch (Exception e) {
+        LOG.warn("Failed to handle imported process definitions", e);
+      }
       ready = true;
     } catch (Exception e) {
       LOG.error("Failed to import process definitions", e);
@@ -60,9 +65,7 @@ public class ProcessDefinitionImporter {
     }
   }
 
-  public void handleImportedDefinitions(List<ProcessDefinition> unprocessedDefinitions) {
-    var definitions = keepOnlyLatestVersions(unprocessedDefinitions);
-
+  public void handleImportedDefinitions(List<ProcessDefinition> definitions) {
     var notYetRegistered =
         definitions.stream()
             .filter(d -> !registeredProcessDefinitionKeys.contains(d.getKey()))
@@ -111,17 +114,6 @@ public class ProcessDefinitionImporter {
         notYetRegistered.stream().map(ProcessDefinition::getKey).toList());
     registeredProcessDefinitionKeys.removeAll(deleted);
     registeredProcessDefinitionKeys.removeAll(oldProcessDefinitionKeys);
-  }
-
-  private List<ProcessDefinition> keepOnlyLatestVersions(List<ProcessDefinition> unprocessed) {
-    Map<String, ProcessDefinition> versionsByBpmnProcessId = new HashMap<>();
-    for (ProcessDefinition pd : unprocessed) {
-      var currentVersion = versionsByBpmnProcessId.get(pd.getBpmnProcessId());
-      if (currentVersion == null || currentVersion.getVersion() < pd.getVersion()) {
-        versionsByBpmnProcessId.put(pd.getBpmnProcessId(), pd);
-      }
-    }
-    return versionsByBpmnProcessId.values().stream().toList();
   }
 
   private void logResult(

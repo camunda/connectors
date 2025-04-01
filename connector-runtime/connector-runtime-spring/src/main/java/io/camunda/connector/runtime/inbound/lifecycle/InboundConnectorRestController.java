@@ -42,9 +42,9 @@ public class InboundConnectorRestController {
 
   @GetMapping("/inbound")
   public List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
-      @RequestParam(required = false) String bpmnProcessId,
-      @RequestParam(required = false) String elementId,
-      @RequestParam(required = false) String type) {
+      @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
+      @RequestParam(required = false, value = "elementId") String elementId,
+      @RequestParam(required = false, value = "type") String type) {
     var result =
         inboundManager.query(new ActiveInboundConnectorQuery(bpmnProcessId, elementId, type));
     return result.stream().map(this::mapToResponse).collect(Collectors.toList());

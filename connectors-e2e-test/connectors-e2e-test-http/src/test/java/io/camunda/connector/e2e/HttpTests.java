@@ -16,15 +16,11 @@
  */
 package io.camunda.connector.e2e;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.matching;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static io.camunda.connector.e2e.BpmnFile.Replace.replace;
 import static io.camunda.connector.e2e.BpmnFile.replace;
 import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -44,6 +40,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,12 +66,11 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 @ExtendWith(MockitoExtension.class)
 public class HttpTests {
 
-  @TempDir File tempDir;
-
   @RegisterExtension
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
+  @TempDir File tempDir;
   @Autowired ZeebeClient zeebeClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
@@ -87,7 +83,7 @@ public class HttpTests {
 
   @BeforeEach
   void beforeAll() {
-    doNothing().when(processDefinitionSearch).query(any());
+    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
   @Test

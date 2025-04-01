@@ -1,5 +1,5 @@
 name: Release a new version
-run-name: Release a new version ${{ inputs.version }}
+run-name: Release a new version ${{ github.event.release.tag_name }}
 
 on:
   release:
@@ -9,35 +9,25 @@ jobs:
   build-and-push:
     name: Build and push Docker images
     runs-on: ubuntu-latest
+    outputs:
+      releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
     steps:
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
-      - name: Check if new version implies pre-release
-        id: check_prerelease
+      - name: Validate release tag and determine previous tag
+        id: validate_tag
         run: |
-          if [[ ${{github.event.release.prerelease}} == "true" ]]; then
-            PRE_RELEASE=true
-          elif [[ ${{ github.event.release.tag_name }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            PRE_RELEASE=false
-          else
-            PRE_RELEASE=true
+          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ github.event.release.tag_name }})"
+          if [ $? -ne 0 ]; then
+            echo "Script failed"
+            exit 1
           fi
-          echo "isPreRelease=${PRE_RELEASE}" >> $GITHUB_OUTPUT
-
-      - name: Get previous tag for changelog
-        id: get_previous_tag
-        run: |
-          git pull --tags
-          if [[ ${{steps.check_prerelease.outputs.isPreRelease}} == "true" ]]; then
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | head -2 | tail -1)
-          else
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
-          fi
-          echo "previousTag: $TAG_NAME"
-          echo "previousTag=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
+          echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
 
       # We will update this branch by setting the new version and pushing it
       - name: Determine release branch name
@@ -51,7 +41,7 @@ jobs:
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v2.8.0
+        uses: hashicorp/vault-action@v3.3.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -91,7 +81,7 @@ jobs:
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v3.0.0
+        uses: s4u/maven-settings-action@v3.1.0
         with:
           githubServer: false
           servers: |
@@ -106,7 +96,7 @@ jobs:
                "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
              }
             ]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Configure git user
         run: |
@@ -117,10 +107,10 @@ jobs:
       - name: Install element templates CLI
         run: npm install --global element-templates-cli
 
-    # Maven build & version bump
+      # Maven build & version bump
 
       - name: Set Connectors release version
-        run:  mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
+        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
@@ -154,7 +144,7 @@ jobs:
       # Build & push bundle docker images (with version tag)
 
       - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - connector-runtime
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
@@ -163,7 +153,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-default
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           push: true
@@ -172,7 +162,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-saas
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
           push: true
@@ -183,7 +173,7 @@ jobs:
       # Build & push bundle docker images (with 'latest' tag)
 
       - name: Build and Push Docker Image tag latest - connector-runtime
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
@@ -192,8 +182,8 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-default
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
-        uses: docker/build-push-action@v5
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           push: true
@@ -202,8 +192,8 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-saas
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
-        uses: docker/build-push-action@v5
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
           push: true
@@ -214,7 +204,7 @@ jobs:
       # Update README in Dockerhub
 
       - name: Push README to Dockerhub - bundle-default
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -226,7 +216,7 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle'
 
       - name: Push README to Dockerhub - bundle-saas
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -237,7 +227,7 @@ jobs:
           readme_file: bundle/README.md
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
-    # Update GitHub release
+      # Update GitHub release
 
       - name: Bundle element templates
         run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
@@ -250,7 +240,7 @@ jobs:
         with:
           token: ${{ github.token }}
           fromTag: ${{ github.event.release.tag_name }}
-          toTag: ${{ steps.get_previous_tag.outputs.previousTag }}
+          toTag: ${{ steps.validate_tag.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
@@ -258,7 +248,7 @@ jobs:
       - name: Commit and tag
         run: |
           git commit -am "ci: release version ${RELEASE_VERSION}"
-          git push origin ${RELEASE_BRANCH}
+          git push --force-with-lease origin ${RELEASE_BRANCH}
           git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
           git push --force origin ${RELEASE_VERSION}
 
@@ -267,9 +257,9 @@ jobs:
           RELEASE_BRANCH: ${{ steps.determine_release_branch.outputs.releaseBranch }}
 
       - name: Update GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ steps.check_prerelease.outputs.isPreRelease }}
+          prerelease: ${{ steps.validate_tag.outputs.type != 'NORMAL' }}
           body: ${{ steps.changelog.outputs.changes }}
           tag_name: ${{ github.event.release.tag_name }}
           files: |
@@ -277,3 +267,12 @@ jobs:
             bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
+
+  helm-deploy:
+    needs: build-and-push
+    name: Run Helm Integration Tests
+    uses: ./.github/workflows/INTEGRATION_TEST.yml
+    secrets: inherit
+    with:
+      connectors-version: ${{ github.event.release.tag_name }}
+      release-branch: ${{ needs.build-and-push.outputs.releaseBranch }}

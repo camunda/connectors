@@ -171,7 +171,7 @@ public class InboundCorrelationHandler {
               response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
-      if (Status.ALREADY_EXISTS.equals(e1.getStatus())) {
+      if (Status.ALREADY_EXISTS.getCode().equals(e1.getStatus().getCode())) {
         result = MessageAlreadyCorrelated.INSTANCE;
       } else {
         result =
@@ -214,7 +214,7 @@ public class InboundCorrelationHandler {
           new CorrelationResult.Success.MessagePublished(
               response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException ex) {
-      if (Status.ALREADY_EXISTS.equals(ex.getStatus())) {
+      if (Status.ALREADY_EXISTS.getCode().equals(ex.getStatus().getCode())) {
         result = MessageAlreadyCorrelated.INSTANCE;
       } else {
         LOG.info("Failed to publish message: ", ex);

@@ -10,6 +10,7 @@ import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.conver
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.getKafkaProperties;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
@@ -19,32 +20,30 @@ import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
-import io.camunda.connector.api.error.ConnectorInputException;
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
+import dev.failsafe.function.CheckedSupplier;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
-import org.apache.kafka.common.PartitionInfo;
-import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KafkaConnectorConsumer {
+
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
 
   private final InboundConnectorContext context;
@@ -57,7 +56,9 @@ public class KafkaConnectorConsumer {
 
   KafkaConnectorProperties elementProps;
 
-  private Health consumerStatus = Health.up();
+  private Health consumerStatus = Health.unknown();
+
+  private final RetryPolicy<Object> retryPolicy;
 
   public static ObjectMapper objectMapper =
       new ObjectMapper()
@@ -67,22 +68,22 @@ public class KafkaConnectorConsumer {
           // deserialize unknown types as empty objects
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-          .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
-
-  private ObjectReader avroObjectReader;
-
-  boolean shouldLoop = true;
-
+          .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES)
+          .enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature());
   private final Function<Properties, Consumer<String, Object>> consumerCreatorFunction;
+  boolean shouldLoop = true;
+  private ObjectReader avroObjectReader;
 
   public KafkaConnectorConsumer(
       final Function<Properties, Consumer<String, Object>> consumerCreatorFunction,
       final InboundConnectorContext connectorContext,
-      final KafkaConnectorProperties elementProps) {
+      final KafkaConnectorProperties elementProps,
+      final RetryPolicy<Object> retryPolicy) {
     this.consumerCreatorFunction = consumerCreatorFunction;
     this.context = connectorContext;
     this.elementProps = elementProps;
     this.executorService = Executors.newSingleThreadExecutor();
+    this.retryPolicy = retryPolicy;
   }
 
   public void startConsumer() {
@@ -93,52 +94,51 @@ public class KafkaConnectorConsumer {
       AvroMapper avroMapper = new AvroMapper();
       avroObjectReader = avroMapper.reader(avroSchema);
     }
-    this.future =
-        CompletableFuture.runAsync(
-            () -> {
-              prepareConsumer();
-              consume();
-            },
-            this.executorService);
+
+    CheckedSupplier<Void> retryableFutureSupplier =
+        () -> {
+          try {
+            prepareConsumer();
+            consume();
+            return null;
+          } catch (Exception ex) {
+            LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage());
+            try {
+              consumer.close();
+            } catch (Exception e) {
+              LOG.error(
+                  "Failed to close consumer before retrying, reason: {}. "
+                      + "This error will be ignored. If the consumer is still running, it will be disconnected after max.poll.interval.ms.",
+                  e.getMessage());
+            }
+            throw ex;
+          }
+        };
+
+    future =
+        Failsafe.with(retryPolicy)
+            .with(executorService)
+            .getAsync(retryableFutureSupplier)
+            .exceptionally(
+                (e) -> {
+                  shouldLoop = false;
+                  return null;
+                });
   }
 
   private void prepareConsumer() {
     try {
       this.consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
-      var partitions = assignTopicPartitions(consumer, elementProps.getTopic().getTopicName());
-      Optional.ofNullable(elementProps.getOffsets())
-          .ifPresent(offsets -> seekOffsets(consumer, partitions, offsets));
+      String topicName = elementProps.getTopic().getTopicName();
+      consumer.subscribe(
+          List.of(topicName),
+          new OffsetUpdateRequiredListener(topicName, consumer, elementProps.getOffsets()));
       reportUp();
     } catch (Exception ex) {
       LOG.error("Failed to initialize connector: {}", ex.getMessage());
       context.reportHealth(Health.down(ex));
       throw ex;
     }
-  }
-
-  private List<TopicPartition> assignTopicPartitions(
-      Consumer<String, Object> consumer, String topic) {
-    // dynamically assign partitions to be able to handle offsets
-    List<PartitionInfo> partitions = consumer.partitionsFor(topic);
-    List<TopicPartition> topicPartitions =
-        partitions.stream()
-            .map(partition -> new TopicPartition(partition.topic(), partition.partition()))
-            .collect(Collectors.toList());
-    consumer.assign(topicPartitions);
-    return topicPartitions;
-  }
-
-  private void seekOffsets(
-      Consumer<String, ?> consumer, List<TopicPartition> partitions, List<Long> offsets) {
-    if (partitions.size() != offsets.size()) {
-      throw new ConnectorInputException(
-          new IllegalArgumentException(
-              "Number of offsets provided is not equal the number of partitions!"));
-    }
-    for (int i = 0; i < offsets.size(); i++) {
-      consumer.seek(partitions.get(i), offsets.get(i));
-    }
-    LOG.info("Kafka inbound connector initialized");
   }
 
   public void consume() {
@@ -148,9 +148,7 @@ public class KafkaConnectorConsumer {
         reportUp();
       } catch (Exception ex) {
         reportDown(ex);
-        if (ex instanceof OffsetOutOfRangeException) {
-          throw ex;
-        }
+        throw ex;
       }
     }
     LOG.debug("Kafka inbound loop finished");

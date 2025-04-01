@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-bundle-parent</artifactId>
-    <version>8.4.0-SNAPSHOT</version>
+    <version>8.3.23</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -38,6 +38,12 @@ except in compliance with the proprietary license.</license.inlineheader>
   </properties>
 
   <dependencies>
+    <!-- Fix CVE-2024-7254 -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java-util</artifactId>
+      <version>3.25.6</version>
+    </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-validation</artifactId>

@@ -12,7 +12,6 @@ import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Properties;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.config.TopicConfig;
@@ -101,12 +100,10 @@ public class KafkaPropertyTransformer {
       } else {
         String value = (String) consumerRecord.value();
         kafkaInboundMessage.setRawValue(value);
-        var json = StringEscapeUtils.unescapeJson(value);
-        var jsonNode = objectReader.readTree(json);
-        kafkaInboundMessage.setValue(jsonNode);
+        kafkaInboundMessage.setValue(objectReader.readTree(value));
       }
     } catch (Exception e) {
-      LOG.debug("Cannot parse value to json object -> use the raw value");
+      LOG.error("Cannot parse value to json object -> use the raw value", e);
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());
     }
     return kafkaInboundMessage;

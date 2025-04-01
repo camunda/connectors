@@ -259,7 +259,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "value": "=request.headers.apiKey"
+      "value": "=request.headers.apikey"
     },
     {
       "label": "Condition",

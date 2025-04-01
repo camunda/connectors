@@ -271,7 +271,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "value": "=request.headers.apiKey"
+      "value": "=request.headers.apikey"
     },
     {
       "label": "Correlation key (process)",

@@ -8,27 +8,33 @@ package io.camunda.connector.kafka.inbound;
 
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.DEFAULT_KEY_DESERIALIZER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.failsafe.RetryPolicy;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +55,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -58,17 +65,31 @@ public class KafkaExecutableTest {
       new ObjectMapper()
           .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
           .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+  private final String processId = "Process_id";
   private InboundConnectorContextBuilder.TestInboundConnectorContext context;
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private List<PartitionInfo> topicPartitions;
   private KafkaConnectorProperties kafkaConnectorProperties;
   @Mock private KafkaConsumer<String, Object> mockConsumer;
-
   private String topic;
 
-  private final String processId = "Process_id";
+  private static Stream<Arguments> provideStringsForGetOffsets() {
+    return Stream.of(
+        Arguments.of("=[1,2,3]", List.of(1L, 2L, 3L)),
+        Arguments.of("[1,2,3]", List.of(1L, 2L, 3L)),
+        Arguments.of("1", List.of(1L)),
+        Arguments.of("1,2", Arrays.asList(1L, 2L)),
+        Arguments.of("1,2,3,", Arrays.asList(1L, 2L, 3L)),
+        Arguments.of("1,2,3,4,5", Arrays.asList(1L, 2L, 3L, 4L, 5L)),
+        Arguments.of(Arrays.asList(10L, 12L), Arrays.asList(10L, 12L)));
+  }
+
+  private KafkaTopic kafkaTopic;
+
+  private static final int MAX_ATTEMPTS = 3;
 
   @BeforeEach
+  @SuppressWarnings("unchecked")
   public void setUp() {
     topic = "my-topic";
     topicPartitions =
@@ -92,13 +113,12 @@ public class KafkaExecutableTest {
             .validation(new DefaultValidationProvider())
             .build();
     originalContext = context;
+    mockConsumer = mock(KafkaConsumer.class);
   }
 
   @Test
   public void testActivateMainFunctionality() throws Exception {
     KafkaExecutable kafkaExecutable = getConsumerMock();
-
-    when(mockConsumer.partitionsFor(any())).thenReturn(topicPartitions);
 
     // Return and stop looping
     when(mockConsumer.poll(any()))
@@ -123,16 +143,16 @@ public class KafkaExecutableTest {
     assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertEquals(mockConsumer, kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertEquals(originalContext, context);
-    verify(mockConsumer, times(1)).partitionsFor(topic);
-    verify(mockConsumer, times(1)).assign(argThat(list -> list.size() == topicPartitions.size()));
+    // Create an ArgumentCaptor to capture the argument passed to subscribe
+    ArgumentCaptor<Collection<String>> argumentCaptor = ArgumentCaptor.forClass(Collection.class);
+    verify(mockConsumer, times(1)).subscribe(argumentCaptor.capture(), any());
     verify(mockConsumer, times(1)).poll(any());
   }
 
   @Test
   void testActivateAndDeactivate() {
     // Given
-    when(mockConsumer.partitionsFor(topic)).thenReturn(topicPartitions);
-    doNothing().when(mockConsumer).assign(any());
+    doNothing().when(mockConsumer).subscribe(anyCollection(), any());
     KafkaExecutable kafkaExecutable = getConsumerMock();
 
     // When
@@ -143,6 +163,29 @@ public class KafkaExecutableTest {
     assertEquals(originalContext, context);
     assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop);
+  }
+
+  @Test
+  void testActivateAndDeactivate_consumerThrows() {
+    // Given
+    KafkaExecutable kafkaExecutable = getConsumerMock();
+    var groupMetadataMock = mock(ConsumerGroupMetadata.class);
+    when(groupMetadataMock.groupId()).thenReturn("groupId");
+    when(groupMetadataMock.groupInstanceId()).thenReturn(Optional.of("groupInstanceId"));
+    when(groupMetadataMock.generationId()).thenReturn(1);
+    when(mockConsumer.groupMetadata()).thenReturn(groupMetadataMock);
+
+    // When
+    when(mockConsumer.poll(any())).thenThrow(new RuntimeException("Test exception"));
+    kafkaExecutable.activate(context);
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .pollInterval(Duration.ofMillis(500))
+        .untilAsserted(() -> assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop));
+
+    // Then
+    verify(mockConsumer, times(MAX_ATTEMPTS)).poll(any(Duration.class));
+    verify(mockConsumer, times(MAX_ATTEMPTS)).close();
   }
 
   @Test
@@ -197,8 +240,49 @@ public class KafkaExecutableTest {
     assertEquals("headerValue", ((Map) kafkaInboundMessage.getHeaders()).get("header"));
   }
 
+  @Test
+  public void testConvertSpecialCharactersRecordToKafkaInboundMessage() {
+    // When
+    ConsumerRecord<String, Object> consumerRecord =
+        new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"\nb\ta\\r\"}");
+    KafkaInboundMessage kafkaInboundMessage =
+        KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
+            consumerRecord, KafkaConnectorConsumer.objectMapper.reader());
+
+    // Then
+    assertEquals("my-key", kafkaInboundMessage.getKey());
+    assertEquals("{\"foo\": \"\nb\ta\\r\"}", kafkaInboundMessage.getRawValue());
+    ObjectNode expectedValue = JsonNodeFactory.instance.objectNode();
+    expectedValue.set("foo", JsonNodeFactory.instance.textNode("\nb\ta\r"));
+    assertEquals(expectedValue, kafkaInboundMessage.getValue());
+  }
+
+  @Test
+  public void testConvertDoubleEscapedCharactersRecordToKafkaInboundMessage() {
+    // When
+    String kafkaMessageValue =
+        "{\"ordertime\":1497014222380,\"orderid\":18,\"itemid\":\"Item_184\",\"message\":\"{\\\"valid\\\":true}\",\"address\":{\"city\":\"Mountain View\",\"state\":\"CA\",\"zipcode\":94041}}";
+    ConsumerRecord<String, Object> consumerRecord =
+        new ConsumerRecord<>("my-topic", 0, 0, "my-key", kafkaMessageValue);
+    KafkaInboundMessage kafkaInboundMessage =
+        KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
+            consumerRecord, KafkaConnectorConsumer.objectMapper.reader());
+
+    // Then
+    assertEquals("my-key", kafkaInboundMessage.getKey());
+    assertEquals(kafkaMessageValue, kafkaInboundMessage.getRawValue());
+    assertTrue(kafkaInboundMessage.getValue() instanceof JsonNode);
+    assertEquals("Item_184", ((JsonNode) kafkaInboundMessage.getValue()).get("itemid").asText());
+  }
+
   public KafkaExecutable getConsumerMock() {
-    return new KafkaExecutable(properties -> mockConsumer);
+    return new KafkaExecutable(
+        properties -> mockConsumer,
+        RetryPolicy.builder()
+            .handle(Exception.class)
+            .withDelay(Duration.ofMillis(50))
+            .withMaxAttempts(MAX_ATTEMPTS)
+            .build());
   }
 
   @ParameterizedTest
@@ -220,16 +304,5 @@ public class KafkaExecutableTest {
 
     var boundProps = context.bindProperties(KafkaConnectorProperties.class);
     assertThat(boundProps.getOffsets()).isEqualTo(expected);
-  }
-
-  private static Stream<Arguments> provideStringsForGetOffsets() {
-    return Stream.of(
-        Arguments.of("=[1,2,3]", List.of(1L, 2L, 3L)),
-        Arguments.of("[1,2,3]", List.of(1L, 2L, 3L)),
-        Arguments.of("1", List.of(1L)),
-        Arguments.of("1,2", Arrays.asList(1L, 2L)),
-        Arguments.of("1,2,3,", Arrays.asList(1L, 2L, 3L)),
-        Arguments.of("1,2,3,4,5", Arrays.asList(1L, 2L, 3L, 4L, 5L)),
-        Arguments.of(Arrays.asList(10L, 12L), Arrays.asList(10L, 12L)));
   }
 }

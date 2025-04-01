@@ -8,12 +8,17 @@ RUN mkdir /opt/app && mkdir /opt/custom
 
 COPY target/*-with-dependencies.jar /opt/app/
 
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Using the start script from the base connector runtime image
 COPY start.sh /start.sh
 RUN chmod +x start.sh
 
 # Create an unprivileged user / group and switch to that user
-RUN addgroup --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
+RUN groupadd --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
 USER connectors:connectors
 
 ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors

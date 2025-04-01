@@ -56,6 +56,55 @@ public class InboundCorrelationHandlerTest {
     handler = new InboundCorrelationHandler(zeebeClient, new FeelEngineWrapper());
   }
 
+  @Test
+  void boundaryMessageEvent_shouldCallCorrectZeebeMethod() {
+    // given
+    var point =
+        new BoundaryEventCorrelationPoint(
+            "test-boundary",
+            "=\"test\"",
+            "123",
+            new BoundaryEventCorrelationPoint.Activity("123", "test"));
+    var definition = mock(InboundConnectorDefinitionImpl.class);
+    when(definition.correlationPoint()).thenReturn(point);
+
+    var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+    when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+    // when
+    handler.correlate(definition, Collections.emptyMap());
+
+    // then
+    verify(zeebeClient).newPublishMessageCommand();
+    verifyNoMoreInteractions(zeebeClient);
+
+    verify(dummyCommand).messageName("test-boundary");
+    verify(dummyCommand).correlationKey("test");
+    verify(dummyCommand).messageId("123");
+    verify(dummyCommand).send();
+  }
+
+  @Test
+  void upstreamZeebeError_shouldThrow() {
+    // given
+    var point =
+        new BoundaryEventCorrelationPoint(
+            "test-boundary",
+            "=\"test\"",
+            "123",
+            new BoundaryEventCorrelationPoint.Activity("123", "test"));
+    var definition = mock(InboundConnectorDefinitionImpl.class);
+    when(definition.correlationPoint()).thenReturn(point);
+
+    when(zeebeClient.newPublishMessageCommand())
+        .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
+
+    // when & then
+    var error = assertDoesNotThrow(() -> handler.correlate(definition, Collections.emptyMap()));
+    assertThat(error).isInstanceOf(Failure.ZeebeClientStatus.class);
+    assertThat(((Failure.ZeebeClientStatus) error).status()).isEqualTo("UNAVAILABLE");
+  }
+
   @Nested
   class ZeebeClientMethodSelection {
 
@@ -162,7 +211,10 @@ public class InboundCorrelationHandlerTest {
       when(definition.correlationPoint()).thenReturn(point);
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(dummyCommand.send()).thenThrow(new ClientStatusException(Status.ALREADY_EXISTS, null));
+      when(dummyCommand.send())
+          .thenThrow(
+              new ClientStatusException(
+                  Status.fromCode(Status.Code.ALREADY_EXISTS).withDescription("The desc"), null));
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       // when
@@ -177,55 +229,6 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.MessageAlreadyCorrelated.class);
     }
-  }
-
-  @Test
-  void boundaryMessageEvent_shouldCallCorrectZeebeMethod() {
-    // given
-    var point =
-        new BoundaryEventCorrelationPoint(
-            "test-boundary",
-            "=\"test\"",
-            "123",
-            new BoundaryEventCorrelationPoint.Activity("123", "test"));
-    var definition = mock(InboundConnectorDefinitionImpl.class);
-    when(definition.correlationPoint()).thenReturn(point);
-
-    var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-    when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
-
-    // when
-    handler.correlate(definition, Collections.emptyMap());
-
-    // then
-    verify(zeebeClient).newPublishMessageCommand();
-    verifyNoMoreInteractions(zeebeClient);
-
-    verify(dummyCommand).messageName("test-boundary");
-    verify(dummyCommand).correlationKey("test");
-    verify(dummyCommand).messageId("123");
-    verify(dummyCommand).send();
-  }
-
-  @Test
-  void upstreamZeebeError_shouldThrow() {
-    // given
-    var point =
-        new BoundaryEventCorrelationPoint(
-            "test-boundary",
-            "=\"test\"",
-            "123",
-            new BoundaryEventCorrelationPoint.Activity("123", "test"));
-    var definition = mock(InboundConnectorDefinitionImpl.class);
-    when(definition.correlationPoint()).thenReturn(point);
-
-    when(zeebeClient.newPublishMessageCommand())
-        .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
-
-    // when & then
-    var error = assertDoesNotThrow(() -> handler.correlate(definition, Collections.emptyMap()));
-    assertThat(error).isInstanceOf(Failure.ZeebeClientStatus.class);
-    assertThat(((Failure.ZeebeClientStatus) error).status()).isEqualTo("UNAVAILABLE");
   }
 
   @Nested

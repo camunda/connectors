@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17.0.8.1_1-jre
+FROM eclipse-temurin:17.0.14_7-jre
 
 VOLUME /tmp
 
@@ -7,8 +7,13 @@ RUN mkdir /opt/app
 # Download connectors from maven central
 COPY target/*-with-dependencies.jar /opt/app/
 
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create an unprivileged user / group and switch to that user
-RUN addgroup --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
+RUN groupadd --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
 USER connectors:connectors
 
 ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
