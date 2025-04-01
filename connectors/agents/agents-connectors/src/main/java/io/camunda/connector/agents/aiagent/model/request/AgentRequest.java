@@ -24,7 +24,7 @@ public record AgentRequest(ProviderConfiguration provider, AgentRequestData data
               label = "Agent Context",
               group = "context",
               id = "agentContext",
-              description = "The agent context variable containing the conversation history.",
+              description = "The agent context variable containing the conversation history",
               type = TemplateProperty.PropertyType.Text,
               feel = Property.FeelMode.required)
           @Valid

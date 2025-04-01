@@ -29,10 +29,10 @@ import jakarta.validation.constraints.NotBlank;
       name = "openai")
 })
 @TemplateDiscriminatorProperty(
-    label = "Model Provider",
+    label = "Provider",
     group = "provider",
     name = "type",
-    description = "Specify the model provider to use.")
+    description = "Specify the model provider to use")
 public sealed interface ProviderConfiguration
     permits ProviderConfiguration.BedrockProviderConfiguration,
         ProviderConfiguration.OpenAiProviderConfiguration {
