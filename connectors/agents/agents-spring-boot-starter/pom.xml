@@ -16,7 +16,6 @@
     <artifactId>agents-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
 
-    <!-- TODO licensing -->
     <licenses>
         <license>
             <name>Camunda Self-Managed Free Edition license</name>
