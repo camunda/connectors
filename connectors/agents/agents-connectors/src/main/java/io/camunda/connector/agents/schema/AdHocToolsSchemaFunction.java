@@ -26,7 +26,8 @@ import jakarta.validation.constraints.NotBlank;
     inputDataClass = AdHocToolsSchemaFunction.AdHocToolsSchemaRequest.class,
     version = 1,
     propertyGroups = {@PropertyGroup(id = "tools", label = "Available Tools")},
-    documentationRef = "https://example.com")
+    documentationRef = "https://example.com",
+    icon = "adhoctoolsschema.svg")
 public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
 
   private final AdHocToolsSchemaResolver schemaResolver;
