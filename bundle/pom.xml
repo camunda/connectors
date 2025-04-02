@@ -176,7 +176,7 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>agents-spring-boot-starter</artifactId>
+        <artifactId>agents-connectors-spring-boot-starter</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

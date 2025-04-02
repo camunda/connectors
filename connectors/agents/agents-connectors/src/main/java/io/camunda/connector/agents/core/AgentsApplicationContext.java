@@ -7,10 +7,10 @@
 package io.camunda.connector.agents.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.CamundaClient;
+import io.camunda.connector.agents.schema.AdHocToolsSchemaResolver;
 
 public interface AgentsApplicationContext {
   ObjectMapper objectMapper();
 
-  CamundaClient camundaClient();
+  AdHocToolsSchemaResolver adHocToolSchemaResolver();
 }

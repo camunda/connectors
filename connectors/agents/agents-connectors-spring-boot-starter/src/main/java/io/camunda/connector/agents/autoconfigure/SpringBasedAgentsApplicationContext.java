@@ -7,8 +7,8 @@
 package io.camunda.connector.agents.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.agents.core.AgentsApplicationContext;
+import io.camunda.connector.agents.schema.AdHocToolsSchemaResolver;
 import org.springframework.context.ApplicationContext;
 
 public class SpringBasedAgentsApplicationContext implements AgentsApplicationContext {
@@ -25,7 +25,7 @@ public class SpringBasedAgentsApplicationContext implements AgentsApplicationCon
   }
 
   @Override
-  public CamundaClient camundaClient() {
-    return applicationContext.getBean(CamundaClient.class);
+  public AdHocToolsSchemaResolver adHocToolSchemaResolver() {
+    return applicationContext.getBean(AdHocToolsSchemaResolver.class);
   }
 }
