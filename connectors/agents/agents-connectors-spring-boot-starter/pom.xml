@@ -12,8 +12,8 @@
     </parent>
 
     <name>agents-spring-boot-starter</name>
-    <description>Agents Spring Boot integration</description>
-    <artifactId>agents-spring-boot-starter</artifactId>
+    <description>Agents Connectors Spring Boot integration</description>
+    <artifactId>agents-connectors-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
 
     <licenses>
