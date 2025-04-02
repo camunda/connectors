@@ -16,8 +16,13 @@
  */
 package io.camunda.connector.api.json;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.document.Document;
@@ -28,7 +33,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class ConnectorsObjectMapperSupplierTest {
@@ -38,9 +42,9 @@ class ConnectorsObjectMapperSupplierTest {
     final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     final var json = "{\"data\":\"2024-01-01\"}";
     final var jsonDeserialized = Map.of("data", LocalDate.of(2024, 1, 1));
-    Assertions.assertThat(objectMapper.writeValueAsString(jsonDeserialized)).isEqualTo(json);
+    assertThat(objectMapper.writeValueAsString(jsonDeserialized)).isEqualTo(json);
     var actual = objectMapper.readValue(json, new TypeReference<Map<String, LocalDate>>() {});
-    Assertions.assertThat(actual).isEqualTo(jsonDeserialized);
+    assertThat(actual).isEqualTo(jsonDeserialized);
   }
 
   @Test
@@ -48,7 +52,7 @@ class ConnectorsObjectMapperSupplierTest {
     final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     final var json = "1";
     var actual = objectMapper.readValue(json, int[].class);
-    Assertions.assertThat(actual).isEqualTo(new int[] {1});
+    assertThat(actual).isEqualTo(new int[] {1});
   }
 
   @Test
@@ -61,8 +65,56 @@ class ConnectorsObjectMapperSupplierTest {
         new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "hash", null);
     final var json = "{\"documents\":" + objectMapper.writeValueAsString(documentReference) + "}";
     var actual = objectMapper.readValue(json, TestRecordWithDocumentList.class);
-    Assertions.assertThat(actual.documents()).hasSize(1);
-    Assertions.assertThat(actual.documents().get(0).reference()).isEqualTo(documentReference);
+    assertThat(actual.documents()).hasSize(1);
+    assertThat(actual.documents().get(0).reference()).isEqualTo(documentReference);
+  }
+
+  @Test
+  void singleElementDocumentArrayShouldBeAcceptedAsObject() throws JsonProcessingException {
+    final var objectMapper =
+        ConnectorsObjectMapperSupplier.getCopy(
+            new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+            DocumentModuleSettings.create());
+    final var documentReference =
+        new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "hash", null);
+    final var json =
+        "{\"document\":" + objectMapper.writeValueAsString(List.of(documentReference)) + "}";
+    var actual = objectMapper.readValue(json, TestRecordWithDocument.class);
+    assertThat(actual.document()).isNotNull();
+    assertThat(actual.document().reference()).isEqualTo(documentReference);
+  }
+
+  @Test
+  void multipleElementDocumentArrayShouldNotBeAcceptedAsObject() throws JsonProcessingException {
+    final var objectMapper =
+        ConnectorsObjectMapperSupplier.getCopy(
+            new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+            DocumentModuleSettings.create());
+    final var documentReference =
+        new CamundaDocumentReferenceModel("default", UUID.randomUUID().toString(), "hash", null);
+    final var json =
+        "{\"document\":"
+            + objectMapper.writeValueAsString(List.of(documentReference, documentReference))
+            + "}";
+    assertThatThrownBy(() -> objectMapper.readValue(json, TestRecordWithDocument.class))
+        .isInstanceOf(JsonMappingException.class)
+        .hasCauseInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void singleElementStringArrayBindingToObject() throws JsonProcessingException {
+    final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    final var json = "{\"value\":" + objectMapper.writeValueAsString(List.of("hey")) + "}";
+    var actual = objectMapper.readValue(json, TestRecordWithString.class);
+    assertThat(actual.value).isEqualTo("hey");
+  }
+
+  @Test
+  void multipleElementStringArrayShouldNotBindToObject() throws JsonProcessingException {
+    final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    final var json = "{\"value\":" + objectMapper.writeValueAsString(List.of("hey", "yo")) + "}";
+    assertThatThrownBy(() -> objectMapper.readValue(json, TestRecordWithString.class))
+        .isInstanceOf(MismatchedInputException.class);
   }
 
   @Test
@@ -83,11 +135,12 @@ class ConnectorsObjectMapperSupplierTest {
         """;
 
     var actual = objectMapper.readValue(json, TestRecordWithString.class);
-    Assertions.assertThat(actual.value())
-        .isEqualTo(Base64.getEncoder().encodeToString("hello".getBytes()));
+    assertThat(actual.value()).isEqualTo(Base64.getEncoder().encodeToString("hello".getBytes()));
   }
 
   private record TestRecordWithDocumentList(List<Document> documents) {}
+
+  private record TestRecordWithDocument(Document document) {}
 
   private record TestRecordWithString(String value) {}
 }
