@@ -21,11 +21,13 @@ import static io.camunda.connector.document.jackson.deserializer.Deserialization
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Deserializer for {@link Document} targets. It supports both the case where the source is a
@@ -49,6 +51,17 @@ public class DocumentDeserializer extends AbstractDeserializer<Document> {
     if (isDocumentReference(node)) {
       final var reference = context.readTreeAsValue(node, DocumentReferenceModel.class);
       return documentFactory.resolve(reference);
+    }
+    if (node.isArray()) {
+      List<JsonNode> elements = Lists.newArrayList(node.elements());
+      if (elements.size() == 1 && isDocumentReference(elements.get(0))) {
+        final var reference =
+            context.readTreeAsValue(elements.get(0), DocumentReferenceModel.class);
+        return documentFactory.resolve(reference);
+      } else {
+        throw new IllegalArgumentException(
+            "Cant bind a multi element document array to a single document.");
+      }
     }
     if (isOperation(node)) {
       final Object operationResult = operationDeserializer.handleJsonNode(node, context);
