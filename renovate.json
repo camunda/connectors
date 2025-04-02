@@ -39,7 +39,7 @@
         "/^release/.*/"
       ],
       "matchPackageNames": [
-        "io.camunda.*"
+        "io.camunda**"
       ],
       "matchUpdateTypes": [
         "major",
@@ -60,6 +60,7 @@
     "release/8.4",
     "release/8.5",
     "release/8.6",
-    "release/8.7"
+    "release/8.7",
+    "release/8.8"
   ]
 }
