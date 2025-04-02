@@ -10,6 +10,7 @@ import static org.apache.hc.core5.http.ContentType.APPLICATION_PDF;
 
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
+import io.camunda.connector.idp.extraction.model.ExtractionType;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
@@ -67,9 +68,12 @@ public class ExtractionTestUtils {
   public static final ExtractionRequestData TEXTRACT_EXTRACTION_REQUEST_DATA =
       new ExtractionRequestData(
           loadTestFile(),
+          ExtractionType.UNSTRUCTURED,
           List.of(
               new TaxonomyItem("sum", "the total amount that was paid for this invoice"),
               new TaxonomyItem("supplier", "who provided the goods or services")),
+          List.of(),
+          null,
           new ConverseData("anthropic.claude-3-5-sonnet-20240620-v1:0", 512, 0.5f, 0.9f));
 
   private static Document loadTestFile() {

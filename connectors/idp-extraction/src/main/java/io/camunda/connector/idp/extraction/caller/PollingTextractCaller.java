@@ -8,12 +8,16 @@ package io.camunda.connector.idp.extraction.caller;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.model.TextractTask;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
 import io.camunda.document.Document;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -32,6 +36,33 @@ public class PollingTextractCaller {
   private static final Logger LOGGER = LoggerFactory.getLogger(PollingTextractCaller.class);
 
   public String call(
+      Document document,
+      String bucketName,
+      TextractClient textractClient,
+      S3AsyncClient s3AsyncClient)
+      throws Exception {
+
+    List<Block> allBlocks = processDocument(document, bucketName, textractClient, s3AsyncClient);
+
+    return allBlocks.stream()
+        .filter(block -> block.blockType().equals(BlockType.LINE))
+        .map(Block::text)
+        .collect(Collectors.joining("\n"));
+  }
+
+  public Map<String, String> extractKeyValuePairs(
+      Document document,
+      String bucketName,
+      TextractClient textractClient,
+      S3AsyncClient s3AsyncClient)
+      throws Exception {
+
+    List<Block> allBlocks = processDocument(document, bucketName, textractClient, s3AsyncClient);
+
+    return extractKeyValuePairs(allBlocks);
+  }
+
+  private List<Block> processDocument(
       Document document,
       String bucketName,
       TextractClient textractClient,
@@ -84,10 +115,7 @@ public class PollingTextractCaller {
 
     AwsS3Util.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
 
-    return allBlocks.stream()
-        .filter(block -> block.blockType().equals(BlockType.LINE))
-        .map(Block::text)
-        .collect(Collectors.joining("\n"));
+    return allBlocks;
   }
 
   private TextractTask prepareTextractTask(String jobId, TextractClient textractClient) {
@@ -102,5 +130,57 @@ public class PollingTextractCaller {
     ScheduledFuture<GetDocumentAnalysisResponse> nextDocumentResultFuture =
         executorService.schedule(task, delay, SECONDS);
     return nextDocumentResultFuture.get();
+  }
+
+  private Map<String, String> extractKeyValuePairs(List<Block> blocks) {
+    Map<String, String> keyValuePairs = new HashMap<>();
+    Map<String, Block> blockMap =
+        blocks.stream().collect(Collectors.toMap(Block::id, block -> block));
+
+    blocks.stream()
+        .filter(
+            block ->
+                block.blockType().equals(BlockType.KEY_VALUE_SET)
+                    && block.entityTypes().contains(EntityType.KEY))
+        .forEach(
+            keyBlock -> {
+              String key = getTextFromRelationships(keyBlock, blockMap);
+              Block valueBlock =
+                  blockMap.get(
+                      keyBlock.relationships().stream()
+                          .filter(relation -> relation.type().equals(RelationshipType.VALUE))
+                          .flatMap(relation -> relation.ids().stream())
+                          .findFirst()
+                          .orElseThrow(() -> new ConnectorException("Value block not found")));
+              String value = getTextFromRelationships(valueBlock, blockMap);
+              keyValuePairs.put(key, value);
+            });
+
+    return keyValuePairs;
+  }
+
+  private String getTextFromRelationships(Block block, Map<String, Block> blockMap) {
+    if (block.relationships() == null) {
+      return "";
+    }
+
+    return block.relationships().stream()
+        .filter(relation -> relation.type().equals(RelationshipType.CHILD))
+        .flatMap(relation -> relation.ids().stream())
+        .map(blockMap::get)
+        .map(Block::text)
+        .collect(Collectors.joining(" "));
+  }
+
+  private String formatKeyValuePairs(Map<String, String> keyValuePairs) {
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      return mapper.writeValueAsString(keyValuePairs);
+    } catch (JsonProcessingException e) {
+      LOGGER.error("Error formatting key-value pairs: {}", e.getMessage());
+      return keyValuePairs.entrySet().stream()
+          .map(entry -> String.format("%s: %s", entry.getKey(), entry.getValue()))
+          .collect(Collectors.joining("\n"));
+    }
   }
 }
