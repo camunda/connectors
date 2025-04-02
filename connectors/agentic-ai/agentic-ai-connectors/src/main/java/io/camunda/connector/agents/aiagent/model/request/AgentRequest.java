@@ -80,7 +80,9 @@ public record AgentRequest(ProviderConfiguration provider, AgentRequestData data
         @TemplateProperty(
                 group = "history",
                 label = "Maximum amount of messages to keep in history",
-                defaultValue = "20")
+                type = TemplateProperty.PropertyType.Number,
+                defaultValue = "20",
+                defaultValueType = TemplateProperty.DefaultValueType.Number)
             @NotNull
             @Min(3)
             Integer maxMessages) {}
@@ -90,7 +92,9 @@ public record AgentRequest(ProviderConfiguration provider, AgentRequestData data
         @TemplateProperty(
                 group = "guardrails",
                 label = "Maximum number of calls to the model",
-                defaultValue = "10")
+                type = TemplateProperty.PropertyType.Number,
+                defaultValue = "10",
+                defaultValueType = TemplateProperty.DefaultValueType.Number)
             @NotNull
             @Min(1)
             Integer maxModelCalls) {}
