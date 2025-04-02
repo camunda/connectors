@@ -10,16 +10,25 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public record AgentContext(AgentMetrics metrics, List<Map<String, Object>> history) {
+public record AgentContext(
+    AgentState state, AgentMetrics metrics, List<Map<String, Object>> history) {
+  public AgentContext withState(AgentState state) {
+    return new AgentContext(state, metrics, history);
+  }
+
+  public boolean isInState(AgentState state) {
+    return this.state == state;
+  }
+
   public AgentContext withMetrics(AgentMetrics metrics) {
-    return new AgentContext(metrics, history);
+    return new AgentContext(state, metrics, history);
   }
 
   public AgentContext withHistory(List<Map<String, Object>> history) {
-    return new AgentContext(metrics, history);
+    return new AgentContext(state, metrics, history);
   }
 
   public static AgentContext empty() {
-    return new AgentContext(AgentMetrics.empty(), Collections.emptyList());
+    return new AgentContext(AgentState.READY, AgentMetrics.empty(), Collections.emptyList());
   }
 }

@@ -19,6 +19,7 @@ import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import io.camunda.connector.agenticai.aiagent.converter.AgentContextMessageSerializer;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
@@ -126,7 +127,7 @@ public class AiAgentFunction implements OutboundConnectorFunction {
 
     // update history with system + new user messages/tool call responses
     addSystemPromptIfNecessary(chatMemory, requestData);
-    addUserMessagesFromRequest(chatMemory, requestData);
+    addUserMessagesFromRequest(agentContext, chatMemory, requestData);
 
     // call LLM API with updates messages + resolved tool specifications
     final var toolSpecifications =
@@ -146,10 +147,13 @@ public class AiAgentFunction implements OutboundConnectorFunction {
 
     // extract tool call requests from LLM response
     final var toolsToCall = toolCallingHandler.extractToolsToCall(toolSpecifications, aiMessage);
+    final var nextAgentState =
+        !toolsToCall.isEmpty() ? AgentState.WAITING_FOR_TOOL_INPUT : AgentState.READY;
 
     // update context
     final var updatedContext =
         agentContext
+            .withState(nextAgentState)
             .withMetrics(
                 agentContext
                     .metrics()
@@ -168,15 +172,16 @@ public class AiAgentFunction implements OutboundConnectorFunction {
     }
   }
 
-  private void addUserMessagesFromRequest(ChatMemory chatMemory, AgentRequestData requestData) {
-    // model requested tool executions in previous request -> map results to new messages
-    if (!chatMemory.messages().isEmpty()
-        && chatMemory.messages().getLast() instanceof AiMessage lastAiMessage
-        && lastAiMessage.hasToolExecutionRequests()
-        && requestData.tools().toolCallResults() != null) {
-      toolCallingHandler
-          .toolCallResultsAsMessages(requestData.tools().toolCallResults())
-          .forEach(chatMemory::add);
+  private void addUserMessagesFromRequest(
+      AgentContext agentContext, ChatMemory chatMemory, AgentRequestData requestData) {
+    if (agentContext.isInState(AgentState.WAITING_FOR_TOOL_INPUT)) {
+      final var toolCallResults = requestData.tools().toolCallResults();
+      if (toolCallResults == null || toolCallResults.isEmpty()) {
+        throw new ConnectorException(
+            "Agent is waiting for tool input, but tool call results were empty");
+      }
+
+      toolCallingHandler.toolCallResultsAsMessages(toolCallResults).forEach(chatMemory::add);
     } else {
       // feed messages with the user input message (first iteration or user follow-up request)
       chatMemory.add(UserMessage.userMessage(requestData.userPrompt().userPrompt()));
