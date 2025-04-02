@@ -10,15 +10,15 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>connector-agents-parent</artifactId>
-  <packaging>pom</packaging>
-  <name>agents-connector-parent</name>
-  <description>Parent POM for Agentic AI Connectors</description>
+  <artifactId>connector-agentic-ai-parent</artifactId>
+  <name>connector-agentic-ai-parent</name>
+  <description>Parent POM for Agentic AI connectors</description>
   <inceptionYear>2025</inceptionYear>
+  <packaging>pom</packaging>
 
   <modules>
-    <module>agents-connectors</module>
-    <module>agents-connectors-spring-boot-starter</module>
+    <module>agentic-ai-connectors</module>
+    <module>agentic-ai-connectors-spring-boot-starter</module>
   </modules>
 
   <properties>
