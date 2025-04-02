@@ -15,9 +15,10 @@
   <name>agents-connector-parent</name>
   <description>Parent POM for Agentic AI Connectors</description>
   <inceptionYear>2025</inceptionYear>
+
   <modules>
-    <module>agents-spring-boot-starter</module>
     <module>agents-connectors</module>
+    <module>agents-connectors-spring-boot-starter</module>
   </modules>
 
   <properties>

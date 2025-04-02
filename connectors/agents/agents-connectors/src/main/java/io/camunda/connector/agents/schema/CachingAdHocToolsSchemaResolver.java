@@ -9,17 +9,15 @@ package io.camunda.connector.agents.schema;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import java.time.Duration;
+import java.util.Optional;
 
 public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver {
 
   private final LoadingCache<AdHocToolsIdentifier, AdHocToolsSchema> cache;
 
-  public CachingAdHocToolsSchemaResolver(AdHocToolsSchemaResolver delegate) {
-    this.cache =
-        Caffeine.newBuilder()
-            .maximumSize(100)
-            .expireAfterWrite(Duration.ofMinutes(5))
-            .build(id -> delegate.resolveSchema(id.processDefinitionKey(), id.adHocSubprocessId()));
+  public CachingAdHocToolsSchemaResolver(
+      AdHocToolsSchemaResolver delegate, CacheConfiguration cacheConfiguration) {
+    this.cache = buildCache(delegate, cacheConfiguration);
   }
 
   @Override
@@ -27,5 +25,17 @@ public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver
     return cache.get(new AdHocToolsIdentifier(processDefinitionKey, adHocSubprocessId));
   }
 
+  private static LoadingCache<AdHocToolsIdentifier, AdHocToolsSchema> buildCache(
+      AdHocToolsSchemaResolver delegate, CacheConfiguration config) {
+    final var builder = Caffeine.newBuilder();
+    Optional.ofNullable(config.maxSize()).ifPresent(builder::maximumSize);
+    Optional.ofNullable(config.expireAfterWrite()).ifPresent(builder::expireAfterWrite);
+
+    return builder.build(
+        id -> delegate.resolveSchema(id.processDefinitionKey(), id.adHocSubprocessId()));
+  }
+
   private record AdHocToolsIdentifier(Long processDefinitionKey, String adHocSubprocessId) {}
+
+  public record CacheConfiguration(Integer maxSize, Duration expireAfterWrite) {}
 }
