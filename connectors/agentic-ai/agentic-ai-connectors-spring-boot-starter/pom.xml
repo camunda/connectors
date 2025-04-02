@@ -6,14 +6,14 @@
 
     <parent>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-agents-parent</artifactId>
+        <artifactId>connector-agentic-ai-parent</artifactId>
         <version>8.8.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <name>agents-spring-boot-starter</name>
-    <description>Agents Connectors Spring Boot integration</description>
-    <artifactId>agents-connectors-spring-boot-starter</artifactId>
+    <name>connector-agentic-ai-spring-boot-starter</name>
+    <description>Agentic AI connectors Spring Boot integration</description>
+    <artifactId>connector-agentic-ai-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
 
     <licenses>
@@ -36,7 +36,7 @@
 
         <dependency>
             <groupId>io.camunda.connector</groupId>
-            <artifactId>agents-connectors</artifactId>
+            <artifactId>connector-agentic-ai</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

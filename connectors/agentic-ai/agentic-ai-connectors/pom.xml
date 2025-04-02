@@ -6,14 +6,14 @@
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-agents-parent</artifactId>
+    <artifactId>connector-agentic-ai-parent</artifactId>
     <version>8.8.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <name>agents-connectors</name>
-  <description>Agents Connectors</description>
-  <artifactId>agents-connectors</artifactId>
+  <name>connector-agentic-ai</name>
+  <description>Agentic AI connectors</description>
+  <artifactId>connector-agentic-ai</artifactId>
   <packaging>jar</packaging>
 
   <properties>

@@ -18,7 +18,7 @@
   <inceptionYear>2022</inceptionYear>
 
   <modules>
-    <module>agents</module>
+    <module>agentic-ai</module>
     <module>automation-anywhere</module>
     <module>aws</module>
     <module>box</module>
