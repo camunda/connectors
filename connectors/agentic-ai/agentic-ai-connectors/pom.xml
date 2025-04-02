@@ -107,21 +107,21 @@
         <configuration>
           <connectors>
             <connector>
-              <connectorClass>io.camunda.connector.agents.schema.AdHocToolsSchemaFunction</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.schema.AdHocToolsSchemaFunction</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agents.adhoctoolschema.v1</templateId>
-                  <templateFileName>agents-adhoctoolschema-outbound-connector.json</templateFileName>
+                  <templateId>io.camunda.connectors.agenticai.adhoctoolsschema.v1</templateId>
+                  <templateFileName>agenticai-adhoctoolsschema-outbound-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agents.aiagent.AiAgentFunction</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.aiagent.AiAgentFunction</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agents.aiagent.v1</templateId>
-                  <templateFileName>agents-aiagent-outbound-connector.json</templateFileName>
+                  <templateId>io.camunda.connectors.agenticai.aiagent.v1</templateId>
+                  <templateFileName>agenticai-aiagent-outbound-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
