@@ -1,1 +1,1 @@
-io.camunda.connector.agents.autoconfigure.AgentsConnectorsAutoConfiguration
+io.camunda.connector.agenticai.autoconfigure.AgentsConnectorsAutoConfiguration
