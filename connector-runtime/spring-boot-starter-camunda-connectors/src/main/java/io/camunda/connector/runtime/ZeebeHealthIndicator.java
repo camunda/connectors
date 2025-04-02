@@ -22,6 +22,7 @@ import io.camunda.client.api.response.PartitionBrokerHealth;
 import io.camunda.client.api.response.PartitionInfo;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health.Builder;
 
@@ -35,6 +36,22 @@ public class ZeebeHealthIndicator extends AbstractHealthIndicator {
 
   @Override
   protected void doHealthCheck(Builder builder) {
+    var response =
+        camundaClient
+            .newProcessDefinitionSearchRequest()
+            .page(p -> p.limit(1))
+            .send()
+            .join(10, TimeUnit.SECONDS);
+    var items = response.items();
+
+    if (items.isEmpty()) {
+      builder.down().withDetail("error", "No process definitions found");
+      return;
+    }
+    var processDefinition = items.get(0);
+    var processDefinitionKey = processDefinition.getProcessDefinitionKey();
+    builder.up().withDetail("all good", processDefinitionKey);
+
     var topology = camundaClient.newTopologyRequest().send().join();
     var numBrokers = topology.getBrokers().size();
     boolean anyPartitionHealthy =
