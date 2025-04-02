@@ -358,26 +358,10 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.anthropic.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "provider.anthropic.model.parameters.maxOutputTokens",
     "label" : "Maximum Output Tokens",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "parameters",
     "binding" : {
       "name" : "provider.anthropic.model.parameters.maxOutputTokens",
@@ -388,12 +372,28 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "parameters",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "Number"
   }, {
     "id" : "provider.anthropic.model.parameters.topP",
     "label" : "top P",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "parameters",
     "binding" : {
       "name" : "provider.anthropic.model.parameters.topP",
@@ -404,12 +404,12 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "provider.anthropic.model.parameters.topK",
     "label" : "top K",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "parameters",
     "binding" : {
       "name" : "provider.anthropic.model.parameters.topK",
@@ -420,28 +420,12 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "provider.bedrock.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.bedrock.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "provider.bedrock.model.parameters.maxOutputTokens",
     "label" : "Maximum Output Tokens",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "parameters",
     "binding" : {
       "name" : "provider.bedrock.model.parameters.maxOutputTokens",
@@ -452,12 +436,28 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
+  }, {
+    "id" : "provider.bedrock.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "parameters",
+    "binding" : {
+      "name" : "provider.bedrock.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "Number"
   }, {
     "id" : "provider.bedrock.model.parameters.topP",
     "label" : "top P",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "parameters",
     "binding" : {
       "name" : "provider.bedrock.model.parameters.topP",
@@ -468,12 +468,12 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "provider.bedrock.model.parameters.topK",
     "label" : "top K",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "parameters",
     "binding" : {
       "name" : "provider.bedrock.model.parameters.topK",
@@ -484,28 +484,12 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.openai.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "provider.openai.model.parameters.maxOutputTokens",
     "label" : "Maximum Output Tokens",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "parameters",
     "binding" : {
       "name" : "provider.openai.model.parameters.maxOutputTokens",
@@ -516,12 +500,28 @@
       "equals" : "openai",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "parameters",
+    "binding" : {
+      "name" : "provider.openai.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Number"
   }, {
     "id" : "provider.openai.model.parameters.topP",
     "label" : "top P",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "parameters",
     "binding" : {
       "name" : "provider.openai.model.parameters.topP",
@@ -532,12 +532,12 @@
       "equals" : "openai",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "provider.openai.model.parameters.topK",
     "label" : "top K",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "parameters",
     "binding" : {
       "name" : "provider.openai.model.parameters.topK",
@@ -548,7 +548,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "data.agentContext",
     "label" : "Agent Context",
@@ -622,32 +622,32 @@
     "id" : "data.history.maxMessages",
     "label" : "Maximum amount of messages to keep in history",
     "optional" : false,
-    "value" : "20",
+    "value" : 20,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "history",
     "binding" : {
       "name" : "data.history.maxMessages",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "data.guardrails.maxModelCalls",
     "label" : "Maximum number of calls to the model",
     "optional" : false,
-    "value" : "10",
+    "value" : 10,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "guardrails",
     "binding" : {
       "name" : "data.guardrails.maxModelCalls",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

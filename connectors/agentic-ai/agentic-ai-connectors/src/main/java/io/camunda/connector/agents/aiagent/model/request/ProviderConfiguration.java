@@ -163,12 +163,36 @@ public sealed interface ProviderConfiguration
   }
 
   record ModelParameters(
-      @Min(0) @TemplateProperty(group = "parameters", label = "Temperature", optional = true)
+      @Min(0)
+          @TemplateProperty(
+              group = "parameters",
+              label = "Maximum Output Tokens",
+              type = TemplateProperty.PropertyType.Number,
+              feel = Property.FeelMode.required,
+              optional = true)
+          Integer maxOutputTokens,
+      @Min(0)
+          @TemplateProperty(
+              group = "parameters",
+              label = "Temperature",
+              type = TemplateProperty.PropertyType.Number,
+              feel = Property.FeelMode.required,
+              optional = true)
           Double temperature,
       @Min(0)
-          @TemplateProperty(group = "parameters", label = "Maximum Output Tokens", optional = true)
-          Integer maxOutputTokens,
-      @Min(0) @TemplateProperty(group = "parameters", label = "top P", optional = true) Double topP,
-      @Min(0) @TemplateProperty(group = "parameters", label = "top K", optional = true)
+          @TemplateProperty(
+              group = "parameters",
+              label = "top P",
+              type = TemplateProperty.PropertyType.Number,
+              feel = Property.FeelMode.required,
+              optional = true)
+          Double topP,
+      @Min(0)
+          @TemplateProperty(
+              group = "parameters",
+              label = "top K",
+              type = TemplateProperty.PropertyType.Number,
+              feel = Property.FeelMode.required,
+              optional = true)
           Integer topK) {}
 }
