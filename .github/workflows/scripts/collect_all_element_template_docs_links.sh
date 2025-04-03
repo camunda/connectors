@@ -2,7 +2,7 @@
 set -e
 
 DOCUSAURUS_BASE_URL="https://docs.camunda.io/"
-GITHUB_FILE_URL="https://raw.githubusercontent.com/camunda/camunda-docs/d50f0a316cc629c43b2038d1a814a70dbac17add/connectors-element-template-links.txt" #TODO adjust this to main once merged
+GITHUB_FILE_URL="https://raw.githubusercontent.com/camunda/camunda-docs/refs/heads/main/connectors-element-template-links.txt"
 DOCS_REPO_LINK_FILE="connector-element-template-links-download.txt"
 CURRENT_LINK_FILE="connector-element-template-links-current.txt"
 NEW_LINK_FILE="connectors-element-template-links.txt"
@@ -12,9 +12,17 @@ NEW_LINK_FILE="connectors-element-template-links.txt"
 : > "$CURRENT_LINK_FILE"
 : > "$NEW_LINK_FILE"
 
-echo "Downloading existing links file from docs repo..."
-curl -sL "$GITHUB_FILE_URL" | grep "^$DOCUSAURUS_BASE_URL" > "$DOCS_REPO_LINK_FILE"
+for arg in "$@"; do
+  if [[ "$arg" == "--current-only" ]]; then
+    skip_download=true
+    break
+  fi
+done
 
+if [[ "$skip_download" != true ]]; then
+    echo "Downloading existing links file from docs repo..."
+    curl -sL "$GITHUB_FILE_URL" | grep "^$DOCUSAURUS_BASE_URL" > "$DOCS_REPO_LINK_FILE"
+fi
 
 echo "Extracting links from connectors repo..."
 

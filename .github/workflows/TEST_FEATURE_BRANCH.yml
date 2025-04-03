@@ -83,7 +83,7 @@ jobs:
       - name: Check element templates for forbidden links to /next/ documentation
         run: |
           chmod +x ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
-          ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
+          ./.github/workflows/scripts/collect_all_element_template_docs_links.sh --current-only
           if grep -q "/next/" connectors-element-template-links.txt; then
             echo "❌ Forbidden link to '/next/' documentation found!"
             exit 1
