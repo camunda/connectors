@@ -65,7 +65,7 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
   public static byte[] produceAvroMessage(final KafkaConnectorRequest request) throws Exception {
     var schemaString = StringEscapeUtils.unescapeJson(request.getAvro().schema());
-    Schema raw = new Schema.Parser().setValidate(true).parse(schemaString);
+    Schema raw = new Schema.Parser().parse(schemaString);
     AvroSchema schema = new AvroSchema(raw);
     AvroMapper avroMapper = new AvroMapper();
     Object messageValue = request.getMessage().getValue();
