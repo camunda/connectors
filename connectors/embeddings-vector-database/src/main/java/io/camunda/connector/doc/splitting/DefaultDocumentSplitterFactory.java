@@ -1,0 +1,34 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.doc.splitting;
+
+import dev.langchain4j.data.document.DocumentSplitter;
+import dev.langchain4j.data.document.splitter.DocumentSplitters;
+import io.camunda.connector.model.embedding.splitter.DocumentSplitterRecursive;
+import io.camunda.connector.model.embedding.splitter.NoopDocumentSplitter;
+import java.util.List;
+
+public class DefaultDocumentSplitterFactory {
+
+  public DocumentSplitter createDocumentSplitter(
+      io.camunda.connector.model.embedding.splitter.DocumentSplitter fromTemplate) {
+    return switch (fromTemplate) {
+      case DocumentSplitterRecursive documentSplitterRecursive ->
+          documentSplitterRecursive(documentSplitterRecursive);
+      case NoopDocumentSplitter noopDocumentSplitter -> noopDocumentSplitter(noopDocumentSplitter);
+    };
+  }
+
+  private DocumentSplitter documentSplitterRecursive(DocumentSplitterRecursive fromTemplate) {
+    return DocumentSplitters.recursive(
+        fromTemplate.maxSegmentSizeInChars(), fromTemplate.maxOverlapSizeInChars());
+  }
+
+  private DocumentSplitter noopDocumentSplitter(NoopDocumentSplitter ignored) {
+    return document -> List.of(document.toTextSegment());
+  }
+}
