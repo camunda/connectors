@@ -36,6 +36,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     },
     type = "io.camunda:connector-kafka:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.KAFKA.v1",
     name = "Kafka Outbound Connector",
     description = "Produce Kafka message",

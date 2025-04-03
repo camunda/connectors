@@ -20,6 +20,7 @@ import io.camunda.connector.jdbc.model.response.JdbcResponse;
     inputVariables = {"database", "connection", "data"},
     type = "io.camunda:connector-jdbc:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.Jdbc.v1",
     name = "SQL Database Connector",
     version = 1,

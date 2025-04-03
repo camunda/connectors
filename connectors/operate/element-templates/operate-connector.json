@@ -3,6 +3,9 @@
   "name": "Camunda Operate Outbound connector",
   "id": "io.camunda.connectors.CamundaOperate.v1",
   "version": 4,
+  "engines":{
+    "camunda": "^8.7"
+  },
   "description": "Fetch data from Camunda Operate API",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/operate/",
   "category": {

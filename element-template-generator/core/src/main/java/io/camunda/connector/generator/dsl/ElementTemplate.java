@@ -46,6 +46,7 @@ public record ElementTemplate(
     String name,
     int version,
     String documentationRef,
+    Engines engines,
     String description,
     Metadata metadata,
     Set<String> appliesTo,

@@ -3,6 +3,9 @@
   "name": "GitHub Webhook Boundary Event Connector",
   "id": "io.camunda.connectors.webhook.GithubWebhookConnectorBoundary.v1",
   "version": 2,
+  "engines": {
+    "camunda": "^8.7"
+  },
   "description": "Receive events from GitHub",
   "metadata": {
     "keywords": [

@@ -3,6 +3,9 @@
   "name": "Blue Prism Outbound Connector",
   "id": "io.camunda.connectors.BluePrism.v1",
   "version": 3,
+  "engines": {
+    "camunda": "^8.7"
+  },
   "description": "Manage Blue Prism work queues and items.",
   "metadata": {
     "keywords": [

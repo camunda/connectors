@@ -28,6 +28,7 @@ import java.util.Optional;
     inputVariables = {"authentication", "configuration", "awsFunction"},
     type = "io.camunda:aws-lambda:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.AWSLAMBDA.v2",
     name = "AWS Lambda Outbound Connector",
     description = "Invoke AWS Lambda functions.",

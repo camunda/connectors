@@ -23,6 +23,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @InboundConnector(name = "my-inbound-connector", type = "my-inbound-connector-type")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = MyConnectorExecutable.ID,
     name = MyConnectorExecutable.NAME,
     inputDataClass = MyConnectorProperties.class,

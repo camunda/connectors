@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "AWS SQS Inbound", type = "io.camunda:aws-sqs-inbound:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.AWSSQS.inbound.v1",
     name = "Amazon SQS Connector",
     icon = "icon.svg",

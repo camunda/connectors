@@ -21,6 +21,7 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-textract:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.AWSTEXTRACT.v1",
     name = "AWS Textract Outbound Connector",
     description = "Extract text and data using AWS Textract.",

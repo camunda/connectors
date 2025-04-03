@@ -20,6 +20,7 @@ import io.camunda.connector.suppliers.GraphServiceClientSupplier;
     inputVariables = {"authentication", "data"},
     type = "io.camunda:connector-microsoft-teams:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.MSTeams.v1",
     name = "Microsoft Teams Outbound Connector",
     description = "Create, update, and send a message to your Microsoft Teams",

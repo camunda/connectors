@@ -31,6 +31,7 @@ import java.util.Optional;
     inputVariables = {"authentication", "configuration", "queue"},
     type = "io.camunda:aws-sqs:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.AWSSQS.v1",
     name = "Amazon SQS Outbound Connector",
     description = "Send messages to Amazon SQS.",

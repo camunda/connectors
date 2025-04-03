@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "RabbitMQ Consumer", type = "io.camunda:connector-rabbitmq-inbound:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.inbound.RabbitMQ",
     name = "RabbitMQ Connector",
     icon = "icon.svg",
