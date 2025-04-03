@@ -2,7 +2,7 @@
 FROM eclipse-temurin:21.0.6_7-jdk
 
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y procps=3.3.16-5 && \
+    apt-get install --no-install-recommends -y procps=2:4.0.4-7 && \
     rm -rf /var/lib/apt/lists/*
 
 VOLUME /tmp
