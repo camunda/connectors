@@ -625,6 +625,11 @@ limitations under the License.</license.inlineheader>
         <artifactId>langchain4j-opensearch</artifactId>
         <version>${version.langchain4j}</version>
       </dependency>
+      <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-document-parser-apache-tika</artifactId>
+        <version>${version.langchain4j}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
