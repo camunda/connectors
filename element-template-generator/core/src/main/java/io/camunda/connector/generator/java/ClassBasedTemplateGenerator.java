@@ -153,10 +153,10 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     var icon =
         template.icon().isBlank() ? null : ElementTemplateIcon.from(template.icon(), classLoader);
 
-    if (!template.runtimeSemanticVersion().isBlank()
-        && !SEM_VER_PATTERN.matcher(template.runtimeSemanticVersion()).matches()) {
+    if (!template.engineVersion().isBlank()
+        && !SEM_VER_PATTERN.matcher(template.engineVersion()).matches()) {
       throw new IllegalArgumentException(
-          template.runtimeSemanticVersion() + " is not a valid semantic version");
+          template.engineVersion() + " is not a valid semantic version");
     }
 
     return context.elementTypes().stream()
@@ -174,8 +174,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .version(template.version())
                   .appliesTo(elementType.appliesTo())
                   .engines(
-                      !template.runtimeSemanticVersion().isBlank()
-                          ? new Engines(template.runtimeSemanticVersion())
+                      !template.engineVersion().isBlank()
+                          ? new Engines(template.engineVersion())
                           : null)
                   .elementType(elementType.elementType())
                   .icon(icon)

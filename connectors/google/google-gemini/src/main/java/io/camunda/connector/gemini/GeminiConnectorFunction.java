@@ -23,7 +23,7 @@ import java.util.HashMap;
     inputVariables = {"authentication", "input"},
     type = "io.camunda:google-gemini:1")
 @ElementTemplate(
-    runtimeSemanticVersion = "^8.7",
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.GoogleGemini.v1",
     name = "Google Gemini Outbound Connector",
     description =
