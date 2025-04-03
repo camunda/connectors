@@ -23,6 +23,7 @@ import java.util.Map;
     inputVariables = {"authentication", "operation", "configuration"},
     type = "io.camunda:connector-automationanywhere:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.AutomationAnywhere",
     name = "Automation Anywhere Outbound Connector",
     description = "Manage work items in Automation Anywhere queues.",

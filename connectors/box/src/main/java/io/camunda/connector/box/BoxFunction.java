@@ -17,6 +17,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "operation"},
     type = "io.camunda:box:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.box",
     name = "Box Outbound Connector",
     description = "Interact with the Box Document API",

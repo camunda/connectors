@@ -30,6 +30,7 @@ import java.util.Optional;
     inputVariables = {"authentication", "configuration", "topic"},
     type = "io.camunda:aws-sns:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.AWSSNS.v1",
     name = "Amazon SNS Outbound connector",
     description = "Send messages to Amazon SNS.",

@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
     inputVariables = {"authentication", "operation", "operationDetails"},
     type = "io.camunda:google-sheets:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.GoogleSheets.v1",
     name = "Google Sheets Outbound Connector",
     description = "Manage spreadsheets with Google Sheets",

@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
     inputVariables = {"apiKey", "from", "to", "template", "content", "attachments"},
     type = "io.camunda:sendgrid:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.SendGrid.v2",
     name = "SendGrid Outbound Connector",
     description = "Send an email via SendGrid",

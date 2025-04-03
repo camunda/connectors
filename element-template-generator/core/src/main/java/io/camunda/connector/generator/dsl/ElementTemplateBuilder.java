@@ -31,28 +31,23 @@ import java.util.stream.Collectors;
 /** Builder for creating an element template. */
 public class ElementTemplateBuilder {
 
-  private enum Mode {
-    INBOUND,
-    OUTBOUND
-  }
-
+  protected final List<PropertyGroup> groups = new ArrayList<>();
+  protected final List<Property> properties = new ArrayList<>();
   private final Mode mode;
-
-  private ElementTemplateBuilder(Mode mode) {
-    this.mode = mode;
-  }
-
   protected String id;
   protected String name;
   protected int version;
   protected ElementTemplateIcon icon;
   protected String documentationRef;
   protected String description;
+  protected Engines engines;
   protected Metadata metadata;
   protected Set<String> appliesTo;
   protected BpmnType elementType;
-  protected final List<PropertyGroup> groups = new ArrayList<>();
-  protected final List<Property> properties = new ArrayList<>();
+
+  private ElementTemplateBuilder(Mode mode) {
+    this.mode = mode;
+  }
 
   public static ElementTemplateBuilder createOutbound() {
     return new ElementTemplateBuilder(Mode.OUTBOUND);
@@ -136,6 +131,11 @@ public class ElementTemplateBuilder {
     return this;
   }
 
+  public ElementTemplateBuilder engines(Engines engines) {
+    this.engines = engines;
+    return this;
+  }
+
   public ElementTemplateBuilder icon(ElementTemplateIcon icon) {
     this.icon = icon;
     return this;
@@ -203,6 +203,7 @@ public class ElementTemplateBuilder {
         name,
         version,
         documentationRef,
+        engines,
         description,
         metadata,
         appliesTo,
@@ -210,5 +211,10 @@ public class ElementTemplateBuilder {
         groups,
         properties,
         icon);
+  }
+
+  private enum Mode {
+    INBOUND,
+    OUTBOUND
   }
 }

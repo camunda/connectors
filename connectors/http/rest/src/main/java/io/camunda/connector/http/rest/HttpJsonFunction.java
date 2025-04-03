@@ -44,6 +44,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     },
     type = HttpJsonFunction.TYPE)
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.HttpJson.v2",
     name = "REST Outbound Connector",
     description = "Invoke REST API",

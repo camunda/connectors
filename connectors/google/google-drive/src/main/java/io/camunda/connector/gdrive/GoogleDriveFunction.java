@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.GoogleDrive.v1",
     name = "Google Drive Outbound Connector",
     description = "Manage Google Drive files and folders",

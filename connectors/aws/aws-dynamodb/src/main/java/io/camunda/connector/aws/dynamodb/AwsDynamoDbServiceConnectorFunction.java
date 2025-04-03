@@ -17,6 +17,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-dynamodb:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.AWSDynamoDB.v1",
     name = "AWS DynamoDB Outbound Connector",
     version = 7,
