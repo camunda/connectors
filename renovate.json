@@ -1,7 +1,11 @@
 {
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "group:allNonMajor",
+    "schedule:earlyMondays",
+    "schedule:automergeNonOfficeHours"
   ],
+  "timezone": "Europe/Berlin",
   "labels": [
     "dependencies",
     "no milestone"
