@@ -133,6 +133,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-agentic-ai</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-embeddings-vector-database</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
