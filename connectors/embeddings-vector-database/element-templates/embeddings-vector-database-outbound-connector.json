@@ -1,0 +1,646 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Embeddings Vector DB Outbound Connector",
+  "id" : "io.camunda.connectors.EmbeddingsVectorDB.v1",
+  "description" : "Add more descriptive description",
+  "metadata" : {
+    "keywords" : [ ]
+  },
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "mode",
+    "label" : "Mode"
+  }, {
+    "id" : "query",
+    "label" : "Query"
+  }, {
+    "id" : "model",
+    "label" : "Model"
+  }, {
+    "id" : "embeddingsStore",
+    "label" : "Embeddings store"
+  }, {
+    "id" : "document",
+    "label" : "Document"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:embeddings-vector-database:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "embeddingsVectorMode.type",
+    "label" : "Mode",
+    "description" : "Select purpose of the Connector",
+    "value" : "retrieveDocument",
+    "group" : "mode",
+    "binding" : {
+      "name" : "embeddingsVectorMode.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Embed document",
+      "value" : "embedDocument"
+    }, {
+      "name" : "Retrieve document",
+      "value" : "retrieveDocument"
+    } ]
+  }, {
+    "id" : "embeddingsVectorMode.query.query",
+    "label" : "Query",
+    "description" : "Document lookup query",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "query",
+    "binding" : {
+      "name" : "embeddingsVectorMode.query",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "embeddingsVectorMode.type",
+      "equals" : "retrieveDocument",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "embeddingsVectorMode.query.maxResults",
+    "label" : "Max results",
+    "description" : "Limit number of returned documents",
+    "optional" : false,
+    "value" : "5",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "query",
+    "binding" : {
+      "name" : "embeddingsVectorMode.documentLimit",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "embeddingsVectorMode.type",
+      "equals" : "retrieveDocument",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.modelProvider",
+    "label" : "Model provider",
+    "description" : "Select embedding model provider",
+    "value" : "OLLAMA_MODEL_PROVIDER",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.name",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "AWS Bedrock",
+      "value" : "BEDROCK_MODEL_PROVIDER"
+    }, {
+      "name" : "OLLaMa",
+      "value" : "OLLAMA_MODEL_PROVIDER"
+    } ]
+  }, {
+    "id" : "provider.embeddingModel.bedrockModelName",
+    "label" : "Model name",
+    "description" : "OLLaMa model name or identifier",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.modeName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.modelProvider",
+      "equals" : "BEDROCK_MODEL_PROVIDER",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.embeddingModel.baseUrl",
+    "label" : "Base URL",
+    "description" : "OLLaMa base URL",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.modelProvider",
+      "equals" : "OLLAMA_MODEL_PROVIDER",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.embeddingModel.ollamaModelName",
+    "label" : "Model name",
+    "description" : "OLLaMa model name or identifier",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.modeName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.modelProvider",
+      "equals" : "OLLAMA_MODEL_PROVIDER",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.vectorStore",
+    "label" : "Embeddings store",
+    "description" : "Select embedding store",
+    "value" : "STORE_ELASTICSEARCH",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.name",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "PGVector",
+      "value" : "STORE_PG_VECTOR"
+    }, {
+      "name" : "Elasticsearch",
+      "value" : "STORE_ELASTICSEARCH"
+    } ]
+  }, {
+    "id" : "vectorStore.embeddingsStore.pgvector.baseUrl",
+    "label" : "Base URL",
+    "description" : "PGVector base URL, i.e. host:port",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_PG_VECTOR",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.pgvector.databaseName",
+    "label" : "Database",
+    "description" : "PGVector database name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.databaseName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_PG_VECTOR",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.pgvector.userName",
+    "label" : "Username",
+    "description" : "PGVector username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.userName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_PG_VECTOR",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.pgvector.password",
+    "label" : "Password",
+    "description" : "PGVector password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_PG_VECTOR",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.pgvector.tableName",
+    "label" : "Table",
+    "description" : "PGVector table name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_PG_VECTOR",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.elasticsearch.baseUrl",
+    "label" : "Base URL",
+    "description" : "Elasticsearch base URL, i.e. http(s)://host:port",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_ELASTICSEARCH",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.elasticsearch.username",
+    "label" : "Username",
+    "description" : "Elasticsearch username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.userName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_ELASTICSEARCH",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.elasticsearch.password",
+    "label" : "Password",
+    "description" : "Elasticsearch password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_ELASTICSEARCH",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.elasticsearch.indexName",
+    "label" : "Index name",
+    "description" : "Elasticsearch index",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.indexName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_ELASTICSEARCH",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "embeddingsVectorMode.document.newDocuments",
+    "label" : "documents",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "document",
+    "binding" : {
+      "name" : "embeddingsVectorMode.document.newDocuments",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "embeddingsVectorMode.type",
+      "equals" : "embedDocument",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "embeddingsVectorMode.documentSplitter.documentSplitter",
+    "label" : "Document splitter",
+    "description" : "Select document splitter strategy",
+    "value" : "DOCUMENT_SPLITTER_RECURSIVE",
+    "group" : "document",
+    "binding" : {
+      "name" : "embeddingsVectorMode.documentSplitter.name",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "embeddingsVectorMode.type",
+      "equals" : "embedDocument",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "By paragraph",
+      "value" : "DOCUMENT_SPLITTER_BY_PARAGRAPH"
+    }, {
+      "name" : "By sentence",
+      "value" : "DOCUMENT_SPLITTER_BY_SENTENCE"
+    }, {
+      "name" : "Recursive",
+      "value" : "DOCUMENT_SPLITTER_RECURSIVE"
+    } ]
+  }, {
+    "id" : "embeddingsVectorMode.documentSplitter.embeddingsStore.document.splitter.byParagraph.maxSegmentSizeInChars",
+    "label" : "Max segment",
+    "description" : "Max segment size in chars",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "embeddingsVectorMode.documentSplitter.maxSegmentSizeInChars",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "embeddingsVectorMode.documentSplitter.documentSplitter",
+        "equals" : "DOCUMENT_SPLITTER_BY_PARAGRAPH",
+        "type" : "simple"
+      }, {
+        "property" : "embeddingsVectorMode.type",
+        "equals" : "embedDocument",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "embeddingsVectorMode.documentSplitter.embeddingsStore.document.splitter.byParagraph.maxOverlapSizeInChars",
+    "label" : "Max overlap window",
+    "description" : "Max overlap size in chars",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "embeddingsVectorMode.documentSplitter.maxOverlapSizeInChars",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "embeddingsVectorMode.documentSplitter.documentSplitter",
+        "equals" : "DOCUMENT_SPLITTER_BY_PARAGRAPH",
+        "type" : "simple"
+      }, {
+        "property" : "embeddingsVectorMode.type",
+        "equals" : "embedDocument",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "embeddingsVectorMode.documentSplitter.embeddingsStore.document.splitter.bySentence.maxSegmentSizeInChars",
+    "label" : "Max segment",
+    "description" : "Max segment size in chars",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "embeddingsVectorMode.documentSplitter.maxSegmentSizeInChars",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "embeddingsVectorMode.documentSplitter.documentSplitter",
+        "equals" : "DOCUMENT_SPLITTER_BY_SENTENCE",
+        "type" : "simple"
+      }, {
+        "property" : "embeddingsVectorMode.type",
+        "equals" : "embedDocument",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "embeddingsVectorMode.documentSplitter.embeddingsStore.document.splitter.bySentence.maxOverlapSizeInChars",
+    "label" : "Max overlap window",
+    "description" : "Max overlap size in chars",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "embeddingsVectorMode.documentSplitter.maxOverlapSizeInChars",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "embeddingsVectorMode.documentSplitter.documentSplitter",
+        "equals" : "DOCUMENT_SPLITTER_BY_SENTENCE",
+        "type" : "simple"
+      }, {
+        "property" : "embeddingsVectorMode.type",
+        "equals" : "embedDocument",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "embeddingsVectorMode.documentSplitter.embeddingsStore.document.splitter.recursive.maxSegmentSizeInChars",
+    "label" : "Max segment",
+    "description" : "Max segment size in chars",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "embeddingsVectorMode.documentSplitter.maxSegmentSizeInChars",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "embeddingsVectorMode.documentSplitter.documentSplitter",
+        "equals" : "DOCUMENT_SPLITTER_RECURSIVE",
+        "type" : "simple"
+      }, {
+        "property" : "embeddingsVectorMode.type",
+        "equals" : "embedDocument",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "embeddingsVectorMode.documentSplitter.embeddingsStore.document.splitter.recursive.maxOverlapSizeInChars",
+    "label" : "Max overlap window",
+    "description" : "Max overlap size in chars",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "embeddingsVectorMode.documentSplitter.maxOverlapSizeInChars",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "embeddingsVectorMode.documentSplitter.documentSplitter",
+        "equals" : "DOCUMENT_SPLITTER_RECURSIVE",
+        "type" : "simple"
+      }, {
+        "property" : "embeddingsVectorMode.type",
+        "equals" : "embedDocument",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIGhlaWdodD0nMTgnIHdpZHRoPScxOCcgdmlld0JveD0nLTMzNC4zMjQ5NSAtNTE4LjMzMzUgMjg5Ny40ODI5IDMxMTAuMDAxJz4KICAgIDxwYXRoIGQ9J00xNTU0LjYzNyA3NzcuNWg1NzUuNzEzYzU0LjM5MSAwIDk4LjQ4MyA0NC4wOTIgOTguNDgzIDk4LjQ4M3Y1MjQuMzk4YzAgMTk5LjkwMS0xNjIuMDUxIDM2MS45NTItMzYxLjk1MiAzNjEuOTUyaC0xLjcxMWMtMTk5LjkwMS4wMjgtMzYxLjk3NS0xNjItMzYyLjAwNC0zNjEuOTAxVjgyOC45NzFjLjAwMS0yOC40MjcgMjMuMDQ1LTUxLjQ3MSA1MS40NzEtNTEuNDcxeicKICAgICAgICAgIGZpbGw9JyM1MDU5QzknLz4KICAgIDxjaXJjbGUgcj0nMjMzLjI1JyBjeT0nNDQwLjU4MycgY3g9JzE5NDMuNzUnIGZpbGw9JyM1MDU5QzknLz4KICAgIDxjaXJjbGUgcj0nMzM2LjkxNycgY3k9JzMzNi45MTcnIGN4PScxMjE4LjA4MycgZmlsbD0nIzdCODNFQicvPgogICAgPHBhdGggZD0nTTE2NjcuMzIzIDc3Ny41SDcxNy4wMWMtNTMuNzQzIDEuMzMtOTYuMjU3IDQ1LjkzMS05NS4wMSA5OS42NzZ2NTk4LjEwNWMtNy41MDUgMzIyLjUxOSAyNDcuNjU3IDU5MC4xNiA1NzAuMTY3IDU5OC4wNTMgMzIyLjUxLTcuODkzIDU3Ny42NzEtMjc1LjUzNCA1NzAuMTY3LTU5OC4wNTNWODc3LjE3NmMxLjI0NS01My43NDUtNDEuMjY4LTk4LjM0Ni05NS4wMTEtOTkuNjc2eicKICAgICAgICAgIGZpbGw9JyM3QjgzRUInLz4KICAgIDxwYXRoIGQ9J00xMjQ0IDc3Ny41djgzOC4xNDVjLS4yNTggMzguNDM1LTIzLjU0OSA3Mi45NjQtNTkuMDkgODcuNTk4YTkxLjg1NiA5MS44NTYgMCAwMS0zNS43NjUgNy4yNTdINjY3LjYxM2MtNi43MzgtMTcuMTA1LTEyLjk1OC0zNC4yMS0xOC4xNDItNTEuODMzYTYzMS4yODcgNjMxLjI4NyAwIDAxLTI3LjQ3Mi0xODMuNDlWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMScvPgogICAgPHBhdGggZD0nTTExOTIuMTY3IDc3Ny41djg4OS45NzhhOTEuODAyIDkxLjgwMiAwIDAxLTcuMjU3IDM1Ljc2NWMtMTQuNjM0IDM1LjU0MS00OS4xNjMgNTguODMzLTg3LjU5OCA1OS4wOUg2OTEuOTc1Yy04LjgxMi0xNy4xMDUtMTcuMTA1LTM0LjIxLTI0LjM2Mi01MS44MzMtNy4yNTctMTcuNjIzLTEyLjk1OC0zNC4yMS0xOC4xNDItNTEuODMzYTYzMS4yODIgNjMxLjI4MiAwIDAxLTI3LjQ3Mi0xODMuNDlWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMicvPgogICAgPHBhdGggZD0nTTExOTIuMTY3IDc3Ny41djc4Ni4zMTJjLS4zOTUgNTIuMjIzLTQyLjYzMiA5NC40Ni05NC44NTUgOTQuODU1aC00NDcuODRBNjMxLjI4MiA2MzEuMjgyIDAgMDE2MjIgMTQ3NS4xNzdWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMicvPgogICAgPHBhdGggZD0nTTExNDAuMzMzIDc3Ny41djc4Ni4zMTJjLS4zOTUgNTIuMjIzLTQyLjYzMiA5NC40Ni05NC44NTUgOTQuODU1SDY0OS40NzJBNjMxLjI4MiA2MzEuMjgyIDAgMDE2MjIgMTQ3NS4xNzdWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnonCiAgICAgICAgICBvcGFjaXR5PScuMicvPgogICAgPHBhdGggZD0nTTEyNDQgNTA5LjUyMnYxNjMuMjc1Yy04LjgxMi41MTgtMTcuMTA1IDEuMDM3LTI1LjkxNyAxLjAzNy04LjgxMiAwLTE3LjEwNS0uNTE4LTI1LjkxNy0xLjAzN2EyODQuNDcyIDI4NC40NzIgMCAwMS01MS44MzMtOC4yOTNjLTEwNC45NjMtMjQuODU3LTE5MS42NzktOTguNDY5LTIzMy4yNS0xOTguMDAzYTI4OC4wMiAyODguMDIgMCAwMS0xNi41ODctNTEuODMzaDI1OC42NDhjNTIuMzA1LjE5OCA5NC42NTcgNDIuNTQ5IDk0Ljg1NiA5NC44NTR6JwogICAgICAgICAgb3BhY2l0eT0nLjEnLz4KICAgIDxwYXRoIGQ9J00xMTkyLjE2NyA1NjEuMzU1djExMS40NDJhMjg0LjQ3MiAyODQuNDcyIDAgMDEtNTEuODMzLTguMjkzYy0xMDQuOTYzLTI0Ljg1Ny0xOTEuNjc5LTk4LjQ2OS0yMzMuMjUtMTk4LjAwM2gxOTAuMjI4YzUyLjMwNC4xOTggOTQuNjU2IDQyLjU1IDk0Ljg1NSA5NC44NTR6JwogICAgICAgICAgb3BhY2l0eT0nLjInLz4KICAgIDxwYXRoIGQ9J00xMTkyLjE2NyA1NjEuMzU1djExMS40NDJhMjg0LjQ3MiAyODQuNDcyIDAgMDEtNTEuODMzLTguMjkzYy0xMDQuOTYzLTI0Ljg1Ny0xOTEuNjc5LTk4LjQ2OS0yMzMuMjUtMTk4LjAwM2gxOTAuMjI4YzUyLjMwNC4xOTggOTQuNjU2IDQyLjU1IDk0Ljg1NSA5NC44NTR6JwogICAgICAgICAgb3BhY2l0eT0nLjInLz4KICAgIDxwYXRoIGQ9J00xMTQwLjMzMyA1NjEuMzU1djEwMy4xNDhjLTEwNC45NjMtMjQuODU3LTE5MS42NzktOTguNDY5LTIzMy4yNS0xOTguMDAzaDEzOC4zOTVjNTIuMzA1LjE5OSA5NC42NTYgNDIuNTUxIDk0Ljg1NSA5NC44NTV6JwogICAgICAgICAgb3BhY2l0eT0nLjInLz4KICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFRyYW5zZm9ybT0nbWF0cml4KDEgMCAwIC0xIDAgMjA3NS4zMzMpJyB5Mj0nMzk0LjI2MScgeDI9Jzk0Mi4yMzQnIHkxPScxNjgzLjA3MycgeDE9JzE5OC4wOTknCiAgICAgICAgICAgICAgICAgICAgZ3JhZGllbnRVbml0cz0ndXNlclNwYWNlT25Vc2UnIGlkPSdhJz4KICAgICAgICA8c3RvcCBvZmZzZXQ9JzAnIHN0b3AtY29sb3I9JyM1YTYyYzMnLz4KICAgICAgICA8c3RvcCBvZmZzZXQ9Jy41JyBzdG9wLWNvbG9yPScjNGQ1NWJkJy8+CiAgICAgICAgPHN0b3Agb2Zmc2V0PScxJyBzdG9wLWNvbG9yPScjMzk0MGFiJy8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHBhdGggZD0nTTk1LjAxIDQ2Ni41aDk1MC4zMTJjNTIuNDczIDAgOTUuMDEgNDIuNTM4IDk1LjAxIDk1LjAxdjk1MC4zMTJjMCA1Mi40NzMtNDIuNTM4IDk1LjAxLTk1LjAxIDk1LjAxSDk1LjAxYy01Mi40NzMgMC05NS4wMS00Mi41MzgtOTUuMDEtOTUuMDFWNTYxLjUxYzAtNTIuNDcyIDQyLjUzOC05NS4wMSA5NS4wMS05NS4wMXonCiAgICAgICAgICBmaWxsPSd1cmwoI2EpJy8+CiAgICA8cGF0aCBkPSdNODIwLjIxMSA4MjguMTkzaC0xODkuOTd2NTE3LjI5N2gtMTIxLjAzVjgyOC4xOTNIMzIwLjEyM1Y3MjcuODQ0aDUwMC4wODh6JyBmaWxsPScjRkZGJy8+Cjwvc3ZnPg=="
+  }
+}
