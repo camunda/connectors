@@ -19,7 +19,6 @@ package io.camunda.connector.uniquet.core;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.camunda.connector.uniquet.dto.*;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -54,22 +53,20 @@ public class GitCrawler {
     }
   }
 
-  private static VersionValue getVersionValue(RevCommit commit, ElementTemplateFile elementTemplateFile) {
-      return Optional.ofNullable(elementTemplateFile.elementTemplate())
-          .map(ElementTemplate::engines)
-          .map(Engine::camunda)
-          .map(
-              s ->
-                  (VersionValue)
-                      new VersionValue.ImmutableVersionValue(
-                          RAW_GITHUB_LINK.formatted(
-                              commit.getName(), elementTemplateFile.path()),
-                          s))
-          .orElse(
-              new VersionValue.MutableVersionValue(
-                  RAW_GITHUB_LINK.formatted(
-                      commit.getName(), elementTemplateFile.path()),
-                  elementTemplateFile.connectorRuntime()));
+  private static VersionValue getVersionValue(
+      RevCommit commit, ElementTemplateFile elementTemplateFile) {
+    return Optional.ofNullable(elementTemplateFile.elementTemplate())
+        .map(ElementTemplate::engines)
+        .map(Engine::camunda)
+        .map(
+            s ->
+                (VersionValue)
+                    new VersionValue.ImmutableVersionValue(
+                        RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()), s))
+        .orElse(
+            new VersionValue.MutableVersionValue(
+                RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()),
+                elementTemplateFile.connectorRuntime()));
   }
 
   public Map<String, Map<Integer, VersionValue>> getResult() {
