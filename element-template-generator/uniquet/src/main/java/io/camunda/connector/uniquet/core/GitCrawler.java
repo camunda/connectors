@@ -18,9 +18,7 @@ package io.camunda.connector.uniquet.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.camunda.connector.uniquet.dto.Engine;
-import io.camunda.connector.uniquet.dto.OutputElementTemplate;
-import io.camunda.connector.uniquet.dto.VersionValue;
+import io.camunda.connector.uniquet.dto.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -55,6 +53,22 @@ public class GitCrawler {
     }
   }
 
+  private static VersionValue getVersionValue(
+      RevCommit commit, ElementTemplateFile elementTemplateFile) {
+    return Optional.ofNullable(elementTemplateFile.elementTemplate())
+        .map(ElementTemplate::engines)
+        .map(Engine::camunda)
+        .map(
+            s ->
+                (VersionValue)
+                    new VersionValue.ImmutableVersionValue(
+                        RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()), s))
+        .orElse(
+            new VersionValue.MutableVersionValue(
+                RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()),
+                elementTemplateFile.connectorRuntime()));
+  }
+
   public Map<String, Map<Integer, VersionValue>> getResult() {
     return result;
   }
@@ -77,6 +91,7 @@ public class GitCrawler {
     new ElementTemplateIterator(repository, commit)
         .forEachRemaining(
             elementTemplateFile -> {
+              VersionValue insertableVersionValue = getVersionValue(commit, elementTemplateFile);
               if (result.containsKey(elementTemplateFile.elementTemplate().id())) {
                 result
                     .get(elementTemplateFile.elementTemplate().id())
@@ -84,22 +99,12 @@ public class GitCrawler {
                         elementTemplateFile.elementTemplate().version(),
                         (integer, versionValue) ->
                             Optional.ofNullable(versionValue)
-                                .map(
-                                    vv ->
-                                        new VersionValue(
-                                            vv.link(), elementTemplateFile.connectorRuntime()))
-                                .orElse(
-                                    new VersionValue(
-                                        RAW_GITHUB_LINK.formatted(
-                                            commit.getName(), elementTemplateFile.path()),
-                                        elementTemplateFile.connectorRuntime())));
+                                .map(vv -> vv.changeRuntime(elementTemplateFile.connectorRuntime()))
+                                .orElse(insertableVersionValue));
               } else {
                 Map<Integer, VersionValue> version = new HashMap<>();
                 version.put(
-                    elementTemplateFile.elementTemplate().version(),
-                    new VersionValue(
-                        RAW_GITHUB_LINK.formatted(commit.getName(), elementTemplateFile.path()),
-                        elementTemplateFile.connectorRuntime()));
+                    elementTemplateFile.elementTemplate().version(), insertableVersionValue);
                 result.put(elementTemplateFile.elementTemplate().id(), version);
               }
             });
