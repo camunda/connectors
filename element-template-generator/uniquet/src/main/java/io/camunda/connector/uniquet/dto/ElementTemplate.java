@@ -21,4 +21,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ElementTemplate(
-    @JsonProperty(required = true) String id, @JsonProperty(required = true) Integer version) {}
+    @JsonProperty(required = true) String id,
+    @JsonProperty(required = true) Integer version,
+    Engine engines) {}

@@ -16,4 +16,27 @@
  */
 package io.camunda.connector.uniquet.dto;
 
-public record VersionValue(String link, String connectorRuntime) {}
+public sealed interface VersionValue {
+
+  VersionValue changeRuntime(String connectorRuntime);
+
+  String link();
+
+  String connectorRuntime();
+
+  record MutableVersionValue(String link, String connectorRuntime) implements VersionValue {
+
+    @Override
+    public VersionValue changeRuntime(String connectorRuntime) {
+      return new MutableVersionValue(link, connectorRuntime);
+    }
+  }
+
+  record ImmutableVersionValue(String link, String connectorRuntime) implements VersionValue {
+
+    @Override
+    public VersionValue changeRuntime(String connectorRuntime) {
+      return this;
+    }
+  }
+}
