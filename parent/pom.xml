@@ -72,12 +72,12 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.camunda>8.8.0-SNAPSHOT</version.camunda>
-    <version.feel-engine>1.19.1</version.feel-engine>
+    <version.feel-engine>1.19.2</version.feel-engine>
 
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
-    <version.mockito>5.16.1</version.mockito>
+    <version.mockito>5.17.0</version.mockito>
     <version.junit-jupiter>5.12.1</version.junit-jupiter>
     <version.assertj>3.27.3</version.assertj>
     <version.jackson-bom>2.18.3</version.jackson-bom>
@@ -91,9 +91,9 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.18</version.logback>
 
     <version.aws-java-sdk>1.12.782</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.31.14</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.31.16</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.782</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.31.14</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.31.16</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.15.0</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
@@ -145,7 +145,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.22.1</version.auth0.jwks>
 
     <!-- maven plugins (not managed by parent) -->
-    <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
+    <plugin.version.maven-enforcer-plugin>3.5.0</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.5.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
     <plugin.version.license>5.0.0</plugin.version.license>
@@ -485,7 +485,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>10.0.2</version>
+        <version>10.1</version>
       </dependency>
 
       <!-- Fixes CWE-835 -->
