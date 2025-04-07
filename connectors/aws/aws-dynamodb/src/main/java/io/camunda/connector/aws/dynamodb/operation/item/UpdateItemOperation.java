@@ -58,8 +58,9 @@ public class UpdateItemOperation implements AwsDynamoDbOperation {
                   switch (attributeAction) {
                     case PUT -> new AttributeUpdate(key).put(value);
                     case DELETE -> new AttributeUpdate(key).delete();
-                    default -> throw new IllegalArgumentException(
-                        "Unsupported action [" + attributeAction + "]");
+                    default ->
+                        throw new IllegalArgumentException(
+                            "Unsupported action [" + attributeAction + "]");
                   };
 
               attributeUpdates.add(attributeUpdate);
