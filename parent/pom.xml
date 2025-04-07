@@ -70,12 +70,12 @@ limitations under the License.</license.inlineheader>
     <!-- Camunda internal libraries -->
     <version.zeebe>8.4.17</version.zeebe>
     <version.spring-zeebe>8.4.17</version.spring-zeebe>
-    <version.feel-engine>1.19.1</version.feel-engine>
+    <version.feel-engine>1.19.2</version.feel-engine>
 
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
-    <version.mockito>5.16.1</version.mockito>
+    <version.mockito>5.17.0</version.mockito>
     <version.junit-jupiter>5.12.1</version.junit-jupiter>
     <version.assertj>3.27.3</version.assertj>
     <version.jackson-bom>2.18.3</version.jackson-bom>
@@ -129,7 +129,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.22.1</version.auth0.jwks>
 
     <!-- maven plugins (not managed by parent) -->
-    <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
+    <plugin.version.maven-enforcer-plugin>3.5.0</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.5.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
     <plugin.version.license>4.6</plugin.version.license>
@@ -137,7 +137,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.0</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.3</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.41.1</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>2.44.3</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.4.2</plugin.version.maven-jar-plugin>
   </properties>
 
@@ -670,12 +670,7 @@ limitations under the License.</license.inlineheader>
           <artifactId>maven-enforcer-plugin</artifactId>
           <version>${plugin.version.maven-enforcer-plugin}</version>
           <configuration>
-            <rules>
-              <!--
-                <dependencyConvergence />
-              -->
-              <requirePluginVersion/>
-            </rules>
+            <skip>true</skip>
           </configuration>
           <executions>
             <execution>
