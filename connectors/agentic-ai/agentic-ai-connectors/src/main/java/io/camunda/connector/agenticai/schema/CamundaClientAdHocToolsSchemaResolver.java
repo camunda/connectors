@@ -30,6 +30,7 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
   private static final Logger LOGGER =
       LoggerFactory.getLogger(CamundaClientAdHocToolsSchemaResolver.class);
 
+  private static final String INPUT_SCHEMA_PROPERTY_NAME = "camunda:adHocActivityInputSchema";
   private static final String EMPTY_INPUT_SCHEMA =
       """
         {
@@ -88,7 +89,7 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
             .flatMap(
                 extension ->
                     extension.getProperties().stream()
-                        .filter(p -> "camunda:inputSchema".equals(p.getName()))
+                        .filter(p -> INPUT_SCHEMA_PROPERTY_NAME.equals(p.getName()))
                         .findFirst())
             .orElse(null);
 
