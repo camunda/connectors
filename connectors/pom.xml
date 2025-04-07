@@ -47,7 +47,7 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-      <version>4.29.1</version>
+      <version>4.30.2</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
