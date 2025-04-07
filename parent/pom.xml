@@ -143,7 +143,7 @@ limitations under the License.</license.inlineheader>
     <version.wiremock>3.13.0</version.wiremock>
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.22.1</version.auth0.jwks>
-    
+
     <version.langchain4j>1.0.0-beta3</version.langchain4j>
 
     <!-- maven plugins (not managed by parent) -->
