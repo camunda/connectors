@@ -6,7 +6,7 @@
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
   "version": 2,
   "engines": {
-    "camunda": "^8.7"
+    "camunda": "^8.4"
   },
   "category": {
     "id": "connectors",

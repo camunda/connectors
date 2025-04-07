@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.OpenAI.v1",
   "version": 5,
   "engines":{
-    "camunda": "^8.7"
+    "camunda": "^8.3"
   },
   "description": "Interact with ChatGPT or moderation API",
   "icon": {

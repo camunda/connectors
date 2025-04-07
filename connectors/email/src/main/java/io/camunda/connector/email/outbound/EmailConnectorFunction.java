@@ -21,7 +21,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "protocol", "data"},
     type = "io.camunda:email:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.6",
     id = "io.camunda.connectors.email.v1",
     name = "Email Connector",
     description = "Execute email requests",
