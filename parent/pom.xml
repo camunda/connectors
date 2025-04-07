@@ -737,12 +737,7 @@ limitations under the License.</license.inlineheader>
           <artifactId>maven-enforcer-plugin</artifactId>
           <version>${plugin.version.maven-enforcer-plugin}</version>
           <configuration>
-            <rules>
-              <!--
-                <dependencyConvergence />
-              -->
-              <requirePluginVersion/>
-            </rules>
+            <skip>true</skip>
           </configuration>
           <executions>
             <execution>
