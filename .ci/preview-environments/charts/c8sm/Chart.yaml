@@ -11,8 +11,8 @@ version: 0.1.0
 dependencies:
 - name: infra-preview-environments-ingress
   repository: oci://registry.camunda.cloud/library
-  version: 1.4.8
+  version: 1.5.8
 - name: camunda-platform
   # @camunda-cloud references https://helm.camunda.io repository configured as camunda-cloud in Argo CD
   repository: https://helm.camunda.io
-  version: 9.3.9
+  version: 9.5.0
