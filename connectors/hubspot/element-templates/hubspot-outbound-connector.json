@@ -20,7 +20,10 @@
       "search deal",
       "delete deal",
       "batch read contacts",
-      "get all contacts of a company"
+      "get all contacts of a company",
+      "add element to list",
+      "enroll contact to a workflow",
+      "submit form"
     ]
   },
   "id": "io.camunda.connectors.HubSpot.v1",
