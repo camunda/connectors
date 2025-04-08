@@ -176,7 +176,7 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-agentic-ai-spring-boot-starter</artifactId>
+        <artifactId>connector-agentic-ai</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

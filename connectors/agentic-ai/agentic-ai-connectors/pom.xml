@@ -48,6 +48,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j</artifactId>
     </dependency>
@@ -115,6 +120,7 @@
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
               <connectorClass>io.camunda.connector.agenticai.aiagent.AiAgentFunction</connectorClass>
@@ -125,6 +131,7 @@
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
           </connectors>
           <includeDependencies>
