@@ -517,6 +517,9 @@
         "type": "zeebe:input",
         "name": "batchReadIds"
       },
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "operationId",
         "oneOf": [
@@ -612,6 +615,9 @@
         "type": "zeebe:input",
         "name": "searchField"
       },
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "operationId",
         "oneOf": [
@@ -631,6 +637,9 @@
       "binding": {
         "type": "zeebe:input",
         "name": "searchValue"
+      },
+      "constraints": {
+        "notEmpty": true
       },
       "condition": {
         "property": "operationId",
@@ -728,6 +737,9 @@
       "binding": {
         "type": "zeebe:input",
         "name": "properties"
+      },
+      "constraints": {
+        "notEmpty": true
       },
       "condition": {
         "property": "operationId",
@@ -1488,6 +1500,8 @@
 
     {
       "id": "post-/crm/v3/objects/companies_input",
+      "label": "Company properties",
+      "description": "The properties of the company",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -1495,6 +1509,9 @@
       "binding": {
         "type": "zeebe:input",
         "name": "body"
+      },
+      "constraints": {
+        "notEmpty": true
       },
       "condition": {
         "property": "operationId",
@@ -1957,14 +1974,16 @@
         "type": "zeebe:input",
         "name": "portalId"
       },
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "operationId",
         "oneOf": [
           "post-api.hsforms.com/submissions"
         ],
         "type": "simple"
-      },
-      "optional": true
+      }
     },
     {
       "label": "Form id",
@@ -1976,14 +1995,16 @@
         "type": "zeebe:input",
         "name": "formId"
       },
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "operationId",
         "oneOf": [
           "post-api.hsforms.com/submissions"
         ],
         "type": "simple"
-      },
-      "optional": true
+      }
     },
     {
       "id": "post-api.hsforms.com/submissions_$path",
@@ -2056,6 +2077,9 @@
         "name": "body",
         "type": "zeebe:input"
       },
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "operationId",
         "equals": "post-api.hsforms.com/submissions",
@@ -2074,14 +2098,16 @@
         "type": "zeebe:input",
         "name": "listId"
       },
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "operationId",
         "oneOf": [
           "put-/crm/v3/lists/{listId}/memberships/add"
         ],
         "type": "simple"
-      },
-      "optional": true
+      }
     },
     {
       "id": "put-/crm/v3/lists/{listId}/memberships/add_$path",
@@ -2154,6 +2180,9 @@
         "name": "body",
         "type": "zeebe:input"
       },
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "operationId",
         "equals": "put-/crm/v3/lists/{listId}/memberships/add",
@@ -2179,7 +2208,9 @@
         ],
         "type": "simple"
       },
-      "optional": true
+      "constraints": {
+        "notEmpty": true
+      }
     },
     {
       "label": "Contact email",
@@ -2198,7 +2229,9 @@
         ],
         "type": "simple"
       },
-      "optional": true
+      "constraints": {
+        "notEmpty": true
+      }
     },
     {
       "id": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts_$path",
