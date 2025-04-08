@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.schema;
 
-import io.camunda.connector.agenticai.core.AgentsApplicationContextHolder;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -31,10 +30,6 @@ import jakarta.validation.constraints.NotBlank;
 public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
 
   private final AdHocToolsSchemaResolver schemaResolver;
-
-  public AdHocToolsSchemaFunction() {
-    this(AgentsApplicationContextHolder.currentContext().adHocToolSchemaResolver());
-  }
 
   public AdHocToolsSchemaFunction(AdHocToolsSchemaResolver schemaResolver) {
     this.schemaResolver = schemaResolver;

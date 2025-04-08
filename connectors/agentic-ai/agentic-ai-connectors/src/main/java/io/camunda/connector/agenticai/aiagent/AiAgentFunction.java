@@ -24,8 +24,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
-import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.core.AgentsApplicationContextHolder;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -69,13 +67,6 @@ public class AiAgentFunction implements OutboundConnectorFunction {
   private final AgentContextMessageSerializer agentContextMessageSerializer;
   private final ToolCallingHandler toolCallingHandler;
 
-  public AiAgentFunction() {
-    this(
-        new ChatModelFactory(),
-        contextMessageSerializerFromStaticContext(),
-        toolCallingHandlerFromStaticContext());
-  }
-
   public AiAgentFunction(
       ChatModelFactory chatModelFactory,
       AgentContextMessageSerializer agentContextMessageSerializer,
@@ -83,20 +74,6 @@ public class AiAgentFunction implements OutboundConnectorFunction {
     this.chatModelFactory = chatModelFactory;
     this.agentContextMessageSerializer = agentContextMessageSerializer;
     this.toolCallingHandler = toolCallingHandler;
-  }
-
-  private static AgentContextMessageSerializer contextMessageSerializerFromStaticContext() {
-    return new AgentContextMessageSerializer(
-        AgentsApplicationContextHolder.currentContext().objectMapper());
-  }
-
-  private static ToolCallingHandler toolCallingHandlerFromStaticContext() {
-    final var applicationContext = AgentsApplicationContextHolder.currentContext();
-
-    return new ToolCallingHandler(
-        applicationContext.objectMapper(),
-        applicationContext.adHocToolSchemaResolver(),
-        new ToolSpecificationConverter());
   }
 
   @Override
