@@ -23,6 +23,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-comprehend:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.AWSCOMPREHEND.v1",
     name = "AWS Comprehend Outbound Connector",
     description = "Execute Comprehend models",

@@ -19,11 +19,12 @@ package io.camunda.connector.runtime.inbound.executable;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.*;
 
 public record ActiveExecutableResponse(
-    UUID executableId,
+    ExecutableId executableId,
     Class<? extends InboundConnectorExecutable> executableClass,
     List<InboundConnectorElement> elements,
     Health health,

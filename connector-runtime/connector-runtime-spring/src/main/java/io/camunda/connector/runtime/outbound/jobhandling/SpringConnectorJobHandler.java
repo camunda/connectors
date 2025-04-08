@@ -23,7 +23,6 @@ import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -102,24 +101,6 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
       FinalCommandStep commandStep = prepareFailJobCommand(client, job, result);
       new CommandWrapper(
               commandStep,
-              job,
-              commandExceptionHandlingStrategy,
-              metricsRecorder,
-              MAX_ZEEBE_COMMAND_RETRIES)
-          .executeAsync();
-    }
-  }
-
-  @Override
-  protected void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
-    try {
-      metricsRecorder.increase(
-          Outbound.METRIC_NAME_INVOCATIONS,
-          Outbound.ACTION_BPMN_ERROR,
-          connectorConfiguration.type());
-    } finally {
-      new CommandWrapper(
-              prepareThrowBpmnErrorCommand(client, job, value),
               job,
               commandExceptionHandlingStrategy,
               metricsRecorder,

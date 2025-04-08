@@ -41,6 +41,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
+import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.Keywords;
 import java.time.Duration;
 import java.util.HashMap;
@@ -60,7 +61,6 @@ class ConnectorJobHandlerTest {
   private record TestConnectorResponsePojo(String value) {}
 
   private static class NonSerializable {
-
     private final UUID field = UUID.randomUUID();
   }
 
@@ -71,7 +71,7 @@ class ConnectorJobHandlerTest {
     class ResultVariableTests {
 
       protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-        return new ConnectorJobHandler(call, e -> {});
+        return new ConnectorJobHandler(call, new FooBarSecretProvider(), e -> {}, null, null);
       }
 
       @ParameterizedTest
@@ -410,7 +410,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldNotSetWithoutResultVariableAndExpression() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"), e -> {});
+        var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
         // when
         var result = JobBuilder.create().executeAndCaptureResult(jobHandler);
@@ -423,8 +423,9 @@ class ConnectorJobHandlerTest {
       void shouldSetBothResultVariableAndExpression() {
         // given
         var jobHandler =
-            new ConnectorJobHandler(
-                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")), e -> {});
+            newConnectorJobHandler(
+                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
+
         var resultExpression = "{\"processedOutput\": response.callStatus, \"nullVar\": null}";
         var resultVariable = "result";
 
@@ -449,6 +450,16 @@ class ConnectorJobHandlerTest {
 
   @Nested
   class ExecutionTests {
+
+    private static Stream<RuntimeException> provideInputExceptions() {
+      return Stream.of(
+          new ConnectorExceptionBuilder()
+              .message("expected Connector Input Exception")
+              .cause(new ConnectorInputException(new Exception()))
+              .build(),
+          new ConnectorInputException(
+              "expected Connector Input Exception", new RuntimeException("cause")));
+    }
 
     @Test
     void shouldProduceFailCommandWhenCallThrowsException() {
@@ -523,16 +534,6 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorMessage()).isEqualTo("expected Connector Input Exception");
       assertThat(result.getRetries()).isEqualTo(0);
-    }
-
-    private static Stream<RuntimeException> provideInputExceptions() {
-      return Stream.of(
-          new ConnectorExceptionBuilder()
-              .message("expected Connector Input Exception")
-              .cause(new ConnectorInputException(new Exception()))
-              .build(),
-          new ConnectorInputException(
-              "expected Connector Input Exception", new RuntimeException("cause")));
     }
   }
 
@@ -860,6 +861,69 @@ class ConnectorJobHandlerTest {
       assertThat(result.getErrorCode()).isEqualTo("1013");
       assertThat(result.getVariables()).isEqualTo(Map.of("foo", "bar"));
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldHideSecretsInJobErrorMessage() {
+      // given
+      var errorMessage = "Something went wrong: bar is not the correct password";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new IllegalArgumentException(errorMessage);
+              });
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables("{{secrets.FOO}}")
+              .executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage())
+          .isEqualTo("Something went wrong: *** is not the correct password");
+    }
+
+    @Test
+    void shouldHideSecretsInJsonProcessingError() {
+      // given
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException(
+                    "JSON_PROCESSING_ERROR, bar could not be parsed as JSON String");
+              });
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables("{ \"integer\" : {{secrets.FOO}} }")
+              .executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage())
+          .isEqualTo("JSON_PROCESSING_ERROR, *** could not be parsed as JSON String");
+    }
+
+    @Test
+    void shouldHideSecretsInJobErrorJsonMessage() {
+      // given
+      var errorMessage = "Something went wrong: bar is not the correct password";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new IllegalArgumentException(errorMessage);
+              });
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withVariables("{ \"integer\" : {{secrets.FOO}} }")
+              .executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage())
+          .isEqualTo("Something went wrong: *** is not the correct password");
     }
 
     @Test

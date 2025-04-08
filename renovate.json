@@ -1,11 +1,16 @@
 {
   "extends": [
-    "config:base"
+    "config:recommended",
+    "group:allNonMajor",
+    "schedule:earlyMondays",
+    "schedule:automergeNonOfficeHours"
   ],
+  "timezone": "Europe/Berlin",
   "labels": [
     "dependencies",
     "no milestone"
   ],
+  "prHourlyLimit": 10,
   "packageRules": [
     {
       "matchManagers": [
@@ -27,7 +32,7 @@
     },
     {
       "matchBaseBranches": [
-        "/^release/.*/"
+        "release/*"
       ],
       "matchUpdateTypes": [
         "major"
@@ -35,20 +40,24 @@
       "enabled": false
     },
     {
-      "matchPackagePrefixes": [
-        "io.camunda.connector"
+      "matchBaseBranches": [
+        "release/*"
+      ],
+      "matchPackageNames": [
+        "io.camunda*"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "replacement"
       ],
       "enabled": false
     },
     {
-      "matchManagers": [
-        "maven"
+      "matchPackageNames": [
+        "io.camunda.connector{/,}**"
       ],
-      "description": "Exclude SNAPSHOT versions, renovate may suggest them for pre-release values.",
-      "matchPackagePatterns": [
-        ".*"
-      ],
-      "allowedVersions": "!/-SNAPSHOT$/"
+      "enabled": false
     }
   ],
   "baseBranches": [
@@ -57,6 +66,7 @@
     "release/8.4",
     "release/8.5",
     "release/8.6",
-    "release/8.7"
+    "release/8.7",
+    "release/8.8"
   ]
 }

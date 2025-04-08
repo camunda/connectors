@@ -25,10 +25,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
@@ -75,6 +72,14 @@ class SqsExecutableTest {
   private ExecutorService executorService;
   private SqsQueueConsumer consumer;
 
+  private static Stream<Map<String, Object>> successRequestCases() throws IOException {
+    final String cases =
+        readString(new File(SqsExecutableTest.SUCCESS_CASES_RESOURCE_PATH).toPath(), UTF_8);
+    return objectMapper
+        .readValue(cases, new TypeReference<List<Map<String, Object>>>() {})
+        .stream();
+  }
+
   @BeforeEach
   public void setUp() {
     executorService = Executors.newSingleThreadExecutor();
@@ -106,7 +111,12 @@ class SqsExecutableTest {
     consumer.setQueueConsumerActive(false);
     executorService.shutdown();
     executorService.awaitTermination(1, TimeUnit.SECONDS);
-    verify(spyContext, atLeast(1)).correlateWithResult(MessageMapper.toSqsInboundMessage(message));
+    verify(spyContext, atLeast(1))
+        .correlate(
+            CorrelationRequest.builder()
+                .variables(MessageMapper.toSqsInboundMessage(message))
+                .messageId(message.getMessageId())
+                .build());
   }
 
   @Test
@@ -184,13 +194,5 @@ class SqsExecutableTest {
 
   private Message createMessage() {
     return new Message().withMessageId("1").withBody("{\"a\":\"c\"}");
-  }
-
-  private static Stream<Map<String, Object>> successRequestCases() throws IOException {
-    final String cases =
-        readString(new File(SqsExecutableTest.SUCCESS_CASES_RESOURCE_PATH).toPath(), UTF_8);
-    return objectMapper
-        .readValue(cases, new TypeReference<List<Map<String, Object>>>() {})
-        .stream();
   }
 }

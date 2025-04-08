@@ -14,7 +14,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.jdbi>3.48.0</version.jdbi>
+    <version.jdbi>3.49.0</version.jdbi>
   </properties>
 
   <licenses>
@@ -56,7 +56,7 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <version>12.8.1.jre11</version>
+      <version>12.10.0.jre11</version>
     </dependency>
 
     <dependency>
@@ -69,7 +69,7 @@
     <dependency>
       <groupId>org.mariadb.jdbc</groupId>
       <artifactId>mariadb-java-client</artifactId>
-      <version>3.5.2</version>
+      <version>3.5.3</version>
     </dependency>
 
     <dependency>
