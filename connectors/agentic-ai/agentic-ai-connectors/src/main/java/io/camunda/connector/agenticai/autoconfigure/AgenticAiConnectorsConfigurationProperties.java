@@ -10,9 +10,9 @@ import java.time.Duration;
 import java.util.Optional;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "camunda.connector.agents")
-public record AgentsConnectorsConfiguration(ToolsSchemaConfiguration tools) {
-  public AgentsConnectorsConfiguration(ToolsSchemaConfiguration tools) {
+@ConfigurationProperties(prefix = "camunda.connector.agenticai")
+public record AgenticAiConnectorsConfigurationProperties(ToolsSchemaConfiguration tools) {
+  public AgenticAiConnectorsConfigurationProperties(ToolsSchemaConfiguration tools) {
     this.tools =
         Optional.ofNullable(tools).orElseGet(ToolsSchemaConfiguration::defaultConfiguration);
   }
