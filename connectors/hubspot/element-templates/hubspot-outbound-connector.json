@@ -422,6 +422,26 @@
       "type": "String"
     },
     {
+      "label": "Additional properties that should be returned",
+      "description": "Names of the additional properties as a comma separated list, e.g. city,annualrevenue. Get all contact properties <a href=\"https://developers.hubspot.com/docs/reference/api/crm/properties/v1-contacts#get-all-contact-properties\" target=\"_blank\">here</a> and learn more about default contact properties <a href=\"https://knowledge.hubspot.com/properties/hubspots-default-contact-properties\" target=\"_blank\">here</a>. Leave this empty to get only standard properties.",
+      "optional": true,
+      "value": "",
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "properties",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "get-/crm/v3/objects/contacts/{contactId}"
+        ],
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
       "id": "get-/crm/v3/objects/contacts/{contactId}_$path",
       "value": "=\"/crm/v3/objects/contacts/\"+contactId",
       "group": "parameters",
@@ -453,7 +473,7 @@
     },
     {
       "id": "get-/crm/v3/objects/contacts/{contactId}_$queryParameters",
-      "value": "={}",
+      "value": "=if properties != null then {\"properties\": properties+\",email,firstname,lastname\"} else {\"properties\": \"email,firstname,lastname\"}",
       "group": "parameters",
       "binding": {
         "name": "queryParameters",
