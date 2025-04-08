@@ -10,6 +10,7 @@
     "dependencies",
     "no milestone"
   ],
+  "prHourlyLimit": 10,
   "packageRules": [
     {
       "matchManagers": [
