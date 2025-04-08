@@ -19,7 +19,7 @@ import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
     inputVariables = {"authentication", "routing", "message"},
     type = "io.camunda:connector-rabbitmq:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.RabbitMQ.v1",
     name = "RabbitMQ Outbound Connector",
     description = "Send message to RabbitMQ",

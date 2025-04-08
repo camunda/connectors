@@ -28,7 +28,7 @@ import java.util.Optional;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-eventbridge:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.AWSEventBridge.v1",
     name = "Amazon EventBridge Outbound Connector",
     description = "Send events to AWS EventBridge",

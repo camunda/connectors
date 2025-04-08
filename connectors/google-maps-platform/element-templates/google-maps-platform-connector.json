@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.GoogleMapsPlatform.v1",
   "version": 3,
   "engines":{
-    "camunda": "^8.7"
+    "camunda": "^8.3"
   },
   "description": "Validate addresses, retrieve postal addresses and calculate distances with Googe Maps",
   "metadata": {

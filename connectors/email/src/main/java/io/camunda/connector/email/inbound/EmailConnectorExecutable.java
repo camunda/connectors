@@ -17,7 +17,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @InboundConnector(name = "Email Consumer", type = "io.camunda:connector-email-inbound:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.6",
     id = "io.camunda.connectors.email",
     name = "Email Event Connector",
     icon = "icon.svg",

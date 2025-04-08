@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.GitLab.v1",
   "version": 6,
   "engines": {
-    "camunda": "^8.7"
+    "camunda": "^8.3"
   },
   "description": "Manage GitLab issues, branches, releases, and more",
   "metadata": {

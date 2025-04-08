@@ -6,7 +6,7 @@
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/azure-open-ai/",
   "version" : 1,
   "engines": {
-    "camunda": "^8.7"
+    "camunda": "^8.6"
   },
   "category" : {
     "id" : "connectors",
