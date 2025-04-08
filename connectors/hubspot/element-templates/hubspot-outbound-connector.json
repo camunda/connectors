@@ -293,6 +293,10 @@
         {
           "name": "Add element to list",
           "value": "put-/crm/v3/lists/{listId}/memberships/add"
+        },
+        {
+          "name": "Enroll contact to workflow",
+          "value": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts"
         }
       ],
       "condition": {
@@ -308,7 +312,7 @@
     },
     {
       "id": "baseUrl",
-      "value": "=if list contains([\"post-api.hsforms.com/submissions\"], operationType) then \"https://api.hsforms.com\" else \"https://api.hubspot.com\"",
+      "value": "=if list contains([\"post-api.hsforms.com/submissions\"], operationType) then \"https://api.hsforms.com\" else if list contains([\"post-/automation/v2/workflows/{workflowId}/enrollments/contacts\"], operationType) then \"https://api.hubapi.com\" else \"https://api.hubspot.com\"",
       "group": "server",
       "binding": {
         "name": "baseUrl",
@@ -2156,6 +2160,105 @@
         "type": "simple"
       },
       "type": "String"
+    },
+
+    {
+      "label": "Workflow id",
+      "description": "The ID of the workflow that should be triggered.",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workflowId"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/automation/v2/workflows/{workflowId}/enrollments/contacts"
+        ],
+        "type": "simple"
+      },
+      "optional": true
+    },
+    {
+      "label": "Contact email",
+      "description": "The email of the contact that should be enrolled to the workflow.",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "contactMail"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "post-/automation/v2/workflows/{workflowId}/enrollments/contacts"
+        ],
+        "type": "simple"
+      },
+      "optional": true
+    },
+    {
+      "id": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts_$path",
+      "value": "=\"/automation/v2/workflows/\"+workflowId+\"/enrollments/contacts/\"+contactMail",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts_$headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts_$queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts_$method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "post-/automation/v2/workflows/{workflowId}/enrollments/contacts",
+        "type": "simple"
+      },
+      "type": "Hidden"
     },
 
     {
