@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.tools;
 
-import static io.camunda.connector.agenticai.mapping.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;

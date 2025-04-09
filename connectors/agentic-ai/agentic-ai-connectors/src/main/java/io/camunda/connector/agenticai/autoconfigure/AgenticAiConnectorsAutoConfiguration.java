@@ -8,14 +8,14 @@ package io.camunda.connector.agenticai.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
+import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.CachingAdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.CamundaClientAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.schema.AdHocToolsSchemaFunction;
-import io.camunda.connector.agenticai.schema.AdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.schema.CachingAdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.schema.CamundaClientAdHocToolsSchemaResolver;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

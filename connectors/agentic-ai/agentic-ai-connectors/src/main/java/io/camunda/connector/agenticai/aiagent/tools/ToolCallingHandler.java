@@ -7,15 +7,15 @@
 package io.camunda.connector.agenticai.aiagent.tools;
 
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.toolExecutionResultMessage;
-import static io.camunda.connector.agenticai.mapping.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
+import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import java.util.List;

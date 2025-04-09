@@ -112,7 +112,7 @@
         <configuration>
           <connectors>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.schema.AdHocToolsSchemaFunction</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.agenticai.adhoctoolsschema.v1</templateId>
