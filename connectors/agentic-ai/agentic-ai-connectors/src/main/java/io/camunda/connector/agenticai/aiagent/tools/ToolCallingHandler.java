@@ -82,8 +82,8 @@ public class ToolCallingHandler {
           objectMapper.readValue(inputJson, STRING_OBJECT_MAP_TYPE_REFERENCE);
       return new AgentResponse.ToolToCall(id, name, arguments);
     } catch (Exception e) {
-      // TODO handle gracefully?
-      throw new ConnectorException("Failed to parse tool call results", e);
+      throw new ConnectorException(
+          "Failed to parse tool call results for tool %s".formatted(name), e);
     }
   }
 

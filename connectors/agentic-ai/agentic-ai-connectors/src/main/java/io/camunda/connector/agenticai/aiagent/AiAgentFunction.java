@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -14,9 +15,7 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
-import io.camunda.connector.agenticai.aiagent.converter.AgentContextMessageSerializer;
+import io.camunda.connector.agenticai.aiagent.memory.AgentContextChatMemoryStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -63,16 +62,16 @@ public class AiAgentFunction implements OutboundConnectorFunction {
   private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final int DEFAULT_MAX_HISTORY_MESSAGES = 20;
 
+  private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
-  private final AgentContextMessageSerializer agentContextMessageSerializer;
   private final ToolCallingHandler toolCallingHandler;
 
   public AiAgentFunction(
+      ObjectMapper objectMapper,
       ChatModelFactory chatModelFactory,
-      AgentContextMessageSerializer agentContextMessageSerializer,
       ToolCallingHandler toolCallingHandler) {
+    this.objectMapper = objectMapper;
     this.chatModelFactory = chatModelFactory;
-    this.agentContextMessageSerializer = agentContextMessageSerializer;
     this.toolCallingHandler = toolCallingHandler;
   }
 
@@ -80,12 +79,17 @@ public class AiAgentFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     final AgentRequest request = context.bindVariables(AgentRequest.class);
     final AgentRequestData requestData = request.data();
+    final AgentContext agentContext =
+        Optional.ofNullable(requestData.context()).orElseGet(AgentContext::empty);
 
     // initialize configured model
     final ChatLanguageModel chatModel = chatModelFactory.createChatModel(request);
 
-    // set up history and load from context if available
-    final ChatMemoryStore chatMemoryStore = new InMemoryChatMemoryStore();
+    // set up memory and load from context if available
+    final AgentContextChatMemoryStore chatMemoryStore =
+        new AgentContextChatMemoryStore(objectMapper);
+    chatMemoryStore.loadFromAgentContext(agentContext);
+
     final ChatMemory chatMemory =
         MessageWindowChatMemory.builder()
             .maxMessages(
@@ -93,11 +97,6 @@ public class AiAgentFunction implements OutboundConnectorFunction {
                     .orElse(DEFAULT_MAX_HISTORY_MESSAGES))
             .chatMemoryStore(chatMemoryStore)
             .build();
-
-    // load context and put messages to history
-    final AgentContext agentContext =
-        Optional.ofNullable(requestData.context()).orElseGet(AgentContext::empty);
-    agentContextMessageSerializer.loadFromAgentContext(agentContext).forEach(chatMemory::add);
 
     // check configured guardrails
     checkGuardrails(requestData, agentContext);
@@ -129,15 +128,14 @@ public class AiAgentFunction implements OutboundConnectorFunction {
 
     // update context
     final var updatedContext =
-        agentContext
+        chatMemoryStore
+            .storeToAgentContext(agentContext)
             .withState(nextAgentState)
             .withMetrics(
                 agentContext
                     .metrics()
                     .incrementModelCalls(1)
-                    .incrementTokenUsage(chatResponse.tokenUsage().totalTokenCount()))
-            .withHistory(
-                agentContextMessageSerializer.asAgentContextHistory(chatMemory.messages()));
+                    .incrementTokenUsage(chatResponse.tokenUsage().totalTokenCount()));
 
     return new AgentResponse(updatedContext, updatedContext.history().getLast(), toolsToCall);
   }

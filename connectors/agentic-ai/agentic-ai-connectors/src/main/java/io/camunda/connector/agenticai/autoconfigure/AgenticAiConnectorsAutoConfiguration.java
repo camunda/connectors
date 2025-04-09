@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
-import io.camunda.connector.agenticai.aiagent.converter.AgentContextMessageSerializer;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
@@ -53,8 +52,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AiAgentFunction aiAgentFunction(
       ObjectMapper objectMapper, AdHocToolsSchemaResolver schemaResolver) {
     return new AiAgentFunction(
+        objectMapper,
         new ChatModelFactory(),
-        new AgentContextMessageSerializer(objectMapper),
         new ToolCallingHandler(objectMapper, schemaResolver, new ToolSpecificationConverter()));
   }
 
