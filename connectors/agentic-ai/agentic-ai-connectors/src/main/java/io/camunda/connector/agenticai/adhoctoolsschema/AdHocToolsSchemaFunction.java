@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.schema;
+package io.camunda.connector.agenticai.adhoctoolsschema;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -38,8 +38,6 @@ public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) {
     AdHocToolsSchemaRequest request = context.bindVariables(AdHocToolsSchemaRequest.class);
-
-    // TODO support multiple output formats (e.g. OpenAI, ...)?
     return schemaResolver.resolveSchema(
         context.getJobContext().getProcessDefinitionKey(), request.adHocSubprocessId());
   }

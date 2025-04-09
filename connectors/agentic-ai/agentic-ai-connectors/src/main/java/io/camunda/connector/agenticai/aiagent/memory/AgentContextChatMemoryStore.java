@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory;
 
-import static io.camunda.connector.agenticai.mapping.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
-import static io.camunda.connector.agenticai.mapping.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
+import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
