@@ -13,6 +13,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchema
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
+import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.DefaultAiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
@@ -49,12 +51,18 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AiAgentFunction aiAgentFunction(
+  public AiAgentRequestHandler aiAgentRequestHandler(
       ObjectMapper objectMapper, AdHocToolsSchemaResolver schemaResolver) {
-    return new AiAgentFunction(
+    return new DefaultAiAgentRequestHandler(
         objectMapper,
         new ChatModelFactory(),
         new ToolCallingHandler(objectMapper, schemaResolver, new ToolSpecificationConverter()));
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AiAgentFunction aiAgentFunction(AiAgentRequestHandler aiAgentRequestHandler) {
+    return new AiAgentFunction(aiAgentRequestHandler);
   }
 
   @Bean
