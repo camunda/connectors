@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
       @PropertyGroup(id = "history", label = "History"),
       @PropertyGroup(id = "guardrails", label = "Guardrails"),
     },
-    documentationRef = "https://example.com",
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {
 
