@@ -4,9 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.schema;
+package io.camunda.connector.agenticai.adhoctoolsschema;
 
-import static io.camunda.connector.agenticai.mapping.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import io.camunda.client.CamundaClient;
