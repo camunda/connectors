@@ -24,7 +24,7 @@ public record AgentRequest(ProviderConfiguration provider, AgentRequestData data
               label = "Agent Context",
               group = "context",
               id = "agentContext",
-              description = "The agent context variable containing the conversation history",
+              description = "The agent context variable containing the conversation memory",
               type = TemplateProperty.PropertyType.Text,
               feel = Property.FeelMode.required)
           @Valid
@@ -33,7 +33,7 @@ public record AgentRequest(ProviderConfiguration provider, AgentRequestData data
       @Valid @NotNull SystemPromptConfiguration systemPrompt,
       @Valid @NotNull UserPromptConfiguration userPrompt,
       @Valid @NotNull ToolsConfiguration tools,
-      @Valid @NotNull HistoryConfiguration history,
+      @Valid @NotNull MemoryConfiguration memory,
       @Valid @NotNull GuardrailsConfiguration guardrails) {
     public record SystemPromptConfiguration(
         @FEEL
@@ -76,10 +76,10 @@ public record AgentRequest(ProviderConfiguration provider, AgentRequestData data
                 optional = true)
             List<Map<String, Object>> toolCallResults) {}
 
-    public record HistoryConfiguration(
+    public record MemoryConfiguration(
         @TemplateProperty(
-                group = "history",
-                label = "Maximum amount of messages to keep in history",
+                group = "memory",
+                label = "Maximum amount of messages to keep in memory",
                 type = TemplateProperty.PropertyType.Number,
                 defaultValue = "20",
                 defaultValueType = TemplateProperty.DefaultValueType.Number)

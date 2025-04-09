@@ -63,7 +63,7 @@ public class AgentContextChatMemoryStore implements ChatMemoryStore {
   }
 
   public void loadFromAgentContext(AgentContext agentContext, Object memoryId) {
-    final var messages = agentContext.history().stream().map(this::deserializeChatMessage).toList();
+    final var messages = agentContext.memory().stream().map(this::deserializeChatMessage).toList();
 
     this.updateMessages(memoryId, messages);
   }
@@ -76,7 +76,7 @@ public class AgentContextChatMemoryStore implements ChatMemoryStore {
     final var messages =
         this.getMessages(memoryId).stream().map(this::serializeChatMessage).toList();
 
-    return agentContext.withHistory(messages);
+    return agentContext.withMemory(messages);
   }
 
   private Map<String, Object> serializeChatMessage(ChatMessage chatMessage) {
@@ -88,7 +88,7 @@ public class AgentContextChatMemoryStore implements ChatMemoryStore {
       return objectMapper.readValue(json, STRING_OBJECT_MAP_TYPE_REFERENCE);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
-          "Failed to convert history entry: " + humanReadableJsonProcessingExceptionMessage(e));
+          "Failed to convert memory entry: " + humanReadableJsonProcessingExceptionMessage(e));
     }
   }
 
@@ -99,7 +99,7 @@ public class AgentContextChatMemoryStore implements ChatMemoryStore {
       json = objectMapper.writeValueAsString(input);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
-          "Failed to read history entry: " + humanReadableJsonProcessingExceptionMessage(e));
+          "Failed to read memory entry: " + humanReadableJsonProcessingExceptionMessage(e));
     }
 
     // step 2: convert JSON string to LangChain4J internal structure

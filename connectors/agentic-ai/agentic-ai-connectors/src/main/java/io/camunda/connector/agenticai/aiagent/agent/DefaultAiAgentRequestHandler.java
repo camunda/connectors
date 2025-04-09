@@ -29,7 +29,7 @@ import java.util.Optional;
 public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
 
   private static final int DEFAULT_MAX_MODEL_CALLS = 10;
-  private static final int DEFAULT_MAX_HISTORY_MESSAGES = 20;
+  private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
 
   private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
@@ -61,15 +61,15 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     final ChatMemory chatMemory =
         MessageWindowChatMemory.builder()
             .maxMessages(
-                Optional.ofNullable(requestData.history().maxMessages())
-                    .orElse(DEFAULT_MAX_HISTORY_MESSAGES))
+                Optional.ofNullable(requestData.memory().maxMessages())
+                    .orElse(DEFAULT_MAX_MEMORY_MESSAGES))
             .chatMemoryStore(chatMemoryStore)
             .build();
 
     // check configured guardrails
     checkGuardrails(requestData, agentContext);
 
-    // update history with system + new user messages/tool call responses
+    // update memory with system + new user messages/tool call responses
     addSystemPromptIfNecessary(chatMemory, requestData);
     addUserMessagesFromRequest(agentContext, chatMemory, requestData);
 
@@ -105,7 +105,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
                     .incrementModelCalls(1)
                     .incrementTokenUsage(chatResponse.tokenUsage().totalTokenCount()));
 
-    return new AgentResponse(updatedContext, updatedContext.history().getLast(), toolsToCall);
+    return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolsToCall);
   }
 
   private void checkGuardrails(
