@@ -34,8 +34,8 @@
     "id" : "tools",
     "label" : "Tools"
   }, {
-    "id" : "history",
-    "label" : "History"
+    "id" : "memory",
+    "label" : "Memory"
   }, {
     "id" : "guardrails",
     "label" : "Guardrails"
@@ -546,7 +546,7 @@
   }, {
     "id" : "data.agentContext",
     "label" : "Agent Context",
-    "description" : "The agent context variable containing the conversation history",
+    "description" : "The agent context variable containing the conversation memory",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -613,17 +613,17 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.history.maxMessages",
-    "label" : "Maximum amount of messages to keep in history",
+    "id" : "data.memory.maxMessages",
+    "label" : "Maximum amount of messages to keep in memory",
     "optional" : false,
     "value" : 20,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "static",
-    "group" : "history",
+    "group" : "memory",
     "binding" : {
-      "name" : "data.history.maxMessages",
+      "name" : "data.memory.maxMessages",
       "type" : "zeebe:input"
     },
     "type" : "Number"

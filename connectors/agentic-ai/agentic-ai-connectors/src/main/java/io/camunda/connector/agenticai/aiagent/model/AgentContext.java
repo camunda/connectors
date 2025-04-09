@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.Map;
 
 public record AgentContext(
-    AgentState state, AgentMetrics metrics, List<Map<String, Object>> history) {
+    AgentState state, AgentMetrics metrics, List<Map<String, Object>> memory) {
   public AgentContext withState(AgentState state) {
-    return new AgentContext(state, metrics, history);
+    return new AgentContext(state, metrics, memory);
   }
 
   public boolean isInState(AgentState state) {
@@ -21,11 +21,11 @@ public record AgentContext(
   }
 
   public AgentContext withMetrics(AgentMetrics metrics) {
-    return new AgentContext(state, metrics, history);
+    return new AgentContext(state, metrics, memory);
   }
 
-  public AgentContext withHistory(List<Map<String, Object>> history) {
-    return new AgentContext(state, metrics, history);
+  public AgentContext withMemory(List<Map<String, Object>> memory) {
+    return new AgentContext(state, metrics, memory);
   }
 
   public static AgentContext empty() {
