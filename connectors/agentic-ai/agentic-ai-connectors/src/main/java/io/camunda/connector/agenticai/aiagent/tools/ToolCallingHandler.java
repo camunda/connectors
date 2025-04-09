@@ -14,7 +14,7 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
@@ -37,13 +37,13 @@ public class ToolCallingHandler {
   }
 
   public List<ToolSpecification> loadToolSpecifications(
-      Long processDefinitionKey, String toolsContainerId) {
-    if (toolsContainerId == null || toolsContainerId.isBlank()) {
+      Long processDefinitionKey, String containerElementId) {
+    if (containerElementId == null || containerElementId.isBlank()) {
       return Collections.emptyList();
     }
 
     final var adHocToolsSchema =
-        schemaResolver.resolveSchema(processDefinitionKey, toolsContainerId);
+        schemaResolver.resolveSchema(processDefinitionKey, containerElementId);
 
     return adHocToolsSchema.tools().stream()
         .map(toolSpecificationConverter::asToolSpecification)

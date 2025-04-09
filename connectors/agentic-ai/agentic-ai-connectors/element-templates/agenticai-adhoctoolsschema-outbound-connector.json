@@ -6,7 +6,6 @@
   "metadata" : {
     "keywords" : [ ]
   },
-  "documentationRef" : "https://example.com",
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -37,16 +36,14 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "adHocSubprocessId",
-    "label" : "Ad-hoc subprocess ID",
+    "id" : "data.containerElementId",
+    "label" : "Ad-hoc subprocess ID containing tools",
+    "description" : "The ID of the subprocess containing the tools to be called",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "tools",
     "binding" : {
-      "name" : "adHocSubprocessId",
+      "name" : "data.containerElementId",
       "type" : "zeebe:input"
     },
     "type" : "String"
