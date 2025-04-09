@@ -136,7 +136,9 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
             "Agent is waiting for tool input, but tool call results were empty");
       }
 
-      toolCallingHandler.toolCallResultsAsMessages(toolCallResults).forEach(chatMemory::add);
+      toolCallingHandler
+          .toolCallResultsAsToolExecutionResultMessages(toolCallResults)
+          .forEach(chatMemory::add);
     } else {
       // feed messages with the user input message (first iteration or user follow-up request)
       chatMemory.add(UserMessage.userMessage(requestData.userPrompt().userPrompt()));
