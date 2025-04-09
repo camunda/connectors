@@ -289,11 +289,6 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda</groupId>
-        <artifactId>camunda-java</artifactId>
-        <version>${version.camunda}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.camunda</groupId>
         <artifactId>zeebe-bpmn-model</artifactId>
         <version>${version.camunda}</version>
       </dependency>
