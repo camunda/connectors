@@ -6,7 +6,6 @@
   "metadata" : {
     "keywords" : [ ]
   },
-  "documentationRef" : "https://example.com",
   "version" : 1,
   "category" : {
     "id" : "connectors",

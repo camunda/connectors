@@ -6,26 +6,26 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchema;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import jakarta.validation.constraints.NotBlank;
 
 @OutboundConnector(
     name = "Ad-hoc subprocess tools schema",
-    inputVariables = {"adHocSubprocessId"},
+    inputVariables = {"data"},
     type = "io.camunda.agenticai:adhoctoolsschema:1")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.adhoctoolsschema.v1",
     name = "Ad-hoc subprocess tools schema",
     description = "Connector to fetch tools schema information from an ad-hoc subprocess",
-    inputDataClass = AdHocToolsSchemaFunction.AdHocToolsSchemaRequest.class,
+    inputDataClass = AdHocToolsSchemaRequest.class,
     version = 1,
     propertyGroups = {@PropertyGroup(id = "tools", label = "Available Tools")},
-    documentationRef = "https://example.com",
     icon = "adhoctoolsschema.svg")
 public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
 
@@ -36,13 +36,10 @@ public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) {
+  public AdHocToolsSchema execute(OutboundConnectorContext context) {
     AdHocToolsSchemaRequest request = context.bindVariables(AdHocToolsSchemaRequest.class);
-    return schemaResolver.resolveSchema(
-        context.getJobContext().getProcessDefinitionKey(), request.adHocSubprocessId());
-  }
 
-  public record AdHocToolsSchemaRequest(
-      @NotBlank @TemplateProperty(group = "tools", label = "Ad-hoc subprocess ID")
-          String adHocSubprocessId) {}
+    return schemaResolver.resolveSchema(
+        context.getJobContext().getProcessDefinitionKey(), request.data().containerElementId());
+  }
 }
