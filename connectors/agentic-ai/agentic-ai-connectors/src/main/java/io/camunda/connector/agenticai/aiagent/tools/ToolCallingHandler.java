@@ -7,8 +7,10 @@
 package io.camunda.connector.agenticai.aiagent.tools;
 
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.toolExecutionResultMessage;
+import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -50,18 +52,6 @@ public class ToolCallingHandler {
         .toList();
   }
 
-  public List<ToolExecutionResultMessage> toolCallResultsAsMessages(
-      List<Map<String, Object>> toolCallResults) {
-    return toolCallResults.stream()
-        .map(
-            result ->
-                toolExecutionResultMessage(
-                    nullableToString(result.get("id")),
-                    nullableToString(result.get("name")),
-                    nullableToString(result.get("content"))))
-        .toList();
-  }
-
   public List<AgentResponse.ToolToCall> extractToolsToCall(
       List<ToolSpecification> toolSpecifications, AiMessage aiMessage) {
     if (!aiMessage.hasToolExecutionRequests() || toolSpecifications.isEmpty()) {
@@ -84,6 +74,30 @@ public class ToolCallingHandler {
     } catch (Exception e) {
       throw new ConnectorException(
           "Failed to parse tool call results for tool %s".formatted(name), e);
+    }
+  }
+
+  public List<ToolExecutionResultMessage> toolCallResultsAsToolExecutionResultMessages(
+      List<Map<String, Object>> toolCallResults) {
+    return toolCallResults.stream().map(this::toolCallResultAsToolExecutionResultMessage).toList();
+  }
+
+  private ToolExecutionResultMessage toolCallResultAsToolExecutionResultMessage(
+      Map<String, Object> toolCallResult) {
+    final var id = nullableToString(toolCallResult.get("id"));
+    final var name = nullableToString(toolCallResult.get("name"));
+
+    return toolExecutionResultMessage(
+        id, name, contentAsString(name, toolCallResult.get("content")));
+  }
+
+  private String contentAsString(String toolName, Object content) {
+    try {
+      return objectMapper.writeValueAsString(content);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          "Failed to convert result of tool call %s to string: %s"
+              .formatted(toolName, humanReadableJsonProcessingExceptionMessage(e)));
     }
   }
 
