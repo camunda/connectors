@@ -16,15 +16,16 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
 @OutboundConnector(
-    name = "Ad-hoc subprocess tools schema",
+    name = "Ad-hoc subprocess tools schema (alpha)",
     inputVariables = {"data"},
-    type = "io.camunda.agenticai:adhoctoolsschema:1")
+    type = "io.camunda.agenticai:adhoctoolsschema:0")
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.adhoctoolsschema.v1",
-    name = "Ad-hoc subprocess tools schema",
+    id = "io.camunda.connectors.agenticai.adhoctoolsschema.v0",
+    name = "Ad-hoc subprocess tools schema (alpha)",
     description = "Connector to fetch tools schema information from an ad-hoc subprocess",
+    engineVersion = "^8.8",
+    version = 0,
     inputDataClass = AdHocToolsSchemaRequest.class,
-    version = 1,
     propertyGroups = {@PropertyGroup(id = "tools", label = "Available Tools")},
     icon = "adhoctoolsschema.svg")
 public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {

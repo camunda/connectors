@@ -15,15 +15,16 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
 @OutboundConnector(
-    name = "AI Agent",
+    name = "AI Agent (alpha)",
     inputVariables = {"provider", "data"},
-    type = "io.camunda.agenticai:aiagent:1")
+    type = "io.camunda.agenticai:aiagent:0")
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.aiagent.v1",
-    name = "AI Agent",
+    id = "io.camunda.connectors.agenticai.aiagent.v0",
+    name = "AI Agent (alpha)",
     description = "AI Agent connector",
+    engineVersion = "^8.8",
+    version = 0,
     inputDataClass = AgentRequest.class,
-    version = 1,
     propertyGroups = {
       @PropertyGroup(id = "model", label = "Model"),
       @PropertyGroup(id = "authentication", label = "Authentication"),
