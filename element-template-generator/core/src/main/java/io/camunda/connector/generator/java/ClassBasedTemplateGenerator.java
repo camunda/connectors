@@ -187,7 +187,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .description(template.description().isEmpty() ? null : template.description())
                   .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
                   .propertyGroups(
-                      addServiceProperties(mergedGroups, context, elementType, configuration))
+                      addServiceProperties(
+                          mergedGroups, context, elementType, configuration, template))
                   .build();
             })
         .toList();
@@ -197,9 +198,12 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       List<PropertyGroup> groups,
       TemplateGenerationContext context,
       ConnectorElementType elementType,
-      GeneratorConfiguration configuration) {
+      GeneratorConfiguration configuration,
+      ElementTemplate template) {
     var newGroups = new ArrayList<>(groups);
     if (context instanceof Outbound) {
+      newGroups.add(
+          PropertyGroup.ADD_CONNECTORS_DETAILS_OUTPUT.apply(template.id(), template.version()));
       newGroups.add(PropertyGroup.OUTPUT_GROUP_OUTBOUND);
       newGroups.add(PropertyGroup.ERROR_GROUP);
       newGroups.add(PropertyGroup.RETRIES_GROUP);

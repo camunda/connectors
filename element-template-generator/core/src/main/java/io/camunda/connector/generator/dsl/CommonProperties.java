@@ -45,6 +45,24 @@ public class CommonProperties {
         .feel(FeelMode.disabled);
   }
 
+  public static PropertyBuilder version(Integer version) {
+    return HiddenProperty.builder()
+        .id("version")
+        .group("connector")
+        .label("Version")
+        .value(String.valueOf(version))
+        .description("Version of the element template");
+  }
+
+  public static PropertyBuilder id(String id) {
+    return HiddenProperty.builder()
+        .id("id")
+        .group("connector")
+        .label("ID")
+        .value(id)
+        .description("ID of the element template");
+  }
+
   public static PropertyBuilder errorExpression() {
     return TextProperty.builder()
         .id("errorExpression")
