@@ -3,6 +3,7 @@ version: 3
 project:
   id: camunda/connectors
   labels:
+  - camunda8
   - connectors
   policy: Camunda8 Distribution
   url: https://github.com/camunda/connectors
