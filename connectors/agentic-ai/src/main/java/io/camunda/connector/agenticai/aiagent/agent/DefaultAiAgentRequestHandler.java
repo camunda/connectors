@@ -8,18 +8,19 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.input.Prompt;
+import dev.langchain4j.model.input.PromptTemplate;
 import io.camunda.connector.agenticai.aiagent.memory.AgentContextChatMemoryStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.api.error.ConnectorException;
@@ -123,7 +124,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
       ChatMemory chatMemory, AgentRequest.AgentRequestData requestData) {
     // add system prompt if this is the first request
     if (chatMemory.messages().isEmpty()) {
-      chatMemory.add(SystemMessage.systemMessage(requestData.systemPrompt().systemPrompt()));
+      chatMemory.add(promptFromConfiguration(requestData.systemPrompt()).toSystemMessage());
     }
   }
 
@@ -141,7 +142,16 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
           .forEach(chatMemory::add);
     } else {
       // feed messages with the user input message (first iteration or user follow-up request)
-      chatMemory.add(UserMessage.userMessage(requestData.userPrompt().userPrompt()));
+      chatMemory.add(promptFromConfiguration(requestData.userPrompt()).toUserMessage());
     }
+  }
+
+  private Prompt promptFromConfiguration(PromptConfiguration promptConfiguration) {
+    if (promptConfiguration.parameters() == null) {
+      return Prompt.from(promptConfiguration.prompt());
+    }
+
+    return PromptTemplate.from(promptConfiguration.prompt())
+        .apply(promptConfiguration.parameters());
   }
 }

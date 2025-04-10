@@ -22,14 +22,14 @@
     "id" : "authentication",
     "label" : "Authentication"
   }, {
-    "id" : "parameters",
-    "label" : "Parameters"
-  }, {
     "id" : "context",
     "label" : "Context"
   }, {
-    "id" : "prompt",
-    "label" : "Prompt"
+    "id" : "systemPrompt",
+    "label" : "System Prompt"
+  }, {
+    "id" : "userPrompt",
+    "label" : "User Prompt"
   }, {
     "id" : "tools",
     "label" : "Tools"
@@ -39,6 +39,9 @@
   }, {
     "id" : "guardrails",
     "label" : "Guardrails"
+  }, {
+    "id" : "parameters",
+    "label" : "Parameters"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -352,6 +355,125 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.agentContext",
+    "label" : "Agent Context",
+    "description" : "The agent context variable containing the conversation memory",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "context",
+    "binding" : {
+      "name" : "data.context",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.systemPrompt.prompt",
+    "label" : "System Prompt",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "systemPrompt",
+    "binding" : {
+      "name" : "data.systemPrompt.prompt",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.systemPrompt.parameters",
+    "label" : "System Prompt Parameters",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "systemPrompt",
+    "binding" : {
+      "name" : "data.systemPrompt.parameters",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.userPrompt.prompt",
+    "label" : "User Prompt",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "userPrompt",
+    "binding" : {
+      "name" : "data.userPrompt.prompt",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.userPrompt.parameters",
+    "label" : "User Prompt Parameters",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "userPrompt",
+    "binding" : {
+      "name" : "data.userPrompt.parameters",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.tools.containerElementId",
+    "label" : "Ad-hoc subprocess ID containing tools",
+    "description" : "The ID of the subprocess containing the tools to be called",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "tools",
+    "binding" : {
+      "name" : "data.tools.containerElementId",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.tools.toolCallResults",
+    "label" : "Tool Call Results",
+    "description" : "Tool call results as returned by the subprocess",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "tools",
+    "binding" : {
+      "name" : "data.tools.toolCallResults",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.memory.maxMessages",
+    "label" : "Maximum amount of messages to keep in memory",
+    "optional" : false,
+    "value" : 20,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "static",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.maxMessages",
+      "type" : "zeebe:input"
+    },
+    "type" : "Number"
+  }, {
+    "id" : "data.guardrails.maxModelCalls",
+    "label" : "Maximum number of calls to the model",
+    "optional" : false,
+    "value" : 10,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "static",
+    "group" : "guardrails",
+    "binding" : {
+      "name" : "data.guardrails.maxModelCalls",
+      "type" : "zeebe:input"
+    },
+    "type" : "Number"
+  }, {
     "id" : "provider.anthropic.model.parameters.maxOutputTokens",
     "label" : "Maximum Output Tokens",
     "optional" : true,
@@ -541,105 +663,6 @@
       "property" : "provider.type",
       "equals" : "openai",
       "type" : "simple"
-    },
-    "type" : "Number"
-  }, {
-    "id" : "data.agentContext",
-    "label" : "Agent Context",
-    "description" : "The agent context variable containing the conversation memory",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "context",
-    "binding" : {
-      "name" : "data.context",
-      "type" : "zeebe:input"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "data.systemPrompt.systemPrompt",
-    "label" : "System Prompt",
-    "description" : "Specify the system prompt",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "prompt",
-    "binding" : {
-      "name" : "data.systemPrompt.systemPrompt",
-      "type" : "zeebe:input"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "data.userPrompt.userPrompt",
-    "label" : "User Prompt",
-    "description" : "Specify the user prompt",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "prompt",
-    "binding" : {
-      "name" : "data.userPrompt.userPrompt",
-      "type" : "zeebe:input"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "data.tools.containerElementId",
-    "label" : "Ad-hoc subprocess ID containing tools",
-    "description" : "The ID of the subprocess containing the tools to be called",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "tools",
-    "binding" : {
-      "name" : "data.tools.containerElementId",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.tools.toolCallResults",
-    "label" : "Tool Call Results",
-    "description" : "Tool call results as returned by the subprocess",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "tools",
-    "binding" : {
-      "name" : "data.tools.toolCallResults",
-      "type" : "zeebe:input"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "data.memory.maxMessages",
-    "label" : "Maximum amount of messages to keep in memory",
-    "optional" : false,
-    "value" : 20,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "static",
-    "group" : "memory",
-    "binding" : {
-      "name" : "data.memory.maxMessages",
-      "type" : "zeebe:input"
-    },
-    "type" : "Number"
-  }, {
-    "id" : "data.guardrails.maxModelCalls",
-    "label" : "Maximum number of calls to the model",
-    "optional" : false,
-    "value" : 10,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "static",
-    "group" : "guardrails",
-    "binding" : {
-      "name" : "data.guardrails.maxModelCalls",
-      "type" : "zeebe:input"
     },
     "type" : "Number"
   }, {

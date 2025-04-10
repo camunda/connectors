@@ -28,12 +28,13 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     propertyGroups = {
       @PropertyGroup(id = "model", label = "Model"),
       @PropertyGroup(id = "authentication", label = "Authentication"),
-      @PropertyGroup(id = "parameters", label = "Parameters"),
       @PropertyGroup(id = "context", label = "Context"),
-      @PropertyGroup(id = "prompt", label = "Prompt"),
+      @PropertyGroup(id = "systemPrompt", label = "System Prompt"),
+      @PropertyGroup(id = "userPrompt", label = "User Prompt"),
       @PropertyGroup(id = "tools", label = "Tools"),
       @PropertyGroup(id = "memory", label = "Memory"),
       @PropertyGroup(id = "guardrails", label = "Guardrails"),
+      @PropertyGroup(id = "parameters", label = "Parameters"),
     },
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {
