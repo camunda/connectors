@@ -191,8 +191,9 @@ public class BatchExecutableProcessor {
         data.deduplicationId());
 
     if (metricsRecorder != null) {
-      metricsRecorder.increase(
-          Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, data.type());
+      var type = data.type() + "#" + data.connectorElements().getFirst().element().version();
+      System.out.println("==================================>" + type);
+      metricsRecorder.increase(Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, type);
     }
 
     return new Activated(executable, context);
@@ -213,10 +214,13 @@ public class BatchExecutableProcessor {
           LOG.error("Failed to deactivate executable", e);
         }
         if (metricsRecorder != null) {
+          var type =
+              activated.context().getDefinition().type()
+                  + "#"
+                  + activated.context().connectorElements().getFirst().element().version();
+          System.out.println(type);
           metricsRecorder.increase(
-              Inbound.METRIC_NAME_ACTIVATIONS,
-              Inbound.ACTION_DEACTIVATED,
-              activated.context().getDefinition().type());
+              Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_DEACTIVATED, type);
         }
       }
     }

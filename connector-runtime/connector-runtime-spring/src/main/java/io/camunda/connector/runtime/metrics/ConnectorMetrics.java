@@ -24,7 +24,9 @@ public class ConnectorMetrics {
 
     public static final String METRIC_NAME_INVOCATIONS = "camunda.connector.outbound.invocations";
     public static final String METRIC_NAME_TIME = "camunda.connector.outbound.execution-time";
+    public static final String METRIC_CONNECTOR_VERSION = "camunda.connector.outbound.activations";
 
+    public static final String JOB_RECEIVED = "outbound-connector-job-received";
     // same as job worker metrics from Spring Zeebe
     public static final String ACTION_ACTIVATED = MetricsRecorder.ACTION_ACTIVATED;
     public static final String ACTION_COMPLETED = MetricsRecorder.ACTION_COMPLETED;

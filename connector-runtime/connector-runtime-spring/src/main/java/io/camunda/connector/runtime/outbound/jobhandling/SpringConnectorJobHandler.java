@@ -71,6 +71,13 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
 
   @Override
   public void handle(JobClient client, ActivatedJob job) {
+    String jobTypeAndId =
+        job.getCustomHeaders().getOrDefault("id", "unknown")
+            + "#"
+            + job.getCustomHeaders().getOrDefault("version", "0");
+    System.out.println("==================================>" + jobTypeAndId);
+    metricsRecorder.increase(
+        Outbound.METRIC_CONNECTOR_VERSION, Outbound.JOB_RECEIVED, jobTypeAndId);
     metricsRecorder.executeWithTimer(
         ConnectorMetrics.Outbound.METRIC_NAME_TIME,
         job.getType(),
