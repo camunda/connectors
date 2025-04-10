@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+	<!-- Head (Wireframe) -->
+	<rect x="40" y="50" width="120" height="100" rx="25" ry="25" fill="none" stroke="black" stroke-width="4"/>
+
+	<!-- Eyes (Wireframe) -->
+	<circle cx="75" cy="90" r="15" fill="none" stroke="black" stroke-width="4"/>
+	<circle cx="125" cy="90" r="15" fill="none" stroke="black" stroke-width="4"/>
+	<circle cx="75" cy="90" r="7" fill="#000" stroke="black" stroke-width="4"/>
+	<circle cx="125" cy="90" r="7" fill="#000" stroke="black" stroke-width="4"/>
+
+	<!-- Mouth (Wireframe) -->
+	<path d="M 70 120 Q 100 150, 130 120" fill="none" stroke="black" stroke-width="4"/>
+
+	<!-- Antenna (Wireframe) -->
+	<line x1="100" y1="50" x2="100" y2="30" stroke="black" stroke-width="4"/>
+	<circle cx="100" cy="30" r="7" fill="#000" stroke="black" stroke-width="4"/>
+
+	<!-- Ears (Wireframe) -->
+	<circle cx="40" cy="100" r="10" fill="#000" stroke="black" stroke-width="4"/>
+	<circle cx="160" cy="100" r="10" fill="#000" stroke="black" stroke-width="4"/>
+</svg>
