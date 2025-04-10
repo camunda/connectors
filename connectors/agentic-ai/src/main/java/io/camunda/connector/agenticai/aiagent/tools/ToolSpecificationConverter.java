@@ -24,7 +24,7 @@ import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
-import io.modelcontextprotocol.spec.McpSchema;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import java.util.Map;
 
 /**
@@ -54,13 +54,14 @@ public class ToolSpecificationConverter {
         .build();
   }
 
-  public ToolSpecification asToolSpecification(McpSchema.Tool mcpTool) {
-    JsonNode schemaNode = JsonMapperFactory.getInstance().valueToTree(mcpTool.inputSchema());
+  public ToolSpecification asToolSpecification(
+      AdHocToolsSchemaResponse.AdHocToolDefinition toolDefinition) {
+    JsonNode schemaNode = JsonMapperFactory.getInstance().valueToTree(toolDefinition.inputSchema());
     final var inputSchema = convertToJsonObjectSchema(schemaNode);
 
     return ToolSpecification.builder()
-        .name(mcpTool.name())
-        .description(mcpTool.description())
+        .name(toolDefinition.name())
+        .description(toolDefinition.description())
         .parameters(inputSchema)
         .build();
   }
