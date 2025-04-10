@@ -32,6 +32,9 @@
     "id" : "payload",
     "label" : "Payload"
   }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
     "id" : "output",
     "label" : "Output mapping"
   }, {
@@ -489,6 +492,28 @@
     },
     "tooltip" : "Null values will not be sent",
     "type" : "Boolean"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "10",
+    "group" : "connector",
+    "binding" : {
+      "key" : "version",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.HttpJson.v2",
+    "group" : "connector",
+    "binding" : {
+      "key" : "id",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

@@ -23,6 +23,9 @@
     "id" : "input",
     "label" : "Input message data"
   }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
     "id" : "output",
     "label" : "Output mapping"
   }, {
@@ -84,6 +87,28 @@
     "binding" : {
       "name" : "input.converseData",
       "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "version",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "id",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
   }, {

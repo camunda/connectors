@@ -717,7 +717,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               Map.entry("group2", "Group 2"),
               Map.entry("output", "Output mapping"),
               Map.entry("error", "Error handling"),
-              Map.entry("retries", "Retries")),
+              Map.entry("retries", "Retries"),
+              Map.entry("connector", "Connector")),
           template,
           false);
     }
@@ -729,6 +730,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           List.of(
               Map.entry("group2", "Group Two"),
               Map.entry("group1", "Group One"),
+              Map.entry("connector", "Connector"),
               Map.entry("output", "Output mapping"),
               Map.entry("error", "Error handling"),
               Map.entry("retries", "Retries")),
@@ -765,6 +767,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               Map.entry("customGroup", "Custom group"),
               Map.entry("group2", "Group 2"),
               Map.entry("group1", "Group 1"),
+              Map.entry("connector", "Connector"),
               Map.entry("output", "Output mapping"),
               Map.entry("error", "Error handling"),
               Map.entry("retries", "Retries")),

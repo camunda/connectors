@@ -23,6 +23,9 @@
     "id" : "input",
     "label" : "Configure input"
   }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
     "id" : "output",
     "label" : "Output mapping"
   }, {
@@ -531,6 +534,28 @@
       "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "version",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.GoogleGemini.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "id",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
