@@ -743,7 +743,11 @@ limitations under the License.</license.inlineheader>
           <artifactId>maven-enforcer-plugin</artifactId>
           <version>${plugin.version.maven-enforcer-plugin}</version>
           <configuration>
-            <skip>true</skip>
+            <rules>
+              <requirePluginVersions>
+                <banSnapshots>false</banSnapshots>
+              </requirePluginVersions>
+            </rules>
           </configuration>
           <executions>
             <execution>
@@ -843,6 +847,16 @@ limitations under the License.</license.inlineheader>
               </manifest>
             </archive>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.12.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>${plugin.version.maven-resources-plugin}</version>
         </plugin>
       </plugins>
     </pluginManagement>
