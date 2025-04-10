@@ -192,7 +192,6 @@ public class BatchExecutableProcessor {
 
     if (metricsRecorder != null) {
       var type = data.type() + "#" + data.connectorElements().getFirst().element().version();
-      System.out.println("==================================>" + type);
       metricsRecorder.increase(Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, type);
     }
 
