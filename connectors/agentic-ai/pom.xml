@@ -19,7 +19,6 @@
 
   <properties>
     <version.langchain4j>1.0.0-beta2</version.langchain4j>
-    <version.mcp-sdk>0.8.1</version.mcp-sdk>
     <version.json-schema-validator>1.5.6</version.json-schema-validator>
   </properties>
 
@@ -73,12 +72,6 @@
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-open-ai</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.modelcontextprotocol.sdk</groupId>
-      <artifactId>mcp</artifactId>
-      <version>${version.mcp-sdk}</version>
     </dependency>
 
     <dependency>

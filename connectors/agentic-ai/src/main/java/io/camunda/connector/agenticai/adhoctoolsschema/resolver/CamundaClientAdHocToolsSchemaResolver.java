@@ -9,18 +9,23 @@ package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition.JsonSchema;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
 import io.camunda.zeebe.model.bpmn.instance.FlowNode;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
-import io.modelcontextprotocol.spec.McpSchema;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,23 +36,21 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
       LoggerFactory.getLogger(CamundaClientAdHocToolsSchemaResolver.class);
 
   private static final String INPUT_SCHEMA_PROPERTY_NAME = "camunda:adHocActivityInputSchema";
-  private static final String EMPTY_INPUT_SCHEMA =
-      """
-        {
-          "type": "object",
-          "properties": {},
-          "required": []
-        }
-        """;
 
   private final CamundaClient camundaClient;
+  private final ObjectMapper objectMapper;
+  private final FeelEngineWrapper feelEngineWrapper;
 
-  public CamundaClientAdHocToolsSchemaResolver(CamundaClient camundaClient) {
+  public CamundaClientAdHocToolsSchemaResolver(
+      CamundaClient camundaClient, ObjectMapper objectMapper, FeelEngineWrapper feelEngineWrapper) {
     this.camundaClient = camundaClient;
+    this.objectMapper = objectMapper;
+    this.feelEngineWrapper = feelEngineWrapper;
   }
 
   @Override
-  public AdHocToolsSchema resolveSchema(Long processDefinitionKey, String adHocSubprocessId) {
+  public AdHocToolsSchemaResponse resolveSchema(
+      Long processDefinitionKey, String adHocSubprocessId) {
     LOGGER.info(
         "Resolving tool schema for ad-hoc subprocess {} in process definition with key {}",
         adHocSubprocessId,
@@ -65,61 +68,67 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
       throw new RuntimeException("Ad-hoc subprocess %s not found".formatted(adHocSubprocessId));
     }
 
-    final var toolDefinitionMappings =
+    final var toolDefinitions =
         adHocSubProcess.getChildElementsByType(FlowNode.class).stream()
             .filter(element -> element.getIncoming().isEmpty())
-            .map(this::mapActivityToToolDefinitions)
+            .map(this::mapActivityToToolDefinition)
             .toList();
 
-    final var tools = toolDefinitionMappings.stream().flatMap(t -> t.tools().stream()).toList();
-
-    return new AdHocToolsSchema(tools);
+    return new AdHocToolsSchemaResponse(toolDefinitions);
   }
 
-  private ActivityToToolsMapping mapActivityToToolDefinitions(FlowNode element) {
-    final var documentation =
-        element.getDocumentations().stream()
-            .filter(d -> "text/plain".equals(d.getTextFormat()))
-            .findFirst()
-            .map(ModelElementInstance::getTextContent)
-            .orElse("");
+  private AdHocToolDefinition mapActivityToToolDefinition(FlowNode element) {
+    final var documentation = getDocumentation(element);
+    final var inputSchema = getInputSchema(element);
 
-    final var inputSchemaProperty =
-        Optional.ofNullable(element.getSingleExtensionElement(ZeebeProperties.class))
-            .flatMap(
-                extension ->
-                    extension.getProperties().stream()
-                        .filter(p -> INPUT_SCHEMA_PROPERTY_NAME.equals(p.getName()))
-                        .findFirst())
-            .orElse(null);
+    return inputSchema
+        .map(
+            inputSchemaValue ->
+                this.toolDefinitionFromInputSchema(element, documentation, inputSchemaValue))
+        .orElseGet(
+            () -> new AdHocToolDefinition(element.getId(), documentation, JsonSchema.empty()));
+  }
 
-    // from defined input JSON schema
-    if (inputSchemaProperty != null) {
-      try {
-        return new ActivityToToolsMapping(
-            new McpSchema.Tool(element.getId(), documentation, inputSchemaProperty.getValue()));
-      } catch (Exception e) {
-        if (e.getCause() instanceof JsonParseException jpe) {
-          throw new ConnectorException(
-              "Failed to parse input JSON schema for node %s: %s"
-                  .formatted(element.getId(), humanReadableJsonProcessingExceptionMessage(jpe)),
-              jpe);
-        }
+  private AdHocToolDefinition toolDefinitionFromInputSchema(
+      final FlowNode element, final String documentation, final String inputSchema) {
 
+    var inputSchemaJson = inputSchema;
+    if (inputSchemaJson.startsWith("=")) {
+      inputSchemaJson = feelEngineWrapper.evaluateToJson(inputSchemaJson);
+    }
+
+    try {
+      JsonSchema parsedJsonSchema = objectMapper.readValue(inputSchemaJson, JsonSchema.class);
+      return new AdHocToolDefinition(element.getId(), documentation, parsedJsonSchema);
+    } catch (Exception e) {
+      if (e.getCause() instanceof JsonParseException jpe) {
         throw new ConnectorException(
-            "Failed to parse input JSON schema for node %s".formatted(element.getId()), e);
+            "Failed to parse input JSON schema for node %s: %s"
+                .formatted(element.getId(), humanReadableJsonProcessingExceptionMessage(jpe)),
+            jpe);
       }
-    }
 
-    // from documentation with empty schema
-    return new ActivityToToolsMapping(
-        new McpSchema.Tool(element.getId(), documentation, EMPTY_INPUT_SCHEMA));
+      throw new ConnectorException(
+          "Failed to parse input JSON schema for node %s".formatted(element.getId()), e);
+    }
   }
 
-  // wrapper around a single activity possibly exposing multiple tools (e.g. MCP)
-  private record ActivityToToolsMapping(List<McpSchema.Tool> tools) {
-    public ActivityToToolsMapping(McpSchema.Tool tool) {
-      this(List.of(tool));
-    }
+  private String getDocumentation(FlowNode element) {
+    return element.getDocumentations().stream()
+        .filter(d -> "text/plain".equals(d.getTextFormat()))
+        .findFirst()
+        .map(ModelElementInstance::getTextContent)
+        .orElse("");
+  }
+
+  private Optional<String> getInputSchema(FlowNode element) {
+    return Optional.ofNullable(element.getSingleExtensionElement(ZeebeProperties.class))
+        .flatMap(
+            extension ->
+                extension.getProperties().stream()
+                    .filter(p -> INPUT_SCHEMA_PROPERTY_NAME.equals(p.getName()))
+                    .map(ZeebeProperty::getValue)
+                    .findFirst())
+        .filter(StringUtils::isNotBlank);
   }
 }

@@ -47,7 +47,7 @@ public class ToolCallingHandler {
     final var adHocToolsSchema =
         schemaResolver.resolveSchema(processDefinitionKey, containerElementId);
 
-    return adHocToolsSchema.tools().stream()
+    return adHocToolsSchema.toolDefinitions().stream()
         .map(toolSpecificationConverter::asToolSpecification)
         .toList();
   }

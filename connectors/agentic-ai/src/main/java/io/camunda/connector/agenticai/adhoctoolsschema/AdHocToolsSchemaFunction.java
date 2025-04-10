@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.adhoctoolsschema;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchema;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -37,7 +37,7 @@ public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public AdHocToolsSchema execute(OutboundConnectorContext context) {
+  public AdHocToolsSchemaResponse execute(OutboundConnectorContext context) {
     AdHocToolsSchemaRequest request = context.bindVariables(AdHocToolsSchemaRequest.class);
 
     return schemaResolver.resolveSchema(
