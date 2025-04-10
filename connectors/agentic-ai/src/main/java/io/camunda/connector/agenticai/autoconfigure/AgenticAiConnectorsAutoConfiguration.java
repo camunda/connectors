@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.agent.DefaultAiAgentRequestHandler
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -35,8 +36,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AdHocToolsSchemaResolver adHocToolsSchemaResolver(
-      AgenticAiConnectorsConfigurationProperties configuration, CamundaClient camundaClient) {
-    final var resolver = new CamundaClientAdHocToolsSchemaResolver(camundaClient);
+      AgenticAiConnectorsConfigurationProperties configuration,
+      CamundaClient camundaClient,
+      ObjectMapper objectMapper,
+      FeelEngineWrapper feelEngineWrapper) {
+    final var resolver =
+        new CamundaClientAdHocToolsSchemaResolver(camundaClient, objectMapper, feelEngineWrapper);
 
     final var cacheConfiguration = configuration.tools().cache();
     if (cacheConfiguration.enabled()) {

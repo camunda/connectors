@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
+
 public interface AdHocToolsSchemaResolver {
-  AdHocToolsSchema resolveSchema(Long processDefinitionKey, String adHocSubprocessId);
+  AdHocToolsSchemaResponse resolveSchema(Long processDefinitionKey, String adHocSubprocessId);
 }

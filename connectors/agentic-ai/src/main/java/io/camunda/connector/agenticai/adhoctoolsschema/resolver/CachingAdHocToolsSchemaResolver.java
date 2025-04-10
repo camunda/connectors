@@ -8,12 +8,13 @@ package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import java.time.Duration;
 import java.util.Optional;
 
 public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver {
 
-  private final LoadingCache<AdHocToolsIdentifier, AdHocToolsSchema> cache;
+  private final LoadingCache<AdHocToolsIdentifier, AdHocToolsSchemaResponse> cache;
 
   public CachingAdHocToolsSchemaResolver(
       AdHocToolsSchemaResolver delegate, CacheConfiguration cacheConfiguration) {
@@ -21,11 +22,12 @@ public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver
   }
 
   @Override
-  public AdHocToolsSchema resolveSchema(Long processDefinitionKey, String adHocSubprocessId) {
+  public AdHocToolsSchemaResponse resolveSchema(
+      Long processDefinitionKey, String adHocSubprocessId) {
     return cache.get(new AdHocToolsIdentifier(processDefinitionKey, adHocSubprocessId));
   }
 
-  private static LoadingCache<AdHocToolsIdentifier, AdHocToolsSchema> buildCache(
+  private static LoadingCache<AdHocToolsIdentifier, AdHocToolsSchemaResponse> buildCache(
       AdHocToolsSchemaResolver delegate, CacheConfiguration config) {
     final var builder = Caffeine.newBuilder();
     Optional.ofNullable(config.maxSize()).ifPresent(builder::maximumSize);
