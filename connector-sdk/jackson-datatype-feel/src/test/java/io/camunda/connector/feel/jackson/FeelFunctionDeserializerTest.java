@@ -38,7 +38,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelFunctionDeserialization_objectResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "function": "= { result: a + b }" }
         """;
 
@@ -55,7 +56,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelFunctionDeserialization_stringResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "function": "= a + b" }
         """;
 
@@ -71,7 +73,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelFunctionDeserialization_booleanResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "function": "= a = b" }
         """;
 
@@ -87,7 +90,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelFunctionDeserialization_integerResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "function": "= a + b" }
         """;
 
@@ -103,7 +107,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelFunctionDeserialization_nullResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "function": "= null" }
         """;
 
@@ -119,7 +124,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelSupplierDeserialization_listResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "function": "= [a, b]" }
         """;
 
@@ -135,7 +141,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelSupplierDeserialization_mapResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "function": "= { foo: a + b }" }
         """;
 
@@ -151,7 +158,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelSupplierDeserialization_foldedMapResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "function": "= { foo: {bar: a + b, baz: b - a} }" }
         """;
 
@@ -184,7 +192,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelFunctionDeserialization_contextAware_mergedWithInput() throws IOException {
     // given
-    var json = """
+    var json =
+        """
         { "function": "= { result: a + c }" }
         """;
     var contextualReader =
@@ -203,7 +212,8 @@ public class FeelFunctionDeserializerTest {
   @Test
   void feelFunctionDeserialization_contextAware_knowsJava8Time() throws IOException {
     // given
-    var json = """
+    var json =
+        """
         { "function": "= string(date(2021, 1, 1))" }
         """;
     var contextualReader =

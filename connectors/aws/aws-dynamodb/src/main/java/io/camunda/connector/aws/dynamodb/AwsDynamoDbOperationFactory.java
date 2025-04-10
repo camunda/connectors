@@ -44,8 +44,9 @@ public class AwsDynamoDbOperationFactory {
       case GetItem getItem -> new GetItemOperation(getItem);
       case ScanTable scanTable -> new ScanTableOperation(scanTable);
       case UpdateItem updateItem -> new UpdateItemOperation(updateItem);
-      default -> throw new UnsupportedOperationException(
-          "Unsupported operation: [" + input.getClass().getSimpleName() + "]");
+      default ->
+          throw new UnsupportedOperationException(
+              "Unsupported operation: [" + input.getClass().getSimpleName() + "]");
     };
   }
 }

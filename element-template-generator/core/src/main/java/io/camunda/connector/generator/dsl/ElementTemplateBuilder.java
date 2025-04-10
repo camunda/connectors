@@ -62,10 +62,11 @@ public class ElementTemplateBuilder {
 
   protected boolean isTypeAssigned() {
     return switch (mode) {
-      case INBOUND -> properties.stream()
-          .anyMatch(property -> property.binding.equals(ZeebeProperty.TYPE));
-      case OUTBOUND -> properties.stream()
-          .anyMatch(property -> property.binding.equals(ZeebeTaskDefinition.TYPE));
+      case INBOUND ->
+          properties.stream().anyMatch(property -> property.binding.equals(ZeebeProperty.TYPE));
+      case OUTBOUND ->
+          properties.stream()
+              .anyMatch(property -> property.binding.equals(ZeebeTaskDefinition.TYPE));
     };
   }
 

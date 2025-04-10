@@ -42,7 +42,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_deserializeMap() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "props": "= { result: \\"foobar\\" }" }
         """;
 
@@ -57,7 +58,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_deserializeNestedMap() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "stubObject": "= { props: { nested: \\"foobar\\" } }" }
         """;
 
@@ -72,7 +74,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_deserializePrimitive() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "props": "= \\"foobar\\"" }
         """;
 
@@ -86,7 +89,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_wrongType_throwsException() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "= { result: \\"foobar\\" }" }
         """;
 
@@ -97,7 +101,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_plainString_preserved() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "props": "foobar" }
         """;
 
@@ -109,7 +114,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_notFeel_jsonArray_parsed() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "[1, 2, 3]" }
         """;
 
@@ -121,7 +127,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_notFeel_jsonList_parsed() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "[1, 2, 3]" }
         """;
 
@@ -133,7 +140,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_notFeel_jsonObject_parsed() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "{\\"foo\\": \\"bar\\"}" }
         """;
 
@@ -145,7 +153,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_notFeel_stringListLong_parsed() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "1, 2, 3" }
         """;
 
@@ -157,7 +166,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_notFeel_stringListInteger_parsed() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "1, 2, 3" }
         """;
 
@@ -169,7 +179,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_notFeel_stringList_parsed() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "a, b, c" }
         """;
 
@@ -181,7 +192,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_notFeel_string_parsed() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "a, b, c" }
         """;
 
@@ -193,7 +205,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_contextSupplied_valid() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "= { first: a, second: b }" }
         """;
     Supplier<Map<String, String>> supplier = () -> Map.of("a", "value1", "b", "value2");
@@ -208,7 +221,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_contextSupplied_invalidObjectProvided() {
     // given
-    String json = """
+    String json =
+        """
         { "props": "= { first: a, second: b }" }
         """;
     var objectReader =
@@ -228,7 +242,8 @@ public class FeelDeserializerTest {
     // this test is to ensure that deserialization takes active jackson modules into account
 
     // given
-    String json = """
+    String json =
+        """
         { "props": "2019-01-01" }
         """;
 
@@ -240,7 +255,8 @@ public class FeelDeserializerTest {
   @Test
   void feelDeserializer_notFeel_null_parsed() {
     // given
-    String json = """
+    String json =
+        """
         { "props": null }
         """;
 
