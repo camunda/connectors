@@ -35,29 +35,48 @@ public record AgentRequest(ProviderConfiguration provider, AgentRequestData data
       @Valid @NotNull ToolsConfiguration tools,
       @Valid @NotNull MemoryConfiguration memory,
       @Valid @NotNull GuardrailsConfiguration guardrails) {
+
+    public interface PromptConfiguration {
+      String prompt();
+
+      Map<String, Object> parameters();
+    }
+
     public record SystemPromptConfiguration(
         @FEEL
             @TemplateProperty(
+                group = "systemPrompt",
                 label = "System Prompt",
-                group = "prompt",
-                id = "systemPrompt",
-                description = "Specify the system prompt",
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.optional)
             @NotBlank
-            String systemPrompt) {}
+            String prompt,
+        @FEEL
+            @TemplateProperty(
+                group = "systemPrompt",
+                label = "System Prompt Parameters",
+                feel = Property.FeelMode.required,
+                optional = true)
+            Map<String, Object> parameters)
+        implements PromptConfiguration {}
 
     public record UserPromptConfiguration(
         @FEEL
             @TemplateProperty(
+                group = "userPrompt",
                 label = "User Prompt",
-                group = "prompt",
-                id = "userPrompt",
-                description = "Specify the user prompt",
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.optional)
             @NotBlank
-            String userPrompt) {}
+            String prompt,
+        @FEEL
+            @TemplateProperty(
+                group = "userPrompt",
+                label = "User Prompt Parameters",
+                feel = Property.FeelMode.required,
+                optional = true)
+            Map<String, Object> parameters)
+        implements PromptConfiguration {}
 
     public record ToolsConfiguration(
         @TemplateProperty(
