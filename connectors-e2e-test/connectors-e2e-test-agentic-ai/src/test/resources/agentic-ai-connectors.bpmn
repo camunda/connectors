@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1gx9y68" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.34.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:process id="Process_1yhuxuj" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1lbh2cw</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1lbh2cw" sourceRef="StartEvent_1" targetRef="Gateway_0d7bxjf" />
+    <bpmn:adHocSubProcess id="Agent_Tools" name="Agent Tools">
+      <bpmn:extensionElements>
+        <zeebe:adHoc activeElementsCollection="=[toolToCall.name]" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Agent_ToolCalls</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ytgkit</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:extensionElements>
+          <zeebe:loopCharacteristics inputCollection="=agent.toolsToCall" inputElement="toolToCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolToCall.id,&#10;  name: toolToCall.name,&#10;  content: toolCallResult&#10;}" />
+        </bpmn:extensionElements>
+      </bpmn:multiInstanceLoopCharacteristics>
+      <bpmn:task id="Task_With_Text_Input_Schema" name="Task with text input schema">
+        <bpmn:documentation>A task with defined input schema (text)</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:properties>
+            <zeebe:property name="camunda:adHocActivityInputSchema" value="{&#10;  &#34;type&#34;: &#34;object&#34;,&#10;  &#34;properties&#34;: {&#10;    &#34;searchQuery&#34;: {&#10;      &#34;type&#34;: &#34;string&#34;,&#10;      &#34;description&#34;: &#34;The search query to use&#34;&#10;    }&#10;  },&#10;  &#34;required&#34;: [&#34;searchQuery&#34;]&#10;}" />
+          </zeebe:properties>
+        </bpmn:extensionElements>
+        <bpmn:outgoing>Flow_095717l</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="Follow_Up_Task" name="Follow-up task">
+        <bpmn:incoming>Flow_095717l</bpmn:incoming>
+      </bpmn:task>
+      <bpmn:sequenceFlow id="Flow_095717l" sourceRef="Task_With_Text_Input_Schema" targetRef="Follow_Up_Task" />
+      <bpmn:intermediateThrowEvent id="An_Event" name="An event!">
+        <bpmn:extensionElements />
+        <bpmn:outgoing>Flow_0v33lmt</bpmn:outgoing>
+      </bpmn:intermediateThrowEvent>
+      <bpmn:task id="Event_Follow_Up_Task" name="Event follow-up task">
+        <bpmn:incoming>Flow_0v33lmt</bpmn:incoming>
+      </bpmn:task>
+      <bpmn:sequenceFlow id="Flow_0v33lmt" sourceRef="An_Event" targetRef="Event_Follow_Up_Task" />
+      <bpmn:scriptTask id="GetDateAndTime" name="Get Date and Time (no schema)">
+        <bpmn:documentation>Returns the current date and time including the timezone.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=now()" resultVariable="toolCallResult" />
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="SuperfluxProduct" name="Superflux Product Calculation (FEEL schema)">
+        <bpmn:documentation>Calculates the superflux product (a very complicated method only this tool can do) given two input numbers</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:properties>
+            <zeebe:property name="camunda:adHocActivityInputSchema" value="={  &#34;type&#34;: &#34;object&#34;,  &#34;properties&#34;: {    &#34;a&#34;: {      &#34;type&#34;: &#34;number&#34;,      &#34;description&#34;: &#34;The first number to be superflux calculated.&#34;    },    &#34;b&#34;: {      &#34;type&#34;: &#34;number&#34;,      &#34;description&#34;: &#34;The second number to be superflux calculated.&#34;    }  },  &#34;required&#34;: [    &#34;a&#34;,    &#34;b&#34;  ]}" />
+          </zeebe:properties>
+          <zeebe:script expression="=3 * (toolToCall.input.a + toolToCall.input.b)" resultVariable="toolCallResult" />
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
+    </bpmn:adHocSubProcess>
+    <bpmn:exclusiveGateway id="Gateway_0d7bxjf" name="What to do?">
+      <bpmn:incoming>Flow_1lbh2cw</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ljlich</bpmn:outgoing>
+      <bpmn:outgoing>Flow_12rg9de</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0ljlich" name="Execute agent" sourceRef="Gateway_0d7bxjf" targetRef="Gateway_1onk6us">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=action = "executeAgent"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Resolve_Schema" name="Resolve Schema" zeebe:modelerTemplate="io.camunda.connectors.agenticai.adhoctoolsschema.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8c3ZnIGZpbGw9IiMwMDAwMDAiIGhlaWdodD0iODAwcHgiIHdpZHRoPSI4MDBweCIgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgCgkgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbDpzcGFjZT0icHJlc2VydmUiPgo8Zz4KCTxnPgoJCTxnPgoJCQk8cGF0aCBkPSJNNTAwLjIzLDI3MC4wNTFoLTc0LjU0VjIxMi42NmMwLTYuNTAxLTUuMjcxLTExLjc3LTExLjc3LTExLjc3aC00OC4xbDI3LjY4OC00Ny45NThsNjQuMDQ2LDM2Ljk3NwoJCQkJYzEuODA0LDEuMDQzLDMuODM3LDEuNTc3LDUuODg1LDEuNTc3YzEuMDE5LDAsMi4wNDQtMC4xMzMsMy4wNDYtMC40MDFjMy4wMTctMC44MDksNS41ODYtMi43OCw3LjE0Ny01LjQ4NGwyMC41OTgtMzUuNjc4CgkJCQljMi41MzMtNC4zODgsMS45NzUtOS45MDYtMS4zODktMTMuNjk2QzQ0NS45MTMsODMuMzMzLDM5NC43OTMsMjkuMzcxLDMzMS40MjQsMS42NDljLTUuNDkxLTIuNDAyLTExLjkxMy0wLjI5NC0xNC45MSw0Ljg5OQoJCQkJbC0zOC4yNTMsNjYuMjU2Yy0zLjI1MSw1LjYzLTEuMzIyLDEyLjgyOCw0LjMwOCwxNi4wNzhsMzkuNTg2LDIyLjg1NWwtNjkuMzk0LDEyMC4xODlsLTc4Ljg5My0xMTYuOTUzbC0yLjE5NC0xNi44MTgKCQkJCWMtMC4yMzctMS44MTMtMC44OTItMy41NDQtMS45MTQtNS4wNTlsLTI5LjgzNy00NC4yMzJjLTMuNjM2LTUuMzktMTAuOTUyLTYuODEtMTYuMzM5LTMuMTc2bC01My42NiwzNi4xOTMKCQkJCWMtMi41ODgsMS43NDYtNC4zNzcsNC40NDgtNC45NzMsNy41MTJjLTAuNTk2LDMuMDY0LDAuMDUxLDYuMjQsMS43OTYsOC44MjhsMjkuODM3LDQ0LjIzMmMxLjAyLDEuNTEzLDIuMzc5LDIuNzY3LDMuOTY4LDMuNjY1CgkJCQlsMTQuNzY5LDguMzQ1bDc3Ljk3LDExNS41ODdIMTQ3LjY3bC00Ni40NTgtOTUuNDg1Yy0yLjg0NS01Ljg0NS05Ljg5LTguMjc3LTE1LjczMy01LjQzNGMtNS44NDUsMi44NDUtOC4yNzgsOS44ODgtNS40MzQsMTUuNzMzCgkJCQlsNDEuNDQ3LDg1LjE4Nkg5MS43MTJsLTE4LjU1Ni00Mi4yMDVjLTIuNjE4LTUuOTUxLTkuNTY2LTguNjUzLTE1LjUxMi02LjAzN2MtNS45NTEsMi42MTYtOC42NTUsOS41NjEtNi4wMzgsMTUuNTEyCgkJCQlsMTQuMzksMzIuNzMySDExLjc3Yy02LjUsMC0xMS43Nyw1LjI2OS0xMS43NywxMS43N3Y2NC43MzZjMCw2LjUwMSw1LjI3MSwxMS43NywxMS43NywxMS43N2gyMC41OTh2MTQxLjI0MQoJCQkJYzAsNi41MDEsNS4yNzEsMTEuNzcsMTEuNzcsMTEuNzdoNDIzLjcyNGM2LjQ5OSwwLDExLjc3LTUuMjY5LDExLjc3LTExLjc3VjM1OC4zMjhoMjAuNTk4YzYuNSwwLDExLjc3LTUuMjY5LDExLjc3LTExLjc3CgkJCQl2LTY0LjczNkM1MTIsMjc1LjMyLDUwNi43MjksMjcwLjA1MSw1MDAuMjMsMjcwLjA1MXogTTQwMi4xNSwyMjQuNDN2NDUuNjIxaC03Ni4yNTlsMjYuMzM4LTQ1LjYyMUg0MDIuMTV6IE0zMDQuNTMzLDc0LjM4MQoJCQkJbDI2Ljk4Mi00Ni43MzRjNTIuMzg1LDI1LjgyNyw5Ni45MTcsNzEuNzgsMTM4LjA4LDExNy44NjhsLTEwLjQ2NCwxOC4xMjJMMzA0LjUzMyw3NC4zODF6IE0yNjMuNzM0LDI2MC4wMTMKCQkJCWMwLjAwNS0wLjAwOCwwLjAwNy0wLjAxNiwwLjAxMi0wLjAyNWw3OC43OTktMTM2LjQ4MmwzMC41NzgsMTcuNjU0bC03NC40MTIsMTI4Ljg5aC00MC43NzRMMjYzLjczNCwyNjAuMDEzeiBNMTMzLjI4NSwxMzkKCQkJCWMtMS4wMi0xLjUxMi0yLjM3OS0yLjc2Ny0zLjk2OC0zLjY2NWwtMTQuNzY5LTguMzQ1TDkyLjg0Niw5NC44MTVsMzQuMTQ0LTIzLjAyOWwyMS43MDIsMzIuMTcxbDIuMTk0LDE2LjgxOAoJCQkJYzAuMjM3LDEuODEzLDAuODkyLDMuNTQ0LDEuOTE0LDUuMDU5bDg2Ljg2OCwxMjguNzcybC04LjkxNywxNS40NDRoLTkuMDYzTDEzMy4yODUsMTM5eiBNNDU2LjA5Miw0MzguOTUyaC00OC44NDYKCQkJCWMtNi40OTksMC0xMS43Nyw1LjI2OS0xMS43NywxMS43N3M1LjI3MSwxMS43NywxMS43NywxMS43N2g0OC44NDZ2MjUuMzA2SDU1LjkwOHYtMjUuMzA2aDQ4Ljg0NgoJCQkJYzYuNDk5LDAsMTEuNzctNS4yNjksMTEuNzctMTEuNzdzLTUuMjcxLTExLjc3LTExLjc3LTExLjc3SDU1LjkwOHYtODAuNjI1aDEzNS4zNTZ2NDEuMTk1YzAsNi41MDEsNS4yNzEsMTEuNzcsMTEuNzcsMTEuNzcKCQkJCWgxMDUuOTMxYzYuNDk5LDAsMTEuNzctNS4yNjksMTEuNzctMTEuNzd2LTQxLjE5NWgxMzUuMzU2VjQzOC45NTJ6IE0yMTQuODA1LDM4Ny43NTJ2LTI5LjQyNWg4Mi4zOTF2MjkuNDI1SDIxNC44MDV6CgkJCQkgTTQ4OC40NiwzMzQuNzg3SDIzLjU0di00MS4xOTVoNDY0LjkyVjMzNC43ODd6Ii8+CgkJCTxwYXRoIGQ9Ik0xNDkuNjc3LDQzOC45NTJIMTQ4LjVjLTYuNDk5LDAtMTEuNzcsNS4yNjktMTEuNzcsMTEuNzdzNS4yNzEsMTEuNzcsMTEuNzcsMTEuNzdoMS4xNzcKCQkJCWM2LjQ5OSwwLDExLjc3LTUuMjY5LDExLjc3LTExLjc3UzE1Ni4xNzYsNDM4Ljk1MiwxNDkuNjc3LDQzOC45NTJ6Ii8+CgkJCTxwYXRoIGQ9Ik0zNjIuMzIzLDQ2Mi40OTJoMS4xNzdjNi40OTksMCwxMS43Ny01LjI2OSwxMS43Ny0xMS43N3MtNS4yNzEtMTEuNzctMTEuNzctMTEuNzdoLTEuMTc3CgkJCQljLTYuNDk5LDAtMTEuNzcsNS4yNjktMTEuNzcsMTEuNzdTMzU1LjgyNCw0NjIuNDkyLDM2Mi4zMjMsNDYyLjQ5MnoiLz4KCQk8L2c+Cgk8L2c+CjwvZz4KPC9zdmc+Cg==">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda.agenticai:adhoctoolsschema:0" retries="3" />
+        <zeebe:ioMapping>
+          <zeebe:input source="Agent_Tools" target="data.containerElementId" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" value="resolvedSchema" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_12rg9de</bpmn:incoming>
+      <bpmn:outgoing>Flow_1g5rpb7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_ResolveSchema">
+      <bpmn:incoming>Flow_1g5rpb7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1g5rpb7" sourceRef="Resolve_Schema" targetRef="EndEvent_ResolveSchema" />
+    <bpmn:sequenceFlow id="Flow_12rg9de" name="Resolve schema" sourceRef="Gateway_0d7bxjf" targetRef="Resolve_Schema">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=action = "resolveSchema"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="Gateway_1onk6us">
+      <bpmn:incoming>Flow_0ljlich</bpmn:incoming>
+      <bpmn:incoming>Flow_0ytgkit</bpmn:incoming>
+      <bpmn:outgoing>Flow_13mqgrx</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_13mqgrx" sourceRef="Gateway_1onk6us" targetRef="AI_Agent" />
+    <bpmn:endEvent id="EndEvent_ExecuteAgent">
+      <bpmn:incoming>Flow_Agent_NoToolCalls</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="Gateway_0bukj01" name="Includes tool calls?">
+      <bpmn:incoming>Flow_04hfzs8</bpmn:incoming>
+      <bpmn:outgoing>Flow_Agent_NoToolCalls</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Agent_ToolCalls</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Agent_NoToolCalls" name="no" sourceRef="Gateway_0bukj01" targetRef="EndEvent_ExecuteAgent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=is empty(agent.toolsToCall)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_04hfzs8" sourceRef="AI_Agent" targetRef="Gateway_0bukj01" />
+    <bpmn:serviceTask id="AI_Agent" name="AI Agent" zeebe:modelerTemplate="io.camunda.connectors.agenticai.aiagent.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+Cgk8IS0tIEhlYWQgKFdpcmVmcmFtZSkgLS0+Cgk8cmVjdCB4PSI0MCIgeT0iNTAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTAwIiByeD0iMjUiIHJ5PSIyNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSI0Ii8+CgoJPCEtLSBFeWVzIChXaXJlZnJhbWUpIC0tPgoJPGNpcmNsZSBjeD0iNzUiIGN5PSI5MCIgcj0iMTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iNCIvPgoJPGNpcmNsZSBjeD0iMTI1IiBjeT0iOTAiIHI9IjE1IiBmaWxsPSJub25lIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjQiLz4KCTxjaXJjbGUgY3g9Ijc1IiBjeT0iOTAiIHI9IjciIGZpbGw9IiMwMDAiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iNCIvPgoJPGNpcmNsZSBjeD0iMTI1IiBjeT0iOTAiIHI9IjciIGZpbGw9IiMwMDAiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iNCIvPgoKCTwhLS0gTW91dGggKFdpcmVmcmFtZSkgLS0+Cgk8cGF0aCBkPSJNIDcwIDEyMCBRIDEwMCAxNTAsIDEzMCAxMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iNCIvPgoKCTwhLS0gQW50ZW5uYSAoV2lyZWZyYW1lKSAtLT4KCTxsaW5lIHgxPSIxMDAiIHkxPSI1MCIgeDI9IjEwMCIgeTI9IjMwIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjQiLz4KCTxjaXJjbGUgY3g9IjEwMCIgY3k9IjMwIiByPSI3IiBmaWxsPSIjMDAwIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjQiLz4KCgk8IS0tIEVhcnMgKFdpcmVmcmFtZSkgLS0+Cgk8Y2lyY2xlIGN4PSI0MCIgY3k9IjEwMCIgcj0iMTAiIGZpbGw9IiMwMDAiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iNCIvPgoJPGNpcmNsZSBjeD0iMTYwIiBjeT0iMTAwIiByPSIxMCIgZmlsbD0iIzAwMCIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSI0Ii8+Cjwvc3ZnPgo=">
+      <bpmn:documentation>My superpowered AI agent</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda.agenticai:aiagent:0" retries="0" />
+        <zeebe:ioMapping>
+          <zeebe:input source="openai" target="provider.type" />
+          <zeebe:input source="gpt-4o" target="provider.openai.model.model" />
+          <zeebe:input source="DUMMY_API_KEY" target="provider.openai.authentication.apiKey" />
+          <zeebe:input source="=agent.context" target="data.context" />
+          <zeebe:input source="You are a helpful AI assistant. Answer all the questions, but always be nice.&#10;&#10;Explain your thinking." target="data.systemPrompt.prompt" />
+          <zeebe:input source="=userPrompt" target="data.userPrompt.prompt" />
+          <zeebe:input source="Agent_Tools" target="data.tools.containerElementId" />
+          <zeebe:input source="=20" target="data.memory.maxMessages" />
+          <zeebe:input source="=10" target="data.guardrails.maxModelCalls" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" value="agent" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_13mqgrx</bpmn:incoming>
+      <bpmn:outgoing>Flow_04hfzs8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_Agent_ToolCalls" name="yes" sourceRef="Gateway_0bukj01" targetRef="Agent_Tools">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=not(is empty(agent.toolsToCall))</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0ytgkit" name="Tool results" sourceRef="Agent_Tools" targetRef="Gateway_1onk6us" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1yhuxuj">
+      <bpmndi:BPMNShape id="Gateway_0d7bxjf_di" bpmnElement="Gateway_0d7bxjf" isMarkerVisible="true">
+        <dc:Bounds x="265" y="255" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="325" y="273" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1onk6us_di" bpmnElement="Gateway_1onk6us" isMarkerVisible="true">
+        <dc:Bounds x="365" y="405" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="162" y="262" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0bukj01_di" bpmnElement="Gateway_0bukj01" isMarkerVisible="true">
+        <dc:Bounds x="630" y="405" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="624" y="376" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0i39jej_di" bpmnElement="EndEvent_ExecuteAgent">
+        <dc:Bounds x="794" y="412" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_11sqttn_di" bpmnElement="AI_Agent" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="480" y="390" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0wo7azd_di" bpmnElement="Resolve_Schema">
+        <dc:Bounds x="340" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1smq0xg_di" bpmnElement="EndEvent_ResolveSchema">
+        <dc:Bounds x="492" y="122" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_005wn4n_di" bpmnElement="Agent_Tools" isExpanded="true">
+        <dc:Bounds x="480" y="530" width="350" height="390" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_02hr6cv_di" bpmnElement="An_Event">
+        <dc:Bounds x="562" y="802" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="558" y="845" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_17rjl26_di" bpmnElement="Event_Follow_Up_Task">
+        <dc:Bounds x="670" y="780" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0bb8bvc_di" bpmnElement="Task_With_Text_Input_Schema">
+        <dc:Bounds x="530" y="680" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0b1o3hz_di" bpmnElement="Follow_Up_Task">
+        <dc:Bounds x="670" y="680" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1sbkoqq_di" bpmnElement="GetDateAndTime">
+        <dc:Bounds x="530" y="580" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0x0a1hy" bpmnElement="SuperfluxProduct">
+        <dc:Bounds x="670" y="580" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0v33lmt_di" bpmnElement="Flow_0v33lmt">
+        <di:waypoint x="598" y="820" />
+        <di:waypoint x="670" y="820" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_095717l_di" bpmnElement="Flow_095717l">
+        <di:waypoint x="630" y="720" />
+        <di:waypoint x="670" y="720" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1lbh2cw_di" bpmnElement="Flow_1lbh2cw">
+        <di:waypoint x="198" y="280" />
+        <di:waypoint x="265" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ljlich_di" bpmnElement="Flow_0ljlich">
+        <di:waypoint x="290" y="305" />
+        <di:waypoint x="290" y="430" />
+        <di:waypoint x="365" y="430" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="214" y="353" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12rg9de_di" bpmnElement="Flow_12rg9de">
+        <di:waypoint x="290" y="255" />
+        <di:waypoint x="290" y="140" />
+        <di:waypoint x="340" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="199" y="193" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1g5rpb7_di" bpmnElement="Flow_1g5rpb7">
+        <di:waypoint x="440" y="140" />
+        <di:waypoint x="492" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ytgkit_di" bpmnElement="Flow_0ytgkit">
+        <di:waypoint x="480" y="720" />
+        <di:waypoint x="390" y="720" />
+        <di:waypoint x="390" y="455" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="407" y="702" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13mqgrx_di" bpmnElement="Flow_13mqgrx">
+        <di:waypoint x="415" y="430" />
+        <di:waypoint x="480" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_04hfzs8_di" bpmnElement="Flow_04hfzs8">
+        <di:waypoint x="580" y="430" />
+        <di:waypoint x="630" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11y3kim_di" bpmnElement="Flow_Agent_NoToolCalls">
+        <di:waypoint x="680" y="430" />
+        <di:waypoint x="794" y="430" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="684" y="412" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1bb8qt0_di" bpmnElement="Flow_Agent_ToolCalls">
+        <di:waypoint x="655" y="455" />
+        <di:waypoint x="655" y="530" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="661" y="490" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

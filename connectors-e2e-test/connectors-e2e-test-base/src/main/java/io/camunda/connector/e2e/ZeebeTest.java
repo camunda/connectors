@@ -22,9 +22,12 @@ import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
+import org.springframework.util.CollectionUtils;
 
 public class ZeebeTest {
 
@@ -53,15 +56,21 @@ public class ZeebeTest {
   }
 
   public ZeebeTest createInstance() {
+    return createInstance(Collections.emptyMap());
+  }
+
+  public ZeebeTest createInstance(Map<String, Object> variables) {
     Assertions.assertNotNull(deploymentEvent, "Process needs to be deployed first.");
     var bpmnProcessId = deploymentEvent.getProcesses().get(0).getBpmnProcessId();
-    processInstanceEvent =
-        camundaClient
-            .newCreateInstanceCommand()
-            .bpmnProcessId(bpmnProcessId)
-            .latestVersion()
-            .send()
-            .join();
+    var command =
+        camundaClient.newCreateInstanceCommand().bpmnProcessId(bpmnProcessId).latestVersion();
+
+    if (!CollectionUtils.isEmpty(variables)) {
+      command = command.variables(variables);
+    }
+
+    processInstanceEvent = command.send().join();
+
     return this;
   }
 
