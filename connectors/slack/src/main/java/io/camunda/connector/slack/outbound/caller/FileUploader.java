@@ -128,11 +128,11 @@ public class FileUploader {
     return files == null || files.isEmpty() ? null : files.getFirst();
   }
 
-  public void setMethodsClient(MethodsClient methodsClient) {
-    this.methodsClient = methodsClient;
-  }
-
   public MethodsClient getMethodsClient() {
     return methodsClient;
+  }
+
+  public void setMethodsClient(MethodsClient methodsClient) {
+    this.methodsClient = methodsClient;
   }
 }
