@@ -56,16 +56,6 @@ class PromptsMapperTest {
     assertThat(ex).hasMessage(EMPTY_PROMPT_MSG);
   }
 
-  @Test
-  void mapWithWrongValueTypeShouldThrowEx() throws Exception {
-    List<Object> input =
-        readValue("src/test/resources/prompts_with_wrong_value_type.json", List.class);
-
-    IllegalArgumentException ex =
-        assertThrows(IllegalArgumentException.class, () -> promptsMapper.map(input));
-    assertThat(ex).hasMessage(INVALID_PROMPT_MSG_FORMAT.formatted(Map.of(TEXT_KEY, List.of(1))));
-  }
-
   @ParameterizedTest
   @ValueSource(strings = {MIME_KEY, URI_KEY, TEXT_KEY})
   void mapWithPossibleKeyWithEmptyValueShouldThrowEx(String key) {

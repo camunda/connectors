@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.enums.FlowNodeInstanceState;
 import io.camunda.client.api.search.response.*;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;

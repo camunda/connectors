@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
     inputVariables = {"baseRequest", "input"},
     type = "io.camunda:idp-extraction-connector-template:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
     name = "IDP extraction outbound Connector",
     version = 1,

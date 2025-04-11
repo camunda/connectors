@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.email.config;
 
+import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
@@ -35,6 +36,7 @@ public record ImapConfig(
             binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapPort"))
         @Valid
         @NotNull
+        @FEEL
         Integer imapPort,
     @TemplateProperty(
             label = "Encryption protocol",

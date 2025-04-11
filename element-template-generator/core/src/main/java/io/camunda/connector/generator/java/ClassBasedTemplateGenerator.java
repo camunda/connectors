@@ -23,11 +23,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
-import io.camunda.connector.generator.dsl.BpmnType;
-import io.camunda.connector.generator.dsl.ElementTemplateBuilder;
-import io.camunda.connector.generator.dsl.ElementTemplateIcon;
-import io.camunda.connector.generator.dsl.PropertyBuilder;
-import io.camunda.connector.generator.dsl.PropertyGroup;
+import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.util.ReflectionUtil;
@@ -39,9 +35,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
+  private static final Pattern SEM_VER_PATTERN =
+      Pattern.compile(
+          "^(?:[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?|\\*|\\d+\\.\\d+|\\d+)(?:\\s*[-,]\\s*[~^]?(?:0|[1-9]\\d*)\\.(?:\\d+)(?:\\.\\d+)?(?:-[\\da-z.-]+)?(?:\\+[\\da-z.-]+)?)?$");
   private final ClassLoader classLoader;
 
   public ClassBasedTemplateGenerator(ClassLoader classLoader) {
@@ -153,6 +153,12 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     var icon =
         template.icon().isBlank() ? null : ElementTemplateIcon.from(template.icon(), classLoader);
 
+    if (!template.engineVersion().isBlank()
+        && !SEM_VER_PATTERN.matcher(template.engineVersion()).matches()) {
+      throw new IllegalArgumentException(
+          template.engineVersion() + " is not a valid semantic version");
+    }
+
     return context.elementTypes().stream()
         .map(
             elementType -> {
@@ -167,6 +173,10 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .name(createName(context, template.name(), elementType, isHybridMode))
                   .version(template.version())
                   .appliesTo(elementType.appliesTo())
+                  .engines(
+                      !template.engineVersion().isBlank()
+                          ? new Engines(template.engineVersion())
+                          : null)
                   .elementType(elementType.elementType())
                   .icon(icon)
                   .metadata(

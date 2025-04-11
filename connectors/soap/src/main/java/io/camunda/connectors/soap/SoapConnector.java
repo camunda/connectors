@@ -39,6 +39,7 @@ import org.springframework.ws.soap.client.SoapFaultClientException;
       "connectionTimeoutInSeconds"
     })
 @ElementTemplate(
+    engineVersion = "^8.5",
     id = "io.camunda:soap",
     name = "SOAP Connector",
     icon = "icon.svg",
