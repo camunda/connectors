@@ -7,6 +7,7 @@
 package io.camunda.connector.email.client.jakarta.inbound;
 
 import io.camunda.connector.api.inbound.ActivationCheckResult;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
@@ -149,17 +150,21 @@ public class PollingManager {
   private void correlateEmail(Message message, InboundConnectorContext connectorContext) {
     Email email = this.jakartaUtils.createEmail(message);
     List<Document> documents = this.createDocumentList(email, connectorContext);
-    connectorContext.correlateWithResult(
-        new ReadEmailResponse(
-            email.messageId(),
-            email.from(),
-            email.headers(),
-            email.subject(),
-            email.size(),
-            email.body().bodyAsPlainText(),
-            email.body().bodyAsHtml(),
-            documents,
-            email.receivedAt()));
+    connectorContext.correlate(
+        CorrelationRequest.builder()
+            .variables(
+                new ReadEmailResponse(
+                    email.messageId(),
+                    email.from(),
+                    email.headers(),
+                    email.subject(),
+                    email.size(),
+                    email.body().bodyAsPlainText(),
+                    email.body().bodyAsHtml(),
+                    documents,
+                    email.receivedAt()))
+            .messageId(email.messageId())
+            .build());
   }
 
   private List<Document> createDocumentList(Email email, InboundConnectorContext connectorContext) {

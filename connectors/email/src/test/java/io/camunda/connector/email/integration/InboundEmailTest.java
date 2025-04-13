@@ -78,7 +78,7 @@ public class InboundEmailTest extends BaseEmailTest {
     super.sendEmail("camunda@test.com", "Subject", "Content");
 
     verify(inboundConnectorContext, timeout(3000).times(1)).canActivate(any());
-    verify(inboundConnectorContext, timeout(3000).times(1)).correlateWithResult(any());
+    verify(inboundConnectorContext, timeout(3000).times(1)).correlate(any());
 
     assertFlagOnLastEmail(
         emailInboundConnectorProperties.data().pollingConfig().handlingStrategy());

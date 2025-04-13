@@ -21,6 +21,7 @@ import java.util.function.Function;
     inputVariables = {"authentication", "configuration", "actionDiscriminator", "action"},
     type = "io.camunda:aws-s3:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.aws.s3.v1",
     name = "AWS S3 Outbound Connector",
     description = "Execute S3 requests",
@@ -35,7 +36,7 @@ import java.util.function.Function;
       @ElementTemplate.PropertyGroup(id = "downloadObject", label = "Download an object"),
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-s3/",
+        "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-s3/",
     icon = "icon.svg")
 public class S3ConnectorFunction implements OutboundConnectorFunction {
 

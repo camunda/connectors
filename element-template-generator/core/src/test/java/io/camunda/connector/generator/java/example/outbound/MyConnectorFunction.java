@@ -43,6 +43,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       elementTypes = {
         @ConnectorElementType(appliesTo = BpmnType.SERVICE_TASK, elementType = BpmnType.SCRIPT_TASK)
@@ -69,6 +70,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class)
@@ -79,6 +81,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
@@ -90,6 +93,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
@@ -101,6 +105,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = DuplicatePropertyConnectorInput.class,
@@ -112,6 +117,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,

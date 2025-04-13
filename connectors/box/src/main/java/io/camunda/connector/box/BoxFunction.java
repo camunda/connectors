@@ -17,6 +17,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "operation"},
     type = "io.camunda:box:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.box",
     name = "Box Outbound Connector",
     description = "Interact with the Box Document API",
@@ -27,7 +28,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/box/",
+        "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",
     icon = "icon.svg")
 public class BoxFunction implements OutboundConnectorFunction {
 
