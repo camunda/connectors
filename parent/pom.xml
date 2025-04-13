@@ -70,13 +70,13 @@ limitations under the License.</license.inlineheader>
     <!-- Camunda internal libraries -->
     <version.zeebe>8.3.21</version.zeebe>
     <version.spring-zeebe>8.3.12</version.spring-zeebe>
-    <version.feel-engine>1.19.1</version.feel-engine>
+    <version.feel-engine>1.19.2</version.feel-engine>
 
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
-    <version.mockito>5.16.1</version.mockito>
-    <version.junit-jupiter>5.12.1</version.junit-jupiter>
+    <version.mockito>5.17.0</version.mockito>
+    <version.junit-jupiter>5.12.2</version.junit-jupiter>
     <version.assertj>3.27.3</version.assertj>
     <version.jackson-bom>2.18.3</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.18.3</version.jackson-datatype-jsr310>
@@ -85,7 +85,7 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.grpc>1.71.0</version.grpc>
 
-    <version.spring-boot>3.3.9</version.spring-boot>
+    <version.spring-boot>3.4.4</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>5.11.3</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.18</version.logback>
 
@@ -102,7 +102,7 @@ limitations under the License.</license.inlineheader>
 
     <version.httpcore>4.4.16</version.httpcore>
 
-    <version.commons-io>2.18.0</version.commons-io>
+    <version.commons-io>2.19.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>3.9.0</version.kafka-clients>
@@ -121,7 +121,7 @@ limitations under the License.</license.inlineheader>
 
     <version.snappy-java>1.1.10.7</version.snappy-java>
     <version.commons-codec>1.18.0</version.commons-codec>
-    <version.guava>33.4.6-jre</version.guava>
+    <version.guava>33.4.7-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
 
     <version.wiremock>3.12.1</version.wiremock>
@@ -129,7 +129,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.22.1</version.auth0.jwks>
 
     <!-- maven plugins (not managed by parent) -->
-    <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
+    <plugin.version.maven-enforcer-plugin>3.5.0</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.5.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
     <plugin.version.license>4.6</plugin.version.license>
@@ -137,7 +137,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.0</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.3</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.41.1</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>2.44.4</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.4.2</plugin.version.maven-jar-plugin>
   </properties>
 
@@ -423,7 +423,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.13.0</version>
+        <version>1.13.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
