@@ -60,6 +60,24 @@ public class UnstructuredService implements ExtractionService {
     this.objectMapper = new ObjectMapper();
   }
 
+  public UnstructuredService(
+      TextractClientSupplier textractClientSupplier,
+      S3ClientSupplier s3ClientSupplier,
+      BedrockRuntimeClientSupplier bedrockRuntimeClientSupplier,
+      PollingTextractCaller pollingTextractCaller,
+      BedrockCaller bedrockCaller,
+      VertexCaller vertexCaller,
+      ObjectMapper objectMapper) {
+    this.textractClientSupplier = textractClientSupplier;
+    this.s3ClientSupplier = s3ClientSupplier;
+    this.bedrockRuntimeClientSupplier = bedrockRuntimeClientSupplier;
+    this.pollingTextractCaller = pollingTextractCaller;
+    this.bedrockCaller = bedrockCaller;
+    this.vertexCaller = vertexCaller;
+    this.objectMapper = objectMapper;
+  }
+
+  @Override
   public Object extract(ExtractionRequest extractionRequest) {
     final var input = extractionRequest.input();
     return switch (extractionRequest.baseRequest()) {

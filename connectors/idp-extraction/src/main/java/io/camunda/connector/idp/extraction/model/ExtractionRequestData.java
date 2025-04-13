@@ -78,4 +78,12 @@ public record ExtractionRequestData(
             defaultValue = "= input.converseData",
             binding = @PropertyBinding(name = "converseData"),
             feel = Property.FeelMode.disabled)
-        ConverseData converseData) {}
+        ConverseData converseData) {
+
+        // Compact constructor that sets default value for extractionType if null
+        public ExtractionRequestData {
+                if (extractionType == null) {
+                        extractionType = ExtractionType.UNSTRUCTURED;
+                }
+        }
+}

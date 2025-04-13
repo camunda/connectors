@@ -8,9 +8,8 @@ package io.camunda.connector.idp.extraction.caller;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.TextractTask;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
 import io.camunda.document.Document;
@@ -50,7 +49,7 @@ public class PollingTextractCaller {
         .collect(Collectors.joining("\n"));
   }
 
-  public Map<String, String> extractKeyValuePairs(
+  public StructuredExtractionResponse extractKeyValuePairsWithConfidence(
       Document document,
       String bucketName,
       TextractClient textractClient,
@@ -59,7 +58,7 @@ public class PollingTextractCaller {
 
     List<Block> allBlocks = processDocument(document, bucketName, textractClient, s3AsyncClient);
 
-    return extractKeyValuePairs(allBlocks);
+    return extractKeyValuePairsWithConfidence(allBlocks);
   }
 
   private List<Block> processDocument(
@@ -132,8 +131,9 @@ public class PollingTextractCaller {
     return nextDocumentResultFuture.get();
   }
 
-  private Map<String, String> extractKeyValuePairs(List<Block> blocks) {
+  private StructuredExtractionResponse extractKeyValuePairsWithConfidence(List<Block> blocks) {
     Map<String, String> keyValuePairs = new HashMap<>();
+    Map<String, Float> confidenceScores = new HashMap<>();
     Map<String, Block> blockMap =
         blocks.stream().collect(Collectors.toMap(Block::id, block -> block));
 
@@ -144,19 +144,28 @@ public class PollingTextractCaller {
                     && block.entityTypes().contains(EntityType.KEY))
         .forEach(
             keyBlock -> {
-              String key = getTextFromRelationships(keyBlock, blockMap);
-              Block valueBlock =
-                  blockMap.get(
-                      keyBlock.relationships().stream()
-                          .filter(relation -> relation.type().equals(RelationshipType.VALUE))
-                          .flatMap(relation -> relation.ids().stream())
-                          .findFirst()
-                          .orElseThrow(() -> new ConnectorException("Value block not found")));
-              String value = getTextFromRelationships(valueBlock, blockMap);
-              keyValuePairs.put(key, value);
+                String key = getTextFromRelationships(keyBlock, blockMap);
+                Block valueBlock =
+                    blockMap.get(
+                        keyBlock.relationships().stream()
+                            .filter(relation -> relation.type().equals(RelationshipType.VALUE))
+                            .flatMap(relation -> relation.ids().stream())
+                            .findFirst()
+                            .orElseThrow(() -> new ConnectorException("Value block not found")));
+                
+                String value = getTextFromRelationships(valueBlock, blockMap);
+                
+                Float keyConfidence = keyBlock.confidence();
+                Float valueConfidence = valueBlock.confidence();
+                
+                // Use the lower of the two confidence scores (conservative approach)
+                float combinedConfidence = Math.min(keyConfidence, valueConfidence);
+                
+                keyValuePairs.put(key, value);
+                confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
             });
 
-    return keyValuePairs;
+    return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
   }
 
   private String getTextFromRelationships(Block block, Map<String, Block> blockMap) {
@@ -170,17 +179,5 @@ public class PollingTextractCaller {
         .map(blockMap::get)
         .map(Block::text)
         .collect(Collectors.joining(" "));
-  }
-
-  private String formatKeyValuePairs(Map<String, String> keyValuePairs) {
-    try {
-      ObjectMapper mapper = new ObjectMapper();
-      return mapper.writeValueAsString(keyValuePairs);
-    } catch (JsonProcessingException e) {
-      LOGGER.error("Error formatting key-value pairs: {}", e.getMessage());
-      return keyValuePairs.entrySet().stream()
-          .map(entry -> String.format("%s: %s", entry.getKey(), entry.getValue()))
-          .collect(Collectors.joining("\n"));
-    }
   }
 }

@@ -9,10 +9,7 @@ package io.camunda.connector.idp.extraction.service;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.caller.DocumentAiCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
-import io.camunda.connector.idp.extraction.model.ExtractionRequest;
-import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
-import io.camunda.connector.idp.extraction.model.ExtractionResult;
-import io.camunda.connector.idp.extraction.model.TextExtractionEngineType;
+import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.model.providers.DocumentAIProvider;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
@@ -49,48 +46,39 @@ public class StructuredService implements ExtractionService {
     };
   }
 
-  private ExtractionResult extractUsingTextract(
+  private StructuredExtractionResult extractUsingTextract(
       ExtractionRequestData input, AwsProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
-      Map<String, Object> extractedMap;
-
-      if (baseRequest.getExtractionEngineType() == TextExtractionEngineType.AWS_TEXTRACT) {
-        Map<String, String> results = extractTextUsingTextract(input, baseRequest);
-        extractedMap = processExtractedFields(results, input);
-      } else {
-        throw new ConnectorException(
-            "Unsupported extraction engine type: " + baseRequest.getExtractionEngineType());
-      }
+      
+      StructuredExtractionResponse results = pollingTextractCaller.extractKeyValuePairsWithConfidence(
+          input.document(),
+          baseRequest.getS3BucketName(),
+          textractClientSupplier.getTextractClient(baseRequest),
+          s3ClientSupplier.getAsyncS3Client(baseRequest));
+      
+      StructuredExtractionResult processedResults = processExtractedData(results, input);
+      
       long endTime = System.currentTimeMillis();
       LOGGER.info("Aws content extraction took {} ms", (endTime - startTime));
-      return new ExtractionResult(extractedMap);
+      return processedResults;
     } catch (Exception e) {
       LOGGER.error("Document extraction failed: {}", e.getMessage());
       throw new ConnectorException(e);
     }
   }
 
-  private Map<String, String> extractTextUsingTextract(
-      ExtractionRequestData input, AwsProvider baseRequest) throws Exception {
-    return pollingTextractCaller.extractKeyValuePairs(
-        input.document(),
-        baseRequest.getS3BucketName(),
-        textractClientSupplier.getTextractClient(baseRequest),
-        s3ClientSupplier.getAsyncS3Client(baseRequest));
-  }
-
-  private ExtractionResult extractUsingDocumentAi(
+  private StructuredExtractionResult extractUsingDocumentAi(
       ExtractionRequestData input, DocumentAIProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
 
-      Map<String, String> extractedMap = documentAiCaller.extractKeyValuePairs(input, baseRequest);
-      Map<String, Object> parsedResults = processExtractedFields(extractedMap, input);
-
+      StructuredExtractionResponse results = documentAiCaller.extractKeyValuePairsWithConfidence(input, baseRequest);
+      StructuredExtractionResult processedResults = processExtractedData(results, input);
+      
       long endTime = System.currentTimeMillis();
       LOGGER.info("Document AI content extraction took {} ms", (endTime - startTime));
-      return new ExtractionResult(parsedResults);
+      return processedResults;
     } catch (Exception e) {
       LOGGER.error("Document extraction failed: {}", e.getMessage());
       throw new ConnectorException(e);
@@ -98,27 +86,35 @@ public class StructuredService implements ExtractionService {
   }
 
   /**
-   * Processes extracted key-value pairs by formatting variable names and filtering out excluded or
-   * empty values.
+   * Processes extracted key-value pairs and confidence scores by formatting variable names 
+   * and filtering out excluded or empty values.
    *
-   * @param rawResults The raw key-value pairs extracted from the document
+   * @param response The StructuredExtractionResponse containing both extracted fields and confidence scores
    * @param input The extraction request data containing filtering rules
-   * @return A map of processed results with formatted variable names
+   * @return A StructuredExtractionResult with processed extracted fields and confidence scores
    */
-  private Map<String, Object> processExtractedFields(
-      Map<String, String> rawResults, ExtractionRequestData input) {
+  private StructuredExtractionResult processExtractedData(
+      StructuredExtractionResponse response, ExtractionRequestData input) {
     Map<String, Object> parsedResults = new HashMap<>();
+    Map<String, Float> processedConfidenceScores = new HashMap<>();
 
-    rawResults.forEach(
+    response.extractedFields().forEach(
         (key, value) -> {
           String variableName = formatZeebeVariableName(key, input.delimiter());
+          Float confidenceScore = response.confidenceScore().get(key);
+          
           if ((input.excludedFields() == null || !input.excludedFields().contains(variableName))
               && (value != null && !value.isBlank())) {
             parsedResults.put(variableName, value);
+            
+            // Add the confidence score with the same formatted key
+            if (confidenceScore != null) {
+              processedConfidenceScores.put(variableName, confidenceScore);
+            }
           }
         });
 
-    return parsedResults;
+    return new StructuredExtractionResult(parsedResults, processedConfidenceScores);
   }
 
   /**
@@ -133,7 +129,8 @@ public class StructuredService implements ExtractionService {
     if (input == null) {
       return null;
     }
-    String delimited = input.replace(" ", delimiter);
-    return delimited.replaceAll("[^a-zA-Z0-9_-]", "").toLowerCase();
+    String sanitized = input.replaceAll("[^a-zA-Z0-9_\\- ]", "").trim();
+    String delimited = sanitized.replace(" ", delimiter);
+    return delimited.toLowerCase();
   }
 }

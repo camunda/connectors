@@ -12,6 +12,7 @@ import com.google.cloud.documentai.v1.ProcessRequest;
 import com.google.cloud.documentai.v1.ProcessResponse;
 import com.google.cloud.documentai.v1.RawDocument;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
+import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.providers.DocumentAIProvider;
 import io.camunda.connector.idp.extraction.supplier.DocumentAiClientSupplier;
 import java.io.IOException;
@@ -30,7 +31,7 @@ public class DocumentAiCaller {
     this.documentAiClientSupplier = new DocumentAiClientSupplier();
   }
 
-  public Map<String, String> extractKeyValuePairs(
+  public StructuredExtractionResponse extractKeyValuePairsWithConfidence(
       ExtractionRequestData input, DocumentAIProvider baseRequest) {
     try {
       // Get DocumentAI client and process the document
@@ -65,11 +66,11 @@ public class DocumentAiCaller {
         ProcessResponse response = client.processDocument(request);
         Document document = response.getDocument();
 
-        // Extract key-value pairs from form fields
-        Map<String, String> keyValuePairs = extractFormFields(document);
-        LOGGER.debug("Document AI extracted {} key-value pairs", keyValuePairs.size());
+        // Extract key-value pairs with confidence scores
+        StructuredExtractionResponse extractionResponse = extractFormFieldsWithConfidence(document);
+        LOGGER.debug("Document AI extracted {} key-value pairs", extractionResponse.extractedFields().size());
 
-        return keyValuePairs;
+        return extractionResponse;
       }
     } catch (IOException e) {
       LOGGER.error("Error while processing document with Document AI", e);
@@ -77,8 +78,9 @@ public class DocumentAiCaller {
     }
   }
 
-  private Map<String, String> extractFormFields(Document document) {
+  private StructuredExtractionResponse extractFormFieldsWithConfidence(Document document) {
     Map<String, String> keyValuePairs = new HashMap<>();
+    Map<String, Float> confidenceScores = new HashMap<>();
 
     // Process form fields from Document AI response
     for (Document.Page page : document.getPagesList()) {
@@ -88,7 +90,15 @@ public class DocumentAiCaller {
           String value = getTextFromLayout(document, formField.getFieldValue().getTextAnchor());
 
           if (name != null && !name.trim().isEmpty()) {
+            // Get confidence scores from both name and value fields
+            float nameConfidence = formField.getFieldName().getConfidence();
+            float valueConfidence = formField.getFieldValue().getConfidence();
+            
+            // Use the lower of the two confidence scores (conservative approach)
+            float combinedConfidence = Math.min(nameConfidence, valueConfidence);
+            
             keyValuePairs.put(name.trim(), value != null ? value.trim() : "");
+            confidenceScores.put(name.trim(), combinedConfidence);
           }
         }
       }
@@ -99,22 +109,30 @@ public class DocumentAiCaller {
       if (entity.getType().equals("key_value_pair") || entity.getType().equals("form_field")) {
         String key = null;
         String value = null;
+        float keyConfidence = 0;
+        float valueConfidence = 0;
 
         for (Document.Entity property : entity.getPropertiesList()) {
           if (property.getType().equals("key")) {
             key = property.getMentionText();
+            keyConfidence = property.getConfidence();
           } else if (property.getType().equals("value")) {
             value = property.getMentionText();
+            valueConfidence = property.getConfidence();
           }
         }
 
         if (key != null && !key.trim().isEmpty()) {
+          // Use the lower of the two confidence scores
+          float combinedConfidence = Math.min(keyConfidence, valueConfidence);
+          
           keyValuePairs.put(key.trim(), value != null ? value.trim() : "");
+          confidenceScores.put(key.trim(), combinedConfidence);
         }
       }
     }
 
-    return keyValuePairs;
+    return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
   }
 
   private String getTextFromLayout(Document document, Document.TextAnchor textAnchor) {
@@ -128,7 +146,7 @@ public class DocumentAiCaller {
       int endIndex = (int) segment.getEndIndex();
 
       if (startIndex >= 0 && endIndex > startIndex && endIndex <= document.getText().length()) {
-        result.append(document.getText().substring(startIndex, endIndex));
+        result.append(document.getText(), startIndex, endIndex);
       }
     }
 
