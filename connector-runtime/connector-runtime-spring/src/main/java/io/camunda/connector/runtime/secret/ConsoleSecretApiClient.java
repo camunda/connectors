@@ -81,8 +81,9 @@ public class ConsoleSecretApiClient {
         authentication.resetToken(Product.CONSOLE);
         throw new RuntimeException("Authentication failed: " + response.getCode());
       }
-      default -> throw new RuntimeException(
-          "Unable to handle response from Console secrets: " + response.getCode());
+      default ->
+          throw new RuntimeException(
+              "Unable to handle response from Console secrets: " + response.getCode());
     };
   }
 }
