@@ -12,28 +12,28 @@ import com.slack.api.model.File;
 import com.slack.api.model.block.*;
 import com.slack.api.model.block.composition.MarkdownTextObject;
 import com.slack.api.util.json.GsonFactory;
-import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.slack.outbound.caller.FileUploader;
 import io.camunda.document.Document;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
-public class BlockManager {
+public class BlockBuilder {
   private static final String REMOTE_ACCESS = "remote";
   private final List<LayoutBlock> layoutBlockList;
   private final FileUploader fileUploader;
 
-  private BlockManager(List<LayoutBlock> layoutBlockList, FileUploader fileUploader) {
+  private BlockBuilder(List<LayoutBlock> layoutBlockList, FileUploader fileUploader) {
     this.layoutBlockList = layoutBlockList;
     this.fileUploader = fileUploader;
   }
 
-  public static BlockManager create(FileUploader fileUploader) {
-    return new BlockManager(new ArrayList<>(), fileUploader);
+  public static BlockBuilder create(FileUploader fileUploader) {
+    return new BlockBuilder(new ArrayList<>(), fileUploader);
   }
 
-  public BlockManager documents(List<Document> documents) {
+  public BlockBuilder documents(List<Document> documents) {
     if (documents != null && !documents.isEmpty()) {
       List<File> files = fileUploader.uploadDocuments(documents);
       files.stream()
@@ -43,7 +43,7 @@ public class BlockManager {
     return this;
   }
 
-  public BlockManager text(String text) {
+  public BlockBuilder text(String text) {
     if (text != null && !text.isEmpty()) {
       this.layoutBlockList.add(
           SectionBlock.builder().text(MarkdownTextObject.builder().text(text).build()).build());
@@ -51,7 +51,7 @@ public class BlockManager {
     return this;
   }
 
-  public BlockManager blockContent(JsonNode blockContent) {
+  public BlockBuilder blockContent(JsonNode blockContent) {
     if (blockContent != null && !blockContent.isNull()) {
       if (blockContent instanceof ArrayNode arrayNode) {
         StreamSupport.stream(arrayNode.spliterator(), false)
@@ -59,7 +59,7 @@ public class BlockManager {
                 jsonNode ->
                     GsonFactory.createSnakeCase().fromJson(jsonNode.toString(), LayoutBlock.class))
             .forEach(this.layoutBlockList::add);
-      } else throw new ConnectorException("Block section must be an array");
+      } else throw new ConnectorInputException("Block section must be an array");
     }
     return this;
   }

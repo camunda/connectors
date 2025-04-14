@@ -29,7 +29,7 @@ import com.slack.api.model.Message;
 import com.slack.api.model.User;
 import com.slack.api.util.http.SlackHttpClient;
 import io.camunda.client.api.response.DocumentMetadata;
-import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.CamundaDocument;
@@ -277,7 +277,7 @@ class ChatPostMessageDataTest {
     // Then
 
     assertThat(thrown).hasMessageContaining("Block section must be an array");
-    assertThat(thrown).isInstanceOf(ConnectorException.class);
+    assertThat(thrown).isInstanceOf(ConnectorInputException.class);
   }
 
   private Document prepareDocument() {

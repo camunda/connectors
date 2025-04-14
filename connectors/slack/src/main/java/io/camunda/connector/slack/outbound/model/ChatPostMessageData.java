@@ -21,7 +21,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyT
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.caller.FileUploader;
-import io.camunda.connector.slack.outbound.mapper.BlockManager;
+import io.camunda.connector.slack.outbound.mapper.BlockBuilder;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
 import io.camunda.document.Document;
 import jakarta.validation.constraints.AssertTrue;
@@ -121,18 +121,16 @@ public record ChatPostMessageData(
     }
     var requestBuilder = ChatPostMessageRequest.builder().channel(filteredChannel);
     if (StringUtils.isNotBlank(thread)) {
-      requestBuilder = requestBuilder.threadTs(thread);
+      requestBuilder.threadTs(thread);
     }
-    var request =
-        requestBuilder
-            .blocks(
-                BlockManager.create(new FileUploader(methodsClient))
-                    .documents(documents)
-                    .text(text)
-                    .blockContent(blockContent)
-                    .getLayoutBlocks())
-            .build();
-    ChatPostMessageResponse chatPostMessageResponse = methodsClient.chatPostMessage(request);
+    requestBuilder.blocks(
+        BlockBuilder.create(new FileUploader(methodsClient))
+            .documents(documents)
+            .text(text)
+            .blockContent(blockContent)
+            .getLayoutBlocks());
+    ChatPostMessageResponse chatPostMessageResponse =
+        methodsClient.chatPostMessage(requestBuilder.build());
     if (chatPostMessageResponse.isOk()) {
       return new ChatPostMessageSlackResponse(chatPostMessageResponse);
     } else {

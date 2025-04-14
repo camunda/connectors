@@ -30,22 +30,22 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class BlockManagerTest {
+class BlockBuilderTest {
 
   private FileUploader fileUploader;
-  private BlockManager blockManager;
+  private BlockBuilder blockBuilder;
 
   @BeforeEach
   void setup() {
     fileUploader = mock(FileUploader.class);
-    blockManager = BlockManager.create(fileUploader);
+    blockBuilder = BlockBuilder.create(fileUploader);
   }
 
   @Test
   void shouldAddTextBlock() {
     String text = "Hello world";
 
-    List<LayoutBlock> blocks = blockManager.text(text).getLayoutBlocks();
+    List<LayoutBlock> blocks = blockBuilder.text(text).getLayoutBlocks();
 
     assertEquals(1, blocks.size());
     assertInstanceOf(SectionBlock.class, blocks.getFirst());
@@ -70,7 +70,7 @@ class BlockManagerTest {
 
     Document document =
         new CamundaDocument(documentReference.getMetadata(), documentReference, store);
-    List<LayoutBlock> layoutBlocks = blockManager.documents(List.of(document)).getLayoutBlocks();
+    List<LayoutBlock> layoutBlocks = blockBuilder.documents(List.of(document)).getLayoutBlocks();
 
     // Then
     assertEquals(1, layoutBlocks.size());
@@ -96,10 +96,10 @@ class BlockManagerTest {
     ArrayNode arrayNode = (ArrayNode) mapper.readTree(json);
 
     // When
-    blockManager.blockContent(arrayNode);
+    blockBuilder.blockContent(arrayNode);
 
     // Then
-    List<LayoutBlock> blocks = blockManager.getLayoutBlocks();
+    List<LayoutBlock> blocks = blockBuilder.getLayoutBlocks();
     assertEquals(1, blocks.size());
     assertInstanceOf(SectionBlock.class, blocks.getFirst());
   }
@@ -108,6 +108,6 @@ class BlockManagerTest {
   void shouldThrowOnInvalidBlockContent() {
     ObjectMapper mapper = new ObjectMapper();
     JsonNode node = mapper.createObjectNode();
-    assertThrows(RuntimeException.class, () -> blockManager.blockContent(node));
+    assertThrows(RuntimeException.class, () -> blockBuilder.blockContent(node));
   }
 }
