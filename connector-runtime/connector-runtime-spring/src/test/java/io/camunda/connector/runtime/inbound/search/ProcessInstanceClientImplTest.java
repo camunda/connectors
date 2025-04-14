@@ -23,10 +23,10 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.search.response.FlowNodeInstance;
-import io.camunda.client.api.search.response.SearchQueryResponse;
+import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
 import io.camunda.client.impl.search.response.FlowNodeInstanceImpl;
-import io.camunda.client.impl.search.response.SearchQueryResponseImpl;
+import io.camunda.client.impl.search.response.SearchResponseImpl;
 import io.camunda.client.impl.search.response.SearchResponsePageImpl;
 import io.camunda.client.impl.search.response.VariableImpl;
 import io.camunda.client.protocol.rest.FlowNodeInstanceResult;
@@ -66,9 +66,9 @@ class ProcessInstanceClientImplTest {
     FlowNodeInstance flownodeInstance2 =
         createFlownodeInstance("789", "234567", "203", "flowNodeName2", "tenantId2");
 
-    SearchQueryResponse<FlowNodeInstance> flownodeInstanceSearchResult =
+    SearchResponse<FlowNodeInstance> flownodeInstanceSearchResult =
         createSearchResult(flownodeInstance1, flownodeInstance2);
-    SearchQueryResponse<FlowNodeInstance> flownodeInstanceEmptySearchResult =
+    SearchResponse<FlowNodeInstance> flownodeInstanceEmptySearchResult =
         createEmptySearchResult();
 
     when(searchQueryClient.queryActiveFlowNodes(anyLong(), any(), any()))
@@ -120,8 +120,8 @@ class ProcessInstanceClientImplTest {
     Variable variable1 = createVariable("12345", "var1", "value1");
     Variable variable2 = createVariable("67890", "var2", "value2");
 
-    SearchQueryResponse<Variable> variableSearchResult = createSearchResult(variable1, variable2);
-    SearchQueryResponse<Variable> variableEmptySearchResult = createEmptySearchResult();
+    SearchResponse<Variable> variableSearchResult = createSearchResult(variable1, variable2);
+    SearchResponse<Variable> variableEmptySearchResult = createEmptySearchResult();
 
     when(searchQueryClient.queryVariables(anyLong(), any()))
         .thenReturn(variableSearchResult)
@@ -148,13 +148,13 @@ class ProcessInstanceClientImplTest {
   }
 
   @SafeVarargs
-  private <T> SearchQueryResponse<T> createSearchResult(T... items) {
+  private <T> SearchResponse<T> createSearchResult(T... items) {
     final var page = new SearchResponsePageImpl(items.length, null, null);
-    return new SearchQueryResponseImpl<>(Arrays.asList(items), page);
+    return new SearchResponseImpl<>(Arrays.asList(items), page);
   }
 
-  private <T> SearchQueryResponse<T> createEmptySearchResult() {
+  private <T> SearchResponse<T> createEmptySearchResult() {
     final var page = new SearchResponsePageImpl(0, null, null);
-    return new SearchQueryResponseImpl<>(Collections.emptyList(), page);
+    return new SearchResponseImpl<>(Collections.emptyList(), page);
   }
 }
