@@ -34,6 +34,17 @@ public class StructuredService implements ExtractionService {
     this.s3ClientSupplier = new S3ClientSupplier();
   }
 
+  public StructuredService(
+      PollingTextractCaller pollingTextractCaller,
+      DocumentAiCaller documentAiCaller,
+      TextractClientSupplier textractClientSupplier,
+      S3ClientSupplier s3ClientSupplier) {
+    this.pollingTextractCaller = pollingTextractCaller;
+    this.documentAiCaller = documentAiCaller;
+    this.textractClientSupplier = textractClientSupplier;
+    this.s3ClientSupplier = s3ClientSupplier;
+  }
+
   @Override
   public Object extract(ExtractionRequest extractionRequest) {
     final var input = extractionRequest.input();
@@ -50,15 +61,16 @@ public class StructuredService implements ExtractionService {
       ExtractionRequestData input, AwsProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
-      
-      StructuredExtractionResponse results = pollingTextractCaller.extractKeyValuePairsWithConfidence(
-          input.document(),
-          baseRequest.getS3BucketName(),
-          textractClientSupplier.getTextractClient(baseRequest),
-          s3ClientSupplier.getAsyncS3Client(baseRequest));
-      
+
+      StructuredExtractionResponse results =
+          pollingTextractCaller.extractKeyValuePairsWithConfidence(
+              input.document(),
+              baseRequest.getS3BucketName(),
+              textractClientSupplier.getTextractClient(baseRequest),
+              s3ClientSupplier.getAsyncS3Client(baseRequest));
+
       StructuredExtractionResult processedResults = processExtractedData(results, input);
-      
+
       long endTime = System.currentTimeMillis();
       LOGGER.info("Aws content extraction took {} ms", (endTime - startTime));
       return processedResults;
@@ -73,9 +85,10 @@ public class StructuredService implements ExtractionService {
     try {
       long startTime = System.currentTimeMillis();
 
-      StructuredExtractionResponse results = documentAiCaller.extractKeyValuePairsWithConfidence(input, baseRequest);
+      StructuredExtractionResponse results =
+          documentAiCaller.extractKeyValuePairsWithConfidence(input, baseRequest);
       StructuredExtractionResult processedResults = processExtractedData(results, input);
-      
+
       long endTime = System.currentTimeMillis();
       LOGGER.info("Document AI content extraction took {} ms", (endTime - startTime));
       return processedResults;
@@ -86,10 +99,11 @@ public class StructuredService implements ExtractionService {
   }
 
   /**
-   * Processes extracted key-value pairs and confidence scores by formatting variable names 
-   * and filtering out excluded or empty values.
+   * Processes extracted key-value pairs and confidence scores by formatting variable names and
+   * filtering out excluded or empty values.
    *
-   * @param response The StructuredExtractionResponse containing both extracted fields and confidence scores
+   * @param response The StructuredExtractionResponse containing both extracted fields and
+   *     confidence scores
    * @param input The extraction request data containing filtering rules
    * @return A StructuredExtractionResult with processed extracted fields and confidence scores
    */
@@ -98,21 +112,23 @@ public class StructuredService implements ExtractionService {
     Map<String, Object> parsedResults = new HashMap<>();
     Map<String, Float> processedConfidenceScores = new HashMap<>();
 
-    response.extractedFields().forEach(
-        (key, value) -> {
-          String variableName = formatZeebeVariableName(key, input.delimiter());
-          Float confidenceScore = response.confidenceScore().get(key);
-          
-          if ((input.excludedFields() == null || !input.excludedFields().contains(variableName))
-              && (value != null && !value.isBlank())) {
-            parsedResults.put(variableName, value);
-            
-            // Add the confidence score with the same formatted key
-            if (confidenceScore != null) {
-              processedConfidenceScores.put(variableName, confidenceScore);
-            }
-          }
-        });
+    response
+        .extractedFields()
+        .forEach(
+            (key, value) -> {
+              String variableName = formatZeebeVariableName(key, input.delimiter());
+              Float confidenceScore = response.confidenceScore().get(key);
+
+              if ((input.excludedFields() == null || !input.excludedFields().contains(variableName))
+                  && (value != null && !value.isBlank())) {
+                parsedResults.put(variableName, value);
+
+                // Add the confidence score with the same formatted key
+                if (confidenceScore != null) {
+                  processedConfidenceScores.put(variableName, confidenceScore);
+                }
+              }
+            });
 
     return new StructuredExtractionResult(parsedResults, processedConfidenceScores);
   }
@@ -129,8 +145,10 @@ public class StructuredService implements ExtractionService {
     if (input == null) {
       return null;
     }
-    String sanitized = input.replaceAll("[^a-zA-Z0-9_\\- ]", "").trim();
-    String delimited = sanitized.replace(" ", delimiter);
+    String actualDelimiter = delimiter != null ? delimiter : "_";
+    String trimmed = input.trim();
+    String sanitized = trimmed.replaceAll("[^a-zA-Z0-9_\\- ]", "").trim();
+    String delimited = sanitized.replaceAll("\\s+", actualDelimiter);
     return delimited.toLowerCase();
   }
 }

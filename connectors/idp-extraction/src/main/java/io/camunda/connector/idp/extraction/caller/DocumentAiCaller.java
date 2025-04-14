@@ -31,6 +31,10 @@ public class DocumentAiCaller {
     this.documentAiClientSupplier = new DocumentAiClientSupplier();
   }
 
+  public DocumentAiCaller(DocumentAiClientSupplier supplier) {
+    this.documentAiClientSupplier = supplier;
+  }
+
   public StructuredExtractionResponse extractKeyValuePairsWithConfidence(
       ExtractionRequestData input, DocumentAIProvider baseRequest) {
     try {
@@ -68,7 +72,9 @@ public class DocumentAiCaller {
 
         // Extract key-value pairs with confidence scores
         StructuredExtractionResponse extractionResponse = extractFormFieldsWithConfidence(document);
-        LOGGER.debug("Document AI extracted {} key-value pairs", extractionResponse.extractedFields().size());
+        LOGGER.debug(
+            "Document AI extracted {} key-value pairs",
+            extractionResponse.extractedFields().size());
 
         return extractionResponse;
       }
@@ -93,10 +99,10 @@ public class DocumentAiCaller {
             // Get confidence scores from both name and value fields
             float nameConfidence = formField.getFieldName().getConfidence();
             float valueConfidence = formField.getFieldValue().getConfidence();
-            
+
             // Use the lower of the two confidence scores (conservative approach)
             float combinedConfidence = Math.min(nameConfidence, valueConfidence);
-            
+
             keyValuePairs.put(name.trim(), value != null ? value.trim() : "");
             confidenceScores.put(name.trim(), combinedConfidence);
           }
@@ -125,7 +131,7 @@ public class DocumentAiCaller {
         if (key != null && !key.trim().isEmpty()) {
           // Use the lower of the two confidence scores
           float combinedConfidence = Math.min(keyConfidence, valueConfidence);
-          
+
           keyValuePairs.put(key.trim(), value != null ? value.trim() : "");
           confidenceScores.put(key.trim(), combinedConfidence);
         }

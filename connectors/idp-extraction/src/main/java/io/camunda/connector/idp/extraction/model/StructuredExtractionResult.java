@@ -8,4 +8,5 @@ package io.camunda.connector.idp.extraction.model;
 
 import java.util.Map;
 
-public record StructuredExtractionResult(Map<String, Object> extractedFields, Map<String, Float> confidenceScore) {}
+public record StructuredExtractionResult(
+    Map<String, Object> extractedFields, Map<String, Float> confidenceScore) {}

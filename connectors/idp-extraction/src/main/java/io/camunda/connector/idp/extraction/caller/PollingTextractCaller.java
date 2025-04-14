@@ -144,25 +144,25 @@ public class PollingTextractCaller {
                     && block.entityTypes().contains(EntityType.KEY))
         .forEach(
             keyBlock -> {
-                String key = getTextFromRelationships(keyBlock, blockMap);
-                Block valueBlock =
-                    blockMap.get(
-                        keyBlock.relationships().stream()
-                            .filter(relation -> relation.type().equals(RelationshipType.VALUE))
-                            .flatMap(relation -> relation.ids().stream())
-                            .findFirst()
-                            .orElseThrow(() -> new ConnectorException("Value block not found")));
-                
-                String value = getTextFromRelationships(valueBlock, blockMap);
-                
-                Float keyConfidence = keyBlock.confidence();
-                Float valueConfidence = valueBlock.confidence();
-                
-                // Use the lower of the two confidence scores (conservative approach)
-                float combinedConfidence = Math.min(keyConfidence, valueConfidence);
-                
-                keyValuePairs.put(key, value);
-                confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
+              String key = getTextFromRelationships(keyBlock, blockMap);
+              Block valueBlock =
+                  blockMap.get(
+                      keyBlock.relationships().stream()
+                          .filter(relation -> relation.type().equals(RelationshipType.VALUE))
+                          .flatMap(relation -> relation.ids().stream())
+                          .findFirst()
+                          .orElseThrow(() -> new ConnectorException("Value block not found")));
+
+              String value = getTextFromRelationships(valueBlock, blockMap);
+
+              Float keyConfidence = keyBlock.confidence();
+              Float valueConfidence = valueBlock.confidence();
+
+              // Use the lower of the two confidence scores (conservative approach)
+              float combinedConfidence = Math.min(keyConfidence, valueConfidence);
+
+              keyValuePairs.put(key, value);
+              confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
             });
 
     return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
