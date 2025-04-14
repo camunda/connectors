@@ -494,7 +494,7 @@
     "value" : "10",
     "group" : "connector",
     "binding" : {
-      "key" : "version",
+      "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
@@ -505,7 +505,7 @@
     "value" : "io.camunda.connectors.HttpJson.v2",
     "group" : "connector",
     "binding" : {
-      "key" : "id",
+      "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"

@@ -56,8 +56,10 @@ public record PropertyGroup(
               .id("connector")
               .label("Connector")
               .properties(
-                  CommonProperties.version(version).binding(new ZeebeTaskHeader("version")).build(),
-                  CommonProperties.id(id).binding(new ZeebeTaskHeader("id")).build())
+                  CommonProperties.version(version)
+                      .binding(new ZeebeTaskHeader("elementTemplateVersion"))
+                      .build(),
+                  CommonProperties.id(id).binding(new ZeebeTaskHeader("elementTemplateId")).build())
               .build();
 
   public static PropertyGroup OUTPUT_GROUP_INBOUND =

@@ -28,6 +28,7 @@ import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Outbound;
+import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.CommandWrapper;
@@ -48,9 +49,11 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
   private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
   private final MetricsRecorder metricsRecorder;
   private final OutboundConnectorConfiguration connectorConfiguration;
+  private final ConnectorsOutboundMetrics connectorsOutboundMetrics;
 
   public SpringConnectorJobHandler(
       MetricsRecorder metricsRecorder,
+      ConnectorsOutboundMetrics outboundMetrics,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
@@ -67,16 +70,14 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
     this.metricsRecorder = metricsRecorder;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.connectorConfiguration = connectorConfiguration;
+    this.connectorsOutboundMetrics = outboundMetrics;
   }
 
   @Override
   public void handle(JobClient client, ActivatedJob job) {
-    String jobTypeAndId =
-        job.getCustomHeaders().getOrDefault("id", "unknown")
-            + "#"
-            + job.getCustomHeaders().getOrDefault("version", "0");
-    metricsRecorder.increase(
-        Outbound.METRIC_CONNECTOR_VERSION, Outbound.JOB_RECEIVED, jobTypeAndId);
+    String type = job.getCustomHeaders().getOrDefault("elementTemplateId", "unknown");
+    String version = job.getCustomHeaders().getOrDefault("elementTemplateVersion", "unknown");
+    connectorsOutboundMetrics.increase(type, version);
     metricsRecorder.executeWithTimer(
         ConnectorMetrics.Outbound.METRIC_NAME_TIME,
         job.getType(),

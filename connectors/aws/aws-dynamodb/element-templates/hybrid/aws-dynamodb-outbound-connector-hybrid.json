@@ -970,7 +970,7 @@
     "value" : "7",
     "group" : "connector",
     "binding" : {
-      "key" : "version",
+      "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
@@ -981,7 +981,7 @@
     "value" : "io.camunda.connectors.AWSDynamoDB.v1",
     "group" : "connector",
     "binding" : {
-      "key" : "id",
+      "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"

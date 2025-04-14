@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -378,10 +378,10 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
-      "key" : "version",
+      "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
@@ -392,7 +392,7 @@
     "value" : "io.camunda.connectors.Slack.v1",
     "group" : "connector",
     "binding" : {
-      "key" : "id",
+      "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"

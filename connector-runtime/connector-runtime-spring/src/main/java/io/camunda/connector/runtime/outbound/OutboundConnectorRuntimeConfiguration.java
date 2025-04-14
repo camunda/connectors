@@ -23,6 +23,7 @@ import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactor
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.camunda.document.factory.DocumentFactory;
@@ -32,6 +33,7 @@ import io.camunda.document.store.CamundaDocumentStoreImpl;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -62,6 +64,7 @@ public class OutboundConnectorRuntimeConfiguration {
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
+      ConnectorsOutboundMetrics outboundMetrics,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder) {
@@ -73,12 +76,18 @@ public class OutboundConnectorRuntimeConfiguration {
         validationProvider,
         documentFactory,
         objectMapper,
-        metricsRecorder);
+        metricsRecorder,
+        outboundMetrics);
   }
 
   @Bean
   public OutboundConnectorAnnotationProcessor annotationProcessor(
       OutboundConnectorManager manager, OutboundConnectorFactory factory) {
     return new OutboundConnectorAnnotationProcessor(manager, factory);
+  }
+
+  @Bean
+  public ConnectorsOutboundMetrics connectorsOutboundMetrics(MeterRegistry meterRegistry) {
+    return new ConnectorsOutboundMetrics(meterRegistry);
   }
 }

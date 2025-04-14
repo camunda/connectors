@@ -234,7 +234,7 @@
     "value" : "10",
     "group" : "connector",
     "binding" : {
-      "key" : "version",
+      "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
@@ -245,7 +245,7 @@
     "value" : "io.camunda.connectors.AWSSQS.v1",
     "group" : "connector",
     "binding" : {
-      "key" : "id",
+      "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"

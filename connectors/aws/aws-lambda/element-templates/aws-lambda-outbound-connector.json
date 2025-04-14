@@ -184,7 +184,7 @@
     "value" : "5",
     "group" : "connector",
     "binding" : {
-      "key" : "version",
+      "key" : "elementTemplateVersion",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
@@ -195,7 +195,7 @@
     "value" : "io.camunda.connectors.AWSLAMBDA.v2",
     "group" : "connector",
     "binding" : {
-      "key" : "id",
+      "key" : "elementTemplateId",
       "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"

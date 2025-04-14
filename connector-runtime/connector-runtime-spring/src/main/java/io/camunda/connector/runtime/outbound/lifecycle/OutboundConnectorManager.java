@@ -24,6 +24,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.spring.client.annotation.value.JobWorkerValue;
@@ -48,6 +49,7 @@ public class OutboundConnectorManager {
   private final ObjectMapper objectMapper;
   private final MetricsRecorder metricsRecorder;
   private final DocumentFactory documentFactory;
+  private final ConnectorsOutboundMetrics outboundMetrics;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -57,7 +59,8 @@ public class OutboundConnectorManager {
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      MetricsRecorder metricsRecorder,
+      ConnectorsOutboundMetrics outboundMetrics) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
@@ -66,6 +69,7 @@ public class OutboundConnectorManager {
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
+    this.outboundMetrics = outboundMetrics;
   }
 
   public void start(final CamundaClient client) {
@@ -100,6 +104,7 @@ public class OutboundConnectorManager {
     JobHandler connectorJobHandler =
         new SpringConnectorJobHandler(
             metricsRecorder,
+            outboundMetrics,
             commandExceptionHandlingStrategy,
             secretProviderAggregator,
             validationProvider,
