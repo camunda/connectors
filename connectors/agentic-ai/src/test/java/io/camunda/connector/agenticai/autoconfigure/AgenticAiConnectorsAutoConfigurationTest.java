@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,12 +18,28 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocTool
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
+import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 
 class AgenticAiConnectorsAutoConfigurationTest {
+
+  private static final List<Class<?>> AGENTIC_AI_BEANS =
+      List.of(
+          AdHocToolsSchemaResolver.class,
+          AdHocToolsSchemaFunction.class,
+          ChatModelFactory.class,
+          ToolSpecificationConverter.class,
+          ToolCallingHandler.class,
+          AiAgentRequestHandler.class,
+          AiAgentFunction.class);
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
@@ -54,10 +70,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
         .run(
             context ->
                 assertAll(
-                    () -> assertThat(context).hasSingleBean(AdHocToolsSchemaResolver.class),
-                    () -> assertThat(context).hasSingleBean(AdHocToolsSchemaFunction.class),
-                    () -> assertThat(context).hasSingleBean(AiAgentRequestHandler.class),
-                    () -> assertThat(context).hasSingleBean(AiAgentFunction.class)));
+                    AGENTIC_AI_BEANS.stream().map(beanClass -> hasSingleBean(context, beanClass))));
   }
 
   @Test
@@ -67,10 +80,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
         .run(
             context ->
                 assertAll(
-                    () -> assertThat(context).doesNotHaveBean(AdHocToolsSchemaResolver.class),
-                    () -> assertThat(context).doesNotHaveBean(AdHocToolsSchemaFunction.class),
-                    () -> assertThat(context).doesNotHaveBean(AiAgentRequestHandler.class),
-                    () -> assertThat(context).doesNotHaveBean(AiAgentFunction.class)));
+                    AGENTIC_AI_BEANS.stream()
+                        .map(beanClass -> doesNotHaveBean(context, beanClass))));
   }
 
   @Test
@@ -93,5 +104,13 @@ class AgenticAiConnectorsAutoConfigurationTest {
                 assertThat(context)
                     .getBean(AdHocToolsSchemaResolver.class)
                     .isInstanceOf(CachingAdHocToolsSchemaResolver.class));
+  }
+
+  private Executable hasSingleBean(AssertableApplicationContext context, Class<?> beanClass) {
+    return () -> assertThat(context).hasSingleBean(beanClass);
+  }
+
+  private Executable doesNotHaveBean(AssertableApplicationContext context, Class<?> beanClass) {
+    return () -> assertThat(context).doesNotHaveBean(beanClass);
   }
 }

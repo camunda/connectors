@@ -56,24 +56,44 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public AdHocToolsSchemaFunction adHocToolsSchemaFunction(
+      AdHocToolsSchemaResolver schemaResolver) {
+    return new AdHocToolsSchemaFunction(schemaResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ChatModelFactory chatModelFactory() {
+    return new ChatModelFactory();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ToolSpecificationConverter toolSpecificationConverter() {
+    return new ToolSpecificationConverter();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ToolCallingHandler toolCallingHandler(
+      ObjectMapper objectMapper,
+      AdHocToolsSchemaResolver schemaResolver,
+      ToolSpecificationConverter toolSpecificationConverter) {
+    return new ToolCallingHandler(objectMapper, schemaResolver, toolSpecificationConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
-      ObjectMapper objectMapper, AdHocToolsSchemaResolver schemaResolver) {
-    return new DefaultAiAgentRequestHandler(
-        objectMapper,
-        new ChatModelFactory(),
-        new ToolCallingHandler(objectMapper, schemaResolver, new ToolSpecificationConverter()));
+      ObjectMapper objectMapper,
+      ChatModelFactory chatModelFactory,
+      ToolCallingHandler toolCallingHandler) {
+    return new DefaultAiAgentRequestHandler(objectMapper, chatModelFactory, toolCallingHandler);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public AiAgentFunction aiAgentFunction(AiAgentRequestHandler aiAgentRequestHandler) {
     return new AiAgentFunction(aiAgentRequestHandler);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public AdHocToolsSchemaFunction adHocToolsSchemaFunction(
-      AdHocToolsSchemaResolver schemaResolver) {
-    return new AdHocToolsSchemaFunction(schemaResolver);
   }
 }
