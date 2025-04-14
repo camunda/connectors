@@ -68,8 +68,7 @@ class ProcessInstanceClientImplTest {
 
     SearchResponse<FlowNodeInstance> flownodeInstanceSearchResult =
         createSearchResult(flownodeInstance1, flownodeInstance2);
-    SearchResponse<FlowNodeInstance> flownodeInstanceEmptySearchResult =
-        createEmptySearchResult();
+    SearchResponse<FlowNodeInstance> flownodeInstanceEmptySearchResult = createEmptySearchResult();
 
     when(searchQueryClient.queryActiveFlowNodes(anyLong(), any(), any()))
         .thenReturn(flownodeInstanceSearchResult)
