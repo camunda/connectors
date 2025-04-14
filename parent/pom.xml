@@ -71,14 +71,14 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.8.0-alpha3</version.camunda>
+    <version.camunda>8.8.0-SNAPSHOT</version.camunda>
     <version.feel-engine>1.19.2</version.feel-engine>
 
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.17.0</version.mockito>
-    <version.junit-jupiter>5.12.1</version.junit-jupiter>
+    <version.junit-jupiter>5.12.2</version.junit-jupiter>
     <version.assertj>3.27.3</version.assertj>
     <version.jackson-bom>2.18.3</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.18.3</version.jackson-datatype-jsr310>
@@ -91,9 +91,9 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.18</version.logback>
 
     <version.aws-java-sdk>1.12.782</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.31.16</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.31.21</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.782</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.31.16</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.31.21</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.15.0</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
@@ -108,7 +108,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20250211-2.0.0</version.google-api-services-sheets>
     <version.google-libraries-bom>26.59.0</version.google-libraries-bom>
     <version.google-cloud-storage>2.50.0</version.google-cloud-storage>
-    <version.gson-extras>3.1.0</version.gson-extras>
+    <version.gson-extras>3.2.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.3.4</version.httpcore5>
@@ -116,12 +116,12 @@ limitations under the License.</license.inlineheader>
     <version.pdfbox>3.0.4</version.pdfbox>
     <version.collections4>4.5.0-M3</version.collections4>
 
-    <version.commons-io>2.18.0</version.commons-io>
+    <version.commons-io>2.19.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>3.9.0</version.kafka-clients>
 
-    <version.microsoft-graph>6.34.0</version.microsoft-graph>
+    <version.microsoft-graph>6.35.0</version.microsoft-graph>
     <version.azure-identity>1.15.4</version.azure-identity>
 
     <version.bouncycastle>1.80</version.bouncycastle>
@@ -137,7 +137,7 @@ limitations under the License.</license.inlineheader>
 
     <version.snappy-java>1.1.10.7</version.snappy-java>
     <version.commons-codec>1.18.0</version.commons-codec>
-    <version.guava>33.4.6-jre</version.guava>
+    <version.guava>33.4.7-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
 
     <version.wiremock>3.12.1</version.wiremock>
@@ -153,7 +153,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.0</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.3</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.44.3</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>2.44.4</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.4.2</plugin.version.maven-jar-plugin>
   </properties>
 
@@ -456,7 +456,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.13.0</version>
+        <version>1.13.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -468,7 +468,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>10.1</version>
+        <version>10.2</version>
       </dependency>
 
       <!-- Fixes CWE-835 -->
