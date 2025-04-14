@@ -24,7 +24,7 @@ import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.client.impl.response.DocumentMetadataImpl;
-import io.camunda.zeebe.client.protocol.rest.DocumentMetadata;
+import io.camunda.zeebe.client.protocol.rest.DocumentDetails;
 
 public class TestDocumentFactory implements DocumentFactory {
 
@@ -39,7 +39,7 @@ public class TestDocumentFactory implements DocumentFactory {
   @Override
   public Document create(DocumentCreationRequest request) {
     var reference = store.createDocument(request);
-    var metadata = new DocumentMetadata();
+    var metadata = new DocumentDetails();
     metadata.setContentType(reference.getMetadata().getContentType());
     metadata.setFileName(reference.getMetadata().getFileName());
     return new CamundaDocument(new DocumentMetadataImpl(metadata), reference, store);
