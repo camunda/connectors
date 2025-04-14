@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.metrics;
 
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
@@ -30,86 +31,104 @@ public class ConnectorsInboundMetrics {
   private final Map<String, Counter> correlationFailureCounter = new ConcurrentHashMap<>();
   private final Map<String, Counter> activationConditionFailureCounter = new ConcurrentHashMap<>();
   private final Map<String, Counter> triggerCounter = new ConcurrentHashMap<>();
+  private final Map<String, Counter> processDefinitionsChecked = new ConcurrentHashMap<>();
 
   public ConnectorsInboundMetrics(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
   }
 
-  public void increaseActivation(String connectorType, String version) {
-    String key = connectorType + "_" + version;
+  public void increaseActivation(InboundConnectorElement connectorElement) {
+    Result result = Result.getResult(connectorElement);
     this.activationCounter
         .computeIfAbsent(
-            key,
+            result.key(),
             s ->
-                Counter.builder("connectors_inbound_activation")
-                    .tag("type", connectorType)
-                    .tag("version", version)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
                     .register(meterRegistry))
         .increment();
   }
 
-  public void increaseDeactivation(String connectorType, String version) {
-    String key = connectorType + "_" + version;
+  public void increaseDeactivation(InboundConnectorElement connectorElement) {
+    Result result = Result.getResult(connectorElement);
     this.deactivationCounter
         .computeIfAbsent(
-            key,
+            result.key(),
             s ->
-                Counter.builder("connectors_inbound_deactivation")
-                    .tag("type", connectorType)
-                    .tag("version", version)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_DEACTIVATIONS)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
                     .register(meterRegistry))
         .increment();
   }
 
-  public void increaseCorrelationSuccess(String connectorType, String version) {
-    String key = connectorType + "_" + version;
+  public void increaseCorrelationSuccess(InboundConnectorElement connectorElement) {
+    Result result = Result.getResult(connectorElement);
     this.correlationSuccessCounter
         .computeIfAbsent(
-            key,
+            result.key(),
             s ->
-                Counter.builder("connectors_inbound_correlation_success")
-                    .tag("type", connectorType)
-                    .tag("version", version)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_CORRELATION_SUCCESS)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
                     .register(meterRegistry))
         .increment();
   }
 
-  public void increaseCorrelationFailure(String connectorType, String version) {
-    String key = connectorType + "_" + version;
+  public void increaseCorrelationFailure(InboundConnectorElement connectorElement) {
+    Result result = Result.getResult(connectorElement);
     this.correlationFailureCounter
         .computeIfAbsent(
-            key,
+            result.key(),
             s ->
-                Counter.builder("connectors_inbound_correlation_failure")
-                    .tag("type", connectorType)
-                    .tag("version", version)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_CORRELATION_FAILURE)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
                     .register(meterRegistry))
         .increment();
   }
 
-  public void increaseTrigger(String connectorType, String version) {
-    String key = connectorType + "_" + version;
+  public void increaseTrigger(InboundConnectorElement connectorElement) {
+    Result result = Result.getResult(connectorElement);
     this.triggerCounter
         .computeIfAbsent(
-            key,
+            result.key(),
             s ->
-                Counter.builder("connectors_inbound_triggered")
-                    .tag("type", connectorType)
-                    .tag("version", version)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
                     .register(meterRegistry))
         .increment();
   }
 
-  public void increaseActivationConditionFailure(String connectorType, String version) {
-    String key = connectorType + "_" + version;
+  public void increaseActivationConditionFailure(InboundConnectorElement connectorElement) {
+    Result result = Result.getResult(connectorElement);
     this.activationConditionFailureCounter
         .computeIfAbsent(
-            key,
+            result.key(),
             s ->
-                Counter.builder("connectors_inbound_activation_condition_failure")
-                    .tag("type", connectorType)
-                    .tag("version", version)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATION_CONDITION_FAILURE)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
                     .register(meterRegistry))
         .increment();
+  }
+
+  public void increaseProcessDefinitionsChecked(int count) {
+    this.processDefinitionsChecked
+        .computeIfAbsent(
+            "PROCESS_DEFINITIONS_CHECKED",
+            s ->
+                Counter.builder(
+                        ConnectorMetrics.Inbound.METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED)
+                    .register(meterRegistry))
+        .increment(count);
   }
 }

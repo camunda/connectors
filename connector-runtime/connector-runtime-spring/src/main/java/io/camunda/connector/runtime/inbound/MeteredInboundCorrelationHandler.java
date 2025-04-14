@@ -45,9 +45,7 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   public boolean isActivationConditionMet(InboundConnectorElement def, Object context) {
     boolean isConditionMet = super.isActivationConditionMet(def, context);
     if (!isConditionMet) {
-      String type = def.type();
-      String version = String.valueOf(def.element().version());
-      this.connectorsInboundMetrics.increaseActivationConditionFailure(type, version);
+      this.connectorsInboundMetrics.increaseActivationConditionFailure(def);
     }
     return isConditionMet;
   }
@@ -58,15 +56,13 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
     if (elementList.isEmpty()) {
       throw new IllegalArgumentException("No elements to correlate, potential API misuse");
     }
-    String type = elementList.getFirst().type();
-    String version = elementList.getFirst().element().elementTemplateDetails().version();
-    this.connectorsInboundMetrics.increaseTrigger(type, version);
+    this.connectorsInboundMetrics.increaseTrigger(elementList.getFirst());
     try {
       var result = super.correlate(elementList, correlationRequest);
-      this.connectorsInboundMetrics.increaseCorrelationSuccess(type, version);
+      this.connectorsInboundMetrics.increaseCorrelationSuccess(elementList.getFirst());
       return result;
     } catch (Exception e) {
-      this.connectorsInboundMetrics.increaseCorrelationFailure(type, version);
+      this.connectorsInboundMetrics.increaseCorrelationFailure(elementList.getFirst());
       throw e;
     }
   }

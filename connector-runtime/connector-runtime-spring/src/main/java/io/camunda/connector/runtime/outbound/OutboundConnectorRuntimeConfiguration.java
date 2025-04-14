@@ -32,7 +32,6 @@ import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.CamundaDocumentStoreImpl;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
-import io.camunda.spring.client.metrics.MetricsRecorder;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -66,8 +65,7 @@ public class OutboundConnectorRuntimeConfiguration {
       @Autowired(required = false) ValidationProvider validationProvider,
       ConnectorsOutboundMetrics outboundMetrics,
       DocumentFactory documentFactory,
-      ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      ObjectMapper objectMapper) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -76,7 +74,6 @@ public class OutboundConnectorRuntimeConfiguration {
         validationProvider,
         documentFactory,
         objectMapper,
-        metricsRecorder,
         outboundMetrics);
   }
 

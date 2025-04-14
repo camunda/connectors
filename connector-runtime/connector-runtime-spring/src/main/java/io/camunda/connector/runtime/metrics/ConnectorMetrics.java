@@ -16,23 +16,28 @@
  */
 package io.camunda.connector.runtime.metrics;
 
-import io.camunda.spring.client.metrics.MetricsRecorder;
-
 public class ConnectorMetrics {
 
   public static class Outbound {
 
     public static final String METRIC_NAME_INVOCATIONS = "camunda.connector.outbound.invocations";
+    public static final String METRIC_NAME_COMPLETIONS = "camunda.connector.outbound.completions";
+    public static final String METRIC_NAME_FAILURES = "camunda.connector.outbound.failures";
+    public static final String METRIC_NAME_BPMN_ERRORS = "camunda.connector.outbound.bpmn-errors";
     public static final String METRIC_NAME_TIME = "camunda.connector.outbound.execution-time";
-
-    public static final String JOB_RECEIVED = "outbound-connector-job-received";
-    // same as job worker metrics from Spring Zeebe
-    public static final String ACTION_ACTIVATED = MetricsRecorder.ACTION_ACTIVATED;
-    public static final String ACTION_COMPLETED = MetricsRecorder.ACTION_COMPLETED;
-    public static final String ACTION_FAILED = MetricsRecorder.ACTION_FAILED;
   }
 
   public static class Inbound {
+    public static final String METRIC_NAME_ACTIVATIONS = "camunda.connector.inbound.activations";
+    public static final String METRIC_NAME_DEACTIVATIONS =
+        "camunda.connector.inbound.deactivations";
+    public static final String METRIC_NAME_TRIGGERS = "camunda.connector.inbound.triggers";
+    public static final String METRIC_NAME_CORRELATION_SUCCESS =
+        "camunda.connector.inbound.correlations-success";
+    public static final String METRIC_NAME_CORRELATION_FAILURE =
+        "camunda.connector.inbound.correlations-failure";
+    public static final String METRIC_NAME_ACTIVATION_CONDITION_FAILURE =
+        "camunda.connector.inbound.activation-conditions-failure";
     public static final String METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED =
         "camunda.connector.inbound.process-definitions-checked";
   }

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.metrics;
 
+import io.camunda.client.api.response.ActivatedJob;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
@@ -24,21 +25,81 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ConnectorsOutboundMetrics {
 
   private final MeterRegistry meterRegistry;
-  private final Map<String, Counter> counters = new ConcurrentHashMap<>();
+  private final Map<String, Counter> invocationCounter = new ConcurrentHashMap<>();
+  private final Map<String, Counter> failureCounter = new ConcurrentHashMap<>();
+  private final Map<String, Counter> completionCounter = new ConcurrentHashMap<>();
+  private final Map<String, Counter> bpmnErrorCounter = new ConcurrentHashMap<>();
 
   public ConnectorsOutboundMetrics(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
   }
 
-  public void increase(String connectorType, String version) {
-    String key = connectorType + "_" + version;
-    this.counters
+  public void increaseInvocation(ActivatedJob job) {
+    Result result = Result.getResult(job);
+    this.invocationCounter
         .computeIfAbsent(
-            key,
+            result.key(),
             s ->
-                Counter.builder("connectors_outbound")
-                    .tag("type", connectorType)
-                    .tag("version", version)
+                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
+                    .register(meterRegistry))
+        .increment();
+  }
+
+  public void increaseFailure(ActivatedJob job) {
+    Result result = Result.getResult(job);
+    this.failureCounter
+        .computeIfAbsent(
+            result.key(),
+            s ->
+                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_FAILURES)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
+                    .register(meterRegistry))
+        .increment();
+  }
+
+  public void executeWithTimer(ActivatedJob job, Runnable runnable) {
+    Result result = Result.getResult(job);
+    meterRegistry
+        .timer(
+            ConnectorMetrics.Outbound.METRIC_NAME_TIME,
+            "type",
+            result.type(),
+            "id",
+            result.id(),
+            "version",
+            result.version())
+        .record(runnable);
+  }
+
+  public void increaseCompletion(ActivatedJob job) {
+    Result result = Result.getResult(job);
+    this.completionCounter
+        .computeIfAbsent(
+            result.key(),
+            s ->
+                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_COMPLETIONS)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
+                    .register(meterRegistry))
+        .increment();
+  }
+
+  public void increaseBpmnError(ActivatedJob job) {
+    Result result = Result.getResult(job);
+    this.bpmnErrorCounter
+        .computeIfAbsent(
+            result.key(),
+            s ->
+                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_BPMN_ERRORS)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
                     .register(meterRegistry))
         .increment();
   }

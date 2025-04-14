@@ -170,7 +170,6 @@ public class BatchExecutableProcessor {
                   "Webhook connectors are not supported in this environment")));
       return new ConnectorNotRegistered(validData);
     }
-
     try {
       if (executable instanceof WebhookConnectorExecutable) {
         LOG.debug("Registering webhook: {}", data.type());
@@ -181,16 +180,11 @@ public class BatchExecutableProcessor {
       LOG.error("Failed to activate connector", e);
       return new FailedToActivate(data, e.getMessage());
     }
-
     LOG.info(
         "Inbound connector {} activated with deduplication ID '{}'",
         data.type(),
         data.deduplicationId());
-
-    String elementTemplateId = data.connectorElements().getFirst().type();
-    String elementTemplateVersion =
-        data.connectorElements().getFirst().element().elementTemplateDetails().version();
-    connectorsInboundMetrics.increaseActivation(elementTemplateId, elementTemplateVersion);
+    connectorsInboundMetrics.increaseActivation(data.connectorElements().getFirst());
     return new Activated(executable, context);
   }
 
@@ -208,17 +202,8 @@ public class BatchExecutableProcessor {
         } catch (Exception e) {
           LOG.error("Failed to deactivate executable", e);
         }
-        String elementTemplateId = activated.context().connectorElements().getFirst().type();
-        String elementTemplateVersion =
-            activated
-                .context()
-                .connectorElements()
-                .getFirst()
-                .element()
-                .elementTemplateDetails()
-                .version();
         connectorsInboundMetrics.increaseDeactivation(
-            elementTemplateId, String.valueOf(elementTemplateVersion));
+            activated.context().connectorElements().getFirst());
       }
     }
   }
