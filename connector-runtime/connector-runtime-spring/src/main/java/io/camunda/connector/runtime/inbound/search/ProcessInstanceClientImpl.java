@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.inbound.search;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.search.response.FlowNodeInstance;
-import io.camunda.client.api.search.response.SearchQueryResponse;
+import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import java.util.ArrayList;
@@ -62,7 +62,7 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
     fetchActiveProcessLock.lock();
     try {
       List<Object> processPaginationIndex = null;
-      SearchQueryResponse<FlowNodeInstance> searchResult;
+      SearchResponse<FlowNodeInstance> searchResult;
       List<FlowNodeInstance> result = new ArrayList<>();
       do {
         searchResult =
@@ -93,7 +93,7 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
     fetchVariablesLock.lock();
     try {
       List<Object> variablePaginationIndex = null;
-      SearchQueryResponse<Variable> searchResult;
+      SearchResponse<Variable> searchResult;
       Map<String, Object> processVariables = new HashMap<>();
       do {
         searchResult =
