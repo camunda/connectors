@@ -54,7 +54,6 @@ public class StructuredServiceTest {
 
     StructuredExtractionResponse extractionResponse = getStructuredExtractionResponse();
 
-    // Mock the textract caller to return our sample response
     when(pollingTextractCaller.extractKeyValuePairsWithConfidence(any(), any(), any(), any()))
         .thenReturn(extractionResponse);
 
@@ -84,7 +83,6 @@ public class StructuredServiceTest {
   void extractUsingTextract_WithExcludedFields_ReturnsCorrectResultWithoutExcludedFields()
       throws Exception {
     // given
-    // Create a custom extraction request with excluded fields
     AwsProvider baseRequest = ExtractionTestUtils.createDefaultAwsProvider();
 
     ExtractionRequestData requestDataWithExclusions =
@@ -98,10 +96,8 @@ public class StructuredServiceTest {
 
     ExtractionRequest request = new ExtractionRequest(requestDataWithExclusions, baseRequest);
 
-    // Create the extraction response with all fields (including the one to be excluded)
     StructuredExtractionResponse extractionResponse = getStructuredExtractionResponse();
 
-    // Mock the textract caller to return our sample response
     when(pollingTextractCaller.extractKeyValuePairsWithConfidence(any(), any(), any(), any()))
         .thenReturn(extractionResponse);
 
@@ -113,15 +109,11 @@ public class StructuredServiceTest {
 
     StructuredExtractionResult structuredResult = (StructuredExtractionResult) result;
 
-    // Verify the extracted fields were properly processed
-    // The excluded field (total_amount) should not be present
     assertThat(structuredResult.extractedFields())
         .containsEntry("invoice_number", "INV-12345")
         .containsEntry("supplier_name", "Camunda Inc.")
         .doesNotContainKey("total_amount");
 
-    // Verify confidence scores were properly processed
-    // The confidence score for the excluded field should also not be present
     assertThat(structuredResult.confidenceScore())
         .containsEntry("invoice_number", 0.95f)
         .containsEntry("supplier_name", 0.92f)
