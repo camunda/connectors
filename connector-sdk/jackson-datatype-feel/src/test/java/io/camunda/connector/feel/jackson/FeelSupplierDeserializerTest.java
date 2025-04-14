@@ -34,7 +34,8 @@ public class FeelSupplierDeserializerTest {
   @Test
   void feelSupplierDeserialization_objectResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "supplier": "= { result: \\"foobar\\" }" }
         """;
 
@@ -50,7 +51,8 @@ public class FeelSupplierDeserializerTest {
   @Test
   void feelSupplierDeserialization_stringResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "supplier": "= \\"foobar\\"" }
         """;
 
@@ -65,7 +67,8 @@ public class FeelSupplierDeserializerTest {
   @Test
   void feelSupplierDeserialization_booleanResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "supplier": "= true" }
         """;
 
@@ -80,7 +83,8 @@ public class FeelSupplierDeserializerTest {
   @Test
   void feelSupplierDeserialization_integerResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "supplier": "= 42" }
         """;
 
@@ -95,7 +99,8 @@ public class FeelSupplierDeserializerTest {
   @Test
   void feelSupplierDeserialization_nullResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "supplier": "= null" }
         """;
 
@@ -110,7 +115,8 @@ public class FeelSupplierDeserializerTest {
   @Test
   void feelSupplierDeserialization_listResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "supplier": "= [1, 2, 3]" }
         """;
 
@@ -125,7 +131,8 @@ public class FeelSupplierDeserializerTest {
   @Test
   void feelSupplierDeserialization_mapResult() throws JsonProcessingException {
     // given
-    String json = """
+    String json =
+        """
         { "supplier": "= { foo: \\"bar\\" }" }
         """;
 
@@ -154,7 +161,8 @@ public class FeelSupplierDeserializerTest {
   @Test
   void feelSupplierDeserialization_contextProvided() throws IOException {
     // given
-    var json = """
+    var json =
+        """
         { "supplier": "= ctx.foo + ctx.bar" }
                 """;
     var context = Map.of("ctx", Map.of("foo", "foo", "bar", "bar"));

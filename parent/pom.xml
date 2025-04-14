@@ -675,7 +675,7 @@ limitations under the License.</license.inlineheader>
               <!--
                 <dependencyConvergence />
               -->
-              <requirePluginVersion/>
+              <requirePluginVersions/>
             </rules>
           </configuration>
           <executions>
@@ -775,6 +775,16 @@ limitations under the License.</license.inlineheader>
               </manifest>
             </archive>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.12.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>${plugin.version.maven-resources-plugin}</version>
         </plugin>
       </plugins>
     </pluginManagement>

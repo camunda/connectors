@@ -89,7 +89,7 @@ public class KafkaConnectorConsumer {
   public void startConsumer() {
     if (elementProps.getAvro() != null) {
       var schemaString = StringEscapeUtils.unescapeJson(elementProps.getAvro().schema());
-      Schema schema = new Schema.Parser().setValidate(true).parse(schemaString);
+      Schema schema = new Schema.Parser().parse(schemaString);
       AvroSchema avroSchema = new AvroSchema(schema);
       AvroMapper avroMapper = new AvroMapper();
       avroObjectReader = avroMapper.reader(avroSchema);

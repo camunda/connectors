@@ -135,14 +135,14 @@ public class HttpOperationBuilder {
     for (var property : properties) {
       PropertyBuilder builder =
           switch (property.type()) {
-            case STRING -> StringProperty.builder()
-                .value(property.example())
-                .feel(FeelMode.optional);
-            case ENUM -> DropdownProperty.builder()
-                .choices(
-                    property.choices().stream()
-                        .map(choice -> new DropdownChoice(choice, choice))
-                        .toList());
+            case STRING ->
+                StringProperty.builder().value(property.example()).feel(FeelMode.optional);
+            case ENUM ->
+                DropdownProperty.builder()
+                    .choices(
+                        property.choices().stream()
+                            .map(choice -> new DropdownChoice(choice, choice))
+                            .toList());
             case FEEL -> StringProperty.builder().value(property.example()).feel(FeelMode.required);
           };
 
