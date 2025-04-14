@@ -20,8 +20,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class AgentContextChatMemoryStore implements ChatMemoryStore {
 
@@ -29,7 +27,6 @@ public class AgentContextChatMemoryStore implements ChatMemoryStore {
 
   private final ChatMemoryStore internalMemoryStore;
   private final ObjectMapper objectMapper;
-  private final Set<Object> memoryIds = ConcurrentHashMap.newKeySet();
 
   public AgentContextChatMemoryStore(ObjectMapper objectMapper) {
     this(new InMemoryChatMemoryStore(), objectMapper);
@@ -48,13 +45,11 @@ public class AgentContextChatMemoryStore implements ChatMemoryStore {
 
   @Override
   public void updateMessages(Object memoryId, List<ChatMessage> messages) {
-    memoryIds.add(memoryId);
     internalMemoryStore.updateMessages(memoryId, messages);
   }
 
   @Override
   public void deleteMessages(Object memoryId) {
-    memoryIds.remove(memoryId);
     internalMemoryStore.deleteMessages(memoryId);
   }
 
