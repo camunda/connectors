@@ -132,9 +132,9 @@ public class OutboundConnectorsAutoConfiguration {
     var authProperties = clientProperties.getAuth();
     URL issuerUrl;
     try {
-      issuerUrl = authProperties.getIssuer().toURL();
+      issuerUrl = authProperties.getTokenUrl().toURL();
     } catch (Exception e) {
-      throw new RuntimeException("Invalid issuer URL: " + authProperties.getIssuer(), e);
+      throw new RuntimeException("Invalid token URL: " + authProperties.getTokenUrl(), e);
     }
 
     var jwtCredential =
