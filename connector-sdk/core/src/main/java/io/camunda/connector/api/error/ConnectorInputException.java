@@ -45,4 +45,13 @@ public class ConnectorInputException extends RuntimeException {
   public ConnectorInputException(String message, Throwable exception) {
     super(message, exception);
   }
+
+  /**
+   * Constructs a new exception with the specified detail message.
+   *
+   * @param message - the detail message
+   */
+  public ConnectorInputException(String message) {
+    super(message);
+  }
 }
