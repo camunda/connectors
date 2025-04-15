@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.secret;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
@@ -54,5 +55,14 @@ public class SecretProviderAggregatorTest {
     assertThat(aggregator.getSecretProviders().get(1)).isInstanceOf(NoOpSecretProvider.class);
     assertThat(aggregator.getSecretProviders().get(0)).isInstanceOf(FooBarSecretProvider.class);
     assertThat(secret).isEqualTo(FooBarSecretProvider.SECRET_VALUE);
+  }
+
+  @Test
+  public void fetchAllShouldInvokeAllSecretProviders() {
+    SecretProvider mock = mock(SecretProvider.class);
+    List<SecretProvider> secretProviders = List.of(mock);
+    SecretProviderAggregator aggregator = new SecretProviderAggregator(secretProviders);
+    aggregator.fetchAll(List.of("foo", "bar"));
+    verify(mock, times(1)).fetchAll(List.of("foo", "bar"));
   }
 }

@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.secret;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +57,13 @@ public class SecretProviderAggregator implements SecretProvider {
     }
     LOG.debug("Could not resolve secret '{}'", secretName);
     return null;
+  }
+
+  @Override
+  public List<String> fetchAll(List<String> keys) {
+    return secretProviders.stream()
+        .flatMap(provider -> provider.fetchAll(keys).stream())
+        .collect(Collectors.toList());
   }
 
   public List<SecretProvider> getSecretProviders() {
