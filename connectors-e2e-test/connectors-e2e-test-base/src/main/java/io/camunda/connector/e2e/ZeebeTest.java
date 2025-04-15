@@ -83,6 +83,15 @@ public class ZeebeTest {
     return this;
   }
 
+  public ZeebeTest waitForActiveIncidents() {
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(20, TimeUnit.SECONDS)
+        .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).hasActiveIncidents());
+    return this;
+  }
+
   public DeploymentEvent getDeploymentEvent() {
     return deploymentEvent;
   }

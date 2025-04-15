@@ -23,7 +23,7 @@ import java.util.Map;
 
 public class AgentContextChatMemoryStore implements ChatMemoryStore {
 
-  private static final String DEFAULT_MEMORY_ID = "default";
+  public static final String DEFAULT_MEMORY_ID = "default";
 
   private final ChatMemoryStore internalMemoryStore;
   private final ObjectMapper objectMapper;

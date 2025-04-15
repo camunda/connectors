@@ -92,6 +92,10 @@ public class ToolCallingHandler {
   }
 
   private String contentAsString(String toolName, Object content) {
+    if (content instanceof String stringContent) {
+      return stringContent;
+    }
+
     try {
       return objectMapper.writeValueAsString(content);
     } catch (JsonProcessingException e) {
