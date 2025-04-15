@@ -17,6 +17,7 @@ import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import io.camunda.connector.agenticai.aiagent.memory.AgentContextChatMemoryStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
@@ -104,7 +105,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
                 agentContext
                     .metrics()
                     .incrementModelCalls(1)
-                    .incrementTokenUsage(chatResponse.tokenUsage().totalTokenCount()));
+                    .incrementTokenUsage(AgentMetrics.TokenUsage.from(chatResponse.tokenUsage())));
 
     return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolsToCall);
   }
