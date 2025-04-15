@@ -11,10 +11,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +25,7 @@ public abstract class TestMessagesFixture {
 
   public static List<ChatMessage> testMessages() {
     return List.of(
+        new SystemMessage("You are a helpful assistant. Be nice."),
         new UserMessage(
             TextContent.from("What is the weather in Munich?"),
             TextContent.from("Is it typical for this time of the year?")),

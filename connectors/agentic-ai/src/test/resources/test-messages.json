@@ -1,5 +1,9 @@
 [
   {
+    "type": "SYSTEM",
+    "text": "You are a helpful assistant. Be nice."
+  },
+  {
     "type": "USER",
     "contents": [
       {
