@@ -34,7 +34,6 @@ import io.camunda.zeebe.client.impl.ZeebeObjectMapper;
 import io.camunda.zeebe.spring.client.properties.CamundaClientProperties;
 import io.camunda.zeebe.spring.client.properties.CamundaClientProperties.ClientMode;
 import io.camunda.zeebe.spring.common.json.SdkObjectMapper;
-import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
 import java.util.LinkedList;
@@ -145,9 +144,9 @@ public class OutboundConnectorsAutoConfiguration {
     var authProperties = clientProperties.getAuth();
     URL issuerUrl;
     try {
-      issuerUrl = new URI(authProperties.getIssuer()).toURL();
+      issuerUrl = authProperties.getTokenUrl().toURL();
     } catch (Exception e) {
-      throw new RuntimeException("Invalid issuer URL: " + authProperties.getIssuer(), e);
+      throw new RuntimeException("Invalid issuer URL: " + authProperties.getTokenUrl(), e);
     }
 
     var jwtCredential =
