@@ -388,8 +388,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
     assertThat(chatRequest.toolSpecifications())
         .hasSize(4)
         .extracting(ToolSpecification::name)
-        .containsExactly(
-            "GetDateAndTime", "SuperfluxProduct", "Search_The_Web", "An_Event");
+        .containsExactly("GetDateAndTime", "SuperfluxProduct", "Search_The_Web", "An_Event");
   }
 
   private void assertIncident(ZeebeTest zeebeTest, ThrowingConsumer<Incident> assertion) {
