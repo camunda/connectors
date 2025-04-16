@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.search.enums.FlowNodeInstanceState;
+import io.camunda.client.api.search.enums.ElementInstanceState;
 import io.camunda.client.api.search.response.*;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -49,16 +49,16 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   }
 
   @Override
-  public SearchResponse<FlowNodeInstance> queryActiveFlowNodes(
+  public SearchResponse<ElementInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, List<Object> paginationIndex) {
     final var query =
         camundaClient
-            .newFlownodeInstanceSearchRequest()
+            .newElementInstanceSearchRequest()
             .filter(
                 i ->
                     i.processDefinitionKey(processDefinitionKey)
-                        .flowNodeId(elementId)
-                        .state(FlowNodeInstanceState.ACTIVE));
+                        .elementId(elementId)
+                        .state(ElementInstanceState.ACTIVE));
     if (paginationIndex != null) {
       query.page(p -> p.limit(PAGE_SIZE).searchAfter(paginationIndex));
     } else {
