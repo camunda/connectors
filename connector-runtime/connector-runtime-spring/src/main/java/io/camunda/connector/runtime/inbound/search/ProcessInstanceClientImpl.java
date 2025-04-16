@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.inbound.search;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
+import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
@@ -54,16 +54,16 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
    *     node instances from.
    * @param elementId The identifier of the specific flow node element within the process
    *     definition.
-   * @return A list of active {@link FlowNodeInstance} objects.
+   * @return A list of active {@link io.camunda.client.api.search.response.ElementInstance} objects.
    * @throws RuntimeException If an error occurs during the fetch operation.
    */
-  public List<FlowNodeInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
+  public List<ElementInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
       final Long processDefinitionKey, final String elementId) {
     fetchActiveProcessLock.lock();
     try {
       List<Object> processPaginationIndex = null;
-      SearchResponse<FlowNodeInstance> searchResult;
-      List<FlowNodeInstance> result = new ArrayList<>();
+      SearchResponse<ElementInstance> searchResult;
+      List<ElementInstance> result = new ArrayList<>();
       do {
         searchResult =
             searchQueryClient.queryActiveFlowNodes(

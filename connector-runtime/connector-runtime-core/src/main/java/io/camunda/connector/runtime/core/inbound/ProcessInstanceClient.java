@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import io.camunda.client.api.search.response.FlowNodeInstance;
+import io.camunda.client.api.search.response.ElementInstance;
 import java.util.List;
 import java.util.Map;
 
@@ -37,11 +37,11 @@ public interface ProcessInstanceClient {
    * @param processDefinitionKey The unique identifier for the process definition.
    * @param elementId The identifier of the specific flow node element within the process
    *     definition.
-   * @return A list of {@link FlowNodeInstance} objects representing active process instances
+   * @return A list of {@link ElementInstance} objects representing active process instances
    *     associated with the given process definition key and element ID. Returns an empty list if
    *     none are found.
    */
-  List<FlowNodeInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
+  List<ElementInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
       final Long processDefinitionKey, final String elementId);
 
   /**

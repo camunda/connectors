@@ -16,16 +16,15 @@
  */
 package io.camunda.connector.e2e.app;
 
-import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootApplication
 @ImportAutoConfiguration({
@@ -33,7 +32,7 @@ import org.springframework.context.annotation.Primary;
   io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
   io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class
 })
-@MockBean(SearchQueryClient.class)
+@MockitoBean("SearchQueryClient")
 public class TestConnectorRuntimeApplication {
 
   public static void main(String[] args) {
