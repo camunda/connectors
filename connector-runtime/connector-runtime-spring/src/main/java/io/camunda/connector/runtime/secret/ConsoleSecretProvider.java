@@ -54,7 +54,7 @@ public class ConsoleSecretProvider implements SecretProvider {
 
   @Override
   public String getSecret(String name) {
-    LOGGER.debug("Resolving secret for key: " + name);
+    LOGGER.debug("Resolving secret for key: {}", name);
     return secretsCache.getUnchecked(CACHE_KEY).getOrDefault(name, null);
   }
 }
