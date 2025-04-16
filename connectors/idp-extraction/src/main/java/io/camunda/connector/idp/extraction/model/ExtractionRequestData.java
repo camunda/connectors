@@ -28,6 +28,18 @@ public record ExtractionRequestData(
         @NotNull
         Document document,
     @TemplateProperty(
+            id = "extractionType",
+            label = "Extraction Type",
+            group = "input",
+            type = TemplateProperty.PropertyType.Hidden,
+            defaultValue = "= input.extractionType",
+            description = "Specify extraction type (structured or unstructured)",
+            binding = @PropertyBinding(name = "extractionType"),
+            feel = Property.FeelMode.disabled,
+            constraints = @PropertyConstraints(notEmpty = true))
+        @NotNull
+        ExtractionType extractionType,
+    @TemplateProperty(
             id = "taxonomyItems",
             label = "Taxonomy Items",
             group = "input",
@@ -36,8 +48,27 @@ public record ExtractionRequestData(
             defaultValue = "= input.taxonomyItems",
             binding = @PropertyBinding(name = "taxonomyItems"),
             feel = Property.FeelMode.disabled)
-        @NotNull
         List<TaxonomyItem> taxonomyItems,
+    @TemplateProperty(
+            id = "excludedFields",
+            label = "Excluded Fields",
+            group = "input",
+            type = TemplateProperty.PropertyType.Hidden,
+            description = "List of fields that should not be returned from the extraction",
+            defaultValue = "= input.excludedFields",
+            binding = @PropertyBinding(name = "excludedFields"),
+            feel = Property.FeelMode.disabled)
+        List<String> excludedFields,
+    @TemplateProperty(
+            id = "delimiter",
+            label = "delimiter",
+            group = "input",
+            type = TemplateProperty.PropertyType.Hidden,
+            description = "The delimiter used for the variable name of the extracted field",
+            defaultValue = "= input.delimiter",
+            binding = @PropertyBinding(name = "delimiter"),
+            feel = Property.FeelMode.disabled)
+        String delimiter,
     @TemplateProperty(
             id = "converseData",
             label = "AWS Bedrock Converse Parameters",
@@ -47,5 +78,12 @@ public record ExtractionRequestData(
             defaultValue = "= input.converseData",
             binding = @PropertyBinding(name = "converseData"),
             feel = Property.FeelMode.disabled)
-        @NotNull
-        ConverseData converseData) {}
+        ConverseData converseData) {
+
+  // Compact constructor that sets default value for extractionType if null
+  public ExtractionRequestData {
+    if (extractionType == null) {
+      extractionType = ExtractionType.UNSTRUCTURED;
+    }
+  }
+}
