@@ -39,10 +39,10 @@ public class ConnectorsInboundMetrics {
             result.createKey(ConnectorMetrics.Inbound.ACTION_ACTIVATED),
             s ->
                 Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-                    .tag("action", ConnectorMetrics.Inbound.ACTION_ACTIVATED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_ACTIVATED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -54,10 +54,10 @@ public class ConnectorsInboundMetrics {
             result.createKey(ConnectorMetrics.Inbound.ACTION_DEACTIVATED),
             s ->
                 Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-                    .tag("action", ConnectorMetrics.Inbound.ACTION_DEACTIVATED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_DEACTIVATED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -69,10 +69,10 @@ public class ConnectorsInboundMetrics {
             result.createKey(ConnectorMetrics.Inbound.ACTION_CORRELATED),
             s ->
                 Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-                    .tag("action", ConnectorMetrics.Inbound.ACTION_CORRELATED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_CORRELATED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -84,10 +84,12 @@ public class ConnectorsInboundMetrics {
             result.createKey(ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED),
             s ->
                 Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-                    .tag("action", ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(
+                        ConnectorMetrics.Tag.ACTION,
+                        ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -99,10 +101,12 @@ public class ConnectorsInboundMetrics {
             result.createKey(ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED),
             s ->
                 Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-                    .tag("action", ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(
+                        ConnectorMetrics.Tag.ACTION,
+                        ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -114,10 +118,10 @@ public class ConnectorsInboundMetrics {
             result.createKey(ConnectorMetrics.Inbound.ACTION_TRIGGERED),
             s ->
                 Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-                    .tag("action", ConnectorMetrics.Inbound.ACTION_TRIGGERED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_TRIGGERED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -129,10 +133,12 @@ public class ConnectorsInboundMetrics {
             result.createKey(ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED),
             s ->
                 Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
-                    .tag("action", ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(
+                        ConnectorMetrics.Tag.ACTION,
+                        ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }

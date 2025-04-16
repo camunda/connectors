@@ -38,10 +38,10 @@ public class ConnectorsOutboundMetrics {
             result.createKey(ConnectorMetrics.Outbound.ACTION_ACTIVATED),
             s ->
                 Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-                    .tag("action", ConnectorMetrics.Outbound.ACTION_ACTIVATED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_ACTIVATED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -53,10 +53,10 @@ public class ConnectorsOutboundMetrics {
             result.createKey(ConnectorMetrics.Outbound.ACTION_FAILED),
             s ->
                 Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-                    .tag("action", ConnectorMetrics.Outbound.ACTION_FAILED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_FAILED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -68,10 +68,10 @@ public class ConnectorsOutboundMetrics {
             result.createKey(ConnectorMetrics.Outbound.ACTION_COMPLETED),
             s ->
                 Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-                    .tag("action", ConnectorMetrics.Outbound.ACTION_COMPLETED)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_COMPLETED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -83,10 +83,10 @@ public class ConnectorsOutboundMetrics {
             result.createKey(ConnectorMetrics.Outbound.ACTION_BPMN_ERROR),
             s ->
                 Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
-                    .tag("action", ConnectorMetrics.Outbound.ACTION_BPMN_ERROR)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
+                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Outbound.ACTION_BPMN_ERROR)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
                     .register(meterRegistry))
         .increment();
   }
@@ -96,11 +96,11 @@ public class ConnectorsOutboundMetrics {
     meterRegistry
         .timer(
             ConnectorMetrics.Outbound.METRIC_NAME_TIME,
-            "type",
+            ConnectorMetrics.Tag.TYPE,
             result.type(),
-            "id",
+            ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID,
             result.id(),
-            "version",
+            ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION,
             result.version())
         .record(runnable);
   }
