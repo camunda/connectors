@@ -26,9 +26,6 @@ public class ConnectorsOutboundMetrics {
 
   private final MeterRegistry meterRegistry;
   private final Map<String, Counter> invocationCounter = new ConcurrentHashMap<>();
-  private final Map<String, Counter> failureCounter = new ConcurrentHashMap<>();
-  private final Map<String, Counter> completionCounter = new ConcurrentHashMap<>();
-  private final Map<String, Counter> bpmnErrorCounter = new ConcurrentHashMap<>();
 
   public ConnectorsOutboundMetrics(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
@@ -38,9 +35,10 @@ public class ConnectorsOutboundMetrics {
     Result result = Result.getResult(job);
     this.invocationCounter
         .computeIfAbsent(
-            result.key(),
+            result.createKey(ConnectorMetrics.Outbound.ACTION_ACTIVATED),
             s ->
                 Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+                    .tag("action", ConnectorMetrics.Outbound.ACTION_ACTIVATED)
                     .tag("type", result.type())
                     .tag("id", result.id())
                     .tag("version", result.version())
@@ -50,11 +48,42 @@ public class ConnectorsOutboundMetrics {
 
   public void increaseFailure(ActivatedJob job) {
     Result result = Result.getResult(job);
-    this.failureCounter
+    this.invocationCounter
         .computeIfAbsent(
-            result.key(),
+            result.createKey(ConnectorMetrics.Outbound.ACTION_FAILED),
             s ->
-                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_FAILURES)
+                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+                    .tag("action", ConnectorMetrics.Outbound.ACTION_FAILED)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
+                    .register(meterRegistry))
+        .increment();
+  }
+
+  public void increaseCompletion(ActivatedJob job) {
+    Result result = Result.getResult(job);
+    this.invocationCounter
+        .computeIfAbsent(
+            result.createKey(ConnectorMetrics.Outbound.ACTION_COMPLETED),
+            s ->
+                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+                    .tag("action", ConnectorMetrics.Outbound.ACTION_COMPLETED)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
+                    .register(meterRegistry))
+        .increment();
+  }
+
+  public void increaseBpmnError(ActivatedJob job) {
+    Result result = Result.getResult(job);
+    this.invocationCounter
+        .computeIfAbsent(
+            result.createKey(ConnectorMetrics.Outbound.ACTION_BPMN_ERROR),
+            s ->
+                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_INVOCATIONS)
+                    .tag("action", ConnectorMetrics.Outbound.ACTION_BPMN_ERROR)
                     .tag("type", result.type())
                     .tag("id", result.id())
                     .tag("version", result.version())
@@ -74,33 +103,5 @@ public class ConnectorsOutboundMetrics {
             "version",
             result.version())
         .record(runnable);
-  }
-
-  public void increaseCompletion(ActivatedJob job) {
-    Result result = Result.getResult(job);
-    this.completionCounter
-        .computeIfAbsent(
-            result.key(),
-            s ->
-                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_COMPLETIONS)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
-                    .register(meterRegistry))
-        .increment();
-  }
-
-  public void increaseBpmnError(ActivatedJob job) {
-    Result result = Result.getResult(job);
-    this.bpmnErrorCounter
-        .computeIfAbsent(
-            result.key(),
-            s ->
-                Counter.builder(ConnectorMetrics.Outbound.METRIC_NAME_BPMN_ERRORS)
-                    .tag("type", result.type())
-                    .tag("id", result.id())
-                    .tag("version", result.version())
-                    .register(meterRegistry))
-        .increment();
   }
 }

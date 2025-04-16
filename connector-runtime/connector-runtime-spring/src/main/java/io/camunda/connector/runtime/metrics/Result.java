@@ -36,4 +36,8 @@ public record Result(String type, String id, String version, String key) {
     String key = type + "_" + id + "_" + version;
     return new Result(type, id, version, key);
   }
+
+  public String createKey(String actionActivated) {
+    return this.key() + "_" + actionActivated;
+  }
 }

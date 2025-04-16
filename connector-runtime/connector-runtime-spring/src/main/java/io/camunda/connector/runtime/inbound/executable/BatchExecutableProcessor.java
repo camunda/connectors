@@ -178,6 +178,7 @@ public class BatchExecutableProcessor {
       executable.activate(context);
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
+      connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
       return new FailedToActivate(data, e.getMessage());
     }
     LOG.info(

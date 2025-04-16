@@ -26,11 +26,6 @@ public class ConnectorsInboundMetrics {
 
   private final MeterRegistry meterRegistry;
   private final Map<String, Counter> activationCounter = new ConcurrentHashMap<>();
-  private final Map<String, Counter> deactivationCounter = new ConcurrentHashMap<>();
-  private final Map<String, Counter> correlationSuccessCounter = new ConcurrentHashMap<>();
-  private final Map<String, Counter> correlationFailureCounter = new ConcurrentHashMap<>();
-  private final Map<String, Counter> activationConditionFailureCounter = new ConcurrentHashMap<>();
-  private final Map<String, Counter> triggerCounter = new ConcurrentHashMap<>();
   private final Map<String, Counter> processDefinitionsChecked = new ConcurrentHashMap<>();
 
   public ConnectorsInboundMetrics(MeterRegistry meterRegistry) {
@@ -41,9 +36,10 @@ public class ConnectorsInboundMetrics {
     Result result = Result.getResult(connectorElement);
     this.activationCounter
         .computeIfAbsent(
-            result.key(),
+            result.createKey(ConnectorMetrics.Inbound.ACTION_ACTIVATED),
             s ->
                 Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+                    .tag("action", ConnectorMetrics.Inbound.ACTION_ACTIVATED)
                     .tag("type", result.type())
                     .tag("id", result.id())
                     .tag("version", result.version())
@@ -53,11 +49,12 @@ public class ConnectorsInboundMetrics {
 
   public void increaseDeactivation(InboundConnectorElement connectorElement) {
     Result result = Result.getResult(connectorElement);
-    this.deactivationCounter
+    this.activationCounter
         .computeIfAbsent(
-            result.key(),
+            result.createKey(ConnectorMetrics.Inbound.ACTION_DEACTIVATED),
             s ->
-                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_DEACTIVATIONS)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+                    .tag("action", ConnectorMetrics.Inbound.ACTION_DEACTIVATED)
                     .tag("type", result.type())
                     .tag("id", result.id())
                     .tag("version", result.version())
@@ -67,11 +64,12 @@ public class ConnectorsInboundMetrics {
 
   public void increaseCorrelationSuccess(InboundConnectorElement connectorElement) {
     Result result = Result.getResult(connectorElement);
-    this.correlationSuccessCounter
+    this.activationCounter
         .computeIfAbsent(
-            result.key(),
+            result.createKey(ConnectorMetrics.Inbound.ACTION_CORRELATED),
             s ->
-                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_CORRELATION_SUCCESS)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+                    .tag("action", ConnectorMetrics.Inbound.ACTION_CORRELATED)
                     .tag("type", result.type())
                     .tag("id", result.id())
                     .tag("version", result.version())
@@ -81,11 +79,27 @@ public class ConnectorsInboundMetrics {
 
   public void increaseCorrelationFailure(InboundConnectorElement connectorElement) {
     Result result = Result.getResult(connectorElement);
-    this.correlationFailureCounter
+    this.activationCounter
         .computeIfAbsent(
-            result.key(),
+            result.createKey(ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED),
             s ->
-                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_CORRELATION_FAILURE)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+                    .tag("action", ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED)
+                    .tag("type", result.type())
+                    .tag("id", result.id())
+                    .tag("version", result.version())
+                    .register(meterRegistry))
+        .increment();
+  }
+
+  public void increaseActivationFailure(InboundConnectorElement connectorElement) {
+    Result result = Result.getResult(connectorElement);
+    this.activationCounter
+        .computeIfAbsent(
+            result.createKey(ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED),
+            s ->
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+                    .tag("action", ConnectorMetrics.Inbound.ACTION_ACTIVATION_FAILED)
                     .tag("type", result.type())
                     .tag("id", result.id())
                     .tag("version", result.version())
@@ -95,11 +109,12 @@ public class ConnectorsInboundMetrics {
 
   public void increaseTrigger(InboundConnectorElement connectorElement) {
     Result result = Result.getResult(connectorElement);
-    this.triggerCounter
+    this.activationCounter
         .computeIfAbsent(
-            result.key(),
+            result.createKey(ConnectorMetrics.Inbound.ACTION_TRIGGERED),
             s ->
-                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+                    .tag("action", ConnectorMetrics.Inbound.ACTION_TRIGGERED)
                     .tag("type", result.type())
                     .tag("id", result.id())
                     .tag("version", result.version())
@@ -109,11 +124,12 @@ public class ConnectorsInboundMetrics {
 
   public void increaseActivationConditionFailure(InboundConnectorElement connectorElement) {
     Result result = Result.getResult(connectorElement);
-    this.activationConditionFailureCounter
+    this.activationCounter
         .computeIfAbsent(
-            result.key(),
+            result.createKey(ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED),
             s ->
-                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATION_CONDITION_FAILURE)
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_ACTIVATIONS)
+                    .tag("action", ConnectorMetrics.Inbound.ACTION_ACTIVATION_CONDITION_FAILED)
                     .tag("type", result.type())
                     .tag("id", result.id())
                     .tag("version", result.version())
