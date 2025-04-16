@@ -31,8 +31,8 @@
       }
     },
     {
-      "name": "Task_With_Text_Input_Schema",
-      "description": "A task with defined input schema (text)",
+      "name": "Search_The_Web",
+      "description": "Do a web search to find the needed information.",
       "inputSchema": {
         "type": "object",
         "properties": {

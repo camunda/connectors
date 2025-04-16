@@ -227,12 +227,12 @@ public class AiAgentTests extends BaseAgenticAiTest {
                           .build(),
                       ToolExecutionRequest.builder()
                           .id("bbb222")
-                          .name("Task_With_Text_Input_Schema")
+                          .name("Search_The_Web")
                           .arguments("{\"searchQuery\": \"Where does this data come from?\"}")
                           .build())),
               new ToolExecutionResultMessage("aaa111", "SuperfluxProduct", "24"),
               new ToolExecutionResultMessage(
-                  "bbb222", "Task_With_Text_Input_Schema", "from follow-up task"),
+                  "bbb222", "Search_The_Web", "No results for 'Where does this data come from?'"),
               new AiMessage(
                   "I played with the tools and learned that the data comes from the follow-up task and that a superflux calculation of 5 and 3 results in 24."),
               new UserMessage("So what is a superflux calculation anyway?"),
@@ -389,7 +389,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
         .hasSize(4)
         .extracting(ToolSpecification::name)
         .containsExactly(
-            "GetDateAndTime", "SuperfluxProduct", "Task_With_Text_Input_Schema", "An_Event");
+            "GetDateAndTime", "SuperfluxProduct", "Search_The_Web", "An_Event");
   }
 
   private void assertIncident(ZeebeTest zeebeTest, ThrowingConsumer<Incident> assertion) {

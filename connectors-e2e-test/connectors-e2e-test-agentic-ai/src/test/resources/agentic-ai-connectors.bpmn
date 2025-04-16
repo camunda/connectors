@@ -16,16 +16,26 @@
           <zeebe:loopCharacteristics inputCollection="=agent.toolsToCall" inputElement="toolToCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolToCall.id,&#10;  name: toolToCall.name,&#10;  content: toolCallResult&#10;}" />
         </bpmn:extensionElements>
       </bpmn:multiInstanceLoopCharacteristics>
-      <bpmn:task id="Task_With_Text_Input_Schema" name="Task with text input schema">
-        <bpmn:documentation>A task with defined input schema (text)</bpmn:documentation>
-        <bpmn:extensionElements>
-          <zeebe:properties>
-            <zeebe:property name="camunda:adHocActivityInputSchema" value="{&#10;  &#34;type&#34;: &#34;object&#34;,&#10;  &#34;properties&#34;: {&#10;    &#34;searchQuery&#34;: {&#10;      &#34;type&#34;: &#34;string&#34;,&#10;      &#34;description&#34;: &#34;The search query to use&#34;&#10;    }&#10;  },&#10;  &#34;required&#34;: [&#34;searchQuery&#34;]&#10;}" />
-          </zeebe:properties>
-        </bpmn:extensionElements>
+      <bpmn:task id="Search_The_Web" name="Search The Web">
+        <bpmn:documentation>{
+  "description": "Do a web search to find the needed information.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "searchQuery": {
+        "type": "string",
+        "description": "The search query to use"
+      }
+    },
+    "required": [
+      "searchQuery"
+    ]
+  }
+}</bpmn:documentation>
+        <bpmn:extensionElements />
         <bpmn:outgoing>Flow_095717l</bpmn:outgoing>
       </bpmn:task>
-      <bpmn:sequenceFlow id="Flow_095717l" sourceRef="Task_With_Text_Input_Schema" targetRef="Follow_Up_Task" />
+      <bpmn:sequenceFlow id="Flow_095717l" sourceRef="Search_The_Web" targetRef="Follow_Up_Task" />
       <bpmn:intermediateThrowEvent id="An_Event" name="An event!">
         <bpmn:extensionElements />
         <bpmn:outgoing>Flow_0v33lmt</bpmn:outgoing>
@@ -34,24 +44,40 @@
         <bpmn:incoming>Flow_0v33lmt</bpmn:incoming>
       </bpmn:task>
       <bpmn:sequenceFlow id="Flow_0v33lmt" sourceRef="An_Event" targetRef="Event_Follow_Up_Task" />
-      <bpmn:scriptTask id="GetDateAndTime" name="Get Date and Time (no schema)">
+      <bpmn:scriptTask id="GetDateAndTime" name="Get Date and Time">
         <bpmn:documentation>Returns the current date and time including the timezone.</bpmn:documentation>
         <bpmn:extensionElements>
           <zeebe:script expression="=now()" resultVariable="toolCallResult" />
         </bpmn:extensionElements>
       </bpmn:scriptTask>
-      <bpmn:scriptTask id="SuperfluxProduct" name="Superflux Product Calculation (FEEL schema)">
-        <bpmn:documentation>Calculates the superflux product (a very complicated method only this tool can do) given two input numbers</bpmn:documentation>
+      <bpmn:scriptTask id="SuperfluxProduct" name="Superflux Product Calculation">
+        <bpmn:documentation>{
+  "description": "Calculates the superflux product (a very complicated method only this tool can do) given two input numbers",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "type": "number",
+        "description": "The first number to be superflux calculated."
+      },
+      "b": {
+        "type": "number",
+        "description": "The second number to be superflux calculated."
+      }
+    },
+    "required": [
+      "a",
+      "b"
+    ]
+  }
+}</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:properties>
-            <zeebe:property name="camunda:adHocActivityInputSchema" value="={  &#34;type&#34;: &#34;object&#34;,  &#34;properties&#34;: {    &#34;a&#34;: {      &#34;type&#34;: &#34;number&#34;,      &#34;description&#34;: &#34;The first number to be superflux calculated.&#34;    },    &#34;b&#34;: {      &#34;type&#34;: &#34;number&#34;,      &#34;description&#34;: &#34;The second number to be superflux calculated.&#34;    }  },  &#34;required&#34;: [    &#34;a&#34;,    &#34;b&#34;  ]}" />
-          </zeebe:properties>
           <zeebe:script expression="=3 * (toolToCall.input.a + toolToCall.input.b)" resultVariable="toolCallResult" />
         </bpmn:extensionElements>
       </bpmn:scriptTask>
       <bpmn:scriptTask id="Follow_Up_Task" name="Follow-up task">
         <bpmn:extensionElements>
-          <zeebe:script expression="=&#34;from follow-up task&#34;" resultVariable="toolCallResult" />
+          <zeebe:script expression="=&#34;No results for &#39;&#34; + toolToCall.input.searchQuery + &#34;&#39;&#34;" resultVariable="toolCallResult" />
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_095717l</bpmn:incoming>
       </bpmn:scriptTask>
@@ -174,7 +200,7 @@
         <dc:Bounds x="480" y="570" width="350" height="390" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0bb8bvc_di" bpmnElement="Task_With_Text_Input_Schema">
+      <bpmndi:BPMNShape id="Activity_0bb8bvc_di" bpmnElement="Search_The_Web">
         <dc:Bounds x="530" y="720" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
