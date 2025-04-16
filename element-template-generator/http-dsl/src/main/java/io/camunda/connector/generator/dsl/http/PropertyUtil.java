@@ -61,10 +61,11 @@ public class PropertyUtil {
             .map(
                 type -> {
                   String label = type.label();
-                  if (type instanceof HttpAuthentication.ApiKey apiKey) {
+                  if (type instanceof HttpAuthentication.ApiKey apiKey && !apiKey.key().isEmpty()) {
                     label += " (" + apiKey.key() + ")";
                   }
-                  if (type instanceof HttpAuthentication.BasicAuth basicAuth) {
+                  if (type instanceof HttpAuthentication.BasicAuth basicAuth
+                      && !basicAuth.key.isEmpty()) {
                     label += " (" + basicAuth.key + ")";
                   }
                   return new DropdownProperty.DropdownChoice(label, type.id());
@@ -164,7 +165,6 @@ public class PropertyUtil {
 
     List<Property> properties = new ArrayList<>();
     if (authentications.size() > 1) {
-
       var discriminator =
           authDiscriminatorPropertyPrefab(authentications)
               .condition(
@@ -200,7 +200,7 @@ public class PropertyUtil {
                           .build())
               .toList();
 
-      properties.addAll(authProperties); // second added has id = null
+      properties.addAll(authProperties);
     }
 
     // handle operation-specific auth types

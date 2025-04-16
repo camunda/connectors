@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
+import io.camunda.connector.generator.dsl.DropdownProperty;
+import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
@@ -27,6 +29,7 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -36,6 +39,7 @@ public interface HttpAuthentication {
     if (auth instanceof OAuth2) {
       return List.of(
           HiddenProperty.builder()
+              .id(OAuthAuthentication.TYPE)
               .value(OAuthAuthentication.TYPE)
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")),
@@ -114,6 +118,7 @@ public interface HttpAuthentication {
     if (auth instanceof BearerAuth) {
       return List.of(
           HiddenProperty.builder()
+              .id(BearerAuthentication.TYPE)
               .value(BearerAuthentication.TYPE)
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")),
@@ -129,31 +134,62 @@ public interface HttpAuthentication {
     if (auth instanceof NoAuth) {
       return List.of(
           HiddenProperty.builder()
+              .id(NoAuthentication.TYPE)
               .value(NoAuthentication.TYPE)
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")));
     }
 
     if (auth instanceof ApiKey apiKey) {
-      return List.of(
+      List<PropertyBuilder> propertyBuilderList = new ArrayList<>();
+      propertyBuilderList.add(
           HiddenProperty.builder()
               .id(ApiKeyAuthentication.TYPE + "." + apiKey.key)
               .value(ApiKeyAuthentication.TYPE)
               .group("authentication")
-              .binding(new ZeebeInput("authentication.type")),
-          HiddenProperty.builder()
-              .id("authentication.apiKeyLocation." + apiKey.key)
-              .value(apiKey.in)
-              .group("authentication")
-              .binding(new ZeebeInput("authentication.apiKeyLocation")),
-          HiddenProperty.builder()
-              .id("authentication.name." + apiKey.key)
-              .label("API key name")
-              .value(apiKey.key() != null ? apiKey.key() : "")
-              .optional(false)
-              .constraints(PropertyConstraints.builder().notEmpty(true).build())
-              .group("authentication")
-              .binding(new ZeebeInput("authentication.name")),
+              .binding(new ZeebeInput("authentication.type")));
+      if (apiKey.in.isBlank()) {
+        propertyBuilderList.add(
+            DropdownProperty.builder()
+                .choices(
+                    List.of(
+                        new DropdownChoice("Headers", "headers"),
+                        new DropdownChoice("Query parameters", "query")))
+                .id("authentication.apiKeyLocation." + apiKey.key)
+                .label("API key location")
+                .value("headers")
+                .group("authentication")
+                .binding(new ZeebeInput("authentication.apiKeyLocation")));
+      } else {
+        propertyBuilderList.add(
+            HiddenProperty.builder()
+                .id("authentication.apiKeyLocation." + apiKey.key)
+                .value(apiKey.in)
+                .group("authentication")
+                .binding(new ZeebeInput("authentication.apiKeyLocation")));
+      }
+      if (apiKey.key.isBlank()) {
+        propertyBuilderList.add(
+            StringProperty.builder()
+                .id("authentication.name." + apiKey.key)
+                .label("API key name")
+                .value(apiKey.key() != null ? apiKey.key() : "")
+                .optional(false)
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .group("authentication")
+                .binding(new ZeebeInput("authentication.name")));
+      } else {
+        propertyBuilderList.add(
+            HiddenProperty.builder()
+                .id("authentication.name." + apiKey.key)
+                .label("API key name")
+                .value(apiKey.key() != null ? apiKey.key() : "")
+                .optional(false)
+                .constraints(PropertyConstraints.builder().notEmpty(true).build())
+                .group("authentication")
+                .binding(new ZeebeInput("authentication.name")));
+      }
+      propertyBuilderList.add(
           StringProperty.builder()
               .id("authentication.value." + apiKey.key)
               .label("API key value")
@@ -163,6 +199,7 @@ public interface HttpAuthentication {
               .feel(FeelMode.optional)
               .group("authentication")
               .binding(new ZeebeInput("authentication.value")));
+      return propertyBuilderList;
     }
 
     throw new IllegalArgumentException("Unknown authentication type: " + auth);
