@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.Collections;
 import java.util.Optional;
 
 public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
@@ -148,11 +149,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   }
 
   private Prompt promptFromConfiguration(PromptConfiguration promptConfiguration) {
-    if (promptConfiguration.parameters() == null) {
-      return Prompt.from(promptConfiguration.prompt());
-    }
-
-    return PromptTemplate.from(promptConfiguration.prompt())
-        .apply(promptConfiguration.parameters());
+    final var parameters =
+        Optional.ofNullable(promptConfiguration.parameters()).orElseGet(Collections::emptyMap);
+    return PromptTemplate.from(promptConfiguration.prompt()).apply(parameters);
   }
 }
