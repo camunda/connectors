@@ -24,7 +24,7 @@ public class ConnectorMetrics {
 
     public static final String ELEMENT_TEMPLATE_ID = "elementTemplateId";
     public static final String TYPE = "type";
-    public static final String ACTION = "ACTION";
+    public static final String ACTION = "action";
     public static final String ELEMENT_TEMPLATE_VERSION = "elementTemplateVersion";
   }
 
@@ -41,6 +41,7 @@ public class ConnectorMetrics {
 
   public static class Inbound {
     public static final String METRIC_NAME_ACTIVATIONS = "camunda.connector.inbound.activations";
+    public static final String METRIC_NAME_TRIGGERS = "camunda.connector.inbound.triggers";
     public static final String METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED =
         "camunda.connector.inbound.process-definitions-checked";
 
