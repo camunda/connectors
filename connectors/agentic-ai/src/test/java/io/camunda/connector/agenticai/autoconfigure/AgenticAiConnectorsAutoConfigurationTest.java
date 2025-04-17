@@ -13,6 +13,7 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
@@ -34,6 +35,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   private static final List<Class<?>> AGENTIC_AI_BEANS =
       List.of(
+          FeelInputParamExtractor.class,
           AdHocToolsSchemaResolver.class,
           AdHocToolsSchemaFunction.class,
           ChatModelFactory.class,
@@ -50,7 +52,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   protected static class TestConfig {
     @Bean
     public ObjectMapper objectMapper() {
-      return mock(ObjectMapper.class);
+      return new ObjectMapper();
     }
 
     @Bean
