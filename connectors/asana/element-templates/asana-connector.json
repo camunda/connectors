@@ -644,6 +644,29 @@
       }
     },
     {
+      "id" : "version",
+      "label" : "Version",
+      "description" : "Version of the element template",
+      "value" : "2",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateVersion",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
+    }, {
+      "id" : "id",
+      "label" : "ID",
+      "description" : "ID of the element template",
+      "value" : "io.camunda.connectors.Asana.v1",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateId",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
+    },
+    {
       "label": "Result variable",
       "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",

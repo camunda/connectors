@@ -1184,7 +1184,31 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
-  } ],
+  },
+    {
+      "id" : "version",
+      "label" : "Version",
+      "description" : "Version of the element template",
+      "value" : "1",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateVersion",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
+    }, {
+      "id" : "id",
+      "label" : "ID",
+      "description" : "ID of the element template",
+      "value" : "io.camunda.connectors.AzureOpenAI.outbound.v1",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateId",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
+    }
+  ],
   "icon": {
     "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 513 512'%3E%3Cg clip-path='url(%23a)'%3E%3Crect width='512' height='512' x='.25' fill='%23fff' rx='76'/%3E%3Cpath fill='url(%23b)' d='M.25 76.8v358.4c0 42.411 34.39 76.8 76.8 76.8h358.4c42.411 0 76.8-34.389 76.8-76.8V76.8c0-42.41-34.389-76.8-76.8-76.8H77.05C34.64 0 .25 34.39.25 76.8ZM307.45 0v102.4c0 113.095 91.705 204.8 204.8 204.8h-102.4c-113.095 0-204.772 91.648-204.8 204.743V409.6c0-113.095-91.705-204.8-204.8-204.8h102.4c113.095 0 204.8-91.705 204.8-204.8Z'/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient id='b' cx='0' cy='0' r='1' gradientTransform='rotate(45 -176.261 403.94) scale(321.165 437.107)' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%2383B9F9'/%3E%3Cstop offset='1' stop-color='%230078D4'/%3E%3C/radialGradient%3E%3CclipPath id='a'%3E%3Crect width='512' height='512' x='.25' fill='%23fff' rx='76'/%3E%3C/clipPath%3E%3C/defs%3E%3C/svg%3E"
   }

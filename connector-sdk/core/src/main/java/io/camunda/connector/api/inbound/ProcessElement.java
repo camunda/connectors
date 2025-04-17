@@ -44,7 +44,7 @@ public record ProcessElement(
         null,
         null,
         tenantId,
-        null,
+        new ElementTemplateDetails("Test", "1", "icon"),
         Map.of());
   }
 }

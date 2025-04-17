@@ -36,8 +36,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Conn
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -51,10 +50,8 @@ public class BatchExecutableProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(BatchExecutableProcessor.class);
   private final InboundConnectorFactory connectorFactory;
   private final InboundConnectorContextFactory connectorContextFactory;
-  private final MetricsRecorder metricsRecorder;
+  private final ConnectorsInboundMetrics connectorsInboundMetrics;
   private final WebhookConnectorRegistry webhookConnectorRegistry;
-  private final ScheduledExecutorService reactivationScheduler =
-      Executors.newSingleThreadScheduledExecutor();
 
   @Value("${camunda.connector.inbound.log.size:10}")
   private int inboundLogsSize;
@@ -62,11 +59,11 @@ public class BatchExecutableProcessor {
   public BatchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
       InboundConnectorContextFactory connectorContextFactory,
-      @Autowired(required = false) MetricsRecorder metricsRecorder,
+      ConnectorsInboundMetrics connectorsInboundMetrics,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     this.connectorFactory = connectorFactory;
     this.connectorContextFactory = connectorContextFactory;
-    this.metricsRecorder = metricsRecorder;
+    this.connectorsInboundMetrics = connectorsInboundMetrics;
     this.webhookConnectorRegistry = webhookConnectorRegistry;
   }
 
@@ -173,7 +170,6 @@ public class BatchExecutableProcessor {
                   "Webhook connectors are not supported in this environment")));
       return new ConnectorNotRegistered(validData);
     }
-
     try {
       if (executable instanceof WebhookConnectorExecutable) {
         LOG.debug("Registering webhook: {}", data.type());
@@ -182,19 +178,14 @@ public class BatchExecutableProcessor {
       executable.activate(context);
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
+      connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
       return new FailedToActivate(data, e.getMessage());
     }
-
     LOG.info(
         "Inbound connector {} activated with deduplication ID '{}'",
         data.type(),
         data.deduplicationId());
-
-    if (metricsRecorder != null) {
-      metricsRecorder.increase(
-          Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, data.type());
-    }
-
+    connectorsInboundMetrics.increaseActivation(data.connectorElements().getFirst());
     return new Activated(executable, context);
   }
 
@@ -212,12 +203,8 @@ public class BatchExecutableProcessor {
         } catch (Exception e) {
           LOG.error("Failed to deactivate executable", e);
         }
-        if (metricsRecorder != null) {
-          metricsRecorder.increase(
-              Inbound.METRIC_NAME_ACTIVATIONS,
-              Inbound.ACTION_DEACTIVATED,
-              activated.context().getDefinition().type());
-        }
+        connectorsInboundMetrics.increaseDeactivation(
+            activated.context().connectorElements().getFirst());
       }
     }
   }

@@ -292,6 +292,29 @@
         "type": "zeebe:taskHeader",
         "key": "errorExpression"
       }
+    },
+    {
+      "id" : "version",
+      "label" : "Version",
+      "description" : "Version of the element template",
+      "value" : "2",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateVersion",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
+    }, {
+      "id" : "id",
+      "label" : "ID",
+      "description" : "ID of the element template",
+      "value" : "io.camunda.connectors.WhatsApp.v1",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateId",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
     }
   ]
 }

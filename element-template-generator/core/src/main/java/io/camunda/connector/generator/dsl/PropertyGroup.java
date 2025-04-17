@@ -26,6 +26,7 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 @JsonInclude(Include.NON_NULL)
@@ -48,6 +49,18 @@ public record PropertyGroup(
                   .binding(new ZeebeTaskHeader("resultExpression"))
                   .build())
           .build();
+
+  public static BiFunction<String, Integer, PropertyGroup> ADD_CONNECTORS_DETAILS_OUTPUT =
+      (id, version) ->
+          PropertyGroup.builder()
+              .id("connector")
+              .label("Connector")
+              .properties(
+                  CommonProperties.version(version)
+                      .binding(new ZeebeTaskHeader("elementTemplateVersion"))
+                      .build(),
+                  CommonProperties.id(id).binding(new ZeebeTaskHeader("elementTemplateId")).build())
+              .build();
 
   public static PropertyGroup OUTPUT_GROUP_INBOUND =
       PropertyGroup.builder()
@@ -170,11 +183,11 @@ public record PropertyGroup(
 
   public static final class PropertyGroupBuilder {
 
+    private final List<Property> properties = new ArrayList<>();
     private String id;
     private String label;
     private String tooltip;
     private Boolean openByDefault;
-    private final List<Property> properties = new ArrayList<>();
 
     private PropertyGroupBuilder() {}
 

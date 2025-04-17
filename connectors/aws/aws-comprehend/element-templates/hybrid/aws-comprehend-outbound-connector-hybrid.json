@@ -29,6 +29,9 @@
     "id" : "input",
     "label" : "Data Configuration and Processing"
   }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
     "id" : "output",
     "label" : "Output mapping"
   }, {
@@ -537,6 +540,28 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.AWSCOMPREHEND.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

@@ -27,7 +27,8 @@ import io.camunda.client.impl.search.response.ProcessDefinitionImpl;
 import io.camunda.client.protocol.rest.ProcessDefinitionResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.spring.client.metrics.DefaultNoopMetricsRecorder;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,9 @@ public class ProcessDefinitionImporterTest {
   public void init() {
     stateStore = mock(ProcessStateStore.class);
     search = mock(ProcessDefinitionSearch.class);
-    importer = new ProcessDefinitionImporter(stateStore, search, new DefaultNoopMetricsRecorder());
+    importer =
+        new ProcessDefinitionImporter(
+            stateStore, search, new ConnectorsInboundMetrics(new SimpleMeterRegistry()));
   }
 
   @Test
