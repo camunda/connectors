@@ -48,7 +48,7 @@ public class FeelInputParamExtractor {
     this.scalaObjectMapper = objectMapper.copy().registerModule(new DefaultScalaModule());
   }
 
-  public List<FeelInputParam> extractInputParams(String expression) throws Exception {
+  public List<FeelInputParam> extractInputParams(String expression) {
     ParseResult parseResult = feelEngineApi.parseExpression(expression);
     if (parseResult.isFailure()) {
       throw new RuntimeException(
@@ -94,6 +94,7 @@ public class FeelInputParamExtractor {
   }
 
   private FeelInputParam fromNamedFunctionInvocationParams(Map<String, Exp> params) {
+    // TODO validate name is valid, not empty, ...
     if (!params.containsKey("name")) {
       throw new RuntimeException("Expected parameter name to be defined");
     }

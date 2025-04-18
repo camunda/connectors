@@ -16,25 +16,6 @@
           <zeebe:loopCharacteristics inputCollection="=agent.toolsToCall" inputElement="toolToCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolToCall.id,&#10;  name: toolToCall.name,&#10;  content: toolCallResult&#10;}" />
         </bpmn:extensionElements>
       </bpmn:multiInstanceLoopCharacteristics>
-      <bpmn:task id="Search_The_Web" name="Search The Web">
-        <bpmn:documentation>{
-  "description": "Do a web search to find the needed information.",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "searchQuery": {
-        "type": "string",
-        "description": "The search query to use"
-      }
-    },
-    "required": [
-      "searchQuery"
-    ]
-  }
-}</bpmn:documentation>
-        <bpmn:extensionElements />
-        <bpmn:outgoing>Flow_095717l</bpmn:outgoing>
-      </bpmn:task>
       <bpmn:sequenceFlow id="Flow_095717l" sourceRef="Search_The_Web" targetRef="Follow_Up_Task" />
       <bpmn:intermediateThrowEvent id="An_Event" name="An event!">
         <bpmn:extensionElements />
@@ -51,28 +32,13 @@
         </bpmn:extensionElements>
       </bpmn:scriptTask>
       <bpmn:scriptTask id="SuperfluxProduct" name="Superflux Product Calculation">
-        <bpmn:documentation>{
-  "description": "Calculates the superflux product (a very complicated method only this tool can do) given two input numbers",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "a": {
-        "type": "number",
-        "description": "The first number to be superflux calculated."
-      },
-      "b": {
-        "type": "number",
-        "description": "The second number to be superflux calculated."
-      }
-    },
-    "required": [
-      "a",
-      "b"
-    ]
-  }
-}</bpmn:documentation>
+        <bpmn:documentation>Calculates the superflux product (a very complicated method only this tool can do) given two input numbers</bpmn:documentation>
         <bpmn:extensionElements>
           <zeebe:script expression="=3 * (toolToCall.input.a + toolToCall.input.b)" resultVariable="toolCallResult" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=fromAi(&#34;a&#34;, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
+            <zeebe:input source="=fromAi(&#34;b&#34;, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
+          </zeebe:ioMapping>
         </bpmn:extensionElements>
       </bpmn:scriptTask>
       <bpmn:scriptTask id="Follow_Up_Task" name="Follow-up task">
@@ -80,6 +46,16 @@
           <zeebe:script expression="=&#34;No results for &#39;&#34; + toolToCall.input.searchQuery + &#34;&#39;&#34;" resultVariable="toolCallResult" />
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_095717l</bpmn:incoming>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Search_The_Web" name="Search The Web">
+        <bpmn:documentation>Do a web search to find the needed information.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="={}" resultVariable="tmp" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=fromAi(&#34;searchQuery&#34;, &#34;The search query to use&#34;)" target="searchQuery" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+        <bpmn:outgoing>Flow_095717l</bpmn:outgoing>
       </bpmn:scriptTask>
     </bpmn:adHocSubProcess>
     <bpmn:exclusiveGateway id="Gateway_0d7bxjf" name="What to do?">
@@ -200,10 +176,6 @@
         <dc:Bounds x="480" y="570" width="350" height="390" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0bb8bvc_di" bpmnElement="Search_The_Web">
-        <dc:Bounds x="530" y="720" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_02hr6cv_di" bpmnElement="An_Event">
         <dc:Bounds x="562" y="842" width="36" height="36" />
         <bpmndi:BPMNLabel>
@@ -224,6 +196,9 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_02cecmv_di" bpmnElement="Follow_Up_Task">
         <dc:Bounds x="670" y="720" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1kglsdx_di" bpmnElement="Search_The_Web">
+        <dc:Bounds x="530" y="720" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_095717l_di" bpmnElement="Flow_095717l">
         <di:waypoint x="630" y="760" />

@@ -6,18 +6,27 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition.JsonSchema;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
 import io.camunda.zeebe.model.bpmn.instance.FlowNode;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeMapping;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,12 +37,12 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
       LoggerFactory.getLogger(CamundaClientAdHocToolsSchemaResolver.class);
 
   private final CamundaClient camundaClient;
-  private final ObjectMapper objectMapper;
+  private final FeelInputParamExtractor feelInputParamExtractor;
 
   public CamundaClientAdHocToolsSchemaResolver(
-      CamundaClient camundaClient, ObjectMapper objectMapper) {
+      CamundaClient camundaClient, FeelInputParamExtractor feelInputParamExtractor) {
     this.camundaClient = camundaClient;
-    this.objectMapper = objectMapper;
+    this.feelInputParamExtractor = feelInputParamExtractor;
   }
 
   @Override
@@ -66,29 +75,83 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
   }
 
   private AdHocToolDefinition mapActivityToToolDefinition(FlowNode element) {
-    final var documentation = getDocumentation(element);
+    final var documentation = getDocumentation(element).orElseGet(element::getName);
+    final var inputSchema = extractInputSchema(element);
 
-    if (!documentation.isBlank() && documentation.trim().startsWith("{")) {
-      try {
-        var partialToolDefinition =
-            objectMapper.readValue(documentation, AdHocToolDefinition.class);
-        return new AdHocToolDefinition(
-            element.getId(),
-            Optional.ofNullable(partialToolDefinition.description()).orElse(element.getName()),
-            Optional.ofNullable(partialToolDefinition.inputSchema()).orElseGet(JsonSchema::empty));
-      } catch (Exception e) {
-        LOGGER.error("Failed to parse tool definition from documentation", e);
-      }
-    }
-
-    return new AdHocToolDefinition(element.getId(), documentation, JsonSchema.empty());
+    return new AdHocToolDefinition(element.getId(), documentation, inputSchema);
   }
 
-  private String getDocumentation(FlowNode element) {
+  private Optional<String> getDocumentation(FlowNode element) {
     return element.getDocumentations().stream()
         .filter(d -> "text/plain".equals(d.getTextFormat()))
         .findFirst()
         .map(ModelElementInstance::getTextContent)
-        .orElse("");
+        .filter(StringUtils::isNotBlank);
+  }
+
+  private Map<String, Object> extractInputSchema(FlowNode element) {
+    Map<String, Object> properties = new LinkedHashMap<>();
+    List<String> required = new ArrayList<>();
+
+    final var inputParams = extractFeelInputParams(element);
+    inputParams.forEach(
+        inputParam -> {
+          final var propertySchema =
+              Optional.ofNullable(inputParam.schema())
+                  .map(LinkedHashMap::new)
+                  .orElseGet(LinkedHashMap::new);
+
+          // apply type from inputParam if it is set
+          if (!StringUtils.isBlank(inputParam.type())) {
+            propertySchema.put("type", inputParam.type());
+          }
+
+          // default to string if no type is set (not on inputParam, not in schema directly)
+          if (!propertySchema.containsKey("type")) {
+            propertySchema.put("type", "string");
+          }
+
+          if (!StringUtils.isBlank(inputParam.description())) {
+            propertySchema.put("description", inputParam.description());
+          }
+
+          properties.put(inputParam.name(), propertySchema);
+          required.add(inputParam.name());
+        });
+
+    Map<String, Object> inputSchema = new LinkedHashMap<>();
+    inputSchema.put("type", "object");
+    inputSchema.put("properties", properties);
+    inputSchema.put("required", required);
+    return Collections.unmodifiableMap(inputSchema);
+  }
+
+  private List<FeelInputParam> extractFeelInputParams(FlowNode element) {
+    final var ioMapping = element.getSingleExtensionElement(ZeebeIoMapping.class);
+    if (ioMapping == null) {
+      return Collections.emptyList();
+    }
+
+    List<FeelInputParam> result = new ArrayList<>();
+    result.addAll(extractFeelInputParams(ioMapping.getInputs()));
+    result.addAll(extractFeelInputParams(ioMapping.getOutputs()));
+
+    return result;
+  }
+
+  private List<FeelInputParam> extractFeelInputParams(Collection<? extends ZeebeMapping> mappings) {
+    List<String> expressions =
+        mappings.stream()
+            .map(ZeebeMapping::getSource)
+            .filter(StringUtils::isNotBlank)
+            .map(String::trim)
+            .filter(source -> source.startsWith("="))
+            .map(source -> source.substring(1))
+            .toList();
+
+    return expressions.stream()
+        .map(feelInputParamExtractor::extractInputParams)
+        .flatMap(List::stream)
+        .toList();
   }
 }

@@ -48,7 +48,7 @@
     },
     {
       "name": "An_Event",
-      "description": "",
+      "description": "An event!",
       "inputSchema": {
         "type": "object",
         "properties": {},
