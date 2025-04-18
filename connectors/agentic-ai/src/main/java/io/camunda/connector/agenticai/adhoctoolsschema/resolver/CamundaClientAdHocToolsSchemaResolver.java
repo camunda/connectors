@@ -96,6 +96,11 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
     final var inputParams = extractFeelInputParams(element);
     inputParams.forEach(
         inputParam -> {
+          if (properties.containsKey(inputParam.name())) {
+            throw new IllegalArgumentException(
+                "Duplicate input parameter name: %s".formatted(inputParam.name()));
+          }
+
           final var propertySchema =
               Optional.ofNullable(inputParam.schema())
                   .map(LinkedHashMap::new)
