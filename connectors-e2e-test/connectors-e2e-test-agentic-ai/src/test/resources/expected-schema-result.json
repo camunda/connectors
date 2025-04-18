@@ -1,0 +1,59 @@
+{
+  "toolDefinitions": [
+    {
+      "name": "GetDateAndTime",
+      "description": "Returns the current date and time including the timezone.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "SuperfluxProduct",
+      "description": "Calculates the superflux product (a very complicated method only this tool can do) given two input numbers",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number",
+            "description": "The first number to be superflux calculated."
+          },
+          "b": {
+            "type": "number",
+            "description": "The second number to be superflux calculated."
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "name": "Search_The_Web",
+      "description": "Do a web search to find the needed information.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "searchQuery": {
+            "type": "string",
+            "description": "The search query to use"
+          }
+        },
+        "required": [
+          "searchQuery"
+        ]
+      }
+    },
+    {
+      "name": "An_Event",
+      "description": "",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }
+  ]
+}
