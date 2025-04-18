@@ -34,25 +34,25 @@
       <bpmn:scriptTask id="SuperfluxProduct" name="Superflux Product Calculation">
         <bpmn:documentation>Calculates the superflux product (a very complicated method only this tool can do) given two input numbers</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:script expression="=3 * (toolToCall.input.a + toolToCall.input.b)" resultVariable="toolCallResult" />
+          <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="toolCallResult" />
           <zeebe:ioMapping>
-            <zeebe:input source="=fromAi(&#34;a&#34;, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
-            <zeebe:input source="=fromAi(&#34;b&#34;, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
+            <zeebe:input source="=fromAi(toolToCall.input, &#34;a&#34;, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
+            <zeebe:input source="=fromAi(toolToCall.input, &#34;b&#34;, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
       </bpmn:scriptTask>
       <bpmn:scriptTask id="Follow_Up_Task" name="Follow-up task">
         <bpmn:extensionElements>
-          <zeebe:script expression="=&#34;No results for &#39;&#34; + toolToCall.input.searchQuery + &#34;&#39;&#34;" resultVariable="toolCallResult" />
+          <zeebe:script expression="=&#34;No results for &#39;&#34; + searchResults.searchQuery + &#34;&#39;&#34;" resultVariable="toolCallResult" />
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_095717l</bpmn:incoming>
       </bpmn:scriptTask>
       <bpmn:scriptTask id="Search_The_Web" name="Search The Web">
         <bpmn:documentation>Do a web search to find the needed information.</bpmn:documentation>
         <bpmn:extensionElements>
-          <zeebe:script expression="={}" resultVariable="tmp" />
+          <zeebe:script expression="={&#10;  searchQuery: searchQuery,&#10;  items: []&#10;}" resultVariable="searchResults" />
           <zeebe:ioMapping>
-            <zeebe:input source="=fromAi(&#34;searchQuery&#34;, &#34;The search query to use&#34;)" target="searchQuery" />
+            <zeebe:input source="=fromAi(toolToCall.input, &#34;searchQuery&#34;, &#34;The search query to use&#34;)" target="searchQuery" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
         <bpmn:outgoing>Flow_095717l</bpmn:outgoing>

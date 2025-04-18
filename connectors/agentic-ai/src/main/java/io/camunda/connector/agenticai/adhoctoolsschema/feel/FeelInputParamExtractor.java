@@ -81,14 +81,14 @@ public class FeelInputParamExtractor {
   }
 
   private FeelInputParam fromPositionalFunctionInvocationParams(List<Exp> params) {
-    if (params.isEmpty()) {
-      throw new RuntimeException("Expected parameter name as first parameter");
+    if (params.size() < 2) {
+      throw new RuntimeException("Expected parameter name as second parameter");
     }
 
-    final var name = params.get(0);
-    final var description = params.size() > 1 ? params.get(1) : null;
-    final var type = params.size() > 2 ? params.get(2) : null;
-    final var schema = params.size() > 3 ? params.get(3) : null;
+    final var name = params.get(1);
+    final var description = params.size() > 2 ? params.get(2) : null;
+    final var type = params.size() > 3 ? params.get(3) : null;
+    final var schema = params.size() > 4 ? params.get(4) : null;
 
     return fromFunctionInvocationParams(name, description, type, schema);
   }

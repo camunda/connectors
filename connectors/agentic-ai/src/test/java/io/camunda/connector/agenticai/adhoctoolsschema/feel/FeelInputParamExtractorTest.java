@@ -32,25 +32,25 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Only expression: Name",
             """
-            fromAi("aSimpleValue")
+            fromAi({}, "aSimpleValue")
             """,
             new FeelInputParam("aSimpleValue", null, null, null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description",
             """
-            fromAi("aSimpleValue", "A simple value")
+            fromAi({}, "aSimpleValue", "A simple value")
             """,
             new FeelInputParam("aSimpleValue", "A simple value", null, null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type",
             """
-            fromAi("aSimpleValue", "A simple value", "string")
+            fromAi({}, "aSimpleValue", "A simple value", "string")
             """,
             new FeelInputParam("aSimpleValue", "A simple value", "string", null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema",
             """
-            fromAi("aSimpleValue", "A simple value", "string", { enum: ["A", "B", "C"] })
+            fromAi({}, "aSimpleValue", "A simple value", "string", { enum: ["A", "B", "C"] })
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -60,7 +60,7 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema (expressions to generate params)",
             """
-            fromAi("a" + "Simple" + "Value", string join(["A", "simple", "value"], " "), "str" + "ing", context put({}, "enum", ["A", "B", "C"]))
+            fromAi({}, "a" + "Simple" + "Value", string join(["A", "simple", "value"], " "), "str" + "ing", context put({}, "enum", ["A", "B", "C"]))
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -70,25 +70,25 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Only expression: Name (named params)",
             """
-            fromAi(name: "aSimpleValue")
+            fromAi(context: {}, name: "aSimpleValue")
             """,
             new FeelInputParam("aSimpleValue", null, null, null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description (named params)",
             """
-            fromAi(name: "aSimpleValue", description: "A simple value")
+            fromAi(context: {}, name: "aSimpleValue", description: "A simple value")
             """,
             new FeelInputParam("aSimpleValue", "A simple value", null, null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type (named params)",
             """
-            fromAi(name: "aSimpleValue", description: "A simple value", type: "string")
+            fromAi(context: {}, name: "aSimpleValue", description: "A simple value", type: "string")
             """,
             new FeelInputParam("aSimpleValue", "A simple value", "string", null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema (named params)",
             """
-            fromAi(name: "aSimpleValue", description: "A simple value", type: "string", schema: { enum: ["A", "B", "C"] })
+            fromAi(context: {}, name: "aSimpleValue", description: "A simple value", type: "string", schema: { enum: ["A", "B", "C"] })
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -98,7 +98,7 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema (named params, mixed order)",
             """
-            fromAi(description: "A simple value", schema: { enum: ["A", "B", "C"] }, type: "string", name: "aSimpleValue")
+            fromAi(description: "A simple value", schema: { enum: ["A", "B", "C"] }, context: {}, type: "string", name: "aSimpleValue")
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -108,7 +108,7 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema (named params, mixed order, expressions to generate params)",
             """
-            fromAi(description: string join(["A", "simple", "value"], " "), schema: context put({}, "enum", ["A", "B", "C"]), type: "str" + "ing", name: "a" + "Simple" + "Value")
+            fromAi(description: string join(["A", "simple", "value"], " "), schema: context put({}, "enum", ["A", "B", "C"]), context: {}, type: "str" + "ing", name: "a" + "Simple" + "Value")
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -118,7 +118,7 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Array schema with sub-schema",
             """
-            fromAi("multiValue", "Select a multi value", "array", {
+            fromAi({}, "multiValue", "Select a multi value", "array", {
               "items": {
                 "type": "string",
                 "enum": ["foo", "bar", "baz"]
@@ -133,13 +133,13 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Part of operation (integer)",
             """
-            1 + 2 + fromAi("thirdValue", "The third value to add", "integer")
+            1 + 2 + fromAi({}, "thirdValue", "The third value to add", "integer")
             """,
             new FeelInputParam("thirdValue", "The third value to add", "integer", null)),
         new FeelInputParamTestCase(
             "Part of string concatenation",
             """
-            "https://example.com/" + fromAi("urlPath", "The URL path to use", "string")
+            "https://example.com/" + fromAi({}, "urlPath", "The URL path to use", "string")
             """,
             new FeelInputParam("urlPath", "The URL path to use", "string", null)),
         new FeelInputParamTestCase(
@@ -147,8 +147,8 @@ class FeelInputParamExtractorTest {
             """
             {
               foo: "bar",
-              bar: fromAi("barValue", "A good bar value", "string"),
-              combined: fromAi("firstOne", "The first value") + fromAi("secondOne", "The second value", "string")
+              bar: fromAi({}, "barValue", "A good bar value", "string"),
+              combined: fromAi({}, "firstOne", "The first value") + fromAi({}, "secondOne", "The second value", "string")
             }
             """,
             new FeelInputParam("barValue", "A good bar value", "string", null),
@@ -157,7 +157,7 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Multiple parameters, part of a list",
             """
-            ["something", fromAi("firstValue", "The first value", "string"), fromAi("secondValue", "The second value", "integer")]
+            ["something", fromAi({}, "firstValue", "The first value", "string"), fromAi({}, "secondValue", "The second value", "integer")]
             """,
             new FeelInputParam("firstValue", "The first value", "string", null),
             new FeelInputParam("secondValue", "The second value", "integer", null)),
@@ -165,9 +165,9 @@ class FeelInputParamExtractorTest {
             "Multiple parameters, part of a context and list",
             """
             {
-              foo: [fromAi("firstValue", "The first value", "string"), fromAi("secondValue", "The second value", "integer")],
+              foo: [fromAi({}, "firstValue", "The first value", "string"), fromAi({}, "secondValue", "The second value", "integer")],
               bar: {
-                baz: fromAi("thirdValue", "The third value to add")
+                baz: fromAi({}, "thirdValue", "The third value to add")
               }
             }
             """,
@@ -178,10 +178,10 @@ class FeelInputParamExtractorTest {
             "Multiple parameters, part of a context and list (named params)",
             """
             {
-              foo: [fromAi(name: "firstValue", description: "The first value", type: "string"), fromAi(description: "The second value", type: "integer", name: "secondValue")],
+              foo: [fromAi(context: {}, name: "firstValue", description: "The first value", type: "string"), fromAi(context: {}, description: "The second value", type: "integer", name: "secondValue")],
               bar: {
-                baz: fromAi(name: "thirdValue", description: "The third value to add"),
-                qux: fromAi(name: "fourthValue", description: "The fourth value to add", type: "array", schema: {
+                baz: fromAi(context: {}, name: "thirdValue", description: "The third value to add"),
+                qux: fromAi(context: {}, name: "fourthValue", description: "The fourth value to add", type: "array", schema: {
                   "items": {
                     "type": "string",
                     "enum": ["foo", "bar", "baz"]
