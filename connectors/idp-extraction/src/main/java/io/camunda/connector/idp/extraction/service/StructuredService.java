@@ -111,6 +111,7 @@ public class StructuredService implements ExtractionService {
       StructuredExtractionResponse response, ExtractionRequestData input) {
     Map<String, Object> parsedResults = new HashMap<>();
     Map<String, Float> processedConfidenceScores = new HashMap<>();
+    Map<String, String> originalKeys = new HashMap<>();
 
     response
         .extractedFields()
@@ -122,15 +123,15 @@ public class StructuredService implements ExtractionService {
               if ((input.excludedFields() == null || !input.excludedFields().contains(variableName))
                   && (value != null && !value.isBlank())) {
                 parsedResults.put(variableName, value);
+                originalKeys.put(variableName, key);
 
-                // Add the confidence score with the same formatted key
                 if (confidenceScore != null) {
                   processedConfidenceScores.put(variableName, confidenceScore);
                 }
               }
             });
 
-    return new StructuredExtractionResult(parsedResults, processedConfidenceScores);
+    return new StructuredExtractionResult(parsedResults, processedConfidenceScores, originalKeys);
   }
 
   /**

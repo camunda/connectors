@@ -66,7 +66,6 @@ public class StructuredServiceTest {
     StructuredExtractionResult structuredResult = (StructuredExtractionResult) result;
 
     // Verify the extracted fields were properly processed
-    // Note: The field names should be formatted according to the formatZeebeVariableName method
     assertThat(structuredResult.extractedFields())
         .containsEntry("invoice_number", "INV-12345")
         .containsEntry("total_amount", "$12.25")
@@ -77,6 +76,12 @@ public class StructuredServiceTest {
         .containsEntry("invoice_number", 0.95f)
         .containsEntry("total_amount", 0.98f)
         .containsEntry("supplier_name", 0.92f);
+        
+    // Verify original keys were properly mapped
+    assertThat(structuredResult.originalKeys())
+        .containsEntry("invoice_number", "Invoice Number")
+        .containsEntry("total_amount", "Total Amount")
+        .containsEntry("supplier_name", "Supplier Name");
   }
 
   @Test
@@ -117,6 +122,12 @@ public class StructuredServiceTest {
     assertThat(structuredResult.confidenceScore())
         .containsEntry("invoice_number", 0.95f)
         .containsEntry("supplier_name", 0.92f)
+        .doesNotContainKey("total_amount");
+        
+    // Verify original keys were properly mapped (excluding the excluded field)
+    assertThat(structuredResult.originalKeys())
+        .containsEntry("invoice_number", "Invoice Number")
+        .containsEntry("supplier_name", "Supplier Name")
         .doesNotContainKey("total_amount");
   }
 
@@ -184,7 +195,6 @@ public class StructuredServiceTest {
     StructuredExtractionResult structuredResult = (StructuredExtractionResult) result;
 
     // Verify the extracted fields were properly processed
-    // Note: The field names should be formatted according to the formatZeebeVariableName method
     assertThat(structuredResult.extractedFields())
         .containsEntry("invoice_number", "INV-12345")
         .containsEntry("total_amount", "$12.25")
@@ -195,6 +205,12 @@ public class StructuredServiceTest {
         .containsEntry("invoice_number", 0.95f)
         .containsEntry("total_amount", 0.98f)
         .containsEntry("supplier_name", 0.92f);
+        
+    // Verify original keys were properly mapped
+    assertThat(structuredResult.originalKeys())
+        .containsEntry("invoice_number", "Invoice Number")
+        .containsEntry("total_amount", "Total Amount")
+        .containsEntry("supplier_name", "Supplier Name");
   }
 
   @Test
@@ -237,22 +253,26 @@ public class StructuredServiceTest {
     StructuredExtractionResult structuredResult = (StructuredExtractionResult) result;
 
     // Verify the extracted fields were properly processed
-    // The excluded field (total_amount) should not be present
     assertThat(structuredResult.extractedFields())
         .containsEntry("invoice_number", "INV-12345")
         .containsEntry("supplier_name", "Camunda Inc.")
         .doesNotContainKey("total_amount");
 
     // Verify confidence scores were properly processed
-    // The confidence score for the excluded field should also not be present
     assertThat(structuredResult.confidenceScore())
         .containsEntry("invoice_number", 0.95f)
         .containsEntry("supplier_name", 0.92f)
         .doesNotContainKey("total_amount");
+        
+    // Verify original keys were properly mapped (excluding the excluded field)
+    assertThat(structuredResult.originalKeys())
+        .containsEntry("invoice_number", "Invoice Number")
+        .containsEntry("supplier_name", "Supplier Name")
+        .doesNotContainKey("total_amount");
   }
 
   @Test
-  void extractUsingDocumentAi_ShouldThrowConnectorException_whenExtractionFails() throws Exception {
+  void extractUsingDocumentAi_ShouldThrowConnectorException_whenExtractionFails() {
     // given
     DocumentAIProvider documentAiProvider = new DocumentAIProvider();
     DocumentAiRequestConfiguration configuration =
