@@ -22,7 +22,7 @@ public record AgenticAiConnectorsConfigurationProperties(ToolsSchemaConfiguratio
       return new ToolsSchemaConfiguration(CacheConfiguration.defaultConfiguration());
     }
 
-    public record CacheConfiguration(boolean enabled, int maxSize, Duration expireAfterWrite) {
+    public record CacheConfiguration(boolean enabled, Integer maxSize, Duration expireAfterWrite) {
       public static CacheConfiguration defaultConfiguration() {
         return new CacheConfiguration(true, 100, Duration.ofMinutes(5));
       }

@@ -27,7 +27,7 @@ public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver
     return cache.get(new AdHocToolsIdentifier(processDefinitionKey, adHocSubprocessId));
   }
 
-  private static LoadingCache<AdHocToolsIdentifier, AdHocToolsSchemaResponse> buildCache(
+  private LoadingCache<AdHocToolsIdentifier, AdHocToolsSchemaResponse> buildCache(
       AdHocToolsSchemaResolver delegate, CacheConfiguration config) {
     final var builder = Caffeine.newBuilder();
     Optional.ofNullable(config.maxSize()).ifPresent(builder::maximumSize);
