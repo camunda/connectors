@@ -36,8 +36,8 @@
         <bpmn:extensionElements>
           <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="toolCallResult" />
           <zeebe:ioMapping>
-            <zeebe:input source="=fromAi(toolToCall.input, &#34;a&#34;, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
-            <zeebe:input source="=fromAi(toolToCall.input, &#34;b&#34;, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
+            <zeebe:input source="=fromAi(toolToCall.input.a, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
+            <zeebe:input source="=fromAi(toolToCall.input.b, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
       </bpmn:scriptTask>
@@ -52,7 +52,7 @@
         <bpmn:extensionElements>
           <zeebe:script expression="={&#10;  searchQuery: searchQuery,&#10;  items: []&#10;}" resultVariable="searchResults" />
           <zeebe:ioMapping>
-            <zeebe:input source="=fromAi(toolToCall.input, &#34;searchQuery&#34;, &#34;The search query to use&#34;)" target="searchQuery" />
+            <zeebe:input source="=fromAi(toolToCall.input.searchQuery, &#34;The search query to use&#34;)" target="searchQuery" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
         <bpmn:outgoing>Flow_095717l</bpmn:outgoing>

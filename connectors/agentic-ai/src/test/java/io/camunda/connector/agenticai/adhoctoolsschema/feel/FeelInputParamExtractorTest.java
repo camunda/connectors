@@ -32,25 +32,25 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Only expression: Name",
             """
-            fromAi({}, "aSimpleValue")
+            fromAi(toolCall.aSimpleValue)
             """,
             new FeelInputParam("aSimpleValue", null, null, null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description",
             """
-            fromAi({}, "aSimpleValue", "A simple value")
+            fromAi(toolCall.aSimpleValue, "A simple value")
             """,
             new FeelInputParam("aSimpleValue", "A simple value", null, null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type",
             """
-            fromAi({}, "aSimpleValue", "A simple value", "string")
+            fromAi(toolCall.aSimpleValue, "A simple value", "string")
             """,
             new FeelInputParam("aSimpleValue", "A simple value", "string", null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema",
             """
-            fromAi({}, "aSimpleValue", "A simple value", "string", { enum: ["A", "B", "C"] })
+            fromAi(toolCall.aSimpleValue, "A simple value", "string", { enum: ["A", "B", "C"] })
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -58,9 +58,9 @@ class FeelInputParamExtractorTest {
                 "string",
                 Map.of("enum", List.of("A", "B", "C")))),
         new FeelInputParamTestCase(
-            "Only expression: Name + description + type + schema (expressions to generate params)",
+            "Only expression: Name + description + type + schema (expressions to generate schema)",
             """
-            fromAi({}, "a" + "Simple" + "Value", string join(["A", "simple", "value"], " "), "str" + "ing", context put({}, "enum", ["A", "B", "C"]))
+            fromAi(toolCall.aSimpleValue, "A simple value", "string", context put({}, "enum", ["A", "B", "C"]))
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -70,25 +70,25 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Only expression: Name (named params)",
             """
-            fromAi(context: {}, name: "aSimpleValue")
+            fromAi(value: toolCall.aSimpleValue)
             """,
             new FeelInputParam("aSimpleValue", null, null, null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description (named params)",
             """
-            fromAi(context: {}, name: "aSimpleValue", description: "A simple value")
+            fromAi(value: toolCall.aSimpleValue, description: "A simple value")
             """,
             new FeelInputParam("aSimpleValue", "A simple value", null, null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type (named params)",
             """
-            fromAi(context: {}, name: "aSimpleValue", description: "A simple value", type: "string")
+            fromAi(value: toolCall.aSimpleValue, description: "A simple value", type: "string")
             """,
             new FeelInputParam("aSimpleValue", "A simple value", "string", null)),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema (named params)",
             """
-            fromAi(context: {}, name: "aSimpleValue", description: "A simple value", type: "string", schema: { enum: ["A", "B", "C"] })
+            fromAi(value: toolCall.aSimpleValue, description: "A simple value", type: "string", schema: { enum: ["A", "B", "C"] })
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -98,7 +98,7 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema (named params, mixed order)",
             """
-            fromAi(description: "A simple value", schema: { enum: ["A", "B", "C"] }, context: {}, type: "string", name: "aSimpleValue")
+            fromAi(description: "A simple value", schema: { enum: ["A", "B", "C"] }, type: "string", value: toolCall.aSimpleValue)
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -106,9 +106,9 @@ class FeelInputParamExtractorTest {
                 "string",
                 Map.of("enum", List.of("A", "B", "C")))),
         new FeelInputParamTestCase(
-            "Only expression: Name + description + type + schema (named params, mixed order, expressions to generate params)",
+            "Only expression: Name + description + type + schema (named params, mixed order, expression to generate schema)",
             """
-            fromAi(description: string join(["A", "simple", "value"], " "), schema: context put({}, "enum", ["A", "B", "C"]), context: {}, type: "str" + "ing", name: "a" + "Simple" + "Value")
+            fromAi(description: "A simple value", schema: context put({}, "enum", ["A", "B", "C"]), type: "string", value: toolCall.aSimpleValue)
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -118,7 +118,7 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Array schema with sub-schema",
             """
-            fromAi({}, "multiValue", "Select a multi value", "array", {
+            fromAi(toolCall.multiValue, "Select a multi value", "array", {
               "items": {
                 "type": "string",
                 "enum": ["foo", "bar", "baz"]
@@ -133,13 +133,13 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Part of operation (integer)",
             """
-            1 + 2 + fromAi({}, "thirdValue", "The third value to add", "integer")
+            1 + 2 + fromAi(toolCall.thirdValue, "The third value to add", "integer")
             """,
             new FeelInputParam("thirdValue", "The third value to add", "integer", null)),
         new FeelInputParamTestCase(
             "Part of string concatenation",
             """
-            "https://example.com/" + fromAi({}, "urlPath", "The URL path to use", "string")
+            "https://example.com/" + fromAi(toolCall.urlPath, "The URL path to use", "string")
             """,
             new FeelInputParam("urlPath", "The URL path to use", "string", null)),
         new FeelInputParamTestCase(
@@ -147,8 +147,8 @@ class FeelInputParamExtractorTest {
             """
             {
               foo: "bar",
-              bar: fromAi({}, "barValue", "A good bar value", "string"),
-              combined: fromAi({}, "firstOne", "The first value") + fromAi({}, "secondOne", "The second value", "string")
+              bar: fromAi(toolCall.barValue, "A good bar value", "string"),
+              combined: fromAi(toolCall.firstOne, "The first value") + fromAi(toolCall.secondOne, "The second value", "string")
             }
             """,
             new FeelInputParam("barValue", "A good bar value", "string", null),
@@ -157,7 +157,7 @@ class FeelInputParamExtractorTest {
         new FeelInputParamTestCase(
             "Multiple parameters, part of a list",
             """
-            ["something", fromAi({}, "firstValue", "The first value", "string"), fromAi({}, "secondValue", "The second value", "integer")]
+            ["something", fromAi(toolCall.firstValue, "The first value", "string"), fromAi(toolCall.secondValue, "The second value", "integer")]
             """,
             new FeelInputParam("firstValue", "The first value", "string", null),
             new FeelInputParam("secondValue", "The second value", "integer", null)),
@@ -165,9 +165,9 @@ class FeelInputParamExtractorTest {
             "Multiple parameters, part of a context and list",
             """
             {
-              foo: [fromAi({}, "firstValue", "The first value", "string"), fromAi({}, "secondValue", "The second value", "integer")],
+              foo: [fromAi(toolCall.firstValue, "The first value", "string"), fromAi(toolCall.secondValue, "The second value", "integer")],
               bar: {
-                baz: fromAi({}, "thirdValue", "The third value to add")
+                baz: fromAi(toolCall.thirdValue, "The third value to add")
               }
             }
             """,
@@ -178,10 +178,10 @@ class FeelInputParamExtractorTest {
             "Multiple parameters, part of a context and list (named params)",
             """
             {
-              foo: [fromAi(context: {}, name: "firstValue", description: "The first value", type: "string"), fromAi(context: {}, description: "The second value", type: "integer", name: "secondValue")],
+              foo: [fromAi(value: toolCall.firstValue, description: "The first value", type: "string"), fromAi(description: "The second value", type: "integer", value: toolCall.secondValue)],
               bar: {
-                baz: fromAi(context: {}, name: "thirdValue", description: "The third value to add"),
-                qux: fromAi(context: {}, name: "fourthValue", description: "The fourth value to add", type: "array", schema: {
+                baz: fromAi(value: toolCall.thirdValue, description: "The third value to add"),
+                qux: fromAi(value: toolCall.fourthValue, description: "The fourth value to add", type: "array", schema: {
                   "items": {
                     "type": "string",
                     "enum": ["foo", "bar", "baz"]

@@ -17,11 +17,13 @@ import org.camunda.feel.api.EvaluationResult;
 import org.camunda.feel.api.FeelEngineApi;
 import org.camunda.feel.api.FeelEngineBuilder;
 import org.camunda.feel.api.ParseResult;
+import org.camunda.feel.syntaxtree.ConstString;
 import org.camunda.feel.syntaxtree.Exp;
 import org.camunda.feel.syntaxtree.FunctionInvocation;
 import org.camunda.feel.syntaxtree.NamedFunctionParameters;
 import org.camunda.feel.syntaxtree.ParsedExpression;
 import org.camunda.feel.syntaxtree.PositionalFunctionParameters;
+import org.camunda.feel.syntaxtree.Ref;
 import scala.collection.JavaConverters;
 
 public class FeelInputParamExtractor {
@@ -81,60 +83,60 @@ public class FeelInputParamExtractor {
   }
 
   private FeelInputParam fromPositionalFunctionInvocationParams(List<Exp> params) {
-    if (params.size() < 2) {
-      throw new RuntimeException("Expected parameter name as second parameter");
-    }
-
-    final var name = params.get(1);
-    final var description = params.size() > 2 ? params.get(2) : null;
-    final var type = params.size() > 3 ? params.get(3) : null;
-    final var schema = params.size() > 4 ? params.get(4) : null;
-
-    return fromFunctionInvocationParams(name, description, type, schema);
+    return fromFunctionInvocationParams(
+        params.size() > 0 ? params.get(0) : null,
+        params.size() > 1 ? params.get(1) : null,
+        params.size() > 2 ? params.get(2) : null,
+        params.size() > 3 ? params.get(3) : null);
   }
 
   private FeelInputParam fromNamedFunctionInvocationParams(Map<String, Exp> params) {
-    // TODO validate name is valid, not empty, ...
-    if (!params.containsKey("name")) {
-      throw new RuntimeException("Expected parameter name to be defined");
-    }
-
     return fromFunctionInvocationParams(
-        params.get("name"), params.get("description"), params.get("type"), params.get("schema"));
+        params.get("value"), params.get("description"), params.get("type"), params.get("schema"));
   }
 
   private FeelInputParam fromFunctionInvocationParams(
       Exp name, Exp description, Exp type, Exp schema) {
 
-    final var nameVal = evaluateToString(name, "name");
-    final var descriptionVal = evaluateToString(description, "description");
-    final var typeVal = evaluateToString(type, "type");
-    final var schemaVal = evaluateToMap(schema, "schema");
+    final var parameterName = parameterName(name);
+    final var descriptionStr = constantStringValue(description, "description");
+    final var typeStr = constantStringValue(type, "type");
+    final var schemaMap = evaluatedMapValue(schema, "schema");
 
-    return new FeelInputParam(nameVal, descriptionVal, typeVal, schemaVal);
+    return new FeelInputParam(parameterName, descriptionStr, typeStr, schemaMap);
   }
 
-  private String evaluateToString(Exp exp, String parameterName) {
+  private String parameterName(Exp value) {
+    if (!(value instanceof Ref valueRef)) {
+      throw new FeelInputParamExtractionException(
+          "Expected parameter 'value' to be a reference, but got '%s'"
+              .formatted(value != null ? value.getClass().getName() : null));
+    }
+
+    if (valueRef.names() == null || valueRef.names().size() < 2) {
+      throw new FeelInputParamExtractionException(
+          "Expected parameter 'value' to be a reference with at least two segments (e.g. toolCall.parameter), but got: %s"
+              .formatted(valueRef.names()));
+    }
+
+    return valueRef.names().last();
+  }
+
+  private String constantStringValue(Exp exp, String parameterName) {
     if (exp == null) {
       return null;
     }
 
-    try {
-      Object result = evaluate(exp);
-      if (!(result instanceof String resultString)) {
-        throw new FeelInputParamExtractionException(
-            "Expected parameter %s to be a string, but got: %s"
-                .formatted(parameterName, result.getClass().getName()));
-      }
-
-      return resultString;
-    } catch (Throwable e) {
+    if (!(exp instanceof ConstString expString)) {
       throw new FeelInputParamExtractionException(
-          "Failed to evaluate parameter %s: %s".formatted(parameterName, e.getMessage()));
+          "Expected parameter '%s' to be a string, but got '%s'"
+              .formatted(parameterName, exp.getClass().getName()));
     }
+
+    return expString.value();
   }
 
-  private Map<String, Object> evaluateToMap(Exp exp, String parameterName) {
+  private Map<String, Object> evaluatedMapValue(Exp exp, String parameterName) {
     if (exp == null) {
       return null;
     }
