@@ -362,7 +362,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
       AgentResponse agentResponse, AgentMetrics expectedMetrics, List<ChatMessage> expectedMessages)
       throws JsonProcessingException {
     assertThat(agentResponse).isNotNull();
-    assertThat(agentResponse.toolsToCall()).isEmpty();
+    assertThat(agentResponse.toolCalls()).isEmpty();
     assertTrue(agentResponse.context().isInState(AgentState.READY));
     assertThat(agentResponse.context().metrics()).isEqualTo(expectedMetrics);
 

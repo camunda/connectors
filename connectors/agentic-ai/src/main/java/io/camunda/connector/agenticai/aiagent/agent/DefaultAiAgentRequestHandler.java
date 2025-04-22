@@ -93,9 +93,9 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     chatMemory.add(aiMessage);
 
     // extract tool call requests from LLM response
-    final var toolsToCall = toolCallingHandler.extractToolsToCall(toolSpecifications, aiMessage);
+    final var toolCalls = toolCallingHandler.extractToolCalls(toolSpecifications, aiMessage);
     final var nextAgentState =
-        !toolsToCall.isEmpty() ? AgentState.WAITING_FOR_TOOL_INPUT : AgentState.READY;
+        !toolCalls.isEmpty() ? AgentState.WAITING_FOR_TOOL_INPUT : AgentState.READY;
 
     // update context
     final var updatedContext =
@@ -108,7 +108,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
                     .incrementModelCalls(1)
                     .incrementTokenUsage(AgentMetrics.TokenUsage.from(chatResponse.tokenUsage())));
 
-    return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolsToCall);
+    return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolCalls);
   }
 
   private void checkGuardrails(

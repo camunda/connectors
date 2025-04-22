@@ -10,6 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 public record AgentResponse(
-    AgentContext context, Map<String, Object> chatResponse, List<ToolToCall> toolsToCall) {
-  public record ToolToCall(String id, String name, Map<String, Object> input) {}
+    AgentContext context, Map<String, Object> chatResponse, List<ToolCall> toolCalls) {
+  public record ToolCall(String id, String name, Map<String, Object> input) {}
 }

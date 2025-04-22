@@ -7,13 +7,13 @@
     <bpmn:sequenceFlow id="Flow_1lbh2cw" sourceRef="StartEvent_1" targetRef="Gateway_0d7bxjf" />
     <bpmn:adHocSubProcess id="Agent_Tools" name="Agent Tools">
       <bpmn:extensionElements>
-        <zeebe:adHoc activeElementsCollection="=[toolToCall.name]" />
+        <zeebe:adHoc activeElementsCollection="=[toolCall.name]" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Agent_ToolCalls</bpmn:incoming>
       <bpmn:outgoing>Flow_0ytgkit</bpmn:outgoing>
       <bpmn:multiInstanceLoopCharacteristics>
         <bpmn:extensionElements>
-          <zeebe:loopCharacteristics inputCollection="=agent.toolsToCall" inputElement="toolToCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolToCall.id,&#10;  name: toolToCall.name,&#10;  content: toolCallResult&#10;}" />
+          <zeebe:loopCharacteristics inputCollection="=agent.toolCalls" inputElement="toolCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall.id,&#10;  name: toolCall.name,&#10;  content: toolCallResult&#10;}" />
         </bpmn:extensionElements>
       </bpmn:multiInstanceLoopCharacteristics>
       <bpmn:sequenceFlow id="Flow_095717l" sourceRef="Search_The_Web" targetRef="Follow_Up_Task" />
@@ -36,8 +36,8 @@
         <bpmn:extensionElements>
           <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="toolCallResult" />
           <zeebe:ioMapping>
-            <zeebe:input source="=fromAi(toolToCall.input.a, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
-            <zeebe:input source="=fromAi(toolToCall.input.b, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
+            <zeebe:input source="=fromAi(toolCall.input.a, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
+            <zeebe:input source="=fromAi(toolCall.input.b, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
       </bpmn:scriptTask>
@@ -52,7 +52,7 @@
         <bpmn:extensionElements>
           <zeebe:script expression="={&#10;  searchQuery: searchQuery,&#10;  items: []&#10;}" resultVariable="searchResults" />
           <zeebe:ioMapping>
-            <zeebe:input source="=fromAi(toolToCall.input.searchQuery, &#34;The search query to use&#34;)" target="searchQuery" />
+            <zeebe:input source="=fromAi(toolCall.input.searchQuery, &#34;The search query to use&#34;)" target="searchQuery" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
         <bpmn:outgoing>Flow_095717l</bpmn:outgoing>
@@ -103,7 +103,7 @@
       <bpmn:outgoing>Flow_Agent_ToolCalls</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:sequenceFlow id="Flow_Agent_NoToolCalls" name="no" sourceRef="Gateway_0bukj01" targetRef="User_Feedback">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=is empty(agent.toolsToCall)</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=is empty(agent.toolCalls)</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_04hfzs8" sourceRef="AI_Agent" targetRef="Gateway_0bukj01" />
     <bpmn:serviceTask id="AI_Agent" name="AI Agent" zeebe:modelerTemplate="io.camunda.connectors.agenticai.aiagent.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iaWNvbiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5jbHMtMSB7CiAgICAgICAgZmlsbDogbm9uZTsKICAgICAgfQoKICAgICAgLmNscy0xLCAuY2xzLTIgewogICAgICAgIHN0cm9rZS13aWR0aDogMHB4OwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Im0yNywxOWMxLjY1NDMsMCwzLTEuMzQ1NywzLTNzLTEuMzQ1Ny0zLTMtM2MtMS4zMDIsMC0yLjQwMTYuODM4NC0yLjgxNTcsMmgtNS43NzAzbDcuMzAwOC03LjMwMDhjLjM5MTEuMTg3NS44MjM1LjMwMDgsMS4yODUyLjMwMDgsMS42NTQzLDAsMy0xLjM0NTcsMy0zcy0xLjM0NTctMy0zLTMtMywxLjM0NTctMywzYzAsLjQ2MTkuMTEzNS44OTQuMzAwNSwxLjI4NTJsLTguMzAwNSw4LjMwMDh2LTYuNTg1OWMwLTEuMTAyNS44OTctMiwyLTJoMnYtMmgtMmMtMS4yMDAyLDAtMi4yNjYxLjU0MjUtMywxLjM4MjMtLjczMzktLjgzOTgtMS43OTk4LTEuMzgyMy0zLTEuMzgyM2gtMWMtNC45NjI0LDAtOSw0LjAzNzEtOSw5djZjMCw0Ljk2MjksNC4wMzc2LDksOSw5aDFjMS4yMDAyLDAsMi4yNjYxLS41NDI1LDMtMS4zODIzLjczMzkuODM5OCwxLjc5OTgsMS4zODIzLDMsMS4zODIzaDJ2LTJoLTJjLTEuMTAzLDAtMi0uODk3NS0yLTJ2LTYuNTg1OWw4LjMwMDUsOC4zMDA4Yy0uMTg3LjM5MTEtLjMwMDUuODIzMi0uMzAwNSwxLjI4NTIsMCwxLjY1NDMsMS4zNDU3LDMsMywzczMtMS4zNDU3LDMtMy0xLjM0NTctMy0zLTNjLS40NjE3LDAtLjg5NC4xMTMzLTEuMjg1Mi4zMDA4bC03LjMwMDgtNy4zMDA4aDUuNzcwM2MuNDE0MSwxLjE2MTYsMS41MTM3LDIsMi44MTU3LDJabTAtNGMuNTUxMywwLDEsLjQ0ODIsMSwxcy0uNDQ4NywxLTEsMS0xLS40NDgyLTEtMSwuNDQ4Ny0xLDEtMVptMC0xMWMuNTUxNSwwLDEsLjQ0ODcsMSwxcy0uNDQ4NSwxLTEsMS0xLS40NDg3LTEtMSwuNDQ4NS0xLDEtMVptLTEzLDhoLTJ2MmgydjRoLTJjLTEuNjU0MywwLTMsMS4zNDU3LTMsM3YyaDJ2LTJjMC0uNTUxOC40NDg3LTEsMS0xaDJ2NGMwLDEuMTAyNS0uODk3LDItMiwyaC0xYy0zLjUxOTUsMC02LjQzMjQtMi42MTMzLTYuOTIwMi02aDEuOTIwMnYtMmgtMnYtNGgzYzEuNjU0MywwLDMtMS4zNDU3LDMtM3YtMmgtMnYyYzAsLjU1MTgtLjQ0ODcsMS0xLDFoLTIuOTIwMmMuNDg3OC0zLjM4NjcsMy40MDA2LTYsNi45MjAyLTZoMWMxLjEwMywwLDIsLjg5NzUsMiwydjRabTE0LDE1YzAsLjU1MTMtLjQ0ODUsMS0xLDFzLTEtLjQ0ODctMS0xLC40NDg1LTEsMS0xLDEsLjQ0ODcsMSwxWiIvPgogIDxyZWN0IGlkPSJfVHJhbnNwYXJlbnRfUmVjdGFuZ2xlXyIgZGF0YS1uYW1lPSImYW1wO2x0O1RyYW5zcGFyZW50IFJlY3RhbmdsZSZhbXA7Z3Q7IiBjbGFzcz0iY2xzLTEiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIvPgo8L3N2Zz4=">
@@ -135,7 +135,7 @@
       <bpmn:outgoing>Flow_04hfzs8</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_Agent_ToolCalls" name="yes" sourceRef="Gateway_0bukj01" targetRef="Agent_Tools">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=not(is empty(agent.toolsToCall))</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=not(is empty(agent.toolCalls))</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_0ytgkit" name="Tool results" sourceRef="Agent_Tools" targetRef="Gateway_1onk6us" />
     <bpmn:sequenceFlow id="Flow_0c131w3" sourceRef="User_Feedback" targetRef="Gateway_17hr3ni" />
