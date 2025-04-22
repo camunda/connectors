@@ -37,6 +37,8 @@ import org.springframework.core.io.Resource;
     classes = {TestConnectorRuntimeApplication.class},
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
+      "camunda.connector.webhook.enabled=false",
+      "camunda.connector.polling.enabled=false",
       "camunda.connector.agenticai.tools.cache.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
