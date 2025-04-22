@@ -16,12 +16,16 @@
  */
 package io.camunda.connector.e2e.agenticai;
 
-import static io.camunda.process.test.api.CamundaAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import io.camunda.client.api.search.response.Variable;
+import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.test.SlowTest;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.impl.assertions.CamundaDataSource;
 import java.io.IOException;
 import java.util.Map;
-
-import io.camunda.connector.test.SlowTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -37,8 +41,26 @@ public class AdHocToolsSchemaTests extends BaseAgenticAiTest {
     final var zeebeTest =
         createProcessInstance(Map.of("action", "resolveSchema")).waitForProcessCompletion();
 
-    final var expectedSchemaMap = objectMapper.readValue(expectedSchemaResult.getFile(), Map.class);
-    assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasVariable("resolvedSchema", expectedSchemaMap);
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasVariableNames("resolvedSchema");
+
+    final Map<String, Object> expectedSchema =
+        objectMapper.readValue(expectedSchemaResult.getFile(), new TypeReference<>() {});
+
+    final var resolvedSchemaVariable = getResolvedSchemaVariable(zeebeTest);
+    final Map<String, Object> resolvedSchema =
+        objectMapper.readValue(resolvedSchemaVariable.getValue(), new TypeReference<>() {});
+
+    assertThat(resolvedSchema).usingRecursiveComparison().isEqualTo(expectedSchema);
+  }
+
+  private Variable getResolvedSchemaVariable(ZeebeTest zeebeTest) {
+    return new CamundaDataSource(camundaClient)
+            .findVariablesByProcessInstanceKey(
+                zeebeTest.getProcessInstanceEvent().getProcessInstanceKey())
+            .stream()
+            .filter(variable -> variable.getName().equals("resolvedSchema"))
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("Schema variable not found"));
   }
 }
