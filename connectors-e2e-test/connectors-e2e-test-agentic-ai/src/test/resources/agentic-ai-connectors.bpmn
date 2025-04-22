@@ -7,13 +7,13 @@
     <bpmn:sequenceFlow id="Flow_1lbh2cw" sourceRef="StartEvent_1" targetRef="Gateway_0d7bxjf" />
     <bpmn:adHocSubProcess id="Agent_Tools" name="Agent Tools">
       <bpmn:extensionElements>
-        <zeebe:adHoc activeElementsCollection="=[toolCall.name]" />
+        <zeebe:adHoc activeElementsCollection="=[toolCall._meta.name]" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_Agent_ToolCalls</bpmn:incoming>
       <bpmn:outgoing>Flow_0ytgkit</bpmn:outgoing>
       <bpmn:multiInstanceLoopCharacteristics>
         <bpmn:extensionElements>
-          <zeebe:loopCharacteristics inputCollection="=agent.toolCalls" inputElement="toolCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall.id,&#10;  name: toolCall.name,&#10;  content: toolCallResult&#10;}" />
+          <zeebe:loopCharacteristics inputCollection="=agent.toolCalls" inputElement="toolCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         </bpmn:extensionElements>
       </bpmn:multiInstanceLoopCharacteristics>
       <bpmn:sequenceFlow id="Flow_095717l" sourceRef="Search_The_Web" targetRef="Follow_Up_Task" />
@@ -36,8 +36,8 @@
         <bpmn:extensionElements>
           <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="toolCallResult" />
           <zeebe:ioMapping>
-            <zeebe:input source="=fromAi(toolCall.input.a, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
-            <zeebe:input source="=fromAi(toolCall.input.b, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
+            <zeebe:input source="=fromAi(toolCall.a, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
+            <zeebe:input source="=fromAi(toolCall.b, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
       </bpmn:scriptTask>
@@ -52,7 +52,7 @@
         <bpmn:extensionElements>
           <zeebe:script expression="={&#10;  searchQuery: searchQuery,&#10;  items: []&#10;}" resultVariable="searchResults" />
           <zeebe:ioMapping>
-            <zeebe:input source="=fromAi(toolCall.input.searchQuery, &#34;The search query to use&#34;)" target="searchQuery" />
+            <zeebe:input source="=fromAi(toolCall.searchQuery, &#34;The search query to use&#34;)" target="searchQuery" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
         <bpmn:outgoing>Flow_095717l</bpmn:outgoing>
