@@ -76,7 +76,7 @@ public class StructuredServiceTest {
         .containsEntry("invoice_number", 0.95f)
         .containsEntry("total_amount", 0.98f)
         .containsEntry("supplier_name", 0.92f);
-        
+
     // Verify original keys were properly mapped
     assertThat(structuredResult.originalKeys())
         .containsEntry("invoice_number", "Invoice Number")
@@ -123,7 +123,7 @@ public class StructuredServiceTest {
         .containsEntry("invoice_number", 0.95f)
         .containsEntry("supplier_name", 0.92f)
         .doesNotContainKey("total_amount");
-        
+
     // Verify original keys were properly mapped (excluding the excluded field)
     assertThat(structuredResult.originalKeys())
         .containsEntry("invoice_number", "Invoice Number")
@@ -205,7 +205,7 @@ public class StructuredServiceTest {
         .containsEntry("invoice_number", 0.95f)
         .containsEntry("total_amount", 0.98f)
         .containsEntry("supplier_name", 0.92f);
-        
+
     // Verify original keys were properly mapped
     assertThat(structuredResult.originalKeys())
         .containsEntry("invoice_number", "Invoice Number")
@@ -263,7 +263,7 @@ public class StructuredServiceTest {
         .containsEntry("invoice_number", 0.95f)
         .containsEntry("supplier_name", 0.92f)
         .doesNotContainKey("total_amount");
-        
+
     // Verify original keys were properly mapped (excluding the excluded field)
     assertThat(structuredResult.originalKeys())
         .containsEntry("invoice_number", "Invoice Number")
