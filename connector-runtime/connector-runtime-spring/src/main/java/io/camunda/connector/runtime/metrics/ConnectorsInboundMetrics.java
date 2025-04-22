@@ -82,33 +82,33 @@ public class ConnectorsInboundMetrics {
   public void increaseCorrelationSuccess(InboundConnectorElement connectorElement) {
     Result result = Result.getResult(connectorElement);
     this.activationCounter
-            .computeIfAbsent(
-                    result.createKey(ConnectorMetrics.Inbound.ACTION_CORRELATED),
-                    s ->
-                            Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
-                                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_CORRELATED)
-                                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
-                                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
-                                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
-                                    .register(meterRegistry))
-            .increment();
+        .computeIfAbsent(
+            result.createKey(ConnectorMetrics.Inbound.ACTION_CORRELATED),
+            s ->
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
+                    .tag(ConnectorMetrics.Tag.ACTION, ConnectorMetrics.Inbound.ACTION_CORRELATED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
+                    .register(meterRegistry))
+        .increment();
   }
 
   public void increaseCorrelationFailure(InboundConnectorElement connectorElement) {
     Result result = Result.getResult(connectorElement);
     this.activationCounter
-            .computeIfAbsent(
-                    result.createKey(ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED),
-                    s ->
-                            Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
-                                    .tag(
-                                            ConnectorMetrics.Tag.ACTION,
-                                            ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED)
-                                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
-                                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
-                                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
-                                    .register(meterRegistry))
-            .increment();
+        .computeIfAbsent(
+            result.createKey(ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED),
+            s ->
+                Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_TRIGGERS)
+                    .tag(
+                        ConnectorMetrics.Tag.ACTION,
+                        ConnectorMetrics.Inbound.ACTION_CORRELATION_FAILED)
+                    .tag(ConnectorMetrics.Tag.TYPE, result.type())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id())
+                    .tag(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())
+                    .register(meterRegistry))
+        .increment();
   }
 
   public void increaseTrigger(InboundConnectorElement connectorElement) {
