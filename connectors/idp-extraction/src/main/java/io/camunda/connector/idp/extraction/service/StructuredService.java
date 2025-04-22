@@ -116,10 +116,16 @@ public class StructuredService implements ExtractionService {
         .extractedFields()
         .forEach(
             (key, value) -> {
-              String variableName = formatZeebeVariableName(key, input.delimiter());
+              String variableName;
+              // Check if key variable should be overridden by renameMappings value
+              if (input.renameMappings() != null && input.renameMappings().containsKey(key)) {
+                variableName = input.renameMappings().get(key);
+              } else {
+                variableName = formatZeebeVariableName(key, input.delimiter());
+              }
               Float confidenceScore = response.confidenceScore().get(key);
 
-              if ((input.excludedFields() == null || !input.excludedFields().contains(variableName))
+              if ((input.excludedFields() == null || !input.excludedFields().contains(key))
                   && (value != null && !value.isBlank())) {
                 parsedResults.put(variableName, value);
 

@@ -90,7 +90,8 @@ public class StructuredServiceTest {
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.document(),
             ExtractionType.STRUCTURED,
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.taxonomyItems(),
-            List.of("total_amount"), // Exclude the total_amount field
+            List.of("Total Amount"), // Use original field name instead of formatted name
+            null, // No rename mappings
             "_", // Set a delimiter
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.converseData());
 
@@ -214,7 +215,8 @@ public class StructuredServiceTest {
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.document(),
             ExtractionType.STRUCTURED,
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.taxonomyItems(),
-            List.of("total_amount"), // Exclude the total_amount field
+            List.of("Total Amount"), // Use original field name instead of formatted name
+            null, // No rename mappings
             "_", // Set a delimiter
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.converseData());
 
@@ -275,6 +277,54 @@ public class StructuredServiceTest {
     assertThatThrownBy(() -> structuredService.extract(request))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Document AI extraction failed");
+  }
+
+  @Test
+  void extractUsingTextract_WithRenameMappings_ReturnsCorrectResultWithCustomFieldNames()
+      throws Exception {
+    // given
+    AwsProvider baseRequest = ExtractionTestUtils.createDefaultAwsProvider();
+
+    Map<String, String> renameMappings = new HashMap<>();
+    renameMappings.put("Invoice Number", "customInvoiceField");
+    renameMappings.put("Total Amount", "customTotalField");
+
+    ExtractionRequestData requestDataWithRenameMappings =
+        new ExtractionRequestData(
+            ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.document(),
+            ExtractionType.STRUCTURED,
+            ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.taxonomyItems(),
+            null, // No excluded fields
+            renameMappings, // Apply our custom rename mappings
+            "_", // Set a delimiter
+            ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.converseData());
+
+    ExtractionRequest request = new ExtractionRequest(requestDataWithRenameMappings, baseRequest);
+
+    StructuredExtractionResponse extractionResponse = getStructuredExtractionResponse();
+
+    when(pollingTextractCaller.extractKeyValuePairsWithConfidence(any(), any(), any(), any()))
+        .thenReturn(extractionResponse);
+
+    // when
+    var result = structuredService.extract(request);
+
+    // then
+    assertThat(result).isNotNull().isInstanceOf(StructuredExtractionResult.class);
+
+    StructuredExtractionResult structuredResult = (StructuredExtractionResult) result;
+
+    // Verify the renamed fields are properly processed with custom names
+    assertThat(structuredResult.extractedFields())
+        .containsEntry("customInvoiceField", "INV-12345")
+        .containsEntry("customTotalField", "$12.25")
+        .containsEntry("supplier_name", "Camunda Inc."); // Not renamed, should use formatted name
+
+    // Verify confidence scores were properly processed with the same custom names
+    assertThat(structuredResult.confidenceScore())
+        .containsEntry("customInvoiceField", 0.95f)
+        .containsEntry("customTotalField", 0.98f)
+        .containsEntry("supplier_name", 0.92f); // Not renamed, should use formatted name
   }
 
   private static @NotNull StructuredExtractionResponse getStructuredExtractionResponse() {

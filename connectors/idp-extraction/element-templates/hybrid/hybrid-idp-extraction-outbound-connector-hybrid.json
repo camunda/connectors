@@ -96,6 +96,18 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "input.renameMappings",
+    "label" : "Rename mappings",
+    "description" : "List of keys that should be renamed and not be given the default name",
+    "optional" : false,
+    "value" : "= input.renameMappings",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.renameMappings",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "input.delimiter",
     "label" : "delimiter",
     "description" : "The delimiter used for the variable name of the extracted field",
