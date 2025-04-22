@@ -77,8 +77,6 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
             Optional.ofNullable(partialToolDefinition.description()).orElse(element.getName()),
             Optional.ofNullable(partialToolDefinition.inputSchema()).orElseGet(JsonSchema::empty));
       } catch (Exception e) {
-        // TODO when having a dedicated schema property/field we should throw an exception when this
-        // is failing - right now we handle this gracefully and return no schema
         LOGGER.error("Failed to parse tool definition from documentation", e);
       }
     }
