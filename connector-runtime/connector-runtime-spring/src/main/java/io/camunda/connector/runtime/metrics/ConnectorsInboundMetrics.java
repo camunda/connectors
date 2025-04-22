@@ -26,10 +26,13 @@ public class ConnectorsInboundMetrics {
 
   private final MeterRegistry meterRegistry;
   private final Map<String, Counter> activationCounter = new ConcurrentHashMap<>();
-  private final Map<String, Counter> processDefinitionsChecked = new ConcurrentHashMap<>();
+  private final Counter processDefinitionsChecked;
 
   public ConnectorsInboundMetrics(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
+    this.processDefinitionsChecked =
+        Counter.builder(ConnectorMetrics.Inbound.METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED)
+            .register(meterRegistry);
   }
 
   public void increaseActivation(InboundConnectorElement connectorElement) {
@@ -144,13 +147,6 @@ public class ConnectorsInboundMetrics {
   }
 
   public void increaseProcessDefinitionsChecked(int count) {
-    this.processDefinitionsChecked
-        .computeIfAbsent(
-            "PROCESS_DEFINITIONS_CHECKED",
-            s ->
-                Counter.builder(
-                        ConnectorMetrics.Inbound.METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED)
-                    .register(meterRegistry))
-        .increment(count);
+    this.processDefinitionsChecked.increment(count);
   }
 }
