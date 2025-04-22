@@ -23,11 +23,12 @@ import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.util.List;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
-import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
+import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
+import org.springframework.validation.FieldError;
 
 class AgenticAiConnectorsAutoConfigurationTest {
 
@@ -70,7 +71,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
         .run(
             context ->
                 assertAll(
-                    AGENTIC_AI_BEANS.stream().map(beanClass -> hasSingleBean(context, beanClass))));
+                    AGENTIC_AI_BEANS.stream()
+                        .map(beanClass -> () -> assertThat(context).hasSingleBean(beanClass))));
   }
 
   @Test
@@ -81,7 +83,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
             context ->
                 assertAll(
                     AGENTIC_AI_BEANS.stream()
-                        .map(beanClass -> doesNotHaveBean(context, beanClass))));
+                        .map(beanClass -> () -> assertThat(context).doesNotHaveBean(beanClass))));
   }
 
   @Test
@@ -106,11 +108,33 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     .isInstanceOf(CachingAdHocToolsSchemaResolver.class));
   }
 
-  private Executable hasSingleBean(AssertableApplicationContext context, Class<?> beanClass) {
-    return () -> assertThat(context).hasSingleBean(beanClass);
-  }
-
-  private Executable doesNotHaveBean(AssertableApplicationContext context, Class<?> beanClass) {
-    return () -> assertThat(context).doesNotHaveBean(beanClass);
+  @Test
+  void whenToolsCachingMaximumSizeIsNegative_thenFailsValidation() {
+    contextRunner
+        .withPropertyValues("camunda.connector.agenticai.tools.cache.maximumSize=-10")
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .hasRootCauseInstanceOf(BindValidationException.class)
+                    .rootCause()
+                    .isInstanceOfSatisfying(
+                        BindValidationException.class,
+                        e -> {
+                          assertThat(e.getValidationErrors().getAllErrors())
+                              .hasSize(1)
+                              .first(InstanceOfAssertFactories.type(FieldError.class))
+                              .extracting(
+                                  FieldError::getObjectName,
+                                  FieldError::getField,
+                                  FieldError::getRejectedValue,
+                                  FieldError::getDefaultMessage)
+                              .containsExactly(
+                                  "camunda.connector.agenticai",
+                                  "tools.cache.maximumSize",
+                                  -10L,
+                                  "must be greater than or equal to 0");
+                        }));
   }
 }

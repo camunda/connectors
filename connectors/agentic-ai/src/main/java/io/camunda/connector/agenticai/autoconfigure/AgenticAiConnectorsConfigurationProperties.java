@@ -6,25 +6,30 @@
  */
 package io.camunda.connector.agenticai.autoconfigure;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 import java.util.Optional;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai")
-public record AgenticAiConnectorsConfigurationProperties(ToolsSchemaConfiguration tools) {
+public record AgenticAiConnectorsConfigurationProperties(@Valid ToolsSchemaConfiguration tools) {
   public AgenticAiConnectorsConfigurationProperties(ToolsSchemaConfiguration tools) {
     this.tools =
         Optional.ofNullable(tools).orElseGet(ToolsSchemaConfiguration::defaultConfiguration);
   }
 
-  public record ToolsSchemaConfiguration(CacheConfiguration cache) {
+  public record ToolsSchemaConfiguration(@Valid CacheConfiguration cache) {
     public static ToolsSchemaConfiguration defaultConfiguration() {
       return new ToolsSchemaConfiguration(CacheConfiguration.defaultConfiguration());
     }
 
-    public record CacheConfiguration(boolean enabled, Integer maxSize, Duration expireAfterWrite) {
+    public record CacheConfiguration(
+        boolean enabled, @PositiveOrZero Long maximumSize, Duration expireAfterWrite) {
       public static CacheConfiguration defaultConfiguration() {
-        return new CacheConfiguration(true, 100, Duration.ofMinutes(5));
+        return new CacheConfiguration(true, 100L, Duration.ofMinutes(10));
       }
     }
   }

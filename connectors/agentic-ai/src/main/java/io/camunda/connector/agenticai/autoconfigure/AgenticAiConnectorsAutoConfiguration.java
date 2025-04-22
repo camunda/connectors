@@ -45,7 +45,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       return new CachingAdHocToolsSchemaResolver(
           resolver,
           new CachingAdHocToolsSchemaResolver.CacheConfiguration(
-              cacheConfiguration.maxSize(), cacheConfiguration.expireAfterWrite()));
+              cacheConfiguration.maximumSize(), cacheConfiguration.expireAfterWrite()));
     }
 
     return resolver;

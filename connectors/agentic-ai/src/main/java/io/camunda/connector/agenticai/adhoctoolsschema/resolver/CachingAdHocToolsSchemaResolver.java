@@ -29,8 +29,10 @@ public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver
 
   private LoadingCache<AdHocToolsIdentifier, AdHocToolsSchemaResponse> buildCache(
       AdHocToolsSchemaResolver delegate, CacheConfiguration config) {
+    // configured via camunda.connector.agenticai.tools.cache.*
+    // see AgenticAiConnectorsConfigurationProperties for default values
     final var builder = Caffeine.newBuilder();
-    Optional.ofNullable(config.maxSize()).ifPresent(builder::maximumSize);
+    Optional.ofNullable(config.maximumSize()).ifPresent(builder::maximumSize);
     Optional.ofNullable(config.expireAfterWrite()).ifPresent(builder::expireAfterWrite);
 
     return builder.build(
@@ -39,5 +41,5 @@ public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver
 
   private record AdHocToolsIdentifier(Long processDefinitionKey, String adHocSubprocessId) {}
 
-  public record CacheConfiguration(Integer maxSize, Duration expireAfterWrite) {}
+  public record CacheConfiguration(Long maximumSize, Duration expireAfterWrite) {}
 }
