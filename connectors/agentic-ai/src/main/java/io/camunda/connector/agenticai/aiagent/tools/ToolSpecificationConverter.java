@@ -33,6 +33,21 @@ import java.util.Map;
  */
 public class ToolSpecificationConverter {
 
+  private static final String TYPE_OBJECT = "object";
+  private static final String TYPE_STRING = "string";
+  private static final String TYPE_NUMBER = "number";
+  private static final String TYPE_INTEGER = "integer";
+  private static final String TYPE_BOOLEAN = "boolean";
+  private static final String TYPE_ARRAY = "array";
+
+  private static final String PROPERTY_TYPE = "type";
+  private static final String PROPERTY_DESCRIPTION = "description";
+  private static final String PROPERTY_REQUIRED = "required";
+  private static final String PROPERTY_ADDITIONAL_PROPERTIES = "additionalProperties";
+  private static final String PROPERTY_PROPERTIES = "properties";
+  private static final String PROPERTY_ENUM = "enum";
+  private static final String PROPERTY_ITEMS = "items";
+
   private final JsonSchemaFactory jsonSchemaFactory;
 
   public ToolSpecificationConverter() {
@@ -72,7 +87,8 @@ public class ToolSpecificationConverter {
   }
 
   private JsonObjectSchema convertToJsonObjectSchema(JsonNode schemaNode) {
-    if (!schemaNode.has("type") || !"object".equals(schemaNode.get("type").textValue())) {
+    if (!schemaNode.has(PROPERTY_TYPE)
+        || !TYPE_OBJECT.equals(schemaNode.get(PROPERTY_TYPE).textValue())) {
       throw new ParseSchemaException(
           "Failed to read input schema. Root input schema must be type object.");
     }
@@ -81,25 +97,25 @@ public class ToolSpecificationConverter {
   }
 
   private JsonSchemaElement jsonNodeToJsonSchemaElement(JsonNode node) {
-    String nodeType = node.get("type").asText();
+    String nodeType = node.get(PROPERTY_TYPE).asText();
     switch (nodeType) {
-      case "object" -> {
+      case TYPE_OBJECT -> {
         JsonObjectSchema.Builder builder = JsonObjectSchema.builder();
-        JsonNode required = node.get("required");
+        JsonNode required = node.get(PROPERTY_REQUIRED);
         if (required != null) {
           builder.required(toStringArray((ArrayNode) required));
         }
 
-        if (node.has("additionalProperties")) {
-          builder.additionalProperties(node.get("additionalProperties").asBoolean(false));
+        if (node.has(PROPERTY_ADDITIONAL_PROPERTIES)) {
+          builder.additionalProperties(node.get(PROPERTY_ADDITIONAL_PROPERTIES).asBoolean(false));
         }
 
-        JsonNode description = node.get("description");
+        JsonNode description = node.get(PROPERTY_DESCRIPTION);
         if (description != null) {
           builder.description(description.asText());
         }
 
-        JsonNode properties = node.get("properties");
+        JsonNode properties = node.get(PROPERTY_PROPERTIES);
         if (properties != null) {
           ObjectNode propertiesObject = (ObjectNode) properties;
 
@@ -111,55 +127,55 @@ public class ToolSpecificationConverter {
 
         return builder.build();
       }
-      case "string" -> {
-        if (node.has("enum")) {
+      case TYPE_STRING -> {
+        if (node.has(PROPERTY_ENUM)) {
           JsonEnumSchema.Builder builder = JsonEnumSchema.builder();
-          if (node.has("description")) {
-            builder.description(node.get("description").asText());
+          if (node.has(PROPERTY_DESCRIPTION)) {
+            builder.description(node.get(PROPERTY_DESCRIPTION).asText());
           }
 
-          builder.enumValues(toStringArray((ArrayNode) node.get("enum")));
+          builder.enumValues(toStringArray((ArrayNode) node.get(PROPERTY_ENUM)));
           return builder.build();
         } else {
           JsonStringSchema.Builder builder = JsonStringSchema.builder();
-          if (node.has("description")) {
-            builder.description(node.get("description").asText());
+          if (node.has(PROPERTY_DESCRIPTION)) {
+            builder.description(node.get(PROPERTY_DESCRIPTION).asText());
           }
 
           return builder.build();
         }
       }
-      case "number" -> {
+      case TYPE_NUMBER -> {
         JsonNumberSchema.Builder builder = JsonNumberSchema.builder();
-        if (node.has("description")) {
-          builder.description(node.get("description").asText());
+        if (node.has(PROPERTY_DESCRIPTION)) {
+          builder.description(node.get(PROPERTY_DESCRIPTION).asText());
         }
 
         return builder.build();
       }
-      case "integer" -> {
+      case TYPE_INTEGER -> {
         JsonIntegerSchema.Builder builder = JsonIntegerSchema.builder();
-        if (node.has("description")) {
-          builder.description(node.get("description").asText());
+        if (node.has(PROPERTY_DESCRIPTION)) {
+          builder.description(node.get(PROPERTY_DESCRIPTION).asText());
         }
 
         return builder.build();
       }
-      case "boolean" -> {
+      case TYPE_BOOLEAN -> {
         JsonBooleanSchema.Builder builder = JsonBooleanSchema.builder();
-        if (node.has("description")) {
-          builder.description(node.get("description").asText());
+        if (node.has(PROPERTY_DESCRIPTION)) {
+          builder.description(node.get(PROPERTY_DESCRIPTION).asText());
         }
 
         return builder.build();
       }
-      case "array" -> {
+      case TYPE_ARRAY -> {
         JsonArraySchema.Builder builder = JsonArraySchema.builder();
-        if (node.has("description")) {
-          builder.description(node.get("description").asText());
+        if (node.has(PROPERTY_DESCRIPTION)) {
+          builder.description(node.get(PROPERTY_DESCRIPTION).asText());
         }
 
-        builder.items(jsonNodeToJsonSchemaElement(node.get("items")));
+        builder.items(jsonNodeToJsonSchemaElement(node.get(PROPERTY_ITEMS)));
         return builder.build();
       }
       default -> throw new IllegalArgumentException("Unknown element type: " + nodeType);
