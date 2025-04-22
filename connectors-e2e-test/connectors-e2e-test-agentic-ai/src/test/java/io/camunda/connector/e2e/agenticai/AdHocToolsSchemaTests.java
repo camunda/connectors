@@ -20,10 +20,13 @@ import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
 import java.io.IOException;
 import java.util.Map;
+
+import io.camunda.connector.test.SlowTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
+@SlowTest
 public class AdHocToolsSchemaTests extends BaseAgenticAiTest {
 
   @Value("classpath:expected-schema-result.json")

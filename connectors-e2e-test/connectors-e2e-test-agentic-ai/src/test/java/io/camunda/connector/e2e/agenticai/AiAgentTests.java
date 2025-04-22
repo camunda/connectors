@@ -47,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -66,6 +67,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+@SlowTest
 public class AiAgentTests extends BaseAgenticAiTest {
 
   @MockitoBean private ChatModelFactory chatModelFactory;
