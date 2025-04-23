@@ -117,7 +117,6 @@ public class FeelInputParamExtractor {
   }
 
   private String parameterName(Exp value) {
-    // TODO check for reserved names (e.g. _meta)
     if (!(value instanceof Ref valueRef)) {
       throw new FeelInputParamExtractionException(
           "Expected parameter 'value' to be a reference, but got '%s'"
