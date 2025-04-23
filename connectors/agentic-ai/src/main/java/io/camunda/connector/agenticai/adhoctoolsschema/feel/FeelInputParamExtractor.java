@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 
+import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule;
@@ -18,7 +21,6 @@ import org.camunda.feel.api.EvaluationResult;
 import org.camunda.feel.api.FeelEngineApi;
 import org.camunda.feel.api.FeelEngineBuilder;
 import org.camunda.feel.api.ParseResult;
-import org.camunda.feel.syntaxtree.ConstString;
 import org.camunda.feel.syntaxtree.Exp;
 import org.camunda.feel.syntaxtree.FunctionInvocation;
 import org.camunda.feel.syntaxtree.NamedFunctionParameters;
@@ -54,7 +56,7 @@ public class FeelInputParamExtractor {
   public List<FeelInputParam> extractInputParams(String expression) {
     ParseResult parseResult = feelEngineApi.parseExpression(expression);
     if (parseResult.isFailure()) {
-      throw new RuntimeException(
+      throw new FeelInputParamExtractionException(
           "Failed to parse FEEL expression: " + parseResult.failure().message());
     }
 
@@ -75,7 +77,7 @@ public class FeelInputParamExtractor {
               CollectionConverters.asJava(namedFunctionParameters.params()));
 
       default ->
-          throw new RuntimeException(
+          throw new FeelInputParamExtractionException(
               "Unsupported function invocation: " + functionInvocation.params());
     };
   }
@@ -105,10 +107,10 @@ public class FeelInputParamExtractor {
       Exp name, Exp description, Exp type, Exp schema, Exp options) {
 
     final var parameterName = parameterName(name);
-    final var descriptionStr = constantStringValue(description, "description");
-    final var typeStr = constantStringValue(type, "type");
-    final var schemaMap = evaluatedMapValue(schema, "schema");
-    final var optionsMap = evaluatedMapValue(options, "options");
+    final var descriptionStr = evaluateToString(description, "description");
+    final var typeStr = evaluateToString(type, "type");
+    final var schemaMap = evaluateToMap(schema, "schema");
+    final var optionsMap = evaluateToMap(options, "options");
 
     return new FeelInputParam(parameterName, descriptionStr, typeStr, schemaMap, optionsMap);
   }
@@ -117,7 +119,7 @@ public class FeelInputParamExtractor {
     if (!(value instanceof Ref valueRef)) {
       throw new FeelInputParamExtractionException(
           "Expected parameter 'value' to be a reference, but got '%s'"
-              .formatted(value != null ? value.getClass().getName() : null));
+              .formatted(value != null ? value.getClass().getSimpleName() : null));
     }
 
     if (valueRef.names() == null || valueRef.names().size() < 2) {
@@ -129,47 +131,53 @@ public class FeelInputParamExtractor {
     return valueRef.names().last();
   }
 
-  private String constantStringValue(Exp exp, String parameterName) {
+  private String evaluateToString(Exp exp, String parameterName) {
     if (exp == null) {
       return null;
     }
 
-    if (!(exp instanceof ConstString expString)) {
+    Object result = evaluate(exp, parameterName);
+    if (!(result instanceof String resultString)) {
       throw new FeelInputParamExtractionException(
-          "Expected parameter '%s' to be a string, but got '%s'"
-              .formatted(parameterName, exp.getClass().getName()));
+          "Expected parameter '%s' to be a string, but got: %s"
+              .formatted(parameterName, result.getClass().getSimpleName()));
     }
 
-    return expString.value();
+    return resultString;
   }
 
-  private Map<String, Object> evaluatedMapValue(Exp exp, String parameterName) {
+  private Map<String, Object> evaluateToMap(Exp exp, String parameterName) {
     if (exp == null) {
       return null;
+    }
+
+    Object result = evaluate(exp, parameterName);
+    if (!(result instanceof scala.collection.Map<?, ?> resultMap)) {
+      throw new FeelInputParamExtractionException(
+          "Expected parameter '%s' to be a map, but got: %s"
+              .formatted(parameterName, result.getClass().getSimpleName()));
     }
 
     try {
-      Object result = evaluate(exp);
-      if (!(result instanceof scala.collection.Map<?, ?> resultMap)) {
-        throw new FeelInputParamExtractionException(
-            "Expected parameter %s to be a map, but got: %s"
-                .formatted(parameterName, result.getClass().getName()));
-      }
-
       final var jsonSchemaString = scalaObjectMapper.writeValueAsString(resultMap);
       return objectMapper.readValue(jsonSchemaString, new TypeReference<>() {});
+    } catch (JsonProcessingException jpe) {
+      throw new FeelInputParamExtractionException(
+          "Failed to evaluate parameter '%s': %s"
+              .formatted(parameterName, humanReadableJsonProcessingExceptionMessage(jpe)));
     } catch (Throwable e) {
       throw new FeelInputParamExtractionException(
-          "Failed to evaluate parameter %s: %s".formatted(parameterName, e.getMessage()));
+          "Failed to evaluate parameter '%s': %s".formatted(parameterName, e.getMessage()));
     }
   }
 
-  private Object evaluate(Exp exp) {
+  private Object evaluate(Exp exp, String parameterName) {
     EvaluationResult result =
         feelEngineApi.evaluate(new ParsedExpression(exp, ""), Collections.emptyMap());
     if (result.isFailure()) {
       throw new FeelInputParamExtractionException(
-          "Failed to evaluate expression: " + result.failure().message());
+          "Failed to evaluate expression for parameter '%s': %s"
+              .formatted(parameterName, result.failure().message()));
     }
 
     return result.result();

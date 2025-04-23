@@ -7,9 +7,12 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor.FeelInputParamExtractionException;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -19,15 +22,87 @@ class FeelInputParamExtractorTest {
 
   @ParameterizedTest
   @MethodSource("testFeelExpressionsWithExpectedInputParams")
-  void extractsAllInputParametersFromExpression(FeelInputParamTestCase testCase) throws Exception {
+  void extractsAllInputParametersFromExpression(FeelInputParamTestCase testCase) {
     List<FeelInputParam> inputParams = extractor.extractInputParams(testCase.expression());
-    assertThat(inputParams)
-        .usingRecursiveFieldByFieldElementComparator()
-        .containsExactlyElementsOf(testCase.expectedInputParams());
+
+    if (testCase.expectedInputParams.isEmpty()) {
+      assertThat(inputParams).isEmpty();
+    } else {
+      assertThat(inputParams)
+          .usingRecursiveFieldByFieldElementComparator()
+          .containsExactlyElementsOf(testCase.expectedInputParams());
+    }
   }
 
-  public static List<FeelInputParamTestCase> testFeelExpressionsWithExpectedInputParams() {
+  @Test
+  void throwsExceptionWhenExpressionIsNotParseable() {
+    assertThatThrownBy(() -> extractor.extractInputParams("hello\""))
+        .isInstanceOf(FeelInputParamExtractionException.class)
+        .hasMessageStartingWith(
+            "Failed to parse FEEL expression: failed to parse expression 'hello\"'");
+  }
+
+  @Test
+  void throwsExceptionWhenValueIsNotAReference() {
+    assertThatThrownBy(() -> extractor.extractInputParams("fromAi(\"toolCall.myVariable\")"))
+        .isInstanceOf(FeelInputParamExtractionException.class)
+        .hasMessageStartingWith(
+            "Expected parameter 'value' to be a reference, but got 'ConstString'");
+  }
+
+  @Test
+  void throwsExceptionWhenValueIsNotAReferenceContainingAtLeastTwoSegments() {
+    assertThatThrownBy(() -> extractor.extractInputParams("fromAi(myVariable)"))
+        .isInstanceOf(FeelInputParamExtractionException.class)
+        .hasMessageStartingWith(
+            "Expected parameter 'value' to be a reference with at least two segments (e.g. toolCall.parameter), but got: List(myVariable)");
+  }
+
+  @Test
+  void throwsExceptionWhenDescriptionValueIsNotAString() {
+    assertThatThrownBy(
+            () ->
+                extractor.extractInputParams("fromAi(value: toolCall.myVariable, description: 10)"))
+        .isInstanceOf(FeelInputParamExtractionException.class)
+        .hasMessageStartingWith(
+            "Expected parameter 'description' to be a string, but got: BigDecimal");
+  }
+
+  @Test
+  void throwsExceptionWhenTypeValueIsNotAString() {
+    assertThatThrownBy(
+            () -> extractor.extractInputParams("fromAi(value: toolCall.myVariable, type: 10)"))
+        .isInstanceOf(FeelInputParamExtractionException.class)
+        .hasMessageStartingWith("Expected parameter 'type' to be a string, but got: BigDecimal");
+  }
+
+  @Test
+  void throwsExceptionWhenSchemaValueIsNotAContext() {
+    assertThatThrownBy(
+            () ->
+                extractor.extractInputParams(
+                    "fromAi(value: toolCall.myVariable, schema: \"dummy\")"))
+        .isInstanceOf(FeelInputParamExtractionException.class)
+        .hasMessageStartingWith("Expected parameter 'schema' to be a map, but got: String");
+  }
+
+  @Test
+  void throwsExceptionWhenOptionsValueIsNotAContext() {
+    assertThatThrownBy(
+            () ->
+                extractor.extractInputParams(
+                    "fromAi(value: toolCall.myVariable, options: \"dummy\")"))
+        .isInstanceOf(FeelInputParamExtractionException.class)
+        .hasMessageStartingWith("Expected parameter 'options' to be a map, but got: String");
+  }
+
+  static List<FeelInputParamTestCase> testFeelExpressionsWithExpectedInputParams() {
     return List.of(
+        new FeelInputParamTestCase(
+            "No parameters",
+            """
+            "hello"
+            """),
         new FeelInputParamTestCase(
             "Only expression: Name",
             """
@@ -68,9 +143,9 @@ class FeelInputParamExtractorTest {
                 Map.of("enum", List.of("A", "B", "C")),
                 Map.of("optional", true))),
         new FeelInputParamTestCase(
-            "Only expression: Name + description + type + schema + options (expressions to generate schema)",
+            "Only expression: Name + description + type + schema + options (expressions to generate params)",
             """
-            fromAi(toolCall.aSimpleValue, "A simple value", "string", context put({}, "enum", ["A", "B", "C"]), { optional: not(false) })
+            fromAi(toolCall.aSimpleValue, string join(["A", "simple", "value"], " "), "str" + "ing", context put({}, "enum", ["A", "B", "C"]), { optional: not(false) })
             """,
             new FeelInputParam(
                 "aSimpleValue",
@@ -141,13 +216,13 @@ class FeelInputParamExtractorTest {
                 Map.of("enum", List.of("A", "B", "C")),
                 Map.of("optional", true))),
         new FeelInputParamTestCase(
-            "Only expression: Name + description + type + schema + options (named params, mixed order, expression to generate schema and options)",
+            "Only expression: Name + description + type + schema + options (named params, mixed order, expressions to generate params)",
             """
             fromAi(
-              description: "A simple value",
+              description: string join(["A", "simple", "value"], " "),
               options: { optional: not(false) },
               schema: context put({}, "enum", ["A", "B", "C"]),
-              type: "string",
+              type: "str" + "ing",
               value: toolCall.aSimpleValue
             )
             """,
