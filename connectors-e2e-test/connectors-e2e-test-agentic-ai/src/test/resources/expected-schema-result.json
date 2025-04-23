@@ -47,6 +47,82 @@
       }
     },
     {
+      "name": "A_Complex_Tool",
+      "description": "A very complex tool",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "aSimpleValue": {
+            "type": "string",
+            "description": "A simple value"
+          },
+          "anEnumValue": {
+            "type": "string",
+            "description": "An enum value",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "anArrayValue": {
+            "type": "array",
+            "description": "An array value",
+            "items": {
+              "type": "string",
+              "enum": [
+                "foo",
+                "bar",
+                "baz"
+              ]
+            }
+          },
+          "urlPath": {
+            "type": "string",
+            "description": "The URL path to use"
+          },
+          "firstValue": {
+            "type": "string"
+          },
+          "secondValue": {
+            "type": "integer",
+            "description": "The second value"
+          },
+          "thirdValue": {
+            "type": "string",
+            "description": "The third value to add"
+          },
+          "fourthValue": {
+            "type": "array",
+            "description": "The fourth value to add",
+            "items": {
+              "type": "string",
+              "enum": [
+                "foo",
+                "bar",
+                "baz"
+              ]
+            }
+          },
+          "outputValue": {
+            "type": "string",
+            "description": "An output value"
+          }
+        },
+        "required": [
+          "aSimpleValue",
+          "anEnumValue",
+          "anArrayValue",
+          "urlPath",
+          "firstValue",
+          "secondValue",
+          "thirdValue",
+          "fourthValue",
+          "outputValue"
+        ]
+      }
+    },
+    {
       "name": "An_Event",
       "description": "An event!",
       "inputSchema": {
