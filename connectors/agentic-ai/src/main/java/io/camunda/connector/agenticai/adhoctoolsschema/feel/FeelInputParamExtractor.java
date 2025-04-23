@@ -25,7 +25,7 @@ import org.camunda.feel.syntaxtree.NamedFunctionParameters;
 import org.camunda.feel.syntaxtree.ParsedExpression;
 import org.camunda.feel.syntaxtree.PositionalFunctionParameters;
 import org.camunda.feel.syntaxtree.Ref;
-import scala.collection.JavaConverters;
+import scala.jdk.javaapi.CollectionConverters;
 
 public class FeelInputParamExtractor {
 
@@ -61,21 +61,18 @@ public class FeelInputParamExtractor {
     Set<FunctionInvocation> functionInvocations =
         extractor.findMatchingFunctionInvocations(parseResult.parsedExpression());
 
-    List<FeelInputParam> inputParams =
-        functionInvocations.stream().map(this::mapToInputParameter).toList();
-
-    return inputParams;
+    return functionInvocations.stream().map(this::mapToInputParameter).toList();
   }
 
   private FeelInputParam mapToInputParameter(FunctionInvocation functionInvocation) {
     return switch (functionInvocation.params()) {
       case PositionalFunctionParameters positionalFunctionParameters ->
           fromPositionalFunctionInvocationParams(
-              JavaConverters.asJava(positionalFunctionParameters.params()));
+              CollectionConverters.asJava(positionalFunctionParameters.params()));
 
       case NamedFunctionParameters namedFunctionParameters ->
           fromNamedFunctionInvocationParams(
-              JavaConverters.asJava(namedFunctionParameters.params()));
+              CollectionConverters.asJava(namedFunctionParameters.params()));
 
       default ->
           throw new RuntimeException(

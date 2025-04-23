@@ -13,7 +13,7 @@ import java.util.function.Predicate;
 import org.camunda.feel.syntaxtree.FunctionInvocation;
 import org.camunda.feel.syntaxtree.ParsedExpression;
 import scala.Product;
-import scala.collection.JavaConverters;
+import scala.jdk.javaapi.CollectionConverters;
 
 class FeelFunctionInvocationExtractor {
   private final Predicate<FunctionInvocation> functionPredicate;
@@ -46,7 +46,7 @@ class FeelFunctionInvocationExtractor {
       return functions;
     }
 
-    JavaConverters.asJava(product.productIterator())
+    CollectionConverters.asJava(product.productIterator())
         .forEachRemaining(
             obj -> {
               if (obj instanceof FunctionInvocation functionInvocation
