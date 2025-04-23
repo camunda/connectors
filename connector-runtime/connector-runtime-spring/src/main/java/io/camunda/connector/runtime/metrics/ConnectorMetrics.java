@@ -20,12 +20,19 @@ import io.camunda.spring.client.metrics.MetricsRecorder;
 
 public class ConnectorMetrics {
 
+  public static class Tag {
+
+    public static final String ELEMENT_TEMPLATE_ID = "elementTemplateId";
+    public static final String TYPE = "type";
+    public static final String ACTION = "action";
+    public static final String ELEMENT_TEMPLATE_VERSION = "elementTemplateVersion";
+  }
+
   public static class Outbound {
 
     public static final String METRIC_NAME_INVOCATIONS = "camunda.connector.outbound.invocations";
     public static final String METRIC_NAME_TIME = "camunda.connector.outbound.execution-time";
 
-    // same as job worker metrics from Spring Zeebe
     public static final String ACTION_ACTIVATED = MetricsRecorder.ACTION_ACTIVATED;
     public static final String ACTION_COMPLETED = MetricsRecorder.ACTION_COMPLETED;
     public static final String ACTION_FAILED = MetricsRecorder.ACTION_FAILED;

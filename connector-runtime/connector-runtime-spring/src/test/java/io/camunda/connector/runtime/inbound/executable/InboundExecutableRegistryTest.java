@@ -32,6 +32,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelati
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -44,21 +45,21 @@ import org.junit.jupiter.api.Test;
 
 public class InboundExecutableRegistryTest {
 
+  public static final String RANDOM_STRING = "thededuplicationId";
   private static final ScheduledExecutorService scheduledExecutorService =
       Executors.newSingleThreadScheduledExecutor();
+  private static final ExecutableId RANDOM_ID = ExecutableId.fromDeduplicationId(RANDOM_STRING);
   private InboundConnectorFactory factory;
   private InboundConnectorContextFactory contextFactory;
   private BatchExecutableProcessor batchProcessor;
   private InboundExecutableRegistryImpl registry;
 
-  public static final String RANDOM_STRING = "thededuplicationId";
-  private static final ExecutableId RANDOM_ID = ExecutableId.fromDeduplicationId(RANDOM_STRING);
-
   @BeforeEach
   public void prepareMocks() {
     factory = mock(InboundConnectorFactory.class);
     contextFactory = mock(DefaultInboundConnectorContextFactory.class);
-    batchProcessor = new BatchExecutableProcessor(factory, contextFactory, null, null);
+    var inboundMetrics = mock(ConnectorsInboundMetrics.class);
+    batchProcessor = new BatchExecutableProcessor(factory, contextFactory, inboundMetrics, null);
     registry = new InboundExecutableRegistryImpl(factory, batchProcessor);
   }
 

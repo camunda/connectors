@@ -993,6 +993,29 @@
       "type": "Text"
     },
     {
+      "id" : "version",
+      "label" : "Version",
+      "description" : "Version of the element template",
+      "value" : "4",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateVersion",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
+    }, {
+      "id" : "id",
+      "label" : "ID",
+      "description" : "ID of the element template",
+      "value" : "io.camunda.connectors.EasyPost.v1",
+      "group" : "connector",
+      "binding" : {
+        "key" : "elementTemplateId",
+        "type" : "zeebe:taskHeader"
+      },
+      "type" : "Hidden"
+    },
+    {
       "id": "retryBackoff",
       "label": "Retry backoff",
       "description": "ISO-8601 duration to wait between retries",
