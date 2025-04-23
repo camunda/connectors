@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import org.camunda.feel.api.EvaluationResult;
 import org.camunda.feel.api.FeelEngineApi;
 import org.camunda.feel.api.FeelEngineBuilder;
@@ -83,27 +84,36 @@ public class FeelInputParamExtractor {
   }
 
   private FeelInputParam fromPositionalFunctionInvocationParams(List<Exp> params) {
+    final Function<Integer, Exp> getParam =
+        index -> (params.size() > index ? params.get(index) : null);
+
     return fromFunctionInvocationParams(
-        params.size() > 0 ? params.get(0) : null,
-        params.size() > 1 ? params.get(1) : null,
-        params.size() > 2 ? params.get(2) : null,
-        params.size() > 3 ? params.get(3) : null);
+        getParam.apply(0),
+        getParam.apply(1),
+        getParam.apply(2),
+        getParam.apply(3),
+        getParam.apply(4));
   }
 
   private FeelInputParam fromNamedFunctionInvocationParams(Map<String, Exp> params) {
     return fromFunctionInvocationParams(
-        params.get("value"), params.get("description"), params.get("type"), params.get("schema"));
+        params.get("value"),
+        params.get("description"),
+        params.get("type"),
+        params.get("schema"),
+        params.get("options"));
   }
 
   private FeelInputParam fromFunctionInvocationParams(
-      Exp name, Exp description, Exp type, Exp schema) {
+      Exp name, Exp description, Exp type, Exp schema, Exp options) {
 
     final var parameterName = parameterName(name);
     final var descriptionStr = constantStringValue(description, "description");
     final var typeStr = constantStringValue(type, "type");
     final var schemaMap = evaluatedMapValue(schema, "schema");
+    final var optionsMap = evaluatedMapValue(options, "options");
 
-    return new FeelInputParam(parameterName, descriptionStr, typeStr, schemaMap);
+    return new FeelInputParam(parameterName, descriptionStr, typeStr, schemaMap, optionsMap);
   }
 
   private String parameterName(Exp value) {
@@ -177,5 +187,27 @@ public class FeelInputParamExtractor {
   }
 
   public record FeelInputParam(
-      String name, String description, String type, Map<String, Object> schema) {}
+      String name,
+      String description,
+      String type,
+      Map<String, Object> schema,
+      Map<String, Object> options) {
+
+    public FeelInputParam(String name) {
+      this(name, null, null, null, null);
+    }
+
+    public FeelInputParam(String name, String description) {
+      this(name, description, null, null, null);
+    }
+
+    public FeelInputParam(String name, String description, String type) {
+      this(name, description, type, null, null);
+    }
+
+    public FeelInputParam(
+        String name, String description, String type, Map<String, Object> schema) {
+      this(name, description, type, schema, null);
+    }
+  }
 }

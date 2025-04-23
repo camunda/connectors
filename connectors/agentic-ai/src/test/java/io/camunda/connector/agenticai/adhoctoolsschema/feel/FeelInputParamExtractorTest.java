@@ -34,19 +34,19 @@ class FeelInputParamExtractorTest {
             """
             fromAi(toolCall.aSimpleValue)
             """,
-            new FeelInputParam("aSimpleValue", null, null, null)),
+            new FeelInputParam("aSimpleValue")),
         new FeelInputParamTestCase(
             "Only expression: Name + description",
             """
             fromAi(toolCall.aSimpleValue, "A simple value")
             """,
-            new FeelInputParam("aSimpleValue", "A simple value", null, null)),
+            new FeelInputParam("aSimpleValue", "A simple value")),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type",
             """
             fromAi(toolCall.aSimpleValue, "A simple value", "string")
             """,
-            new FeelInputParam("aSimpleValue", "A simple value", "string", null)),
+            new FeelInputParam("aSimpleValue", "A simple value", "string")),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema",
             """
@@ -58,33 +58,45 @@ class FeelInputParamExtractorTest {
                 "string",
                 Map.of("enum", List.of("A", "B", "C")))),
         new FeelInputParamTestCase(
-            "Only expression: Name + description + type + schema (expressions to generate schema)",
+            "Only expression: Name + description + type + schema + options",
             """
-            fromAi(toolCall.aSimpleValue, "A simple value", "string", context put({}, "enum", ["A", "B", "C"]))
+            fromAi(toolCall.aSimpleValue, "A simple value", "string", { enum: ["A", "B", "C"] }, { optional: true })
             """,
             new FeelInputParam(
                 "aSimpleValue",
                 "A simple value",
                 "string",
-                Map.of("enum", List.of("A", "B", "C")))),
+                Map.of("enum", List.of("A", "B", "C")),
+                Map.of("optional", true))),
+        new FeelInputParamTestCase(
+            "Only expression: Name + description + type + schema + options (expressions to generate schema)",
+            """
+            fromAi(toolCall.aSimpleValue, "A simple value", "string", context put({}, "enum", ["A", "B", "C"]), { optional: not(false) })
+            """,
+            new FeelInputParam(
+                "aSimpleValue",
+                "A simple value",
+                "string",
+                Map.of("enum", List.of("A", "B", "C")),
+                Map.of("optional", true))),
         new FeelInputParamTestCase(
             "Only expression: Name (named params)",
             """
             fromAi(value: toolCall.aSimpleValue)
             """,
-            new FeelInputParam("aSimpleValue", null, null, null)),
+            new FeelInputParam("aSimpleValue")),
         new FeelInputParamTestCase(
             "Only expression: Name + description (named params)",
             """
             fromAi(value: toolCall.aSimpleValue, description: "A simple value")
             """,
-            new FeelInputParam("aSimpleValue", "A simple value", null, null)),
+            new FeelInputParam("aSimpleValue", "A simple value")),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type (named params)",
             """
             fromAi(value: toolCall.aSimpleValue, description: "A simple value", type: "string")
             """,
-            new FeelInputParam("aSimpleValue", "A simple value", "string", null)),
+            new FeelInputParam("aSimpleValue", "A simple value", "string")),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema (named params)",
             """
@@ -96,25 +108,56 @@ class FeelInputParamExtractorTest {
                 "string",
                 Map.of("enum", List.of("A", "B", "C")))),
         new FeelInputParamTestCase(
-            "Only expression: Name + description + type + schema (named params, mixed order)",
+            "Only expression: Name + description + type + schema + options (named params)",
             """
-            fromAi(description: "A simple value", schema: { enum: ["A", "B", "C"] }, type: "string", value: toolCall.aSimpleValue)
+            fromAi(
+              value: toolCall.aSimpleValue,
+              description: "A simple value",
+              type: "string",
+              schema: { enum: ["A", "B", "C"] },
+              options: { optional: true }
+            )
             """,
             new FeelInputParam(
                 "aSimpleValue",
                 "A simple value",
                 "string",
-                Map.of("enum", List.of("A", "B", "C")))),
+                Map.of("enum", List.of("A", "B", "C")),
+                Map.of("optional", true))),
         new FeelInputParamTestCase(
-            "Only expression: Name + description + type + schema (named params, mixed order, expression to generate schema)",
+            "Only expression: Name + description + type + schema + options (named params, mixed order)",
             """
-            fromAi(description: "A simple value", schema: context put({}, "enum", ["A", "B", "C"]), type: "string", value: toolCall.aSimpleValue)
+            fromAi(
+              description: "A simple value",
+              options: { optional: true },
+              schema: { enum: ["A", "B", "C"] },
+              type: "string",
+              value: toolCall.aSimpleValue
+            )
             """,
             new FeelInputParam(
                 "aSimpleValue",
                 "A simple value",
                 "string",
-                Map.of("enum", List.of("A", "B", "C")))),
+                Map.of("enum", List.of("A", "B", "C")),
+                Map.of("optional", true))),
+        new FeelInputParamTestCase(
+            "Only expression: Name + description + type + schema + options (named params, mixed order, expression to generate schema and options)",
+            """
+            fromAi(
+              description: "A simple value",
+              options: { optional: not(false) },
+              schema: context put({}, "enum", ["A", "B", "C"]),
+              type: "string",
+              value: toolCall.aSimpleValue
+            )
+            """,
+            new FeelInputParam(
+                "aSimpleValue",
+                "A simple value",
+                "string",
+                Map.of("enum", List.of("A", "B", "C")),
+                Map.of("optional", true))),
         new FeelInputParamTestCase(
             "Array schema with sub-schema",
             """
@@ -135,13 +178,13 @@ class FeelInputParamExtractorTest {
             """
             1 + 2 + fromAi(toolCall.thirdValue, "The third value to add", "integer")
             """,
-            new FeelInputParam("thirdValue", "The third value to add", "integer", null)),
+            new FeelInputParam("thirdValue", "The third value to add", "integer")),
         new FeelInputParamTestCase(
             "Part of string concatenation",
             """
             "https://example.com/" + fromAi(toolCall.urlPath, "The URL path to use", "string")
             """,
-            new FeelInputParam("urlPath", "The URL path to use", "string", null)),
+            new FeelInputParam("urlPath", "The URL path to use", "string")),
         new FeelInputParamTestCase(
             "Multiple parameters, part of a context",
             """
@@ -151,16 +194,16 @@ class FeelInputParamExtractorTest {
               combined: fromAi(toolCall.firstOne, "The first value") + fromAi(toolCall.secondOne, "The second value", "string")
             }
             """,
-            new FeelInputParam("barValue", "A good bar value", "string", null),
-            new FeelInputParam("firstOne", "The first value", null, null),
-            new FeelInputParam("secondOne", "The second value", "string", null)),
+            new FeelInputParam("barValue", "A good bar value", "string"),
+            new FeelInputParam("firstOne", "The first value"),
+            new FeelInputParam("secondOne", "The second value", "string")),
         new FeelInputParamTestCase(
             "Multiple parameters, part of a list",
             """
             ["something", fromAi(toolCall.firstValue, "The first value", "string"), fromAi(toolCall.secondValue, "The second value", "integer")]
             """,
-            new FeelInputParam("firstValue", "The first value", "string", null),
-            new FeelInputParam("secondValue", "The second value", "integer", null)),
+            new FeelInputParam("firstValue", "The first value", "string"),
+            new FeelInputParam("secondValue", "The second value", "integer")),
         new FeelInputParamTestCase(
             "Multiple parameters, part of a context and list",
             """
@@ -171,9 +214,9 @@ class FeelInputParamExtractorTest {
               }
             }
             """,
-            new FeelInputParam("firstValue", "The first value", "string", null),
-            new FeelInputParam("secondValue", "The second value", "integer", null),
-            new FeelInputParam("thirdValue", "The third value to add", null, null)),
+            new FeelInputParam("firstValue", "The first value", "string"),
+            new FeelInputParam("secondValue", "The second value", "integer"),
+            new FeelInputParam("thirdValue", "The third value to add")),
         new FeelInputParamTestCase(
             "Multiple parameters, part of a context and list (named params)",
             """
@@ -190,9 +233,9 @@ class FeelInputParamExtractorTest {
               }
             }
             """,
-            new FeelInputParam("firstValue", "The first value", "string", null),
-            new FeelInputParam("secondValue", "The second value", "integer", null),
-            new FeelInputParam("thirdValue", "The third value to add", null, null),
+            new FeelInputParam("firstValue", "The first value", "string"),
+            new FeelInputParam("secondValue", "The second value", "integer"),
+            new FeelInputParam("thirdValue", "The third value to add"),
             new FeelInputParam(
                 "fourthValue",
                 "The fourth value to add",
