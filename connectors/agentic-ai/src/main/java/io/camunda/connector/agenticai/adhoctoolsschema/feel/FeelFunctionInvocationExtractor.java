@@ -37,7 +37,7 @@ class FeelFunctionInvocationExtractor {
   private Set<FunctionInvocation> findMatchingFunctionInvocations(
       Object object, Set<FunctionInvocation> functions) {
     if (object instanceof FunctionInvocation functionInvocation
-        && isMatchingFunctionInvocation(functionInvocation)) {
+        && functionPredicate.test(functionInvocation)) {
       functions.add(functionInvocation);
       return functions;
     }
@@ -50,7 +50,7 @@ class FeelFunctionInvocationExtractor {
         .forEachRemaining(
             obj -> {
               if (obj instanceof FunctionInvocation functionInvocation
-                  && isMatchingFunctionInvocation(functionInvocation)) {
+                  && functionPredicate.test(functionInvocation)) {
                 functions.add(functionInvocation);
               } else {
                 findMatchingFunctionInvocations(obj, functions);
@@ -58,9 +58,5 @@ class FeelFunctionInvocationExtractor {
             });
 
     return functions;
-  }
-
-  private boolean isMatchingFunctionInvocation(FunctionInvocation functionInvocation) {
-    return functionPredicate.test(functionInvocation);
   }
 }
