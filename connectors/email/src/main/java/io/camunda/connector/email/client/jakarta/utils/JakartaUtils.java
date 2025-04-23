@@ -284,8 +284,8 @@ public class JakartaUtils {
       throws MessagingException, IOException {
     BodyPart bodyPart = multipart.getBodyPart(i);
     switch (bodyPart.getContent()) {
-      case InputStream attachment when Part.ATTACHMENT.equalsIgnoreCase(
-              bodyPart.getDisposition()) ->
+      case InputStream attachment
+          when Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) ->
           emailBodyBuilder.addAttachment(
               new EmailAttachment(
                   attachment,
@@ -326,12 +326,10 @@ public class JakartaUtils {
               .orElseThrow(() -> new RuntimeException("No folder has been set"));
       Folder targetImapFolder = store.getFolder(targetFolderFormatted);
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
-      if (targetImapFolder.exists()) {
-        targetImapFolder.open(Folder.READ_WRITE);
-        imapFolder.copyMessages(new Message[] {message}, targetImapFolder);
-        this.markAsDeleted(message);
-        targetImapFolder.close();
-      }
+      targetImapFolder.open(Folder.READ_WRITE);
+      imapFolder.copyMessages(new Message[] {message}, targetImapFolder);
+      this.markAsDeleted(message);
+      targetImapFolder.close();
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
