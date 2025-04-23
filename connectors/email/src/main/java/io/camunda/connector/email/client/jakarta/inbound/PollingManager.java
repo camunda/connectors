@@ -143,7 +143,10 @@ public class PollingManager {
     switch (pollingConfig.handlingStrategy()) {
       case READ -> this.jakartaUtils.markAsSeen(message);
       case DELETE -> this.jakartaUtils.markAsDeleted(message);
-      case MOVE -> this.jakartaUtils.moveMessage(this.store, message, pollingConfig.targetFolder());
+      case MOVE -> {
+        this.jakartaUtils.markAsSeen(message);
+        this.jakartaUtils.moveMessage(this.store, message, pollingConfig.targetFolder());
+      }
     }
   }
 

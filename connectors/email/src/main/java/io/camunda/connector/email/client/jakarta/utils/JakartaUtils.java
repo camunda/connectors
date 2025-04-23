@@ -326,10 +326,12 @@ public class JakartaUtils {
               .orElseThrow(() -> new RuntimeException("No folder has been set"));
       Folder targetImapFolder = store.getFolder(targetFolderFormatted);
       if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
-      targetImapFolder.open(Folder.READ_WRITE);
-      imapFolder.copyMessages(new Message[] {message}, targetImapFolder);
-      this.markAsDeleted(message);
-      targetImapFolder.close();
+      if (targetImapFolder.exists()) {
+        targetImapFolder.open(Folder.READ_WRITE);
+        imapFolder.copyMessages(new Message[] {message}, targetImapFolder);
+        this.markAsDeleted(message);
+        targetImapFolder.close();
+      }
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }

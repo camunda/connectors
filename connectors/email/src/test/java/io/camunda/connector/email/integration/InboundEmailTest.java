@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.email.integration;
 
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -24,7 +25,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -46,15 +51,27 @@ public class InboundEmailTest extends BaseEmailTest {
     }
   }
 
+  private static @NotNull Collection<Flags.Flag> getFlag(HandlingStrategy handlingStrategy) {
+    return switch (handlingStrategy) {
+      case READ -> List.of(Flags.Flag.SEEN);
+      case DELETE -> List.of(Flags.Flag.DELETED);
+      case MOVE -> List.of(Flags.Flag.DELETED, Flags.Flag.SEEN);
+    };
+  }
+
   @BeforeEach
   public void beforeEach() {
     super.reset();
   }
 
+  @AfterEach
+  public void afterEach() {
+    this.jakartaEmailListener.stopListener();
+  }
+
   @ParameterizedTest
   @MethodSource("createEmailInboundConnectorProperties")
-  public void shouldReceiveEmail(EmailInboundConnectorProperties emailInboundConnectorProperties)
-      throws MessagingException {
+  public void shouldReceiveEmail(EmailInboundConnectorProperties emailInboundConnectorProperties) {
     InboundConnectorContext inboundConnectorContext = mock(InboundConnectorContext.class);
 
     ImapConfig pollingConfig =
@@ -73,27 +90,29 @@ public class InboundEmailTest extends BaseEmailTest {
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties1);
 
-    jakartaEmailListener.startListener(inboundConnectorContext);
+    this.jakartaEmailListener.startListener(inboundConnectorContext);
 
     super.sendEmail("camunda@test.com", "Subject", "Content");
 
     verify(inboundConnectorContext, timeout(3000).times(1)).canActivate(any());
     verify(inboundConnectorContext, timeout(3000).times(1)).correlate(any());
-
-    assertFlagOnLastEmail(
-        emailInboundConnectorProperties.data().pollingConfig().handlingStrategy());
+    await()
+        .atMost(5, TimeUnit.SECONDS)
+        .untilAsserted(
+            () ->
+                assertFlagOnLastEmail(
+                    emailInboundConnectorProperties.data().pollingConfig().handlingStrategy()));
   }
 
   private void assertFlagOnLastEmail(HandlingStrategy handlingStrategy) throws MessagingException {
     Assertions.assertTrue(
-        Arrays.stream(super.getLastReceivedEmails())
-            .findFirst()
-            .get()
-            .getFlags()
-            .contains(
-                switch (handlingStrategy) {
-                  case READ -> Flags.Flag.SEEN;
-                  case DELETE, MOVE -> Flags.Flag.DELETED;
-                }));
+        Arrays.stream(
+                Arrays.stream(super.getLastReceivedEmails())
+                    .findFirst()
+                    .get()
+                    .getFlags()
+                    .getSystemFlags())
+            .toList()
+            .containsAll(getFlag(handlingStrategy)));
   }
 }
