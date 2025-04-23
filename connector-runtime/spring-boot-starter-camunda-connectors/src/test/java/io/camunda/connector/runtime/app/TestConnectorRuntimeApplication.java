@@ -24,7 +24,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @ImportAutoConfiguration({
   io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
   io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class
+  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class,
+  io.camunda.connector.runtime.instances.InstanceForwardingConfiguration.class
 })
 public class TestConnectorRuntimeApplication {
 

@@ -16,13 +16,24 @@
  */
 package io.camunda.connector.runtime.inbound.controller;
 
+import static io.camunda.connector.runtime.instances.service.InstanceForwardingService.X_CAMUNDA_FORWARDED_FOR;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.inbound.executable.*;
+import io.camunda.connector.runtime.instances.InstanceAwareModel;
+import io.camunda.connector.runtime.instances.service.InstanceForwardingService;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -36,17 +47,49 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/inbound-instances")
 public class InboundInstancesRestController {
 
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(InboundInstancesRestController.class);
+
   private final InboundExecutableRegistry executableRegistry;
 
   private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
 
-  public InboundInstancesRestController(InboundExecutableRegistry executableRegistry) {
+  private final InstanceForwardingService instanceForwardingService;
+
+  private static final String HOSTNAME = System.getenv("HOSTNAME");
+
+  public InboundInstancesRestController(
+      InboundExecutableRegistry executableRegistry,
+      @Autowired(required = false) InstanceForwardingService instanceForwardingService) {
     this.executableRegistry = executableRegistry;
+    this.instanceForwardingService = instanceForwardingService;
+  }
+
+  /**
+   * This method is used to forward the request to the instances or local service depending on the
+   * configuration.
+   *
+   * @see io.camunda.connector.runtime.instances.InstanceForwardingConfiguration
+   */
+  private <T> T forwardAndReduceToInstancesOrLocal(
+      HttpServletRequest request, String forwardedFor, Supplier<T> supplier) {
+    if (instanceForwardingService != null && StringUtils.isBlank(forwardedFor)) {
+      LOGGER.debug(
+          "Forwarding request to instances: {}",
+          request.getRequestURL().toString() + "?" + request.getQueryString());
+      return instanceForwardingService.forwardAndReduce(request, new TypeReference<>() {});
+    }
+    LOGGER.debug(
+        "InstanceForwardingService not configured, performing local call for request: {}", request);
+    return supplier.get();
   }
 
   @GetMapping()
-  public List<ConnectorInstances> getConnectorInstances() {
-    return getConnectorsInstances(null);
+  public List<ConnectorInstances> getConnectorInstances(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
+    return forwardAndReduceToInstancesOrLocal(
+        request, forwardedFor, () -> getConnectorsInstances(null));
   }
 
   @GetMapping("/{type}")
@@ -77,6 +120,23 @@ public class InboundInstancesRestController {
       throw new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId);
     }
     return executables.getFirst();
+  }
+
+  @GetMapping("/{type}/executables/{executableId}/health")
+  public Collection<InstanceAwareModel.InstanceAwareHealth> getConnectorInstanceExecutableHealth(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
+      @PathVariable(name = "type") String type,
+      @PathVariable(name = "executableId") String executableId) {
+
+    if (instanceForwardingService != null && StringUtils.isBlank(forwardedFor)) {
+      LOGGER.debug(
+          "Forwarding request to instances: {}",
+          request.getRequestURL().toString() + "?" + request.getQueryString());
+      return instanceForwardingService.forward(request, new TypeReference<>() {});
+    }
+    var executable = getConnectorInstanceExecutable(type, executableId);
+    return List.of(new InstanceAwareModel.InstanceAwareHealth(executable.health(), HOSTNAME));
   }
 
   @GetMapping("/{type}/executables/{executableId}/logs")
