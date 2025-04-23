@@ -60,17 +60,53 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.taxonomyItems",
-    "label" : "Taxonomy Items",
-    "description" : "Array of taxonomy items",
+    "id" : "input.extractionType",
+    "label" : "Extraction Type",
+    "description" : "Specify extraction type (structured or unstructured)",
     "optional" : false,
-    "value" : "= input.taxonomyItems",
+    "value" : "= input.extractionType",
     "constraints" : {
       "notEmpty" : true
     },
     "group" : "input",
     "binding" : {
+      "name" : "input.extractionType",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.taxonomyItems",
+    "label" : "Taxonomy Items",
+    "description" : "Array of taxonomy items",
+    "optional" : false,
+    "value" : "= input.taxonomyItems",
+    "group" : "input",
+    "binding" : {
       "name" : "input.taxonomyItems",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.excludedFields",
+    "label" : "Excluded Fields",
+    "description" : "List of fields that should not be returned from the extraction",
+    "optional" : false,
+    "value" : "= input.excludedFields",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.excludedFields",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.delimiter",
+    "label" : "delimiter",
+    "description" : "The delimiter used for the variable name of the extracted field",
+    "optional" : false,
+    "value" : "= input.delimiter",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.delimiter",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
@@ -80,9 +116,6 @@
     "description" : "Specify the parameters for AWS Bedrock",
     "optional" : false,
     "value" : "= input.converseData",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "group" : "input",
     "binding" : {
       "name" : "input.converseData",

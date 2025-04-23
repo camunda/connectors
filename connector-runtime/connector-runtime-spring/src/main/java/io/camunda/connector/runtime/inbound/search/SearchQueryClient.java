@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.search;
 
-import io.camunda.client.api.search.response.FlowNodeInstance;
+import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
@@ -28,7 +28,7 @@ public interface SearchQueryClient {
 
   SearchResponse<ProcessDefinition> queryProcessDefinitions(List<Object> paginationIndex);
 
-  SearchResponse<FlowNodeInstance> queryActiveFlowNodes(
+  SearchResponse<ElementInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, List<Object> paginationIndex);
 
   SearchResponse<Variable> queryVariables(
