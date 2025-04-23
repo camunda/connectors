@@ -122,7 +122,7 @@ public class PollingManager {
       Arrays.stream(messages).forEach(message -> this.processMail((IMAPMessage) message, pollAll));
     } catch (Exception e) {
       this.connectorContext.log(
-              Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
+          Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
       this.connectorContext.cancel(new ConnectorException(e.getMessage(), e));
     }
   }
@@ -135,20 +135,18 @@ public class PollingManager {
           .forEach(message -> this.processMail((IMAPMessage) message, pollUnseen));
     } catch (Exception e) {
       this.connectorContext.log(
-              Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
+          Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
       this.connectorContext.cancel(
-              ConnectorRetryException.builder()
-                      .cause(e)
-                      .message(e.getMessage())
-                      .retries(2)
-                      .backoffDuration(Duration.of(3, ChronoUnit.SECONDS))
-                      .build());
+          ConnectorRetryException.builder()
+              .cause(e)
+              .message(e.getMessage())
+              .retries(2)
+              .backoffDuration(Duration.of(3, ChronoUnit.SECONDS))
+              .build());
     }
   }
 
-  private void manageException(Exception e) {
-
-  }
+  private void manageException(Exception e) {}
 
   private void processMail(IMAPMessage message, PollingConfig pollingConfig) {
     // Setting `peek` to true prevents the library to trigger any side effects when reading the
