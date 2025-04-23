@@ -13,7 +13,7 @@ import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_OBJECT;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_STRING;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor.FeelInputParam;
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

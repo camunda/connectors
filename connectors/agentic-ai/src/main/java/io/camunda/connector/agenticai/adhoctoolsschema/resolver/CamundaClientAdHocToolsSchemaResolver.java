@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;

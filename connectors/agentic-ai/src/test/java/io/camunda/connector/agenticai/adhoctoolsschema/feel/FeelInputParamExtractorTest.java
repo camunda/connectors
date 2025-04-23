@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor.FeelInputParam;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;

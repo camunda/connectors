@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor.FeelInputParam;
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import java.util.List;
 import java.util.Map;
 
