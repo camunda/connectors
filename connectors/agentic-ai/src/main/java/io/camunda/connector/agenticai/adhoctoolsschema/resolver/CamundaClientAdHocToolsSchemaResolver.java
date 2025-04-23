@@ -6,6 +6,13 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_DESCRIPTION;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_REQUIRED;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_OBJECT;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_STRING;
+
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor.FeelInputParam;
@@ -108,16 +115,16 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
 
           // apply type from inputParam if it is set
           if (!StringUtils.isBlank(inputParam.type())) {
-            propertySchema.put("type", inputParam.type());
+            propertySchema.put(PROPERTY_TYPE, inputParam.type());
           }
 
           // default to string if no type is set (not on inputParam, not in schema directly)
-          if (!propertySchema.containsKey("type")) {
-            propertySchema.put("type", "string");
+          if (!propertySchema.containsKey(PROPERTY_TYPE)) {
+            propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
           }
 
           if (!StringUtils.isBlank(inputParam.description())) {
-            propertySchema.put("description", inputParam.description());
+            propertySchema.put(PROPERTY_DESCRIPTION, inputParam.description());
           }
 
           properties.put(inputParam.name(), propertySchema);
@@ -125,9 +132,9 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
         });
 
     Map<String, Object> inputSchema = new LinkedHashMap<>();
-    inputSchema.put("type", "object");
-    inputSchema.put("properties", properties);
-    inputSchema.put("required", required);
+    inputSchema.put(PROPERTY_TYPE, TYPE_OBJECT);
+    inputSchema.put(PROPERTY_PROPERTIES, properties);
+    inputSchema.put(PROPERTY_REQUIRED, required);
     return Collections.unmodifiableMap(inputSchema);
   }
 
