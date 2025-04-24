@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Kafka Event Connector",
     icon = "icon.svg",
-    version = 6,
+    version = 7,
     inputDataClass = KafkaConnectorProperties.class,
     description = "Consume Kafka messages",
     documentationRef =

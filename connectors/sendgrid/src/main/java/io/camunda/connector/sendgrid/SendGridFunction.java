@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
     name = "SendGrid Outbound Connector",
     description = "Send an email via SendGrid",
     inputDataClass = SendGridRequest.class,
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "sender", label = "Sender"),

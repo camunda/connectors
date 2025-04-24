@@ -39,7 +39,7 @@ import java.util.function.BiFunction;
               "perform real-time inference"
             }),
     inputDataClass = SageMakerRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
