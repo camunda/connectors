@@ -55,29 +55,19 @@ public class CamundaDocumentSerializer extends JsonSerializer<Document> {
 
     return switch (contentBlock) {
       case TextContent tc ->
-          new CamundaDocumentResponseModel(
-              TYPE_TEXT, metadata.getContentType(), metadata.getFileName(), tc.text());
+          new CamundaDocumentResponseModel(TYPE_TEXT, metadata.getContentType(), tc.text());
 
       case TextFileContent tf ->
           new CamundaDocumentResponseModel(
-              TYPE_BASE64,
-              metadata.getContentType(),
-              metadata.getFileName(),
-              tf.textFile().base64Data());
+              TYPE_BASE64, metadata.getContentType(), tf.textFile().base64Data());
 
       case PdfFileContent tf ->
           new CamundaDocumentResponseModel(
-              TYPE_BASE64,
-              metadata.getContentType(),
-              metadata.getFileName(),
-              tf.pdfFile().base64Data());
+              TYPE_BASE64, metadata.getContentType(), tf.pdfFile().base64Data());
 
       case ImageContent tf ->
           new CamundaDocumentResponseModel(
-              TYPE_BASE64,
-              metadata.getContentType(),
-              metadata.getFileName(),
-              tf.image().base64Data());
+              TYPE_BASE64, metadata.getContentType(), tf.image().base64Data());
 
       default ->
           throw new IllegalArgumentException(
@@ -92,6 +82,5 @@ public class CamundaDocumentSerializer extends JsonSerializer<Document> {
    */
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  public record CamundaDocumentResponseModel(
-      String type, String mediaType, String filename, String data) {}
+  public record CamundaDocumentResponseModel(String type, String mediaType, String data) {}
 }
