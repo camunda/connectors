@@ -1,0 +1,66 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.fixture;
+
+import io.camunda.client.api.response.DocumentMetadata;
+import io.camunda.document.Document;
+import io.camunda.document.DocumentLinkParameters;
+import io.camunda.document.reference.DocumentReference;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
+import org.mockito.Mockito;
+
+public class CamundaDocumentFixture {
+
+  public static Document inMemoryDocument() {
+
+    try (FileInputStream fileInputStream =
+        new FileInputStream("src/test/resources/testfiles/rag.txt")) {
+      final var text = IOUtils.toString(fileInputStream, StandardCharsets.UTF_8);
+      return new Document() {
+        @Override
+        public DocumentMetadata metadata() {
+          final var metadata = Mockito.mock(DocumentMetadata.class);
+          Mockito.when(metadata.getFileName()).thenReturn("rag.txt");
+          return metadata;
+        }
+
+        @Override
+        public String asBase64() {
+          return new Base64().encodeToString(text.getBytes());
+        }
+
+        @Override
+        public InputStream asInputStream() {
+          return new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+        }
+
+        @Override
+        public byte[] asByteArray() {
+          return text.getBytes(StandardCharsets.UTF_8);
+        }
+
+        @Override
+        public DocumentReference reference() {
+          return Mockito.mock(DocumentReference.class);
+        }
+
+        @Override
+        public String generateLink(DocumentLinkParameters parameters) {
+          return "https://doc.link.com";
+        }
+      };
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+}
