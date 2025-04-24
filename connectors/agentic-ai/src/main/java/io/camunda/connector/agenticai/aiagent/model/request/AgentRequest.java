@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -75,7 +76,16 @@ public record AgentRequest(ProviderConfiguration provider, AgentRequestData data
                 label = "User Prompt Parameters",
                 feel = Property.FeelMode.required,
                 optional = true)
-            Map<String, Object> parameters)
+            Map<String, Object> parameters,
+        @FEEL
+            @TemplateProperty(
+                group = "userPrompt",
+                label = "Documents",
+                description = "Documents to be included in the user prompt",
+                tooltip = "Referenced documents will be transparently added to the user prompt.",
+                feel = Property.FeelMode.required,
+                optional = true)
+            List<Document> documents)
         implements PromptConfiguration {}
 
     public record ToolsConfiguration(

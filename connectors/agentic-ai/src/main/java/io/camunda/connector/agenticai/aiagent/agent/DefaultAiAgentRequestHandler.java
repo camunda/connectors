@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.TextContent;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -15,6 +17,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
+import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.memory.AgentContextChatMemoryStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -37,14 +40,18 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
   private final ToolCallingHandler toolCallingHandler;
+  private final CamundaDocumentToContentConverter documentConverter;
 
   public DefaultAiAgentRequestHandler(
       ObjectMapper objectMapper,
       ChatModelFactory chatModelFactory,
-      ToolCallingHandler toolCallingHandler) {
+      ToolCallingHandler toolCallingHandler,
+      CamundaDocumentToContentConverter documentConverter) {
+
     this.objectMapper = objectMapper;
     this.chatModelFactory = chatModelFactory;
     this.toolCallingHandler = toolCallingHandler;
+    this.documentConverter = documentConverter;
   }
 
   @Override
@@ -144,7 +151,17 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
           .forEach(chatMemory::add);
     } else {
       // feed messages with the user input message (first iteration or user follow-up request)
-      chatMemory.add(promptFromConfiguration(requestData.userPrompt()).toUserMessage());
+      final var userPrompt = requestData.userPrompt();
+      final var userMessageBuilder =
+          UserMessage.builder()
+              .addContent(new TextContent(promptFromConfiguration(userPrompt).text()));
+
+      // add documents as content blocks
+      Optional.ofNullable(userPrompt.documents())
+          .orElseGet(Collections::emptyList)
+          .forEach(document -> userMessageBuilder.addContent(documentConverter.convert(document)));
+
+      chatMemory.add(userMessageBuilder.build());
     }
   }
 

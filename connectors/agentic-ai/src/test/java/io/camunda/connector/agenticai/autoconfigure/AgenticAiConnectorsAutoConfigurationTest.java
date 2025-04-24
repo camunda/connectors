@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdH
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
@@ -43,6 +44,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ChatModelFactory.class,
           ToolSpecificationConverter.class,
           ToolCallingHandler.class,
+          CamundaDocumentToContentConverter.class,
           AiAgentRequestHandler.class,
           AiAgentFunction.class);
 
