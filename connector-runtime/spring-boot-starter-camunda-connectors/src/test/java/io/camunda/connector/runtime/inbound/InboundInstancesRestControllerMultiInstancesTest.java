@@ -32,7 +32,6 @@ import io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
-import io.camunda.connector.runtime.inbound.controller.InboundInstancesRestController;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
@@ -43,9 +42,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -53,18 +50,14 @@ import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.web.servlet.MockMvc;
 
 class InboundInstancesRestControllerMultiInstancesTest {
 
-  @Autowired private MockMvc mockMvc;
-
-  private InboundExecutableRegistry executableRegistry =
+  private final InboundExecutableRegistry executableRegistry =
       Mockito.mock(InboundExecutableRegistry.class);
 
-  @InjectMocks private InboundInstancesRestController controller;
-
   private static final String TYPE_1 = "webhook";
+
   private int port1 = 18080;
   private int port2 = 18081;
 
@@ -272,111 +265,113 @@ class InboundInstancesRestControllerMultiInstancesTest {
     assertThat(404, equalTo(response.getStatusCode().value()));
   }
 
-//  @Test
-//  public void shouldReturnSingleConnectorInstance() throws Exception {
-//    var response =
-//        mockMvc
-//            .perform(get("/inbound-instances/" + TYPE_1))
-//            .andExpect(status().isOk())
-//            .andReturn()
-//            .getResponse()
-//            .getContentAsString();
-//
-//    ConnectorInstances instance =
-//        ConnectorsObjectMapperSupplier.getCopy().readValue(response, ConnectorInstances.class);
-//    assertEquals(TYPE_1, instance.connectorId());
-//    assertEquals("Webhook", instance.connectorName());
-//    assertEquals(1, instance.instances().size());
-//    assertEquals(RANDOM_ID_1, instance.instances().get(0).executableId());
-//    assertEquals("ProcessA", instance.instances().get(0).elements().getFirst().bpmnProcessId());
-//  }
-//
-//  @Test
-//  public void shouldReturn404_whenUnknownExecutableId() throws Exception {
-//    mockMvc
-//        .perform(get("/inbound-instances/" + TYPE_1 + "/executables/UNKNOWN-ID"))
-//        .andExpect(status().isNotFound())
-//        .andExpect(
-//            content()
-//                .string(
-//                    containsString(
-//                        "Data of type 'ActiveInboundConnectorResponse' with id 'UNKNOWN-ID' not found")));
-//  }
-//
-//  @Test
-//  public void shouldReturn404_whenUnknownConnectorTypeAndValidExecutableId() throws Exception {
-//    mockMvc
-//        .perform(get("/inbound-instances/UNKNOWN-ID/executables/" + RANDOM_ID_1.getId()))
-//        .andExpect(status().isNotFound())
-//        .andExpect(
-//            content()
-//                .string(
-//                    containsString(
-//                        "Data of type 'ConnectorInstances' with id 'UNKNOWN-ID' not found")));
-//  }
-//
-//  @Test
-//  public void shouldReturnSingleExecutable() throws Exception {
-//    var response =
-//        mockMvc
-//            .perform(get("/inbound-instances/" + TYPE_1 + "/executables/" + RANDOM_ID_1.getId()))
-//            .andExpect(status().isOk())
-//            .andReturn()
-//            .getResponse()
-//            .getContentAsString();
-//
-//    ActiveInboundConnectorResponse executable =
-//        ConnectorsObjectMapperSupplier.getCopy()
-//            .readValue(response, ActiveInboundConnectorResponse.class);
-//    assertEquals(RANDOM_ID_1, executable.executableId());
-//    assertEquals("ProcessA", executable.elements().getFirst().bpmnProcessId());
-//  }
-//
-//  @Test
-//  public void shouldReturnEmptyActivityLogs_whenNoLogs() throws Exception {
-//    var response =
-//        mockMvc
-//            .perform(
-//                get(
-//                    "/inbound-instances/"
-//                        + TYPE_1
-//                        + "/executables/"
-//                        + RANDOM_ID_1.getId()
-//                        + "/logs"))
-//            .andExpect(status().isOk())
-//            .andReturn()
-//            .getResponse()
-//            .getContentAsString();
-//
-//    List<Activity> logs =
-//        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-//    assertTrue(logs.isEmpty());
-//  }
-//
-//  @Test
-//  public void shouldReturnActivityLogs_whenTypeProvided() throws Exception {
-//    var response =
-//        mockMvc
-//            .perform(
-//                get(
-//                    "/inbound-instances/"
-//                        + TYPE_2
-//                        + "/executables/"
-//                        + RANDOM_ID_3.getId()
-//                        + "/logs"))
-//            .andExpect(status().isOk())
-//            .andReturn()
-//            .getResponse()
-//            .getContentAsString();
-//
-//    List<Activity> logs =
-//        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
-//    assertEquals(2, logs.size());
-//    var log1 = logs.stream().filter(a -> a.severity() == Severity.INFO).findFirst().get();
-//    assertEquals("myTag", log1.tag());
-//    assertEquals("myMessage", log1.message());
-//    var log2 = logs.stream().filter(a -> a.severity() == Severity.ERROR).findFirst().get();
-//    assertEquals("myTag2", log2.tag());
-//    assertEquals("myMessage2", log2.message());
-//  }
+  //  @Test
+  //  public void shouldReturnSingleConnectorInstance() throws Exception {
+  //    var response =
+  //        mockMvc
+  //            .perform(get("/inbound-instances/" + TYPE_1))
+  //            .andExpect(status().isOk())
+  //            .andReturn()
+  //            .getResponse()
+  //            .getContentAsString();
+  //
+  //    ConnectorInstances instance =
+  //        ConnectorsObjectMapperSupplier.getCopy().readValue(response, ConnectorInstances.class);
+  //    assertEquals(TYPE_1, instance.connectorId());
+  //    assertEquals("Webhook", instance.connectorName());
+  //    assertEquals(1, instance.instances().size());
+  //    assertEquals(RANDOM_ID_1, instance.instances().get(0).executableId());
+  //    assertEquals("ProcessA", instance.instances().get(0).elements().getFirst().bpmnProcessId());
+  //  }
+  //
+  //  @Test
+  //  public void shouldReturn404_whenUnknownExecutableId() throws Exception {
+  //    mockMvc
+  //        .perform(get("/inbound-instances/" + TYPE_1 + "/executables/UNKNOWN-ID"))
+  //        .andExpect(status().isNotFound())
+  //        .andExpect(
+  //            content()
+  //                .string(
+  //                    containsString(
+  //                        "Data of type 'ActiveInboundConnectorResponse' with id 'UNKNOWN-ID' not
+  // found")));
+  //  }
+  //
+  //  @Test
+  //  public void shouldReturn404_whenUnknownConnectorTypeAndValidExecutableId() throws Exception {
+  //    mockMvc
+  //        .perform(get("/inbound-instances/UNKNOWN-ID/executables/" + RANDOM_ID_1.getId()))
+  //        .andExpect(status().isNotFound())
+  //        .andExpect(
+  //            content()
+  //                .string(
+  //                    containsString(
+  //                        "Data of type 'ConnectorInstances' with id 'UNKNOWN-ID' not found")));
+  //  }
+  //
+  //  @Test
+  //  public void shouldReturnSingleExecutable() throws Exception {
+  //    var response =
+  //        mockMvc
+  //            .perform(get("/inbound-instances/" + TYPE_1 + "/executables/" +
+  // RANDOM_ID_1.getId()))
+  //            .andExpect(status().isOk())
+  //            .andReturn()
+  //            .getResponse()
+  //            .getContentAsString();
+  //
+  //    ActiveInboundConnectorResponse executable =
+  //        ConnectorsObjectMapperSupplier.getCopy()
+  //            .readValue(response, ActiveInboundConnectorResponse.class);
+  //    assertEquals(RANDOM_ID_1, executable.executableId());
+  //    assertEquals("ProcessA", executable.elements().getFirst().bpmnProcessId());
+  //  }
+  //
+  //  @Test
+  //  public void shouldReturnEmptyActivityLogs_whenNoLogs() throws Exception {
+  //    var response =
+  //        mockMvc
+  //            .perform(
+  //                get(
+  //                    "/inbound-instances/"
+  //                        + TYPE_1
+  //                        + "/executables/"
+  //                        + RANDOM_ID_1.getId()
+  //                        + "/logs"))
+  //            .andExpect(status().isOk())
+  //            .andReturn()
+  //            .getResponse()
+  //            .getContentAsString();
+  //
+  //    List<Activity> logs =
+  //        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+  //    assertTrue(logs.isEmpty());
+  //  }
+  //
+  //  @Test
+  //  public void shouldReturnActivityLogs_whenTypeProvided() throws Exception {
+  //    var response =
+  //        mockMvc
+  //            .perform(
+  //                get(
+  //                    "/inbound-instances/"
+  //                        + TYPE_2
+  //                        + "/executables/"
+  //                        + RANDOM_ID_3.getId()
+  //                        + "/logs"))
+  //            .andExpect(status().isOk())
+  //            .andReturn()
+  //            .getResponse()
+  //            .getContentAsString();
+  //
+  //    List<Activity> logs =
+  //        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+  //    assertEquals(2, logs.size());
+  //    var log1 = logs.stream().filter(a -> a.severity() == Severity.INFO).findFirst().get();
+  //    assertEquals("myTag", log1.tag());
+  //    assertEquals("myMessage", log1.message());
+  //    var log2 = logs.stream().filter(a -> a.severity() == Severity.ERROR).findFirst().get();
+  //    assertEquals("myTag2", log2.tag());
+  //    assertEquals("myMessage2", log2.message());
+  //  }
 }
