@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.tools;
+package io.camunda.connector.agenticai.aiagent.document;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -18,7 +18,6 @@ import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.TextFileContent;
 import io.camunda.client.api.response.DocumentMetadata;
-import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
 import io.camunda.document.Document;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.IOException;

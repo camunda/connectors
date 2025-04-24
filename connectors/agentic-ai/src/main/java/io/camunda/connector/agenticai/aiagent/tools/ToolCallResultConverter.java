@@ -11,11 +11,10 @@ import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtract
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
+import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentModule;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.document.Document;
 import java.util.List;
 import java.util.Map;
 
@@ -26,12 +25,7 @@ public class ToolCallResultConverter {
   public ToolCallResultConverter(
       ObjectMapper objectMapper, CamundaDocumentToContentConverter documentConverter) {
     this.resultObjectMapper =
-        objectMapper
-            .copy()
-            .registerModule(
-                new SimpleModule()
-                    .addSerializer(
-                        Document.class, new CamundaDocumentSerializer(documentConverter)));
+        objectMapper.copy().registerModule(new CamundaDocumentToContentModule(documentConverter));
   }
 
   public List<ToolExecutionResultMessage> toolCallResultsAsToolExecutionResultMessages(
