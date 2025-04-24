@@ -5,7 +5,6 @@ import io.camunda.connector.runtime.core.http.DefaultInstancesUrlBuilder;
 import io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient;
 import io.camunda.connector.runtime.instances.reducer.ReducerRegistry;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.BufferedReader;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,11 +43,8 @@ public class DefaultInstanceForwardingService implements InstanceForwardingServi
     if (request.getQueryString() != null) {
       path += "?" + request.getQueryString();
     }
-    try {
-      String body =
-          new BufferedReader(request.getReader())
-              .lines()
-              .collect(Collectors.joining(System.lineSeparator()));
+    try (var reader = request.getReader()) {
+      String body = reader.lines().collect(Collectors.joining(System.lineSeparator()));
 
       Map<String, String> headers =
           Collections.list(request.getHeaderNames()).stream()
