@@ -96,8 +96,8 @@ public class InboundKafkaTests extends BaseKafkaTest {
         producer.startContinuousMessageSending(
             TOPIC, MESSAGE_KEY_JSON_AS_OBJECT, MESSAGE_VALUE, MESSAGE_HEADERS_AS_OBJECT);
 
-    var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
-    bpmnTest = bpmnTest.waitForProcessCompletion();
+    var bpmnTest =
+        ZeebeTest.with(camundaClient).deploy(model).createInstance().waitForProcessCompletion();
 
     kafkaProducerThreadRun.set(false);
 
