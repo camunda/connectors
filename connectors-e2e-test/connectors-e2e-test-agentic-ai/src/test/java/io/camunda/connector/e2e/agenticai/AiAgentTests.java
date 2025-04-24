@@ -21,7 +21,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.filter;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -79,11 +78,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -108,10 +109,21 @@ public class AiAgentTests extends BaseAgenticAiTest {
   @BeforeEach
   void setUp() {
     when(chatModelFactory.createChatModel(any())).thenReturn(chatModel);
+    openUserFeedbackJobWorker();
 
+    // WireMock returns the content type for the YAML file as application/json, so
+    // we need to override the stub manually
+    wm.stubFor(
+        get(urlPathEqualTo("/test.yaml"))
+            .willReturn(
+                aResponse()
+                    .withBodyFile("test.yaml")
+                    .withHeader("Content-Type", "application/yaml")));
+  }
+
+  private void openUserFeedbackJobWorker() {
     userFeedbackVariables.set(Collections.emptyMap());
     jobWorkerCounter.set(0);
-
     jobWorker =
         camundaClient
             .newWorker()
@@ -312,10 +324,102 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
+
+    @ParameterizedTest
+    @CsvSource({
+      "test.csv,base64,text/csv",
+      "test.gif,base64,image/gif",
+      "test.jpg,base64,image/jpeg",
+      "test.json,base64,application/json",
+      "test.pdf,base64,application/pdf",
+      "test.png,base64,image/png",
+      "test.txt,text,text/plain",
+      "test.webp,base64,image/webp",
+      "test.xml,base64,application/xml",
+      "test.yaml,base64,application/yaml"
+    })
+    void supportsDocumentResponsesFromToolCalls(String filename, String type, String mimeType)
+        throws Exception {
+      String expectedData;
+      if (type.equals("text")) {
+        expectedData = testFileContent(filename).get().replaceAll("\\n", "\\\\n");
+      } else {
+        expectedData = testFileContentBase64(filename).get();
+      }
+
+      final var initialUserPrompt = "Go and download a document!";
+      final var expectedConversation =
+          List.of(
+              new SystemMessage(
+                  "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
+              new UserMessage(initialUserPrompt),
+              new AiMessage(
+                  "The user asked me to dowload a document. I will call the Download_A_File tool to do so.",
+                  List.of(
+                      ToolExecutionRequest.builder()
+                          .id("aaa111")
+                          .name("Download_A_File")
+                          .arguments("{\"url\": \"%s\"}".formatted(wm.baseUrl() + "/" + filename))
+                          .build())),
+              new ToolExecutionResultMessage(
+                  "aaa111",
+                  "Download_A_File",
+                  "{\"status\":200,\"document\":{\"type\":\"%s\",\"media_type\":\"%s\",\"data\":\"%s\"}}"
+                      .formatted(type, mimeType, expectedData)),
+              new AiMessage(
+                  "I loaded a document and learned that it contains interesting data. Anything specific you want to know?"),
+              new UserMessage("What is the content type?"),
+              new AiMessage("The content type is '%s'".formatted(mimeType)));
+
+      mockChatInteractions(
+          ChatInteraction.of(
+              ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(10, 20))
+                          .build())
+                  .aiMessage((AiMessage) expectedConversation.get(2))
+                  .build()),
+          ChatInteraction.of(
+              ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(100, 200))
+                          .build())
+                  .aiMessage((AiMessage) expectedConversation.get(4))
+                  .build(),
+              userFollowUpFeedback("What is the content type?")),
+          ChatInteraction.of(
+              ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(11, 22))
+                          .build())
+                  .aiMessage((AiMessage) expectedConversation.get(6))
+                  .build(),
+              userSatisfiedFeedback()));
+
+      final var zeebeTest =
+          createProcessInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+              .waitForProcessCompletion();
+
+      assertLastChatRequest(3, expectedConversation);
+
+      final var agentResponse = getAgentResponse(zeebeTest);
+      assertAgentResponse(
+          agentResponse,
+          new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)),
+          expectedConversation);
+
+      assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    }
   }
 
   @Nested
-  class Documents {
+  class UserPromptDocuments {
 
     @ParameterizedTest
     @ValueSource(
@@ -332,17 +436,6 @@ public class AiAgentTests extends BaseAgenticAiTest {
           "test.yaml"
         })
     void handlesDocumentType(String filename) throws Exception {
-      if (filename.equals("test.yaml")) {
-        // WireMock returns the content type for the YAML file as application/json, so
-        // we need to override the stub manually
-        wm.stubFor(
-            get(urlPathEqualTo("/" + filename))
-                .willReturn(
-                    aResponse()
-                        .withBodyFile(filename)
-                        .withHeader("Content-Type", "application/yaml")));
-      }
-
       final var initialUserPrompt = "Summarize the following document";
       final var expectedConversation =
           List.of(
@@ -460,18 +553,11 @@ public class AiAgentTests extends BaseAgenticAiTest {
     }
 
     private Content asContentBlock(String filename) throws Exception {
-      final var resource = resourceLoader.getResource("classpath:__files/" + filename);
-      final Supplier<String> b64 =
-          () -> {
-            try {
-              return Base64.getEncoder().encodeToString(resource.getContentAsByteArray());
-            } catch (IOException e) {
-              throw new RuntimeException(e);
-            }
-          };
+      final Supplier<String> text = testFileContent(filename);
+      final Supplier<String> b64 = testFileContentBase64(filename);
 
       return switch (filename) {
-        case "test.txt" -> TextContent.from(resource.getContentAsString(StandardCharsets.UTF_8));
+        case "test.txt" -> TextContent.from(text.get());
         case "test.csv" -> TextFileContent.from(b64.get(), "text/csv");
         case "test.json" -> TextFileContent.from(b64.get(), "application/json");
         case "test.xml" -> TextFileContent.from(b64.get(), "application/xml");
@@ -588,7 +674,12 @@ public class AiAgentTests extends BaseAgenticAiTest {
     assertThat(chatRequest.toolSpecifications())
         .extracting(ToolSpecification::name)
         .containsExactly(
-            "GetDateAndTime", "SuperfluxProduct", "Search_The_Web", "A_Complex_Tool", "An_Event");
+            "GetDateAndTime",
+            "SuperfluxProduct",
+            "Search_The_Web",
+            "A_Complex_Tool",
+            "Download_A_File",
+            "An_Event");
   }
 
   private void assertIncident(ZeebeTest zeebeTest, ThrowingConsumer<Incident> assertion) {
@@ -618,6 +709,31 @@ public class AiAgentTests extends BaseAgenticAiTest {
     return objectMapper.readValue(
         agentVariable.isTruncated() ? agentVariable.getFullValue() : agentVariable.getValue(),
         AgentResponse.class);
+  }
+
+  private Resource testFileResource(String filename) {
+    return resourceLoader.getResource("classpath:__files/" + filename);
+  }
+
+  private Supplier<String> testFileContent(String filename) {
+    return () -> {
+      try {
+        return testFileResource(filename).getContentAsString(StandardCharsets.UTF_8);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    };
+  }
+
+  private Supplier<String> testFileContentBase64(String filename) {
+    return () -> {
+      try {
+        return Base64.getEncoder()
+            .encodeToString(testFileResource(filename).getContentAsByteArray());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
   }
 
   private Map<String, Object> userSatisfiedFeedback() {
