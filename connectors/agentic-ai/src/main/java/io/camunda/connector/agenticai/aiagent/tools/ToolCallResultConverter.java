@@ -15,10 +15,13 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentModule;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.List;
 import java.util.Map;
 
 public class ToolCallResultConverter {
+
+  private static final String PROPERTY_ID = "id";
+  private static final String PROPERTY_NAME = "name";
+  private static final String PROPERTY_CONTENT = "content";
 
   private final ObjectMapper resultObjectMapper;
 
@@ -28,18 +31,13 @@ public class ToolCallResultConverter {
         objectMapper.copy().registerModule(new CamundaDocumentToContentModule(documentConverter));
   }
 
-  public List<ToolExecutionResultMessage> toolCallResultsAsToolExecutionResultMessages(
-      List<Map<String, Object>> toolCallResults) {
-    return toolCallResults.stream().map(this::toolCallResultAsToolExecutionResultMessage).toList();
-  }
-
-  public ToolExecutionResultMessage toolCallResultAsToolExecutionResultMessage(
+  public ToolExecutionResultMessage asToolExecutionResultMessage(
       Map<String, Object> toolCallResult) {
-    final var id = nullableToString(toolCallResult.get("id"));
-    final var name = nullableToString(toolCallResult.get("name"));
+    final var id = nullableToString(toolCallResult.get(PROPERTY_ID));
+    final var name = nullableToString(toolCallResult.get(PROPERTY_NAME));
 
     return toolExecutionResultMessage(
-        id, name, contentAsString(name, toolCallResult.get("content")));
+        id, name, contentAsString(name, toolCallResult.get(PROPERTY_CONTENT)));
   }
 
   private String contentAsString(String toolName, Object result) {
