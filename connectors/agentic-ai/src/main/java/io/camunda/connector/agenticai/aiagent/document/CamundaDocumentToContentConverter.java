@@ -14,6 +14,7 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.TextFileContent;
 import dev.langchain4j.data.pdf.PdfFile;
 import dev.langchain4j.data.text.TextFile;
+import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.document.Document;
 import java.util.List;
 import java.util.Optional;
@@ -34,20 +35,8 @@ public class CamundaDocumentToContentConverter {
           MediaType.IMAGE_GIF,
           MediaType.parseMediaType("image/webp"));
 
-  public List<Content> convert(List<Document> camundaDocuments) {
-    return camundaDocuments.stream().map(this::convert).toList();
-  }
-
   public Content convert(Document camundaDocument) {
-    final var mediaType =
-        Optional.ofNullable(camundaDocument.metadata().getContentType())
-            .filter(StringUtils::isNotBlank)
-            .map(MediaType::parseMediaType)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "Content type is unset. Document reference: %s"
-                            .formatted(camundaDocument.reference())));
+    final var mediaType = parseMediaType(camundaDocument);
 
     if (mediaType.isCompatibleWith(MediaType.TEXT_PLAIN)) {
       return new TextContent(new String(camundaDocument.asByteArray()));
@@ -71,15 +60,44 @@ public class CamundaDocumentToContentConverter {
           Image.builder()
               .mimeType(mediaType.toString())
               .base64Data(camundaDocument.asBase64())
-              .build());
+              .build(),
+          ImageContent.DetailLevel.AUTO);
     }
 
-    throw new IllegalArgumentException(
-        "Unsupported content type '%s'. Document reference: %s"
+    throw new CamundaDocumentConvertingException(
+        "Unsupported content type '%s' for document with reference '%s'"
             .formatted(mediaType, camundaDocument.reference()));
+  }
+
+  private static MediaType parseMediaType(Document camundaDocument) {
+    return Optional.ofNullable(camundaDocument.metadata())
+        .map(DocumentMetadata::getContentType)
+        .filter(StringUtils::isNotBlank)
+        .map(
+            contentType -> {
+              try {
+                return MediaType.parseMediaType(contentType);
+              } catch (Throwable e) {
+                throw new CamundaDocumentConvertingException(
+                    "Failed to parse content type '%s' for document with reference '%s': %s"
+                        .formatted(contentType, camundaDocument.reference(), e.getMessage()));
+              }
+            })
+        .orElseThrow(
+            () ->
+                new CamundaDocumentConvertingException(
+                    "Content type is unset for document with reference '%s'"
+                        .formatted(camundaDocument.reference())));
   }
 
   private boolean isCompatibleWithAnyOf(MediaType mediaType, List<MediaType> mimeTypes) {
     return mimeTypes.stream().anyMatch(mediaType::isCompatibleWith);
+  }
+
+  public static class CamundaDocumentConvertingException extends RuntimeException {
+
+    public CamundaDocumentConvertingException(String message) {
+      super(message);
+    }
   }
 }
