@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -40,17 +41,19 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
   private final ToolCallingHandler toolCallingHandler;
+  private final ToolCallResultConverter toolCallResultConverter;
   private final CamundaDocumentToContentConverter documentConverter;
 
   public DefaultAiAgentRequestHandler(
       ObjectMapper objectMapper,
       ChatModelFactory chatModelFactory,
       ToolCallingHandler toolCallingHandler,
+      ToolCallResultConverter toolCallResultConverter,
       CamundaDocumentToContentConverter documentConverter) {
-
     this.objectMapper = objectMapper;
     this.chatModelFactory = chatModelFactory;
     this.toolCallingHandler = toolCallingHandler;
+    this.toolCallResultConverter = toolCallResultConverter;
     this.documentConverter = documentConverter;
   }
 
@@ -146,7 +149,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
             "Agent is waiting for tool input, but tool call results were empty");
       }
 
-      toolCallingHandler
+      toolCallResultConverter
           .toolCallResultsAsToolExecutionResultMessages(toolCallResults)
           .forEach(chatMemory::add);
     } else {
