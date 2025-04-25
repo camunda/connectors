@@ -6,4 +6,4 @@
  */
 package io.camunda.connector.email.response;
 
-public record SendEmailResponse(String subject, boolean sent) {}
+public record SendEmailResponse(String subject, boolean sent, String messageId) {}
