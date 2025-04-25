@@ -16,11 +16,13 @@
  */
 package io.camunda.connector.runtime.core.http;
 
+import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,29 +31,37 @@ public class DefaultInstancesUrlBuilder implements InstancesUrlBuilder {
 
   private final Integer appPort;
   private final DnsResolver dnsResolver;
-  private final String headlessServiceUrl;
+  private final String headlessServiceHost;
   private Set<String> baseUrls;
 
-  public DefaultInstancesUrlBuilder(Integer appPort, String headlessServiceUrl) {
-    this(appPort, headlessServiceUrl, new DefaultDnsResolver());
+  public DefaultInstancesUrlBuilder(Integer appPort, String headlessServiceHost) {
+    this(appPort, headlessServiceHost, new DefaultDnsResolver());
   }
 
-  DefaultInstancesUrlBuilder(Integer appPort, String headlessServiceUrl, DnsResolver dnsResolver) {
+  DefaultInstancesUrlBuilder(Integer appPort, String headlessServiceHost, DnsResolver dnsResolver) {
     this.appPort = appPort;
     this.dnsResolver = dnsResolver;
-    this.headlessServiceUrl = headlessServiceUrl;
+    this.headlessServiceHost = extractHeadlessServiceHost(headlessServiceHost);
   }
 
-  private Set<String> buildBaseUrls(String headlessServiceUrl) {
-    if (headlessServiceUrl != null) {
+  private String extractHeadlessServiceHost(String headlessServiceUrl) {
+    if (StringUtils.isNotBlank(headlessServiceUrl) && headlessServiceUrl.startsWith("http")) {
+      URI uri = URI.create(headlessServiceUrl);
+      return uri.getHost();
+    }
+    return headlessServiceUrl;
+  }
+
+  private Set<String> buildBaseUrls(String headlessServiceHost) {
+    if (headlessServiceHost != null) {
       try {
-        String[] addresses = dnsResolver.resolve(headlessServiceUrl);
+        String[] addresses = dnsResolver.resolve(headlessServiceHost);
         if (addresses.length == 0) {
           LOGGER.error(
               "No addresses found for service: {}. Please check the environment variable CAMUNDA_CONNECTOR_HEADLESS_SERVICEURL.",
-              headlessServiceUrl);
+              headlessServiceHost);
           throw new UnknownHostException(
-              "No Connectors Runtime addresses found for hostname: " + headlessServiceUrl);
+              "No Connectors Runtime addresses found for hostname: " + headlessServiceHost);
         }
         return Stream.of(addresses)
             .map(ip -> "https://" + ip + ":" + appPort)
@@ -59,13 +69,13 @@ public class DefaultInstancesUrlBuilder implements InstancesUrlBuilder {
       } catch (UnknownHostException e) {
         LOGGER.error(
             "Unable to resolve hostname: {}. Please check the environment variable CAMUNDA_CONNECTOR_HEADLESS_SERVICEURL.",
-            headlessServiceUrl,
+            headlessServiceHost,
             e);
-        throw new RuntimeException("Unable to resolve hostname: " + headlessServiceUrl, e);
+        throw new RuntimeException("Unable to resolve hostname: " + headlessServiceHost, e);
       } catch (Exception e) {
-        LOGGER.error("An error occurred while resolving hostname: {}.", headlessServiceUrl, e);
+        LOGGER.error("An error occurred while resolving hostname: {}.", headlessServiceHost, e);
         throw new RuntimeException(
-            "An error occurred while resolving hostname: " + headlessServiceUrl, e);
+            "An error occurred while resolving hostname: " + headlessServiceHost, e);
       }
     } else {
       return Set.of("https://localhost" + ":" + appPort);
@@ -93,7 +103,7 @@ public class DefaultInstancesUrlBuilder implements InstancesUrlBuilder {
    * will be pretty low.
    */
   private void refreshBaseUrls() {
-    baseUrls = buildBaseUrls(headlessServiceUrl);
+    baseUrls = buildBaseUrls(headlessServiceHost);
     LOGGER.debug("Base URLs refreshed: {}", baseUrls);
   }
 }

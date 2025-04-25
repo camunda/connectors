@@ -16,9 +16,12 @@
  */
 package io.camunda.connector.runtime.instances;
 
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.instances.service.DefaultInstanceForwardingService;
+import io.camunda.connector.runtime.instances.service.InboundInstancesService;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,7 +32,7 @@ public class InstanceForwardingConfiguration {
   @Value("${server.port:8080}")
   private int appPort;
 
-  @Value("${camunda.connector.headless.serviceurl:#{null}}")
+  @Value("${camunda.connector.headless.serviceurl:}")
   private String headlessServiceUrl;
 
   @Value("${camunda.connector.hostname:${HOSTNAME}}")
@@ -37,7 +40,15 @@ public class InstanceForwardingConfiguration {
 
   @Bean
   @ConditionalOnProperty(name = "camunda.connector.headless.serviceurl")
+  @ConditionalOnMissingBean
   public InstanceForwardingService instanceForwardingService() {
     return new DefaultInstanceForwardingService(appPort, headlessServiceUrl, hostname);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public InboundInstancesService inboundInstancesService(
+      InboundExecutableRegistry inboundExecutableRegistry) {
+    return new InboundInstancesService(inboundExecutableRegistry);
   }
 }

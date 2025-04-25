@@ -62,20 +62,17 @@ public class InstanceForwardingHttpClient {
         requestBuilder.method(method, HttpRequest.BodyPublishers.noBody());
       }
       if (headers != null) {
-        headers.forEach(requestBuilder::header);
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+          try {
+            requestBuilder.header(entry.getKey(), entry.getValue());
+          } catch (IllegalArgumentException e) {
+            // Ignore invalid headers
+          }
+        }
       }
       HttpResponse<String> response =
           httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
-      if (response.statusCode() >= 400) {
-        throw new RuntimeException(
-            "Error while executing request to "
-                + urlPath
-                + ": "
-                + response.statusCode()
-                + " - "
-                + response.body());
-      }
-      if (response.body() != null) {
+      if (response.statusCode() < 400 && response.body() != null) {
         responses.add(OBJECT_MAPPER.readValue(response.body(), responseType));
       }
     }

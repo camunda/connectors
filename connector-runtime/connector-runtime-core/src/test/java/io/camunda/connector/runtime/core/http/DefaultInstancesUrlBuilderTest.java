@@ -33,7 +33,7 @@ public class DefaultInstancesUrlBuilderTest {
       (host) -> {
         return new String[] {};
       };
-  private static final String HEADLESS_SERVICE_URL = "headless-service-url:8080";
+  private static final String HEADLESS_SERVICE_URL = "http://headless-service-url:8080";
 
   @Test
   public void shouldReturnUrls_whenDnsResolverReturnsIps() {
