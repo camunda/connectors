@@ -19,16 +19,17 @@ import dev.langchain4j.data.message.TextFileContent;
 import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter.CamundaDocumentConvertingException;
 import io.camunda.document.Document;
 import java.util.Base64;
+import org.apache.hc.core5.http.ContentType;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
 
 @ExtendWith(MockitoExtension.class)
 class CamundaDocumentToContentConverterTest {
@@ -61,22 +62,23 @@ class CamundaDocumentToContentConverterTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        // text/* types
-        "text/csv",
-        "text/my-custom-format",
-        MediaType.TEXT_XML_VALUE,
+  @CsvSource({
+    // text/* types
+    "text/csv",
+    "text/my-custom-format",
+    "text/xml",
 
-        // defined application/* types
-        MediaType.APPLICATION_XML_VALUE,
-        MediaType.APPLICATION_JSON_VALUE,
-        MediaType.APPLICATION_YAML_VALUE,
+    // defined application/* types
+    "application/xml",
+    "application/json",
+    "application/yaml",
 
-        // compatible types
-        MediaType.APPLICATION_JSON_UTF8_VALUE
-      })
+    // compatible types
+    "application/json;charset=UTF-8"
+  })
   void convertsToTextFileContent(String mediaType) {
+    final String mimeTypeWithoutParameters = ContentType.parse(mediaType).getMimeType();
+
     when(document.metadata().getContentType()).thenReturn(mediaType);
     when(document.asBase64()).thenReturn(TEXT_FILE_CONTENT_B64);
 
@@ -86,7 +88,8 @@ class CamundaDocumentToContentConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.type(TextFileContent.class))
         .satisfies(
             textFileContent -> {
-              assertThat(textFileContent.textFile().mimeType()).isEqualTo(mediaType);
+              assertThat(textFileContent.textFile().mimeType())
+                  .isEqualTo(mimeTypeWithoutParameters);
               assertThat(textFileContent.textFile().base64Data()).isEqualTo(TEXT_FILE_CONTENT_B64);
             });
 
@@ -96,7 +99,7 @@ class CamundaDocumentToContentConverterTest {
 
   @Test
   void convertsToPdfFileContent() {
-    when(document.metadata().getContentType()).thenReturn(MediaType.APPLICATION_PDF_VALUE);
+    when(document.metadata().getContentType()).thenReturn("application/pdf");
     when(document.asBase64()).thenReturn(DUMMY_B64_VALUE);
 
     var content = converter.convert(document);
@@ -113,13 +116,7 @@ class CamundaDocumentToContentConverterTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        MediaType.IMAGE_JPEG_VALUE,
-        MediaType.IMAGE_PNG_VALUE,
-        MediaType.IMAGE_GIF_VALUE,
-        "image/webp"
-      })
+  @ValueSource(strings = {"image/jpeg", "image/png", "image/gif", "image/webp"})
   void convertsToImageFileContent(String mediaType) {
     when(document.metadata().getContentType()).thenReturn(mediaType);
     when(document.asBase64()).thenReturn(DUMMY_B64_VALUE);
@@ -167,8 +164,7 @@ class CamundaDocumentToContentConverterTest {
 
     assertThatThrownBy(() -> converter.convert(document))
         .isInstanceOf(CamundaDocumentConvertingException.class)
-        .hasMessage(
-            "Failed to parse content type 'foo_bar' for document with reference '<REF>': Invalid mime type \"foo_bar\": does not contain '/'");
+        .hasMessage("Unsupported content type 'foo_bar' for document with reference '<REF>'");
   }
 
   @Test

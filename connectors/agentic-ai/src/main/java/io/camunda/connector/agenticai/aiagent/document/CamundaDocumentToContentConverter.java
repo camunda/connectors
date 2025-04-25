@@ -19,46 +19,47 @@ import io.camunda.document.Document;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.http.MediaType;
+import org.apache.hc.core5.http.ContentType;
 
 public class CamundaDocumentToContentConverter {
 
-  private static final MediaType TEXT_WILDCARD_MIME_TYPE = new MediaType("text");
-
-  private static final List<MediaType> ADDITIONAL_TEXT_FILE_MIME_TYPES =
-      List.of(MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.APPLICATION_YAML);
-
-  private static final List<MediaType> IMAGE_MIME_TYPES =
+  private static final List<ContentType> ADDITIONAL_TEXT_FILE_CONTENT_TYPES =
       List.of(
-          MediaType.IMAGE_JPEG,
-          MediaType.IMAGE_PNG,
-          MediaType.IMAGE_GIF,
-          MediaType.parseMediaType("image/webp"));
+          ContentType.APPLICATION_XML,
+          ContentType.APPLICATION_JSON,
+          ContentType.create("application/yaml"));
+
+  private static final List<ContentType> IMAGE_CONTENT_TYPES =
+      List.of(
+          ContentType.IMAGE_JPEG,
+          ContentType.IMAGE_PNG,
+          ContentType.IMAGE_GIF,
+          ContentType.IMAGE_WEBP);
 
   public Content convert(Document camundaDocument) {
-    final var mediaType = parseMediaType(camundaDocument);
+    final var contentType = getContentType(camundaDocument);
 
-    if (mediaType.isCompatibleWith(MediaType.TEXT_PLAIN)) {
+    if (contentType.isSameMimeType(ContentType.TEXT_PLAIN)) {
       return new TextContent(new String(camundaDocument.asByteArray()));
     }
 
-    if (mediaType.isCompatibleWith(TEXT_WILDCARD_MIME_TYPE)
-        || isCompatibleWithAnyOf(mediaType, ADDITIONAL_TEXT_FILE_MIME_TYPES)) {
+    if (contentType.getMimeType().startsWith("text/")
+        || isCompatibleWithAnyOf(contentType, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)) {
       return TextFileContent.from(
           TextFile.builder()
-              .mimeType(mediaType.toString())
+              .mimeType(contentType.getMimeType())
               .base64Data(camundaDocument.asBase64())
               .build());
     }
 
-    if (mediaType.isCompatibleWith(MediaType.APPLICATION_PDF)) {
+    if (contentType.isSameMimeType(ContentType.APPLICATION_PDF)) {
       return PdfFileContent.from(PdfFile.builder().base64Data(camundaDocument.asBase64()).build());
     }
 
-    if (isCompatibleWithAnyOf(mediaType, IMAGE_MIME_TYPES)) {
+    if (isCompatibleWithAnyOf(contentType, IMAGE_CONTENT_TYPES)) {
       return ImageContent.from(
           Image.builder()
-              .mimeType(mediaType.toString())
+              .mimeType(contentType.getMimeType())
               .base64Data(camundaDocument.asBase64())
               .build(),
           ImageContent.DetailLevel.AUTO);
@@ -66,23 +67,14 @@ public class CamundaDocumentToContentConverter {
 
     throw new CamundaDocumentConvertingException(
         "Unsupported content type '%s' for document with reference '%s'"
-            .formatted(mediaType, camundaDocument.reference()));
+            .formatted(contentType, camundaDocument.reference()));
   }
 
-  private static MediaType parseMediaType(Document camundaDocument) {
+  private static ContentType getContentType(Document camundaDocument) {
     return Optional.ofNullable(camundaDocument.metadata())
         .map(DocumentMetadata::getContentType)
         .filter(StringUtils::isNotBlank)
-        .map(
-            contentType -> {
-              try {
-                return MediaType.parseMediaType(contentType);
-              } catch (Throwable e) {
-                throw new CamundaDocumentConvertingException(
-                    "Failed to parse content type '%s' for document with reference '%s': %s"
-                        .formatted(contentType, camundaDocument.reference(), e.getMessage()));
-              }
-            })
+        .map(ContentType::parse)
         .orElseThrow(
             () ->
                 new CamundaDocumentConvertingException(
@@ -90,8 +82,8 @@ public class CamundaDocumentToContentConverter {
                         .formatted(camundaDocument.reference())));
   }
 
-  private boolean isCompatibleWithAnyOf(MediaType mediaType, List<MediaType> mimeTypes) {
-    return mimeTypes.stream().anyMatch(mediaType::isCompatibleWith);
+  private boolean isCompatibleWithAnyOf(ContentType contentType, List<ContentType> contentTypes) {
+    return contentTypes.stream().anyMatch(contentType::isSameMimeType);
   }
 
   public static class CamundaDocumentConvertingException extends RuntimeException {
