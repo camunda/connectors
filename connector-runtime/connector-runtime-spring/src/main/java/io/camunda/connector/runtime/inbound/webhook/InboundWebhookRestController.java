@@ -22,7 +22,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
-import com.google.rpc.Code;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
@@ -45,6 +44,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
+import io.grpc.Status;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
@@ -217,7 +217,7 @@ public class InboundWebhookRestController {
       response = ResponseEntity.internalServerError().build();
     } else if (failure instanceof CorrelationResult.Failure.ZeebeClientStatus zeebeClientStatus) {
       response =
-          switch (Code.valueOf(zeebeClientStatus.status())) {
+          switch (Status.Code.valueOf(zeebeClientStatus.status())) {
             case CANCELLED -> ResponseEntity.status(499).body(failure);
             case UNKNOWN, INTERNAL, DATA_LOSS -> ResponseEntity.status(500).body(failure);
             case INVALID_ARGUMENT -> ResponseEntity.status(400).body(failure);
