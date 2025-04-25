@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app;
+package io.camunda.connector.runtime.instances.service;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import com.fasterxml.jackson.core.type.TypeReference;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 
-@SpringBootApplication
-@ImportAutoConfiguration({
-  io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class,
-})
-public class TestConnectorRuntimeApplication {
+public interface InstanceForwardingService {
+  <T> List<T> forward(HttpServletRequest request, TypeReference<T> responseType);
 
-  public static void main(String[] args) {
-    SpringApplication.run(TestConnectorRuntimeApplication.class, args);
+  <T> T reduce(List<T> instances, TypeReference<T> responseType);
+
+  default <T> T forwardAndReduce(HttpServletRequest request, TypeReference<T> responseType) {
+    List<T> instances = forward(request, responseType);
+    return reduce(instances, responseType);
   }
 }

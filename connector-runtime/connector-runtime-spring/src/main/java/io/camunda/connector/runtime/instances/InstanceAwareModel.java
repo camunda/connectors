@@ -14,21 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app;
+package io.camunda.connector.runtime.instances;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.Severity;
+import java.time.OffsetDateTime;
+import java.util.Map;
 
-@SpringBootApplication
-@ImportAutoConfiguration({
-  io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class,
-})
-public class TestConnectorRuntimeApplication {
+public sealed interface InstanceAwareModel
+    permits InstanceAwareModel.InstanceAwareActivity, InstanceAwareModel.InstanceAwareHealth {
+  record InstanceAwareActivity(
+      Severity severity, String tag, OffsetDateTime timestamp, String message, String runtimeId)
+      implements InstanceAwareModel {}
 
-  public static void main(String[] args) {
-    SpringApplication.run(TestConnectorRuntimeApplication.class, args);
-  }
+  record InstanceAwareHealth(
+      Health.Status status, Health.Error error, Map<String, Object> details, String runtimeId)
+      implements InstanceAwareModel {}
 }

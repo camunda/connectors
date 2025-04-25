@@ -14,21 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app;
+package io.camunda.connector.runtime.instances.reducer;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-@SpringBootApplication
-@ImportAutoConfiguration({
-  io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class,
-})
-public class TestConnectorRuntimeApplication {
-
-  public static void main(String[] args) {
-    SpringApplication.run(TestConnectorRuntimeApplication.class, args);
-  }
+/**
+ * A functional interface that defines a method for merging two objects of the same type.
+ * <b>Note:</b> Remember to register your reducer in the {@link ReducerRegistry} to make it
+ * available for use.
+ *
+ * @param <T> the type of objects to be merged
+ */
+public interface Reducer<T> {
+  T reduce(T a, T b);
 }

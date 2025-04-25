@@ -14,21 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app;
+package io.camunda.connector.runtime.instances.reducer;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import java.util.ArrayList;
+import java.util.Collection;
 
-@SpringBootApplication
-@ImportAutoConfiguration({
-  io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class,
-})
-public class TestConnectorRuntimeApplication {
+public class Reducers {
 
-  public static void main(String[] args) {
-    SpringApplication.run(TestConnectorRuntimeApplication.class, args);
+  public static <T> Reducer<Collection<T>> mergeListsReducer() {
+    return (a, b) -> {
+      if (a == null || a.isEmpty()) {
+        return b;
+      }
+      if (b == null || b.isEmpty()) {
+        return a;
+      }
+      var result = new ArrayList<T>();
+      result.addAll(a);
+      result.addAll(b);
+      return result;
+    };
   }
 }

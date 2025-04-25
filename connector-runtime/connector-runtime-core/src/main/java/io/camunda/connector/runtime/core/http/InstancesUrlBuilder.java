@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app;
+package io.camunda.connector.runtime.core.http;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import java.util.List;
 
-@SpringBootApplication
-@ImportAutoConfiguration({
-  io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class,
-})
-public class TestConnectorRuntimeApplication {
+/** Interface for building URLs for multiple Connectors runtime instances. */
+public interface InstancesUrlBuilder {
 
-  public static void main(String[] args) {
-    SpringApplication.run(TestConnectorRuntimeApplication.class, args);
-  }
+  /**
+   * Builds a list of URLs for the given path. The URLs are constructed using the base URLs of the
+   * Connectors runtime instances and the provided path.
+   *
+   * @param path the path to append to the base URLs
+   * @return a list of constructed URLs
+   */
+  List<String> buildUrls(String path);
 }
