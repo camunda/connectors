@@ -44,7 +44,7 @@ import java.util.Optional;
               "publish message to queue"
             }),
     inputDataClass = SqsConnectorRequest.class,
-    version = 10,
+    version = 11,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Queue properties"),

@@ -2,8 +2,8 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Asana Outbound Connector",
   "id": "io.camunda.connectors.Asana.v1",
-  "version": 2,
-  "engines":{
+  "version": 3,
+  "engines": {
     "camunda": "^8.3"
   },
   "description": "Create, update, and manage tasks and projects in Asana.",
@@ -644,27 +644,28 @@
       }
     },
     {
-      "id" : "version",
-      "label" : "Version",
-      "description" : "Version of the element template",
-      "value" : "2",
-      "group" : "connector",
-      "binding" : {
-        "key" : "elementTemplateVersion",
-        "type" : "zeebe:taskHeader"
+      "id": "version",
+      "label": "Version",
+      "description": "Version of the element template",
+      "value": "3",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateVersion",
+        "type": "zeebe:taskHeader"
       },
-      "type" : "Hidden"
-    }, {
-      "id" : "id",
-      "label" : "ID",
-      "description" : "ID of the element template",
-      "value" : "io.camunda.connectors.Asana.v1",
-      "group" : "connector",
-      "binding" : {
-        "key" : "elementTemplateId",
-        "type" : "zeebe:taskHeader"
+      "type": "Hidden"
+    },
+    {
+      "id": "id",
+      "label": "ID",
+      "description": "ID of the element template",
+      "value": "io.camunda.connectors.Asana.v1",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateId",
+        "type": "zeebe:taskHeader"
       },
-      "type" : "Hidden"
+      "type": "Hidden"
     },
     {
       "label": "Result variable",

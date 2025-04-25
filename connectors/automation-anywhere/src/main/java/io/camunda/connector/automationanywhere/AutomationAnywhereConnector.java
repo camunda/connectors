@@ -35,7 +35,7 @@ import java.util.Map;
               "get work item result from queue by ID"
             }),
     inputDataClass = AutomationAnywhereRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

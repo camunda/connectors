@@ -31,9 +31,9 @@ extract_links_from_file() {
   grep -oE "\"$DOCUSAURUS_BASE_URL[^\"]+\"" "$file_path" | sed -E "s|\"||g; s|[\\/]$||g"
 }
 
-# Find all JSON files in "element-templates" directories, extract documentation links,
+# Find all JSON files in "element-templates" directories (except in the versioned subdirectory), extract documentation links,
 find . -type d -name "element-templates" | while read -r dir; do
-  find "$dir" -type f -name "*.json" | while read -r file; do
+  find "$dir" -path "$dir/versioned" -prune -o -type f -name "*.json" -print | while read -r file; do
     extract_links_from_file "$file"
   done
 done | sort -u >> "$CURRENT_LINK_FILE"  # Sort & remove duplicates before writing
