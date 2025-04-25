@@ -69,7 +69,7 @@ public class DefaultInstanceForwardingServiceTest {
             "POST",
             "/api/forward?param=value&param2=value2",
             ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(body),
-            Map.of("X-Camunda-Forwarded-For", "localhost", "Authorization", "Bearer token"),
+            Map.of("Authorization", "Bearer token"),
             responseType,
             "localhost");
   }
