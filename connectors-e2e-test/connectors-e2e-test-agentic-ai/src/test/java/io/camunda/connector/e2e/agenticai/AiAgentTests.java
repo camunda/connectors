@@ -354,7 +354,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
                   "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
               new UserMessage(initialUserPrompt),
               new AiMessage(
-                  "The user asked me to dowload a document. I will call the Download_A_File tool to do so.",
+                  "The user asked me to download a document. I will call the Download_A_File tool to do so.",
                   List.of(
                       ToolExecutionRequest.builder()
                           .id("aaa111")
