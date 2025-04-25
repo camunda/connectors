@@ -23,12 +23,10 @@ import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundExc
 import io.camunda.connector.runtime.inbound.executable.*;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import io.camunda.connector.runtime.instances.service.InboundInstancesService;
-import io.camunda.connector.runtime.instances.service.InstanceForwardingService;
+import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,46 +47,24 @@ public class InboundInstancesRestController {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(InboundInstancesRestController.class);
 
-  private final InstanceForwardingService instanceForwardingService;
+  private final InstanceForwardingRouter instanceForwardingRouter;
   private final InboundInstancesService inboundInstancesService;
 
   @Value("${camunda.connector.hostname:${HOSTNAME}}")
   private String hostname;
 
   public InboundInstancesRestController(
-      @Autowired(required = false) InstanceForwardingService instanceForwardingService,
+      @Autowired(required = false) InstanceForwardingRouter instanceForwardingRouter,
       InboundInstancesService inboundInstancesService) {
-    this.instanceForwardingService = instanceForwardingService;
+    this.instanceForwardingRouter = instanceForwardingRouter;
     this.inboundInstancesService = inboundInstancesService;
-  }
-
-  /**
-   * This method is used to forward the request to the instances or local service depending on the
-   * configuration.
-   *
-   * @see io.camunda.connector.runtime.instances.InstanceForwardingConfiguration
-   */
-  private <T> T forwardAndReduceToInstancesOrLocal(
-      HttpServletRequest request,
-      String forwardedFor,
-      Supplier<T> supplier,
-      TypeReference<T> typeReference) {
-    if (instanceForwardingService != null && StringUtils.isBlank(forwardedFor)) {
-      LOGGER.debug(
-          "Forwarding request to instances: {}",
-          request.getRequestURL().toString() + "?" + request.getQueryString());
-      return instanceForwardingService.forwardAndReduce(request, typeReference);
-    }
-    LOGGER.debug(
-        "InstanceForwardingService not configured, performing local call for request: {}", request);
-    return supplier.get();
   }
 
   @GetMapping()
   public List<ConnectorInstances> getConnectorInstances(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
-    return forwardAndReduceToInstancesOrLocal(
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
         inboundInstancesService::findAllConnectorInstances,
@@ -101,7 +77,7 @@ public class InboundInstancesRestController {
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
       @PathVariable(name = "type") String type) {
     return Optional.ofNullable(
-            forwardAndReduceToInstancesOrLocal(
+            instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
                 request,
                 forwardedFor,
                 () -> inboundInstancesService.findConnectorInstancesOfType(type),
@@ -116,7 +92,7 @@ public class InboundInstancesRestController {
       @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
     return Optional.ofNullable(
-            forwardAndReduceToInstancesOrLocal(
+            instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
                 request,
                 forwardedFor,
                 () -> inboundInstancesService.findExecutable(type, executableId),
@@ -132,13 +108,11 @@ public class InboundInstancesRestController {
       @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
 
-    if (instanceForwardingService != null && StringUtils.isBlank(forwardedFor)) {
-      LOGGER.debug(
-          "Forwarding request to instances: {}",
-          request.getRequestURL().toString() + "?" + request.getQueryString());
-      return instanceForwardingService.forwardAndReduce(request, new TypeReference<>() {});
-    }
-    return inboundInstancesService.findInstanceAwareHealth(type, executableId, hostname);
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () -> inboundInstancesService.findInstanceAwareHealth(type, executableId, hostname),
+        new TypeReference<>() {});
   }
 
   @GetMapping("/{type}/executables/{executableId}/logs")
@@ -147,12 +121,10 @@ public class InboundInstancesRestController {
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
       @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
-    if (instanceForwardingService != null && StringUtils.isBlank(forwardedFor)) {
-      LOGGER.debug(
-          "Forwarding request to instances: {}",
-          request.getRequestURL().toString() + "?" + request.getQueryString());
-      return instanceForwardingService.forwardAndReduce(request, new TypeReference<>() {});
-    }
-    return inboundInstancesService.findInstanceAwareActivityLogs(type, executableId, hostname);
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+            request,
+            forwardedFor,
+            () -> inboundInstancesService.findInstanceAwareActivityLogs(type, executableId, hostname),
+            new TypeReference<>() {});
   }
 }

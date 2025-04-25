@@ -242,7 +242,7 @@ class InboundInstancesRestControllerMultiInstancesTest {
                                 new StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression2", "=myPath2", null),
                                 new ProcessElement("ProcessC", 2, 1, "id2", ""))),
-                        Health.up(),
+                        Health.unknown("Test unknown key", "Test unknown value"),
                         List.of(RUNTIME1_ACTIVITY1, RUNTIME1_ACTIVITY2),
                         System.currentTimeMillis()))
                 .filter(
@@ -545,5 +545,54 @@ class InboundInstancesRestControllerMultiInstancesTest {
                 RUNTIME2_ACTIVITY2.timestamp().withOffsetSameInstant(ZoneOffset.UTC),
                 RUNTIME2_ACTIVITY2.message(),
                 "instance2")));
+  }
+
+  @Test
+  public void shouldReturnHealth_whenBothInstancesHaveExecutable() {
+    ResponseEntity<List<InstanceAwareModel.InstanceAwareHealth>> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/inbound-instances/"
+                + TYPE_2
+                + "/executables/"
+                + RANDOM_ID_3.getId()
+                + "/health",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<>() {});
+    var logs = response.getBody();
+    assertEquals(2, logs.size());
+    assertThat(
+        logs,
+        containsInAnyOrder(
+            new InstanceAwareModel.InstanceAwareHealth(
+                Health.Status.UNKNOWN,
+                null,
+                Map.of("Test unknown key", "Test unknown value"),
+                "instance1"),
+            new InstanceAwareModel.InstanceAwareHealth(Health.Status.UP, null, null, "instance2")));
+  }
+
+  @Test
+  public void shouldReturnHealth_whenOnly1InstanceHasExecutable() {
+    ResponseEntity<List<InstanceAwareModel.InstanceAwareHealth>> response =
+        restTemplate.exchange(
+            "http://localhost:"
+                + port1
+                + "/inbound-instances/"
+                + TYPE_1
+                + "/executables/"
+                + ONLY_IN_RUNTIME_1_ID.getId()
+                + "/health",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<>() {});
+    var logs = response.getBody();
+    assertEquals(1, logs.size());
+    assertThat(
+        logs.getFirst(),
+        equalTo(
+            new InstanceAwareModel.InstanceAwareHealth(Health.Status.UP, null, null, "instance1")));
   }
 }
