@@ -22,6 +22,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import com.google.rpc.Code;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
@@ -216,20 +217,20 @@ public class InboundWebhookRestController {
       response = ResponseEntity.internalServerError().build();
     } else if (failure instanceof CorrelationResult.Failure.ZeebeClientStatus zeebeClientStatus) {
       response =
-          switch (zeebeClientStatus.status()) {
-            case "CANCELLED" -> ResponseEntity.status(499).body(failure);
-            case "UNKNOWN", "INTERNAL", "DATA_LOSS" -> ResponseEntity.status(500).body(failure);
-            case "INVALID_ARGUMENT" -> ResponseEntity.status(400).body(failure);
-            case "DEADLINE_EXCEEDED" -> ResponseEntity.status(504).body(failure);
-            case "NOT_FOUND" -> ResponseEntity.status(404).body(failure);
-            case "ALREADY_EXISTS", "ABORTED" -> ResponseEntity.status(409).body(failure);
-            case "PERMISSION_DENIED" -> ResponseEntity.status(403).body(failure);
-            case "RESOURCE_EXHAUSTED" -> ResponseEntity.status(429).body(failure);
-            case "FAILED_PRECONDITION" -> ResponseEntity.status(412).body(failure);
-            case "OUT_OF_RANGE" -> ResponseEntity.status(416).body(failure);
-            case "UNIMPLEMENTED" -> ResponseEntity.status(501).body(failure);
-            case "UNAVAILABLE" -> ResponseEntity.status(503).body(failure);
-            case "UNAUTHENTICATED" -> ResponseEntity.status(401).body(failure);
+          switch (Code.valueOf(zeebeClientStatus.status())) {
+            case CANCELLED -> ResponseEntity.status(499).body(failure);
+            case UNKNOWN, INTERNAL, DATA_LOSS -> ResponseEntity.status(500).body(failure);
+            case INVALID_ARGUMENT -> ResponseEntity.status(400).body(failure);
+            case DEADLINE_EXCEEDED -> ResponseEntity.status(504).body(failure);
+            case NOT_FOUND -> ResponseEntity.status(404).body(failure);
+            case ALREADY_EXISTS, ABORTED -> ResponseEntity.status(409).body(failure);
+            case PERMISSION_DENIED -> ResponseEntity.status(403).body(failure);
+            case RESOURCE_EXHAUSTED -> ResponseEntity.status(429).body(failure);
+            case FAILED_PRECONDITION -> ResponseEntity.status(412).body(failure);
+            case OUT_OF_RANGE -> ResponseEntity.status(416).body(failure);
+            case UNIMPLEMENTED -> ResponseEntity.status(501).body(failure);
+            case UNAVAILABLE -> ResponseEntity.status(503).body(failure);
+            case UNAUTHENTICATED -> ResponseEntity.status(401).body(failure);
             default -> ResponseEntity.unprocessableEntity().body(failure);
           };
     } else {
