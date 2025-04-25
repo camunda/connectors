@@ -36,7 +36,7 @@ public class InstanceForwardingConfiguration {
   @Value("${camunda.connector.headless.serviceurl:}")
   private String headlessServiceUrl;
 
-  @Value("${camunda.connector.hostname:${HOSTNAME}}")
+  @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
   private String hostname;
 
   @Bean

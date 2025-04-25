@@ -50,7 +50,7 @@ public class InboundInstancesRestController {
   private final InstanceForwardingRouter instanceForwardingRouter;
   private final InboundInstancesService inboundInstancesService;
 
-  @Value("${camunda.connector.hostname:${HOSTNAME}}")
+  @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
   private String hostname;
 
   public InboundInstancesRestController(
