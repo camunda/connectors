@@ -57,8 +57,7 @@ public class DefaultInstancesUrlBuilderTest {
                 new DefaultInstancesUrlBuilder(8080, HEADLESS_SERVICE_URL, faultyDnsResolver)
                     .buildUrls("test/path"))
         .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining(
-            "An error occurred while resolving hostname: " + HEADLESS_SERVICE_URL);
+        .hasMessageContaining("An error occurred while resolving hostname: headless-service-url");
   }
 
   @Test
@@ -68,6 +67,6 @@ public class DefaultInstancesUrlBuilderTest {
                 new DefaultInstancesUrlBuilder(8080, HEADLESS_SERVICE_URL, emptyDnsResolver)
                     .buildUrls("test/path"))
         .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("Unable to resolve hostname: " + HEADLESS_SERVICE_URL);
+        .hasMessageContaining("Unable to resolve hostname: headless-service-url");
   }
 }
