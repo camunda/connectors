@@ -56,7 +56,7 @@ public class ToolCallResultConverter {
       return resultObjectMapper.writeValueAsString(result);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
-          "Failed to convert result of tool call %s to string: %s"
+          "Failed to convert result of tool call '%s' to string: %s"
               .formatted(toolName, humanReadableJsonProcessingExceptionMessage(e)));
     }
   }
