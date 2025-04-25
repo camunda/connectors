@@ -21,8 +21,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 public interface InstanceForwardingService {
-  String X_CAMUNDA_FORWARDED_FOR = "X-CAMUNDA-FORWARDED-FOR";
-
   <T> List<T> forward(HttpServletRequest request, TypeReference<T> responseType);
 
   <T> T reduce(List<T> instances, TypeReference<T> responseType);

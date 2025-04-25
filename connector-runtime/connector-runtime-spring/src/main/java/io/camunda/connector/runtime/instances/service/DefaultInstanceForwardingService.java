@@ -73,9 +73,8 @@ public class DefaultInstanceForwardingService implements InstanceForwardingServi
             "HOSTNAME environment variable (or 'camunda.connector.hostname' property) is not set. Cannot use instances forwarding.");
       }
 
-      headers.put(X_CAMUNDA_FORWARDED_FOR, hostname);
-
-      return instanceForwardingHttpClient.execute(method, path, body, headers, responseType);
+      return instanceForwardingHttpClient.execute(
+          method, path, body, headers, responseType, hostname);
     } catch (Exception e) {
       LOGGER.error("Error forwarding request to instances: {}", e.getMessage(), e);
       throw new RuntimeException("Error forwarding request to instances: " + e.getMessage(), e);

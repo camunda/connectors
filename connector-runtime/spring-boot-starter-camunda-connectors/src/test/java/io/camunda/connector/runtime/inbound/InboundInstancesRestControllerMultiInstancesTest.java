@@ -384,7 +384,9 @@ class InboundInstancesRestControllerMultiInstancesTest {
         instance2.instances().get(0).health());
     assertEquals("ProcessB", instance2.instances().get(0).elements().getFirst().bpmnProcessId());
     assertEquals(RANDOM_ID_3, instance2.instances().get(1).executableId());
-    assertEquals(Health.up(), instance2.instances().get(1).health());
+    assertEquals(
+        Health.unknown("Test unknown key", "Test unknown value"),
+        instance2.instances().get(1).health());
     assertEquals("ProcessC", instance2.instances().get(1).elements().getFirst().bpmnProcessId());
   }
 

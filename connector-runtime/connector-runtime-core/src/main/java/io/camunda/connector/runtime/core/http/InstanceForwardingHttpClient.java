@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class InstanceForwardingHttpClient {
   private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+  private static final String X_CAMUNDA_FORWARDED_FOR = "X-Camunda-Forwarded-For";
   private final HttpClient httpClient;
   private final InstancesUrlBuilder urlBuilder;
 
@@ -48,7 +49,8 @@ public class InstanceForwardingHttpClient {
       String path,
       String body,
       Map<String, String> headers,
-      TypeReference<T> responseType)
+      TypeReference<T> responseType,
+      String hostname)
       throws IOException, InterruptedException {
     List<T> responses = new ArrayList<>();
     var urls = urlBuilder.buildUrls(path);
@@ -70,6 +72,7 @@ public class InstanceForwardingHttpClient {
           }
         }
       }
+      requestBuilder.header(X_CAMUNDA_FORWARDED_FOR, hostname);
       HttpResponse<String> response =
           httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
       if (response.statusCode() < 400 && response.body() != null) {

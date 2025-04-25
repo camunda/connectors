@@ -36,7 +36,6 @@ import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
-import io.camunda.connector.runtime.inbound.controller.InboundInstancesRestController;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
@@ -45,7 +44,6 @@ import java.util.*;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -59,8 +57,6 @@ class InboundInstancesRestControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoSpyBean private InboundExecutableRegistry executableRegistry;
-
-  @InjectMocks private InboundInstancesRestController controller;
 
   private static final String TYPE_1 = "webhook";
 

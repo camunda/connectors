@@ -21,6 +21,7 @@ import io.camunda.connector.runtime.instances.service.DefaultInstanceForwardingS
 import io.camunda.connector.runtime.instances.service.InboundInstancesService;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
 import io.camunda.connector.runtime.instances.service.InstanceForwardingService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -47,10 +48,9 @@ public class InstanceForwardingConfiguration {
   }
 
   @Bean
-  @ConditionalOnProperty(name = "camunda.connector.headless.serviceurl")
   @ConditionalOnMissingBean
   public InstanceForwardingRouter instanceForwardingRouter(
-      InstanceForwardingService instanceForwardingService) {
+      @Autowired(required = false) InstanceForwardingService instanceForwardingService) {
     return new InstanceForwardingRouter(instanceForwardingService);
   }
 

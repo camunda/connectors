@@ -27,9 +27,11 @@ public class InstanceForwardingRouter {
   private static final Logger LOGGER = LoggerFactory.getLogger(InstanceForwardingRouter.class);
 
   private final InstanceForwardingService instanceForwardingService;
+  private final boolean isInstanceForwardingServiceConfigured;
 
   public InstanceForwardingRouter(InstanceForwardingService instanceForwardingService) {
     this.instanceForwardingService = instanceForwardingService;
+    this.isInstanceForwardingServiceConfigured = instanceForwardingService != null;
   }
 
   /**
@@ -43,7 +45,7 @@ public class InstanceForwardingRouter {
       String forwardedFor,
       Supplier<T> localImplementation,
       TypeReference<T> typeReference) {
-    if (instanceForwardingService != null && StringUtils.isBlank(forwardedFor)) {
+    if (isInstanceForwardingServiceConfigured && StringUtils.isBlank(forwardedFor)) {
       LOGGER.debug(
           "Forwarding request to instances: {}",
           request.getRequestURL().toString() + "?" + request.getQueryString());
