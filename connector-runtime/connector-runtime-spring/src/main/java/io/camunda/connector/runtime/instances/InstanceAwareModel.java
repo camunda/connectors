@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.instances;
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Severity;
 import java.time.OffsetDateTime;

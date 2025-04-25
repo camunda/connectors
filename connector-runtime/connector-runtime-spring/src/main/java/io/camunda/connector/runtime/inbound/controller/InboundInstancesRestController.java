@@ -122,9 +122,9 @@ public class InboundInstancesRestController {
       @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
-            request,
-            forwardedFor,
-            () -> inboundInstancesService.findInstanceAwareActivityLogs(type, executableId, hostname),
-            new TypeReference<>() {});
+        request,
+        forwardedFor,
+        () -> inboundInstancesService.findInstanceAwareActivityLogs(type, executableId, hostname),
+        new TypeReference<>() {});
   }
 }
