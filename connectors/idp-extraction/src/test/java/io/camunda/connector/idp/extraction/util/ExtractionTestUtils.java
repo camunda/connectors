@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class ExtractionTestUtils {
 
@@ -87,6 +88,7 @@ public class ExtractionTestUtils {
               new TaxonomyItem("sum", "the total amount that was paid for this invoice"),
               new TaxonomyItem("supplier", "who provided the goods or services")),
           List.of(),
+          Map.of(),
           null,
           new ConverseData("anthropic.claude-3-5-sonnet-20240620-v1:0", 512, 0.5f, 0.9f));
 
