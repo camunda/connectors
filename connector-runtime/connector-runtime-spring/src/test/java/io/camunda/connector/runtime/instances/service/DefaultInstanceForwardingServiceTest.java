@@ -52,7 +52,6 @@ public class DefaultInstanceForwardingServiceTest {
                     Map.of("dataKey", "dataValue"),
                     Health.down(),
                     System.currentTimeMillis())));
-    Map<String, String> headers = Map.of("Authorization", "Bearer token");
     DefaultInstanceForwardingService service =
         new DefaultInstanceForwardingService(mockHttpClient, "localhost");
     var mockHttpServletRequest = new MockHttpServletRequest(method, path);
@@ -61,7 +60,8 @@ public class DefaultInstanceForwardingServiceTest {
     mockHttpServletRequest.addHeader("Authorization", "Bearer token");
 
     // When
-    service.forwardAndReduce(mockHttpServletRequest, new TypeReference<ConnectorInstances>() {});
+    TypeReference<ConnectorInstances> responseType = new TypeReference<>() {};
+    service.forwardAndReduce(mockHttpServletRequest, responseType);
 
     // Then
     verify(mockHttpClient, times(1))
@@ -69,7 +69,7 @@ public class DefaultInstanceForwardingServiceTest {
             "POST",
             "/api/forward?param=value&param2=value2",
             ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(body),
-            headers,
-            new TypeReference<ConnectorInstances>() {});
+            Map.of("X-CAMUNDA-FORWARDED-FOR", "localhost", "Authorization", "Bearer token"),
+            responseType);
   }
 }
