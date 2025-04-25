@@ -146,8 +146,6 @@ public class PollingManager {
     }
   }
 
-  private void manageException(Exception e) {}
-
   private void processMail(IMAPMessage message, PollingConfig pollingConfig) {
     // Setting `peek` to true prevents the library to trigger any side effects when reading the
     // message, such as marking it as read
