@@ -50,7 +50,8 @@ public class InstanceForwardingHttpClientTest {
         "test/path?queryParam1=value1&queryParam2=value2",
         null,
         Map.of("Authorization", "Bearer exyz"),
-        null);
+        null,
+        "localhost");
 
     // then
     verify(mockedHttpClient, times(2))

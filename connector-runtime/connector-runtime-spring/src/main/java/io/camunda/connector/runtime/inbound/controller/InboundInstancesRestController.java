@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.controller;
 
-import static io.camunda.connector.runtime.instances.service.InstanceForwardingService.X_CAMUNDA_FORWARDED_FOR;
+import static io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient.X_CAMUNDA_FORWARDED_FOR;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;

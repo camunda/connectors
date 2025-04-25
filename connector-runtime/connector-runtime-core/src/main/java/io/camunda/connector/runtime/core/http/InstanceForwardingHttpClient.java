@@ -31,7 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class InstanceForwardingHttpClient {
   private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
-  private static final String X_CAMUNDA_FORWARDED_FOR = "X-Camunda-Forwarded-For";
+  public static final String X_CAMUNDA_FORWARDED_FOR = "X-Camunda-Forwarded-For";
   private final HttpClient httpClient;
   private final InstancesUrlBuilder urlBuilder;
 
