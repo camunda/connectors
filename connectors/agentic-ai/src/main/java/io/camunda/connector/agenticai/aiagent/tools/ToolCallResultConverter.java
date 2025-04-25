@@ -12,11 +12,18 @@ import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtract
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentContentModule;
+import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentContentSerializer;
 import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
-import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentModule;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Map;
 
+/**
+ * Converts the result of a tool call to a {@link ToolExecutionResultMessage}.
+ *
+ * <p>If the result is not a string, it will be serialized to a JSON string, using the {@link
+ * CamundaDocumentContentSerializer} to serialize document contents.
+ */
 public class ToolCallResultConverter {
 
   private static final String PROPERTY_ID = "id";
@@ -28,7 +35,7 @@ public class ToolCallResultConverter {
   public ToolCallResultConverter(
       ObjectMapper objectMapper, CamundaDocumentToContentConverter documentConverter) {
     this.resultObjectMapper =
-        objectMapper.copy().registerModule(new CamundaDocumentToContentModule(documentConverter));
+        objectMapper.copy().registerModule(new CamundaDocumentContentModule(documentConverter));
   }
 
   public ToolExecutionResultMessage asToolExecutionResultMessage(

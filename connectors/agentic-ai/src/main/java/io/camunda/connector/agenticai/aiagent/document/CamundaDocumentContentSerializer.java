@@ -22,14 +22,41 @@ import io.camunda.document.Document;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.IOException;
 
-public class CamundaDocumentSerializer extends JsonSerializer<Document> {
+/**
+ * Serializes a {@link Document} to a JSON structure containing the document content. The structure
+ * is similar to what Claude is using for document support. Depending on the content type, the
+ * document content is included as plain text or as base64-encoded data.
+ *
+ * <pre>
+ * {
+ *   "type": "text",
+ *   "media_type": "text/plain",
+ *   "data": "..."
+ * }
+ * </pre>
+ *
+ * <p>or
+ *
+ * <pre>
+ * {
+ *   "type": "base64",
+ *   "media_type": "application/pdf",
+ *   "data": "...base64..."
+ * }
+ * </pre>
+ *
+ * <p>Note: To make the behavior consistent, this serializer first converts the document to a {@link
+ * Content} block, so the supported formats are limited to the same set as the documents which can
+ * be provided as the user prompt.
+ */
+public class CamundaDocumentContentSerializer extends JsonSerializer<Document> {
 
   private static final String TYPE_TEXT = "text";
   private static final String TYPE_BASE64 = "base64";
 
   private final CamundaDocumentToContentConverter contentConverter;
 
-  public CamundaDocumentSerializer(CamundaDocumentToContentConverter contentConverter) {
+  public CamundaDocumentContentSerializer(CamundaDocumentToContentConverter contentConverter) {
     this.contentConverter = contentConverter;
   }
 
@@ -77,8 +104,8 @@ public class CamundaDocumentSerializer extends JsonSerializer<Document> {
   }
 
   /**
-   * Adheres to the Claude schema for content blocks in user messages + filename. Revisit if this is
-   * enough as we gain more hands-on experience with different models.
+   * Adheres to the Claude schema for content blocks in user messages. We might need to revisit the
+   * structure depending on the supported models.
    */
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)

@@ -21,6 +21,13 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ContentType;
 
+/**
+ * Converts a Camunda {@link Document} to a Langchain4j {@link Content} object to be used in user
+ * messages.
+ *
+ * <p>Note: audio and video content types are currently not supported, but can be easily added by
+ * following the existing pattern.
+ */
 public class CamundaDocumentToContentConverter {
 
   private static final List<ContentType> ADDITIONAL_TEXT_FILE_CONTENT_TYPES =

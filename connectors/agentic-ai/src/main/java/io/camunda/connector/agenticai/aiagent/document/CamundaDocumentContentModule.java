@@ -9,18 +9,18 @@ package io.camunda.connector.agenticai.aiagent.document;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.camunda.document.Document;
 
-public class CamundaDocumentToContentModule extends SimpleModule {
+public class CamundaDocumentContentModule extends SimpleModule {
 
   private final CamundaDocumentToContentConverter documentConverter;
 
-  public CamundaDocumentToContentModule(CamundaDocumentToContentConverter documentConverter) {
+  public CamundaDocumentContentModule(CamundaDocumentToContentConverter documentConverter) {
     super();
     this.documentConverter = documentConverter;
   }
 
   @Override
   public void setupModule(SetupContext context) {
-    addSerializer(Document.class, new CamundaDocumentSerializer(documentConverter));
+    addSerializer(Document.class, new CamundaDocumentContentSerializer(documentConverter));
     super.setupModule(context);
   }
 }
