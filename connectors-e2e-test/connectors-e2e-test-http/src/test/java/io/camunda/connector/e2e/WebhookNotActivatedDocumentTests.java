@@ -31,6 +31,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
@@ -73,6 +74,7 @@ import org.springframework.test.web.servlet.ResultActions;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@SlowTest
 @Import(WebhookNotActivatedDocumentTests.SpyTestConfig.class)
 @ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc

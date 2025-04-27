@@ -1,35 +1,72 @@
 {
   "extends": [
-    "config:base"
+    "config:recommended",
+    "group:allNonMajor",
+    "schedule:earlyMondays",
+    "schedule:automergeNonOfficeHours"
   ],
-  "labels": ["dependencies", "no milestone"],
+  "timezone": "Europe/Berlin",
+  "labels": [
+    "dependencies",
+    "no milestone"
+  ],
+  "prHourlyLimit": 10,
   "packageRules": [
-    {
-      "matchManagers": ["maven"],
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "automerge": true
-    },
-    {
-      "matchManagers": ["github-actions"],
-      "automerge": true
-    },
-    {
-      "matchBaseBranches": ["/^release/.*/"],
-      "matchUpdateTypes": ["major", "minor"],
-      "enabled": false
-    },
-    {
-      "matchPackagePrefixes": ["io.camunda.connector"],
-      "enabled": false
-    },
     {
       "matchManagers": [
         "maven"
       ],
-      "description" : "Exclude SNAPSHOT versions, renovate may suggest them for pre-release values.",
-      "matchPackagePatterns": [".*"],
-      "allowedVersions": "!/-SNAPSHOT$/"
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "automerge": true
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "automerge": true
+    },
+    {
+      "matchBaseBranches": [
+        "release/*"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "matchBaseBranches": [
+        "release/*"
+      ],
+      "matchPackageNames": [
+        "io.camunda*"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "replacement"
+      ],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": [
+        "io.camunda.connector{/,}**"
+      ],
+      "enabled": false
     }
   ],
-  "baseBranches": ["main", "release/8.3", "release/8.4", "release/8.5", "release/8.6"]
+  "baseBranches": [
+    "main",
+    "release/8.3",
+    "release/8.4",
+    "release/8.5",
+    "release/8.6",
+    "release/8.7",
+    "release/8.8"
+  ]
 }

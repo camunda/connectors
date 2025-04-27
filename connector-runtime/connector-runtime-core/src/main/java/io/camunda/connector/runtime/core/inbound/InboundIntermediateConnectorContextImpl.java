@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
+import io.camunda.client.api.search.response.ElementInstance;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -77,18 +77,29 @@ public class InboundIntermediateConnectorContextImpl
         .collect(Collectors.toList());
   }
 
-  private ProcessInstanceContext createProcessInstanceContext(FlowNodeInstance node) {
+  private ProcessInstanceContext createProcessInstanceContext(ElementInstance elementInstance) {
     Supplier<Map<String, Object>> variableSupplier =
         () ->
-            processInstanceClient.fetchVariablesByProcessInstanceKey(node.getProcessInstanceKey());
+            processInstanceClient.fetchVariablesByProcessInstanceKey(
+                elementInstance.getProcessInstanceKey());
 
     return new DefaultProcessInstanceContext(
-        this, node, validationProvider, correlationHandler, objectMapper, variableSupplier);
+        this,
+        elementInstance,
+        validationProvider,
+        correlationHandler,
+        objectMapper,
+        variableSupplier);
   }
 
   @Override
   public CorrelationResult correlateWithResult(Object variables) {
-    return inboundContext.correlateWithResult(variables);
+    return inboundContext.correlate(CorrelationRequest.builder().variables(variables).build());
+  }
+
+  @Override
+  public CorrelationResult correlate(CorrelationRequest correlationRequest) {
+    return inboundContext.correlate(correlationRequest);
   }
 
   @Override

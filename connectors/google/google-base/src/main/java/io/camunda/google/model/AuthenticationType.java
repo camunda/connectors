@@ -19,5 +19,10 @@ public enum AuthenticationType {
   @JsonProperty("refresh")
   @Value("refresh")
   @SerializedName("refresh")
-  REFRESH
+  REFRESH,
+
+  @JsonProperty("service_account")
+  @Value("service_account")
+  @SerializedName("service_account")
+  SERVICE_ACCOUNT
 }

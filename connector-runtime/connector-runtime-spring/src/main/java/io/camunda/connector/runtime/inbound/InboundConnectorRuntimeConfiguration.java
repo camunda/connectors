@@ -30,6 +30,8 @@ import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
+import io.camunda.connector.runtime.inbound.controller.InboundInstancesRestController;
+import io.camunda.connector.runtime.inbound.controller.exception.GlobalExceptionHandler;
 import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
@@ -41,11 +43,13 @@ import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.camunda.document.factory.DocumentFactory;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -54,7 +58,9 @@ import org.springframework.context.annotation.Import;
 @Import({
   ProcessDefinitionImportConfiguration.class,
   ProcessInstanceClientConfiguration.class,
-  InboundConnectorRestController.class
+  InboundConnectorRestController.class,
+  InboundInstancesRestController.class,
+  GlobalExceptionHandler.class,
 })
 public class InboundConnectorRuntimeConfiguration {
   @Value("${camunda.connector.inbound.message.ttl:PT1H}")
@@ -78,10 +84,10 @@ public class InboundConnectorRuntimeConfiguration {
   public InboundCorrelationHandler inboundCorrelationHandler(
       final CamundaClient camundaClient,
       final FeelEngineWrapper feelEngine,
-      final MetricsRecorder metricsRecorder,
-      final ProcessElementContextFactory elementContextFactory) {
+      final ProcessElementContextFactory elementContextFactory,
+      final ConnectorsInboundMetrics connectorsInboundMetrics) {
     return new MeteredInboundCorrelationHandler(
-        camundaClient, feelEngine, metricsRecorder, elementContextFactory, messageTtl);
+        camundaClient, feelEngine, elementContextFactory, messageTtl, connectorsInboundMetrics);
   }
 
   @Bean
@@ -110,13 +116,22 @@ public class InboundConnectorRuntimeConfiguration {
   public BatchExecutableProcessor batchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
       InboundConnectorContextFactory connectorContextFactory,
-      MetricsRecorder metricsRecorder,
+      ConnectorsInboundMetrics connectorsInboundMetrics,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     return new BatchExecutableProcessor(
-        connectorFactory, connectorContextFactory, metricsRecorder, webhookConnectorRegistry);
+        connectorFactory,
+        connectorContextFactory,
+        connectorsInboundMetrics,
+        webhookConnectorRegistry);
   }
 
   @Bean
+  public ConnectorsInboundMetrics connectorsInboundMetrics(MeterRegistry meterRegistry) {
+    return new ConnectorsInboundMetrics(meterRegistry);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public InboundExecutableRegistry inboundExecutableRegistry(
       InboundConnectorFactory inboundConnectorFactory,
       BatchExecutableProcessor batchExecutableProcessor) {

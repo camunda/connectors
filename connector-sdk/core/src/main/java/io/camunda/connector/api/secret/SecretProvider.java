@@ -16,6 +16,9 @@
  */
 package io.camunda.connector.api.secret;
 
+import java.util.List;
+import java.util.Objects;
+
 /**
  * Provider of secrets for an environment. This class will be instantiated from an environment
  * runtime according to the <a
@@ -30,4 +33,8 @@ public interface SecretProvider {
    *     returned.
    */
   String getSecret(String name);
+
+  default List<String> fetchAll(List<String> keys) {
+    return keys.stream().map(this::getSecret).filter(Objects::nonNull).toList();
+  }
 }

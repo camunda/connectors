@@ -49,17 +49,12 @@ public class HttpCommonResultResponseHandler
 
   private final boolean isStoreResponseSelected;
 
-  private final boolean groupSetCookieHeaders;
-
   public HttpCommonResultResponseHandler(
-      @Nullable ExecutionEnvironment executionEnvironment,
-      boolean isStoreResponseSelected,
-      boolean groupSetCookieHeaders) {
+      @Nullable ExecutionEnvironment executionEnvironment, boolean isStoreResponseSelected) {
     this.executionEnvironment = executionEnvironment;
     this.isStoreResponseSelected = isStoreResponseSelected;
     this.fileResponseHandler =
         new FileResponseHandler(executionEnvironment, isStoreResponseSelected);
-    this.groupSetCookieHeaders = groupSetCookieHeaders;
   }
 
   @Override
@@ -67,8 +62,7 @@ public class HttpCommonResultResponseHandler
     int code = response.getCode();
     String reason = response.getReasonPhrase();
     Map<String, Object> headers =
-        HttpCommonResultResponseHandler.formatHeaders(
-            response.getHeaders(), this.groupSetCookieHeaders);
+        HttpCommonResultResponseHandler.formatHeaders(response.getHeaders());
 
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
@@ -76,7 +70,7 @@ public class HttpCommonResultResponseHandler
           return getResultForCloudFunction(code, content, headers, reason);
         }
         var bytes = content.readAllBytes();
-        var documentReference = handleFileResponse(headers, bytes);
+        var documentReference = fileResponseHandler.handle(headers, bytes);
         return new HttpCommonResult(
             code,
             headers,
@@ -90,33 +84,24 @@ public class HttpCommonResultResponseHandler
     return new HttpCommonResult(code, headers, null, reason);
   }
 
-  private static Map<String, Object> formatHeaders(
-      Header[] headersArray, Boolean groupSetCookieHeaders) {
+  private static Map<String, Object> formatHeaders(Header[] headersArray) {
     return Arrays.stream(headersArray)
         .collect(
             Collectors.toMap(
                 Header::getName,
                 header -> {
-                  if (groupSetCookieHeaders && header.getName().equalsIgnoreCase("Set-Cookie")) {
+                  if (header.getName().equalsIgnoreCase("Set-Cookie")) {
                     return new ArrayList<String>(List.of(header.getValue()));
                   } else {
                     return header.getValue();
                   }
                 },
                 (existingValue, newValue) -> {
-                  if (groupSetCookieHeaders
-                      && existingValue instanceof List
-                      && newValue instanceof List) {
+                  if (existingValue instanceof List && newValue instanceof List) {
                     ((List<String>) existingValue).add(((List<String>) newValue).getFirst());
                   }
                   return existingValue;
                 }));
-  }
-
-  private Document handleFileResponse(Map<String, Object> headers, byte[] content) {
-    var document = fileResponseHandler.handle(headers, content);
-    LOGGER.debug("Stored response as document. Document reference: {}", document);
-    return document;
   }
 
   /**

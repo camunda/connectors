@@ -22,6 +22,7 @@ import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
@@ -57,7 +58,18 @@ public class PropertyUtil {
     }
     var choices =
         availableTypes.stream()
-            .map(type -> new DropdownProperty.DropdownChoice(type.label(), type.id()))
+            .map(
+                type -> {
+                  String label = type.label();
+                  if (type instanceof HttpAuthentication.ApiKey apiKey && !apiKey.key().isEmpty()) {
+                    label += " (" + apiKey.key() + ")";
+                  }
+                  if (type instanceof HttpAuthentication.BasicAuth basicAuth
+                      && !basicAuth.key.isEmpty()) {
+                    label += " (" + basicAuth.key + ")";
+                  }
+                  return new DropdownProperty.DropdownChoice(label, type.id());
+                })
             .toList();
 
     return DropdownProperty.builder()
@@ -66,7 +78,7 @@ public class PropertyUtil {
         .group("authentication")
         .label("Authentication")
         .optional(false)
-        .binding(new ZeebeInput("authentication.type"))
+        .binding(new ZeebeProperty("authentication.dropdown"))
         .value(choices.getFirst().value());
   }
 
@@ -153,7 +165,6 @@ public class PropertyUtil {
 
     List<Property> properties = new ArrayList<>();
     if (authentications.size() > 1) {
-
       var discriminator =
           authDiscriminatorPropertyPrefab(authentications)
               .condition(
@@ -211,10 +222,11 @@ public class PropertyUtil {
       }
       for (var authentication : operation.authenticationOverride()) {
         var authProperties =
-            HttpAuthentication.getPropertyPrefabs(authentication).stream()
+            HttpAuthentication.getPropertyPrefabs(authentication).stream() // size1 = 4
                 .map(
                     builder -> {
-                      builder.id(operation.id() + "_" + builder.getId()); // shade property ids
+                      String id = operation.id() + "_" + builder.getId();
+                      builder.id(id); // shade property ids
                       if (addedDiscriminator) {
                         builder.condition(
                             new AllMatch(
@@ -227,7 +239,7 @@ public class PropertyUtil {
                       return builder.build();
                     })
                 .toList();
-        properties.addAll(authProperties);
+        properties.addAll(authProperties); // here the duplicated are generated
       }
     }
 
@@ -308,7 +320,7 @@ public class PropertyUtil {
     return PropertyGroup.builder()
         .id("parameters")
         .label("Parameters")
-        .properties(properties)
+        .properties(properties) // size 8
         .build();
   }
 
@@ -378,6 +390,7 @@ public class PropertyUtil {
                 .group("requestBody")
                 .value(
                     Optional.ofNullable(operation.bodyFeelExpression())
+                        .map(item -> item)
                         .map(HttpFeelBuilder::build)
                         .orElse(""))
                 .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))

@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitLab Outbound Connector",
   "id": "io.camunda.connectors.GitLab.v1",
-  "version": 6,
+  "version": 7,
+  "engines": {
+    "camunda": "^8.3"
+  },
   "description": "Manage GitLab issues, branches, releases, and more",
   "metadata": {
     "keywords": [
@@ -554,7 +557,7 @@
     },
     {
       "label": "Issue ID",
-      "description": "The internal ID of a project’s issue",
+      "description": "The internal ID of a project\u2019s issue",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -669,7 +672,7 @@
     },
     {
       "label": "Issue ID",
-      "description": "The internal ID of a project’s issue",
+      "description": "The internal ID of a project\u2019s issue",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -703,7 +706,7 @@
     },
     {
       "label": "Issue ID",
-      "description": "The internal ID of a project’s issue",
+      "description": "The internal ID of a project\u2019s issue",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1759,6 +1762,30 @@
         "type": "zeebe:taskHeader",
         "key": "errorExpression"
       }
+    },
+    {
+      "id": "version",
+      "label": "Version",
+      "description": "Version of the element template",
+      "value": "7",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateVersion",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "id",
+      "label": "ID",
+      "description": "ID of the element template",
+      "value": "io.camunda.connectors.GitLab.v1",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateId",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
     }
   ]
 }

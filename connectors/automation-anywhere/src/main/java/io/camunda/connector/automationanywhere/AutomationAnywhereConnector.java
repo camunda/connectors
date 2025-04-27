@@ -23,6 +23,7 @@ import java.util.Map;
     inputVariables = {"authentication", "operation", "configuration"},
     type = "io.camunda:connector-automationanywhere:1")
 @ElementTemplate(
+    engineVersion = "^8.4",
     id = "io.camunda.connectors.AutomationAnywhere",
     name = "Automation Anywhere Outbound Connector",
     description = "Manage work items in Automation Anywhere queues.",
@@ -34,7 +35,7 @@ import java.util.Map;
               "get work item result from queue by ID"
             }),
     inputDataClass = AutomationAnywhereRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

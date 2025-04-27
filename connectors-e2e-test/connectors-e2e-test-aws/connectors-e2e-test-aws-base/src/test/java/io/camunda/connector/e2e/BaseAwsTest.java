@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.io.File;
 import java.util.Collections;
@@ -36,7 +37,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -49,13 +50,14 @@ import org.testcontainers.utility.DockerImageName;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public abstract class BaseAwsTest {
   private static final DockerImageName localstackImage =
       DockerImageName.parse("localstack/localstack");
   @TempDir File tempDir;
   @Autowired CamundaClient camundaClient;
-  @MockBean ProcessDefinitionSearch processDefinitionSearch;
+  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
   static LocalStackContainer localstack;
 

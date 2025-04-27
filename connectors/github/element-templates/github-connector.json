@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
-  "version": 7,
+  "version": 8,
+  "engines": {
+    "camunda": "^8.3"
+  },
   "description": "Manage GitHub issues, branches, releases, and more",
   "metadata": {
     "keywords": [
@@ -3107,6 +3110,30 @@
         "type": "zeebe:taskHeader",
         "key": "errorExpression"
       }
+    },
+    {
+      "id": "version",
+      "label": "Version",
+      "description": "Version of the element template",
+      "value": "8",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateVersion",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "id",
+      "label": "ID",
+      "description": "ID of the element template",
+      "value": "io.camunda.connectors.GitHub.v1",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateId",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
     }
   ]
 }

@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.aws.bedrock.model.BedrockContent;
 import io.camunda.connector.aws.bedrock.model.BedrockMessage;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
 import io.camunda.document.reference.DocumentReference;

@@ -23,19 +23,20 @@ import java.util.HashMap;
     inputVariables = {"authentication", "input"},
     type = "io.camunda:google-gemini:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.GoogleGemini.v1",
     name = "Google Gemini Outbound Connector",
     description =
         " A large language model (LLM) created by Google AI. It's a multimodal model, meaning it can understand"
             + " and work with different types of information like text, code, audio, images, and video",
     inputDataClass = GeminiRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "input", label = "Configure input")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-gemini/",
+        "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/google-gemini/",
     icon = "icon.svg")
 public class GeminiConnectorFunction implements OutboundConnectorFunction {
 

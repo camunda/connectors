@@ -23,18 +23,19 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-comprehend:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.AWSCOMPREHEND.v1",
     name = "AWS Comprehend Outbound Connector",
     description = "Execute Comprehend models",
     inputDataClass = ComprehendRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
       @ElementTemplate.PropertyGroup(id = "input", label = "Data Configuration and Processing")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-comprehend/",
+        "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-comprehend/",
     icon = "icon.svg")
 public class ComprehendConnectorFunction implements OutboundConnectorFunction {
 

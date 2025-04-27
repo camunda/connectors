@@ -13,20 +13,9 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import io.camunda.document.Document;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import java.util.Map;
 
 public record ExtractionRequestData(
-    @TemplateProperty(
-            id = "extractionEngineType",
-            label = "Extraction engine type",
-            group = "input",
-            type = TemplateProperty.PropertyType.Hidden,
-            description = "Specify extraction engine to be used",
-            defaultValue = "= input.extractionEngineType",
-            binding = @PropertyBinding(name = "extractionEngineType"),
-            feel = Property.FeelMode.disabled,
-            constraints = @PropertyConstraints(notEmpty = true))
-        @NotNull
-        TextExtractionEngineType extractionEngineType,
     @TemplateProperty(
             id = "document",
             label = "Document",
@@ -40,18 +29,17 @@ public record ExtractionRequestData(
         @NotNull
         Document document,
     @TemplateProperty(
-            id = "s3BucketName",
-            label = "AWS S3 Bucket name",
+            id = "extractionType",
+            label = "Extraction Type",
             group = "input",
-            type = TemplateProperty.PropertyType.Text,
-            description =
-                "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
-            defaultValue = "idp-extraction-connector",
-            binding = @PropertyBinding(name = "s3BucketName"),
+            type = TemplateProperty.PropertyType.Hidden,
+            defaultValue = "= input.extractionType",
+            description = "Specify extraction type (structured or unstructured)",
+            binding = @PropertyBinding(name = "extractionType"),
             feel = Property.FeelMode.disabled,
             constraints = @PropertyConstraints(notEmpty = true))
         @NotNull
-        String s3BucketName,
+        ExtractionType extractionType,
     @TemplateProperty(
             id = "taxonomyItems",
             label = "Taxonomy Items",
@@ -61,8 +49,37 @@ public record ExtractionRequestData(
             defaultValue = "= input.taxonomyItems",
             binding = @PropertyBinding(name = "taxonomyItems"),
             feel = Property.FeelMode.disabled)
-        @NotNull
         List<TaxonomyItem> taxonomyItems,
+    @TemplateProperty(
+            id = "excludedFields",
+            label = "Excluded Fields",
+            group = "input",
+            type = TemplateProperty.PropertyType.Hidden,
+            description = "List of fields that should not be returned from the extraction",
+            defaultValue = "= input.excludedFields",
+            binding = @PropertyBinding(name = "excludedFields"),
+            feel = Property.FeelMode.disabled)
+        List<String> excludedFields,
+    @TemplateProperty(
+            id = "renameMappings",
+            label = "Rename mappings",
+            group = "input",
+            type = TemplateProperty.PropertyType.Hidden,
+            description = "List of keys that should be renamed and not be given the default name",
+            defaultValue = "= input.renameMappings",
+            binding = @PropertyBinding(name = "renameMappings"),
+            feel = Property.FeelMode.disabled)
+        Map<String, String> renameMappings,
+    @TemplateProperty(
+            id = "delimiter",
+            label = "delimiter",
+            group = "input",
+            type = TemplateProperty.PropertyType.Hidden,
+            description = "The delimiter used for the variable name of the extracted field",
+            defaultValue = "= input.delimiter",
+            binding = @PropertyBinding(name = "delimiter"),
+            feel = Property.FeelMode.disabled)
+        String delimiter,
     @TemplateProperty(
             id = "converseData",
             label = "AWS Bedrock Converse Parameters",
@@ -72,5 +89,12 @@ public record ExtractionRequestData(
             defaultValue = "= input.converseData",
             binding = @PropertyBinding(name = "converseData"),
             feel = Property.FeelMode.disabled)
-        @NotNull
-        ConverseData converseData) {}
+        ConverseData converseData) {
+
+  // Compact constructor that sets default value for extractionType if null
+  public ExtractionRequestData {
+    if (extractionType == null) {
+      extractionType = ExtractionType.UNSTRUCTURED;
+    }
+  }
+}

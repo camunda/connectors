@@ -23,15 +23,11 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import dev.failsafe.function.CheckedSupplier;
-import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import java.time.Duration;
 import java.util.HashMap;
@@ -127,7 +123,7 @@ public class KafkaConnectorConsumer {
       context.log(
           Activity.level(Severity.ERROR)
               .tag("Subscription")
-              .message("Failed to initialize connector: " + ex.getMessage()));
+              .messageWithException("Failed to initialize connector: " + ex.getMessage(), ex));
       context.reportHealth(Health.down(ex));
       throw ex;
     }
@@ -165,7 +161,10 @@ public class KafkaConnectorConsumer {
             .message("Received message with key : " + record.key()));
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
-    var result = context.correlateWithResult(mappedMessage);
+    String messageId = record.topic() + "-" + record.partition() + "-" + record.offset();
+    var result =
+        context.correlate(
+            CorrelationRequest.builder().variables(mappedMessage).messageId(messageId).build());
     handleCorrelationResult(result);
   }
 
@@ -221,7 +220,7 @@ public class KafkaConnectorConsumer {
     context.log(
         Activity.level(Severity.ERROR)
             .tag("Kafka Consumer")
-            .message("Kafka Consumer status changed to DOWN: " + newStatus));
+            .messageWithException("Kafka Consumer status changed to DOWN: " + newStatus, error));
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
       context.reportHealth(Health.down(error));

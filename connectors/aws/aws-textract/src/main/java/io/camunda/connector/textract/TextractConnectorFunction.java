@@ -21,6 +21,7 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-textract:1")
 @ElementTemplate(
+    engineVersion = "^8.6",
     id = "io.camunda.connectors.AWSTEXTRACT.v1",
     name = "AWS Textract Outbound Connector",
     description = "Extract text and data using AWS Textract.",
@@ -34,14 +35,14 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
               "ocr"
             }),
     inputDataClass = TextractRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
       @ElementTemplate.PropertyGroup(id = "input", label = "Configure input")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-textract/",
+        "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-textract/",
     icon = "icon.svg")
 public class TextractConnectorFunction implements OutboundConnectorFunction {
 

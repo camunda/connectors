@@ -27,8 +27,7 @@ import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 public abstract class BaseRabbitMqTest {
   protected static final String ELEMENT_ID = "elementId";
@@ -39,11 +38,9 @@ public abstract class BaseRabbitMqTest {
 
   @Autowired CamundaClient camundaClient;
 
-  @MockBean ProcessDefinitionSearch processDefinitionSearch;
+  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
-  @Autowired SearchQueryClient searchQueryClient;
-
-  @LocalServerPort int serverPort;
+  @MockitoBean SearchQueryClient searchQueryClient;
 
   @BeforeEach
   void beforeEach() {

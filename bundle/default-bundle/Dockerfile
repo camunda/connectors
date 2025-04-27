@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21.0.6_7-jre
+FROM eclipse-temurin:21.0.7_6-jre
 
 VOLUME /tmp
 
@@ -7,6 +7,11 @@ VOLUME /tmp
 RUN mkdir /opt/app && mkdir /opt/custom
 
 COPY target/*-with-dependencies.jar /opt/app/
+
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Using the start script from the base connector runtime image
 COPY start.sh /start.sh

@@ -24,11 +24,12 @@ import org.slf4j.LoggerFactory;
     inputVariables = {"graphql", "authentication"},
     type = "io.camunda:connector-graphql:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.GraphQL.v1",
     name = "GraphQL Outbound Connector",
     description = "Execute GraphQL query",
     inputDataClass = GraphQLRequest.class,
-    version = 7,
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),

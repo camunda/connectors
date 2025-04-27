@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.enums.ElementInstanceState;
 import io.camunda.client.api.search.response.*;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -34,10 +35,11 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   }
 
   @Override
-  public SearchQueryResponse<ProcessDefinition> queryProcessDefinitions(
-      List<Object> paginationIndex) {
+  public SearchResponse<ProcessDefinition> queryProcessDefinitions(List<Object> paginationIndex) {
     final var query =
-        camundaClient.newProcessDefinitionQuery().sort(s -> s.processDefinitionKey().desc());
+        camundaClient
+            .newProcessDefinitionSearchRequest()
+            .sort(s -> s.processDefinitionKey().desc());
     if (paginationIndex != null) {
       query.page(p -> p.limit(PAGE_SIZE).searchAfter(paginationIndex));
     } else {
@@ -47,16 +49,16 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   }
 
   @Override
-  public SearchQueryResponse<FlowNodeInstance> queryActiveFlowNodes(
+  public SearchResponse<ElementInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, List<Object> paginationIndex) {
     final var query =
         camundaClient
-            .newFlownodeInstanceQuery()
+            .newElementInstanceSearchRequest()
             .filter(
                 i ->
                     i.processDefinitionKey(processDefinitionKey)
-                        .flowNodeId(elementId)
-                        .state(FlowNodeInstanceState.ACTIVE));
+                        .elementId(elementId)
+                        .state(ElementInstanceState.ACTIVE));
     if (paginationIndex != null) {
       query.page(p -> p.limit(PAGE_SIZE).searchAfter(paginationIndex));
     } else {
@@ -66,11 +68,11 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   }
 
   @Override
-  public SearchQueryResponse<Variable> queryVariables(
+  public SearchResponse<Variable> queryVariables(
       long processInstanceKey, List<Object> variablePaginationIndex) {
     final var query =
         camundaClient
-            .newVariableQuery()
+            .newVariableSearchRequest()
             .filter(v -> v.processInstanceKey(processInstanceKey).scopeKey(processInstanceKey));
     if (variablePaginationIndex != null) {
       query.page(p -> p.limit(PAGE_SIZE).searchAfter(variablePaginationIndex));

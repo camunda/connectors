@@ -25,10 +25,11 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Kafka Consumer", type = "io.camunda:connector-kafka-inbound:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.webhook",
     name = "Kafka Event Connector",
     icon = "icon.svg",
-    version = 6,
+    version = 7,
     inputDataClass = KafkaConnectorProperties.class,
     description = "Consume Kafka messages",
     documentationRef =
@@ -101,7 +102,7 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
       context.log(
           Activity.level(Severity.ERROR)
               .tag("Subscription activation")
-              .message("Subscription activation failed: " + ex.getMessage()));
+              .messageWithException("Subscription activation failed: " + ex.getMessage(), ex));
       context.reportHealth(Health.down(ex));
       LOG.warn("Subscription activation failed: ", ex);
       throw ex;

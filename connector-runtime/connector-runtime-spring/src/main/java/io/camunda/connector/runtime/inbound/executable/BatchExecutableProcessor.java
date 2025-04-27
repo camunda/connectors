@@ -24,6 +24,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
@@ -35,8 +36,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Conn
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -50,10 +50,8 @@ public class BatchExecutableProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(BatchExecutableProcessor.class);
   private final InboundConnectorFactory connectorFactory;
   private final InboundConnectorContextFactory connectorContextFactory;
-  private final MetricsRecorder metricsRecorder;
+  private final ConnectorsInboundMetrics connectorsInboundMetrics;
   private final WebhookConnectorRegistry webhookConnectorRegistry;
-  private final ScheduledExecutorService reactivationScheduler =
-      Executors.newSingleThreadScheduledExecutor();
 
   @Value("${camunda.connector.inbound.log.size:10}")
   private int inboundLogsSize;
@@ -61,11 +59,11 @@ public class BatchExecutableProcessor {
   public BatchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
       InboundConnectorContextFactory connectorContextFactory,
-      @Autowired(required = false) MetricsRecorder metricsRecorder,
+      ConnectorsInboundMetrics connectorsInboundMetrics,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     this.connectorFactory = connectorFactory;
     this.connectorContextFactory = connectorContextFactory;
-    this.metricsRecorder = metricsRecorder;
+    this.connectorsInboundMetrics = connectorsInboundMetrics;
     this.webhookConnectorRegistry = webhookConnectorRegistry;
   }
 
@@ -74,14 +72,14 @@ public class BatchExecutableProcessor {
    * (except non-registered connectors, which can be activated by a different runtime - those are
    * considered valid).
    */
-  public Map<UUID, RegisteredExecutable> activateBatch(
-      Map<UUID, InboundConnectorDetails> request,
+  public Map<ExecutableId, RegisteredExecutable> activateBatch(
+      Map<ExecutableId, InboundConnectorDetails> request,
       Consumer<InboundExecutableEvent.Cancelled> cancellationCallback) {
 
-    final Map<UUID, RegisteredExecutable> alreadyActivated = new HashMap<>();
+    final Map<ExecutableId, RegisteredExecutable> alreadyActivated = new HashMap<>();
 
     for (var entry : request.entrySet()) {
-      final UUID id = entry.getKey();
+      final ExecutableId id = entry.getKey();
       final InboundConnectorDetails maybeValidData = entry.getValue();
       final ValidInboundConnectorDetails data;
 
@@ -123,7 +121,7 @@ public class BatchExecutableProcessor {
                   + ". Reason: "
                   + failed.reason();
 
-          Map<UUID, RegisteredExecutable> notActivated = new HashMap<>();
+          Map<ExecutableId, RegisteredExecutable> notActivated = new HashMap<>();
           for (var failedEntry : request.entrySet()) {
             if (!failedEntry.getKey().equals(id)) {
               notActivated.put(
@@ -172,7 +170,6 @@ public class BatchExecutableProcessor {
                   "Webhook connectors are not supported in this environment")));
       return new ConnectorNotRegistered(validData);
     }
-
     try {
       if (executable instanceof WebhookConnectorExecutable) {
         LOG.debug("Registering webhook: {}", data.type());
@@ -181,19 +178,14 @@ public class BatchExecutableProcessor {
       executable.activate(context);
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
+      connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
       return new FailedToActivate(data, e.getMessage());
     }
-
     LOG.info(
         "Inbound connector {} activated with deduplication ID '{}'",
         data.type(),
         data.deduplicationId());
-
-    if (metricsRecorder != null) {
-      metricsRecorder.increase(
-          Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, data.type());
-    }
-
+    connectorsInboundMetrics.increaseActivation(data.connectorElements().getFirst());
     return new Activated(executable, context);
   }
 
@@ -211,12 +203,8 @@ public class BatchExecutableProcessor {
         } catch (Exception e) {
           LOG.error("Failed to deactivate executable", e);
         }
-        if (metricsRecorder != null) {
-          metricsRecorder.increase(
-              Inbound.METRIC_NAME_ACTIVATIONS,
-              Inbound.ACTION_DEACTIVATED,
-              activated.context().getDefinition().type());
-        }
+        connectorsInboundMetrics.increaseDeactivation(
+            activated.context().connectorElements().getFirst());
       }
     }
   }
@@ -227,26 +215,29 @@ public class BatchExecutableProcessor {
     InboundConnectorExecutable<InboundConnectorContext> newExecutable =
         connectorFactory.getInstance(cancelled.context().getDefinition().type());
     LOG.warn("Inbound connector executable has requested its reactivation");
-    RetryPolicy<Object> retryPolicy =
-        RetryPolicy.builder()
-            .withDelay(retryException.getBackoffDuration())
-            .onFailedAttempt(
-                event ->
-                    LOG.error(
-                        "Reactivation failed for inbound connector: {}",
-                        cancelled.context().getDefinition().type(),
-                        event.getLastException()))
-            .onRetry(
-                event ->
-                    LOG.warn(
-                        "Failure #{} to reactivate connector: {}. Retrying.",
-                        event.getAttemptCount(),
-                        cancelled.context().getDefinition().type()))
-            .withMaxRetries(retryException.getRetries())
-            .build();
-
-    return Failsafe.with(retryPolicy)
-        .getAsync(() -> tryRestart(newExecutable, cancelled.context()));
+    try {
+      RetryPolicy<Object> retryPolicy =
+          RetryPolicy.builder()
+              .withDelay(retryException.getBackoffDuration())
+              .onFailedAttempt(
+                  event ->
+                      LOG.error(
+                          "Reactivation failed for inbound connector: {}",
+                          cancelled.context().getDefinition().type(),
+                          event.getLastException()))
+              .onRetry(
+                  event ->
+                      LOG.warn(
+                          "Failure #{} to reactivate connector: {}. Retrying.",
+                          event.getAttemptCount(),
+                          cancelled.context().getDefinition().type()))
+              .withMaxRetries(retryException.getRetries())
+              .build();
+      return Failsafe.with(retryPolicy)
+          .getAsync(() -> tryRestart(newExecutable, cancelled.context()));
+    } catch (Exception e) {
+      return CompletableFuture.failedFuture(e);
+    }
   }
 
   private Activated tryRestart(

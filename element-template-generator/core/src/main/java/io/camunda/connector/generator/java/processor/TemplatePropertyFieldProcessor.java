@@ -16,84 +16,17 @@
  */
 package io.camunda.connector.generator.java.processor;
 
-import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuilder;
-import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.dsl.PropertyBuilder;
-import io.camunda.connector.generator.dsl.PropertyCondition;
-import io.camunda.connector.generator.dsl.PropertyConstraints;
+import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 /** {@link TemplateProperty} annotation processor */
 public class TemplatePropertyFieldProcessor implements FieldProcessor {
-
-  @Override
-  public void process(
-      Field field, PropertyBuilder builder, final TemplateGenerationContext context) {
-    var annotation = field.getAnnotation(TemplateProperty.class);
-    if (annotation == null) {
-      return;
-    }
-    builder.optional(FieldProcessor.isOptional(field));
-
-    if (!(builder instanceof DropdownPropertyBuilder)) {
-      if (annotation.feel() == Property.FeelMode.system_default) {
-        builder.feel(determineDefaultFeelModeBasedOnContext(context));
-      } else {
-        builder.feel(annotation.feel());
-      }
-    }
-
-    if (!annotation.label().isBlank()) {
-      builder.label(annotation.label());
-    }
-    if (!annotation.description().isBlank()) {
-      builder.description(annotation.description());
-    }
-    if (!annotation.defaultValue().isBlank()) {
-      var value = annotation.defaultValue();
-      switch (annotation.defaultValueType()) {
-        case Boolean:
-          builder.value(Boolean.parseBoolean(value));
-          break;
-        case String:
-          builder.value(value);
-          break;
-        default:
-          throw new IllegalStateException("Unexpected value: " + annotation.defaultValueType());
-      }
-    }
-    if (!annotation.group().isBlank()) {
-      builder.group(annotation.group());
-    }
-    builder.condition(buildCondition(annotation));
-    builder.constraints(buildConstraints(annotation, builder.build().getConstraints()));
-  }
-
-  private Property.FeelMode determineDefaultFeelModeBasedOnContext(
-      final TemplateGenerationContext context) {
-    return context instanceof TemplateGenerationContext.Inbound
-        ? Property.FeelMode.disabled
-        : Property.FeelMode.optional;
-  }
-
-  private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {
-    var conditionAnnotation = propertyAnnotation.condition();
-    if (conditionAnnotation.property().isBlank() && conditionAnnotation.allMatch().length == 0) {
-      return null;
-    }
-    validateCondition(
-        conditionAnnotation.property(),
-        conditionAnnotation.equals(),
-        conditionAnnotation.equalsBoolean(),
-        conditionAnnotation.oneOf(),
-        conditionAnnotation.allMatch());
-    return transformToCondition(conditionAnnotation);
-  }
 
   public static PropertyCondition transformToCondition(
       TemplateProperty.PropertyCondition conditionAnnotation) {
@@ -101,7 +34,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     if (!conditionAnnotation.equals().isBlank()) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equals());
-    } else if (conditionAnnotation.equalsBoolean() != TemplateProperty.EqualsBoolean.NULL) {
+    } else if (conditionAnnotation.equalsBoolean() != EqualsBoolean.NULL) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equalsBoolean().toBoolean());
     } else if (conditionAnnotation.oneOf().length > 0) {
@@ -120,7 +53,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
   }
 
   public static PropertyCondition transformToNestedCondition(
-      TemplateProperty.NestedPropertyCondition conditionAnnotation) {
+      NestedPropertyCondition conditionAnnotation) {
     validateCondition(
         conditionAnnotation.property(),
         conditionAnnotation.equals(),
@@ -130,7 +63,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     if (!conditionAnnotation.equals().isBlank()) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equals());
-    } else if (conditionAnnotation.equalsBoolean() != TemplateProperty.EqualsBoolean.NULL) {
+    } else if (conditionAnnotation.equalsBoolean() != EqualsBoolean.NULL) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equalsBoolean().toBoolean());
     } else if (conditionAnnotation.oneOf().length > 0) {
@@ -150,7 +83,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       String[] oneOf,
       NestedPropertyCondition[] allMatch) {
     var equalsSet = !equals.isBlank();
-    var equalsBooleanSet = !equalsBoolean.equals(TemplateProperty.EqualsBoolean.NULL);
+    var equalsBooleanSet = !equalsBoolean.equals(EqualsBoolean.NULL);
     var oneOfSet = oneOf != null && oneOf.length > 0;
     var allMatchSet = allMatch != null && allMatch.length > 0;
     // equalsBoolean always has a value, so it's not included in the check
@@ -180,6 +113,101 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     if (!equalsSet && !oneOfSet && !allMatchSet && property.isBlank()) {
       throw new IllegalStateException("Condition 'isActive' must have 'property' set");
     }
+  }
+
+  @Override
+  public void process(
+      Field field, PropertyBuilder builder, final TemplateGenerationContext context) {
+    var annotation = field.getAnnotation(TemplateProperty.class);
+    if (annotation == null) {
+      return;
+    }
+    builder.optional(FieldProcessor.isOptional(field));
+
+    switch (builder) {
+      case DropdownProperty.DropdownPropertyBuilder ignored -> {}
+      case NumberProperty.NumberPropertyBuilder ignored -> manageFeelMode(annotation, builder);
+      case BooleanProperty.BooleanPropertyBuilder ignored -> manageFeelMode(annotation, builder);
+      default -> {
+        if (annotation.feel() == Property.FeelMode.system_default) {
+          builder.feel(determineDefaultFeelModeBasedOnContext(context));
+        } else {
+          builder.feel(annotation.feel());
+        }
+      }
+    }
+
+    if (!annotation.label().isBlank()) {
+      builder.label(annotation.label());
+    }
+    if (!annotation.description().isBlank()) {
+      builder.description(annotation.description());
+    }
+    if (!annotation.defaultValue().isBlank()) {
+      var value = annotation.defaultValue();
+      switch (annotation.defaultValueType()) {
+        case Boolean -> builder.value(Boolean.parseBoolean(value));
+        case String -> builder.value(value);
+        case Number -> {
+          // TODO: To be removed
+          if (context instanceof TemplateGenerationContext.Outbound) {
+            builder.value(parseNumber(value, field.getType()));
+          } else {
+            builder.value(value);
+          }
+        }
+        default ->
+            throw new IllegalStateException("Unexpected value: " + annotation.defaultValueType());
+      }
+    }
+    if (!annotation.group().isBlank()) {
+      builder.group(annotation.group());
+    }
+    builder.condition(buildCondition(annotation));
+    builder.constraints(buildConstraints(annotation, builder.build().getConstraints()));
+  }
+
+  private void manageFeelMode(TemplateProperty annotation, PropertyBuilder builder) {
+    if (annotation.feel() == Property.FeelMode.disabled) {
+      throw new IllegalStateException(
+          "`disabled` is not a valid feel property for " + annotation.type());
+    } else if (annotation.feel() == Property.FeelMode.system_default) {
+      builder.feel(Property.FeelMode.staticFeel);
+    } else {
+      builder.feel(annotation.feel());
+    }
+  }
+
+  private Number parseNumber(String value, Class<?> type) {
+    try {
+      return (Number) type.getDeclaredConstructor(String.class).newInstance(value);
+    } catch (InstantiationException
+        | IllegalAccessException
+        | InvocationTargetException
+        | NoSuchMethodException e) {
+      throw new IllegalStateException(e.getMessage(), e.getCause());
+    }
+  }
+
+  private Property.FeelMode determineDefaultFeelModeBasedOnContext(
+      final TemplateGenerationContext context) {
+    return context instanceof TemplateGenerationContext.Inbound
+        ? Property.FeelMode.disabled
+        : Property.FeelMode.optional;
+  }
+
+  private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {
+    var conditionAnnotation = propertyAnnotation.condition();
+    if (conditionAnnotation.property().isBlank() && conditionAnnotation.allMatch().length == 0) {
+      return null;
+    }
+    validateCondition(
+        conditionAnnotation.property(),
+        conditionAnnotation.equals(),
+        conditionAnnotation.equalsBoolean(),
+        conditionAnnotation.oneOf(),
+        conditionAnnotation.allMatch());
+    return transformToCondition(conditionAnnotation);
   }
 
   private PropertyConstraints buildConstraints(

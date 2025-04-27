@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -261,8 +261,10 @@ public class FeelEngineWrapper {
    */
   public String evaluateToJson(final String expression, final Object... variables) {
     try {
-
-      return resultToJson(evaluateInternal(expression, variables));
+      var result = evaluateInternal(expression, variables);
+      if (result != null) {
+        return resultToJson(result);
+      } else return null;
     } catch (Exception e) {
       throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
     }

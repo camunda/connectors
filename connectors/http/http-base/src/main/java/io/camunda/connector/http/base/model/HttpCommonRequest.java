@@ -52,6 +52,7 @@ public class HttpCommonRequest {
   @TemplateProperty(
       group = "timeout",
       label = "Connection timeout in seconds",
+      defaultValueType = TemplateProperty.DefaultValueType.Number,
       defaultValue = "20",
       constraints =
           @TemplateProperty.PropertyConstraints(
@@ -63,6 +64,7 @@ public class HttpCommonRequest {
   @TemplateProperty(
       group = "timeout",
       label = "Read timeout in seconds",
+      defaultValueType = TemplateProperty.DefaultValueType.Number,
       defaultValue = "20",
       constraints =
           @TemplateProperty.PropertyConstraints(
@@ -105,7 +107,6 @@ public class HttpCommonRequest {
   @TemplateProperty(
       group = "endpoint",
       type = PropertyType.Boolean,
-      feel = Property.FeelMode.disabled,
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       defaultValue = "false",
       description = "Store the response as a document in the document store")
@@ -121,14 +122,12 @@ public class HttpCommonRequest {
   private String skipEncoding;
 
   @TemplateProperty(
-      label = "Group set-cookie headers to a list",
-      description =
-          "Group incoming headers with same name into a List to support <a href=\"https://datatracker.ietf.org/doc/html/rfc6265\">multiple Set-Cookie headers</a>.",
-      type = TemplateProperty.PropertyType.Hidden,
-      feel = Property.FeelMode.disabled,
-      group = "endpoint",
-      optional = true)
-  private String groupSetCookieHeaders;
+      group = "payload",
+      type = PropertyType.Boolean,
+      defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+      defaultValue = "false",
+      tooltip = "Null values will not be sent")
+  private boolean ignoreNullValues;
 
   public Object getBody() {
     return body;
@@ -164,14 +163,6 @@ public class HttpCommonRequest {
 
   public void setSkipEncoding(final String skipEncoding) {
     this.skipEncoding = skipEncoding;
-  }
-
-  public boolean getGroupSetCookieHeaders() {
-    return Objects.equals(groupSetCookieHeaders, "true");
-  }
-
-  public void setGroupSetCookieHeaders(final String groupSetCookieHeaders) {
-    this.groupSetCookieHeaders = groupSetCookieHeaders;
   }
 
   public boolean hasAuthentication() {
@@ -298,5 +289,13 @@ public class HttpCommonRequest {
         + ", storeResponse="
         + storeResponse
         + '}';
+  }
+
+  public boolean isIgnoreNullValues() {
+    return ignoreNullValues;
+  }
+
+  public void setIgnoreNullValues(boolean ignoreNullValues) {
+    this.ignoreNullValues = ignoreNullValues;
   }
 }

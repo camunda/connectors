@@ -18,6 +18,7 @@
   <inceptionYear>2022</inceptionYear>
 
   <modules>
+    <module>agentic-ai</module>
     <module>automation-anywhere</module>
     <module>aws</module>
     <module>box</module>
@@ -34,6 +35,7 @@
     <module>soap</module>
     <module>webhook</module>
     <module>idp-extraction</module>
+    <module>embeddings-vector-database</module>
   </modules>
 
   <properties>
@@ -48,7 +50,7 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-      <version>4.30.0</version>
+      <version>4.30.2</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>

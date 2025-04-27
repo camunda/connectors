@@ -18,6 +18,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "configuration", "action", "data"},
     type = "io.camunda:aws-bedrock:1")
 @ElementTemplate(
+    engineVersion = "^8.6",
     id = "io.camunda.connectors.aws.bedrock.v1",
     name = "AWS Bedrock Outbound Connector",
     description = "Invoke models and converse using AWS Bedrock.",
@@ -25,7 +26,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
         @ElementTemplate.Metadata(
             keywords = {"invoke model", "run inference", "invokemodel API", "converse API"}),
     inputDataClass = BedrockRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

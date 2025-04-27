@@ -38,10 +38,11 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Slack Inbound", type = "io.camunda:slack-webhook:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.inbound.Slack.v1",
     name = "Slack Webhook Boundary Event Connector",
     icon = "icon.svg",
-    version = 5,
+    version = 6,
     inputDataClass = SlackConnectorPropertiesWrapper.class,
     description = "Receive events from Slack",
     documentationRef =
