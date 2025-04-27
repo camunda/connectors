@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Send Message Connector (Message End Event)",
-  "id" : "io.camunda.connectors.message.end.v1",
+  "name" : "Hybrid Send Message Connector (Message End Event)",
+  "id" : "io.camunda.connectors.message.end.v1-hybrid",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -16,8 +16,14 @@
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
     "id" : "default",
     "label" : "Properties"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -29,30 +35,14 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
+    "id" : "taskDefinitionType",
     "value" : "io.camunda:sendMessage:1",
+    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "Hidden"
-  }, {
-    "id" : "mode",
-    "label" : "Mode",
-    "optional" : false,
-    "value" : "publish",
-    "group" : "default",
-    "binding" : {
-      "name" : "mode",
-      "type" : "zeebe:input"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "publish message (buffered)",
-      "value" : "publish"
-    }, {
-      "name" : "correlate message (with result)",
-      "value" : "correlate"
-    } ]
+    "type" : "String"
   }, {
     "id" : "messageName",
     "label" : "Message name",
@@ -89,33 +79,52 @@
     },
     "type" : "String"
   }, {
-    "id" : "timeToLive",
+    "id" : "correlationType.type",
+    "label" : "Correlation mode",
+    "description" : "Send message with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-buffering' target='_blank'>buffer (publish)</a> or with <a href='https://docs.camunda.io/docs/components/concepts/messages/#message-response' target='_blank'>result (correlate)</a>",
+    "value" : "publish",
+    "group" : "default",
+    "binding" : {
+      "name" : "correlationType.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "correlate message (with result)",
+      "value" : "correlate"
+    }, {
+      "name" : "publish message (with buffer)",
+      "value" : "publish"
+    } ]
+  }, {
+    "id" : "correlationType.timeToLive",
     "label" : "Time to live (in ms)",
+    "description" : "Duration for which the message remains buffered",
     "optional" : true,
     "feel" : "optional",
     "group" : "default",
     "binding" : {
-      "name" : "timeToLive",
+      "name" : "correlationType.timeToLive",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "mode",
+      "property" : "correlationType.type",
       "equals" : "publish",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "messageId",
+    "id" : "correlationType.messageId",
     "label" : "Message id (optional)",
     "optional" : true,
     "feel" : "optional",
     "group" : "default",
     "binding" : {
-      "name" : "messageId",
+      "name" : "correlationType.messageId",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "mode",
+      "property" : "correlationType.type",
       "equals" : "publish",
       "type" : "simple"
     },
@@ -142,6 +151,28 @@
       "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.message.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
