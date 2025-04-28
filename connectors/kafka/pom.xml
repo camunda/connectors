@@ -71,6 +71,13 @@ except in compliance with the proprietary license.</license.inlineheader>
       <version>${version.schema-registry}</version>
     </dependency>
 
+    <!-- Resolves https://github.com/advisories/GHSA-v2xm-76pq-phcf -->
+    <dependency>
+      <groupId>io.github.classgraph</groupId>
+      <artifactId>classgraph</artifactId>
+      <version>4.8.179</version>
+    </dependency>
+
     <dependency>
       <groupId>io.confluent</groupId>
       <artifactId>kafka-schema-serializer</artifactId>
