@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.tomakehurst.wiremock.WireMockServer;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -35,6 +34,7 @@ import io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
+import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import io.camunda.connector.test.SlowTest;
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -197,15 +197,19 @@ public class DefaultInstanceForwardingServiceIntegrationTest {
       // given
       OffsetDateTime fixedTimestamp = OffsetDateTime.parse("2025-04-22T09:37:44.740894Z");
 
-      List<Activity> activities1 =
+      List<InstanceAwareModel.InstanceAwareActivity> activities1 =
           List.of(
-              new Activity(Severity.INFO, "TAG1", fixedTimestamp, "Message1"),
-              new Activity(Severity.DEBUG, "TAG2", fixedTimestamp, "Message2"));
+              new InstanceAwareModel.InstanceAwareActivity(
+                  Severity.INFO, "TAG1", fixedTimestamp, "Message1", "runtime1"),
+              new InstanceAwareModel.InstanceAwareActivity(
+                  Severity.DEBUG, "TAG2", fixedTimestamp, "Message2", "runtime1"));
 
-      List<Activity> activities2 =
+      List<InstanceAwareModel.InstanceAwareActivity> activities2 =
           List.of(
-              new Activity(Severity.WARNING, "TAG3", fixedTimestamp, "Message3"),
-              new Activity(Severity.ERROR, "TAG4", fixedTimestamp, "Message4"));
+              new InstanceAwareModel.InstanceAwareActivity(
+                  Severity.WARNING, "TAG3", fixedTimestamp, "Message3", "runtime2"),
+              new InstanceAwareModel.InstanceAwareActivity(
+                  Severity.ERROR, "TAG4", fixedTimestamp, "Message4", "runtime2"));
 
       stubRuntimeWith(runtime1, activities1);
       stubRuntimeWith(runtime2, activities2);
@@ -217,7 +221,9 @@ public class DefaultInstanceForwardingServiceIntegrationTest {
 
       // when
       var reducedResponse =
-          service.forwardAndReduce(mockHttpServletRequest, new TypeReference<List<Activity>>() {});
+          service.forwardAndReduce(
+              mockHttpServletRequest,
+              new TypeReference<List<InstanceAwareModel.InstanceAwareActivity>>() {});
 
       // then
       assertThat(reducedResponse).isNotNull();
