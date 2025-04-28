@@ -221,7 +221,9 @@ public class DefaultInstanceForwardingServiceIntegrationTest {
 
       // when
       var reducedResponse =
-          service.forwardAndReduce(mockHttpServletRequest, new TypeReference<List<InstanceAwareModel.InstanceAwareActivity>>() {});
+          service.forwardAndReduce(
+              mockHttpServletRequest,
+              new TypeReference<List<InstanceAwareModel.InstanceAwareActivity>>() {});
 
       // then
       assertThat(reducedResponse).isNotNull();
