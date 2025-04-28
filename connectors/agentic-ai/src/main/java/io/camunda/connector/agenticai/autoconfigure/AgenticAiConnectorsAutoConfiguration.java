@@ -18,7 +18,9 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.DefaultAd
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.DefaultAiAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -100,11 +102,31 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public CamundaDocumentToContentConverter camundaDocumentConverter() {
+    return new CamundaDocumentToContentConverter();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ToolCallResultConverter toolCallResultConverter(
+      ObjectMapper objectMapper, CamundaDocumentToContentConverter documentConverter) {
+    return new ToolCallResultConverter(objectMapper, documentConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
       ObjectMapper objectMapper,
       ChatModelFactory chatModelFactory,
-      ToolCallingHandler toolCallingHandler) {
-    return new DefaultAiAgentRequestHandler(objectMapper, chatModelFactory, toolCallingHandler);
+      ToolCallingHandler toolCallingHandler,
+      ToolCallResultConverter toolCallResultConverter,
+      CamundaDocumentToContentConverter documentConverter) {
+    return new DefaultAiAgentRequestHandler(
+        objectMapper,
+        chatModelFactory,
+        toolCallingHandler,
+        toolCallResultConverter,
+        documentConverter);
   }
 
   @Bean

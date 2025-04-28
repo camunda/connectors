@@ -21,6 +21,7 @@
           <zeebe:input source="=agent.context" target="data.context" />
           <zeebe:input source="You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you&#39;re not able to look up appropriate data.&#10;&#10;Thinking, step by step, before you execute your tools, you think using the template `&#60;thinking&#62;&#60;context&#62;&#60;/context&#62;&#60;reflection&#62;&#60;/reflection&#62;&#60;/thinking&#62;`" target="data.systemPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput)) then followUpInput else inputText" target="data.userPrompt.prompt" />
+          <zeebe:input source="=if (is defined(followUpInput)) then [] else inputDocuments" target="data.userPrompt.documents" />
           <zeebe:input source="Agent_Tools" target="data.tools.containerElementId" />
           <zeebe:input source="=toolCallResults" target="data.tools.toolCallResults" />
           <zeebe:input source="=20" target="data.memory.maxMessages" />
@@ -304,12 +305,6 @@
           <dc:Bounds x="499" y="406" width="62" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0gbt4n4_di" bpmnElement="Event_1hi12xn" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
-        <dc:Bounds x="665" y="1202" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="647" y="1245" width="73" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="Agent_Tools" isExpanded="true">
         <dc:Bounds x="480" y="560" width="405" height="580" />
       </bpmndi:BPMNShape>
@@ -372,10 +367,12 @@
           <dc:Bounds x="689" y="1003" width="13" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_0ic98nl_di" bpmnElement="Association_0ic98nl">
-        <di:waypoint x="410" y="420" />
-        <di:waypoint x="502" y="236" />
-      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Event_0gbt4n4_di" bpmnElement="Event_1hi12xn" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="665" y="1202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="647" y="1245" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="TextAnnotation_0rg9ar3_di" bpmnElement="TextAnnotation_0rg9ar3">
         <dc:Bounds x="401" y="80" width="578" height="156" />
         <bpmndi:BPMNLabel />
@@ -384,14 +381,6 @@
         <di:waypoint x="188" y="460" />
         <di:waypoint x="245" y="460" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_050377t_di" bpmnElement="Flow_050377t">
-        <di:waypoint x="295" y="460" />
-        <di:waypoint x="340" y="460" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_041ffce_di" bpmnElement="Flow_041ffce">
-        <di:waypoint x="440" y="460" />
-        <di:waypoint x="505" y="460" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_10x2etf_di" bpmnElement="Flow_10x2etf">
         <di:waypoint x="270" y="532" />
         <di:waypoint x="270" y="485" />
@@ -399,13 +388,6 @@
       <bpmndi:BPMNEdge id="Flow_0ojrvh4_di" bpmnElement="Flow_0ojrvh4">
         <di:waypoint x="270" y="388" />
         <di:waypoint x="270" y="435" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_11y3kim_di" bpmnElement="Flow_11y3kim">
-        <di:waypoint x="555" y="460" />
-        <di:waypoint x="640" y="460" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="591" y="442" width="13" height="14" />
-        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_09y08ef_di" bpmnElement="Flow_09y08ef">
         <di:waypoint x="740" y="460" />
@@ -425,6 +407,10 @@
           <dc:Bounds x="875" y="442" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_041ffce_di" bpmnElement="Flow_041ffce">
+        <di:waypoint x="440" y="460" />
+        <di:waypoint x="505" y="460" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_00lg7l2_di" bpmnElement="Flow_00lg7l2">
         <di:waypoint x="530" y="485" />
         <di:waypoint x="530" y="560" />
@@ -435,6 +421,21 @@
       <bpmndi:BPMNEdge id="Flow_01k9dy1_di" bpmnElement="Flow_01k9dy1">
         <di:waypoint x="683" y="1140" />
         <di:waypoint x="683" y="1202" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11y3kim_di" bpmnElement="Flow_11y3kim">
+        <di:waypoint x="555" y="460" />
+        <di:waypoint x="640" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="591" y="442" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_050377t_di" bpmnElement="Flow_050377t">
+        <di:waypoint x="295" y="460" />
+        <di:waypoint x="340" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0ic98nl_di" bpmnElement="Association_0ic98nl">
+        <di:waypoint x="410" y="420" />
+        <di:waypoint x="502" y="236" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

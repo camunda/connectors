@@ -9,6 +9,18 @@
       },
       "id": "Field_12i4zil",
       "key": "inputText"
+    },
+    {
+      "label": "Documents",
+      "type": "filepicker",
+      "layout": {
+        "row": "Row_03u75o8",
+        "columns": null
+      },
+      "id": "Field_027g5wu",
+      "key": "inputDocuments",
+      "multiple": "on",
+      "accept": "text/*,image/*,application/json,application/xml,application/yaml,application/pdf"
     }
   ],
   "type": "default",
@@ -17,7 +29,7 @@
   "executionPlatformVersion": "8.6.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.32.0"
+    "version": "5.34.0"
   },
   "schemaVersion": 18
 }
