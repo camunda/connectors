@@ -47,6 +47,7 @@ import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -120,6 +121,7 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean
   public InboundExecutableRegistry inboundExecutableRegistry(
       InboundConnectorFactory inboundConnectorFactory,
       BatchExecutableProcessor batchExecutableProcessor) {
