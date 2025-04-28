@@ -17,7 +17,7 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse.ToolCall;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import java.util.List;
@@ -52,25 +52,25 @@ public class ToolCallingHandler {
         .toList();
   }
 
-  public List<AgentResponse.ToolToCall> extractToolsToCall(
+  public List<ToolCall> extractToolCalls(
       List<ToolSpecification> toolSpecifications, AiMessage aiMessage) {
     if (!aiMessage.hasToolExecutionRequests() || toolSpecifications.isEmpty()) {
       return Collections.emptyList();
     }
 
-    return aiMessage.toolExecutionRequests().stream().map(this::toolToCall).toList();
+    return aiMessage.toolExecutionRequests().stream().map(this::asToolCall).toList();
   }
 
-  private AgentResponse.ToolToCall toolToCall(ToolExecutionRequest toolExecutionRequest) {
-    return toolToCall(
+  private ToolCall asToolCall(ToolExecutionRequest toolExecutionRequest) {
+    return asToolCall(
         toolExecutionRequest.id(), toolExecutionRequest.name(), toolExecutionRequest.arguments());
   }
 
-  private AgentResponse.ToolToCall toolToCall(String id, String name, String inputJson) {
+  private ToolCall asToolCall(String id, String name, String inputJson) {
     try {
       Map<String, Object> arguments =
           objectMapper.readValue(inputJson, STRING_OBJECT_MAP_TYPE_REFERENCE);
-      return new AgentResponse.ToolToCall(id, name, arguments);
+      return new ToolCall(id, name, arguments);
     } catch (Exception e) {
       throw new ConnectorException(
           "Failed to parse tool call results for tool %s".formatted(name), e);

@@ -9,9 +9,12 @@ package io.camunda.connector.agenticai.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.DefaultAdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.DefaultAiAgentRequestHandler;
@@ -34,11 +37,27 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public FeelInputParamExtractor feelInputParamExtractor(ObjectMapper objectMapper) {
+    return new FeelInputParamExtractor(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AdHocToolSchemaGenerator adHocToolSchemaGenerator() {
+    return new DefaultAdHocToolSchemaGenerator();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AdHocToolsSchemaResolver adHocToolsSchemaResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
-      ObjectMapper objectMapper) {
-    final var resolver = new CamundaClientAdHocToolsSchemaResolver(camundaClient, objectMapper);
+      FeelInputParamExtractor feelInputParamExtractor,
+      AdHocToolSchemaGenerator adHocToolSchemaGenerator) {
+
+    final var resolver =
+        new CamundaClientAdHocToolsSchemaResolver(
+            camundaClient, feelInputParamExtractor, adHocToolSchemaGenerator);
 
     final var cacheConfiguration = configuration.tools().cache();
     if (cacheConfiguration.enabled()) {
