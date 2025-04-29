@@ -1,0 +1,300 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid Azure Blob Storage Outbound Connector",
+  "id" : "io.camunda.connectors.azure.blobstorage.v1-hybrid",
+  "description" : "Execute azure blob storage requests",
+  "metadata" : {
+    "keywords" : [ ]
+  },
+  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blobstorage/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "action",
+    "label" : "Action"
+  }, {
+    "id" : "uploadObject",
+    "label" : "Upload an object"
+  }, {
+    "id" : "downloadObject",
+    "label" : "Download an object"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:azure-blobstorage:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.SASToken",
+    "label" : "SAS token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.SASToken",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.SASUrl",
+    "label" : "SAS URL",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.SASUrl",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "actionDiscriminator",
+    "label" : "Action",
+    "value" : "uploadObject",
+    "group" : "action",
+    "binding" : {
+      "name" : "actionDiscriminator",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Download object",
+      "value" : "downloadObject"
+    }, {
+      "name" : "Upload object",
+      "value" : "uploadObject"
+    } ]
+  }, {
+    "id" : "container",
+    "label" : "Blob Storage container",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "uploadObject",
+    "binding" : {
+      "name" : "action.container",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "actionDiscriminator",
+      "equals" : "uploadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "container where an object should be uploaded to",
+    "type" : "String"
+  }, {
+    "id" : "uploadActionFileName",
+    "label" : "Document file name",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "uploadObject",
+    "binding" : {
+      "name" : "action.fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "actionDiscriminator",
+      "equals" : "uploadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "File name of the uploaded object, if not given. The file name from the document metadata will be used",
+    "type" : "String"
+  }, {
+    "id" : "uploadActionDocument",
+    "label" : "Document",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "uploadObject",
+    "binding" : {
+      "name" : "action.document",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "actionDiscriminator",
+      "equals" : "uploadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "Document to be uploaded to Azure Blob Storage",
+    "type" : "String"
+  }, {
+    "id" : "downloadActionContainer",
+    "label" : "Blob Storage container",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "downloadObject",
+    "binding" : {
+      "name" : "action.container",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "actionDiscriminator",
+      "equals" : "downloadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "Container from where an object should be downloaded",
+    "type" : "String"
+  }, {
+    "id" : "downloadActionFileName",
+    "label" : "File name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "downloadObject",
+    "binding" : {
+      "name" : "action.fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "actionDiscriminator",
+      "equals" : "downloadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "Filename of the object which should be downloaded",
+    "type" : "String"
+  }, {
+    "id" : "downloadActionAsFile",
+    "label" : "Create document",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
+    "group" : "downloadObject",
+    "binding" : {
+      "name" : "action.asFile",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "actionDiscriminator",
+      "equals" : "downloadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "If set to true, a document reference will be created. If set to false, the content will be extracted and provided inside the response.",
+    "type" : "Boolean"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.azure.blobstorage.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "engines" : {
+    "camunda" : "^8.8"
+  },
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IS0tIFVwbG9hZGVkIHRvOiBTVkcgUmVwbywgd3d3LnN2Z3JlcG8uY29tLCBHZW5lcmF0b3I6IFNWRyBSZXBvIE1peGVyIFRvb2xzIC0tPgo8c3ZnIHdpZHRoPSI4MDBweCIgaGVpZ2h0PSI4MDBweCIgdmlld0JveD0iMCAwIDE2IDE2IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiPjxwYXRoIGZpbGw9IiMyMzc4QkMiIGQ9Ik0xNSA4LjAwNGMtLjE4NC4zMTItLjM2OS42Mi0uNTUuOTMyLS4xNS4yNTUtLjI5Mi41MTMtLjQ0Ljc2OC0uMTA0LjE3OS0uMjEyLjM1NC0uMzE3LjUzMmwtLjM5NC42NjhjLS4yMTMuMzY3LS40MjQuNzM2LS42MzggMS4xMDItLjE3Ny4zMDMtLjM1OC42MDUtLjUzNC45MDhhNzMuMTQgNzMuMTQgMCAwMC0uNTg1IDEuMDE2Yy0uMDMyLjA1Ni0uMDY3LjA2OS0uMTI2LjA2OS0uNDg0LS4wMDItLjk2OC0uMDAxLTEuNDUzLS4wMDEtMS43ODcgMC0zLjU3NS0uMDAxLTUuMzYyLjAwMi0uMDg4IDAtLjEzMi0uMDMtLjE3NC0uMTAyLS4xNjMtLjI4Ni0uMzMzLS41NjgtLjUtLjg1MmwtLjMtLjUyYy0uMTYxLS4yOC0uMzIzLS41NTgtLjQ4Ni0uODM3bC0uMzc3LS42NDZjLS4wOS0uMTU0LS4xNzgtLjMxLS4yNjktLjQ2My0uMTcyLS4yOTItLjM0Ny0uNTgxLS41MTctLjg3My0uMTUtLjI1OS0uMjk1LS41Mi0uNDQ0LS43NzktLjEwMi0uMTc2LS4yMDktLjM0OS0uMzExLS41MjQtLjA3LS4xMi0uMTM3LS4yNC0uMjA5LS4zNi0uMDIyLS4wMzUtLjAxNC0uMDYzLjAwNC0uMDkzbC4yOTYtLjUxMi4yNzctLjQ2OC4zMjMtLjU1Yy4xMjMtLjIxLjI0OS0uNDE4LjM3LS42MjguMTIzLS4yMS4yNDMtLjQyLjM2NS0uNjMxLjE0NS0uMjUuMjktLjUuNDM3LS43NWwuMzg1LS42NTIuMzktLjY3Yy4xOTQtLjMzNS4zOS0uNjcuNTgtMS4wMDguMDMyLS4wNTkuMDY5LS4wODIuMTM3LS4wODIuNjc1LjAwMiAxLjM1LjAwMiAyLjAyNS4wMDJoNC44MjhjLjA1LS4wMDUuMDguMDE0LjEwNC4wNTguMDkuMTYyLjE4My4zMjIuMjc2LjQ4MS4wODQuMTQ0LjE3LjI4Ni4yNTUuNDMuMTI3LjIxNC4yNTUuNDI4LjM4LjY0My4xMzkuMjM2LjI3Ni40NzMuNDEzLjcxLjEzMS4yMjcuMjYuNDU0LjM5My42OC4xMjQuMjEyLjI1LjQyNC4zNzYuNjM2bC40MDEuNjg1LjUyLjkwNWMuMDc4LjEzNi4xNi4yNy4yNC40MDZsLjIxLjM2OUgxNXpNNC40NzcgNy45OTF2Mi42MjNjMCAuMTIzLjAxLjI0NC4wNTMuMzY0LjA5Ny4yNzcuMjg3LjQ2LjU1Mi41NzZhMSAxIDAgMDAuNDA0LjA2M2g1LjAwNWMuMTg2IDAgLjM2NC0uMDIzLjUzLS4xMTlhLjkyNi45MjYgMCAwMC40OTEtLjc4NGMuMDAzLS4wNDYuMDAyLS4wOTMuMDAyLS4xMzlWNi40MjJ2LS41NDdjMC0uMDM4LS4wMDgtLjA3LS4wMzctLjA5OC0uMDgtLjA3Ny0uMTU2LS4xNi0uMjM2LS4yMzYtLjE5LS4xODYtLjM4My0uMzY4LS41NzQtLjU1NC0uMDg4LS4wODYtLjE3NC0uMTc1LS4yNjItLjI2Mi0uMDktLjA5LS4xODItLjE3Ni0uMjctLjI2OGEuMjIyLjIyMiAwIDAwLS4xNzYtLjA4Yy0xLjQ4Ny4wMDItMi45NzUuMDAyLTQuNDYyLjAwMi0uMjEgMC0uNDA4LjA0Mi0uNTg1LjE1OGEuOTQuOTQgMCAwMC0uNDM1Ljg1OHYyLjU5NnoiLz48cGF0aCBmaWxsPSIjRkFGREZFIiBkPSJNNC40NzcgNy45OVY1LjM5NmEuOTQuOTQgMCAwMS40MzUtLjg1OWMuMTc3LS4xMTUuMzc1LS4xNTcuNTg1LS4xNTcgMS40ODcgMCAyLjk3NSAwIDQuNDYyLS4wMDIuMDc4IDAgLjEyNy4wMjkuMTc2LjA4LjA4OC4wOTIuMTguMTc5LjI3LjI2OC4wODguMDg3LjE3NC4xNzYuMjYyLjI2Mi4xOS4xODYuMzgzLjM2OC41NzQuNTU0LjA4LjA3Ny4xNTUuMTU5LjIzNS4yMzYuMDMuMDI4LjAzOC4wNi4wMzguMDk4VjEwLjU3NWMwIC4wNDYgMCAuMDkzLS4wMDIuMTRhLjkyMy45MjMgMCAwMS0uNDkyLjc4NCAxLjAxOSAxLjAxOSAwIDAxLS41MjkuMTE4SDUuNDg2YS45OTguOTk4IDAgMDEtLjQwNC0uMDYzLjk1Ljk1IDAgMDEtLjU1Mi0uNTc2IDEuMDk1IDEuMDk1IDAgMDEtLjA1My0uMzY0VjcuOTkxem01LjM1LTMuMDk2SDUuNTI4Yy0uMDUgMC0uMS0uMDAzLS4xNS4wMDVhLjQzLjQzIDAgMDAtLjMxNC4xOTIuNTEyLjUxMiAwIDAwLS4wNjQuMjkzdjUuMjNjMCAuMDQyLS4wMDEuMDg2LjAwNC4xMjlhLjM5OC4zOTggMCAwMC4zMTQuMzQ2Yy4wNzMuMDE0LjE0OC4wMTkuMjIzLjAxOSAxLjYxMy4wMDEgMy4yMjUuMDAxIDQuODM3IDAgLjA4MSAwIC4xNjItLjAwNy4yNDMtLjAxMy4xNTgtLjAxMi4yNjEtLjEuMzMxLS4yMzYuMDQyLS4wOC4wNC0uMTY2LjA0LS4yNTNWNy41ODR2LTEuNGMwLS4wMzYtLjAwNS0uMDcyLS4wMDktLjExN0g5LjgyN1Y0Ljg5M3oiLz48cGF0aCBmaWxsPSIjMjQ3OEJEIiBkPSJNOS44MjcgNC44OTR2MS4xNzRoMS4xNTdjLjAwMy4wNDUuMDA4LjA4LjAwOC4xMTZ2NC40MjNjMCAuMDg2LjAwMi4xNzMtLjA0LjI1My0uMDcuMTM2LS4xNzIuMjI0LS4zMy4yMzYtLjA4Mi4wMDUtLjE2Mi4wMTMtLjI0My4wMTNINS41NDFjLS4wNzQgMC0uMTUtLjAwNS0uMjIzLS4wMTlhLjM5Ny4zOTcgMCAwMS0uMzE0LS4zNDdDNSAxMC43MDEgNSAxMC42NTcgNSAxMC42MTR2LTUuMjNjMC0uMTAyLjAwNi0uMi4wNjUtLjI5MmEuNDMyLjQzMiAwIDAxLjMxNC0uMTkyYy4wNS0uMDA4LjEtLjAwNS4xNS0uMDA1aDQuMjk4di0uMDAxem0tMy40IDQuNTI1Yy4wMDkuMTIuMDEzLjI0LjAyOC4zNi4wMTYuMTI0LjA0Ny4yNDUuMTA3LjM2YS41NDMuNTQzIDAgMDAuMzczLjI5M2MuMTA3LjAyNC4yMTUuMDI1LjMyNS4wMTNhLjYxLjYxIDAgMDAuNTM4LS40MDZjLjA1LS4xMjcuMDc1LS4yNi4wOS0uMzk0LjAzNy0uMzIuMDE4LS42MzMtLjA5LS45NGEuNS41IDAgMDAtLjI3OC0uMjk0LjgwMy44MDMgMCAwMC0uNTczLS4wMzFjLS4yMzEuMDctLjM2LjIzNC0uNDMzLjQ0NmExLjg4OCAxLjg4OCAwIDAwLS4wODcuNTkzek05LjU3IDYuNThjLS4wMTMtLjExOS0uMDI5LS4yMzgtLjA0LS4zNTdhLjg1Ni44NTYgMCAwMC0uMTgtLjQ3Ni40NjEuNDYxIDAgMDAtLjE5LS4xNDIuODM2LjgzNiAwIDAwLS4zNzUtLjA2LjY1NS42NTUgMCAwMC0uNTE2LjI3Mi45ODYuOTg2IDAgMDAtLjE2Mi40ODZjLS4wMzIuMjk4LS4wMzMuNTk3LjA1Ljg5LjAzNi4xMjguMDkuMjQyLjE5OC4zMjQuMi4xNTUuNDMyLjE2NC42NjYuMTEuMjM4LS4wNTQuMzc3LS4yMi40NTItLjQ0NWEyLjE5IDIuMTkgMCAwMC4wOTctLjYwMXptLS4xMTggMy44MzVhLjMwNy4zMDcgMCAwMC4wNDgtLjJjLS4wMDUtLjA4LS4wMzEtLjEwNi0uMTEtLjEwOC0uMDU2LS4wMDItLjExMyAwLS4xNjktLjAwMS0uMDQtLjAwMS0uMDc5LS4wMDYtLjEzLS4wMDlWOC4zODRjLS4wNzItLjAwNy0uMTM0LS4wMTgtLjE5Ni0uMDE5YS4zOTkuMzk5IDAgMDAtLjI0Ni4wN2MtLjA4NS4wNjEtLjE3Ny4xMTMtLjI2NS4xNy0uMDQuMDI1LS4wNzkuMDUtLjExNC4wNzktLjAxOC4wMTQtLjAzNS4wMzktLjAzNi4wNmExLjU1MiAxLjU1MiAwIDAwLS4wMDEuMTc1YzAgLjA0LjAyNy4wNTQuMDY0LjA0OWEuMjU4LjI1OCAwIDAwLjA4LS4wMjRjLjA3My0uMDQuMTQ0LS4wODUuMjE2LS4xMjYuMDIzLS4wMTQuMDUtLjAyLjA3Ni0uMDMuMDE5LjE0LjAxMiAxLjI0My0uMDEgMS4zMTloLS4wODhjLS4wODEgMC0uMTYyLS4wMDItLjI0NCAwLS4wNjcuMDAzLS4wOS4wMjUtLjA5NC4wOS0uMDAyLjAzNCAwIC4wNjggMCAuMTAyIDAgLjA4OC4wMjcuMTI1LjEyOC4xMjQuMzM0LS4wMDUuNjY5LS4wMDIgMS4wMDMtLjAwMi4wMyAwIC4wNjEtLjAwMy4wODgtLjAwNXptLTIuMDEyLTMuMTFWNS41OGMtLjEuMDAzLS4xODYtLjAyNy0uMjc3LS4wMDgtLjA0LjAwOC0uMDgzLjAxMi0uMTE1LjAzMi0uMTM3LjA4NC0uMjcyLjE3Mi0uNDA0LjI2M2EuMTMuMTMgMCAwMC0uMDUyLjA3Mi4zNDYuMzQ2IDAgMDAuMDIyLjI0MmMuMDM3LS4wMTIuMDczLS4wMi4xMDUtLjAzNi4wOC0uMDQxLjE1Ny0uMDg3LjIzNi0uMTMuMDItLjAxLjA0My0uMDE1LjA3MS0uMDI1djEuMjQ1Yy0uMDAxLjA2Mi0uMDA5LjA3LS4wNy4wNzItLjA2OC4wMDItLjEzNyAwLS4yMDYgMC0uMTUyIDAtLjE3LjAxOC0uMTYyLjE3MyAwIC4wMDkgMCAuMDE4LjAwMi4wMjguMDEyLjEwNS4wMjEuMTE0LjEyNi4xMTRoMS4wNGMuMDM3IDAgLjA2My0uMDE3LjA2Ny0uMDUyYS44MDYuODA2IDAgMDAuMDEyLS4xNTZjLS4wMDUtLjA5LS4wMjMtLjEwNS0uMTE1LS4xMDZoLS4yOHYtLjAwMXoiLz48cGF0aCBmaWxsPSIjRjlGQ0ZFIiBkPSJNNi40MjYgOS40MTljLjAwNC0uMjAyLjAyLS40MDIuMDg3LS41OTMuMDc0LS4yMTIuMjAyLS4zNzcuNDMzLS40NDYuMTk3LS4wNi4zOS0uMDUuNTczLjAzMS4xMjguMDU4LjIzLjE1My4yNzkuMjk0LjEwNy4zMDcuMTI2LjYyLjA5Ljk0LS4wMTUuMTM1LS4wNC4yNjgtLjA5MS4zOTRhLjYxLjYxIDAgMDEtLjUzNy40MDYuOTg0Ljk4NCAwIDAxLS4zMjYtLjAxMy41NDQuNTQ0IDAgMDEtLjM3Mi0uMjk0IDEuMDM1IDEuMDM1IDAgMDEtLjEwOC0uMzZjLS4wMTUtLjExOS0uMDItLjI0LS4wMjktLjM2aC4wMDF6bTEuMDYtLjAzNWMtLjAxNC0uMTQ2LS4wMjQtLjI5Ny0uMDQ3LS40NDZhLjQyNi40MjYgMCAwMC0uMDc0LS4xODZjLS4wNzktLjEwNS0uMzE2LS4xMTgtLjM5OS4wMmEuODgzLjg4MyAwIDAwLS4wNjUuMTQxYy0uMDMzLjA4OC0uMDM2LjE4LS4wNC4yNzMtLjAxMi4yMzItLjAxOC40NjIuMDM3LjY5LjA0LjE3MS4xMTIuMjczLjMxNS4yNDlhLjIwOC4yMDggMCAwMC4xOC0uMTI3LjU5Mi41OTIgMCAwMC4wNDktLjE1OGMuMDE5LS4xNS4wMy0uMy4wNDQtLjQ1NXpNOS41NyA2LjU4MmEyLjE5IDIuMTkgMCAwMS0uMDk2LjYwMWMtLjA3NS4yMjUtLjIxNC4zOTEtLjQ1My40NDYtLjIzMy4wNTMtLjQ2NC4wNDQtLjY2Ni0uMTFhLjU4NS41ODUgMCAwMS0uMTk4LS4zMjUgMi4zMiAyLjMyIDAgMDEtLjA0OS0uODkuOTg0Ljk4NCAwIDAxLjE2Mi0uNDg2LjY1NS42NTUgMCAwMS41MTYtLjI3Mi44NDEuODQxIDAgMDEuMzc1LjA2Yy4wNzQuMDMuMTM4LjA3Ny4xOS4xNDIuMTEyLjE0LjE2Ni4zLjE4LjQ3Ni4wMS4xMi4wMjYuMjM4LjA0LjM1N3ptLTEuMDU2LjAzMWMtLjAwNi4xNzcuMDA0LjM2My4wNi41NDUuMDI3LjA4Mi4wNzYuMTQ3LjE2Mi4xNjIuMDk2LjAxOC4xOTMuMDIuMjY3LS4wNjVhLjQ5Mi40OTIgMCAwMC4xMS0uMjcgMi44IDIuOCAwIDAwMC0uNzU2LjcyLjcyIDAgMDAtLjA2NC0uMjJjLS4wMjUtLjA0OC0uMDcyLS4xMDMtLjEyMi0uMTE4LS4xNC0uMDQ1LS4yOTItLjAxNC0uMzUyLjE2Mi0uMDYuMTc4LS4wNjUuMzYzLS4wNjIuNTZ6Ii8+PHBhdGggZmlsbD0iI0ZBRkNGRSIgZD0iTTkuNDUzIDEwLjQxN2MtLjAyNi4wMDEtLjA1Ny4wMDUtLjA4OC4wMDUtLjMzNCAwLS42NjktLjAwMy0xLjAwMy4wMDEtLjEuMDAyLS4xMjgtLjAzNi0uMTI4LS4xMjQgMC0uMDM0LS4wMDItLjA2OCAwLS4xMDIuMDA1LS4wNjQuMDI3LS4wODcuMDk1LS4wODkuMDgtLjAwMi4xNjIgMCAuMjQzIDBoLjA4OGMuMDIzLS4wNzUuMDI5LTEuMTguMDEtMS4zMi0uMDI3LjAxLS4wNTMuMDE3LS4wNzYuMDMtLjA3Mi4wNDItLjE0Mi4wODctLjIxNS4xMjdhLjI1NS4yNTUgMCAwMS0uMDguMDIzYy0uMDM3LjAwNi0uMDYzLS4wMDktLjA2NS0uMDQ4LS4wMDItLjA1OC0uMDA0LS4xMTcgMC0uMTc2LjAwMi0uMDIxLjAyLS4wNDUuMDM3LS4wNi4wMzYtLjAzLjA3NS0uMDU0LjExNC0uMDc5LjA4OC0uMDU2LjE4LS4xMDguMjY2LS4xN2EuMzk1LjM5NSAwIDAxLjI0Ni0uMDdjLjA2MS4wMDEuMTIzLjAxMi4xOTYuMDJ2MS43MTRjLjA1LjAwMy4wOS4wMDguMTMuMDA5LjA1NS4wMDEuMTEyLS4wMDIuMTY4IDAgLjA3OS4wMDMuMTA0LjAyOS4xMS4xMDhhLjMwOS4zMDkgMCAwMS0uMDQ3LjIwMWgtLjAwMXpNNy40NCA3LjMwN2guMjhjLjA5Mi4wMDEuMTEuMDE1LjExNS4xMDdhLjgwMy44MDMgMCAwMS0uMDEyLjE1NWMtLjAwNS4wMzUtLjAzLjA1My0uMDY3LjA1MmgtMS4wNGMtLjEwNSAwLS4xMTQtLjAxLS4xMjYtLjExNGEuMzM0LjMzNCAwIDAxLS4wMDMtLjAyOGMtLjAwNy0uMTU0LjAxLS4xNzIuMTYzLS4xNzJoLjIwNmMuMDYtLjAwMy4wNjktLjAxLjA3LS4wNzNWNi45MXYtLjkyYy0uMDI4LjAxLS4wNTEuMDE0LS4wNy4wMjUtLjA4LjA0Mi0uMTU3LjA4OC0uMjM3LjEzLS4wMzIuMDE2LS4wNjkuMDIzLS4xMDUuMDM1YS4zNDYuMzQ2IDAgMDEtLjAyMi0uMjQyLjEzLjEzIDAgMDEuMDUxLS4wNzJjLjEzNC0uMDkuMjY4LS4xNzguNDA1LS4yNjMuMDMyLS4wMi4wNzYtLjAyMy4xMTUtLjAzMS4wOS0uMDIuMTc3LjAxLjI3Ny4wMDhWNy4zMDd6Ii8+PHBhdGggZmlsbD0iIzI2N0FCRSIgZD0iTTcuNDg2IDkuMzg0Yy0uMDE0LjE1NS0uMDI1LjMwNi0uMDQ0LjQ1NWEuNjA3LjYwNyAwIDAxLS4wNS4xNThjLS4wMzIuMDc3LS4wOTUuMTE3LS4xOC4xMjctLjIwMi4wMjQtLjI3My0uMDc4LS4zMTQtLjI1LS4wNTUtLjIyNi0uMDUtLjQ1Ny0uMDM3LS42ODguMDA0LS4wOTMuMDA3LS4xODYuMDQtLjI3M2EuODUuODUgMCAwMS4wNjYtLjE0MmMuMDgyLS4xMzguMzItLjEyNS4zOTgtLjAyYS40My40MyAwIDAxLjA3NC4xODZjLjAyMy4xNS4wMzMuMy4wNDcuNDQ3ek04LjUxNCA2LjYxM2MtLjAwNC0uMTk4IDAtLjM4Mi4wNjEtLjU2LjA2LS4xNzYuMjEyLS4yMDcuMzUzLS4xNjMuMDQ5LjAxNi4wOTYuMDcuMTIuMTJhLjcyLjcyIDAgMDEuMDY1LjIxOSAyLjggMi44IDAgMDEwIC43NTYuNDg5LjQ4OSAwIDAxLS4xMS4yN2MtLjA3My4wODQtLjE3MS4wODItLjI2Ny4wNjUtLjA4Ni0uMDE2LS4xMzUtLjA4LS4xNi0uMTYyYTEuNjIxIDEuNjIxIDAgMDEtLjA2Mi0uNTQ1eiIvPjwvc3ZnPg=="
+  }
+}
