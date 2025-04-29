@@ -9,11 +9,11 @@ package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor.FeelInputParamExtractionException;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class FeelInputParamExtractorTest {
@@ -42,20 +42,18 @@ class FeelInputParamExtractorTest {
             "Failed to parse FEEL expression: failed to parse expression 'hello\"'");
   }
 
-  @Test
-  void throwsExceptionWhenValueIsNotAReference() {
-    assertThatThrownBy(() -> extractor.extractInputParams("fromAi(\"toolCall.myVariable\")"))
+  @ParameterizedTest
+  @CsvSource({
+    "\"toolCall.myVariable\",string 'toolCall.myVariable'",
+    "10,ConstNumber(10)",
+    "[],ConstList(List())"
+  })
+  void throwsExceptionWhenValueIsNotAReference(String parameter, String exceptionMessage) {
+    assertThatThrownBy(() -> extractor.extractInputParams("fromAi(%s)".formatted(parameter)))
         .isInstanceOf(FeelInputParamExtractionException.class)
         .hasMessageStartingWith(
-            "Expected parameter 'value' to be a reference, but got 'ConstString'");
-  }
-
-  @Test
-  void throwsExceptionWhenValueIsNotAReferenceContainingAtLeastTwoSegments() {
-    assertThatThrownBy(() -> extractor.extractInputParams("fromAi(myVariable)"))
-        .isInstanceOf(FeelInputParamExtractionException.class)
-        .hasMessageStartingWith(
-            "Expected parameter 'value' to be a reference with at least two segments (e.g. toolCall.parameter), but got: List(myVariable)");
+            "Expected parameter 'value' to be a reference (e.g. 'toolCall.customParameter'), but received "
+                + exceptionMessage);
   }
 
   @Test
@@ -65,7 +63,7 @@ class FeelInputParamExtractorTest {
                 extractor.extractInputParams("fromAi(value: toolCall.myVariable, description: 10)"))
         .isInstanceOf(FeelInputParamExtractionException.class)
         .hasMessageStartingWith(
-            "Expected parameter 'description' to be a string, but got: BigDecimal");
+            "Expected parameter 'description' to be a string, but received '10'");
   }
 
   @Test
@@ -73,7 +71,7 @@ class FeelInputParamExtractorTest {
     assertThatThrownBy(
             () -> extractor.extractInputParams("fromAi(value: toolCall.myVariable, type: 10)"))
         .isInstanceOf(FeelInputParamExtractionException.class)
-        .hasMessageStartingWith("Expected parameter 'type' to be a string, but got: BigDecimal");
+        .hasMessageStartingWith("Expected parameter 'type' to be a string, but received '10'.");
   }
 
   @Test
@@ -83,7 +81,7 @@ class FeelInputParamExtractorTest {
                 extractor.extractInputParams(
                     "fromAi(value: toolCall.myVariable, schema: \"dummy\")"))
         .isInstanceOf(FeelInputParamExtractionException.class)
-        .hasMessageStartingWith("Expected parameter 'schema' to be a map, but got: String");
+        .hasMessageStartingWith("Expected parameter 'schema' to be a map, but received 'dummy'.");
   }
 
   @Test
@@ -93,7 +91,7 @@ class FeelInputParamExtractorTest {
                 extractor.extractInputParams(
                     "fromAi(value: toolCall.myVariable, options: \"dummy\")"))
         .isInstanceOf(FeelInputParamExtractionException.class)
-        .hasMessageStartingWith("Expected parameter 'options' to be a map, but got: String");
+        .hasMessageStartingWith("Expected parameter 'options' to be a map, but received 'dummy'.");
   }
 
   static List<FeelInputParamTestCase> testFeelExpressionsWithExpectedInputParams() {
