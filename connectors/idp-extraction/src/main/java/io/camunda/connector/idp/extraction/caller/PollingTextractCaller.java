@@ -70,7 +70,8 @@ public class PollingTextractCaller {
 
     S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
 
-    LOGGER.debug("Starting polling task for document text detection with document: {}", s3Object.name());
+    LOGGER.debug(
+        "Starting polling task for document text detection with document: {}", s3Object.name());
 
     final StartDocumentTextDetectionRequest startDocumentTextDetectionRequest =
         StartDocumentTextDetectionRequest.builder()
@@ -83,7 +84,8 @@ public class PollingTextractCaller {
     List<Block> allBlocks;
     try (ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor()) {
       final String jobId = response.jobId();
-      final TextractTask firstTextractTask = prepareTextractTextDetectionTask(jobId, textractClient);
+      final TextractTask firstTextractTask =
+          prepareTextractTextDetectionTask(jobId, textractClient);
       final GetDocumentTextDetectionResponse firstDocumentResult =
           executeTextDetectionTask(firstTextractTask, 0, executorService);
 
@@ -91,7 +93,8 @@ public class PollingTextractCaller {
       boolean isAnalysisFinished = firstDocumentResult.jobStatus().equals(JobStatus.SUCCEEDED);
 
       while (!isAnalysisFinished) {
-        final TextractTask nextTextractTask = prepareTextractTextDetectionTask(jobId, textractClient);
+        final TextractTask nextTextractTask =
+            prepareTextractTextDetectionTask(jobId, textractClient);
         GetDocumentTextDetectionResponse nextDocumentResult =
             executeTextDetectionTask(nextTextractTask, DELAY_BETWEEN_POLLING, executorService);
         JobStatus newJobStatus = nextDocumentResult.jobStatus();
@@ -112,7 +115,8 @@ public class PollingTextractCaller {
     return allBlocks;
   }
 
-  private TextractTask prepareTextractTextDetectionTask(String jobId, TextractClient textractClient) {
+  private TextractTask prepareTextractTextDetectionTask(
+      String jobId, TextractClient textractClient) {
     GetDocumentTextDetectionRequest documentTextDetectionRequest =
         GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
 
