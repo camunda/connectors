@@ -22,7 +22,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     name = "Box Outbound Connector",
     description = "Interact with the Box Document API",
     inputDataClass = BoxRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),

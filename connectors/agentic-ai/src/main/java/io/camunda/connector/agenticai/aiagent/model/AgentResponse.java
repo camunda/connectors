@@ -6,10 +6,22 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
 
 public record AgentResponse(
-    AgentContext context, Map<String, Object> chatResponse, List<ToolToCall> toolsToCall) {
-  public record ToolToCall(String id, String name, Map<String, Object> input) {}
+    AgentContext context, Map<String, Object> chatResponse, List<ToolCall> toolCalls) {
+  public record ToolCall(
+      @JsonProperty("_meta") ToolCallMetadata metadata,
+      @JsonAnySetter @JsonAnyGetter Map<String, Object> arguments) {
+
+    public ToolCall(String id, String name, Map<String, Object> arguments) {
+      this(new ToolCallMetadata(id, name), arguments);
+    }
+
+    public record ToolCallMetadata(String id, String name) {}
+  }
 }

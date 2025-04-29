@@ -22,7 +22,7 @@ import io.camunda.connector.idp.extraction.service.UnstructuredService;
     engineVersion = "^8.7",
     id = "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
     name = "IDP extraction outbound Connector",
-    version = 1,
+    version = 2,
     description = "Execute IDP extraction requests",
     icon = "icon.svg",
     documentationRef = "https://docs.camunda.io/docs/guides/",

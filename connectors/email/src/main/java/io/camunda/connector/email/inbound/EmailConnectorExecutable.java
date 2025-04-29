@@ -21,7 +21,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     id = "io.camunda.connectors.email",
     name = "Email Event Connector",
     icon = "icon.svg",
-    version = 1,
+    version = 2,
     inputDataClass = EmailInboundConnectorProperties.class,
     description = "Consume emails",
     metadata = @ElementTemplate.Metadata(keywords = {"email received"}),

@@ -44,6 +44,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
+import io.grpc.Status;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
@@ -92,6 +93,19 @@ public class InboundWebhookRestController {
       case String s -> HtmlUtils.htmlEscape(s);
       case null, default -> value;
     };
+  }
+
+  private static io.camunda.connector.api.inbound.webhook.Part mapToCamundaPart(Part part) {
+    try {
+      return new io.camunda.connector.api.inbound.webhook.Part(
+          part.getName(),
+          part.getSubmittedFileName(),
+          part.getInputStream(),
+          part.getContentType());
+    } catch (IOException e) {
+      LOG.warn("Failed to process part: {}", part.getName(), e);
+      return null;
+    }
   }
 
   @RequestMapping(
@@ -201,6 +215,24 @@ public class InboundWebhookRestController {
     ResponseEntity<?> response;
     if (failure instanceof CorrelationResult.Failure.Other) {
       response = ResponseEntity.internalServerError().build();
+    } else if (failure instanceof CorrelationResult.Failure.ZeebeClientStatus zeebeClientStatus) {
+      response =
+          switch (Status.Code.valueOf(zeebeClientStatus.status())) {
+            case CANCELLED -> ResponseEntity.status(499).body(failure);
+            case UNKNOWN, INTERNAL, DATA_LOSS -> ResponseEntity.status(500).body(failure);
+            case INVALID_ARGUMENT -> ResponseEntity.status(400).body(failure);
+            case DEADLINE_EXCEEDED -> ResponseEntity.status(504).body(failure);
+            case NOT_FOUND -> ResponseEntity.status(404).body(failure);
+            case ALREADY_EXISTS, ABORTED -> ResponseEntity.status(409).body(failure);
+            case PERMISSION_DENIED -> ResponseEntity.status(403).body(failure);
+            case RESOURCE_EXHAUSTED -> ResponseEntity.status(429).body(failure);
+            case FAILED_PRECONDITION -> ResponseEntity.status(412).body(failure);
+            case OUT_OF_RANGE -> ResponseEntity.status(416).body(failure);
+            case UNIMPLEMENTED -> ResponseEntity.status(501).body(failure);
+            case UNAVAILABLE -> ResponseEntity.status(503).body(failure);
+            case UNAUTHENTICATED -> ResponseEntity.status(401).body(failure);
+            default -> ResponseEntity.unprocessableEntity().body(failure);
+          };
     } else {
       response = ResponseEntity.unprocessableEntity().body(failure);
     }
@@ -267,19 +299,6 @@ public class InboundWebhookRestController {
       LOG.error("Size limits are exceeded or no multipart configuration is provided", e);
       throw new RuntimeException(
           "Size limits are exceeded or no multipart configuration is provided", e);
-    }
-  }
-
-  private static io.camunda.connector.api.inbound.webhook.Part mapToCamundaPart(Part part) {
-    try {
-      return new io.camunda.connector.api.inbound.webhook.Part(
-          part.getName(),
-          part.getSubmittedFileName(),
-          part.getInputStream(),
-          part.getContentType());
-    } catch (IOException e) {
-      LOG.warn("Failed to process part: {}", part.getName(), e);
-      return null;
     }
   }
 

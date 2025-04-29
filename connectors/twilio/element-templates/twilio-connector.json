@@ -2,8 +2,8 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Twilio Outbound Connector",
   "id": "io.camunda.connectors.Twilio.v1",
-  "version": 4,
-  "engines":{
+  "version": 5,
+  "engines": {
     "camunda": "^8.3"
   },
   "description": "Send SMS messages or retrieve message information using the Twilio API",
@@ -549,27 +549,28 @@
       }
     },
     {
-      "id" : "version",
-      "label" : "Version",
-      "description" : "Version of the element template",
-      "value" : "4",
-      "group" : "connector",
-      "binding" : {
-        "key" : "elementTemplateVersion",
-        "type" : "zeebe:taskHeader"
+      "id": "version",
+      "label": "Version",
+      "description": "Version of the element template",
+      "value": "5",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateVersion",
+        "type": "zeebe:taskHeader"
       },
-      "type" : "Hidden"
-    }, {
-      "id" : "id",
-      "label" : "ID",
-      "description" : "ID of the element template",
-      "value" : "io.camunda.connectors.Twilio.v1",
-      "group" : "connector",
-      "binding" : {
-        "key" : "elementTemplateId",
-        "type" : "zeebe:taskHeader"
+      "type": "Hidden"
+    },
+    {
+      "id": "id",
+      "label": "ID",
+      "description": "ID of the element template",
+      "value": "io.camunda.connectors.Twilio.v1",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateId",
+        "type": "zeebe:taskHeader"
       },
-      "type" : "Hidden"
+      "type": "Hidden"
     }
   ]
 }

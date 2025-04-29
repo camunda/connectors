@@ -35,7 +35,7 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
               "ocr"
             }),
     inputDataClass = TextractRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

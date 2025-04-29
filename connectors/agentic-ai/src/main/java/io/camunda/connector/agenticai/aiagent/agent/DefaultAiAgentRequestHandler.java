@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.TextContent;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -15,6 +17,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
+import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.memory.AgentContextChatMemoryStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -23,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -37,14 +41,20 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
   private final ToolCallingHandler toolCallingHandler;
+  private final ToolCallResultConverter toolCallResultConverter;
+  private final CamundaDocumentToContentConverter documentConverter;
 
   public DefaultAiAgentRequestHandler(
       ObjectMapper objectMapper,
       ChatModelFactory chatModelFactory,
-      ToolCallingHandler toolCallingHandler) {
+      ToolCallingHandler toolCallingHandler,
+      ToolCallResultConverter toolCallResultConverter,
+      CamundaDocumentToContentConverter documentConverter) {
     this.objectMapper = objectMapper;
     this.chatModelFactory = chatModelFactory;
     this.toolCallingHandler = toolCallingHandler;
+    this.toolCallResultConverter = toolCallResultConverter;
+    this.documentConverter = documentConverter;
   }
 
   @Override
@@ -93,9 +103,9 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     chatMemory.add(aiMessage);
 
     // extract tool call requests from LLM response
-    final var toolsToCall = toolCallingHandler.extractToolsToCall(toolSpecifications, aiMessage);
+    final var toolCalls = toolCallingHandler.extractToolCalls(toolSpecifications, aiMessage);
     final var nextAgentState =
-        !toolsToCall.isEmpty() ? AgentState.WAITING_FOR_TOOL_INPUT : AgentState.READY;
+        !toolCalls.isEmpty() ? AgentState.WAITING_FOR_TOOL_INPUT : AgentState.READY;
 
     // update context
     final var updatedContext =
@@ -108,7 +118,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
                     .incrementModelCalls(1)
                     .incrementTokenUsage(AgentMetrics.TokenUsage.from(chatResponse.tokenUsage())));
 
-    return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolsToCall);
+    return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolCalls);
   }
 
   private void checkGuardrails(
@@ -139,12 +149,22 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
             "Agent is waiting for tool input, but tool call results were empty");
       }
 
-      toolCallingHandler
-          .toolCallResultsAsToolExecutionResultMessages(toolCallResults)
+      toolCallResults.stream()
+          .map(toolCallResultConverter::asToolExecutionResultMessage)
           .forEach(chatMemory::add);
     } else {
       // feed messages with the user input message (first iteration or user follow-up request)
-      chatMemory.add(promptFromConfiguration(requestData.userPrompt()).toUserMessage());
+      final var userPrompt = requestData.userPrompt();
+      final var userMessageBuilder =
+          UserMessage.builder()
+              .addContent(new TextContent(promptFromConfiguration(userPrompt).text()));
+
+      // add documents as content blocks
+      Optional.ofNullable(userPrompt.documents())
+          .orElseGet(Collections::emptyList)
+          .forEach(document -> userMessageBuilder.addContent(documentConverter.convert(document)));
+
+      chatMemory.add(userMessageBuilder.build());
     }
   }
 

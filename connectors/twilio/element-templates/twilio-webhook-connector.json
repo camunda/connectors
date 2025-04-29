@@ -2,8 +2,8 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Twilio Start Event Connector",
   "id": "io.camunda.connectors.TwilioWebhook.v1",
-  "version": 2,
-  "engines":{
+  "version": 3,
+  "engines": {
     "camunda": "^8.3"
   },
   "description": "Receive incoming message with Twilio service",
