@@ -20,6 +20,7 @@ import static io.camunda.connector.document.jackson.deserializer.Deserialization
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.intrinsic.IntrinsicFunctionExecutor;
@@ -32,7 +33,10 @@ public class InputStreamDeserializer extends AbstractDeserializer<InputStream> {
   private final IntrinsicFunctionExecutor operationExecutor;
 
   public InputStreamDeserializer(
-      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+      DocumentFactory documentFactory,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
+      DocumentModuleSettings settings) {
+    super(settings);
     this.documentFactory = documentFactory;
     this.operationExecutor = intrinsicFunctionExecutor;
   }
@@ -42,19 +46,20 @@ public class InputStreamDeserializer extends AbstractDeserializer<InputStream> {
       throws IOException {
     if (isDocumentReference(node)) {
       final var document =
-          new DocumentDeserializer(documentFactory, operationExecutor)
+          new DocumentDeserializer(documentFactory, operationExecutor, settings)
               .handleJsonNode(node, context);
       return document.asInputStream();
     }
-    if (DeserializationUtil.isOperation(node)) {
-      final var operationResult =
-          new IntrinsicFunctionObjectResultDeserializer(operationExecutor)
+    if (DeserializationUtil.isIntrinsicFunction(node)) {
+      // counter is decremented in the function deserializer
+      final var functionResult =
+          new IntrinsicFunctionObjectResultDeserializer(operationExecutor, settings)
               .handleJsonNode(node, context);
-      if (operationResult instanceof Document document) {
+      if (functionResult instanceof Document document) {
         return document.asInputStream();
       }
       throw new IllegalArgumentException(
-          "Unsupported operation result, expected a document, got: " + operationResult);
+          "Unsupported operation result, expected a document, got: " + functionResult);
     }
     throw new IllegalArgumentException(
         "Node cannot be deserialized as InputStream, expected either a document reference or an operation, got: "

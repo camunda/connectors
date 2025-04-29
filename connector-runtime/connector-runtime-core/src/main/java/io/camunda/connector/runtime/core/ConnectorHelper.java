@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.error.BpmnError;
@@ -31,6 +32,7 @@ import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -39,6 +41,8 @@ public class ConnectorHelper {
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
   public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
   public static ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+
+  public static List<String> FORBIDDEN_LITERALS = List.of(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
 
   /**
    * @return a map with output process variables for a given response from an {@link
@@ -59,9 +63,14 @@ public class ConnectorHelper {
       var mappedResponseJson =
           FEEL_ENGINE_WRAPPER.evaluateToJson(
               resultExpression, responseContent, wrapResponse(responseContent));
-      var mappedResponse =
-          parseJsonVarsAsTypeOrThrow(mappedResponseJson, Map.class, resultExpression);
-      outputVariables.putAll(mappedResponse);
+      if (mappedResponseJson != null) {
+        verifyNoForbiddenLiterals(mappedResponseJson);
+        var mappedResponse =
+            parseJsonVarsAsTypeOrThrow(mappedResponseJson, Map.class, resultExpression);
+        if (mappedResponse != null) {
+          outputVariables.putAll(mappedResponse);
+        }
+      }
     }
 
     return outputVariables;
@@ -115,5 +124,19 @@ public class ConnectorHelper {
           jsonVars,
           e);
     }
+  }
+
+  private static void verifyNoForbiddenLiterals(String json) {
+    FORBIDDEN_LITERALS.forEach(
+        literal -> {
+          if (json.contains(literal)) {
+            throw new ConnectorInputException(
+                new FeelEngineWrapperException(
+                    String.format(
+                        "The connector result contains a forbidden literal '%s'.", literal),
+                    literal,
+                    json));
+          }
+        });
   }
 }
