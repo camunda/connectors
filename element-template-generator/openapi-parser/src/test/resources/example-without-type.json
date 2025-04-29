@@ -1,0 +1,51 @@
+{
+  "openapi":"3.1.0", "info":{"title":"Web Modeler REST API", "version":"6ad2448"},
+  "servers":[{"url":"https://modeler.camunda.io", "description":"Generated server url"}], "paths":{
+  "/api/v1/milestones/{milestoneId}/restore":{
+    "post":{
+      "tags":["Milestones"], "description":"Deprecated. Use the corresponding version endpoint instead.",
+      "operationId":"restoreMilestone",
+      "parameters":[
+        {
+          "name":"milestoneId", "in":"path", "required":true,
+          "schema":{"format":"uuid", "example":"dafffde6-2b49-4b1c-9c28-e22b1b1377a9"}
+        }
+      ], "responses":{
+        "200":{
+          "description":"OK",
+          "content":{"application/json":{"schema":{"$ref":"#/components/schemas/MilestoneMetadataDto"}}}
+        }, "403":{
+          "description":"Forbidden", "content":{
+            "application/json":{
+              "example":"{\n\"type\":\"about:blank\",\n\"title\":\"Forbidden\",\n\"status\":403,\n\"detail\":\"Operation not allowed.\",\n\"instance\":\"/api/v1/resource/id\"\n}"
+            }
+          }
+        }, "404":{
+          "description":"Not Found", "content":{
+            "application/json":{
+              "example":"{\n\"type\":\"about:blank\",\n\"title\":\"Not Found\",\n\"status\":404,\n\"detail\":\"Resource not found.\",\n\"instance\":\"/api/v1/resource/id\"\n}"
+            }
+          }
+        }, "500":{
+          "description":"Internal Server Error", "content":{
+            "application/json":{
+              "example":"{\n\"type\":\"about:blank\",\n\"title\":\"Internal Server Error\",\n\"status\":500,\n\"detail\":\"Unexpected error while processing request.\",\n\"instance\":\"/api/v1/resource/id\"\n}"
+            }
+          }
+        }
+      }
+    }
+  }
+}, "components":{
+  "schemas":{
+    "UserDto":{"type":"object", "properties":{"name":{"type":"string"}, "email":{"type":"string"}}},
+    "MilestoneMetadataDto":{
+      "type":"object", "deprecated":true, "properties":{
+        "id":{"type":"string"}, "name":{"type":"string"}, "fileId":{"type":"string"}, "created":{"type":"string"},
+        "createdBy":{"$ref":"#/components/schemas/UserDto"}, "updated":{"type":"string"},
+        "updatedBy":{"$ref":"#/components/schemas/UserDto"}, "organizationPublic":{"type":"boolean"}
+      }
+    }
+  }
+}
+}
