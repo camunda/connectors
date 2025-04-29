@@ -16,12 +16,15 @@
  */
 package io.camunda.connector.e2e;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.DeploymentEvent;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +44,30 @@ public class ZeebeTest {
 
   public static ZeebeTest with(CamundaClient camundaClient) {
     return new ZeebeTest(camundaClient);
+  }
+
+  public ZeebeTest awaitCompleteTopology() {
+    return awaitCompleteTopology(1, 1, 1, Duration.ofSeconds(10));
+  }
+
+  public ZeebeTest awaitCompleteTopology(
+      final int clusterSize,
+      final int partitionCount,
+      final int replicationFactor,
+      final Duration timeout) {
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(timeout)
+        .untilAsserted(
+            () -> {
+              final var topology = camundaClient.newTopologyRequest().send().join();
+              assertEquals(clusterSize, topology.getClusterSize());
+              assertEquals(clusterSize, topology.getBrokers().size());
+              assertEquals(partitionCount, topology.getPartitionsCount());
+              assertEquals(replicationFactor, topology.getReplicationFactor());
+            });
+    return this;
   }
 
   public ZeebeTest deploy(BpmnModelInstance bpmnModelInstance) {
