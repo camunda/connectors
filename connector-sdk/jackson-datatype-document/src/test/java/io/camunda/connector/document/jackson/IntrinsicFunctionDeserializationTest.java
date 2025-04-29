@@ -23,8 +23,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.CamundaDocumentStore;
@@ -53,9 +55,11 @@ public class IntrinsicFunctionDeserializationTest {
     IntrinsicFunctionExecutor operationExecutor =
         spy(new DefaultIntrinsicFunctionExecutor(objectMapper));
 
+    final var settings = DocumentModuleSettings.create();
+    settings.setMaxIntrinsicFunctions(2);
     final DocumentFactory factory = new DocumentFactoryImpl(documentStore);
     objectMapper
-        .registerModule(new JacksonModuleDocumentDeserializer(factory, operationExecutor))
+        .registerModule(new JacksonModuleDocumentDeserializer(factory, operationExecutor, settings))
         .registerModule(new JacksonModuleDocumentSerializer())
         .registerModule(new Jdk8Module());
   }
@@ -173,5 +177,64 @@ public class IntrinsicFunctionDeserializationTest {
 
     final var result = objectMapper.convertValue(payload, StringResultModel.class);
     assertThat(result.result).isEqualTo(objectMapper.writeValueAsString(contentString));
+  }
+
+  @Test
+  void intrinsicFunctionLimit_Wide() {
+    var payload =
+        """
+        {
+          "result": [
+            {
+              "camunda.function.type": "test_concat",
+              "params": [ "Hello", " World" ]
+            },
+            {
+              "camunda.function.type": "test_concat",
+              "params": [ "Hello", " World" ]
+            },
+            {
+              "camunda.function.type": "test_concat",
+              "params": [ "Hello", " World" ]
+            }
+          ]
+        }
+        """;
+
+    var exception =
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(payload, Map.class));
+
+    assertThat(exception).hasMessageContaining("Intrinsic function limit exceeded");
+  }
+
+  @Test
+  void intrinsicFunctionLimit_Deep() {
+    var payload =
+        """
+        {
+          "result": {
+            "camunda.function.type": "test_concat",
+            "params": [
+              {
+                "camunda.function.type": "test_concat",
+                "params": [
+                  {
+                    "camunda.function.type": "test_concat",
+                    "params": [
+                      "Hello",
+                      { "camunda.function.type": "test_concat", "params": ["Hello", " World"] }
+                    ]
+                  }, " World"
+                ]
+              }, " World"
+            ]
+          }
+        }
+        """;
+
+    var exception =
+        assertThrows(JsonMappingException.class, () -> objectMapper.readValue(payload, Map.class));
+
+    assertThat(exception).hasMessageContaining("Intrinsic function limit exceeded");
   }
 }

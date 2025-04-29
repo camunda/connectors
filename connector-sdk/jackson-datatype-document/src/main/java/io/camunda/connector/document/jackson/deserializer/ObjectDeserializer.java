@@ -17,11 +17,12 @@
 package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
-import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isOperation;
+import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isIntrinsicFunction;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
@@ -31,14 +32,17 @@ import java.util.LinkedHashMap;
 public class ObjectDeserializer extends AbstractDeserializer<Object> {
 
   private final DocumentDeserializer documentDeserializer;
-  private final IntrinsicFunctionObjectResultDeserializer operationDeserializer;
+  private final IntrinsicFunctionObjectResultDeserializer functionDeserializer;
 
   public ObjectDeserializer(
-      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+      DocumentFactory documentFactory,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
+      DocumentModuleSettings settings) {
+    super(settings);
     this.documentDeserializer =
-        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor);
-    this.operationDeserializer =
-        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor);
+        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor, settings);
+    this.functionDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor, settings);
   }
 
   @Override
@@ -48,9 +52,10 @@ public class ObjectDeserializer extends AbstractDeserializer<Object> {
       // return Document object
       return documentDeserializer.handleJsonNode(node, context);
     }
-    if (isOperation(node)) {
-      // return the result of the operation, type is irrelevant since the caller expects an Object
-      return operationDeserializer.handleJsonNode(node, context);
+    if (isIntrinsicFunction(node)) {
+      // return the result of the function, type is irrelevant since the caller expects an Object
+      // limit counter is decremented in the function deserializer
+      return functionDeserializer.handleJsonNode(node, context);
     }
     // fallback deserialization
     return fallback(node, context);
