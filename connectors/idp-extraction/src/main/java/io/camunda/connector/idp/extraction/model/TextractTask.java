@@ -8,8 +8,6 @@ package io.camunda.connector.idp.extraction.model;
 
 import java.util.concurrent.Callable;
 import software.amazon.awssdk.services.textract.TextractClient;
-import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisRequest;
-import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisResponse;
 import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionRequest;
 import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionResponse;
 
@@ -20,7 +18,7 @@ public class TextractTask implements Callable<GetDocumentTextDetectionResponse> 
   private final TextractClient textractClient;
 
   public TextractTask(
-          GetDocumentTextDetectionRequest documentAnalysisRequest, TextractClient textractClient) {
+      GetDocumentTextDetectionRequest documentAnalysisRequest, TextractClient textractClient) {
     this.docAnalysisReq = documentAnalysisRequest;
     this.textractClient = textractClient;
   }
