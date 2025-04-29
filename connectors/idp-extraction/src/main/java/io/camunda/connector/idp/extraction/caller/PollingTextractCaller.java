@@ -14,6 +14,7 @@ import io.camunda.connector.idp.extraction.model.TextractTask;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
 import io.camunda.document.Document;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -165,7 +166,70 @@ public class PollingTextractCaller {
               confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
             });
 
+    // Extract table data
+    blocks.stream()
+        .filter(
+            block ->
+                block.blockType().equals(BlockType.TABLE)
+                    && block.entityTypes().contains(EntityType.STRUCTURED_TABLE))
+        .forEach(tableBlock -> processTable(tableBlock, blockMap, keyValuePairs, confidenceScores));
+
     return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
+  }
+
+  private void processTable(
+      Block tableBlock,
+      Map<String, Block> blockMap,
+      Map<String, String> keyValuePairs,
+      Map<String, Float> confidenceScores) {
+
+    if (tableBlock.relationships() == null) {
+      return;
+    }
+
+    // Get all cells in the table
+    List<Block> cells =
+        tableBlock.relationships().stream()
+            .filter(relation -> relation.type().equals(RelationshipType.CHILD))
+            .flatMap(relation -> relation.ids().stream())
+            .map(blockMap::get)
+            .filter(block -> block.blockType().equals(BlockType.CELL))
+            .toList();
+
+    // Identify header row cells (typically the first row)
+    List<Block> headerCells =
+        cells.stream()
+            .filter(cell -> cell.rowIndex() == 1)
+            .sorted(Comparator.comparingInt(Block::columnIndex))
+            .toList();
+
+    // Process each header
+    for (Block headerCell : headerCells) {
+      String headerText = getTextFromRelationships(headerCell, blockMap);
+      if (headerText.isEmpty() || keyValuePairs.containsKey(headerText)) continue;
+
+      // Process data cells for this column
+      int columnIndex = headerCell.columnIndex();
+      List<Block> columnCells =
+          cells.stream()
+              .filter(cell -> cell.columnIndex() == columnIndex && cell.rowIndex() > 1)
+              .sorted(Comparator.comparingInt(Block::rowIndex))
+              .toList();
+
+      // Check if the header already exists in keyValuePairs
+      if (!columnCells.isEmpty()) {
+        int counter = 1;
+        for (Block dataCell : columnCells) {
+          String cellValue = getTextFromRelationships(dataCell, blockMap);
+          if (!cellValue.isEmpty()) {
+            String key = "table " + headerText + " " + counter;
+            keyValuePairs.put(key, cellValue);
+            confidenceScores.put(key, dataCell.confidence() / 100);
+            counter++;
+          }
+        }
+      }
+    }
   }
 
   private String getTextFromRelationships(Block block, Map<String, Block> blockMap) {
