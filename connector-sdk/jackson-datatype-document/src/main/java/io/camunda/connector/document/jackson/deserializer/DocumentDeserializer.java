@@ -17,12 +17,13 @@
 package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
-import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isOperation;
+import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isIntrinsicFunction;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.intrinsic.IntrinsicFunctionExecutor;
@@ -35,14 +36,17 @@ import java.util.List;
  */
 public class DocumentDeserializer extends AbstractDeserializer<Document> {
 
-  private final IntrinsicFunctionObjectResultDeserializer operationDeserializer;
+  private final IntrinsicFunctionObjectResultDeserializer intrinsicFunctionDeserializer;
   private final DocumentFactory documentFactory;
 
   public DocumentDeserializer(
-      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+      DocumentFactory documentFactory,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
+      DocumentModuleSettings settings) {
+    super(settings);
     this.documentFactory = documentFactory;
-    this.operationDeserializer =
-        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor);
+    this.intrinsicFunctionDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor, settings);
   }
 
   @Override
@@ -63,13 +67,14 @@ public class DocumentDeserializer extends AbstractDeserializer<Document> {
             "Cant bind a multi element document array to a single document.");
       }
     }
-    if (isOperation(node)) {
-      final Object operationResult = operationDeserializer.handleJsonNode(node, context);
-      if (operationResult instanceof Document) {
-        return (Document) operationResult;
+    if (isIntrinsicFunction(node)) {
+      // counter is decremented in the function deserializer
+      final Object functionResult = intrinsicFunctionDeserializer.handleJsonNode(node, context);
+      if (functionResult instanceof Document) {
+        return (Document) functionResult;
       }
       throw new IllegalArgumentException(
-          "Unsupported operation result, expected a document, got: " + operationResult);
+          "Unsupported operation result, expected a document, got: " + functionResult);
     }
     throw new IllegalArgumentException(
         "Unsupported node format, expected either a document reference or an operation, got: "
