@@ -70,35 +70,30 @@ public class PollingTextractCaller {
 
     S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
 
-    LOGGER.debug("Starting polling task for document analysis with document: {}", s3Object.name());
+    LOGGER.debug("Starting polling task for document text detection with document: {}", s3Object.name());
 
-    List<FeatureType> featureTypes = new ArrayList<>();
-    featureTypes.add(FeatureType.FORMS);
-    featureTypes.add(FeatureType.TABLES);
-
-    final StartDocumentAnalysisRequest startDocumentAnalysisRequest =
-        StartDocumentAnalysisRequest.builder()
-            .featureTypes(featureTypes)
+    final StartDocumentTextDetectionRequest startDocumentTextDetectionRequest =
+        StartDocumentTextDetectionRequest.builder()
             .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
             .build();
 
-    final StartDocumentAnalysisResponse response =
-        textractClient.startDocumentAnalysis(startDocumentAnalysisRequest);
+    final StartDocumentTextDetectionResponse response =
+        textractClient.startDocumentTextDetection(startDocumentTextDetectionRequest);
 
     List<Block> allBlocks;
     try (ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor()) {
       final String jobId = response.jobId();
-      final TextractTask firstTextractTask = prepareTextractTask(jobId, textractClient);
-      final GetDocumentAnalysisResponse firstDocumentResult =
-          executeTask(firstTextractTask, 0, executorService);
+      final TextractTask firstTextractTask = prepareTextractTextDetectionTask(jobId, textractClient);
+      final GetDocumentTextDetectionResponse firstDocumentResult =
+          executeTextDetectionTask(firstTextractTask, 0, executorService);
 
       allBlocks = new ArrayList<>(firstDocumentResult.blocks());
       boolean isAnalysisFinished = firstDocumentResult.jobStatus().equals(JobStatus.SUCCEEDED);
 
       while (!isAnalysisFinished) {
-        final TextractTask nextTextractTask = prepareTextractTask(jobId, textractClient);
-        GetDocumentAnalysisResponse nextDocumentResult =
-            executeTask(nextTextractTask, DELAY_BETWEEN_POLLING, executorService);
+        final TextractTask nextTextractTask = prepareTextractTextDetectionTask(jobId, textractClient);
+        GetDocumentTextDetectionResponse nextDocumentResult =
+            executeTextDetectionTask(nextTextractTask, DELAY_BETWEEN_POLLING, executorService);
         JobStatus newJobStatus = nextDocumentResult.jobStatus();
 
         switch (newJobStatus) {
@@ -117,16 +112,16 @@ public class PollingTextractCaller {
     return allBlocks;
   }
 
-  private TextractTask prepareTextractTask(String jobId, TextractClient textractClient) {
-    GetDocumentAnalysisRequest documentAnalysisRequest =
-        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+  private TextractTask prepareTextractTextDetectionTask(String jobId, TextractClient textractClient) {
+    GetDocumentTextDetectionRequest documentTextDetectionRequest =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
 
-    return new TextractTask(documentAnalysisRequest, textractClient);
+    return new TextractTask(documentTextDetectionRequest, textractClient);
   }
 
-  private GetDocumentAnalysisResponse executeTask(
+  private GetDocumentTextDetectionResponse executeTextDetectionTask(
       TextractTask task, long delay, ScheduledExecutorService executorService) throws Exception {
-    ScheduledFuture<GetDocumentAnalysisResponse> nextDocumentResultFuture =
+    ScheduledFuture<GetDocumentTextDetectionResponse> nextDocumentResultFuture =
         executorService.schedule(task, delay, SECONDS);
     return nextDocumentResultFuture.get();
   }
