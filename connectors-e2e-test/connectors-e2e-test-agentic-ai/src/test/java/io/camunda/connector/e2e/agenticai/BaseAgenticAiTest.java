@@ -60,7 +60,8 @@ public abstract class BaseAgenticAiTest {
   protected ZeebeTest deployModel() throws IOException {
     final var model = Bpmn.readModelFromFile(process.getFile());
 
-    ZeebeTest zeebeTest = ZeebeTest.with(camundaClient).deploy(model);
+    ZeebeTest zeebeTest = ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
+
     await()
         .pollInSameThread()
         .atMost(Duration.ofSeconds(10))

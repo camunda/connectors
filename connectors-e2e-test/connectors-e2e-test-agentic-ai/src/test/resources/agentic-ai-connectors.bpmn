@@ -144,7 +144,7 @@
     <bpmn:serviceTask id="AI_Agent" name="AI Agent" zeebe:modelerTemplate="io.camunda.connectors.agenticai.aiagent.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iaWNvbiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5jbHMtMSB7CiAgICAgICAgZmlsbDogbm9uZTsKICAgICAgfQoKICAgICAgLmNscy0xLCAuY2xzLTIgewogICAgICAgIHN0cm9rZS13aWR0aDogMHB4OwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Im0yNywxOWMxLjY1NDMsMCwzLTEuMzQ1NywzLTNzLTEuMzQ1Ny0zLTMtM2MtMS4zMDIsMC0yLjQwMTYuODM4NC0yLjgxNTcsMmgtNS43NzAzbDcuMzAwOC03LjMwMDhjLjM5MTEuMTg3NS44MjM1LjMwMDgsMS4yODUyLjMwMDgsMS42NTQzLDAsMy0xLjM0NTcsMy0zcy0xLjM0NTctMy0zLTMtMywxLjM0NTctMywzYzAsLjQ2MTkuMTEzNS44OTQuMzAwNSwxLjI4NTJsLTguMzAwNSw4LjMwMDh2LTYuNTg1OWMwLTEuMTAyNS44OTctMiwyLTJoMnYtMmgtMmMtMS4yMDAyLDAtMi4yNjYxLjU0MjUtMywxLjM4MjMtLjczMzktLjgzOTgtMS43OTk4LTEuMzgyMy0zLTEuMzgyM2gtMWMtNC45NjI0LDAtOSw0LjAzNzEtOSw5djZjMCw0Ljk2MjksNC4wMzc2LDksOSw5aDFjMS4yMDAyLDAsMi4yNjYxLS41NDI1LDMtMS4zODIzLjczMzkuODM5OCwxLjc5OTgsMS4zODIzLDMsMS4zODIzaDJ2LTJoLTJjLTEuMTAzLDAtMi0uODk3NS0yLTJ2LTYuNTg1OWw4LjMwMDUsOC4zMDA4Yy0uMTg3LjM5MTEtLjMwMDUuODIzMi0uMzAwNSwxLjI4NTIsMCwxLjY1NDMsMS4zNDU3LDMsMywzczMtMS4zNDU3LDMtMy0xLjM0NTctMy0zLTNjLS40NjE3LDAtLjg5NC4xMTMzLTEuMjg1Mi4zMDA4bC03LjMwMDgtNy4zMDA4aDUuNzcwM2MuNDE0MSwxLjE2MTYsMS41MTM3LDIsMi44MTU3LDJabTAtNGMuNTUxMywwLDEsLjQ0ODIsMSwxcy0uNDQ4NywxLTEsMS0xLS40NDgyLTEtMSwuNDQ4Ny0xLDEtMVptMC0xMWMuNTUxNSwwLDEsLjQ0ODcsMSwxcy0uNDQ4NSwxLTEsMS0xLS40NDg3LTEtMSwuNDQ4NS0xLDEtMVptLTEzLDhoLTJ2MmgydjRoLTJjLTEuNjU0MywwLTMsMS4zNDU3LTMsM3YyaDJ2LTJjMC0uNTUxOC40NDg3LTEsMS0xaDJ2NGMwLDEuMTAyNS0uODk3LDItMiwyaC0xYy0zLjUxOTUsMC02LjQzMjQtMi42MTMzLTYuOTIwMi02aDEuOTIwMnYtMmgtMnYtNGgzYzEuNjU0MywwLDMtMS4zNDU3LDMtM3YtMmgtMnYyYzAsLjU1MTgtLjQ0ODcsMS0xLDFoLTIuOTIwMmMuNDg3OC0zLjM4NjcsMy40MDA2LTYsNi45MjAyLTZoMWMxLjEwMywwLDIsLjg5NzUsMiwydjRabTE0LDE1YzAsLjU1MTMtLjQ0ODUsMS0xLDFzLTEtLjQ0ODctMS0xLC40NDg1LTEsMS0xLDEsLjQ0ODcsMSwxWiIvPgogIDxyZWN0IGlkPSJfVHJhbnNwYXJlbnRfUmVjdGFuZ2xlXyIgZGF0YS1uYW1lPSImYW1wO2x0O1RyYW5zcGFyZW50IFJlY3RhbmdsZSZhbXA7Z3Q7IiBjbGFzcz0iY2xzLTEiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIvPgo8L3N2Zz4=">
       <bpmn:documentation>My superpowered AI agent</bpmn:documentation>
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="io.camunda.agenticai:aiagent:0" retries="0" />
+        <zeebe:taskDefinition type="io.camunda.agenticai:aiagent:0" retries="3" />
         <zeebe:ioMapping>
           <zeebe:input source="openai" target="provider.type" />
           <zeebe:input source="gpt-4o" target="provider.openai.model.model" />
@@ -164,7 +164,7 @@
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="resultVariable" value="agent" />
-          <zeebe:header key="retryBackoff" value="PT0S" />
+          <zeebe:header key="retryBackoff" value="PT1S" />
         </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_13mqgrx</bpmn:incoming>
