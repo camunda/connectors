@@ -27,6 +27,7 @@
     <module>http</module>
     <module>jdbc</module>
     <module>kafka</module>
+    <module>microsoft/azure-blobstorage</module>
     <module>microsoft-teams</module>
     <module>camunda-message</module>
     <module>rabbitmq</module>
