@@ -46,8 +46,8 @@ public class DefaultInstancesUrlBuilderTest {
 
     // then
     assertThat(urls).hasSize(2);
-    assertThat(urls.get(0)).isEqualTo("https://10.0.0.10:8080/test/path");
-    assertThat(urls.get(1)).isEqualTo("https://10.0.0.11:8080/test/path");
+    assertThat(urls.get(0)).isEqualTo("http://10.0.0.10:8080/test/path");
+    assertThat(urls.get(1)).isEqualTo("http://10.0.0.11:8080/test/path");
   }
 
   @Test
