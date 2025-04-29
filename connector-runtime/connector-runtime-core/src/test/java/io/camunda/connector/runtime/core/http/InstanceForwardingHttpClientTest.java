@@ -64,7 +64,7 @@ public class InstanceForwardingHttpClientTest {
                             .uri()
                             .toString()
                             .equals(
-                                "https://"
+                                "http://"
                                     + IP_1
                                     + ":8080/test/path?queryParam1=value1&queryParam2=value2")
                         && request.method().equals("GET")
@@ -84,7 +84,7 @@ public class InstanceForwardingHttpClientTest {
                             .uri()
                             .toString()
                             .equals(
-                                "https://"
+                                "http://"
                                     + IP_2
                                     + ":8080/test/path?queryParam1=value1&queryParam2=value2")
                         && request.method().equals("GET")
