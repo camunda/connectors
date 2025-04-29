@@ -30,7 +30,7 @@ import java.util.HashMap;
         " A large language model (LLM) created by Google AI. It's a multimodal model, meaning it can understand"
             + " and work with different types of information like text, code, audio, images, and video",
     inputDataClass = GeminiRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "input", label = "Configure input")

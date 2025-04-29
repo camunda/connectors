@@ -26,7 +26,20 @@ public class EmbeddingsVectorDBRequestFixture {
   public static EmbeddingsVectorDBRequest createDefaultEmbedOperation() {
     final var operation =
         new EmbedDocumentOperation(
-            List.of(CamundaDocumentFixture.inMemoryDocument()),
+            List.of(CamundaDocumentFixture.inMemoryTxtDocument()),
+            DocumentSplitterFixture.noopDocumentSplitter());
+    final var embeddingModeProvider =
+        EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel();
+    final var vectorStore = EmbeddingsVectorStoreFixture.createAmazonManagedOpenVectorStore();
+    final var request =
+        new EmbeddingsVectorDBRequest(operation, embeddingModeProvider, vectorStore);
+    return request;
+  }
+
+  public static EmbeddingsVectorDBRequest createEmbedOperationWithPdfFile() {
+    final var operation =
+        new EmbedDocumentOperation(
+            List.of(CamundaDocumentFixture.inMemoryPdfDocument()),
             DocumentSplitterFixture.noopDocumentSplitter());
     final var embeddingModeProvider =
         EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel();

@@ -47,8 +47,98 @@
       }
     },
     {
+      "name": "A_Complex_Tool",
+      "description": "A very complex tool",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "aSimpleValue": {
+            "type": "string",
+            "description": "A simple value"
+          },
+          "anEnumValue": {
+            "type": "string",
+            "description": "An enum value",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "anArrayValue": {
+            "type": "array",
+            "description": "An array value",
+            "items": {
+              "type": "string",
+              "enum": [
+                "foo",
+                "bar",
+                "baz"
+              ]
+            }
+          },
+          "urlPath": {
+            "type": "string",
+            "description": "The URL path to use"
+          },
+          "firstValue": {
+            "type": "string"
+          },
+          "secondValue": {
+            "type": "integer",
+            "description": "The second value"
+          },
+          "thirdValue": {
+            "type": "string",
+            "description": "The third value to add"
+          },
+          "fourthValue": {
+            "type": "array",
+            "description": "The fourth value to add",
+            "items": {
+              "type": "string",
+              "enum": [
+                "foo",
+                "bar",
+                "baz"
+              ]
+            }
+          },
+          "outputValue": {
+            "type": "string",
+            "description": "An output value"
+          }
+        },
+        "required": [
+          "aSimpleValue",
+          "anEnumValue",
+          "anArrayValue",
+          "urlPath",
+          "firstValue",
+          "secondValue",
+          "thirdValue",
+          "fourthValue",
+          "outputValue"
+        ]
+      }
+    },
+    {
+      "name": "Download_A_File",
+      "description": "Download a file from the provided URL",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to download the file from"
+          }
+        },
+        "required": ["url"]
+      }
+    },
+    {
       "name": "An_Event",
-      "description": "",
+      "description": "An event!",
       "inputSchema": {
         "type": "object",
         "properties": {},

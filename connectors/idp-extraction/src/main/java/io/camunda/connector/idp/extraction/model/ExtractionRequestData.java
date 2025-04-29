@@ -13,6 +13,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import io.camunda.document.Document;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import java.util.Map;
 
 public record ExtractionRequestData(
     @TemplateProperty(
@@ -59,6 +60,16 @@ public record ExtractionRequestData(
             binding = @PropertyBinding(name = "excludedFields"),
             feel = Property.FeelMode.disabled)
         List<String> excludedFields,
+    @TemplateProperty(
+            id = "renameMappings",
+            label = "Rename mappings",
+            group = "input",
+            type = TemplateProperty.PropertyType.Hidden,
+            description = "List of keys that should be renamed and not be given the default name",
+            defaultValue = "= input.renameMappings",
+            binding = @PropertyBinding(name = "renameMappings"),
+            feel = Property.FeelMode.disabled)
+        Map<String, String> renameMappings,
     @TemplateProperty(
             id = "delimiter",
             label = "delimiter",

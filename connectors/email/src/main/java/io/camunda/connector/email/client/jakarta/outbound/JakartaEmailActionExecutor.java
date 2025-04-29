@@ -264,7 +264,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       Optional<InternetAddress[]> cc = createParsedInternetAddresses(smtpSendEmail.cc());
       Optional<InternetAddress[]> bcc = createParsedInternetAddresses(smtpSendEmail.bcc());
       Optional<Map<String, String>> headers = Optional.ofNullable(smtpSendEmail.headers());
-      Message message = new MimeMessage(session);
+      MimeMessage message = new MimeMessage(session);
       message.setFrom(new InternetAddress(smtpSendEmail.from()));
       if (to.isPresent()) message.setRecipients(Message.RecipientType.TO, to.get());
       if (cc.isPresent()) message.setRecipients(Message.RecipientType.CC, cc.get());
@@ -280,7 +280,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         this.jakartaUtils.connectTransport(transport, authentication);
         transport.sendMessage(message, message.getAllRecipients());
       }
-      return new SendEmailResponse(smtpSendEmail.subject(), true);
+      return new SendEmailResponse(smtpSendEmail.subject(), true, message.getMessageID());
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }

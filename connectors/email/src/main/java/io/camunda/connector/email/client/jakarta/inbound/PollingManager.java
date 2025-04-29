@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.email.client.jakarta.inbound;
 
-import io.camunda.connector.api.inbound.ActivationCheckResult;
-import io.camunda.connector.api.inbound.CorrelationRequest;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
@@ -18,6 +18,8 @@ import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
 import jakarta.mail.*;
 import jakarta.mail.search.FlagTerm;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -118,8 +120,10 @@ public class PollingManager {
     try {
       Message[] messages = this.folder.getMessages();
       Arrays.stream(messages).forEach(message -> this.processMail((IMAPMessage) message, pollAll));
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
+    } catch (Exception e) {
+      this.connectorContext.log(
+          Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
+      this.connectorContext.cancel(new ConnectorException(e.getMessage(), e));
     }
   }
 
@@ -129,8 +133,16 @@ public class PollingManager {
       Message[] unseenMessages = this.folder.search(unseenFlagTerm, this.folder.getMessages());
       Arrays.stream(unseenMessages)
           .forEach(message -> this.processMail((IMAPMessage) message, pollUnseen));
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
+    } catch (Exception e) {
+      this.connectorContext.log(
+          Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
+      this.connectorContext.cancel(
+          ConnectorRetryException.builder()
+              .cause(e)
+              .message(e.getMessage())
+              .retries(2)
+              .backoffDuration(Duration.of(3, ChronoUnit.SECONDS))
+              .build());
     }
   }
 
@@ -143,7 +155,10 @@ public class PollingManager {
     switch (pollingConfig.handlingStrategy()) {
       case READ -> this.jakartaUtils.markAsSeen(message);
       case DELETE -> this.jakartaUtils.markAsDeleted(message);
-      case MOVE -> this.jakartaUtils.moveMessage(this.store, message, pollingConfig.targetFolder());
+      case MOVE -> {
+        this.jakartaUtils.markAsSeen(message);
+        this.jakartaUtils.moveMessage(this.store, message, pollingConfig.targetFolder());
+      }
     }
   }
 

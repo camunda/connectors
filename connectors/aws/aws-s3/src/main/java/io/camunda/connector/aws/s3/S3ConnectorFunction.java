@@ -26,7 +26,7 @@ import java.util.function.Function;
     name = "AWS S3 Outbound Connector",
     description = "Execute S3 requests",
     inputDataClass = S3Request.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
