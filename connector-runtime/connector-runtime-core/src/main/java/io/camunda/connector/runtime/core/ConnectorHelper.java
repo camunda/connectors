@@ -130,7 +130,7 @@ public class ConnectorHelper {
     FORBIDDEN_LITERALS.forEach(
         literal -> {
           if (json.contains(literal)) {
-            throw new ConnectorInputException(
+            throw new IllegalArgumentException(
                 new FeelEngineWrapperException(
                     String.format(
                         "The connector result contains a forbidden literal '%s'.", literal),

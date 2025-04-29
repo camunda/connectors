@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.camunda.connector.api.error.ConnectorInputException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -81,7 +80,7 @@ class ConnectorHelperTest {
     final Map<String, String> context = Map.of("myfun", "test");
     final var exception =
         assertThrows(
-            ConnectorInputException.class,
+            IllegalArgumentException.class,
             () -> ConnectorHelper.createOutputVariables(context, null, resultExpression));
 
     assertThat(exception)
