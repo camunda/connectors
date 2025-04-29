@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.PrimitiveArrayDeserializers;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.intrinsic.IntrinsicFunctionExecutor;
@@ -33,14 +34,17 @@ public class ByteArrayDeserializer extends AbstractDeserializer<byte[]> {
       PrimitiveArrayDeserializers.forType(byte.class);
 
   private final DocumentDeserializer documentDeserializer;
-  private final IntrinsicFunctionObjectResultDeserializer operationDeserializer;
+  private final IntrinsicFunctionObjectResultDeserializer intrinsicFunctionDeserializer;
 
   public ByteArrayDeserializer(
-      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+      DocumentFactory documentFactory,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
+      DocumentModuleSettings settings) {
+    super(settings);
     this.documentDeserializer =
-        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor);
-    this.operationDeserializer =
-        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor);
+        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor, settings);
+    this.intrinsicFunctionDeserializer =
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor, settings);
   }
 
   @Override
@@ -51,13 +55,14 @@ public class ByteArrayDeserializer extends AbstractDeserializer<byte[]> {
       final var document = documentDeserializer.handleJsonNode(node, context);
       return document.asByteArray();
     }
-    if (DeserializationUtil.isOperation(node)) {
-      final var operationResult = operationDeserializer.handleJsonNode(node, context);
-      if (operationResult instanceof Document document) {
+    if (DeserializationUtil.isIntrinsicFunction(node)) {
+      // counter is decremented in the function deserializer
+      final var functionResult = intrinsicFunctionDeserializer.handleJsonNode(node, context);
+      if (functionResult instanceof Document document) {
         return document.asByteArray();
       }
       throw new IllegalArgumentException(
-          "Unsupported operation result, expected a document, got: " + operationResult);
+          "Unsupported operation result, expected a document, got: " + functionResult);
     }
 
     // if not document or operation, fallback to default deserialization

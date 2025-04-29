@@ -62,18 +62,23 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
   @Override
   public void setupModule(SetupContext context) {
     addDeserializer(
-        Document.class, new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor));
+        Document.class,
+        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
     addDeserializer(
-        byte[].class, new ByteArrayDeserializer(documentFactory, intrinsicFunctionExecutor));
+        byte[].class,
+        new ByteArrayDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
     addDeserializer(
-        InputStream.class, new InputStreamDeserializer(documentFactory, intrinsicFunctionExecutor));
-    if (settings.enableObject) {
+        InputStream.class,
+        new InputStreamDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
+    if (settings.isObjectEnabled()) {
       addDeserializer(
-          Object.class, new ObjectDeserializer(documentFactory, intrinsicFunctionExecutor));
+          Object.class,
+          new ObjectDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
     }
-    if (settings.enableString) {
+    if (settings.isStringEnabled()) {
       addDeserializer(
-          String.class, new StringDeserializer(documentFactory, intrinsicFunctionExecutor));
+          String.class,
+          new StringDeserializer(documentFactory, intrinsicFunctionExecutor, settings));
     }
     super.setupModule(context);
   }
@@ -82,6 +87,7 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
 
     private boolean enableObject = true;
     private boolean enableString = true;
+    private int maxIntrinsicFunctions = 10; // per deserialization run, including nested
 
     private DocumentModuleSettings() {}
 
@@ -97,6 +103,23 @@ public class JacksonModuleDocumentDeserializer extends SimpleModule {
     /** Enable deserialization of document references into strings. */
     public void enableString(boolean enable) {
       this.enableString = enable;
+    }
+
+    /** Set the maximum number of intrinsic functions per object. */
+    public void setMaxIntrinsicFunctions(int maxIntrinsicFunctions) {
+      this.maxIntrinsicFunctions = maxIntrinsicFunctions;
+    }
+
+    public boolean isObjectEnabled() {
+      return enableObject;
+    }
+
+    public boolean isStringEnabled() {
+      return enableString;
+    }
+
+    public int getMaxIntrinsicFunctions() {
+      return maxIntrinsicFunctions;
     }
   }
 }

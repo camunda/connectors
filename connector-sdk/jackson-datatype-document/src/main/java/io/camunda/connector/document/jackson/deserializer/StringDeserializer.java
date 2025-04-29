@@ -17,10 +17,11 @@
 package io.camunda.connector.document.jackson.deserializer;
 
 import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isDocumentReference;
-import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isOperation;
+import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isIntrinsicFunction;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
@@ -34,11 +35,14 @@ public class StringDeserializer extends AbstractDeserializer<String> {
   private final IntrinsicFunctionObjectResultDeserializer intrinsicFunctionDeserializer;
 
   public StringDeserializer(
-      DocumentFactory documentFactory, IntrinsicFunctionExecutor intrinsicFunctionExecutor) {
+      DocumentFactory documentFactory,
+      IntrinsicFunctionExecutor intrinsicFunctionExecutor,
+      DocumentModuleSettings settings) {
+    super(settings);
     this.documentDeserializer =
-        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor);
+        new DocumentDeserializer(documentFactory, intrinsicFunctionExecutor, settings);
     this.intrinsicFunctionDeserializer =
-        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor);
+        new IntrinsicFunctionObjectResultDeserializer(intrinsicFunctionExecutor, settings);
   }
 
   @Override
@@ -48,7 +52,8 @@ public class StringDeserializer extends AbstractDeserializer<String> {
       final var document = documentDeserializer.handleJsonNode(node, context);
       return document.asBase64();
     }
-    if (isOperation(node)) {
+    if (isIntrinsicFunction(node)) {
+      // counter is decremented in the function deserializer
       final var operationResult = intrinsicFunctionDeserializer.handleJsonNode(node, context);
       if (operationResult instanceof String) {
         return (String) operationResult;

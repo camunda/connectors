@@ -20,10 +20,17 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import java.io.IOException;
 
 /** Base class for deserializers within the document module. */
 public abstract class AbstractDeserializer<T> extends JsonDeserializer<T> {
+
+  protected final DocumentModuleSettings settings;
+
+  public AbstractDeserializer(DocumentModuleSettings settings) {
+    this.settings = settings;
+  }
 
   /**
    * Base method from {@link JsonDeserializer} to deserialize a JSON node. It will delegate to
@@ -33,6 +40,7 @@ public abstract class AbstractDeserializer<T> extends JsonDeserializer<T> {
   @Override
   public T deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
       throws IOException {
+    DeserializationUtil.ensureIntrinsicFunctionCounterInitialized(deserializationContext, settings);
     final JsonNode node = jsonParser.readValueAsTree();
     if (node == null || node.isNull()) {
       return null;
