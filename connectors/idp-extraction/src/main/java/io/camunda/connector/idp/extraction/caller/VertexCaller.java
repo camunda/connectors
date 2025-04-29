@@ -21,6 +21,7 @@ import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,10 +34,21 @@ public class VertexCaller {
       throws Exception {
     LlmModel llmModel = LlmModel.fromId(input.converseData().modelId());
     String fileUri;
-    final String fileName =
-        input.document().metadata().getFileName() == null
-            ? "temporaryDocument.pdf"
-            : input.document().metadata().getFileName();
+    final String fileName;
+    String extension = ".pdf";
+    // Attempt to extract extension from content type
+    if (input.document().metadata().getContentType() != null) {
+      String contentType = input.document().metadata().getContentType();
+      extension =
+          switch (contentType) {
+            case "image/png" -> ".png";
+            case "image/jpeg" -> ".jpg";
+            case "text/plain" -> ".txt";
+            default -> extension;
+          };
+    }
+    fileName = UUID.randomUUID() + extension;
+
     try {
       fileUri =
           GcsUtil.uploadNewFileFromDocument(
