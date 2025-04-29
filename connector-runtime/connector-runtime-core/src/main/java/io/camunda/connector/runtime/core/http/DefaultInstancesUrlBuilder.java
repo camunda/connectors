@@ -64,7 +64,7 @@ public class DefaultInstancesUrlBuilder implements InstancesUrlBuilder {
               "No Connectors Runtime addresses found for hostname: " + headlessServiceHost);
         }
         return Stream.of(addresses)
-            .map(ip -> "https://" + ip + ":" + appPort)
+            .map(ip -> "http://" + ip + ":" + appPort)
             .collect(Collectors.toSet());
       } catch (UnknownHostException e) {
         LOGGER.error(
@@ -78,7 +78,7 @@ public class DefaultInstancesUrlBuilder implements InstancesUrlBuilder {
             "An error occurred while resolving hostname: " + headlessServiceHost, e);
       }
     } else {
-      return Set.of("https://localhost" + ":" + appPort);
+      return Set.of("http://localhost" + ":" + appPort);
     }
   }
 
