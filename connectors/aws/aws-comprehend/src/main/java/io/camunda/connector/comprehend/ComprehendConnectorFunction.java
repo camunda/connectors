@@ -28,7 +28,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     name = "AWS Comprehend Outbound Connector",
     description = "Execute Comprehend models",
     inputDataClass = ComprehendRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

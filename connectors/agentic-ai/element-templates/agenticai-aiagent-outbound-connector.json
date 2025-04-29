@@ -43,6 +43,9 @@
     "id" : "parameters",
     "label" : "Parameters"
   }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
     "id" : "output",
     "label" : "Output mapping"
   }, {
@@ -420,6 +423,19 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.userPrompt.documents",
+    "label" : "Documents",
+    "description" : "Documents to be included in the user prompt",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "userPrompt",
+    "binding" : {
+      "name" : "data.userPrompt.documents",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Referenced documents will be transparently added to the user prompt.",
+    "type" : "String"
+  }, {
     "id" : "data.tools.containerElementId",
     "label" : "Ad-hoc subprocess ID containing tools",
     "description" : "The ID of the subprocess containing the tools to be called",
@@ -665,6 +681,28 @@
       "type" : "simple"
     },
     "type" : "Number"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.agenticai.aiagent.v0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

@@ -73,7 +73,11 @@ public class DefaultRetrievingActionProcessor implements RetrievingActionProcess
                       Mimetype.MIMETYPE_TEXT_PLAIN) // TODO: for v1 we support only plain text
                   .build());
       chunks.add(
-          new RetrievedChunk(matched.embeddingId(), persistedDoc.reference(), matched.score()));
+          new RetrievedChunk(
+              matched.embeddingId(),
+              persistedDoc.reference(),
+              matched.score(),
+              matched.embedded().text()));
     }
 
     return new RetrievingActionProcessorResponse(chunks);

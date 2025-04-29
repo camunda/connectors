@@ -36,7 +36,7 @@ import java.util.Optional;
     description = "Send messages to Amazon SNS.",
     metadata = @ElementTemplate.Metadata(keywords = {"send message", "publish message"}),
     inputDataClass = SnsConnectorRequest.class,
-    version = 7,
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Topic properties"),

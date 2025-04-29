@@ -36,7 +36,7 @@ import java.util.Optional;
         @ElementTemplate.Metadata(
             keywords = {"emit event", "publish event", "send event", "trigger event"}),
     inputDataClass = AwsEventBridgeRequest.class,
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Queue properties"),

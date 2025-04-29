@@ -111,26 +111,33 @@ public class StructuredService implements ExtractionService {
       StructuredExtractionResponse response, ExtractionRequestData input) {
     Map<String, Object> parsedResults = new HashMap<>();
     Map<String, Float> processedConfidenceScores = new HashMap<>();
+    Map<String, String> originalKeys = new HashMap<>();
 
     response
         .extractedFields()
         .forEach(
             (key, value) -> {
-              String variableName = formatZeebeVariableName(key, input.delimiter());
+              String variableName;
+              // Check if key variable should be overridden by renameMappings value
+              if (input.renameMappings() != null && input.renameMappings().containsKey(key)) {
+                variableName = input.renameMappings().get(key);
+              } else {
+                variableName = formatZeebeVariableName(key, input.delimiter());
+              }
               Float confidenceScore = response.confidenceScore().get(key);
 
-              if ((input.excludedFields() == null || !input.excludedFields().contains(variableName))
+              if ((input.excludedFields() == null || !input.excludedFields().contains(key))
                   && (value != null && !value.isBlank())) {
                 parsedResults.put(variableName, value);
+                originalKeys.put(variableName, key);
 
-                // Add the confidence score with the same formatted key
                 if (confidenceScore != null) {
                   processedConfidenceScores.put(variableName, confidenceScore);
                 }
               }
             });
 
-    return new StructuredExtractionResult(parsedResults, processedConfidenceScores);
+    return new StructuredExtractionResult(parsedResults, processedConfidenceScores, originalKeys);
   }
 
   /**

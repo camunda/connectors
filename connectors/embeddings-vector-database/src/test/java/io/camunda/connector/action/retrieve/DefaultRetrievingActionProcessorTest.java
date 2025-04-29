@@ -59,7 +59,7 @@ class DefaultRetrievingActionProcessorTest {
                     TextSegment.from(matchedChunkContent))));
 
     final var documentFactory = Mockito.mock(DocumentFactory.class);
-    final var document = CamundaDocumentFixture.inMemoryDocument();
+    final var document = CamundaDocumentFixture.inMemoryTxtDocument();
     Mockito.when(documentFactory.create(ArgumentMatchers.any())).thenReturn(document);
     final var defaultRetrievingActionProcessor =
         new DefaultRetrievingActionProcessor(embeddingModelProvider, embeddingStoreProvider);

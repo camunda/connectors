@@ -13,7 +13,17 @@ import org.junit.jupiter.api.Test;
 class DefaultTextSegmentExtractorTest {
 
   @Test
-  void segmentsFromRequest() {
+  void segmentsFromRequestWithTxtDoc() {
+    final var extractor = new DefaultTextSegmentExtractor();
+
+    final var segments =
+        extractor.fromRequest(EmbeddingsVectorDBRequestFixture.createDefaultEmbedOperation());
+
+    Assertions.assertThat(segments).size().isEqualTo(1);
+  }
+
+  @Test
+  void segmentsFromRequestWithPdfDoc() {
     final var extractor = new DefaultTextSegmentExtractor();
 
     final var segments =

@@ -9,7 +9,7 @@ package io.camunda.connector.doc.parsing;
 import dev.langchain4j.data.document.DocumentLoader;
 import dev.langchain4j.data.document.DocumentSource;
 import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.data.document.parser.TextDocumentParser;
+import dev.langchain4j.data.document.parser.apache.tika.ApacheTikaDocumentParser;
 import dev.langchain4j.data.segment.TextSegment;
 import io.camunda.connector.doc.splitting.DefaultDocumentSplitterFactory;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 public class DefaultTextSegmentExtractor {
+
+  private static final String FILENAME_METADATA_KEY = "filename";
 
   private final DefaultDocumentSplitterFactory documentSplitterFactory;
 
@@ -47,17 +49,12 @@ public class DefaultTextSegmentExtractor {
                       @Override
                       public Metadata metadata() {
                         return Metadata.from(
-                            Map.of(
-                                "filename",
-                                camundaDoc
-                                    .metadata()
-                                    .getFileName())); // TODO: in v1 we agreed to put only filename
-                        // as metadata; v2 has plans to refine this
-                        // commitment
+                            Map.of(FILENAME_METADATA_KEY, camundaDoc.metadata().getFileName()));
                       }
                     },
-                    new TextDocumentParser())) // TODO: in v1 we agreed to have only simple text
-        // parser; v2 plans to add PDF and other formats
+                    // Apache Tika includes metadata, such as
+                    // real content type, encoding
+                    new ApacheTikaDocumentParser(true)))
         .map(splitter::split)
         .flatMap(List::stream)
         .toList();

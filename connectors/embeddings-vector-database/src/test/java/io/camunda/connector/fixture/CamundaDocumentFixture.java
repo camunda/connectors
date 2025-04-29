@@ -21,16 +21,26 @@ import org.mockito.Mockito;
 
 public class CamundaDocumentFixture {
 
-  public static Document inMemoryDocument() {
+  private static final String DOCS_PATH = "src/test/resources/testfiles/";
+  private static final String TXT_FILENAME = "rag.txt";
+  private static final String PDF_FILENAME = "test.pdf";
 
-    try (FileInputStream fileInputStream =
-        new FileInputStream("src/test/resources/testfiles/rag.txt")) {
+  public static Document inMemoryTxtDocument() {
+    return inMemoryDocument(DOCS_PATH + TXT_FILENAME, TXT_FILENAME);
+  }
+
+  public static final Document inMemoryPdfDocument() {
+    return inMemoryDocument(DOCS_PATH + PDF_FILENAME, PDF_FILENAME);
+  }
+
+  private static Document inMemoryDocument(final String filePath, final String fileName) {
+    try (FileInputStream fileInputStream = new FileInputStream(filePath)) {
       final var text = IOUtils.toString(fileInputStream, StandardCharsets.UTF_8);
       return new Document() {
         @Override
         public DocumentMetadata metadata() {
           final var metadata = Mockito.mock(DocumentMetadata.class);
-          Mockito.when(metadata.getFileName()).thenReturn("rag.txt");
+          Mockito.when(metadata.getFileName()).thenReturn(fileName);
           return metadata;
         }
 

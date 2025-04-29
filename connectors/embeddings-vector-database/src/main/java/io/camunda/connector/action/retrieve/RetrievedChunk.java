@@ -8,4 +8,5 @@ package io.camunda.connector.action.retrieve;
 
 import io.camunda.document.reference.DocumentReference;
 
-public record RetrievedChunk(String chunkId, DocumentReference documentReference, Double score) {}
+public record RetrievedChunk(
+    String chunkId, DocumentReference documentReference, Double score, String content) {}
