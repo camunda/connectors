@@ -36,7 +36,7 @@ public class InboundConnectorRestController {
     this.executableRegistry = executableRegistry;
   }
 
-  @GetMapping("/inbound")
+  @GetMapping({"/inbound", "/inbound/"})
   public List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
       @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
       @RequestParam(required = false, value = "elementId") String elementId,
