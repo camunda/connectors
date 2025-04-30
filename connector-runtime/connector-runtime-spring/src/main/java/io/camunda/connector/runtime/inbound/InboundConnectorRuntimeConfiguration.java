@@ -35,7 +35,7 @@ import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
-import io.camunda.connector.runtime.inbound.operate.OperateClientConfiguration;
+import io.camunda.connector.runtime.inbound.operate.OperateClientAdapterConfiguration;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
@@ -55,7 +55,7 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import({
   ProcessDefinitionImportConfiguration.class,
-  OperateClientConfiguration.class,
+  OperateClientAdapterConfiguration.class,
   InboundConnectorRestController.class,
   InboundInstancesRestController.class,
   GlobalExceptionHandler.class,

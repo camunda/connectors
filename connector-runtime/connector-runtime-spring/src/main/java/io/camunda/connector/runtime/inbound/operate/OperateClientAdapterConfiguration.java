@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class OperateClientConfiguration {
+public class OperateClientAdapterConfiguration {
   @Bean
   public OperateClientAdapter springOperateClientAdapter(
       CamundaOperateClient camundaOperateClient, ObjectMapper mapper) {
