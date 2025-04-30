@@ -312,7 +312,22 @@ class FeelInputParamExtractorTest {
                 "fourthValue",
                 "The fourth value to add",
                 "array",
-                Map.of("items", Map.of("type", "string", "enum", List.of("foo", "bar", "baz"))))));
+                Map.of("items", Map.of("type", "string", "enum", List.of("foo", "bar", "baz"))))),
+        new FeelInputParamTestCase(
+            "Multiple parameters, part of a context and list (different casing)",
+            """
+            {
+              foo: [fromAI(toolCall.firstValue, "The first value", "string"), FROMAI(toolCall.secondValue, "The second value", "integer")],
+              bar: {
+                baz: fromai(toolCall.thirdValue, "The third value to add"),
+                qux: fRoMAi(toolCall.fourthValue, "The fourth value to add")
+              }
+            }
+            """,
+            new FeelInputParam("firstValue", "The first value", "string"),
+            new FeelInputParam("secondValue", "The second value", "integer"),
+            new FeelInputParam("thirdValue", "The third value to add"),
+            new FeelInputParam("fourthValue", "The fourth value to add")));
   }
 
   record FeelInputParamTestCase(

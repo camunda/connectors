@@ -24,7 +24,7 @@ class FeelFunctionInvocationExtractor {
 
   public static FeelFunctionInvocationExtractor forFunctionName(String functionName) {
     return new FeelFunctionInvocationExtractor(
-        functionInvocation -> functionInvocation.function().equals(functionName));
+        functionInvocation -> functionInvocation.function().equalsIgnoreCase(functionName));
   }
 
   public Set<FunctionInvocation> findMatchingFunctionInvocations(
