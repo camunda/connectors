@@ -91,6 +91,11 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-message</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
         <artifactId>connector-microsoft-teams</artifactId>
         <version>${project.version}</version>
       </dependency>
