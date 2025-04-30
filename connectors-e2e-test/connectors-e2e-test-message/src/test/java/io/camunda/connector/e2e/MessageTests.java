@@ -44,7 +44,15 @@ import org.springframework.context.annotation.ComponentScan;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=false"
+      "camunda.connector.polling.enabled=false",
+      "camunda.saas.secrets.projectId=42",
+      "camunda.client.zeebe.enabled=true",
+      "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
+      "camunda.connector.cloud.organizationId=orgId",
+      "camunda.connector.auth.console.audience=cloud.dev.ultrawombat.com",
+      "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
+      "camunda.connector.secretprovider.discovery.enabled=false",
+      "management.endpoints.web.exposure.include=*"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -203,8 +211,8 @@ io.camunda.zeebe.client.api.command.ProblemException: Failed with code 401: 'Una
   private File createSendTaskTemplate(String mode, String resultExpression) {
     var sendTaskTemplate =
         ElementTemplate.from(
-                "../../../../../connectors/camunda-message/element-templates/send-message-connector-send-task.json")
-            .property("mode", mode)
+                "../../connectors/camunda-message/element-templates/send-message-connector-send-task.json")
+            .property("correlationType.type", mode)
             .property("messageName", MESSAGE_NAME)
             .property("correlationKey", CORRELATION_VALUE)
             .property("resultVariable", "messageResponse")
