@@ -203,7 +203,7 @@ io.camunda.zeebe.client.api.command.ProblemException: Failed with code 401: 'Una
   private File createSendTaskTemplate(String mode, String resultExpression) {
     var sendTaskTemplate =
         ElementTemplate.from(
-                "../../connectors/message/element-templates/send-message-connector-send-task.json")
+                "../../../../../connectors/camunda-message/element-templates/send-message-connector-send-task.json")
             .property("mode", mode)
             .property("messageName", MESSAGE_NAME)
             .property("correlationKey", CORRELATION_VALUE)
