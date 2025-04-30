@@ -45,10 +45,14 @@ The tool then compiles the latest version of each template into a single output 
 - `--output-file` or `-o`:  
   Path where the consolidated output file will be generated.
 
+- `--git-directory` or `-g`:  
+  Git directory
+
 ### Example
 
 ```shell
 ./element-template-generator/uniquet/target/appassembler/bin/uniquet \
   --output-file ./connectors-file.json \
-  --directory connectors
+  --directory connectors \
+  --git-directory ""
 ```
