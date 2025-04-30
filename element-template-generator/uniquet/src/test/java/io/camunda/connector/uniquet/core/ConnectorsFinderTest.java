@@ -18,7 +18,6 @@ package io.camunda.connector.uniquet.core;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.camunda.connector.uniquet.core.ConnectorsFinder;
 import io.camunda.connector.uniquet.dto.Connector;
 import java.nio.file.Path;
 import java.util.List;
