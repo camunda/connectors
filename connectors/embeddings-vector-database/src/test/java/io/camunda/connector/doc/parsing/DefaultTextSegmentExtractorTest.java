@@ -27,7 +27,17 @@ class DefaultTextSegmentExtractorTest {
     final var extractor = new DefaultTextSegmentExtractor();
 
     final var segments =
-        extractor.fromRequest(EmbeddingsVectorDBRequestFixture.createDefaultEmbedOperation());
+        extractor.fromRequest(EmbeddingsVectorDBRequestFixture.createEmbedOperationWithPdfFile());
+
+    Assertions.assertThat(segments).size().isEqualTo(1);
+  }
+
+  @Test
+  void segmentsFromRequestWithPlainTextInput() {
+    final var extractor = new DefaultTextSegmentExtractor();
+
+    final var segments =
+        extractor.fromRequest(EmbeddingsVectorDBRequestFixture.createEmbedOperationWithPlainText());
 
     Assertions.assertThat(segments).size().isEqualTo(1);
   }
