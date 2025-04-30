@@ -37,6 +37,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>io.camunda.connector</groupId>
             <artifactId>jackson-datatype-feel</artifactId>
         </dependency>

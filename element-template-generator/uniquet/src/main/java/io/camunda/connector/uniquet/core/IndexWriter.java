@@ -16,8 +16,7 @@
  */
 package io.camunda.connector.uniquet.core;
 
-import static io.camunda.connector.uniquet.core.FileHelper.toJsonNode;
-import static io.camunda.connector.uniquet.core.FileHelper.writeToFile;
+import static io.camunda.connector.uniquet.core.FileHelper.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.uniquet.dto.Connector;
@@ -31,24 +30,32 @@ import java.util.stream.Stream;
 
 public class IndexWriter {
 
-  private static final String GITHUB_LINK =
-      "https://raw.githubusercontent.com/camunda/connectors/refs/heads/main/%s";
+  private final String githubLinkFormat;
   private final File finalFile;
   private final List<File> allElementTemplates;
 
-  private IndexWriter(List<Connector> connectors, Path finalFile) {
+  private IndexWriter(String gitDirectory, Path finalFile, String connectorDirectory) {
+    if (!gitDirectory.endsWith(File.separator) && !gitDirectory.isEmpty()) {
+      gitDirectory = gitDirectory + File.separator;
+    }
+    List<Connector> connectorList =
+        ConnectorsFinder.create(Path.of(connectorDirectory)).getAllConnectors();
     this.allElementTemplates =
         Stream.concat(
-                connectors.stream()
+                connectorList.stream()
                     .map(Connector::versionedElementTemplate)
                     .flatMap(Collection::stream),
-                connectors.stream().map(Connector::currentElementTemplate))
+                connectorList.stream().map(Connector::currentElementTemplate))
             .toList();
+    this.githubLinkFormat =
+        "https://raw.githubusercontent.com/camunda/connectors/refs/heads/"
+            + getCurrentGitSha256(gitDirectory)
+            + "/%s";
     this.finalFile = new File(finalFile.toUri());
   }
 
-  public static IndexWriter create(List<Connector> connectors, Path finalFile) {
-    return new IndexWriter(connectors, finalFile);
+  public static IndexWriter create(String gitDirectory, String connectorDirectory, Path finalFile) {
+    return new IndexWriter(gitDirectory, finalFile, connectorDirectory);
   }
 
   public void persist() {
@@ -61,7 +68,7 @@ public class IndexWriter {
     JsonNode jsonNode = toJsonNode(file);
     Integer version = jsonNode.get("version").asInt();
     String key = jsonNode.get("id").asText();
-    String link = GITHUB_LINK.formatted(file.getPath().split("/connectors/")[1]);
+    String link = githubLinkFormat.formatted(file.getPath().split("/connectors/")[1]);
     String engine =
         Optional.ofNullable(jsonNode.get("engines"))
             .map(jn -> jn.get("camunda"))
