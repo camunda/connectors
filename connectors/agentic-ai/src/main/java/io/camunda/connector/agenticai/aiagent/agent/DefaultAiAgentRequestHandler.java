@@ -38,6 +38,11 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
 
+  private static final String ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS =
+      "WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS";
+  private static final String ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT =
+      "TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT";
+
   private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
   private final ToolCallingHandler toolCallingHandler;
@@ -142,11 +147,26 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
 
   private void addUserMessagesFromRequest(
       AgentContext agentContext, ChatMemory chatMemory, AgentRequest.AgentRequestData requestData) {
+    final var toolCallResults =
+        Optional.ofNullable(requestData.tools())
+            .map(ToolsConfiguration::toolCallResults)
+            .filter(tcr -> !tcr.isEmpty())
+            .orElseGet(Collections::emptyList);
+
+    // throw an error when receiving tool call results on an empty context as
+    // most likely this is a modeling error
+    if (agentContext.isEmpty() && !toolCallResults.isEmpty()) {
+      throw new ConnectorException(
+          ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT,
+          "Agent received tool call results, but the agent context was empty (no tool call requests). Is the context configured correctly?");
+    }
+
+    // add tool call results to chat memory
     if (agentContext.isInState(AgentState.WAITING_FOR_TOOL_INPUT)) {
-      final var toolCallResults = requestData.tools().toolCallResults();
-      if (toolCallResults == null || toolCallResults.isEmpty()) {
+      if (toolCallResults.isEmpty()) {
         throw new ConnectorException(
-            "Agent is waiting for tool input, but tool call results were empty");
+            ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS,
+            "Agent is waiting for tool input, but tool call results were empty. Is the tool feedback loop configured correctly?");
       }
 
       toolCallResults.stream()
