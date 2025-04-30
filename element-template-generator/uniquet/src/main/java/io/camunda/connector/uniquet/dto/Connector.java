@@ -16,5 +16,7 @@
  */
 package io.camunda.connector.uniquet.dto;
 
-public record ElementTemplateFile(
-    ElementTemplate elementTemplate, String path, String connectorRuntime) {}
+import java.io.File;
+import java.util.List;
+
+public record Connector(File currentElementTemplate, List<File> versionedElementTemplate) {}

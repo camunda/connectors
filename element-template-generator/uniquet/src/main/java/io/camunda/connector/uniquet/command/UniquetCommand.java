@@ -16,34 +16,31 @@
  */
 package io.camunda.connector.uniquet.command;
 
-import io.camunda.connector.uniquet.core.GitCrawler;
+import io.camunda.connector.uniquet.core.ConnectorsFinder;
+import io.camunda.connector.uniquet.core.IndexWriter;
+import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 
 public class UniquetCommand implements Callable<Integer> {
 
   @CommandLine.Option(
-      names = {"-b", "--branch"},
-      defaultValue = "main")
-  private String branch;
-
-  @CommandLine.Option(
-      names = {"-d", "--destination"},
-      required = true)
-  private String pathDestination;
-
-  @CommandLine.Option(
-      names = {"-g", "--git-directory"},
-      defaultValue = "")
+      names = {"-d", "--directory"},
+      defaultValue = "connectors")
   private String gitDirectory;
+
+  @CommandLine.Option(names = {"-o", "--output-file"})
+  private String outputFile;
 
   @Override
   public Integer call() {
     try {
-      GitCrawler gitCrawler = GitCrawler.create(gitDirectory);
-      gitCrawler.crawl(branch).persist(pathDestination).close();
+      IndexWriter.create(
+              ConnectorsFinder.create(Path.of(gitDirectory)).getAllConnectors(),
+              Path.of(outputFile))
+          .persist();
     } catch (RuntimeException e) {
-      System.err.println(e.getMessage());
+      e.printStackTrace();
       return 1;
     }
     return 0;

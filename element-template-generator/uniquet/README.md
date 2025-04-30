@@ -1,37 +1,54 @@
 # Uniquet
 
-`uniquet` goes through a github repository checking for all different versions of all elements-template and provides a single file containing references to all versions
+  **`uniquet`** is a utility that scans a GitHub repository to identify all versions of files located in `element-templates` directories.
+It generates a single consolidated file that references all element-template's versions.
 
 ## Installation
 
-Currently, the only way to install `uniquet` is to build it from source.
+At the moment, `uniquet` can only be installed by building it from source.
 
-### Local build
+### Local Build
 
-To build `uniquet` locally, check out the repository and build the project with Maven:
+To build `uniquet` locally:
+
+1. Clone the repository.
+2. Use Maven to build the project:
 
 ```shell
 mvn install -pl element-template-generator/uniquet -am
 ```
 
-This will build the `uniquet` module and all its dependencies.
+This command will build the `uniquet` module along with all necessary dependencies.
 
-Navigate to the `element-template-generator/uniquet/target/appassembler` directory.
-The executable `uniquet` script is located in the `bin` directory. The compiled Java code required for
-running `uniquet` is located in the `repo` directory. Make sure to copy both directories to your application installation directory.
+After the build completes, navigate to:
 
-Executables for Windows and Unix systems are provided (`.bat` and Shell scripts, respectively).
+```shell
+element-template-generator/uniquet/target/appassembler
+```
+
+The `bin` directory contains the executable scripts for both Windows (`.bat`) and Unix-like systems (shell scripts).  
+The `repo` directory contains the compiled Java code required to run `uniquet`.  
+**Important:** Make sure to copy both the `bin` and `repo` directories to your application installation path.
 
 ## Usage
 
-`uniquet` has to be run at root of a git repository, It will crawl through every files inside `element-templates` directories for every commit and compile latest version of each of them in a single file
+`uniquet` must be executed from the root of a Git repository.  
+It recursively traverses the repository’s history, locating all `element-templates` directories in each commit.  
+The tool then compiles the latest version of each template into a single output file.
 
-### Examples
+### Command-Line Options
 
-`--branch` or `-b` is the branch one wants to start from. not required, default `main`
-`--destination` or `-d` is the location where the file will be generated.
-`--git-repository` or `-g` is the location of the git repository.
+- `--directory` or `-d`:  
+  Directory name to search for `element-templates`.  
+  *(Optional; default is `connectors`.)*
+
+- `--output-file` or `-o`:  
+  Path where the consolidated output file will be generated.
+
+### Example
 
 ```shell
-./element-template-generator/uniquet/target/appassembler/bin/uniquet --destination ./connectors-file.json --branch main
+./element-template-generator/uniquet/target/appassembler/bin/uniquet \
+  --output-file ./connectors-file.json \
+  --directory connectors
 ```
