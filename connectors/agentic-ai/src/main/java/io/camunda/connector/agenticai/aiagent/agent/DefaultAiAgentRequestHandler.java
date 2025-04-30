@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
@@ -25,12 +26,14 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
@@ -91,12 +94,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     addSystemPromptIfNecessary(chatMemory, requestData);
     addUserMessagesFromRequest(agentContext, chatMemory, requestData);
 
-    // call LLM API with updates messages + resolved tool specifications
-    final var toolSpecifications =
-        toolCallingHandler.loadToolSpecifications(
-            context.getJobContext().getProcessDefinitionKey(),
-            requestData.tools().containerElementId());
-
+    // call LLM API with updated messages + resolved tool specifications
+    final var toolSpecifications = loadToolSpecifications(context, requestData);
     final var chatRequest =
         ChatRequest.builder()
             .messages(chatMemory.messages())
@@ -192,5 +191,17 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     final var parameters =
         Optional.ofNullable(promptConfiguration.parameters()).orElseGet(Collections::emptyMap);
     return PromptTemplate.from(promptConfiguration.prompt()).apply(parameters);
+  }
+
+  private List<ToolSpecification> loadToolSpecifications(
+      OutboundConnectorContext context, AgentRequest.AgentRequestData requestData) {
+    return Optional.ofNullable(requestData.tools())
+        .map(ToolsConfiguration::containerElementId)
+        .filter(id -> !id.isBlank())
+        .map(
+            containerElementId ->
+                toolCallingHandler.loadToolSpecifications(
+                    context.getJobContext().getProcessDefinitionKey(), containerElementId))
+        .orElseGet(Collections::emptyList);
   }
 }
