@@ -22,6 +22,12 @@ import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -64,5 +70,18 @@ public class FileHelper {
   public static void writeToFile(File file, Map<?, ?> map) {
     JsonNode jsonNode = mapper.valueToTree(map);
     writeToFile(file, jsonNode);
+  }
+
+  public static String getCurrentGitSha256(final String gitDirectory) {
+    try (Git git = Git.open(new File(gitDirectory))) {
+      Repository repository = git.getRepository();
+      ObjectId headId = repository.resolve("HEAD");
+      try (RevWalk walk = new RevWalk(repository)) {
+        RevCommit lastCommit = walk.parseCommit(headId);
+        return lastCommit.getName();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

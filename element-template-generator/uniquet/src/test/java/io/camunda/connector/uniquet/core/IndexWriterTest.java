@@ -18,17 +18,19 @@ package io.camunda.connector.uniquet.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.camunda.connector.uniquet.dto.Connector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.MockedStatic;
 
 class IndexWriterTest {
 
@@ -37,18 +39,23 @@ class IndexWriterTest {
     ObjectMapper mapper = new ObjectMapper();
     Path tempDir = Files.createTempDirectory("test");
     Path filePath = tempDir.resolve("testFile.json");
-    List<Connector> connectors =
-        ConnectorsFinder.create(Path.of("src/test/resources")).getAllConnectors();
-    IndexWriter.create(connectors, filePath).persist();
-
-    JsonNode result = mapper.readTree(new File(filePath.toUri())).get("io.camunda:soap");
-
-    assertTrue(result.isArray());
-    ArrayNode jsonArray = (ArrayNode) result;
-    // versioned took priority
-    assertEquals(1, jsonArray.size());
-    assertEquals(
-        "https://raw.githubusercontent.com/camunda/connectors/refs/heads/main/element-template-generator/uniquet/src/test/resources/element-templates/versioned/soap-outbound-connector-2.json",
-        jsonArray.get(0).get("ref").asText());
+    try (MockedStatic<FileHelper> mockedStatic = mockStatic(FileHelper.class)) {
+      when(FileHelper.getCurrentGitSha256(anyString())).thenReturn("currentGitSha256");
+      when(FileHelper.getBaseName(any())).thenCallRealMethod();
+      when(FileHelper.toJsonNode(any())).thenCallRealMethod();
+      mockedStatic.when(() -> FileHelper.writeToFile(any(), anyMap())).thenCallRealMethod();
+      mockedStatic
+          .when(() -> FileHelper.writeToFile(any(), ArgumentMatchers.any(JsonNode.class)))
+          .thenCallRealMethod();
+      IndexWriter.create("", "src/test/resources", filePath).persist();
+      JsonNode result = mapper.readTree(new File(filePath.toUri())).get("io.camunda:soap");
+      assertTrue(result.isArray());
+      ArrayNode jsonArray = (ArrayNode) result;
+      // versioned took priority
+      assertEquals(1, jsonArray.size());
+      assertEquals(
+          "https://raw.githubusercontent.com/camunda/connectors/refs/heads/currentGitSha256/element-template-generator/uniquet/src/test/resources/element-templates/versioned/soap-outbound-connector-2.json",
+          jsonArray.get(0).get("ref").asText());
+    }
   }
 }

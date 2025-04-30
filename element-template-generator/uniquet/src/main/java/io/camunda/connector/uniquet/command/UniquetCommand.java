@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.uniquet.command;
 
-import io.camunda.connector.uniquet.core.ConnectorsFinder;
 import io.camunda.connector.uniquet.core.IndexWriter;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
@@ -25,9 +24,14 @@ import picocli.CommandLine;
 public class UniquetCommand implements Callable<Integer> {
 
   @CommandLine.Option(
-      names = {"-d", "--directory"},
-      defaultValue = "connectors")
+      names = {"-g", "--git-directory"},
+      defaultValue = "")
   private String gitDirectory;
+
+  @CommandLine.Option(
+          names = {"-d", "--directory"},
+          defaultValue = "connectors")
+  private String connectorDirectory;
 
   @CommandLine.Option(names = {"-o", "--output-file"})
   private String outputFile;
@@ -35,10 +39,7 @@ public class UniquetCommand implements Callable<Integer> {
   @Override
   public Integer call() {
     try {
-      IndexWriter.create(
-              ConnectorsFinder.create(Path.of(gitDirectory)).getAllConnectors(),
-              Path.of(outputFile))
-          .persist();
+      IndexWriter.create(gitDirectory, connectorDirectory, Path.of(outputFile)).persist();
     } catch (RuntimeException e) {
       e.printStackTrace();
       return 1;
