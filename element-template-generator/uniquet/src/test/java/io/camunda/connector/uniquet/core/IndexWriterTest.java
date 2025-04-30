@@ -54,7 +54,7 @@ class IndexWriterTest {
       // versioned took priority
       assertEquals(1, jsonArray.size());
       assertEquals(
-          "https://raw.githubusercontent.com/camunda/connectors/refs/heads/currentGitSha256/element-template-generator/uniquet/src/test/resources/element-templates/versioned/soap-outbound-connector-2.json",
+          "https://raw.githubusercontent.com/camunda/connectors/currentGitSha256/element-template-generator/uniquet/src/test/resources/element-templates/versioned/soap-outbound-connector-2.json",
           jsonArray.get(0).get("ref").asText());
     }
   }
