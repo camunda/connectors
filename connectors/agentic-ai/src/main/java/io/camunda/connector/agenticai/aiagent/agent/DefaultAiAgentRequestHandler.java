@@ -45,6 +45,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
       "WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS";
   private static final String ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT =
       "TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT";
+  private static final String ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED =
+      "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
 
   private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
@@ -132,7 +134,10 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
         Optional.ofNullable(requestData.guardrails().maxModelCalls())
             .orElse(DEFAULT_MAX_MODEL_CALLS);
     if (agentContext.metrics().modelCalls() >= maxModelCalls) {
-      throw new ConnectorException("Maximum number of model calls reached");
+      throw new ConnectorException(
+          ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED,
+          "Maximum number of model calls reached (modelCalls: %d, limit: %d)"
+              .formatted(agentContext.metrics().modelCalls(), maxModelCalls));
     }
   }
 
