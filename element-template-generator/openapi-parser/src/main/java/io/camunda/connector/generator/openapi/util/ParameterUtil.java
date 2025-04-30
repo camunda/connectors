@@ -23,10 +23,7 @@ import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 /** Utility functions related to converting OpenAPI parameters to {@link HttpOperationProperty}s. */
 public class ParameterUtil {
@@ -68,7 +65,17 @@ public class ParameterUtil {
     }
     var schema = getSchemaOrFromComponents(parameter.getSchema(), components);
 
-    if (schema.getEnum() != null) {
+    if (Objects.isNull(schema.getType())
+        || schema.getType().equals("string")
+        || schema.getType().equals("integer")
+        || schema.getType().equals("number")) {
+      return HttpOperationProperty.createStringProperty(
+          name,
+          targetMapping.get(parameter.getIn()),
+          parameter.getDescription(),
+          parameter.getRequired() != null && parameter.getRequired(),
+          example);
+    } else if (!Objects.isNull(schema.getEnum())) {
       return HttpOperationProperty.createEnumProperty(
           name,
           targetMapping.get(parameter.getIn()),
@@ -82,15 +89,6 @@ public class ParameterUtil {
           parameter.getDescription(),
           parameter.getRequired() != null && parameter.getRequired(),
           Arrays.asList("true", "false"));
-    } else if (schema.getType().equals("string")
-        || schema.getType().equals("integer")
-        || schema.getType().equals("number")) {
-      return HttpOperationProperty.createStringProperty(
-          name,
-          targetMapping.get(parameter.getIn()),
-          parameter.getDescription(),
-          parameter.getRequired() != null && parameter.getRequired(),
-          example);
     } else if (schema.getType().equals("object") || schema.getType().equals("array")) {
       return HttpOperationProperty.createFeelProperty(
           name,
