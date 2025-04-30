@@ -48,7 +48,7 @@ public class IndexWriter {
                 connectorList.stream().map(Connector::currentElementTemplate))
             .toList();
     this.githubLinkFormat =
-        "https://raw.githubusercontent.com/camunda/connectors/refs/heads/"
+        "https://raw.githubusercontent.com/camunda/connectors/"
             + getCurrentGitSha256(gitDirectory)
             + "/%s";
     this.finalFile = new File(finalFile.toUri());
