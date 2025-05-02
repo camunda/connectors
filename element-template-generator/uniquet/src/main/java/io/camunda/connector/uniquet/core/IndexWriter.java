@@ -68,6 +68,7 @@ public class IndexWriter {
     JsonNode jsonNode = toJsonNode(file);
     Integer version = jsonNode.get("version").asInt();
     String key = jsonNode.get("id").asText();
+    System.out.println(file.getPath());
     String link = githubLinkFormat.formatted(file.getPath().split("connectors/")[1]);
     String engine =
         Optional.ofNullable(jsonNode.get("engines"))
