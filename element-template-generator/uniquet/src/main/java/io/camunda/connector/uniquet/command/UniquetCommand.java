@@ -19,7 +19,6 @@ package io.camunda.connector.uniquet.command;
 import io.camunda.connector.uniquet.core.IndexWriter;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
