@@ -27,12 +27,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IndexWriter {
-
-  private static final Logger log = LoggerFactory.getLogger(IndexWriter.class);
 
   private final String githubLinkFormat;
   private final File finalFile;
@@ -54,7 +50,7 @@ public class IndexWriter {
     this.githubLinkFormat =
         "https://raw.githubusercontent.com/camunda/connectors/"
             + getCurrentGitSha256(gitDirectory)
-            + "/%s";
+            + "%s";
     this.finalFile = new File(finalFile.toUri());
   }
 
@@ -72,8 +68,7 @@ public class IndexWriter {
     JsonNode jsonNode = toJsonNode(file);
     Integer version = jsonNode.get("version").asInt();
     String key = jsonNode.get("id").asText();
-    log.info("Processing file {}:", file.getPath());
-    String link = githubLinkFormat.formatted(file.getPath().split("connectors/")[1]);
+    String link = githubLinkFormat.formatted(file.getPath().split("connectors")[1]);
     String engine =
         Optional.ofNullable(jsonNode.get("engines"))
             .map(jn -> jn.get("camunda"))
