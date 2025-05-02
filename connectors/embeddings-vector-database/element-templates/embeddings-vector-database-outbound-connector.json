@@ -685,6 +685,58 @@
     },
     "type" : "String"
   }, {
+    "id" : "vectorDatabaseConnectorOperation.documentSource",
+    "label" : "Document source",
+    "description" : "Whether you want to embed a Camunda document file or plain text",
+    "optional" : false,
+    "value" : "CamundaDocument",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "document",
+    "binding" : {
+      "name" : "vectorDatabaseConnectorOperation.documentSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorDatabaseConnectorOperation.operationType",
+      "equals" : "OPERATION_EMBED_DOCUMENT",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Camunda document",
+      "value" : "CamundaDocument"
+    }, {
+      "name" : "Plain text",
+      "value" : "PlainText"
+    } ]
+  }, {
+    "id" : "vectorDatabaseConnectorOperation.documentSourceFromProcessVariable",
+    "label" : "Plain text to embed",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "document",
+    "binding" : {
+      "name" : "vectorDatabaseConnectorOperation.documentSourceFromProcessVariable",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorDatabaseConnectorOperation.documentSource",
+        "equals" : "PlainText",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.operationType",
+        "equals" : "OPERATION_EMBED_DOCUMENT",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
     "id" : "vectorDatabaseConnectorOperation.newDocuments",
     "label" : "Documents",
     "optional" : false,
@@ -698,9 +750,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "vectorDatabaseConnectorOperation.operationType",
-      "equals" : "OPERATION_EMBED_DOCUMENT",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "vectorDatabaseConnectorOperation.documentSource",
+        "equals" : "CamundaDocument",
+        "type" : "simple"
+      }, {
+        "property" : "vectorDatabaseConnectorOperation.operationType",
+        "equals" : "OPERATION_EMBED_DOCUMENT",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
