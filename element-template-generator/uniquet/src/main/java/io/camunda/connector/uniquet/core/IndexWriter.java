@@ -68,7 +68,9 @@ public class IndexWriter {
     JsonNode jsonNode = toJsonNode(file);
     Integer version = jsonNode.get("version").asInt();
     String key = jsonNode.get("id").asText();
-    String link = githubLinkFormat.formatted(file.getPath());
+    String path = file.getPath();
+    String link =
+        githubLinkFormat.formatted(path.substring(path.indexOf("element-template-generator")));
     String engine =
         Optional.ofNullable(jsonNode.get("engines"))
             .map(jn -> jn.get("camunda"))
