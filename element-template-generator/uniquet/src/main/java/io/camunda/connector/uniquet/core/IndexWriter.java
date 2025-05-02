@@ -19,18 +19,16 @@ package io.camunda.connector.uniquet.core;
 import static io.camunda.connector.uniquet.core.FileHelper.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.uniquet.command.UniquetCommand;
 import io.camunda.connector.uniquet.dto.Connector;
 import io.camunda.connector.uniquet.dto.Engine;
 import io.camunda.connector.uniquet.dto.OutputElementTemplate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IndexWriter {
 
