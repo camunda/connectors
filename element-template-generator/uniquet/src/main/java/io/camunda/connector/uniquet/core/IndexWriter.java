@@ -50,7 +50,7 @@ public class IndexWriter {
     this.githubLinkFormat =
         "https://raw.githubusercontent.com/camunda/connectors/"
             + getCurrentGitSha256(gitDirectory)
-            + "%s";
+            + "/%s";
     this.finalFile = new File(finalFile.toUri());
   }
 
@@ -68,7 +68,7 @@ public class IndexWriter {
     JsonNode jsonNode = toJsonNode(file);
     Integer version = jsonNode.get("version").asInt();
     String key = jsonNode.get("id").asText();
-    String link = githubLinkFormat.formatted(file.getPath().split("connectors")[1]);
+    String link = githubLinkFormat.formatted(file.getPath());
     String engine =
         Optional.ofNullable(jsonNode.get("engines"))
             .map(jn -> jn.get("camunda"))
