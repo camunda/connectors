@@ -64,6 +64,10 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
           && !textValue.trim().startsWith("[")) {
         // Support legacy list like formats like: a,b,c | 1,2,3
         return handleListLikeFormat(textValue);
+      } else if (outputType.isJavaLangObject()
+          && ((textValue.startsWith("\"") && textValue.endsWith("\""))
+              || (textValue.startsWith("'") && textValue.endsWith("'")))) {
+        return handleNormalJsonNode(node, jacksonCtx);
       } else {
         var jsonFactory = jacksonCtx.getParser().getCodec().getFactory();
         try (JsonParser jsonParser = jsonFactory.createParser(textValue)) {
