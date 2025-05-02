@@ -19,9 +19,13 @@ package io.camunda.connector.uniquet.core;
 import static io.camunda.connector.uniquet.core.FileHelper.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.uniquet.command.UniquetCommand;
 import io.camunda.connector.uniquet.dto.Connector;
 import io.camunda.connector.uniquet.dto.Engine;
 import io.camunda.connector.uniquet.dto.OutputElementTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
@@ -29,6 +33,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class IndexWriter {
+
+  private static final Logger log = LoggerFactory.getLogger(IndexWriter.class);
 
   private final String githubLinkFormat;
   private final File finalFile;
@@ -68,7 +74,7 @@ public class IndexWriter {
     JsonNode jsonNode = toJsonNode(file);
     Integer version = jsonNode.get("version").asInt();
     String key = jsonNode.get("id").asText();
-    System.out.println(file.getPath());
+    log.info("Processing file {}:", file.getPath());
     String link = githubLinkFormat.formatted(file.getPath().split("connectors/")[1]);
     String engine =
         Optional.ofNullable(jsonNode.get("engines"))
