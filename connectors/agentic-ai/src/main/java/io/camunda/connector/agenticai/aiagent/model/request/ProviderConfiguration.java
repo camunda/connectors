@@ -6,6 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
+import static io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BEDROCK_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OPENAI_ID;
+
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.aws.model.impl.AwsAuthentication;
@@ -13,36 +17,42 @@ import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(
       value = ProviderConfiguration.AnthropicProviderConfiguration.class,
-      name = "anthropic"),
+      name = ANTHROPIC_ID),
   @JsonSubTypes.Type(
       value = ProviderConfiguration.BedrockProviderConfiguration.class,
-      name = "bedrock"),
+      name = BEDROCK_ID),
   @JsonSubTypes.Type(
       value = ProviderConfiguration.OpenAiProviderConfiguration.class,
-      name = "openai")
+      name = OPENAI_ID)
 })
 @TemplateDiscriminatorProperty(
     label = "Provider",
     group = "model",
     name = "type",
-    description = "Specify the model provider to use")
+    description = "Specify the model provider to use",
+    defaultValue = ANTHROPIC_ID)
 public sealed interface ProviderConfiguration
     permits ProviderConfiguration.AnthropicProviderConfiguration,
         ProviderConfiguration.BedrockProviderConfiguration,
         ProviderConfiguration.OpenAiProviderConfiguration {
 
-  @TemplateSubType(id = "anthropic", label = "Anthropic")
+  @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
   record AnthropicProviderConfiguration(AnthropicConnection anthropic)
       implements ProviderConfiguration {
+
+    @TemplateProperty(ignore = true)
+    public static final String ANTHROPIC_ID = "anthropic";
 
     public record AnthropicConnection(
         @TemplateProperty(
@@ -52,7 +62,7 @@ public sealed interface ProviderConfiguration
                 feel = Property.FeelMode.disabled,
                 optional = true)
             String endpoint,
-        AnthropicAuthentication authentication,
+        @NotNull @Valid AnthropicAuthentication authentication,
         AnthropicModel model) {}
 
     public record AnthropicAuthentication(
@@ -61,7 +71,8 @@ public sealed interface ProviderConfiguration
                 group = "authentication",
                 label = "Anthropic API Key",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional)
+                feel = Property.FeelMode.optional,
+                constraints = @PropertyConstraints(notEmpty = true))
             String apiKey) {}
 
     public record AnthropicModel(
@@ -72,18 +83,23 @@ public sealed interface ProviderConfiguration
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 defaultValue = "claude-3-5-sonnet-20240620",
-                defaultValueType = TemplateProperty.DefaultValueType.String)
+                defaultValueType = TemplateProperty.DefaultValueType.String,
+                constraints = @PropertyConstraints(notEmpty = true))
             String model,
         @Valid ModelParameters parameters) {}
   }
 
-  @TemplateSubType(id = "bedrock", label = "AWS Bedrock")
+  @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock")
   record BedrockProviderConfiguration(BedrockConnection bedrock) implements ProviderConfiguration {
+
+    @TemplateProperty(ignore = true)
+    public static final String BEDROCK_ID = "bedrock";
+
     public record BedrockConnection(
         @TemplateProperty(
                 group = "model",
                 description = "Specify the AWS region",
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+                constraints = @PropertyConstraints(notEmpty = true))
             String region,
         @FEEL
             @TemplateProperty(
@@ -104,13 +120,17 @@ public sealed interface ProviderConfiguration
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 defaultValue = "anthropic.claude-3-5-sonnet-20240620-v1:0",
-                defaultValueType = TemplateProperty.DefaultValueType.String)
+                defaultValueType = TemplateProperty.DefaultValueType.String,
+                constraints = @PropertyConstraints(notEmpty = true))
             String model,
         @Valid ModelParameters parameters) {}
   }
 
-  @TemplateSubType(id = "openai", label = "OpenAI")
+  @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
   record OpenAiProviderConfiguration(OpenAiConnection openai) implements ProviderConfiguration {
+
+    @TemplateProperty(ignore = true)
+    public static final String OPENAI_ID = "openai";
 
     public record OpenAiConnection(
         @TemplateProperty(
@@ -129,7 +149,8 @@ public sealed interface ProviderConfiguration
                 group = "authentication",
                 label = "OpenAI API Key",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional)
+                feel = Property.FeelMode.optional,
+                constraints = @PropertyConstraints(notEmpty = true))
             String apiKey,
         @TemplateProperty(
                 group = "authentication",
@@ -157,7 +178,8 @@ public sealed interface ProviderConfiguration
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 defaultValue = "gpt-4o",
-                defaultValueType = TemplateProperty.DefaultValueType.String)
+                defaultValueType = TemplateProperty.DefaultValueType.String,
+                constraints = @PropertyConstraints(notEmpty = true))
             String model,
         @Valid ModelParameters parameters) {}
   }

@@ -71,6 +71,7 @@
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the model provider to use",
+    "value" : "anthropic",
     "group" : "model",
     "binding" : {
       "name" : "provider.type",
@@ -381,6 +382,7 @@
     "id" : "data.systemPrompt.prompt",
     "label" : "System Prompt",
     "optional" : false,
+    "value" : "You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n  <context>…briefly state the customer’s need and current state…</context>\n  <reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\n",
     "constraints" : {
       "notEmpty" : true
     },
@@ -442,7 +444,7 @@
     "type" : "String"
   }, {
     "id" : "data.tools.containerElementId",
-    "label" : "Ad-hoc subprocess ID containing tools",
+    "label" : "Ad-hoc subprocess ID",
     "description" : "The ID of the subprocess containing the tools to be called",
     "optional" : true,
     "feel" : "optional",

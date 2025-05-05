@@ -40,9 +40,12 @@
     "type" : "Hidden"
   }, {
     "id" : "data.containerElementId",
-    "label" : "Ad-hoc subprocess ID containing tools",
+    "label" : "Ad-hoc subprocess ID",
     "description" : "The ID of the subprocess containing the tools to be called",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "tools",
     "binding" : {
