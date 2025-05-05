@@ -8,14 +8,8 @@ package io.camunda.connector.fixture;
 
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.ElasticSearchVectorStore;
-import io.camunda.connector.model.embedding.vector.store.PgVectorVectorStore;
 
 public class EmbeddingsVectorStoreFixture {
-
-  public static PgVectorVectorStore createPgVectorVectorStore() {
-    return new PgVectorVectorStore(
-        "pgvector.local:5432", "vector_db", "usr", "passwodr", "embeddings_table");
-  }
 
   public static ElasticSearchVectorStore createElasticSearchVectorStore() {
     return new ElasticSearchVectorStore(
