@@ -730,7 +730,8 @@
       "key" : "resultVariable",
       "type" : "zeebe:taskHeader"
     },
-    "type" : "String"
+    "type" : "String",
+    "value" : "agent"
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
