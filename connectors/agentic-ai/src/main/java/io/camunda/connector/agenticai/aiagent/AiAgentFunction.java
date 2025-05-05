@@ -21,20 +21,31 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.aiagent.v0",
     name = "AI Agent (alpha)",
-    description = "AI Agent connector",
+    description =
+        "Provides a default AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
     engineVersion = "^8.8",
     version = 0,
     inputDataClass = AgentRequest.class,
     propertyGroups = {
       @PropertyGroup(id = "model", label = "Model"),
       @PropertyGroup(id = "authentication", label = "Authentication"),
-      @PropertyGroup(id = "context", label = "Context"),
       @PropertyGroup(id = "systemPrompt", label = "System Prompt"),
       @PropertyGroup(id = "userPrompt", label = "User Prompt"),
-      @PropertyGroup(id = "tools", label = "Tools"),
-      @PropertyGroup(id = "memory", label = "Memory"),
+      @PropertyGroup(
+          id = "tools",
+          label = "Tools",
+          tooltip = "Configuration of tools which should be made available to the agent."),
+      @PropertyGroup(
+          id = "memory",
+          label = "Memory",
+          tooltip = "Configuration of the Agent's short-term memory."),
       @PropertyGroup(id = "limits", label = "Limits"),
-      @PropertyGroup(id = "parameters", label = "Parameters"),
+      @PropertyGroup(
+          id = "parameters",
+          label = "Model Parameters",
+          tooltip =
+              "Configuration of common model parameters to optimize and fine-tune LLM responses.",
+          openByDefault = false)
     },
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {

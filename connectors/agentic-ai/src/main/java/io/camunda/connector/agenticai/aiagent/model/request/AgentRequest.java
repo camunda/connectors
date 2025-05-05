@@ -25,9 +25,10 @@ public record AgentRequest(
       @FEEL
           @TemplateProperty(
               label = "Agent Context",
-              group = "context",
+              group = "memory",
               id = "agentContext",
-              description = "The agent context variable containing the conversation memory",
+              description =
+                  "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response.",
               constraints = @PropertyConstraints(notEmpty = true),
               defaultValue = "=agent.context",
               type = TemplateProperty.PropertyType.Text,
@@ -41,6 +42,11 @@ public record AgentRequest(
       @Valid @NotNull LimitsConfiguration limits) {
 
     public interface PromptConfiguration {
+      String PROMPT_PARAMETERS_DESCRIPTION =
+          "Map of parameters which can be used in <code>{{parameter}}</code> format in the prompt text.";
+      String PROMPT_PARAMETERS_TOOLTIP =
+          "Default parameters provided by the integration: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>";
+
       String prompt();
 
       Map<String, Object> parameters();
@@ -61,6 +67,8 @@ public record AgentRequest(
             @TemplateProperty(
                 group = "systemPrompt",
                 label = "System Prompt Parameters",
+                description = PROMPT_PARAMETERS_DESCRIPTION,
+                tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
                 optional = true)
             Map<String, Object> parameters)
@@ -98,6 +106,8 @@ Reveal **no** additional private reasoning outside these tags.
             @TemplateProperty(
                 group = "userPrompt",
                 label = "User Prompt Parameters",
+                description = PROMPT_PARAMETERS_DESCRIPTION,
+                tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
                 optional = true)
             Map<String, Object> parameters,
@@ -130,9 +140,12 @@ Reveal **no** additional private reasoning outside these tags.
             List<Map<String, Object>> toolCallResults) {}
 
     public record MemoryConfiguration(
+        // TODO support more advanced eviction policies (token window)
         @TemplateProperty(
                 group = "memory",
-                label = "Maximum amount of messages to keep in memory",
+                label = "Maximum messages",
+                description =
+                    "Maximum amount of messages to keep in short-term/conversation memory.",
                 type = TemplateProperty.PropertyType.Number,
                 defaultValue = "20",
                 defaultValueType = TemplateProperty.DefaultValueType.Number,
@@ -145,7 +158,9 @@ Reveal **no** additional private reasoning outside these tags.
         // TODO think of other limits (max tool calls, max tokens, ...)
         @TemplateProperty(
                 group = "limits",
-                label = "Maximum number of calls to the model",
+                label = "Maximum model calls",
+                description =
+                    "Maximum number of calls to the model as a safety limit to prevent infinite loops.",
                 type = TemplateProperty.PropertyType.Number,
                 defaultValue = "10",
                 defaultValueType = TemplateProperty.DefaultValueType.Number)
