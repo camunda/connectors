@@ -7,7 +7,6 @@
 package io.camunda.connector.embeddingmodel;
 
 import dev.langchain4j.model.bedrock.BedrockTitanEmbeddingModel;
-import dev.langchain4j.model.ollama.OllamaEmbeddingModel;
 import io.camunda.connector.fixture.EmbeddingModelProviderFixture;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -22,15 +21,5 @@ class DefaultEmbeddingModelFactoryTest {
         factory.initializeModel(EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel());
 
     Assertions.assertThat(model).isInstanceOf(BedrockTitanEmbeddingModel.class);
-  }
-
-  @Test
-  void createOllamaEmbeddingModel() {
-    final var factory = new DefaultEmbeddingModelFactory();
-
-    final var model =
-        factory.initializeModel(EmbeddingModelProviderFixture.createDefaultOllamaEmbeddingModel());
-
-    Assertions.assertThat(model).isInstanceOf(OllamaEmbeddingModel.class);
   }
 }

@@ -143,9 +143,6 @@
     "choices" : [ {
       "name" : "AWS Bedrock",
       "value" : "BEDROCK_MODEL_PROVIDER"
-    }, {
-      "name" : "OLLaMa",
-      "value" : "OLLAMA_MODEL_PROVIDER"
     } ]
   }, {
     "id" : "embeddingModelProvider.bedrockAccessKey",
@@ -344,46 +341,6 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.baseUrl",
-    "label" : "Base URL",
-    "description" : "OLLaMa base URL",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingModel",
-    "binding" : {
-      "name" : "embeddingModelProvider.baseUrl",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OLLAMA_MODEL_PROVIDER",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "embeddingModelProvider.ollamaModelName",
-    "label" : "Model name",
-    "description" : "OLLaMa model name or identifier. Model must to be classified as Large Language Model and support embedding",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingModel",
-    "binding" : {
-      "name" : "embeddingModelProvider.modeName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OLLAMA_MODEL_PROVIDER",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "vectorStore.vectorStore",
     "label" : "Embeddings store",
     "description" : "Select embedding store",
@@ -400,9 +357,6 @@
     }, {
       "name" : "Elasticsearch",
       "value" : "STORE_ELASTICSEARCH"
-    }, {
-      "name" : "PGVector",
-      "value" : "STORE_PG_VECTOR"
     } ]
   }, {
     "id" : "vectorStore.amazonManagedOpensearch.accessKey",
@@ -581,106 +535,6 @@
     "condition" : {
       "property" : "vectorStore.vectorStore",
       "equals" : "STORE_ELASTICSEARCH",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "vectorStore.embeddingsStore.pgvector.baseUrl",
-    "label" : "Base URL",
-    "description" : "PGVector base URL, i.e. host:port",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingsStore",
-    "binding" : {
-      "name" : "vectorStore.baseUrl",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_PG_VECTOR",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "vectorStore.embeddingsStore.pgvector.databaseName",
-    "label" : "Database",
-    "description" : "PGVector database name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingsStore",
-    "binding" : {
-      "name" : "vectorStore.databaseName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_PG_VECTOR",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "vectorStore.embeddingsStore.pgvector.userName",
-    "label" : "Username",
-    "description" : "PGVector username",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingsStore",
-    "binding" : {
-      "name" : "vectorStore.userName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_PG_VECTOR",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "vectorStore.embeddingsStore.pgvector.password",
-    "label" : "Password",
-    "description" : "PGVector password",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingsStore",
-    "binding" : {
-      "name" : "vectorStore.password",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_PG_VECTOR",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "vectorStore.embeddingsStore.pgvector.tableName",
-    "label" : "Table",
-    "description" : "PGVector table name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingsStore",
-    "binding" : {
-      "name" : "vectorStore.tableName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_PG_VECTOR",
       "type" : "simple"
     },
     "type" : "String"

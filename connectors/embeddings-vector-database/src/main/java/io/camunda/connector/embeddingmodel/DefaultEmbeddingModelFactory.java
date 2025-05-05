@@ -8,7 +8,6 @@ package io.camunda.connector.embeddingmodel;
 
 import dev.langchain4j.model.bedrock.BedrockTitanEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.ollama.OllamaEmbeddingModel.OllamaEmbeddingModelBuilder;
 import io.camunda.connector.model.embedding.models.BedrockEmbeddingModel;
 import io.camunda.connector.model.embedding.models.BedrockModels;
 import io.camunda.connector.model.embedding.models.EmbeddingModelProvider;
@@ -22,17 +21,7 @@ public class DefaultEmbeddingModelFactory {
     return switch (embeddingModelProvider) {
       case BedrockEmbeddingModel bedrockEmbeddingModel ->
           initializeBedrockEmbeddingModel(bedrockEmbeddingModel);
-      case io.camunda.connector.model.embedding.models.OllamaEmbeddingModel ollamaEmbeddingModel ->
-          initializeOllamaModel(ollamaEmbeddingModel);
     };
-  }
-
-  private EmbeddingModel initializeOllamaModel(
-      io.camunda.connector.model.embedding.models.OllamaEmbeddingModel embeddingModelProvider) {
-    return new OllamaEmbeddingModelBuilder()
-        .baseUrl(embeddingModelProvider.baseUrl())
-        .modelName(embeddingModelProvider.modeName())
-        .build();
   }
 
   private EmbeddingModel initializeBedrockEmbeddingModel(
@@ -49,7 +38,6 @@ public class DefaultEmbeddingModelFactory {
                 : null)
         .region(Region.of(bedrockEmbeddingModel.region()))
         .maxRetries(bedrockEmbeddingModel.maxRetries())
-        // TODO: AWS Bedrock will be revisited in v2 implementation
         .credentialsProvider(
             StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(
