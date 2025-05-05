@@ -30,7 +30,6 @@ public record AgentRequest(
               description =
                   "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response.",
               constraints = @PropertyConstraints(notEmpty = true),
-              defaultValue = "=agent.context",
               type = TemplateProperty.PropertyType.Text,
               feel = Property.FeelMode.required)
           @Valid
