@@ -63,6 +63,14 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
   @Override
   public AdHocToolsSchemaResponse resolveSchema(
       Long processDefinitionKey, String adHocSubprocessId) {
+    if (processDefinitionKey == null || processDefinitionKey <= 0) {
+      throw new IllegalArgumentException("Process definition key must not be null or negative");
+    }
+
+    if (adHocSubprocessId == null || adHocSubprocessId.isBlank()) {
+      throw new IllegalArgumentException("adHocSubprocessId cannot be null or empty");
+    }
+
     LOGGER.info(
         "Resolving tool schema for ad-hoc subprocess {} in process definition with key {}",
         adHocSubprocessId,
