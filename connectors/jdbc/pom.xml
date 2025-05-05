@@ -36,7 +36,7 @@
     <dependency>
       <groupId>org.jdbi</groupId>
       <artifactId>jdbi3-core</artifactId>
-      <version>3.49.2</version>
+      <version>3.49.3</version>
     </dependency>
 
     <dependency>
@@ -66,7 +66,7 @@
     <dependency>
       <groupId>com.mysql</groupId>
       <artifactId>mysql-connector-j</artifactId>
-      <version>9.2.0</version>
+      <version>9.3.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
