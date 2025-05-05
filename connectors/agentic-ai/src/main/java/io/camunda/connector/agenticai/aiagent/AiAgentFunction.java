@@ -33,7 +33,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
       @PropertyGroup(id = "userPrompt", label = "User Prompt"),
       @PropertyGroup(id = "tools", label = "Tools"),
       @PropertyGroup(id = "memory", label = "Memory"),
-      @PropertyGroup(id = "guardrails", label = "Guardrails"),
+      @PropertyGroup(id = "limits", label = "Limits"),
       @PropertyGroup(id = "parameters", label = "Parameters"),
     },
     icon = "aiagent.svg")

@@ -37,8 +37,8 @@
     "id" : "memory",
     "label" : "Memory"
   }, {
-    "id" : "guardrails",
-    "label" : "Guardrails"
+    "id" : "limits",
+    "label" : "Limits"
   }, {
     "id" : "parameters",
     "label" : "Parameters"
@@ -478,7 +478,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "data.guardrails.maxModelCalls",
+    "id" : "data.limits.maxModelCalls",
     "label" : "Maximum number of calls to the model",
     "optional" : false,
     "value" : 10,
@@ -486,9 +486,9 @@
       "notEmpty" : true
     },
     "feel" : "static",
-    "group" : "guardrails",
+    "group" : "limits",
     "binding" : {
-      "name" : "data.guardrails.maxModelCalls",
+      "name" : "data.limits.maxModelCalls",
       "type" : "zeebe:input"
     },
     "type" : "Number"

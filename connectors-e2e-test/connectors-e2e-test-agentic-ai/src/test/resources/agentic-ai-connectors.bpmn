@@ -165,7 +165,7 @@
           <zeebe:input source="Agent_Tools" target="data.tools.containerElementId" />
           <zeebe:input source="=toolCallResults" target="data.tools.toolCallResults" />
           <zeebe:input source="=50" target="data.memory.maxMessages" />
-          <zeebe:input source="=10" target="data.guardrails.maxModelCalls" />
+          <zeebe:input source="=10" target="data.limits.maxModelCalls" />
           <zeebe:input source="=8192" target="provider.openai.model.parameters.maxOutputTokens" />
           <zeebe:input source="=0.8" target="provider.openai.model.parameters.temperature" />
           <zeebe:input source="=1" target="provider.openai.model.parameters.topP" />
