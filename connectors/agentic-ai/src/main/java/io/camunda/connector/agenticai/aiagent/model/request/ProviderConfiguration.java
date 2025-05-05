@@ -37,10 +37,10 @@ import jakarta.validation.constraints.NotNull;
       name = OPENAI_ID)
 })
 @TemplateDiscriminatorProperty(
-    label = "Provider",
+    label = "Model Provider",
     group = "model",
     name = "type",
-    description = "Specify the model provider to use",
+    description = "Specify the LLM provider to use.",
     defaultValue = ANTHROPIC_ID)
 public sealed interface ProviderConfiguration
     permits ProviderConfiguration.AnthropicProviderConfiguration,
@@ -80,6 +80,8 @@ public sealed interface ProviderConfiguration
             @TemplateProperty(
                 group = "model",
                 label = "Model",
+                description =
+                    "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 defaultValue = "claude-3-5-sonnet-20240620",
@@ -117,6 +119,8 @@ public sealed interface ProviderConfiguration
             @TemplateProperty(
                 group = "model",
                 label = "Model",
+                description =
+                    "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 defaultValue = "anthropic.claude-3-5-sonnet-20240620-v1:0",
@@ -156,7 +160,7 @@ public sealed interface ProviderConfiguration
                 group = "authentication",
                 label = "Organization",
                 description =
-                    "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">OpenAI documentation</a>.",
+                    "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 optional = true)
@@ -175,6 +179,8 @@ public sealed interface ProviderConfiguration
             @TemplateProperty(
                 group = "model",
                 label = "Model",
+                description =
+                    "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 defaultValue = "gpt-4o",
