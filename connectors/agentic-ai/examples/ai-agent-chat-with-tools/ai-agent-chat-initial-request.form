@@ -11,7 +11,7 @@
       "key": "inputText"
     },
     {
-      "label": "Documents",
+      "label": "Add Documents",
       "type": "filepicker",
       "layout": {
         "row": "Row_03u75o8",

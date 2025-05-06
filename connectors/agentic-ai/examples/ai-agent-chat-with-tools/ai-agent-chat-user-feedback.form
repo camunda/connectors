@@ -19,13 +19,16 @@
         "row": "Row_02uha0c",
         "columns": null
       },
-      "id": "Field_0rned2j"
+      "id": "Field_0rned2j",
+      "conditional": {
+        "hide": "=true"
+      }
     },
     {
       "label": "Latest Message",
       "components": [
         {
-          "text": "=agent.chatResponse",
+          "text": "=agent.chatResponse.text",
           "type": "text",
           "layout": {
             "row": "Row_0bbt4ob",
@@ -61,14 +64,36 @@
       "key": "userSatisfied"
     },
     {
-      "label": "Follow up input",
-      "type": "textarea",
+      "label": "Follow Up",
+      "components": [
+        {
+          "label": "",
+          "type": "textarea",
+          "layout": {
+            "row": "Row_0o7jpzk",
+            "columns": null
+          },
+          "id": "Field_0378jfk",
+          "key": "followUpInput"
+        },
+        {
+          "label": "Additional documents",
+          "type": "filepicker",
+          "layout": {
+            "row": "Row_06i75kk",
+            "columns": null
+          },
+          "id": "Field_0vzezpk",
+          "key": "followUpDocuments"
+        }
+      ],
+      "showOutline": true,
+      "type": "group",
       "layout": {
-        "row": "Row_09aikdc",
+        "row": "Row_1nitkoj",
         "columns": null
       },
-      "id": "Field_0378jfk",
-      "key": "followUpInput",
+      "id": "Field_1c8s8ll",
       "conditional": {
         "hide": "=userSatisfied"
       }
