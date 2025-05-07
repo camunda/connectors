@@ -63,7 +63,8 @@ except in compliance with the proprietary license.</license.inlineheader>
                             </files>
                             <generateHybridTemplates>true</generateHybridTemplates>
                         </connector>
-                    </connectors>
+                                        </connectors>
+                    <versions>true</versions>
                     <includeDependencies>
                         <includeDependency>io.camunda.connector:connector-google-base</includeDependency>
                     </includeDependencies>
