@@ -16,9 +16,6 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "modelProvider")
 @JsonSubTypes({
   @JsonSubTypes.Type(
-      value = OllamaEmbeddingModel.class,
-      name = OllamaEmbeddingModel.OLLAMA_MODEL_PROVIDER),
-  @JsonSubTypes.Type(
       value = BedrockEmbeddingModel.class,
       name = BedrockEmbeddingModel.BEDROCK_MODEL_PROVIDER),
 })
@@ -30,5 +27,4 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     label = "Model provider",
     description = "Select embedding model provider")
 @TemplateSubType(label = "Model provider", id = "modelProvider")
-public sealed interface EmbeddingModelProvider
-    permits BedrockEmbeddingModel, OllamaEmbeddingModel {}
+public sealed interface EmbeddingModelProvider permits BedrockEmbeddingModel {}

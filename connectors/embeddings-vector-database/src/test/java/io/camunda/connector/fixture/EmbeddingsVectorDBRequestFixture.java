@@ -22,7 +22,7 @@ public class EmbeddingsVectorDBRequestFixture {
   public static EmbeddingsVectorDBRequest createDefaultRetrieve() {
     final var operation = new RetrieveDocumentOperation("What is RAG?", 5, 0.6);
     final var embeddingModeProvider =
-        EmbeddingModelProviderFixture.createDefaultOllamaEmbeddingModel();
+        EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel();
     final var vectorStore = EmbeddingsVectorStoreFixture.createElasticSearchVectorStore();
     final var request =
         new EmbeddingsVectorDBRequest(operation, embeddingModeProvider, vectorStore);

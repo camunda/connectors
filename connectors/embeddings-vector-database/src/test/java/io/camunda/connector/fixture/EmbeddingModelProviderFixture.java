@@ -9,13 +9,8 @@ package io.camunda.connector.fixture;
 import io.camunda.connector.model.embedding.models.BedrockDimensions;
 import io.camunda.connector.model.embedding.models.BedrockEmbeddingModel;
 import io.camunda.connector.model.embedding.models.BedrockModels;
-import io.camunda.connector.model.embedding.models.OllamaEmbeddingModel;
 
 public class EmbeddingModelProviderFixture {
-
-  public static OllamaEmbeddingModel createDefaultOllamaEmbeddingModel() {
-    return new OllamaEmbeddingModel("https://ollama.local:12345", "llama3.1");
-  }
 
   public static BedrockEmbeddingModel createDefaultBedrockEmbeddingModel() {
     return new BedrockEmbeddingModel(

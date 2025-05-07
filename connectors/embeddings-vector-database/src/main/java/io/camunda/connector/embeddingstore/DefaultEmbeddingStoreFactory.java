@@ -13,11 +13,9 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
-import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.ElasticSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.EmbeddingsVectorStore;
-import io.camunda.connector.model.embedding.vector.store.PgVectorVectorStore;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -36,26 +34,9 @@ public class DefaultEmbeddingStoreFactory {
     return switch (embeddingsVectorStore) {
       case ElasticSearchVectorStore elasticSearchVectorStore ->
           initializeElasticSearchVectorStore(elasticSearchVectorStore);
-      case PgVectorVectorStore pgVectorVectorStore ->
-          initializePGVectorStore(pgVectorVectorStore, model);
       case AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore ->
           initializeAmazonManagedOpenSearch(amazonManagedOpenSearchVectorStore);
     };
-  }
-
-  private EmbeddingStore<TextSegment> initializePGVectorStore(
-      PgVectorVectorStore pgVectorVectorStore, EmbeddingModel model) {
-    final var host = pgVectorVectorStore.baseUrl().split(":")[0];
-    final var port = pgVectorVectorStore.baseUrl().split(":")[1];
-    return PgVectorEmbeddingStore.builder()
-        .host(host)
-        .port(Integer.parseInt(port))
-        .database(pgVectorVectorStore.databaseName())
-        .user(pgVectorVectorStore.userName())
-        .password(pgVectorVectorStore.password())
-        .table(pgVectorVectorStore.tableName())
-        .dimension(model.dimension())
-        .build();
   }
 
   private EmbeddingStore<TextSegment> initializeElasticSearchVectorStore(
