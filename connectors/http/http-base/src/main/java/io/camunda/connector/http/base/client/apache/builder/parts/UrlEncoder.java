@@ -99,8 +99,8 @@ public class UrlEncoder {
                   URIBuilder::setFragment))
           .build();
     } catch (MalformedURLException | URISyntaxException e) {
-      LOG.error("Failed to parse URL, ", e);
-      throw new ConnectorInputException("Invalid URL", e);
+      LOG.error("Failed to parse URL, defaulting to requested rul ", e);
+      return URI.create(requestUrl);
     }
   }
 }
