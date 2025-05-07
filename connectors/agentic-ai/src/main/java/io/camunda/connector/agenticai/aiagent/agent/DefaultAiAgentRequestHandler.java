@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.GuardrailsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
@@ -85,7 +86,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     final ChatMemory chatMemory =
         MessageWindowChatMemory.builder()
             .maxMessages(
-                Optional.ofNullable(requestData.memory().maxMessages())
+                Optional.ofNullable(requestData.memory())
+                    .map(MemoryConfiguration::maxMessages)
                     .orElse(DEFAULT_MAX_MEMORY_MESSAGES))
             .chatMemoryStore(chatMemoryStore)
             .build();

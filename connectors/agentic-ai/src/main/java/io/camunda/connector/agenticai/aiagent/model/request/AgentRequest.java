@@ -36,8 +36,8 @@ public record AgentRequest(
           AgentContext context,
       @Valid @NotNull SystemPromptConfiguration systemPrompt,
       @Valid @NotNull UserPromptConfiguration userPrompt,
-      @Valid @NotNull ToolsConfiguration tools,
-      @Valid @NotNull MemoryConfiguration memory,
+      @Valid ToolsConfiguration tools,
+      @Valid MemoryConfiguration memory,
       @Valid GuardrailsConfiguration guardrails) {
 
     public interface PromptConfiguration {
