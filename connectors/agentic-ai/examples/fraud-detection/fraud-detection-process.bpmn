@@ -186,7 +186,7 @@
           <zeebe:input source="Fraud_Tools" target="data.tools.containerElementId" />
           <zeebe:input source="=toolCallResults" target="data.tools.toolCallResults" />
           <zeebe:input source="=20" target="data.memory.maxMessages" />
-          <zeebe:input source="=20" target="data.guardrails.maxModelCalls" />
+          <zeebe:input source="=20" target="data.limits.maxModelCalls" />
           <zeebe:input source="=8192" target="provider.bedrock.model.parameters.maxOutputTokens" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>

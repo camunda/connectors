@@ -2,7 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "AI Agent (alpha)",
   "id" : "io.camunda.connectors.agenticai.aiagent.v0",
-  "description" : "AI Agent connector",
+  "description" : "Provides a default AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -22,9 +22,6 @@
     "id" : "authentication",
     "label" : "Authentication"
   }, {
-    "id" : "context",
-    "label" : "Context"
-  }, {
     "id" : "systemPrompt",
     "label" : "System Prompt"
   }, {
@@ -32,16 +29,20 @@
     "label" : "User Prompt"
   }, {
     "id" : "tools",
-    "label" : "Tools"
+    "label" : "Tools",
+    "tooltip" : "Configuration of tools which should be made available to the agent."
   }, {
     "id" : "memory",
-    "label" : "Memory"
+    "label" : "Memory",
+    "tooltip" : "Configuration of the Agent's short-term memory."
   }, {
-    "id" : "guardrails",
-    "label" : "Guardrails"
+    "id" : "limits",
+    "label" : "Limits"
   }, {
     "id" : "parameters",
-    "label" : "Parameters"
+    "label" : "Model Parameters",
+    "tooltip" : "Configuration of common model parameters to optimize and fine-tune LLM responses.",
+    "openByDefault" : false
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -64,8 +65,9 @@
     "type" : "Hidden"
   }, {
     "id" : "provider.type",
-    "label" : "Provider",
-    "description" : "Specify the model provider to use",
+    "label" : "Model Provider",
+    "description" : "Specify the LLM provider to use.",
+    "value" : "anthropic",
     "group" : "model",
     "binding" : {
       "name" : "provider.type",
@@ -101,6 +103,7 @@
   }, {
     "id" : "provider.anthropic.model.model",
     "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "value" : "claude-3-5-sonnet-20240620",
     "constraints" : {
@@ -157,6 +160,7 @@
   }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "value" : "anthropic.claude-3-5-sonnet-20240620-v1:0",
     "constraints" : {
@@ -193,6 +197,7 @@
   }, {
     "id" : "provider.openai.model.model",
     "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "value" : "gpt-4o",
     "constraints" : {
@@ -326,7 +331,7 @@
   }, {
     "id" : "provider.openai.authentication.organization",
     "label" : "Organization",
-    "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">OpenAI documentation</a>.",
+    "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
@@ -358,24 +363,10 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.agentContext",
-    "label" : "Agent Context",
-    "description" : "The agent context variable containing the conversation memory",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "context",
-    "binding" : {
-      "name" : "data.context",
-      "type" : "zeebe:input"
-    },
-    "type" : "Text"
-  }, {
     "id" : "data.systemPrompt.prompt",
     "label" : "System Prompt",
     "optional" : false,
+    "value" : "You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n  <context>…briefly state the customer’s need and current state…</context>\n  <reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\n",
     "constraints" : {
       "notEmpty" : true
     },
@@ -389,6 +380,7 @@
   }, {
     "id" : "data.systemPrompt.parameters",
     "label" : "System Prompt Parameters",
+    "description" : "Map of parameters which can be used in <code>{{parameter}}</code> format in the prompt text.",
     "optional" : true,
     "feel" : "required",
     "group" : "systemPrompt",
@@ -396,6 +388,7 @@
       "name" : "data.systemPrompt.parameters",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Default parameters provided by the integration: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
     "type" : "String"
   }, {
     "id" : "data.userPrompt.prompt",
@@ -414,6 +407,7 @@
   }, {
     "id" : "data.userPrompt.parameters",
     "label" : "User Prompt Parameters",
+    "description" : "Map of parameters which can be used in <code>{{parameter}}</code> format in the prompt text.",
     "optional" : true,
     "feel" : "required",
     "group" : "userPrompt",
@@ -421,6 +415,7 @@
       "name" : "data.userPrompt.parameters",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Default parameters provided by the integration: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
     "type" : "String"
   }, {
     "id" : "data.userPrompt.documents",
@@ -437,7 +432,7 @@
     "type" : "String"
   }, {
     "id" : "data.tools.containerElementId",
-    "label" : "Ad-hoc subprocess ID containing tools",
+    "label" : "Ad-hoc subprocess ID",
     "description" : "The ID of the subprocess containing the tools to be called",
     "optional" : true,
     "feel" : "optional",
@@ -460,8 +455,24 @@
     },
     "type" : "Text"
   }, {
+    "id" : "data.agentContext",
+    "label" : "Agent Context",
+    "description" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.context",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
     "id" : "data.memory.maxMessages",
-    "label" : "Maximum amount of messages to keep in memory",
+    "label" : "Maximum messages",
+    "description" : "Maximum amount of messages to keep in short-term/conversation memory.",
     "optional" : false,
     "value" : 20,
     "constraints" : {
@@ -475,17 +486,18 @@
     },
     "type" : "Number"
   }, {
-    "id" : "data.guardrails.maxModelCalls",
-    "label" : "Maximum number of calls to the model",
+    "id" : "data.limits.maxModelCalls",
+    "label" : "Maximum model calls",
+    "description" : "Maximum number of calls to the model as a safety limit to prevent infinite loops.",
     "optional" : false,
     "value" : 10,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "static",
-    "group" : "guardrails",
+    "group" : "limits",
     "binding" : {
-      "name" : "data.guardrails.maxModelCalls",
+      "name" : "data.limits.maxModelCalls",
       "type" : "zeebe:input"
     },
     "type" : "Number"

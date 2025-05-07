@@ -13,7 +13,7 @@ import java.util.Objects;
 
 public record AgentContext(
     AgentState state, AgentMetrics metrics, List<Map<String, Object>> memory) {
-  public static AgentContext EMPTY =
+  public static final AgentContext EMPTY =
       new AgentContext(AgentState.READY, AgentMetrics.EMPTY, Collections.emptyList());
 
   public AgentContext {

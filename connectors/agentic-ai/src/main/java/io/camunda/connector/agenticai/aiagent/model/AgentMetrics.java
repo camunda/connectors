@@ -45,7 +45,7 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage) {
   }
 
   public record TokenUsage(int inputTokenCount, int outputTokenCount) {
-    public static TokenUsage EMPTY = new TokenUsage(0, 0);
+    public static final TokenUsage EMPTY = new TokenUsage(0, 0);
 
     public int totalTokenCount() {
       return inputTokenCount + outputTokenCount;
