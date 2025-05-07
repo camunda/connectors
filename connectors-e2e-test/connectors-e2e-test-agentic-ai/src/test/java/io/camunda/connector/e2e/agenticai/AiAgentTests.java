@@ -697,7 +697,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
   }
 
   private AgentResponse getAgentResponse(ZeebeTest zeebeTest) throws JsonProcessingException {
-    final var agentVariable =
+    final var agentVariableSearchResult =
         new CamundaDataSource(camundaClient)
                 .findVariablesByProcessInstanceKey(
                     zeebeTest.getProcessInstanceEvent().getProcessInstanceKey())
@@ -706,9 +706,17 @@ public class AiAgentTests extends BaseAgenticAiTest {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Agent variable 'agent' not found"));
 
-    return objectMapper.readValue(
-        agentVariable.isTruncated() ? agentVariable.getFullValue() : agentVariable.getValue(),
-        AgentResponse.class);
+    if (agentVariableSearchResult.isTruncated()) {
+      final var agentVariable =
+          camundaClient
+              .newVariableGetRequest(agentVariableSearchResult.getVariableKey())
+              .send()
+              .join();
+
+      return objectMapper.readValue(agentVariable.getValue(), AgentResponse.class);
+    }
+
+    return objectMapper.readValue(agentVariableSearchResult.getValue(), AgentResponse.class);
   }
 
   private Resource testFileResource(String filename) {
