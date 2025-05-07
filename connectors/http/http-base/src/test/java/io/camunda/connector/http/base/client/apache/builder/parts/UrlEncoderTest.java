@@ -19,7 +19,6 @@ package io.camunda.connector.http.base.client.apache.builder.parts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -34,23 +33,23 @@ public class UrlEncoderTest {
         // Path
         Arguments.of(
             "http://localhost:8080/hello, world!",
-            "http://localhost:8080/hello%2C%20world%21"), // not-encoded url with invalid char
+            "http://localhost:8080/hello,%20world!"), // not-encoded url with invalid char
         Arguments.of(
-            "http://localhost:8080/hello, %20world!",
-            "http://localhost:8080/hello%2C%20%2520world%21"), // partially-encoded url with invalid
+            "http://localhost:8080/hello, %2Cworld!",
+            "http://localhost:8080/hello,%20,world!"), // partially-encoded url with invalid
         // char
         Arguments.of(
             "http://localhost:8080/hello%2C%20world%21",
-            "http://localhost:8080/hello%2C%20world%21"), // fully-encoded url with invalid char
+            "http://localhost:8080/hello,%20world!"), // fully-encoded url with invalid char
         Arguments.of(
             "http://localhost:8080/hello,world!",
-            "http://localhost:8080/hello%2Cworld%21"), // not-encoded url with valid chars
+            "http://localhost:8080/hello,world!"), // not-encoded url with valid chars
         Arguments.of(
             "http://localhost:8080/hello%2Cworld!",
-            "http://localhost:8080/hello%252Cworld%21"), // partially-encoded url with valid chars
+            "http://localhost:8080/hello,world!"), // partially-encoded url with valid chars
         Arguments.of(
             "http://localhost:8080/hello%2Cworld%21",
-            "http://localhost:8080/hello%2Cworld%21"), // fully-encoded url with invalid char
+            "http://localhost:8080/hello,world!"), // fully-encoded url with invalid char
         Arguments.of(
             "http://localhost:8080/über uns",
             "http://localhost:8080/%C3%BCber%20uns"), // not-encoded with UTF-8
@@ -59,31 +58,31 @@ public class UrlEncoderTest {
             "http://localhost:8080/%C3%BCberuns"), // not-encoded with UTF-8
         Arguments.of(
             "http://localhost:8080/hello,&world!",
-            "http://localhost:8080/hello%2C%26world%21"), // not-encoded url with reserved char
+            "http://localhost:8080/hello,&world!"), // not-encoded url with reserved char
         Arguments.of(
             "http://localhost:8080/hello,%26world!",
-            "http://localhost:8080/hello%2C%2526world%21"), // partially-encoded url with reserved
+            "http://localhost:8080/hello,&world!"), // partially-encoded url with reserved
         // char
         Arguments.of(
             "http://localhost:8080/hello%2C%26world%21",
-            "http://localhost:8080/hello%2C%26world%21"), // fully-encoded url with reserved char
+            "http://localhost:8080/hello,&world!"), // fully-encoded url with reserved char
 
         // Query = *( pchar / "/" / "?" )
         Arguments.of(
             "http://localhost:8080/test?query=hello:world?",
-            "http://localhost:8080/test?query=hello%3Aworld%3F"), // not-encoded url with invalid
+            "http://localhost:8080/test?query=hello:world?"), // not-encoded url with invalid
         // char
         Arguments.of(
             "http://localhost:8080/test?query=hello%3Fworld?",
-            "http://localhost:8080/test?query=hello%253Fworld%3F"), // partially-encoded url with
+            "http://localhost:8080/test?query=hello?world?"), // partially-encoded url with
         // invalid char
         Arguments.of(
             "http://localhost:8080/test?query=hello%3Aworld%3F",
-            "http://localhost:8080/test?query=hello%3Aworld%3F"), // fully-encoded url with invalid
+            "http://localhost:8080/test?query=hello:world?"), // fully-encoded url with invalid
         // char
         Arguments.of(
             "http://localhost:8080/test?query=hello world?",
-            "http://localhost:8080/test?query=hello%20world%3F"), // not-encoded url with invalid
+            "http://localhost:8080/test?query=hello%20world?"), // not-encoded url with invalid
         // char
         Arguments.of(
             "http://localhost:8080/test?param1=value1&param2=value 2",
@@ -91,15 +90,15 @@ public class UrlEncoderTest {
         // invalid char
         Arguments.of(
             "http://localhost:8080/test?query=hello world%3F",
-            "http://localhost:8080/test?query=hello%20world%253F"), // partially-encoded url with
+            "http://localhost:8080/test?query=hello%20world?"), // partially-encoded url with
         // invalid char
         Arguments.of(
             "http://localhost:8080/test?mark?value%3F",
-            "http://localhost:8080/test?mark%3Fvalue%253F"), // partially-encoded url with invalid
+            "http://localhost:8080/test?mark?value?"), // partially-encoded url with invalid
         // char
         Arguments.of(
             "http://localhost:8080/test?query=hello%20world%3F",
-            "http://localhost:8080/test?query=hello%20world%3F"), // fully-encoded url with invalid
+            "http://localhost:8080/test?query=hello%20world?"), // fully-encoded url with invalid
         // char
         Arguments.of(
             "http://localhost:8080/test?query=hello,world!",
@@ -111,19 +110,18 @@ public class UrlEncoderTest {
         // chars
 
         // Plus sign (in path must be encoded, in query is valid)
+        Arguments.of("http://localhost:8080/hello+world", "http://localhost:8080/hello+world"),
         Arguments.of(
-            "http://localhost:8080/hello + world", "http://localhost:8080/hello%20%2B%20world"),
-        Arguments.of(
-            "http://localhost:8080/test?hello+world", "http://localhost:8080/test?hello+world"),
+            "http://localhost:8080/test?hello+world", "http://localhost:8080/test?hello%20world"),
 
         // Fragment
         Arguments.of(
             "http://localhost:8080/foo/bar#section 2", "http://localhost:8080/foo/bar#section%202"),
         Arguments.of(
-            "http://localhost:8080/foo/bar#section:2", "http://localhost:8080/foo/bar#section%3A2"),
+            "http://localhost:8080/foo/bar#section:2", "http://localhost:8080/foo/bar#section:2"),
         Arguments.of(
             "http://localhost:8080/foo/bar#section:%202",
-            "http://localhost:8080/foo/bar#section%3A%25202"),
+            "http://localhost:8080/foo/bar#section:%202"),
         Arguments.of(
             "http://localhost:8080/foo/bar#section%202",
             "http://localhost:8080/foo/bar#section%202"),
@@ -137,7 +135,16 @@ public class UrlEncoderTest {
         // path is encoded, query is not encoded
         Arguments.of(
             "http://localhost:8080/test%2C?query=helloWorld?",
-            "http://localhost:8080/test%2C?query=helloWorld%3F"));
+            "http://localhost:8080/test,?query=helloWorld?"),
+        Arguments.of(
+            "http://localhost:8080/path%20with%20spaces?andQuery=Param with space",
+            "http://localhost:8080/path%20with%20spaces?andQuery=Param%20with%20space"),
+
+        // no protocol
+        Arguments.of("localhost:8080/test", "localhost:8080/test"),
+
+        // invalid port
+        Arguments.of("http://localhost:abc/test", "http://localhost:abc/test"));
   }
 
   @ParameterizedTest
@@ -146,19 +153,6 @@ public class UrlEncoderTest {
     Boolean skipEncoding = false;
     var result = UrlEncoder.toEncodedUri(requestUrl, skipEncoding);
     assertThat(result.toString()).isEqualTo(expectedEncodedUrl);
-  }
-
-  private static Stream<Arguments> urlEncodingInvalidTestCases() {
-    return Stream.of(
-        Arguments.of("localhost:8080/test"), Arguments.of("http://localhost:abc/test"));
-  }
-
-  @ParameterizedTest
-  @MethodSource("urlEncodingInvalidTestCases")
-  public void shouldThrowException(String requestUrl) {
-    Boolean skipEncoding = false;
-    assertThrows(
-        ConnectorInputException.class, () -> UrlEncoder.toEncodedUri(requestUrl, skipEncoding));
   }
 
   private static Stream<Arguments> urlEncodingValidTestCasesWithSkipEncoding() {
@@ -189,6 +183,6 @@ public class UrlEncoderTest {
   public void shouldThrowException_whenSkipEncodingWithInvalidURL(String requestUrl) {
     Boolean skipEncoding = true;
     assertThrows(
-        ConnectorInputException.class, () -> UrlEncoder.toEncodedUri(requestUrl, skipEncoding));
+        IllegalArgumentException.class, () -> UrlEncoder.toEncodedUri(requestUrl, skipEncoding));
   }
 }
