@@ -39,7 +39,17 @@ public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver
         id -> delegate.resolveSchema(id.processDefinitionKey(), id.adHocSubprocessId()));
   }
 
-  private record AdHocToolsIdentifier(Long processDefinitionKey, String adHocSubprocessId) {}
+  private record AdHocToolsIdentifier(Long processDefinitionKey, String adHocSubprocessId) {
+    private AdHocToolsIdentifier {
+      if (processDefinitionKey == null || processDefinitionKey <= 0) {
+        throw new IllegalArgumentException("Process definition key must not be null or negative");
+      }
+
+      if (adHocSubprocessId == null || adHocSubprocessId.isBlank()) {
+        throw new IllegalArgumentException("adHocSubprocessId cannot be null or empty");
+      }
+    }
+  }
 
   public record CacheConfiguration(Long maximumSize, Duration expireAfterWrite) {}
 }

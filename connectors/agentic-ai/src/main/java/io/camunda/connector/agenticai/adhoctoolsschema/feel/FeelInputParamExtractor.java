@@ -21,6 +21,7 @@ import org.camunda.feel.api.EvaluationResult;
 import org.camunda.feel.api.FeelEngineApi;
 import org.camunda.feel.api.FeelEngineBuilder;
 import org.camunda.feel.api.ParseResult;
+import org.camunda.feel.syntaxtree.ConstString;
 import org.camunda.feel.syntaxtree.Exp;
 import org.camunda.feel.syntaxtree.FunctionInvocation;
 import org.camunda.feel.syntaxtree.NamedFunctionParameters;
@@ -118,14 +119,19 @@ public class FeelInputParamExtractor {
   private String parameterName(Exp value) {
     if (!(value instanceof Ref valueRef)) {
       throw new FeelInputParamExtractionException(
-          "Expected parameter 'value' to be a reference, but got '%s'"
-              .formatted(value != null ? value.getClass().getSimpleName() : null));
+          "Expected parameter 'value' to be a reference (e.g. 'toolCall.customParameter'), but received %s."
+              .formatted(
+                  switch (value) {
+                    case ConstString stringResult -> "string '%s'".formatted(stringResult.value());
+                    default -> value;
+                  }));
     }
 
-    if (valueRef.names() == null || valueRef.names().size() < 2) {
+    if (valueRef.names() == null || valueRef.names().isEmpty()) {
+      // e.g. toolCall.parameter
       throw new FeelInputParamExtractionException(
-          "Expected parameter 'value' to be a reference with at least two segments (e.g. toolCall.parameter), but got: %s"
-              .formatted(valueRef.names()));
+          "Expected parameter 'value' to be a reference with at least one segment, but received '%s'."
+              .formatted(valueRef));
     }
 
     return valueRef.names().last();
@@ -139,8 +145,8 @@ public class FeelInputParamExtractor {
     Object result = evaluate(exp, parameterName);
     if (!(result instanceof String resultString)) {
       throw new FeelInputParamExtractionException(
-          "Expected parameter '%s' to be a string, but got: %s"
-              .formatted(parameterName, result.getClass().getSimpleName()));
+          "Expected parameter '%s' to be a string, but received '%s'."
+              .formatted(parameterName, result));
     }
 
     return resultString;
@@ -154,8 +160,8 @@ public class FeelInputParamExtractor {
     Object result = evaluate(exp, parameterName);
     if (!(result instanceof scala.collection.Map<?, ?> resultMap)) {
       throw new FeelInputParamExtractionException(
-          "Expected parameter '%s' to be a map, but got: %s"
-              .formatted(parameterName, result.getClass().getSimpleName()));
+          "Expected parameter '%s' to be a map, but received '%s'."
+              .formatted(parameterName, result));
     }
 
     try {
@@ -181,12 +187,5 @@ public class FeelInputParamExtractor {
     }
 
     return result.result();
-  }
-
-  public static class FeelInputParamExtractionException extends RuntimeException {
-
-    public FeelInputParamExtractionException(String message) {
-      super(message);
-    }
   }
 }

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
@@ -25,18 +26,27 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
 
   private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
+
+  private static final String ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS =
+      "WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS";
+  private static final String ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT =
+      "TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT";
+  private static final String ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED =
+      "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
 
   private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
@@ -86,12 +96,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     addSystemPromptIfNecessary(chatMemory, requestData);
     addUserMessagesFromRequest(agentContext, chatMemory, requestData);
 
-    // call LLM API with updates messages + resolved tool specifications
-    final var toolSpecifications =
-        toolCallingHandler.loadToolSpecifications(
-            context.getJobContext().getProcessDefinitionKey(),
-            requestData.tools().containerElementId());
-
+    // call LLM API with updated messages + resolved tool specifications
+    final var toolSpecifications = loadToolSpecifications(context, requestData);
     final var chatRequest =
         ChatRequest.builder()
             .messages(chatMemory.messages())
@@ -128,7 +134,10 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
         Optional.ofNullable(requestData.guardrails().maxModelCalls())
             .orElse(DEFAULT_MAX_MODEL_CALLS);
     if (agentContext.metrics().modelCalls() >= maxModelCalls) {
-      throw new ConnectorException("Maximum number of model calls reached");
+      throw new ConnectorException(
+          ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED,
+          "Maximum number of model calls reached (modelCalls: %d, limit: %d)"
+              .formatted(agentContext.metrics().modelCalls(), maxModelCalls));
     }
   }
 
@@ -142,11 +151,26 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
 
   private void addUserMessagesFromRequest(
       AgentContext agentContext, ChatMemory chatMemory, AgentRequest.AgentRequestData requestData) {
+    final var toolCallResults =
+        Optional.ofNullable(requestData.tools())
+            .map(ToolsConfiguration::toolCallResults)
+            .filter(tcr -> !tcr.isEmpty())
+            .orElseGet(Collections::emptyList);
+
+    // throw an error when receiving tool call results on an empty context as
+    // most likely this is a modeling error
+    if (agentContext.isEmpty() && !toolCallResults.isEmpty()) {
+      throw new ConnectorException(
+          ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT,
+          "Agent received tool call results, but the agent context was empty (no tool call requests). Is the context configured correctly?");
+    }
+
+    // add tool call results to chat memory
     if (agentContext.isInState(AgentState.WAITING_FOR_TOOL_INPUT)) {
-      final var toolCallResults = requestData.tools().toolCallResults();
-      if (toolCallResults == null || toolCallResults.isEmpty()) {
+      if (toolCallResults.isEmpty()) {
         throw new ConnectorException(
-            "Agent is waiting for tool input, but tool call results were empty");
+            ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS,
+            "Agent is waiting for tool input, but tool call results were empty. Is the tool feedback loop configured correctly?");
       }
 
       toolCallResults.stream()
@@ -172,5 +196,17 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     final var parameters =
         Optional.ofNullable(promptConfiguration.parameters()).orElseGet(Collections::emptyMap);
     return PromptTemplate.from(promptConfiguration.prompt()).apply(parameters);
+  }
+
+  private List<ToolSpecification> loadToolSpecifications(
+      OutboundConnectorContext context, AgentRequest.AgentRequestData requestData) {
+    return Optional.ofNullable(requestData.tools())
+        .map(ToolsConfiguration::containerElementId)
+        .filter(id -> !id.isBlank())
+        .map(
+            containerElementId ->
+                toolCallingHandler.loadToolSpecifications(
+                    context.getJobContext().getProcessDefinitionKey(), containerElementId))
+        .orElseGet(Collections::emptyList);
   }
 }

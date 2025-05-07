@@ -9,9 +9,19 @@ package io.camunda.connector.agenticai.aiagent.model;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public record AgentContext(
     AgentState state, AgentMetrics metrics, List<Map<String, Object>> memory) {
+  public static AgentContext EMPTY =
+      new AgentContext(AgentState.READY, AgentMetrics.EMPTY, Collections.emptyList());
+
+  public AgentContext {
+    Objects.requireNonNull(state, "Agent state must not be null");
+    Objects.requireNonNull(metrics, "Agent metrics must not be null");
+    Objects.requireNonNull(memory, "Agent memory must not be null");
+  }
+
   public AgentContext withState(AgentState state) {
     return new AgentContext(state, metrics, memory);
   }
@@ -20,15 +30,19 @@ public record AgentContext(
     return this.state == state;
   }
 
+  public boolean isEmpty() {
+    return this.equals(EMPTY);
+  }
+
+  public static AgentContext empty() {
+    return EMPTY;
+  }
+
   public AgentContext withMetrics(AgentMetrics metrics) {
     return new AgentContext(state, metrics, memory);
   }
 
   public AgentContext withMemory(List<Map<String, Object>> memory) {
     return new AgentContext(state, metrics, memory);
-  }
-
-  public static AgentContext empty() {
-    return new AgentContext(AgentState.READY, AgentMetrics.empty(), Collections.emptyList());
   }
 }

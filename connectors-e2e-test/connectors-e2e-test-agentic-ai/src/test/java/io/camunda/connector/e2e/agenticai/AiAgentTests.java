@@ -605,7 +605,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
           incident -> {
             assertThat(incident.getElementId()).isEqualTo("AI_Agent");
             assertThat(incident.getErrorMessage())
-                .isEqualTo("Maximum number of model calls reached");
+                .isEqualTo("Maximum number of model calls reached (modelCalls: 10, limit: 10)");
           });
 
       final var agentResponse = getAgentResponse(zeebeTest);

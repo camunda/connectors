@@ -43,14 +43,14 @@ public class DefaultAdHocToolSchemaGenerator implements AdHocToolSchemaGenerator
     inputParams.forEach(
         inputParam -> {
           if (restrictedParamNames.contains(inputParam.name())) {
-            throw new IllegalArgumentException(
+            throw new SchemaGenerationException(
                 "Input parameter name '%s' is restricted and cannot be used."
                     .formatted(inputParam.name()));
           }
 
           if (properties.containsKey(inputParam.name())) {
-            throw new IllegalArgumentException(
-                "Duplicate input parameter name: %s".formatted(inputParam.name()));
+            throw new SchemaGenerationException(
+                "Duplicate input parameter name '%s'.".formatted(inputParam.name()));
           }
 
           final var propertySchema =
