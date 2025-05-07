@@ -204,6 +204,15 @@ limitations under the License.</license.inlineheader>
         <scope>import</scope>
       </dependency>
 
+      <!-- LangChain4j BOM -->
+      <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-bom</artifactId>
+        <version>${version.langchain4j}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!-- Camunda internal dependencies -->
       <dependency>
         <groupId>io.camunda.connector</groupId>
@@ -594,41 +603,6 @@ limitations under the License.</license.inlineheader>
         <groupId>org.wiremock</groupId>
         <artifactId>wiremock-standalone</artifactId>
         <version>${version.wiremock}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-ollama</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-bedrock</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-pgvector</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-elasticsearch</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-opensearch</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-document-parser-apache-tika</artifactId>
-        <version>${version.langchain4j}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
