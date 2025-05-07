@@ -16,7 +16,6 @@ import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.TextFileContent;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.document.Document;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
@@ -83,10 +82,6 @@ public class CamundaDocumentContentSerializer extends JsonSerializer<Document> {
     return switch (contentBlock) {
       case TextContent tc ->
           new CamundaDocumentResponseModel(TYPE_TEXT, metadata.getContentType(), tc.text());
-
-      case TextFileContent tf ->
-          new CamundaDocumentResponseModel(
-              TYPE_BASE64, metadata.getContentType(), tf.textFile().base64Data());
 
       case PdfFileContent tf ->
           new CamundaDocumentResponseModel(
