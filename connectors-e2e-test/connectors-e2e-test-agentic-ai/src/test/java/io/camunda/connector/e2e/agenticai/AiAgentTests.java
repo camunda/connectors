@@ -573,7 +573,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
   }
 
   @Nested
-  class Limits {
+  class Guardrails {
 
     @Test
     void raisesIncidentWhenMaximumModelCallsAreReached() throws IOException {

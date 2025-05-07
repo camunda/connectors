@@ -38,7 +38,7 @@ public record AgentRequest(
       @Valid @NotNull UserPromptConfiguration userPrompt,
       @Valid @NotNull ToolsConfiguration tools,
       @Valid @NotNull MemoryConfiguration memory,
-      @Valid @NotNull LimitsConfiguration limits) {
+      @Valid GuardrailsConfiguration guardrails) {
 
     public interface PromptConfiguration {
       String PROMPT_PARAMETERS_DESCRIPTION =
@@ -153,10 +153,10 @@ Reveal **no** additional private reasoning outside these tags.
             @Min(3)
             Integer maxMessages) {}
 
-    public record LimitsConfiguration(
-        // TODO think of other limits (max tool calls, max tokens, ...)
+    public record GuardrailsConfiguration(
+        // TODO think of other guardrails (max tool calls, max tokens, ...)
         @TemplateProperty(
-                group = "limits",
+                group = "guardrails",
                 label = "Maximum model calls",
                 description =
                     "Maximum number of calls to the model as a safety limit to prevent infinite loops.",

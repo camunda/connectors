@@ -39,7 +39,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           id = "memory",
           label = "Memory",
           tooltip = "Configuration of the Agent's short-term memory."),
-      @PropertyGroup(id = "limits", label = "Limits"),
+      @PropertyGroup(id = "guardrails", label = "Guardrails"),
       @PropertyGroup(
           id = "parameters",
           label = "Model Parameters",

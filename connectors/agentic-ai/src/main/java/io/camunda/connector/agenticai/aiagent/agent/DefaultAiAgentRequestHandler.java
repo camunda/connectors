@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.GuardrailsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
@@ -89,8 +90,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
             .chatMemoryStore(chatMemoryStore)
             .build();
 
-    // check configured limits
-    checkLimits(requestData, agentContext);
+    // check configured guardrails
+    checkGuardrails(requestData, agentContext);
 
     // update memory with system + new user messages/tool call responses
     addSystemPromptIfNecessary(chatMemory, requestData);
@@ -127,9 +128,12 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolCalls);
   }
 
-  private void checkLimits(AgentRequest.AgentRequestData requestData, AgentContext agentContext) {
+  private void checkGuardrails(
+      AgentRequest.AgentRequestData requestData, AgentContext agentContext) {
     final int maxModelCalls =
-        Optional.ofNullable(requestData.limits().maxModelCalls()).orElse(DEFAULT_MAX_MODEL_CALLS);
+        Optional.ofNullable(requestData.guardrails())
+            .map(GuardrailsConfiguration::maxModelCalls)
+            .orElse(DEFAULT_MAX_MODEL_CALLS);
     if (agentContext.metrics().modelCalls() >= maxModelCalls) {
       throw new ConnectorException(
           ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED,

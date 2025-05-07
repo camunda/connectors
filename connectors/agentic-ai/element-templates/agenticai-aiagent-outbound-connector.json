@@ -36,8 +36,8 @@
     "label" : "Memory",
     "tooltip" : "Configuration of the Agent's short-term memory."
   }, {
-    "id" : "limits",
-    "label" : "Limits"
+    "id" : "guardrails",
+    "label" : "Guardrails"
   }, {
     "id" : "parameters",
     "label" : "Model Parameters",
@@ -486,7 +486,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "data.limits.maxModelCalls",
+    "id" : "data.guardrails.maxModelCalls",
     "label" : "Maximum model calls",
     "description" : "Maximum number of calls to the model as a safety limit to prevent infinite loops.",
     "optional" : false,
@@ -495,9 +495,9 @@
       "notEmpty" : true
     },
     "feel" : "static",
-    "group" : "limits",
+    "group" : "guardrails",
     "binding" : {
-      "name" : "data.limits.maxModelCalls",
+      "name" : "data.guardrails.maxModelCalls",
       "type" : "zeebe:input"
     },
     "type" : "Number"

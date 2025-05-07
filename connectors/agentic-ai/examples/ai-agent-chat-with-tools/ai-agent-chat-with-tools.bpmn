@@ -25,7 +25,7 @@
           <zeebe:input source="Agent_Tools" target="data.tools.containerElementId" />
           <zeebe:input source="=toolCallResults" target="data.tools.toolCallResults" />
           <zeebe:input source="=20" target="data.memory.maxMessages" />
-          <zeebe:input source="=20" target="data.limits.maxModelCalls" />
+          <zeebe:input source="=20" target="data.guardrails.maxModelCalls" />
           <zeebe:input source="=8192" target="provider.bedrock.model.parameters.maxOutputTokens" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -267,7 +267,7 @@
       <bpmn:text>Rough outline of the functionality
 
 - Loads previous memory from provided variables
-- Checks limits (e.g. maximum LLM model calls)
+- Checks guardrails (e.g. maximum LLM model calls)
 - Loads available tool information from ad-hoc subprocess definition
 - Merges the current request (either a user message or a tool call response) into the memory
 - Calls the LLM, including previous/edited memory + available tools schema
