@@ -130,7 +130,8 @@
               <generateHybridTemplates>true</generateHybridTemplates>
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
-          </connectors>
+                              </connectors>
+                    <versions>true</versions>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
           </includeDependencies>

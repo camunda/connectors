@@ -80,7 +80,8 @@ limitations under the License.</license.inlineheader>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
-          </connectors>
+                              </connectors>
+                    <versions>true</versions>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-http-base</includeDependency>
           </includeDependencies>

@@ -86,6 +86,7 @@
                             </features>
                         </connector>
                     </connectors>
+                    <versions>true</versions>
                 </configuration>
             </plugin>
         </plugins>

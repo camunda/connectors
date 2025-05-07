@@ -43,7 +43,8 @@
                 io.camunda.connector.message.SendMessageConnectorFunction</connectorClass>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
-          </connectors>
+                              </connectors>
+                    <versions>true</versions>
         </configuration>
       </plugin>
     </plugins>

@@ -59,7 +59,8 @@ except in compliance with the proprietary license.</license.inlineheader>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
-          </connectors>
+                              </connectors>
+                    <versions>true</versions>
         </configuration>
       </plugin>
     </plugins>

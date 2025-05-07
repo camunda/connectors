@@ -84,7 +84,8 @@
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
-          </connectors>
+                              </connectors>
+                    <versions>true</versions>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
           </includeDependencies>

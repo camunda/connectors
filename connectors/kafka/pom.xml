@@ -171,7 +171,8 @@ except in compliance with the proprietary license.</license.inlineheader>
                 <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
               </features>
             </connector>
-          </connectors>
+                              </connectors>
+                    <versions>true</versions>
         </configuration>
       </plugin>
     </plugins>
