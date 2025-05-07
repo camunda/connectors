@@ -50,34 +50,38 @@ class CamundaDocumentContentSerializerTest {
     documentStore.clear();
   }
 
-  @Test
-  void serializesPlainTextDocument() throws Exception {
-    final var document = createDocument("Hello, world!", "text/plain", "test.txt");
+  @ParameterizedTest
+  @CsvSource({
+    "test.txt,text/plain",
+    "test.csv,text/csv",
+    "test.json,application/json",
+    "test.xml,application/xml",
+    "test.yaml,application/yaml"
+  })
+  void serializesTextTypesAsText(String filename, String contentType) throws Exception {
+    final var document = createDocument("Hello, world!", contentType, filename);
     final var serializedDocument = objectMapper.writeValueAsString(document);
 
     JSONAssert.assertEquals(
         """
             {
               "type" : "text",
-              "media_type" : "text/plain",
+              "media_type" : "%s",
               "data" : "Hello, world!"
             }
-            """,
+            """
+            .formatted(contentType),
         serializedDocument,
         true);
   }
 
   @ParameterizedTest
   @CsvSource({
-    "test.csv,text/csv",
     "test.gif,image/gif",
     "test.jpg,image/jpeg",
-    "test.json,application/json",
     "test.pdf,application/pdf",
     "test.png,image/png",
-    "test.webp,image/webp",
-    "test.xml,application/xml",
-    "test.yaml,application/yaml"
+    "test.webp,image/webp"
   })
   void serializesFileContentAsBase64(String filename, String contentType) throws Exception {
     final var document = createDocument("Hello, world!", contentType, filename);
@@ -137,14 +141,14 @@ class CamundaDocumentContentSerializerTest {
               ],
               "map": {
                 "some_csv": {
-                  "type": "base64",
+                  "type": "text",
                   "media_type": "text/csv",
-                  "data": "Zm9vLGJhcg=="
+                  "data": "foo,bar"
                 },
                 "some_json": {
-                  "type": "base64",
+                  "type": "text",
                   "media_type": "application/json",
-                  "data": "eyJmb28iOiAiYmFyIn0="
+                  "data": "{\\"foo\\": \\"bar\\"}"
                 }
               }
             }

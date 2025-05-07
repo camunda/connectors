@@ -15,11 +15,8 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.TextFileContent;
 import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter.CamundaDocumentConvertingException;
 import io.camunda.document.Document;
-import java.util.Base64;
-import org.apache.hc.core5.http.ContentType;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,16 +35,13 @@ class CamundaDocumentToContentConverterTest {
       new CamundaDocumentToContentConverter();
 
   private static final String TEXT_FILE_CONTENT = "Lorem ipsum dolor sit amet.";
-  private static final String TEXT_FILE_CONTENT_B64 =
-      Base64.getEncoder().encodeToString(TEXT_FILE_CONTENT.getBytes());
-
   private static final String DUMMY_B64_VALUE = "dGVzdA==";
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Document document;
 
   @Test
-  void convertsToTextContent() {
+  void convertsPlainTextToTextContent() {
     when(document.metadata().getContentType()).thenReturn("text/plain");
     when(document.asByteArray()).thenReturn(TEXT_FILE_CONTENT.getBytes());
 
@@ -76,24 +70,17 @@ class CamundaDocumentToContentConverterTest {
     // compatible types
     "application/json;charset=UTF-8"
   })
-  void convertsToTextFileContent(String mediaType) {
-    final String mimeTypeWithoutParameters = ContentType.parse(mediaType).getMimeType();
-
+  void convertsOtherTextTypesToTextContent(String mediaType) {
     when(document.metadata().getContentType()).thenReturn(mediaType);
-    when(document.asBase64()).thenReturn(TEXT_FILE_CONTENT_B64);
+    when(document.asByteArray()).thenReturn(TEXT_FILE_CONTENT.getBytes());
 
     var content = converter.convert(document);
 
     assertThat(content)
-        .asInstanceOf(InstanceOfAssertFactories.type(TextFileContent.class))
-        .satisfies(
-            textFileContent -> {
-              assertThat(textFileContent.textFile().mimeType())
-                  .isEqualTo(mimeTypeWithoutParameters);
-              assertThat(textFileContent.textFile().base64Data()).isEqualTo(TEXT_FILE_CONTENT_B64);
-            });
+        .asInstanceOf(InstanceOfAssertFactories.type(TextContent.class))
+        .satisfies(textContent -> assertThat(textContent.text()).isEqualTo(TEXT_FILE_CONTENT));
 
-    verify(document, never()).asByteArray();
+    verify(document, never()).asBase64();
     verify(document, never()).asInputStream();
   }
 
