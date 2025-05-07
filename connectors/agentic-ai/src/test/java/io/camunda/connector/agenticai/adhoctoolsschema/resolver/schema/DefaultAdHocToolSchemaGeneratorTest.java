@@ -155,7 +155,7 @@ class DefaultAdHocToolSchemaGeneratorTest {
     List<FeelInputParam> inputParams = List.of(new FeelInputParam("_meta", "string"));
 
     assertThatThrownBy(() -> generator.generateToolSchema(inputParams))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(SchemaGenerationException.class)
         .hasMessage("Input parameter name '_meta' is restricted and cannot be used.");
   }
 
@@ -165,8 +165,8 @@ class DefaultAdHocToolSchemaGeneratorTest {
         List.of(new FeelInputParam("param1", "string"), new FeelInputParam("param1", "string"));
 
     assertThatThrownBy(() -> generator.generateToolSchema(inputParams))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Duplicate input parameter name: param1");
+        .isInstanceOf(SchemaGenerationException.class)
+        .hasMessage("Duplicate input parameter name 'param1'.");
   }
 
   private void assertJsonSchema(List<FeelInputParam> inputParams, String expectedJsonSchema)
