@@ -132,7 +132,12 @@ public class UrlEncoderTest {
         Arguments.of(
             "http://user:pass@localhost:8080/secret", "http://user:pass@localhost:8080/secret"),
         Arguments.of("http://localhost:1234/port/test", "http://localhost:1234/port/test"),
-        Arguments.of("http://localhost:8080", "http://localhost:8080"));
+        Arguments.of("http://localhost:8080", "http://localhost:8080"),
+
+        // path is encoded, query is not encoded
+        Arguments.of(
+            "http://localhost:8080/test%2C?query=helloWorld?",
+            "http://localhost:8080/test%2C?query=helloWorld%3F"));
   }
 
   @ParameterizedTest
