@@ -89,8 +89,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
             .chatMemoryStore(chatMemoryStore)
             .build();
 
-    // check configured guardrails
-    checkGuardrails(requestData, agentContext);
+    // check configured limits
+    checkLimits(requestData, agentContext);
 
     // update memory with system + new user messages/tool call responses
     addSystemPromptIfNecessary(chatMemory, requestData);
@@ -127,12 +127,9 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolCalls);
   }
 
-  private void checkGuardrails(
-      AgentRequest.AgentRequestData requestData, AgentContext agentContext) {
-    // naive guardrail implementation
+  private void checkLimits(AgentRequest.AgentRequestData requestData, AgentContext agentContext) {
     final int maxModelCalls =
-        Optional.ofNullable(requestData.guardrails().maxModelCalls())
-            .orElse(DEFAULT_MAX_MODEL_CALLS);
+        Optional.ofNullable(requestData.limits().maxModelCalls()).orElse(DEFAULT_MAX_MODEL_CALLS);
     if (agentContext.metrics().modelCalls() >= maxModelCalls) {
       throw new ConnectorException(
           ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED,
