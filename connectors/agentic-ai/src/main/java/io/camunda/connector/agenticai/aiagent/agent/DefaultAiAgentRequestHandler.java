@@ -13,7 +13,7 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.input.Prompt;
@@ -74,7 +74,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
         Optional.ofNullable(requestData.context()).orElseGet(AgentContext::empty);
 
     // initialize configured model
-    final ChatLanguageModel chatModel = chatModelFactory.createChatModel(request);
+    final ChatModel chatModel = chatModelFactory.createChatModel(request);
 
     // set up memory and load from context if available
     final AgentContextChatMemoryStore chatMemoryStore =
