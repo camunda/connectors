@@ -498,7 +498,7 @@
     },
     {
       "label": "Issue ID",
-      "description": "The internal ID of a project\u2019s issue",
+      "description": "The internal ID of a project’s issue",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -600,7 +600,7 @@
     },
     {
       "label": "Issue ID",
-      "description": "The internal ID of a project\u2019s issue",
+      "description": "The internal ID of a project’s issue",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -634,7 +634,7 @@
     },
     {
       "label": "Issue ID",
-      "description": "The internal ID of a project\u2019s issue",
+      "description": "The internal ID of a project’s issue",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1644,5 +1644,8 @@
         "key": "errorExpression"
       }
     }
-  ]
+  ],
+  "engines": {
+    "camunda": "^8.5"
+  }
 }
