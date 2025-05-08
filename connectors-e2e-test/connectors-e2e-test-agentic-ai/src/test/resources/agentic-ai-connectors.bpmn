@@ -92,6 +92,15 @@
           </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
+      <bpmn:boundaryEvent id="Complex_Tool_Error" attachedToRef="A_Complex_Tool">
+        <bpmn:documentation>Handles errors from complex tool</bpmn:documentation>
+        <bpmn:outgoing>Flow_1p7oy92</bpmn:outgoing>
+        <bpmn:errorEventDefinition id="ErrorEventDefinition_1c6dxc2" />
+      </bpmn:boundaryEvent>
+      <bpmn:sequenceFlow id="Flow_1p7oy92" sourceRef="Complex_Tool_Error" targetRef="Activity_12hs7ng" />
+      <bpmn:manualTask id="Activity_12hs7ng" name="Handle complex tool error">
+        <bpmn:incoming>Flow_1p7oy92</bpmn:incoming>
+      </bpmn:manualTask>
     </bpmn:adHocSubProcess>
     <bpmn:exclusiveGateway id="Gateway_0d7bxjf" name="What to do?">
       <bpmn:incoming>Flow_1lbh2cw</bpmn:incoming>
@@ -252,7 +261,7 @@
         <dc:Bounds x="162" y="262" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_005wn4n_di" bpmnElement="Agent_Tools" isExpanded="true">
-        <dc:Bounds x="870" y="570" width="350" height="470" />
+        <dc:Bounds x="870" y="570" width="350" height="670" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_02hr6cv_di" bpmnElement="An_Event">
@@ -279,11 +288,18 @@
       <bpmndi:BPMNShape id="Activity_1kglsdx_di" bpmnElement="Search_The_Web">
         <dc:Bounds x="920" y="720" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0wd2ku5_di" bpmnElement="A_Complex_Tool">
-        <dc:Bounds x="920" y="920" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0zm24e8_di" bpmnElement="Download_A_File">
         <dc:Bounds x="1060" y="920" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0wd2ku5_di" bpmnElement="A_Complex_Tool">
+        <dc:Bounds x="920" y="1030" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1xv565y_di" bpmnElement="Activity_12hs7ng">
+        <dc:Bounds x="1050" y="1110" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1p1n58n_di" bpmnElement="Complex_Tool_Error">
+        <dc:Bounds x="972" y="1092" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_095717l_di" bpmnElement="Flow_095717l">
         <di:waypoint x="1020" y="760" />
@@ -292,6 +308,11 @@
       <bpmndi:BPMNEdge id="Flow_0v33lmt_di" bpmnElement="Flow_0v33lmt">
         <di:waypoint x="988" y="860" />
         <di:waypoint x="1060" y="860" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1p7oy92_di" bpmnElement="Flow_1p7oy92">
+        <di:waypoint x="990" y="1128" />
+        <di:waypoint x="990" y="1150" />
+        <di:waypoint x="1050" y="1150" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Gateway_0d7bxjf_di" bpmnElement="Gateway_0d7bxjf" isMarkerVisible="true">
         <dc:Bounds x="265" y="255" width="50" height="50" />

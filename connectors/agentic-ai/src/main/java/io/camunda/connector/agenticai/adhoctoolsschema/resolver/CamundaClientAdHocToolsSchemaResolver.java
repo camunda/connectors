@@ -18,6 +18,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
+import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
 import io.camunda.zeebe.model.bpmn.instance.FlowNode;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
@@ -93,11 +94,15 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
 
     final var toolDefinitions =
         adHocSubProcess.getChildElementsByType(FlowNode.class).stream()
-            .filter(element -> element.getIncoming().isEmpty())
+            .filter(this::isToolElement)
             .map(this::mapActivityToToolDefinition)
             .toList();
 
     return new AdHocToolsSchemaResponse(toolDefinitions);
+  }
+
+  private boolean isToolElement(FlowNode element) {
+    return element.getIncoming().isEmpty() && !(element instanceof BoundaryEvent);
   }
 
   private AdHocToolDefinition mapActivityToToolDefinition(FlowNode element) {
