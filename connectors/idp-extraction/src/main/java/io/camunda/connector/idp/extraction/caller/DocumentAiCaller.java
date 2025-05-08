@@ -13,7 +13,8 @@ import com.google.cloud.documentai.v1.ProcessResponse;
 import com.google.cloud.documentai.v1.RawDocument;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
-import io.camunda.connector.idp.extraction.model.providers.DocumentAIProvider;
+import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
+import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
 import io.camunda.connector.idp.extraction.supplier.DocumentAiClientSupplier;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,18 +37,19 @@ public class DocumentAiCaller {
   }
 
   public StructuredExtractionResponse extractKeyValuePairsWithConfidence(
-      ExtractionRequestData input, DocumentAIProvider baseRequest) {
+      ExtractionRequestData input, GcpProvider baseRequest) {
     try {
       // Get DocumentAI client and process the document
       try (DocumentProcessorServiceClient client =
-          documentAiClientSupplier.getDocumentAiClient(baseRequest)) {
-
+          documentAiClientSupplier.getDocumentAiClient(baseRequest.getAuthentication())) {
+        DocumentAiRequestConfiguration requestConfiguration =
+            (DocumentAiRequestConfiguration) baseRequest.getConfiguration();
         String processorName =
             String.format(
                 "projects/%s/locations/%s/processors/%s",
-                baseRequest.getConfiguration().projectId(),
-                baseRequest.getConfiguration().region(),
-                baseRequest.getConfiguration().processorId());
+                requestConfiguration.getProjectId(),
+                requestConfiguration.getRegion(),
+                requestConfiguration.getProcessorId());
 
         ProcessRequest request;
 

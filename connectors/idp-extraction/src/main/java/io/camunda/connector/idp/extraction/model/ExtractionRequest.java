@@ -13,8 +13,4 @@ import jakarta.validation.constraints.NotNull;
 
 public record ExtractionRequest(
     @Valid @NotNull ExtractionRequestData input,
-    @TemplateProperty(
-            group = "baseRequest",
-            // remove this when you want to create a fully-featured connector template
-            type = TemplateProperty.PropertyType.Hidden)
-        ProviderConfig baseRequest) {}
+    @TemplateProperty(group = "baseRequest") ProviderConfig baseRequest) {}

@@ -7,21 +7,23 @@
 package io.camunda.connector.idp.extraction.model.providers;
 
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthentication;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpRequestConfiguration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = "documentAi", label = "GCP Document AI Provider")
-public final class DocumentAIProvider implements ProviderConfig {
+@TemplateSubType(id = "gcp", label = "GCP Provider")
+public final class GcpProvider implements ProviderConfig {
 
   @Valid @NotNull private GcpAuthentication authentication;
 
-  private DocumentAiRequestConfiguration configuration;
+  private GcpRequestConfiguration configuration;
 
-  public DocumentAiRequestConfiguration getConfiguration() {
+  public GcpRequestConfiguration getConfiguration() {
     return configuration;
   }
 
-  public void setConfiguration(DocumentAiRequestConfiguration configuration) {
+  public void setConfiguration(GcpRequestConfiguration configuration) {
     this.configuration = configuration;
   }
 

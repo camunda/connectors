@@ -19,10 +19,10 @@ import com.google.cloud.documentai.v1.ProcessResponse;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
-import io.camunda.connector.idp.extraction.model.providers.DocumentAIProvider;
-import io.camunda.connector.idp.extraction.model.providers.DocumentAiRequestConfiguration;
-import io.camunda.connector.idp.extraction.model.providers.GcpAuthentication;
-import io.camunda.connector.idp.extraction.model.providers.GcpAuthenticationType;
+import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
+import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthentication;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
 import io.camunda.connector.idp.extraction.supplier.DocumentAiClientSupplier;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -47,7 +47,7 @@ class DocumentAiCallerTest {
     ProcessResponse mockResponse = mock(ProcessResponse.class);
     Document mockDocument = mock(Document.class);
 
-    when(mockSupplier.getDocumentAiClient(any(DocumentAIProvider.class))).thenReturn(mockClient);
+    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class))).thenReturn(mockClient);
     when(mockClient.processDocument((ProcessRequest) any())).thenReturn(mockResponse);
     when(mockResponse.getDocument()).thenReturn(mockDocument);
 
@@ -128,8 +128,8 @@ class DocumentAiCallerTest {
     when(mockEntity.getPropertiesList()).thenReturn(List.of(mockKeyProperty, mockValueProperty));
     when(mockDocument.getEntitiesList()).thenReturn(List.of(mockEntity));
 
-    // Create and configure the DocumentAIProvider
-    DocumentAIProvider baseRequest = new DocumentAIProvider();
+    // Create and configure the GcpProvider
+    GcpProvider baseRequest = new GcpProvider();
     DocumentAiRequestConfiguration configuration =
         new DocumentAiRequestConfiguration(
             "us", // region
