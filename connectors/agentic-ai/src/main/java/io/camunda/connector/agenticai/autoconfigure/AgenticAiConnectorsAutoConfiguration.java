@@ -148,9 +148,9 @@ public class AgenticAiConnectorsAutoConfiguration {
     configuration
         .clients()
         .forEach(
-            (name, configConfig) -> {
-              final var client = factory.createClient(configConfig);
-              registry.register(name, client);
+            (id, clientConfig) -> {
+              final var client = factory.createClient(clientConfig);
+              registry.register(id, client);
             });
 
     return registry;

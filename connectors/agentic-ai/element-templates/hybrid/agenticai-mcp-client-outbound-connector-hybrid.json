@@ -19,8 +19,8 @@
     "id" : "taskDefinitionType",
     "label" : "Task definition type"
   }, {
-    "id" : "server",
-    "label" : "MCP Server"
+    "id" : "client",
+    "label" : "MCP Client"
   }, {
     "id" : "operation",
     "label" : "Operation"
@@ -67,17 +67,17 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "data.server.serverId",
-    "label" : "Server ID",
-    "description" : "The ID of the server connection to be used. This needs to be configured on your connector runtime.",
+    "id" : "data.client.clientId",
+    "label" : "Client ID",
+    "description" : "The MCP client ID. This needs to be configured on your connector runtime.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "server",
+    "group" : "client",
     "binding" : {
-      "name" : "data.server.serverId",
+      "name" : "data.client.clientId",
       "type" : "zeebe:input"
     },
     "type" : "String"
@@ -98,13 +98,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.operation.arguments",
-    "label" : "Arguments",
+    "id" : "data.operation.parameters",
+    "label" : "Parameters",
     "optional" : true,
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.operation.arguments",
+      "name" : "data.operation.parameters",
       "type" : "zeebe:input"
     },
     "type" : "String"

@@ -20,7 +20,7 @@ public record McpClientRequest(
     @Valid @NotNull AnnotationsConfiguration annotations,
     @Valid @NotNull McpClientRequestData data) {
   public record McpClientRequestData(
-      @Valid @NotNull ServerConfiguration server,
+      @Valid @NotNull ClientConfiguration client,
       @Valid @NotNull OperationConfiguration operation) {
 
     public record AnnotationsConfiguration(
@@ -37,17 +37,17 @@ public record McpClientRequest(
                 defaultValue = "0")
             String mcpClientSupportVersion) {}
 
-    public record ServerConfiguration(
+    public record ClientConfiguration(
         @TemplateProperty(
-                group = "server",
-                label = "Server ID",
+                group = "client",
+                label = "Client ID",
                 description =
-                    "The ID of the server connection to be used. This needs to be configured on your connector runtime.",
+                    "The MCP client ID. This needs to be configured on your connector runtime.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
             @NotBlank
-            String serverId) {}
+            String clientId) {}
 
     public record OperationConfiguration(
         @FEEL
@@ -64,9 +64,9 @@ public record McpClientRequest(
         @FEEL
             @TemplateProperty(
                 group = "operation",
-                label = "Arguments",
+                label = "Parameters",
                 feel = Property.FeelMode.required,
                 optional = true)
-            Map<String, Object> arguments) {}
+            Map<String, Object> parameters) {}
   }
 }

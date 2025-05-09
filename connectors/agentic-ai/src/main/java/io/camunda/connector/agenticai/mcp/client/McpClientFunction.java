@@ -24,7 +24,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     version = 0,
     inputDataClass = McpClientRequest.class,
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "server", label = "MCP Server"),
+      @ElementTemplate.PropertyGroup(id = "client", label = "MCP Client"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation")
     },
     icon = "mcp-client.svg")
@@ -39,6 +39,6 @@ public class McpClientFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
     final McpClientRequest request = context.bindVariables(McpClientRequest.class);
-    return handler.handle(context, request);
+    return handler.handle(request);
   }
 }

@@ -19,25 +19,26 @@ public class McpClientRegistry implements AutoCloseable {
 
   private final Map<String, McpClient> clients = new LinkedHashMap<>();
 
-  public void register(String name, McpClient client) {
-    Objects.requireNonNull(name, "Name must not be null");
+  public void register(String id, McpClient client) {
+    Objects.requireNonNull(id, "ID must not be null");
     Objects.requireNonNull(client, "Client must not be null");
 
-    if (clients.containsKey(name)) {
-      throw new IllegalArgumentException("MCP client '%s' already registered".formatted(name));
+    if (clients.containsKey(id)) {
+      throw new IllegalArgumentException(
+          "MCP client with ID '%s' already registered".formatted(id));
     }
 
-    clients.put(name, client);
+    clients.put(id, client);
   }
 
   public Map<String, McpClient> getClients() {
     return Collections.unmodifiableMap(clients);
   }
 
-  public McpClient getClient(String name) {
-    final var client = clients.get(name);
+  public McpClient getClient(String id) {
+    final var client = clients.get(id);
     if (client == null) {
-      throw new IllegalArgumentException("No MCP client registered with name '%s'".formatted(name));
+      throw new IllegalArgumentException("No MCP client registered with ID '%s'".formatted(id));
     }
 
     return client;
@@ -46,12 +47,12 @@ public class McpClientRegistry implements AutoCloseable {
   @Override
   public void close() {
     for (var entry : clients.entrySet()) {
-      LOGGER.debug("Closing MCP client '{}'", entry.getKey());
+      LOGGER.debug("Closing MCP client with ID '{}'", entry.getKey());
 
       try {
         entry.getValue().close();
       } catch (Exception e) {
-        LOGGER.warn("Failed to close MCP client '%s'".formatted(entry.getKey()), e);
+        LOGGER.warn("Failed to close MCP client with ID '%s'".formatted(entry.getKey()), e);
       }
     }
   }
