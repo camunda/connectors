@@ -220,7 +220,7 @@ public class JakartaUtils {
           Collections.list(message.getAllHeaders()).stream()
               .map(header -> new Header(header.getName(), header.getValue()))
               .toList();
-      String messageId = stripMessageId(message.getHeader("Message-ID")[0]);
+      String messageId = getMessageId(message);
       return new Email(
           null,
           messageId,
@@ -310,9 +310,16 @@ public class JakartaUtils {
     }
   }
 
-  private String stripMessageId(String messageId) {
-    if (messageId == null) return null;
-    return messageId.trim().replaceAll("[<>]", "");
+  private String getMessageId(Message message) {
+    try {
+      String[] messageIds = message.getHeader("Message-ID");
+      if (messageIds.length != 0) {
+        return messageIds[0];
+      }
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+    return null;
   }
 
   public void moveMessage(Store store, Message message, String targetFolder) {

@@ -12,6 +12,8 @@ import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.ActivationCheckResult;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.client.jakarta.inbound.JakartaEmailListener;
 import io.camunda.connector.email.config.CryptographicProtocol;
@@ -87,8 +89,13 @@ public class InboundEmailTest extends BaseEmailTest {
                 emailInboundConnectorProperties.data().pollingWaitTime(),
                 emailInboundConnectorProperties.data().pollingConfig()));
 
+    doNothing().when(inboundConnectorContext).log(any());
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties1);
+    when(inboundConnectorContext.correlate(any()))
+        .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null));
+    when(inboundConnectorContext.canActivate(any()))
+        .thenReturn(new ActivationCheckResult.Success.CanActivate(null));
 
     this.jakartaEmailListener.startListener(inboundConnectorContext);
 
