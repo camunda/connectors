@@ -11,7 +11,7 @@ import io.camunda.connector.idp.extraction.caller.DocumentAiCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
-import io.camunda.connector.idp.extraction.model.providers.DocumentAIProvider;
+import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
 import java.util.HashMap;
@@ -50,7 +50,7 @@ public class StructuredService implements ExtractionService {
     final var input = extractionRequest.input();
     return switch (extractionRequest.baseRequest()) {
       case AwsProvider aws -> extractUsingTextract(input, aws);
-      case DocumentAIProvider documentAi -> extractUsingDocumentAi(input, documentAi);
+      case GcpProvider gcp -> extractUsingGcp(input, gcp);
       default ->
           throw new IllegalStateException(
               "Unsupported provider for structured extraction: " + extractionRequest.baseRequest());
@@ -80,13 +80,13 @@ public class StructuredService implements ExtractionService {
     }
   }
 
-  private StructuredExtractionResult extractUsingDocumentAi(
-      ExtractionRequestData input, DocumentAIProvider baseRequest) {
+  private StructuredExtractionResult extractUsingGcp(
+      ExtractionRequestData input, GcpProvider provider) {
     try {
       long startTime = System.currentTimeMillis();
 
       StructuredExtractionResponse results =
-          documentAiCaller.extractKeyValuePairsWithConfidence(input, baseRequest);
+          documentAiCaller.extractKeyValuePairsWithConfidence(input, provider);
       StructuredExtractionResult processedResults = processExtractedData(results, input);
 
       long endTime = System.currentTimeMillis();

@@ -16,6 +16,10 @@ import io.camunda.connector.idp.extraction.caller.DocumentAiCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.model.providers.*;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
+import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthentication;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
@@ -166,25 +170,24 @@ public class StructuredServiceTest {
   }
 
   @Test
-  void extractUsingDocumentAi_ReturnsCorrectResult() {
+  void extractUsingGcp_ReturnsCorrectResult() {
     // given
-    DocumentAIProvider documentAiProvider = new DocumentAIProvider();
+    GcpProvider gcpProvider = new GcpProvider();
     DocumentAiRequestConfiguration configuration =
         new DocumentAiRequestConfiguration("us-central1", "test-project", "test-processor-id");
-    documentAiProvider.setConfiguration(configuration);
+    gcpProvider.setConfiguration(configuration);
 
     GcpAuthentication authentication =
         new GcpAuthentication(GcpAuthenticationType.BEARER, "test-token", null, null, null, null);
-    documentAiProvider.setAuthentication(authentication);
+    gcpProvider.setAuthentication(authentication);
 
     ExtractionRequest request =
-        new ExtractionRequest(
-            ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, documentAiProvider);
+        new ExtractionRequest(ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, gcpProvider);
 
     StructuredExtractionResponse extractionResponse = getStructuredExtractionResponse();
 
     // Mock the Document AI caller to return our sample response
-    when(documentAiCaller.extractKeyValuePairsWithConfidence(any(), any(DocumentAIProvider.class)))
+    when(documentAiCaller.extractKeyValuePairsWithConfidence(any(), any(GcpProvider.class)))
         .thenReturn(extractionResponse);
 
     // when
@@ -215,15 +218,15 @@ public class StructuredServiceTest {
   }
 
   @Test
-  void extractUsingDocumentAi_WithExcludedFields_ReturnsCorrectResultWithoutExcludedFields() {
-    DocumentAIProvider documentAiProvider = new DocumentAIProvider();
+  void extractUsingGcp_WithExcludedFields_ReturnsCorrectResultWithoutExcludedFields() {
+    GcpProvider gcpProvider = new GcpProvider();
     DocumentAiRequestConfiguration configuration =
         new DocumentAiRequestConfiguration("us-central1", "test-project", "test-processor-id");
-    documentAiProvider.setConfiguration(configuration);
+    gcpProvider.setConfiguration(configuration);
 
     GcpAuthentication authentication =
         new GcpAuthentication(GcpAuthenticationType.BEARER, "test-token", null, null, null, null);
-    documentAiProvider.setAuthentication(authentication);
+    gcpProvider.setAuthentication(authentication);
 
     // Create a custom extraction request with excluded fields
     ExtractionRequestData requestDataWithExclusions =
@@ -236,14 +239,13 @@ public class StructuredServiceTest {
             "_", // Set a delimiter
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.converseData());
 
-    ExtractionRequest request =
-        new ExtractionRequest(requestDataWithExclusions, documentAiProvider);
+    ExtractionRequest request = new ExtractionRequest(requestDataWithExclusions, gcpProvider);
 
     // Create the extraction response with all fields (including the one to be excluded)
     StructuredExtractionResponse extractionResponse = getStructuredExtractionResponse();
 
     // Mock the Document AI caller to return our sample response
-    when(documentAiCaller.extractKeyValuePairsWithConfidence(any(), any(DocumentAIProvider.class)))
+    when(documentAiCaller.extractKeyValuePairsWithConfidence(any(), any(GcpProvider.class)))
         .thenReturn(extractionResponse);
 
     // when
@@ -274,23 +276,22 @@ public class StructuredServiceTest {
   }
 
   @Test
-  void extractUsingDocumentAi_ShouldThrowConnectorException_whenExtractionFails() {
+  void extractUsingGcp_ShouldThrowConnectorException_whenExtractionFails() {
     // given
-    DocumentAIProvider documentAiProvider = new DocumentAIProvider();
+    GcpProvider gcpProvider = new GcpProvider();
     DocumentAiRequestConfiguration configuration =
         new DocumentAiRequestConfiguration("us-central1", "test-project", "test-processor-id");
-    documentAiProvider.setConfiguration(configuration);
+    gcpProvider.setConfiguration(configuration);
 
     GcpAuthentication authentication =
         new GcpAuthentication(GcpAuthenticationType.BEARER, "test-token", null, null, null, null);
-    documentAiProvider.setAuthentication(authentication);
+    gcpProvider.setAuthentication(authentication);
 
     ExtractionRequest request =
-        new ExtractionRequest(
-            ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, documentAiProvider);
+        new ExtractionRequest(ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, gcpProvider);
 
     // Mock the Document AI caller to throw an exception
-    when(documentAiCaller.extractKeyValuePairsWithConfidence(any(), any(DocumentAIProvider.class)))
+    when(documentAiCaller.extractKeyValuePairsWithConfidence(any(), any(GcpProvider.class)))
         .thenThrow(new RuntimeException("Document AI extraction failed"));
 
     // when & then

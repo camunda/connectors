@@ -18,7 +18,7 @@ import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
-import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
+import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
@@ -82,14 +82,13 @@ public class UnstructuredService implements ExtractionService {
     final var input = extractionRequest.input();
     return switch (extractionRequest.baseRequest()) {
       case AwsProvider aws -> extractUsingAws(input, aws);
-      case VertexProvider gemini -> extractUsingGcp(input, gemini);
+      case GcpProvider gemini -> extractUsingGcp(input, gemini);
       default ->
           throw new IllegalStateException("Unexpected value: " + extractionRequest.baseRequest());
     };
   }
 
-  private ExtractionResult extractUsingGcp(
-      ExtractionRequestData input, VertexProvider baseRequest) {
+  private ExtractionResult extractUsingGcp(ExtractionRequestData input, GcpProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
       Object result = vertexCaller.generateContent(input, baseRequest);
