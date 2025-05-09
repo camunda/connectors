@@ -45,7 +45,7 @@ public class PollingManager {
     this.store = store;
   }
 
-  private static ReadEmailResponse createResponse(Email email, List<Document> documents) {
+  private static ReadEmailResponse createResponse(Email email) {
     return new ReadEmailResponse(
         email.messageId(),
         email.from(),
@@ -54,7 +54,6 @@ public class PollingManager {
         email.size(),
         email.body().bodyAsPlainText(),
         email.body().bodyAsHtml(),
-        documents,
         email.receivedAt());
   }
 
@@ -95,26 +94,8 @@ public class PollingManager {
     }
   }
 
-  private List<Document> createDocumentList(Email email) {
-    return email.body().attachments().stream()
-        .map(
-            document ->
-                this.connectorContext.create(
-                    DocumentCreationRequest.from(document.inputStream())
-                        .contentType(document.contentType())
-                        .fileName(document.name())
-                        .build()))
-        .toList();
-  }
-
   private boolean correlate(Email email) {
-    List<Document> documents = createDocumentList(email);
-    CorrelationRequest correlationRequest =
-        CorrelationRequest.builder()
-            .variables(createResponse(email, documents))
-            .messageId(email.messageId())
-            .build();
-    return switch (this.connectorContext.correlate(correlationRequest)) {
+    return switch (this.connectorContext.correlateWithResult(createResponse(email))) {
       case CorrelationResult.Failure failure ->
           switch (failure.handlingStrategy()) {
             case CorrelationFailureHandlingStrategy.ForwardErrorToUpstream ignored -> {
@@ -217,42 +198,7 @@ public class PollingManager {
         Activity.level(Severity.INFO)
             .tag("new-email")
             .message("Processing email: %s".formatted(email.messageId())));
-    ActivationCheckResult activationCheckResult =
-        this.connectorContext.canActivate(createResponse(email, List.of()));
-    return switch (activationCheckResult) {
-      case ActivationCheckResult.Failure failure ->
-          switch (failure) {
-            case ActivationCheckResult.Failure.NoMatchingElement noMatchingElement -> {
-              if (noMatchingElement.discardUnmatchedEvents()) {
-                this.connectorContext.log(
-                    Activity.level(Severity.INFO)
-                        .tag("NoMatchingElement")
-                        .message(
-                            "No matching activation condition. Discarding unmatched email: %s"
-                                .formatted(email.messageId())));
-                yield true;
-              } else {
-                this.connectorContext.log(
-                    Activity.level(Severity.INFO)
-                        .tag("NoMatchingElement")
-                        .message(
-                            "No matching activation condition. Not discarding unmatched email: %s"
-                                .formatted(email.messageId())));
-                yield false;
-              }
-            }
-            case ActivationCheckResult.Failure.TooManyMatchingElements ignored -> {
-              this.connectorContext.log(
-                  Activity.level(Severity.ERROR)
-                      .tag("TooManyMatchingElements")
-                      .message(
-                          "Too many matching activation conditions. Email: %s"
-                              .formatted(email.messageId())));
-              yield false;
-            }
-          };
-      case ActivationCheckResult.Success ignored -> correlate(email);
-    };
+    return correlate(email);
   }
 
   public long delay() {
