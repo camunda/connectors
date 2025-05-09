@@ -50,7 +50,8 @@
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
-          </connectors>
+                              </connectors>
+                    <versions>true</versions>
         </configuration>
       </plugin>
     </plugins>
