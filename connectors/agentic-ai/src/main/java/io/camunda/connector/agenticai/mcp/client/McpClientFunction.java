@@ -30,9 +30,15 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     icon = "mcp-client.svg")
 public class McpClientFunction implements OutboundConnectorFunction {
 
+  private final McpClientHandler handler;
+
+  public McpClientFunction(McpClientHandler handler) {
+    this.handler = handler;
+  }
+
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
     final McpClientRequest request = context.bindVariables(McpClientRequest.class);
-    return null;
+    return handler.handle(context, request);
   }
 }

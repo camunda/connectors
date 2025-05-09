@@ -23,6 +23,8 @@ import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -34,7 +36,10 @@ import org.springframework.context.annotation.Configuration;
     value = "camunda.connector.agenticai.enabled",
     havingValue = "true",
     matchIfMissing = true)
-@EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
+@EnableConfigurationProperties({
+  AgenticAiConnectorsConfigurationProperties.class,
+  McpClientConfigurationProperties.class
+})
 public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
@@ -133,5 +138,21 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AiAgentFunction aiAgentFunction(AiAgentRequestHandler aiAgentRequestHandler) {
     return new AiAgentFunction(aiAgentRequestHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpClientRegistry mcpClientRegistry(McpClientConfigurationProperties configuration) {
+    final var factory = new McpClientFactory();
+    final var registry = new McpClientRegistry();
+    configuration
+        .clients()
+        .forEach(
+            (name, configConfig) -> {
+              final var client = factory.createClient(configConfig);
+              registry.register(name, client);
+            });
+
+    return registry;
   }
 }
