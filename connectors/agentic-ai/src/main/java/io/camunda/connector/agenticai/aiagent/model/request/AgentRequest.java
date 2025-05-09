@@ -36,9 +36,9 @@ public record AgentRequest(
           AgentContext context,
       @Valid @NotNull SystemPromptConfiguration systemPrompt,
       @Valid @NotNull UserPromptConfiguration userPrompt,
-      @Valid @NotNull ToolsConfiguration tools,
-      @Valid @NotNull MemoryConfiguration memory,
-      @Valid @NotNull LimitsConfiguration limits) {
+      @Valid ToolsConfiguration tools,
+      @Valid MemoryConfiguration memory,
+      @Valid LimitsConfiguration limits) {
 
     public interface PromptConfiguration {
       String PROMPT_PARAMETERS_DESCRIPTION =
