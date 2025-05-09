@@ -310,14 +310,14 @@ public class JakartaUtils {
     }
   }
 
-  private String getMessageId(Message message) {
-    try {
-      String[] messageIds = message.getHeader("Message-ID");
-      return (messageIds != null && messageIds.length > 0) ? messageIds[0] : null;
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
+    private String getMessageId(Message message) {
+        try {
+            String[] messageIds = message.getHeader("Message-ID");
+            return (messageIds != null && messageIds.length > 0) ? messageIds[0] : null;
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
+        }
     }
-  }
 
   public void moveMessage(Store store, Message message, String targetFolder) {
     try {
