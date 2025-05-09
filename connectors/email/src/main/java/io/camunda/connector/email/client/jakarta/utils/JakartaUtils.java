@@ -284,8 +284,8 @@ public class JakartaUtils {
       throws MessagingException, IOException {
     BodyPart bodyPart = multipart.getBodyPart(i);
     switch (bodyPart.getContent()) {
-      case InputStream attachment when Part.ATTACHMENT.equalsIgnoreCase(
-              bodyPart.getDisposition()) ->
+      case InputStream attachment
+          when Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) ->
           emailBodyBuilder.addAttachment(
               new EmailAttachment(
                   attachment,
@@ -313,13 +313,10 @@ public class JakartaUtils {
   private String getMessageId(Message message) {
     try {
       String[] messageIds = message.getHeader("Message-ID");
-      if (messageIds.length != 0) {
-        return messageIds[0];
-      }
+      return (messageIds != null && messageIds.length > 0) ? messageIds[0] : null;
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
-    return null;
   }
 
   public void moveMessage(Store store, Message message, String targetFolder) {
