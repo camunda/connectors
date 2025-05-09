@@ -154,4 +154,151 @@ class PollingTextractCallerTest {
 
     assertEquals("Test exception message", exception.getMessage());
   }
+
+  @Test
+  void extractKeyValuePairsWithConfidenceShouldProcessTableContent() throws Exception {
+    String jobId = "1";
+    GetDocumentAnalysisRequest getDocumentAnalysisRequest =
+        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    // Create table blocks
+    Block tableBlock =
+        Block.builder()
+            .id("T1")
+            .blockType(BlockType.TABLE)
+            .entityTypes(List.of(EntityType.STRUCTURED_TABLE))
+            .relationships(
+                List.of(
+                    Relationship.builder()
+                        .type(RelationshipType.CHILD)
+                        .ids(List.of("C1", "C2", "C3", "C4", "C5", "C6"))
+                        .build()))
+            .build();
+
+    // Header cells
+    Block headerCell1 =
+        Block.builder()
+            .id("C1")
+            .blockType(BlockType.CELL)
+            .rowIndex(1)
+            .columnIndex(1)
+            .confidence(95.0f)
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("W1")).build()))
+            .build();
+
+    Block headerCell2 =
+        Block.builder()
+            .id("C2")
+            .blockType(BlockType.CELL)
+            .rowIndex(1)
+            .columnIndex(2)
+            .confidence(95.0f)
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("W2")).build()))
+            .build();
+
+    // Data cells
+    Block dataCell1 =
+        Block.builder()
+            .id("C3")
+            .blockType(BlockType.CELL)
+            .rowIndex(2)
+            .columnIndex(1)
+            .confidence(90.0f)
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("W3")).build()))
+            .build();
+
+    Block dataCell2 =
+        Block.builder()
+            .id("C4")
+            .blockType(BlockType.CELL)
+            .rowIndex(2)
+            .columnIndex(2)
+            .confidence(90.0f)
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("W4")).build()))
+            .build();
+
+    Block dataCell3 =
+        Block.builder()
+            .id("C5")
+            .blockType(BlockType.CELL)
+            .rowIndex(3)
+            .columnIndex(1)
+            .confidence(90.0f)
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("W5")).build()))
+            .build();
+
+    Block dataCell4 =
+        Block.builder()
+            .id("C6")
+            .blockType(BlockType.CELL)
+            .rowIndex(3)
+            .columnIndex(2)
+            .confidence(90.0f)
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("W6")).build()))
+            .build();
+
+    // Text blocks
+    Block text1 = Block.builder().id("W1").text("Name").blockType(BlockType.WORD).build();
+    Block text2 = Block.builder().id("W2").text("Value").blockType(BlockType.WORD).build();
+    Block text3 = Block.builder().id("W3").text("Item1").blockType(BlockType.WORD).build();
+    Block text4 = Block.builder().id("W4").text("100").blockType(BlockType.WORD).build();
+    Block text5 = Block.builder().id("W5").text("Item2").blockType(BlockType.WORD).build();
+    Block text6 = Block.builder().id("W6").text("200").blockType(BlockType.WORD).build();
+
+    GetDocumentAnalysisResponse getDocumentAnalysisResponse =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .blocks(
+                List.of(
+                    tableBlock,
+                    headerCell1,
+                    headerCell2,
+                    dataCell1,
+                    dataCell2,
+                    dataCell3,
+                    dataCell4,
+                    text1,
+                    text2,
+                    text3,
+                    text4,
+                    text5,
+                    text6))
+            .build();
+
+    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
+        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(startDocumentAnalysisResponse);
+
+    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest))
+        .thenReturn(getDocumentAnalysisResponse);
+
+    var response =
+        new PollingTextractCaller()
+            .extractKeyValuePairsWithConfidence(
+                mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient);
+
+    // Verify table data extraction
+    assertThat(response.extractedFields()).containsEntry("table Name 1", "Item1");
+    assertThat(response.extractedFields()).containsEntry("table Name 2", "Item2");
+    assertThat(response.extractedFields()).containsEntry("table Value 1", "100");
+    assertThat(response.extractedFields()).containsEntry("table Value 2", "200");
+
+    // Verify confidence scores
+    assertThat(response.confidenceScore().get("table Name 1")).isEqualTo(0.9f);
+    assertThat(response.confidenceScore().get("table Value 1")).isEqualTo(0.9f);
+  }
 }
