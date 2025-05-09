@@ -8,9 +8,12 @@ package io.camunda.connector.email.integration;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.ActivationCheckResult;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.client.jakarta.inbound.JakartaEmailListener;
 import io.camunda.connector.email.config.CryptographicProtocol;
@@ -25,6 +28,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,6 +49,11 @@ public class InboundEmailTest extends BaseEmailTest {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @AfterEach
+  public void afterEach() {
+    this.jakartaEmailListener.stopListener();
   }
 
   @BeforeEach
@@ -70,8 +80,13 @@ public class InboundEmailTest extends BaseEmailTest {
                 emailInboundConnectorProperties.data().pollingWaitTime(),
                 emailInboundConnectorProperties.data().pollingConfig()));
 
+    doNothing().when(inboundConnectorContext).log(any());
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties1);
+    when(inboundConnectorContext.correlate(any()))
+        .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null));
+    when(inboundConnectorContext.canActivate(any()))
+        .thenReturn(new ActivationCheckResult.Success.CanActivate(null));
 
     jakartaEmailListener.startListener(inboundConnectorContext);
 
@@ -80,8 +95,12 @@ public class InboundEmailTest extends BaseEmailTest {
     verify(inboundConnectorContext, timeout(3000).times(1)).canActivate(any());
     verify(inboundConnectorContext, timeout(3000).times(1)).correlate(any());
 
-    assertFlagOnLastEmail(
-        emailInboundConnectorProperties.data().pollingConfig().handlingStrategy());
+    await()
+        .atMost(5, TimeUnit.SECONDS)
+        .untilAsserted(
+            () ->
+                assertFlagOnLastEmail(
+                    emailInboundConnectorProperties.data().pollingConfig().handlingStrategy()));
   }
 
   private void assertFlagOnLastEmail(HandlingStrategy handlingStrategy) throws MessagingException {
