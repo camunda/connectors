@@ -47,6 +47,26 @@
     },
     "type" : "String"
   }, {
+    "id" : "annotations.mcpClient",
+    "label" : "Defines the element as MCP client",
+    "optional" : false,
+    "value" : "true",
+    "binding" : {
+      "name" : "annotations.mcpClient",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "annotations.mcpClientSupportVersion",
+    "label" : "MCP client integration version",
+    "optional" : false,
+    "value" : "0",
+    "binding" : {
+      "name" : "annotations.mcpClientSupportVersion",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "data.server.serverId",
     "label" : "Server ID",
     "description" : "The ID of the server connection to be used. This needs to be configured on your connector runtime.",

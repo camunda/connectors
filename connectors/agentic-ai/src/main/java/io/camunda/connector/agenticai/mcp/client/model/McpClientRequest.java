@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model;
 
+import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData.AnnotationsConfiguration;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -15,10 +16,26 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
-public record McpClientRequest(@Valid @NotNull McpClientRequestData data) {
+public record McpClientRequest(
+    @Valid @NotNull AnnotationsConfiguration annotations,
+    @Valid @NotNull McpClientRequestData data) {
   public record McpClientRequestData(
       @Valid @NotNull ServerConfiguration server,
       @Valid @NotNull OperationConfiguration operation) {
+
+    public record AnnotationsConfiguration(
+        @TemplateProperty(
+                label = "Defines the element as MCP client",
+                type = TemplateProperty.PropertyType.Hidden,
+                feel = Property.FeelMode.disabled,
+                defaultValue = "true")
+            String mcpClient,
+        @TemplateProperty(
+                label = "MCP client integration version",
+                type = TemplateProperty.PropertyType.Hidden,
+                feel = Property.FeelMode.disabled,
+                defaultValue = "0")
+            String mcpClientSupportVersion) {}
 
     public record ServerConfiguration(
         @TemplateProperty(

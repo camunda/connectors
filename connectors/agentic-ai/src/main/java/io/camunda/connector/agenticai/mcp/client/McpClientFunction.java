@@ -14,7 +14,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
     name = "MCP Client (alpha)",
-    inputVariables = {"data"},
+    inputVariables = {"annotations", "data"},
     type = "io.camunda.agenticai:mcpclient:0")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.mcp.client.v0",
