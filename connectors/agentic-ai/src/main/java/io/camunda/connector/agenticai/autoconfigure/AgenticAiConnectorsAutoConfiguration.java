@@ -24,7 +24,11 @@ import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
+import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -41,6 +45,9 @@ import org.springframework.context.annotation.Configuration;
   McpClientConfigurationProperties.class
 })
 public class AgenticAiConnectorsAutoConfiguration {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(AgenticAiConnectorsAutoConfiguration.class);
 
   @Bean
   @ConditionalOnMissingBean
@@ -149,10 +156,24 @@ public class AgenticAiConnectorsAutoConfiguration {
         .clients()
         .forEach(
             (id, clientConfig) -> {
+              LOGGER.info("Creating MCP client with ID '{}'", id);
               final var client = factory.createClient(clientConfig);
               registry.register(id, client);
             });
 
     return registry;
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpClientHandler mcpClientHandler(
+      McpClientRegistry mcpClientRegistry, ObjectMapper objectMapper) {
+    return new McpClientHandler(mcpClientRegistry, objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpClientFunction mcpClientFunction(McpClientHandler mcpClientHandler) {
+    return new McpClientFunction(mcpClientHandler);
   }
 }

@@ -21,7 +21,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai.mcp.client")
 public record McpClientConfigurationProperties(
-    @NotNull Map<@NotBlank String, @NotNull @Valid McpClientConfiguration> clients) {
+    @NotNull @DefaultValue Map<@NotBlank String, @NotNull @Valid McpClientConfiguration> clients) {
 
   @ValidMcpClientConfiguration
   public record McpClientConfiguration(
@@ -37,7 +37,7 @@ public record McpClientConfigurationProperties(
 
   public record StdioMcpClientTransportConfiguration(
       @NotNull @NotEmpty List<String> command,
-      @NotNull Map<String, String> env,
+      @NotNull @DefaultValue Map<String, String> env,
       @DefaultValue("true") boolean logEvents)
       implements McpClientTransportConfiguration {}
 
