@@ -214,8 +214,7 @@ public class BaseEmailTest {
   protected String getLastMessageId() {
     Message message = getLastReceivedEmails()[0];
     try {
-      String messageId = message.getHeader("Message-ID")[0];
-      return messageId.trim().replaceAll("[<>]", "");
+      return message.getHeader("Message-ID")[0];
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
