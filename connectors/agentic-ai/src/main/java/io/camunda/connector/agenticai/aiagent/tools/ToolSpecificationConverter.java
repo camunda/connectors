@@ -10,8 +10,6 @@ import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtract
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion.VersionFlag;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
@@ -24,29 +22,14 @@ import io.camunda.connector.agenticai.jsonschema.JsonSchemaElementModule;
  */
 public class ToolSpecificationConverter {
 
-  private final JsonSchemaFactory jsonSchemaFactory;
   private final ObjectMapper objectMapper;
 
   public ToolSpecificationConverter() {
-    this(defaultSchemaFactory(), defaultObjectMapper());
-  }
-
-  public ToolSpecificationConverter(JsonSchemaFactory jsonSchemaFactory) {
-    this(jsonSchemaFactory, defaultObjectMapper());
+    this(defaultObjectMapper());
   }
 
   public ToolSpecificationConverter(ObjectMapper objectMapper) {
-    this(defaultSchemaFactory(), objectMapper);
-  }
-
-  public ToolSpecificationConverter(
-      JsonSchemaFactory jsonSchemaFactory, ObjectMapper objectMapper) {
-    this.jsonSchemaFactory = jsonSchemaFactory;
     this.objectMapper = objectMapper;
-  }
-
-  private static JsonSchemaFactory defaultSchemaFactory() {
-    return JsonSchemaFactory.getInstance(VersionFlag.V202012);
   }
 
   private static ObjectMapper defaultObjectMapper() {
