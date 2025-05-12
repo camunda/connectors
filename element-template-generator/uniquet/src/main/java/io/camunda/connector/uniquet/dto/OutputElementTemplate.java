@@ -16,4 +16,40 @@
  */
 package io.camunda.connector.uniquet.dto;
 
-public record OutputElementTemplate(Integer version, String ref, Engine engine) {}
+import java.util.Objects;
+
+public class OutputElementTemplate {
+  private final Integer version;
+  private final String ref;
+  private final Engine engine;
+
+  public OutputElementTemplate(Integer version, String ref, Engine engine) {
+    this.version = version;
+    this.ref = ref;
+    this.engine = engine;
+  }
+
+  public String getRef() {
+    return ref;
+  }
+
+  public Engine getEngine() {
+    return engine;
+  }
+
+  public Integer getVersion() {
+    return version;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    OutputElementTemplate that = (OutputElementTemplate) o;
+    return Objects.equals(version, that.version);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(version);
+  }
+}
