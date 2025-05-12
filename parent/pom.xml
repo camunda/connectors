@@ -144,7 +144,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.22.1</version.auth0.jwks>
     
-    <version.langchain4j>1.0.0-beta3</version.langchain4j>
+    <version.langchain4j>1.0.0-beta4</version.langchain4j>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.5.0</plugin.version.maven-enforcer-plugin>
@@ -200,6 +200,15 @@ limitations under the License.</license.inlineheader>
         <groupId>com.google.cloud</groupId>
         <artifactId>libraries-bom</artifactId>
         <version>${version.google-libraries-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- LangChain4j BOM -->
+      <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-bom</artifactId>
+        <version>${version.langchain4j}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -594,41 +603,6 @@ limitations under the License.</license.inlineheader>
         <groupId>org.wiremock</groupId>
         <artifactId>wiremock-standalone</artifactId>
         <version>${version.wiremock}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-ollama</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-bedrock</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-pgvector</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-elasticsearch</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-opensearch</artifactId>
-        <version>${version.langchain4j}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-document-parser-apache-tika</artifactId>
-        <version>${version.langchain4j}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

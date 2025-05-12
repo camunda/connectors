@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.provider;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
@@ -29,7 +29,7 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class ChatModelFactory {
 
-  public ChatLanguageModel createChatModel(AgentRequest request) {
+  public ChatModel createChatModel(AgentRequest request) {
     return switch (request.provider()) {
       case AnthropicProviderConfiguration anthropic -> createAnthropicChatModel(anthropic);
       case BedrockProviderConfiguration bedrock -> createBedrockChatModel(bedrock);
