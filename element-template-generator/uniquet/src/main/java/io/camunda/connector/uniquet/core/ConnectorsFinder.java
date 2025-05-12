@@ -30,6 +30,8 @@ import java.util.stream.Stream;
 
 public class ConnectorsFinder {
 
+  private static final String ELEMENT_TEMPLATES = "element-templates";
+  private static final String VERSIONED = "versioned";
   private final List<Connector> connectors;
 
   public ConnectorsFinder(Path connectorPath) {
@@ -38,9 +40,9 @@ public class ConnectorsFinder {
           files
               .map(path -> new File(path.toUri()))
               .filter(File::isDirectory)
-              .filter(this::containsFolder)
+              .filter(this::containsElementTemplates)
               .map(this::getElementTemplateDirectory)
-              .flatMap(this::findConnectors)
+              .flatMap(this::findVersionedConnectors)
               .toList();
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -53,15 +55,15 @@ public class ConnectorsFinder {
 
   private File getElementTemplateDirectory(File file) {
     return Arrays.stream(Objects.requireNonNull(file.listFiles()))
-        .filter(file1 -> file1.getName().endsWith("element-templates"))
+        .filter(file1 -> file1.getName().endsWith(ELEMENT_TEMPLATES))
         .findFirst()
         .orElseThrow();
   }
 
-  private Stream<Connector> findConnectors(File file) {
+  private Stream<Connector> findVersionedConnectors(File file) {
     File[] files = Objects.requireNonNull(file.listFiles());
     return Arrays.stream(files)
-        .filter(f -> f.getName().equals("versioned"))
+        .filter(f -> f.getName().equals(VERSIONED))
         .findFirst()
         .map(
             versionedDirectory ->
@@ -82,12 +84,12 @@ public class ConnectorsFinder {
             .toList());
   }
 
-  private boolean containsFolder(File directory) {
+  private boolean containsElementTemplates(File directory) {
     if (directory == null || !directory.isDirectory()) {
       return false;
     }
     return Arrays.stream(Objects.requireNonNull(directory.listFiles()))
-        .anyMatch(file -> file.getName().endsWith("element-templates"));
+        .anyMatch(file -> file.getName().endsWith(ELEMENT_TEMPLATES));
   }
 
   public List<Connector> getAllConnectors() {

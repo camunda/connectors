@@ -34,6 +34,12 @@ public class IndexWriter {
   private final File finalFile;
   private final List<File> allElementTemplates;
 
+  private static final String VERSION = "version";
+  private static final String ID = "id";
+  private static final String CONNECTORS = "connectors/";
+  private static final String ENGINES = "engines";
+  private static final String CAMUNDA = "camunda";
+
   private IndexWriter(String gitDirectory, Path finalFile, String connectorDirectory) {
     if (!gitDirectory.endsWith(File.separator) && !gitDirectory.isEmpty()) {
       gitDirectory = gitDirectory + File.separator;
@@ -66,14 +72,14 @@ public class IndexWriter {
 
   private void processVersionedFile(File file, Map<String, Set<OutputElementTemplate>> result) {
     JsonNode jsonNode = toJsonNode(file);
-    Integer version = jsonNode.get("version").asInt();
-    String key = jsonNode.get("id").asText();
+    Integer version = jsonNode.get(VERSION).asInt();
+    String key = jsonNode.get(ID).asText();
     String path = file.getPath();
     String link =
-        githubLinkFormat.formatted(path.substring(path.indexOf("element-template-generator")));
+        githubLinkFormat.formatted(path.substring(path.lastIndexOf(CONNECTORS)));
     String engine =
-        Optional.ofNullable(jsonNode.get("engines"))
-            .map(jn -> jn.get("camunda"))
+        Optional.ofNullable(jsonNode.get(ENGINES))
+            .map(jn -> jn.get(CAMUNDA))
             .map(JsonNode::asText)
             .orElse(null);
 
