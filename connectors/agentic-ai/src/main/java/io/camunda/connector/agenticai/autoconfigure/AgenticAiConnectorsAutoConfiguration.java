@@ -167,8 +167,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpClientHandler mcpClientHandler(
-      McpClientRegistry mcpClientRegistry, ObjectMapper objectMapper) {
-    return new McpClientHandler(mcpClientRegistry, objectMapper);
+      McpClientRegistry mcpClientRegistry,
+      ObjectMapper objectMapper,
+      ToolSpecificationConverter toolSpecificationConverter) {
+    return new McpClientHandler(mcpClientRegistry, objectMapper, toolSpecificationConverter);
   }
 
   @Bean

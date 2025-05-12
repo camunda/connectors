@@ -9,12 +9,15 @@ package io.camunda.connector.agenticai.aiagent.tools;
 import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.jsonschema.JsonSchemaElementModule;
+import io.camunda.connector.agenticai.util.ObjectMapperConstants;
+import java.util.Map;
 
 /**
  * Validates and converts a json schema to a tool specification. Conversion logic is based on
@@ -35,6 +38,7 @@ public class ToolSpecificationConverter {
   private static ObjectMapper defaultObjectMapper() {
     final var objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JsonSchemaElementModule());
+    objectMapper.addMixIn(ToolSpecification.class, ToolSpecificationMixin.class);
     return objectMapper;
   }
 
@@ -63,6 +67,15 @@ public class ToolSpecificationConverter {
         .description(toolDefinition.description())
         .parameters(inputSchema)
         .build();
+  }
+
+  public Map<String, Object> asMap(ToolSpecification toolSpecification) {
+    return objectMapper.convertValue(
+        toolSpecification, ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
+  }
+
+  public String asString(ToolSpecification toolSpecification) throws JsonProcessingException {
+    return objectMapper.writeValueAsString(toolSpecification);
   }
 
   private JsonObjectSchema parseSchemaWithErrorHandling(
