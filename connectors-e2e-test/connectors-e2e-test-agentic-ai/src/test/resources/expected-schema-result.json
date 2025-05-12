@@ -1,4 +1,5 @@
 {
+  "mcpClientIds": ["Dummy_MCP_Client"],
   "toolDefinitions": [
     {
       "name": "GetDateAndTime",

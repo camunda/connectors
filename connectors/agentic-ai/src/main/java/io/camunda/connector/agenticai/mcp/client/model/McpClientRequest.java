@@ -55,7 +55,7 @@ public record McpClientRequest(
                 group = "operation",
                 label = "Method",
                 description = "The MCP method to be called, e.g. <code>tools/list</code>",
-                defaultValue = "tools/list",
+                defaultValue = "=toolCall.method",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
@@ -65,6 +65,8 @@ public record McpClientRequest(
             @TemplateProperty(
                 group = "operation",
                 label = "Parameters",
+                description = "The parameters to be passed to the MCP method.",
+                defaultValue = "=toolCall.params",
                 feel = Property.FeelMode.required,
                 optional = true)
             Map<String, Object> parameters) {}

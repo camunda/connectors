@@ -101,6 +101,24 @@
       <bpmn:manualTask id="Activity_12hs7ng" name="Handle complex tool error">
         <bpmn:incoming>Flow_1p7oy92</bpmn:incoming>
       </bpmn:manualTask>
+      <bpmn:serviceTask id="Dummy_MCP_Client" name="Dummy MCP Client" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="true" target="annotations.mcpClient" />
+            <zeebe:input source="0" target="annotations.mcpClientSupportVersion" />
+            <zeebe:input source="dummy" target="data.client.clientId" />
+            <zeebe:input source="=toolCall.method" target="data.operation.method" />
+            <zeebe:input source="=toolCall.params" target="data.operation.parameters" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="0" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
     </bpmn:adHocSubProcess>
     <bpmn:exclusiveGateway id="Gateway_0d7bxjf" name="What to do?">
       <bpmn:incoming>Flow_1lbh2cw</bpmn:incoming>
@@ -261,7 +279,7 @@
         <dc:Bounds x="162" y="262" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_005wn4n_di" bpmnElement="Agent_Tools" isExpanded="true">
-        <dc:Bounds x="870" y="570" width="350" height="670" />
+        <dc:Bounds x="870" y="570" width="450" height="670" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_02hr6cv_di" bpmnElement="An_Event">
@@ -296,6 +314,10 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1xv565y_di" bpmnElement="Activity_12hs7ng">
         <dc:Bounds x="1050" y="1110" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1u0j8kj_di" bpmnElement="Dummy_MCP_Client">
+        <dc:Bounds x="1190" y="620" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1p1n58n_di" bpmnElement="Complex_Tool_Error">

@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
+import static io.camunda.connector.agenticai.mcp.client.McpClientFunction.MCP_CLIENT_BASE_TYPE;
+
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractionException;
@@ -20,10 +22,12 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
 import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
 import io.camunda.zeebe.model.bpmn.instance.FlowNode;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeMapping;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeOutput;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -92,17 +96,35 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
               .formatted(adHocSubProcessId));
     }
 
-    final var toolDefinitions =
+    final var toolElements =
         adHocSubProcess.getChildElementsByType(FlowNode.class).stream()
             .filter(this::isToolElement)
+            .toList();
+
+    final var mcpClientIds =
+        toolElements.stream().filter(this::isMcpClient).map(FlowNode::getId).toList();
+
+    final var toolDefinitions =
+        toolElements.stream()
+            .filter(flowNode -> !mcpClientIds.contains(flowNode.getId()))
             .map(this::mapActivityToToolDefinition)
             .toList();
 
-    return new AdHocToolsSchemaResponse(toolDefinitions);
+    return new AdHocToolsSchemaResponse(toolDefinitions, mcpClientIds);
   }
 
   private boolean isToolElement(FlowNode element) {
     return element.getIncoming().isEmpty() && !(element instanceof BoundaryEvent);
+  }
+
+  private boolean isMcpClient(FlowNode element) {
+    if (!(element instanceof ServiceTask)) {
+      return false;
+    }
+
+    // TODO make more dynamic/configurable?
+    final var taskDefinition = element.getSingleExtensionElement(ZeebeTaskDefinition.class);
+    return taskDefinition != null && taskDefinition.getType().startsWith(MCP_CLIENT_BASE_TYPE);
   }
 
   private AdHocToolDefinition mapActivityToToolDefinition(FlowNode element) {

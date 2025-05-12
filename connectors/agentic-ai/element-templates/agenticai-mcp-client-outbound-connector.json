@@ -81,7 +81,7 @@
     "label" : "Method",
     "description" : "The MCP method to be called, e.g. <code>tools/list</code>",
     "optional" : false,
-    "value" : "tools/list",
+    "value" : "=toolCall.method",
     "constraints" : {
       "notEmpty" : true
     },
@@ -95,7 +95,9 @@
   }, {
     "id" : "data.operation.parameters",
     "label" : "Parameters",
+    "description" : "The parameters to be passed to the MCP method.",
     "optional" : true,
+    "value" : "=toolCall.params",
     "feel" : "required",
     "group" : "operation",
     "binding" : {

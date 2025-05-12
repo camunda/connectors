@@ -11,7 +11,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Map;
 
-public record AdHocToolsSchemaResponse(List<AdHocToolDefinition> toolDefinitions) {
+public record AdHocToolsSchemaResponse(
+    List<AdHocToolDefinition> toolDefinitions, List<String> mcpClientIds) {
   @JsonInclude(JsonInclude.Include.NON_ABSENT)
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record AdHocToolDefinition(
