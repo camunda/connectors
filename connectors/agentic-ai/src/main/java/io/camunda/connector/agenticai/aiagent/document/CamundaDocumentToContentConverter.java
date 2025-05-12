@@ -11,11 +11,10 @@ import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.TextFileContent;
 import dev.langchain4j.data.pdf.PdfFile;
-import dev.langchain4j.data.text.TextFile;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.document.Document;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -46,17 +45,9 @@ public class CamundaDocumentToContentConverter {
   public Content convert(Document camundaDocument) {
     final var contentType = getContentType(camundaDocument);
 
-    if (contentType.isSameMimeType(ContentType.TEXT_PLAIN)) {
-      return new TextContent(new String(camundaDocument.asByteArray()));
-    }
-
     if (contentType.getMimeType().startsWith("text/")
         || isCompatibleWithAnyOf(contentType, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)) {
-      return TextFileContent.from(
-          TextFile.builder()
-              .mimeType(contentType.getMimeType())
-              .base64Data(camundaDocument.asBase64())
-              .build());
+      return new TextContent(new String(camundaDocument.asByteArray(), StandardCharsets.UTF_8));
     }
 
     if (contentType.isSameMimeType(ContentType.APPLICATION_PDF)) {

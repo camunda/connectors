@@ -39,11 +39,10 @@ import dev.langchain4j.data.message.ImageContent.DetailLevel;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.TextFileContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.pdf.PdfFile;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
@@ -51,6 +50,7 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.client.api.search.response.Incident;
 import io.camunda.client.api.worker.JobWorker;
+import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentContentSerializer.CamundaDocumentResponseModel;
 import io.camunda.connector.agenticai.aiagent.memory.AgentContextChatMemoryStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -98,7 +98,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
   @Autowired private ResourceLoader resourceLoader;
 
   @MockitoBean private ChatModelFactory chatModelFactory;
-  @Mock private ChatLanguageModel chatModel;
+  @Mock private ChatModel chatModel;
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
 
   private JobWorker jobWorker;
@@ -327,24 +327,31 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
     @ParameterizedTest
     @CsvSource({
-      "test.csv,base64,text/csv",
+      "test.csv,text,text/csv",
       "test.gif,base64,image/gif",
       "test.jpg,base64,image/jpeg",
-      "test.json,base64,application/json",
+      "test.json,text,application/json",
       "test.pdf,base64,application/pdf",
       "test.png,base64,image/png",
       "test.txt,text,text/plain",
       "test.webp,base64,image/webp",
-      "test.xml,base64,application/xml",
-      "test.yaml,base64,application/yaml"
+      "test.xml,text,application/xml",
+      "test.yaml,text,application/yaml"
     })
     void supportsDocumentResponsesFromToolCalls(String filename, String type, String mimeType)
         throws Exception {
-      String expectedData;
+      DownloadFileToolResult expectedDownloadFileResult;
       if (type.equals("text")) {
-        expectedData = testFileContent(filename).get().replaceAll("\\n", "\\\\n");
+        expectedDownloadFileResult =
+            new DownloadFileToolResult(
+                200,
+                new CamundaDocumentResponseModel(type, mimeType, testFileContent(filename).get()));
       } else {
-        expectedData = testFileContentBase64(filename).get();
+        expectedDownloadFileResult =
+            new DownloadFileToolResult(
+                200,
+                new CamundaDocumentResponseModel(
+                    type, mimeType, testFileContentBase64(filename).get()));
       }
 
       final var initialUserPrompt = "Go and download a document!";
@@ -364,8 +371,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
               new ToolExecutionResultMessage(
                   "aaa111",
                   "Download_A_File",
-                  "{\"status\":200,\"document\":{\"type\":\"%s\",\"media_type\":\"%s\",\"data\":\"%s\"}}"
-                      .formatted(type, mimeType, expectedData)),
+                  objectMapper.writeValueAsString(expectedDownloadFileResult)),
               new AiMessage(
                   "I loaded a document and learned that it contains interesting data. Anything specific you want to know?"),
               new UserMessage("What is the content type?"),
@@ -557,11 +563,8 @@ public class AiAgentTests extends BaseAgenticAiTest {
       final Supplier<String> b64 = testFileContentBase64(filename);
 
       return switch (filename) {
-        case "test.txt" -> TextContent.from(text.get());
-        case "test.csv" -> TextFileContent.from(b64.get(), "text/csv");
-        case "test.json" -> TextFileContent.from(b64.get(), "application/json");
-        case "test.xml" -> TextFileContent.from(b64.get(), "application/xml");
-        case "test.yaml" -> TextFileContent.from(b64.get(), "application/yaml");
+        case "test.txt", "test.yaml", "test.csv", "test.json", "test.xml" ->
+            TextContent.from(text.get());
         case "test.pdf" -> PdfFileContent.from(PdfFile.builder().base64Data(b64.get()).build());
         case "test.gif" -> ImageContent.from(b64.get(), "image/gif", DetailLevel.AUTO);
         case "test.jpg" -> ImageContent.from(b64.get(), "image/jpeg", DetailLevel.AUTO);
@@ -761,4 +764,6 @@ public class AiAgentTests extends BaseAgenticAiTest {
       return new ChatInteraction(chatResponse, userFeedback);
     }
   }
+
+  private record DownloadFileToolResult(int status, CamundaDocumentResponseModel document) {}
 }

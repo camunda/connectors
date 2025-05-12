@@ -45,7 +45,8 @@
   },
   {
     "type": "AI",
-    "text": "The weather in Munich is sunny with a temperature of 22°C. This is typical for April."
+    "text": "The weather in Munich is sunny with a temperature of 22°C. This is typical for April.",
+    "toolExecutionRequests": []
   },
   {
     "type": "USER",
