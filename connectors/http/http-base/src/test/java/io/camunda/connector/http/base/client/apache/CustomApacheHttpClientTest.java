@@ -663,14 +663,15 @@ public class CustomApacheHttpClientTest {
           JSONCompareMode.STRICT);
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(strings = {"application/json", "text/plain"})
     public void shouldReturn200WithBody_whenGetWithQuotedBodyString(
-        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+        String acceptHeader, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       stubFor(post("/path").willReturn(ok().withBody("\"Hello, world\"")));
 
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
-      request.setHeaders(Map.of("Accept", "application/json"));
+      request.setHeaders(Map.of("Accept", acceptHeader));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setBody("\"Hello, world\"");
       HttpCommonResult result = customApacheHttpClient.execute(request);
