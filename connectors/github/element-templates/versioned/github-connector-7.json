@@ -3077,5 +3077,8 @@
         "key": "errorExpression"
       }
     }
-  ]
+  ],
+  "engines": {
+    "camunda": "^8.5"
+  }
 }

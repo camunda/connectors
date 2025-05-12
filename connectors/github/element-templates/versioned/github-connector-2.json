@@ -2168,5 +2168,8 @@
         "key": "errorExpression"
       }
     }
-  ]
+  ],
+  "engines": {
+    "camunda": "^8.2"
+  }
 }
