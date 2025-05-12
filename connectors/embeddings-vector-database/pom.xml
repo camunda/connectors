@@ -81,7 +81,8 @@
             </files>
             <generateHybridTemplates>true</generateHybridTemplates>
           </connector>
-        </connectors>
+                            </connectors>
+                    <versionHistoryEnabled>true</versionHistoryEnabled>
       </configuration>
       </plugin>
     </plugins>

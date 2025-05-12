@@ -81,6 +81,7 @@ limitations under the License.</license.inlineheader>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-http-base</includeDependency>
           </includeDependencies>

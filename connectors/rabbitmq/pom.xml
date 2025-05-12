@@ -91,6 +91,7 @@
               </features>
             </connector>
           </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
       </plugin>
     </plugins>
