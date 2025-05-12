@@ -18,6 +18,7 @@ package io.camunda.connector.generator;
 
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -31,6 +32,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeatu
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.java.ClassBasedDocsGenerator;
 import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
+import io.camunda.connector.generator.java.util.VersionedElementTemplate;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -42,11 +44,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -62,6 +62,16 @@ import org.apache.maven.project.MavenProject;
     requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
+  private static final ObjectMapper objectMapper =
+      new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+  private static final ObjectWriter objectWriter =
+      new ObjectMapper()
+          .writer(
+              new DefaultPrettyPrinter()
+                  .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));
+  private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
+  private static final String HYBRID_TEMPLATES_DIR = "hybrid";
+
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   private MavenProject project;
 
@@ -74,14 +84,21 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   @Parameter(property = "outputDirectory", defaultValue = "${project.basedir}/element-templates")
   private String outputDirectory;
 
-  private static final ObjectWriter objectWriter =
-      new ObjectMapper()
-          .writer(
-              new DefaultPrettyPrinter()
-                  .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));
+  @Parameter(
+      property = "versionedDirectory",
+      defaultValue = "${project.basedir}/element-templates/versioned")
+  private String versionedDirectory;
 
-  private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
-  private static final String HYBRID_TEMPLATES_DIR = "hybrid";
+  @Parameter(property = "versionHistoryEnabled", defaultValue = "false")
+  private Boolean versionHistoryEnabled;
+
+  private static VersionedElementTemplate getBasicElementTemplate(File file) {
+    try {
+      return objectMapper.readValue(file, VersionedElementTemplate.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Override
   public void execute() throws MojoFailureException {
@@ -263,7 +280,6 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     var generator = new ClassBasedTemplateGenerator(classLoader);
     var templates = generator.generate(clazz, generatorConfig);
     writeElementTemplates(templates, false, config.getFiles());
-
     if (config.isGenerateHybridTemplates()) {
       var hybridGeneratorConfig =
           new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null, features);
@@ -274,10 +290,63 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
   private void writeElementTemplates(
       List<ElementTemplate> templates, boolean hybrid, List<FileNameById> fileNames) {
+    List<VersionedElementTemplate> versionedElementTemplates = retrieveBasicElementTemplates();
     for (var template : templates) {
       var fileName = determineFileName(template, fileNames, hybrid);
+      if (versionHistoryEnabled && !hybrid)
+        manageElementTemplatesVersioning(template, versionedElementTemplates, fileName);
       writeElementTemplate(template, hybrid, fileName);
     }
+  }
+
+  private void manageElementTemplatesVersioning(
+      ElementTemplate template,
+      List<VersionedElementTemplate> versionedElementTemplates,
+      String fileName) {
+    VersionedElementTemplate latestVersionedElementTemplate =
+        new VersionedElementTemplate(template.id(), template.version());
+    if (versionedElementTemplates.stream().noneMatch(latestVersionedElementTemplate::equals)) {
+      copyLatestBasicElementTemplate(fileName);
+    }
+  }
+
+  private void copyLatestBasicElementTemplate(String fileName) {
+    File latestBasicElementTemplateFile = new File(this.outputDirectory, fileName);
+    if (!latestBasicElementTemplateFile.exists()) {
+      return;
+    }
+    try {
+      VersionedElementTemplate latestVersionedElementTemplate =
+          objectMapper.readValue(latestBasicElementTemplateFile, VersionedElementTemplate.class);
+      Files.copy(
+          latestBasicElementTemplateFile.toPath(),
+          Path.of(
+              this.versionedDirectory
+                  + File.separator
+                  + fileName.replaceFirst(".json", "")
+                  + "-"
+                  + latestVersionedElementTemplate.version()
+                  + ".json"));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private List<VersionedElementTemplate> retrieveBasicElementTemplates() {
+    File latestTemplatesFolder = new File(this.outputDirectory);
+    File versionedFolder = new File(this.versionedDirectory);
+    Optional<File[]> listClassicFiles =
+        Optional.ofNullable(
+            latestTemplatesFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json")));
+    Optional<File[]> listVersionedFiles =
+        Optional.ofNullable(
+            versionedFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json")));
+    return Stream.concat(
+            Arrays.stream(listClassicFiles.orElse(new File[0])),
+            Arrays.stream(listVersionedFiles.orElse(new File[0])))
+        .filter(File::isFile)
+        .map(ElementTemplateGeneratorMojo::getBasicElementTemplate)
+        .toList();
   }
 
   private String determineFileName(
