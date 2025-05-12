@@ -160,41 +160,41 @@ public class InboundEmailTest extends BaseEmailTest {
     InboundConnectorContext inboundConnectorContext = mock(InboundConnectorContext.class);
 
     EmailInboundConnectorProperties emailInboundConnectorProperties =
-            new EmailInboundConnectorProperties(
-                    new SimpleAuthentication("test@camunda.com", "password"),
-                    new EmailListenerConfig(
-                            new ImapConfig(
-                                    "localhost",
-                                    Integer.valueOf(super.getUnsecureImapPort()),
-                                    CryptographicProtocol.NONE),
-                            "",
-                            Duration.of(2, ChronoUnit.SECONDS),
-                            new PollUnseen(HandlingStrategy.READ, "")));
+        new EmailInboundConnectorProperties(
+            new SimpleAuthentication("test@camunda.com", "password"),
+            new EmailListenerConfig(
+                new ImapConfig(
+                    "localhost",
+                    Integer.valueOf(super.getUnsecureImapPort()),
+                    CryptographicProtocol.NONE),
+                "",
+                Duration.of(2, ChronoUnit.SECONDS),
+                new PollUnseen(HandlingStrategy.READ, "")));
 
     doNothing().when(inboundConnectorContext).log(any());
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
-            .thenReturn(emailInboundConnectorProperties);
+        .thenReturn(emailInboundConnectorProperties);
     when(inboundConnectorContext.correlate(any()))
-            .thenReturn(new CorrelationResult.Failure.ActivationConditionNotMet(true));
+        .thenReturn(new CorrelationResult.Failure.ActivationConditionNotMet(true));
     when(inboundConnectorContext.canActivate(any()))
-            .thenReturn(new ActivationCheckResult.Success.CanActivate(null));
+        .thenReturn(new ActivationCheckResult.Success.CanActivate(null));
 
     this.jakartaEmailListener.startListener(inboundConnectorContext);
     super.sendEmail("camunda@test.com", "Subject", "Content");
 
     await()
-            .atMost(5, TimeUnit.SECONDS)
-            .untilAsserted(
-                    () ->
-                            Assertions.assertTrue(
-                                    Arrays.stream(
-                                                    Arrays.stream(super.getLastReceivedEmails())
-                                                            .findFirst()
-                                                            .get()
-                                                            .getFlags()
-                                                            .getSystemFlags())
-                                            .toList()
-                                            .contains(Flags.Flag.SEEN)));
+        .atMost(5, TimeUnit.SECONDS)
+        .untilAsserted(
+            () ->
+                Assertions.assertTrue(
+                    Arrays.stream(
+                            Arrays.stream(super.getLastReceivedEmails())
+                                .findFirst()
+                                .get()
+                                .getFlags()
+                                .getSystemFlags())
+                        .toList()
+                        .contains(Flags.Flag.SEEN)));
   }
 
   @Test
@@ -202,41 +202,41 @@ public class InboundEmailTest extends BaseEmailTest {
     InboundConnectorContext inboundConnectorContext = mock(InboundConnectorContext.class);
 
     EmailInboundConnectorProperties emailInboundConnectorProperties =
-            new EmailInboundConnectorProperties(
-                    new SimpleAuthentication("test@camunda.com", "password"),
-                    new EmailListenerConfig(
-                            new ImapConfig(
-                                    "localhost",
-                                    Integer.valueOf(super.getUnsecureImapPort()),
-                                    CryptographicProtocol.NONE),
-                            "",
-                            Duration.of(2, ChronoUnit.SECONDS),
-                            new PollUnseen(HandlingStrategy.READ, "")));
+        new EmailInboundConnectorProperties(
+            new SimpleAuthentication("test@camunda.com", "password"),
+            new EmailListenerConfig(
+                new ImapConfig(
+                    "localhost",
+                    Integer.valueOf(super.getUnsecureImapPort()),
+                    CryptographicProtocol.NONE),
+                "",
+                Duration.of(2, ChronoUnit.SECONDS),
+                new PollUnseen(HandlingStrategy.READ, "")));
 
     doNothing().when(inboundConnectorContext).log(any());
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
-            .thenReturn(emailInboundConnectorProperties);
+        .thenReturn(emailInboundConnectorProperties);
     when(inboundConnectorContext.correlate(any()))
-            .thenReturn(new CorrelationResult.Failure.ZeebeClientStatus("ZeebeIssue", "Error"));
+        .thenReturn(new CorrelationResult.Failure.ZeebeClientStatus("ZeebeIssue", "Error"));
     when(inboundConnectorContext.canActivate(any()))
-            .thenReturn(new ActivationCheckResult.Success.CanActivate(null));
+        .thenReturn(new ActivationCheckResult.Success.CanActivate(null));
 
     this.jakartaEmailListener.startListener(inboundConnectorContext);
     super.sendEmail("camunda@test.com", "Subject", "Content");
 
     await()
-            .atMost(5, TimeUnit.SECONDS)
-            .untilAsserted(
-                    () ->
-                            Assertions.assertTrue(
-                                    Arrays.stream(
-                                                    Arrays.stream(super.getLastReceivedEmails())
-                                                            .findFirst()
-                                                            .get()
-                                                            .getFlags()
-                                                            .getSystemFlags())
-                                            .toList()
-                                            .isEmpty()));
+        .atMost(5, TimeUnit.SECONDS)
+        .untilAsserted(
+            () ->
+                Assertions.assertTrue(
+                    Arrays.stream(
+                            Arrays.stream(super.getLastReceivedEmails())
+                                .findFirst()
+                                .get()
+                                .getFlags()
+                                .getSystemFlags())
+                        .toList()
+                        .isEmpty()));
   }
 
   private void assertFlagOnLastEmail(HandlingStrategy handlingStrategy) throws MessagingException {
