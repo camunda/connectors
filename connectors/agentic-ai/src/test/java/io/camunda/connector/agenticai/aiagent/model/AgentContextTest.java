@@ -21,12 +21,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class AgentContextTest {
   private static final AgentContext EMPTY_CONTEXT =
-      new AgentContext(AgentState.READY, AgentMetrics.empty(), List.of());
+      new AgentContext(AgentState.EMPTY, AgentMetrics.empty(), List.of(), List.of());
 
   @Test
   void emptyContext() {
     final var context = AgentContext.empty();
-    assertThat(context.state()).isEqualTo(AgentState.READY);
+    assertThat(context.state()).isEqualTo(AgentState.EMPTY);
     assertThat(context.metrics()).isEqualTo(AgentMetrics.empty());
     assertThat(context.memory()).isEmpty();
     assertThat(context).isNotSameAs(EMPTY_CONTEXT).isEqualTo(EMPTY_CONTEXT);
@@ -83,8 +83,9 @@ class AgentContextTest {
       AgentState state,
       AgentMetrics metrics,
       List<Map<String, Object>> memory,
+      List<Map<String, Object>> toolDefinitions,
       String exceptionMessage) {
-    assertThatThrownBy(() -> new AgentContext(state, metrics, memory))
+    assertThatThrownBy(() -> new AgentContext(state, metrics, memory, toolDefinitions))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
@@ -93,10 +94,12 @@ class AgentContextTest {
     final var state = AgentState.READY;
     final var metrics = AgentMetrics.empty();
     final var memory = Collections.emptyList();
+    final var toolSpecifications = Collections.emptyList();
 
     return Stream.of(
-        arguments(null, metrics, memory, "Agent state must not be null"),
-        arguments(state, null, memory, "Agent metrics must not be null"),
-        arguments(state, metrics, null, "Agent memory must not be null"));
+        arguments(null, metrics, memory, toolSpecifications, "Agent state must not be null"),
+        arguments(state, null, memory, toolSpecifications, "Agent metrics must not be null"),
+        arguments(state, metrics, null, toolSpecifications, "Agent memory must not be null"),
+        arguments(state, metrics, memory, null, "Tool specifications must not be null"));
   }
 }

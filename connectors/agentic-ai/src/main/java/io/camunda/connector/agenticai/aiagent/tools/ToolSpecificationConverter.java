@@ -74,8 +74,16 @@ public class ToolSpecificationConverter {
         toolSpecification, ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
   }
 
+  public ToolSpecification fromMap(Map<String, Object> toolSpecification) {
+    return objectMapper.convertValue(toolSpecification, ToolSpecification.class);
+  }
+
   public String asString(ToolSpecification toolSpecification) throws JsonProcessingException {
     return objectMapper.writeValueAsString(toolSpecification);
+  }
+
+  public ToolSpecification fromString(String toolSpecification) throws JsonProcessingException {
+    return objectMapper.readValue(toolSpecification, ToolSpecification.class);
   }
 
   private JsonObjectSchema parseSchemaWithErrorHandling(

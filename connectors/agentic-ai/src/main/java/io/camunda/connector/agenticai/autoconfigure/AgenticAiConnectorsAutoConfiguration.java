@@ -130,12 +130,16 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AiAgentRequestHandler aiAgentRequestHandler(
       ObjectMapper objectMapper,
       ChatModelFactory chatModelFactory,
+      AdHocToolsSchemaResolver schemaResolver,
+      ToolSpecificationConverter toolSpecificationConverter,
       ToolCallingHandler toolCallingHandler,
       ToolCallResultConverter toolCallResultConverter,
       CamundaDocumentToContentConverter documentConverter) {
     return new DefaultAiAgentRequestHandler(
         objectMapper,
         chatModelFactory,
+        schemaResolver,
+        toolSpecificationConverter,
         toolCallingHandler,
         toolCallResultConverter,
         documentConverter);

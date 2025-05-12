@@ -12,18 +12,23 @@ import java.util.Map;
 import java.util.Objects;
 
 public record AgentContext(
-    AgentState state, AgentMetrics metrics, List<Map<String, Object>> memory) {
+    AgentState state,
+    AgentMetrics metrics,
+    List<Map<String, Object>> memory,
+    List<Map<String, Object>> toolSpecifications) {
   public static final AgentContext EMPTY =
-      new AgentContext(AgentState.READY, AgentMetrics.EMPTY, Collections.emptyList());
+      new AgentContext(
+          AgentState.EMPTY, AgentMetrics.EMPTY, Collections.emptyList(), Collections.emptyList());
 
   public AgentContext {
     Objects.requireNonNull(state, "Agent state must not be null");
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(memory, "Agent memory must not be null");
+    Objects.requireNonNull(toolSpecifications, "Tool specifications must not be null");
   }
 
   public AgentContext withState(AgentState state) {
-    return new AgentContext(state, metrics, memory);
+    return new AgentContext(state, metrics, memory, toolSpecifications);
   }
 
   public boolean isInState(AgentState state) {
@@ -39,10 +44,14 @@ public record AgentContext(
   }
 
   public AgentContext withMetrics(AgentMetrics metrics) {
-    return new AgentContext(state, metrics, memory);
+    return new AgentContext(state, metrics, memory, toolSpecifications);
   }
 
   public AgentContext withMemory(List<Map<String, Object>> memory) {
-    return new AgentContext(state, metrics, memory);
+    return new AgentContext(state, metrics, memory, toolSpecifications);
+  }
+
+  public AgentContext withToolSpecifications(List<Map<String, Object>> toolSpecifications) {
+    return new AgentContext(state, metrics, memory, toolSpecifications);
   }
 }

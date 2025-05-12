@@ -18,6 +18,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.memory.AgentContextChatMemoryStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -32,10 +33,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRe
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
+import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
@@ -43,6 +46,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
 
+  private static final String ERROR_CODE_WAITING_FOR_TOOL_LOOKUP_NO_MCP_CLIENTS =
+      "WAITING_FOR_TOOL_LOOKUP_NO_MCP_CLIENTS";
   private static final String ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS =
       "WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS";
   private static final String ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT =
@@ -52,6 +57,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
 
   private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
+  private final AdHocToolsSchemaResolver schemaResolver;
+  private final ToolSpecificationConverter toolSpecificationConverter;
   private final ToolCallingHandler toolCallingHandler;
   private final ToolCallResultConverter toolCallResultConverter;
   private final CamundaDocumentToContentConverter documentConverter;
@@ -59,11 +66,15 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   public DefaultAiAgentRequestHandler(
       ObjectMapper objectMapper,
       ChatModelFactory chatModelFactory,
+      AdHocToolsSchemaResolver schemaResolver,
+      ToolSpecificationConverter toolSpecificationConverter,
       ToolCallingHandler toolCallingHandler,
       ToolCallResultConverter toolCallResultConverter,
       CamundaDocumentToContentConverter documentConverter) {
     this.objectMapper = objectMapper;
     this.chatModelFactory = chatModelFactory;
+    this.schemaResolver = schemaResolver;
+    this.toolSpecificationConverter = toolSpecificationConverter;
     this.toolCallingHandler = toolCallingHandler;
     this.toolCallResultConverter = toolCallResultConverter;
     this.documentConverter = documentConverter;
@@ -72,8 +83,59 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   @Override
   public AgentResponse handleRequest(OutboundConnectorContext context, AgentRequest request) {
     final AgentRequest.AgentRequestData requestData = request.data();
-    final AgentContext agentContext =
+    AgentContext agentContext =
         Optional.ofNullable(requestData.context()).orElseGet(AgentContext::empty);
+
+    // tools lookup
+    final var toolsContainerElementId =
+        Optional.ofNullable(requestData.tools())
+            .map(ToolsConfiguration::containerElementId)
+            .filter(id -> !id.isBlank())
+            .orElse(null);
+
+    List<String> mcpClientIds = Collections.emptyList();
+    List<ToolSpecification> toolSpecifications = Collections.emptyList();
+
+    if (toolsContainerElementId != null) {
+      final var adHocToolsSchema =
+          schemaResolver.resolveSchema(
+              context.getJobContext().getProcessDefinitionKey(), toolsContainerElementId);
+
+      mcpClientIds = adHocToolsSchema.mcpClientIds();
+      toolSpecifications =
+          adHocToolsSchema.toolDefinitions().stream()
+              .map(toolSpecificationConverter::asToolSpecification)
+              .toList();
+
+      if (agentContext.isInState(AgentState.EMPTY)) {
+        if (mcpClientIds.isEmpty()) {
+          agentContext = agentContext.withState(AgentState.READY);
+        } else {
+          agentContext = agentContext.withState(AgentState.TOOL_LOOKUP);
+
+          List<AgentResponse.ToolCall> mcpListToolsToolCalls =
+              mcpClientIds.stream()
+                  .map(
+                      mcpClientId ->
+                          new AgentResponse.ToolCall(
+                              "MCP_toolsList_%s".formatted(mcpClientId),
+                              mcpClientId,
+                              Map.of("method", "tools/list", "params", Map.of())))
+                  .toList();
+
+          return new AgentResponse(agentContext, null, mcpListToolsToolCalls);
+        }
+      } else if (agentContext.isInState(AgentState.TOOL_LOOKUP)) {
+        if (mcpClientIds.isEmpty()) {
+          // should never happen
+          throw new ConnectorException(
+              ERROR_CODE_WAITING_FOR_TOOL_LOOKUP_NO_MCP_CLIENTS,
+              "Agent is waiting for MCP tool lookup results, but no MCP clients were defined.");
+        }
+      } else {
+        agentContext = agentContext.withState(AgentState.READY);
+      }
+    }
 
     // initialize configured model
     final ChatModel chatModel = chatModelFactory.createChatModel(request.provider());
@@ -100,7 +162,6 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     addUserMessagesFromRequest(agentContext, chatMemory, requestData);
 
     // call LLM API with updated messages + resolved tool specifications
-    final var toolSpecifications = loadToolSpecifications(context, requestData);
     final var chatRequest =
         ChatRequest.builder()
             .messages(chatMemory.messages())
@@ -198,17 +259,5 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     final var parameters =
         Optional.ofNullable(promptConfiguration.parameters()).orElseGet(Collections::emptyMap);
     return PromptTemplate.from(promptConfiguration.prompt()).apply(parameters);
-  }
-
-  private List<ToolSpecification> loadToolSpecifications(
-      OutboundConnectorContext context, AgentRequest.AgentRequestData requestData) {
-    return Optional.ofNullable(requestData.tools())
-        .map(ToolsConfiguration::containerElementId)
-        .filter(id -> !id.isBlank())
-        .map(
-            containerElementId ->
-                toolCallingHandler.loadToolSpecifications(
-                    context.getJobContext().getProcessDefinitionKey(), containerElementId))
-        .orElseGet(Collections::emptyList);
   }
 }
