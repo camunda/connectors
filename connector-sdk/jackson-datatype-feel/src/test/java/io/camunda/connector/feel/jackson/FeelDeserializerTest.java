@@ -112,6 +112,19 @@ public class FeelDeserializerTest {
   }
 
   @Test
+  void feelDeserializer_handleObjectString() throws JsonProcessingException {
+    // given, e.g. used in the REST connector body property
+    String json =
+        """
+        { "props": "\\\"foobar\\\"" }
+        """;
+
+    // when && then
+    assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeObjectString.class));
+    assertEquals("\"foobar\"", mapper.readValue(json, TargetTypeObjectString.class).props);
+  }
+
+  @Test
   void feelDeserializer_notFeel_jsonArray_parsed() {
     // given
     String json =
@@ -272,6 +285,8 @@ public class FeelDeserializerTest {
   private record StubObject(Map<String, Object> props) {}
 
   private record TargetTypeString(@FEEL String props) {}
+
+  private record TargetTypeObjectString(@FEEL Object props) {}
 
   private record TargetTypeArray(@FEEL Long[] props) {}
 
