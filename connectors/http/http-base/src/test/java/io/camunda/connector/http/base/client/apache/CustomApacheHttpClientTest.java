@@ -41,6 +41,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -386,6 +387,28 @@ public class CustomApacheHttpClientTest {
           "{\"name\":\"John\",\"age\":30,\"message\":null}",
           objectMapper.writeValueAsString(result.body()),
           JSONCompareMode.STRICT);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"application/json", "text/plain"})
+    public void shouldReturn200WithBody_whenGetWithQuotedBodyString(
+        String acceptHeader, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      stubFor(post("/path").willReturn(ok().withBody("\"Hello, world\"")));
+
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      request.setHeaders(Map.of("Accept", acceptHeader));
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setBody("\"Hello, world\"");
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+      HttpCommonRequest parsedRequest =
+          objectMapper.readValue(objectMapper.writeValueAsString(request), HttpCommonRequest.class);
+      assertEquals("\"Hello, world\"", parsedRequest.getBody());
+      HttpCommonRequest parsedResult =
+          objectMapper.readValue(objectMapper.writeValueAsString(result), HttpCommonRequest.class);
+      assertEquals("\"Hello, world\"", parsedResult.getBody());
     }
 
     @ParameterizedTest
