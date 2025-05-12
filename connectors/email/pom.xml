@@ -86,7 +86,7 @@
                             </features>
                         </connector>
                     </connectors>
-                    <versions>true</versions>
+                    <versionHistoryEnabled>true</versionHistoryEnabled>
                 </configuration>
             </plugin>
         </plugins>

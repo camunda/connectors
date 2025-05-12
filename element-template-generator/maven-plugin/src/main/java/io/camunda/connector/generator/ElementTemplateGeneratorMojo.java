@@ -32,7 +32,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeatu
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.java.ClassBasedDocsGenerator;
 import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
-import io.camunda.connector.generator.java.util.BasicElementTemplate;
+import io.camunda.connector.generator.java.util.VersionedElementTemplate;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -89,12 +89,12 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       defaultValue = "${project.basedir}/element-templates/versioned")
   private String versionedDirectory;
 
-  @Parameter(property = "versions", defaultValue = "false")
-  private Boolean versions;
+  @Parameter(property = "versionHistoryEnabled", defaultValue = "false")
+  private Boolean versionHistoryEnabled;
 
-  private static BasicElementTemplate getBasicElementTemplate(File file) {
+  private static VersionedElementTemplate getBasicElementTemplate(File file) {
     try {
-      return objectMapper.readValue(file, BasicElementTemplate.class);
+      return objectMapper.readValue(file, VersionedElementTemplate.class);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -290,30 +290,34 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
   private void writeElementTemplates(
       List<ElementTemplate> templates, boolean hybrid, List<FileNameById> fileNames) {
-    List<BasicElementTemplate> versionedElementTemplates = retrieveBasicElementTemplates();
+    List<VersionedElementTemplate> versionedElementTemplates = retrieveBasicElementTemplates();
     for (var template : templates) {
       var fileName = determineFileName(template, fileNames, hybrid);
-      if (versions && !hybrid) manageVersions(template, versionedElementTemplates, fileName);
+      if (versionHistoryEnabled && !hybrid)
+        manageElementTemplatesVersioning(template, versionedElementTemplates, fileName);
       writeElementTemplate(template, hybrid, fileName);
     }
   }
 
-  private void manageVersions(
+  private void manageElementTemplatesVersioning(
       ElementTemplate template,
-      List<BasicElementTemplate> versionedElementTemplates,
+      List<VersionedElementTemplate> versionedElementTemplates,
       String fileName) {
-    BasicElementTemplate latestBasicElementTemplate =
-        new BasicElementTemplate(template.id(), template.version());
-    if (versionedElementTemplates.stream().noneMatch(latestBasicElementTemplate::equals)) {
+    VersionedElementTemplate latestVersionedElementTemplate =
+        new VersionedElementTemplate(template.id(), template.version());
+    if (versionedElementTemplates.stream().noneMatch(latestVersionedElementTemplate::equals)) {
       copyLatestBasicElementTemplate(fileName);
     }
   }
 
   private void copyLatestBasicElementTemplate(String fileName) {
     File latestBasicElementTemplateFile = new File(this.outputDirectory, fileName);
+    if (!latestBasicElementTemplateFile.exists()) {
+      return;
+    }
     try {
-      BasicElementTemplate latestBasicElementTemplate =
-          objectMapper.readValue(latestBasicElementTemplateFile, BasicElementTemplate.class);
+      VersionedElementTemplate latestVersionedElementTemplate =
+          objectMapper.readValue(latestBasicElementTemplateFile, VersionedElementTemplate.class);
       Files.copy(
           latestBasicElementTemplateFile.toPath(),
           Path.of(
@@ -321,19 +325,19 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
                   + File.separator
                   + fileName.replaceFirst(".json", "")
                   + "-"
-                  + latestBasicElementTemplate.version()
+                  + latestVersionedElementTemplate.version()
                   + ".json"));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private List<BasicElementTemplate> retrieveBasicElementTemplates() {
-    File classicFolder = new File(this.outputDirectory);
+  private List<VersionedElementTemplate> retrieveBasicElementTemplates() {
+    File latestTemplatesFolder = new File(this.outputDirectory);
     File versionedFolder = new File(this.versionedDirectory);
     Optional<File[]> listClassicFiles =
         Optional.ofNullable(
-            classicFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json")));
+            latestTemplatesFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json")));
     Optional<File[]> listVersionedFiles =
         Optional.ofNullable(
             versionedFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json")));

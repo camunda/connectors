@@ -180,8 +180,8 @@
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
-                              </connectors>
-                    <versions>true</versions>
+          </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
       </plugin>
     </plugins>

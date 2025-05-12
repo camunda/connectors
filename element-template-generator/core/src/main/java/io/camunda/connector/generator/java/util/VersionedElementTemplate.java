@@ -16,4 +16,4 @@
  */
 package io.camunda.connector.generator.java.util;
 
-public record BasicElementTemplate(String id, Integer version) {}
+public record VersionedElementTemplate(String id, Integer version) {}

@@ -60,8 +60,8 @@
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
-                              </connectors>
-                    <versions>true</versions>
+          </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
           <includeDependencies>io.camunda.connector:connector-google-base</includeDependencies>
         </configuration>
       </plugin>

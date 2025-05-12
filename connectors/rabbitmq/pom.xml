@@ -90,8 +90,8 @@
                 <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
               </features>
             </connector>
-                              </connectors>
-                    <versions>true</versions>
+          </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
       </plugin>
     </plugins>
