@@ -24,6 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -57,9 +59,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -70,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.AfterEach;
@@ -87,6 +92,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 public class AiAgentTests extends BaseAgenticAiTest {
@@ -100,6 +106,8 @@ public class AiAgentTests extends BaseAgenticAiTest {
   @MockitoBean private ChatModelFactory chatModelFactory;
   @Mock private ChatModel chatModel;
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
+
+  @MockitoSpyBean private ToolCallingHandler toolCallingHandler;
 
   private JobWorker jobWorker;
   private final AtomicInteger jobWorkerCounter = new AtomicInteger(0);
@@ -152,6 +160,26 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
     @Test
     void executesAgentWithoutUserFeedback() throws Exception {
+      testBasicExecutionWithoutFeedbackLoop(m -> m, true);
+    }
+
+    @Test
+    void basicExecutionWorksWithoutOptionalConfiguration() throws Exception {
+      testBasicExecutionWithoutFeedbackLoop(
+          withoutInputsMatching(
+              i ->
+                  i.getTarget().startsWith("data.tools.")
+                      || i.getTarget().startsWith("data.memory.")
+                      || i.getTarget().startsWith("data.limits.")),
+          false);
+
+      verify(toolCallingHandler, never()).loadToolSpecifications(any(), any());
+    }
+
+    private void testBasicExecutionWithoutFeedbackLoop(
+        Function<BpmnModelInstance, BpmnModelInstance> modelModifier,
+        boolean assertToolSpecifications)
+        throws Exception {
       final var initialUserPrompt = "Write a haiku about the sea";
       final var expectedConversation =
           List.of(
@@ -176,10 +204,11 @@ public class AiAgentTests extends BaseAgenticAiTest {
               userSatisfiedFeedback()));
 
       final var zeebeTest =
-          createProcessInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+          createProcessInstance(
+                  modelModifier, Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
               .waitForProcessCompletion();
 
-      assertLastChatRequest(1, expectedConversation);
+      assertLastChatRequest(1, expectedConversation, assertToolSpecifications);
 
       final var agentResponse = getAgentResponse(zeebeTest);
       assertAgentResponse(
@@ -551,7 +580,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertIncident(
           zeebeTest,
           incident -> {
-            assertThat(incident.getElementId()).isEqualTo("AI_Agent");
+            assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
             assertThat(incident.getErrorMessage())
                 .startsWith(
                     "Unsupported content type 'application/zip' for document with reference");
@@ -579,7 +608,21 @@ public class AiAgentTests extends BaseAgenticAiTest {
   class Limits {
 
     @Test
-    void raisesIncidentWhenMaximumModelCallsAreReached() throws IOException {
+    void raisesIncidentWhenMaximumModelCallsAreReached() throws Throwable {
+      // 9 = custom value set in the process definition
+      testMaxModelCallsLoop(m -> m, 9);
+    }
+
+    @Test
+    void fallsBackToADefaultMaxModelCallsLimitWhenNoLimitIsConfigured() throws Throwable {
+      // 10 = default value
+      testMaxModelCallsLoop(
+          withoutInputsMatching(input -> input.getTarget().startsWith("data.limits.")), 10);
+    }
+
+    private void testMaxModelCallsLoop(
+        Function<BpmnModelInstance, BpmnModelInstance> modelModifier, int expectedMaxModelCalls)
+        throws Throwable {
       // infinite loop - always returning the same answer and handling the same user feedback
       doAnswer(
               invocationOnMock -> {
@@ -600,24 +643,31 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
       final var zeebeTest =
           createProcessInstance(
+                  modelModifier,
                   Map.of("action", "executeAgent", "userPrompt", "Write a haiku about the sea"))
               .waitForActiveIncidents();
 
       assertIncident(
           zeebeTest,
           incident -> {
-            assertThat(incident.getElementId()).isEqualTo("AI_Agent");
+            assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
             assertThat(incident.getErrorMessage())
-                .isEqualTo("Maximum number of model calls reached (modelCalls: 10, limit: 10)");
+                .isEqualTo(
+                    "Maximum number of model calls reached (modelCalls: %1$d, limit: %1$d)"
+                        .formatted(expectedMaxModelCalls));
           });
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertThat(agentResponse.context().metrics().modelCalls()).isEqualTo(10);
+      assertThat(agentResponse.context().metrics().modelCalls()).isEqualTo(expectedMaxModelCalls);
 
       final var chatMemoryMessages = chatMemoryMessages(agentResponse.context());
       assertThat(chatMemoryMessages).filteredOn(msg -> msg instanceof SystemMessage).hasSize(1);
-      assertThat(chatMemoryMessages).filteredOn(msg -> msg instanceof AiMessage).hasSize(10);
-      assertThat(chatMemoryMessages).filteredOn(msg -> msg instanceof UserMessage).hasSize(10);
+      assertThat(chatMemoryMessages)
+          .filteredOn(msg -> msg instanceof AiMessage)
+          .hasSize(expectedMaxModelCalls);
+      assertThat(chatMemoryMessages)
+          .filteredOn(msg -> msg instanceof UserMessage)
+          .hasSize(expectedMaxModelCalls);
     }
   }
 
@@ -635,10 +685,21 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
   private void assertLastChatRequest(
       int expectedChatRequestCount, List<ChatMessage> expectedConversation) {
+    assertLastChatRequest(expectedChatRequestCount, expectedConversation, true);
+  }
+
+  private void assertLastChatRequest(
+      int expectedChatRequestCount,
+      List<ChatMessage> expectedConversation,
+      boolean assertToolSpecifications) {
     assertThat(chatRequestCaptor.getAllValues()).hasSize(expectedChatRequestCount);
 
     final var lastChatRequest = chatRequestCaptor.getValue();
-    assertToolSpecifications(lastChatRequest);
+
+    if (assertToolSpecifications) {
+      assertToolSpecifications(lastChatRequest);
+    }
+
     assertThat(lastChatRequest.messages())
         .as("The last chat request should contain all messages except the last response")
         .containsExactlyElementsOf(
