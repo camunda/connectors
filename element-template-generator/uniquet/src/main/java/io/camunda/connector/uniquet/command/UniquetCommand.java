@@ -16,34 +16,36 @@
  */
 package io.camunda.connector.uniquet.command;
 
-import io.camunda.connector.uniquet.core.GitCrawler;
+import io.camunda.connector.uniquet.core.IndexWriter;
+import java.nio.file.Path;
 import java.util.concurrent.Callable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 public class UniquetCommand implements Callable<Integer> {
 
-  @CommandLine.Option(
-      names = {"-b", "--branch"},
-      defaultValue = "main")
-  private String branch;
-
-  @CommandLine.Option(
-      names = {"-d", "--destination"},
-      required = true)
-  private String pathDestination;
+  private static final Logger log = LoggerFactory.getLogger(UniquetCommand.class);
 
   @CommandLine.Option(
       names = {"-g", "--git-directory"},
       defaultValue = "")
   private String gitDirectory;
 
+  @CommandLine.Option(
+      names = {"-d", "--directory"},
+      defaultValue = "connectors")
+  private String connectorDirectory;
+
+  @CommandLine.Option(names = {"-o", "--output-file"})
+  private String outputFile;
+
   @Override
   public Integer call() {
     try {
-      GitCrawler gitCrawler = GitCrawler.create(gitDirectory);
-      gitCrawler.crawl(branch).persist(pathDestination).close();
+      IndexWriter.create(gitDirectory, connectorDirectory, Path.of(outputFile)).persist();
     } catch (RuntimeException e) {
-      System.err.println(e.getMessage());
+      log.atError().log("an error occurred: {}", e.getMessage(), e);
       return 1;
     }
     return 0;
