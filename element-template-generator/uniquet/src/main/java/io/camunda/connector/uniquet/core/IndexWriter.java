@@ -75,8 +75,7 @@ public class IndexWriter {
     Integer version = jsonNode.get(VERSION).asInt();
     String key = jsonNode.get(ID).asText();
     String path = file.getPath();
-    String link =
-        githubLinkFormat.formatted(path.substring(path.lastIndexOf(CONNECTORS)));
+    String link = githubLinkFormat.formatted(path.substring(path.lastIndexOf(CONNECTORS)));
     String engine =
         Optional.ofNullable(jsonNode.get(ENGINES))
             .map(jn -> jn.get(CAMUNDA))
