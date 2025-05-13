@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.provider;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
+import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.openai.OpenAiChatModel;
@@ -84,7 +85,7 @@ public class ChatModelFactory {
         .modelId(connection.model().model())
         .defaultRequestParameters(
             applyModelParameters(
-                    DefaultChatRequestParameters.builder(), connection.model().parameters())
+                    BedrockChatRequestParameters.builder(), connection.model().parameters())
                 .build())
         .build();
   }
