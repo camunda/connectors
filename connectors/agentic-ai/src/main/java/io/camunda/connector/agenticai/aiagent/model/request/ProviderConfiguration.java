@@ -48,7 +48,7 @@ public sealed interface ProviderConfiguration
         ProviderConfiguration.OpenAiProviderConfiguration {
 
   @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
-  record AnthropicProviderConfiguration(AnthropicConnection anthropic)
+  record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection anthropic)
       implements ProviderConfiguration {
 
     @TemplateProperty(ignore = true)
@@ -62,8 +62,8 @@ public sealed interface ProviderConfiguration
                 feel = Property.FeelMode.disabled,
                 optional = true)
             String endpoint,
-        @NotNull @Valid AnthropicAuthentication authentication,
-        AnthropicModel model) {}
+        @Valid @NotNull AnthropicAuthentication authentication,
+        @Valid @NotNull AnthropicModel model) {}
 
     public record AnthropicAuthentication(
         @NotBlank
@@ -92,13 +92,15 @@ public sealed interface ProviderConfiguration
   }
 
   @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock")
-  record BedrockProviderConfiguration(BedrockConnection bedrock) implements ProviderConfiguration {
+  record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bedrock)
+      implements ProviderConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String BEDROCK_ID = "bedrock";
 
     public record BedrockConnection(
-        @TemplateProperty(
+        @NotBlank
+            @TemplateProperty(
                 group = "model",
                 description = "Specify the AWS region",
                 constraints = @PropertyConstraints(notEmpty = true))
@@ -111,8 +113,8 @@ public sealed interface ProviderConfiguration
                 feel = Property.FeelMode.disabled,
                 optional = true)
             String endpoint,
-        AwsAuthentication authentication,
-        BedrockModel model) {}
+        @Valid @NotNull AwsAuthentication authentication,
+        @Valid @NotNull BedrockModel model) {}
 
     public record BedrockModel(
         @NotBlank
@@ -131,7 +133,8 @@ public sealed interface ProviderConfiguration
   }
 
   @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
-  record OpenAiProviderConfiguration(OpenAiConnection openai) implements ProviderConfiguration {
+  record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection openai)
+      implements ProviderConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String OPENAI_ID = "openai";
@@ -144,8 +147,8 @@ public sealed interface ProviderConfiguration
                 feel = Property.FeelMode.disabled,
                 optional = true)
             String endpoint,
-        OpenAiAuthentication authentication,
-        OpenAiModel model) {}
+        @Valid @NotNull OpenAiAuthentication authentication,
+        @Valid @NotNull OpenAiModel model) {}
 
     public record OpenAiAuthentication(
         @NotBlank
