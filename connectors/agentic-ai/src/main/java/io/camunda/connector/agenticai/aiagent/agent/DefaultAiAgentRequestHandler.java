@@ -132,6 +132,14 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
               ERROR_CODE_WAITING_FOR_TOOL_LOOKUP_NO_MCP_CLIENTS,
               "Agent is waiting for MCP tool lookup results, but no MCP clients were defined.");
         }
+
+        final var mcpLookupToolCallResults = Optional.ofNullable(requestData.tools())
+            .map(ToolsConfiguration::toolCallResults)
+            .orElse(Collections.emptyList());
+
+        
+
+
       } else {
         agentContext = agentContext.withState(AgentState.READY);
       }

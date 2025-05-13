@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtract
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
@@ -39,6 +40,9 @@ public class ToolSpecificationConverter {
     final var objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JsonSchemaElementModule());
     objectMapper.addMixIn(ToolSpecification.class, ToolSpecificationMixin.class);
+    SimpleModule module = new SimpleModule();
+    module.addDeserializer(ToolSpecification.class, new ToolSpecificationDeserializer());
+    objectMapper.registerModule(module);
     return objectMapper;
   }
 
