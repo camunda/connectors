@@ -15,11 +15,16 @@ import static org.mockito.Mockito.verify;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
+import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
+import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.ModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OpenAiConnection;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Nested;
@@ -32,6 +37,8 @@ import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,8 +55,8 @@ class ChatModelFactoryTest {
   @Nested
   class AnthropicChatModelFactoryTest {
 
-    private static final String ANTHROPIC_API_KEY = "myApiKey";
-    private static final String ANTHROPIC_MODEL = "myModel";
+    private static final String ANTHROPIC_API_KEY = "anthropicApiKey";
+    private static final String ANTHROPIC_MODEL = "anthropicModel";
 
     @Test
     void createsAnthropicChatModel() {
@@ -103,9 +110,6 @@ class ChatModelFactoryTest {
       testAnthropicChatModelBuilder(
           providerConfig,
           (builder) -> {
-            verify(builder).apiKey(ANTHROPIC_API_KEY);
-            verify(builder).modelName(ANTHROPIC_MODEL);
-            verify(builder, never()).baseUrl(any());
             verify(builder, never()).maxTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
             verify(builder, never()).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
             verify(builder, never()).topP(DEFAULT_MODEL_PARAMETERS.topP());
@@ -123,6 +127,123 @@ class ChatModelFactoryTest {
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
         assertThat(chatModel).isNotNull().isInstanceOf(AnthropicChatModel.class);
+
+        builderAssertions.accept(builder);
+      }
+    }
+  }
+
+  @Nested
+  class OpenAiChatModelFactoryTest {
+
+    private static final String OPEN_AI_API_KEY = "openAiApiKey";
+    private static final String OPEN_AI_MODEL = "openAiModel";
+
+    @Captor private ArgumentCaptor<OpenAiChatRequestParameters> modelParametersArgumentCaptor;
+
+    @Test
+    void createsOpenAiChatModel() {
+      final var providerConfig =
+          new OpenAiProviderConfiguration(
+              new OpenAiConnection(
+                  null,
+                  new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  new OpenAiProviderConfiguration.OpenAiModel(
+                      OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).apiKey(OPEN_AI_API_KEY);
+            verify(builder).modelName(OPEN_AI_MODEL);
+            verify(builder, never()).baseUrl(any());
+            verify(builder, never()).organizationId(any());
+            verify(builder, never()).projectId(any());
+
+            verify(builder).defaultRequestParameters(modelParametersArgumentCaptor.capture());
+
+            final var parameters = modelParametersArgumentCaptor.getValue();
+            assertThat(parameters).isNotNull();
+            assertThat(parameters.maxOutputTokens())
+                .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
+            assertThat(parameters.temperature()).isEqualTo(DEFAULT_MODEL_PARAMETERS.temperature());
+            assertThat(parameters.topP()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topP());
+            assertThat(parameters.topK()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topK());
+          });
+    }
+
+    @Test
+    void createsOpenAiChatModelWithCustomOrganizationAndProject() {
+      final var providerConfig =
+          new OpenAiProviderConfiguration(
+              new OpenAiConnection(
+                  null,
+                  new OpenAiProviderConfiguration.OpenAiAuthentication(
+                      OPEN_AI_API_KEY, "MY_ORG", "MY_PROJECT"),
+                  new OpenAiProviderConfiguration.OpenAiModel(
+                      OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).organizationId("MY_ORG");
+            verify(builder).projectId("MY_PROJECT");
+          });
+    }
+
+    @Test
+    void createsOpenAiChatModelWithCustomEndpoint() {
+      final var providerConfig =
+          new OpenAiProviderConfiguration(
+              new OpenAiConnection(
+                  "https://my-custom-endpoint.local",
+                  new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  new OpenAiProviderConfiguration.OpenAiModel(
+                      OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).baseUrl("https://my-custom-endpoint.local");
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ArgumentsSource(NullModelParametersArgumentsProvider.class)
+    void createsOpenAiChatModelWithNullModelParameters(ModelParameters modelParameters) {
+      final var providerConfig =
+          new OpenAiProviderConfiguration(
+              new OpenAiConnection(
+                  null,
+                  new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, modelParameters)));
+
+      testOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).defaultRequestParameters(modelParametersArgumentCaptor.capture());
+
+            final var parameters = modelParametersArgumentCaptor.getValue();
+            assertThat(parameters).isNotNull();
+
+            assertThat(parameters.maxOutputTokens()).isNull();
+            assertThat(parameters.temperature()).isNull();
+            assertThat(parameters.topP()).isNull();
+            assertThat(parameters.topK()).isNull();
+          });
+    }
+
+    private void testOpenAiChatModelBuilder(
+        OpenAiProviderConfiguration providerConfig,
+        ThrowingConsumer<OpenAiChatModelBuilder> builderAssertions) {
+      try (MockedStatic<OpenAiChatModel> chatModelMock =
+          Mockito.mockStatic(OpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+        var builder = spy(new OpenAiChatModelBuilder());
+        chatModelMock.when(OpenAiChatModel::builder).thenReturn(builder);
+
+        final var chatModel = chatModelFactory.createChatModel(providerConfig);
+        assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
 
         builderAssertions.accept(builder);
       }

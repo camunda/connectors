@@ -112,6 +112,10 @@ public class ChatModelFactory {
   private DefaultChatRequestParameters.Builder<?> applyModelParameters(
       DefaultChatRequestParameters.Builder<?> builder,
       ProviderConfiguration.ModelParameters modelParameters) {
+    if (modelParameters == null) {
+      return builder;
+    }
+
     Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
     Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxOutputTokens);
     Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
