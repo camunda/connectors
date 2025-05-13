@@ -7,15 +7,12 @@
 package io.camunda.connector.agenticai.aiagent.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
@@ -28,12 +25,14 @@ import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockModel;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.ModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.aws.model.impl.AwsAuthentication;
 import io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import java.net.URI;
@@ -42,11 +41,8 @@ import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
-import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
@@ -66,11 +62,6 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilde
 
 @ExtendWith(MockitoExtension.class)
 class ChatModelFactoryTest {
-  private static final ModelParameters DEFAULT_MODEL_PARAMETERS =
-      new ModelParameters(10, 1.0, 0.8, 50);
-  private static final ModelParameters NULL_MODEL_PARAMETERS =
-      new ModelParameters(null, null, null, null);
-
   private final ChatModelFactory chatModelFactory = new ChatModelFactory();
 
   @Nested
@@ -78,6 +69,9 @@ class ChatModelFactoryTest {
 
     private static final String ANTHROPIC_API_KEY = "anthropicApiKey";
     private static final String ANTHROPIC_MODEL = "anthropicModel";
+
+    private static final AnthropicModelParameters DEFAULT_MODEL_PARAMETERS =
+        new AnthropicModelParameters(10, 1.0, 0.8, 50);
 
     @Test
     void createsAnthropicChatModel() {
@@ -94,7 +88,7 @@ class ChatModelFactoryTest {
             verify(builder).apiKey(ANTHROPIC_API_KEY);
             verify(builder).modelName(ANTHROPIC_MODEL);
             verify(builder, never()).baseUrl(any());
-            verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
+            verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
             verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
             verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
             verify(builder).topK(DEFAULT_MODEL_PARAMETERS.topK());
@@ -119,8 +113,9 @@ class ChatModelFactoryTest {
 
     @ParameterizedTest
     @NullSource
-    @ArgumentsSource(NullModelParametersArgumentsProvider.class)
-    void createsAnthropicChatModelWithNullModelParameters(ModelParameters modelParameters) {
+    @MethodSource("nullModelParameters")
+    void createsAnthropicChatModelWithNullModelParameters(
+        AnthropicModelParameters modelParameters) {
       final var providerConfig =
           new AnthropicProviderConfiguration(
               new AnthropicConnection(
@@ -131,7 +126,7 @@ class ChatModelFactoryTest {
       testAnthropicChatModelBuilder(
           providerConfig,
           (builder) -> {
-            verify(builder, never()).maxTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
+            verify(builder, never()).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
             verify(builder, never()).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
             verify(builder, never()).topP(DEFAULT_MODEL_PARAMETERS.topP());
             verify(builder, never()).topK(DEFAULT_MODEL_PARAMETERS.topK());
@@ -156,6 +151,10 @@ class ChatModelFactoryTest {
         builderAssertions.accept(chatModelBuilder);
       }
     }
+
+    static Stream<AnthropicModelParameters> nullModelParameters() {
+      return Stream.of(new AnthropicModelParameters(null, null, null, null));
+    }
   }
 
   @Nested
@@ -166,8 +165,8 @@ class ChatModelFactoryTest {
     private static final String BEDROCK_SECRET_KEY = "bedrockSecretKey";
     private static final String BEDROCK_MODEL = "bedrockModel";
 
-    private static final ModelParameters BEDROCK_DEFAULT_MODEL_PARAMETERS =
-        new ModelParameters(10, 1.0, 0.8, null);
+    private static final BedrockModelParameters DEFAULT_MODEL_PARAMETERS =
+        new BedrockModelParameters(10, 1.0, 0.8);
 
     @Captor private ArgumentCaptor<ChatRequestParameters> modelParametersArgumentCaptor;
     @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderArgumentCaptor;
@@ -180,7 +179,7 @@ class ChatModelFactoryTest {
                   BEDROCK_REGION,
                   null,
                   new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-                  new BedrockModel(BEDROCK_MODEL, BEDROCK_DEFAULT_MODEL_PARAMETERS)));
+                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testCreateBedrockChatModelWithCredentials(
           providerConfig,
@@ -198,7 +197,7 @@ class ChatModelFactoryTest {
                   BEDROCK_REGION,
                   null,
                   new AwsStaticCredentialsAuthentication(BEDROCK_ACCESS_KEY, BEDROCK_SECRET_KEY),
-                  new BedrockModel(BEDROCK_MODEL, BEDROCK_DEFAULT_MODEL_PARAMETERS)));
+                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testCreateBedrockChatModelWithCredentials(
           providerConfig,
@@ -236,11 +235,9 @@ class ChatModelFactoryTest {
             final var parameters = modelParametersArgumentCaptor.getValue();
             assertThat(parameters).isNotNull().isInstanceOf(BedrockChatRequestParameters.class);
             assertThat(parameters.maxOutputTokens())
-                .isEqualTo(BEDROCK_DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
-            assertThat(parameters.temperature())
-                .isEqualTo(BEDROCK_DEFAULT_MODEL_PARAMETERS.temperature());
-            assertThat(parameters.topP()).isEqualTo(BEDROCK_DEFAULT_MODEL_PARAMETERS.topP());
-            assertThat(parameters.topK()).isEqualTo(BEDROCK_DEFAULT_MODEL_PARAMETERS.topK());
+                .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
+            assertThat(parameters.temperature()).isEqualTo(DEFAULT_MODEL_PARAMETERS.temperature());
+            assertThat(parameters.topP()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topP());
           });
     }
 
@@ -252,7 +249,7 @@ class ChatModelFactoryTest {
                   BEDROCK_REGION,
                   "https://my-custom-endpoint.local",
                   new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-                  new BedrockModel(BEDROCK_MODEL, BEDROCK_DEFAULT_MODEL_PARAMETERS)));
+                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testBedrockChatModelBuilder(
           providerConfig,
@@ -262,25 +259,10 @@ class ChatModelFactoryTest {
           });
     }
 
-    @Test
-    void throwsExceptionWhenCreatingAModelWithUnsupportedTopKValue() {
-      final var providerConfig =
-          new BedrockProviderConfiguration(
-              new BedrockConnection(
-                  BEDROCK_REGION,
-                  null,
-                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
-
-      assertThatThrownBy(() -> testBedrockChatModelBuilder(providerConfig, (builders) -> {}))
-          .isInstanceOf(UnsupportedFeatureException.class)
-          .hasMessageContaining("'topK' parameter is not supported yet by this model provider");
-    }
-
     @ParameterizedTest
     @NullSource
-    @ArgumentsSource(NullModelParametersArgumentsProvider.class)
-    void createsBedrockChatModelWithNullModelParameters(ModelParameters modelParameters) {
+    @MethodSource("nullModelParameters")
+    void createsBedrockChatModelWithNullModelParameters(BedrockModelParameters modelParameters) {
       final var providerConfig =
           new BedrockProviderConfiguration(
               new BedrockConnection(
@@ -292,15 +274,18 @@ class ChatModelFactoryTest {
       testBedrockChatModelBuilder(
           providerConfig,
           (builders) -> {
-            verify(builders.chatModelBuilder)
-                .defaultRequestParameters(modelParametersArgumentCaptor.capture());
+            if (modelParameters == null) {
+              verify(builders.chatModelBuilder, never()).defaultRequestParameters(any());
+            } else {
+              verify(builders.chatModelBuilder)
+                  .defaultRequestParameters(modelParametersArgumentCaptor.capture());
 
-            final var parameters = modelParametersArgumentCaptor.getValue();
-            assertThat(parameters).isNotNull().isInstanceOf(BedrockChatRequestParameters.class);
-            assertThat(parameters.maxOutputTokens()).isNull();
-            assertThat(parameters.temperature()).isNull();
-            assertThat(parameters.topP()).isNull();
-            assertThat(parameters.topK()).isNull();
+              final var parameters = modelParametersArgumentCaptor.getValue();
+              assertThat(parameters).isNotNull().isInstanceOf(BedrockChatRequestParameters.class);
+              assertThat(parameters.maxOutputTokens()).isNull();
+              assertThat(parameters.temperature()).isNull();
+              assertThat(parameters.topP()).isNull();
+            }
           });
     }
 
@@ -333,6 +318,10 @@ class ChatModelFactoryTest {
       }
     }
 
+    static Stream<BedrockModelParameters> nullModelParameters() {
+      return Stream.of(new BedrockModelParameters(null, null, null));
+    }
+
     private record BedrockBuilderContext(
         BedrockRuntimeClientBuilder clientBuilder,
         ResultCaptor<BedrockRuntimeClient> clientResultCaptor,
@@ -344,6 +333,9 @@ class ChatModelFactoryTest {
 
     private static final String OPEN_AI_API_KEY = "openAiApiKey";
     private static final String OPEN_AI_MODEL = "openAiModel";
+
+    private static final OpenAiModelParameters DEFAULT_MODEL_PARAMETERS =
+        new OpenAiModelParameters(10, 5, 1.0, 0.8, 50);
 
     @Captor private ArgumentCaptor<OpenAiChatRequestParameters> modelParametersArgumentCaptor;
 
@@ -416,8 +408,8 @@ class ChatModelFactoryTest {
 
     @ParameterizedTest
     @NullSource
-    @ArgumentsSource(NullModelParametersArgumentsProvider.class)
-    void createsOpenAiChatModelWithNullModelParameters(ModelParameters modelParameters) {
+    @MethodSource("nullModelParameters")
+    void createsOpenAiChatModelWithNullModelParameters(OpenAiModelParameters modelParameters) {
       final var providerConfig =
           new OpenAiProviderConfiguration(
               new OpenAiConnection(
@@ -428,15 +420,20 @@ class ChatModelFactoryTest {
       testOpenAiChatModelBuilder(
           providerConfig,
           (builder) -> {
-            verify(builder).defaultRequestParameters(modelParametersArgumentCaptor.capture());
+            if (modelParameters == null) {
+              verify(builder, never()).defaultRequestParameters(any());
+            } else {
+              verify(builder).defaultRequestParameters(modelParametersArgumentCaptor.capture());
 
-            final var parameters = modelParametersArgumentCaptor.getValue();
-            assertThat(parameters).isNotNull().isInstanceOf(OpenAiChatRequestParameters.class);
+              final var parameters = modelParametersArgumentCaptor.getValue();
+              assertThat(parameters).isNotNull().isInstanceOf(OpenAiChatRequestParameters.class);
 
-            assertThat(parameters.maxOutputTokens()).isNull();
-            assertThat(parameters.temperature()).isNull();
-            assertThat(parameters.topP()).isNull();
-            assertThat(parameters.topK()).isNull();
+              assertThat(parameters.maxOutputTokens()).isNull();
+              assertThat(parameters.maxCompletionTokens()).isNull();
+              assertThat(parameters.temperature()).isNull();
+              assertThat(parameters.topP()).isNull();
+              assertThat(parameters.topK()).isNull();
+            }
           });
     }
 
@@ -458,12 +455,9 @@ class ChatModelFactoryTest {
         builderAssertions.accept(chatModelBuilder);
       }
     }
-  }
 
-  private static class NullModelParametersArgumentsProvider implements ArgumentsProvider {
-    @Override
-    public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-      return Stream.of(arguments(NULL_MODEL_PARAMETERS));
+    static Stream<OpenAiModelParameters> nullModelParameters() {
+      return Stream.of(new OpenAiModelParameters(null, null, null, null, null));
     }
   }
 

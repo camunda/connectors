@@ -41,7 +41,7 @@
   }, {
     "id" : "parameters",
     "label" : "Model Parameters",
-    "tooltip" : "Configuration of common model parameters to optimize and fine-tune LLM responses.",
+    "tooltip" : "Configuration of common model parameters to optimize and fine-tune LLM responses. Limits such as maximum output tokens are <strong>per LLM request</strong>.",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -502,13 +502,14 @@
     },
     "type" : "Number"
   }, {
-    "id" : "provider.anthropic.model.parameters.maxOutputTokens",
-    "label" : "Maximum Output Tokens",
+    "id" : "provider.anthropic.model.parameters.maxTokens",
+    "label" : "Maximum Tokens",
+    "description" : "The maximum number of tokens per request to generate before stopping.",
     "optional" : true,
     "feel" : "required",
     "group" : "parameters",
     "binding" : {
-      "name" : "provider.anthropic.model.parameters.maxOutputTokens",
+      "name" : "provider.anthropic.model.parameters.maxTokens",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -568,6 +569,7 @@
   }, {
     "id" : "provider.bedrock.model.parameters.maxOutputTokens",
     "label" : "Maximum Output Tokens",
+    "description" : "The maximum number of tokens to allow in the generated response.",
     "optional" : true,
     "feel" : "required",
     "group" : "parameters",
@@ -614,22 +616,6 @@
     },
     "type" : "Number"
   }, {
-    "id" : "provider.bedrock.model.parameters.topK",
-    "label" : "top K",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.bedrock.model.parameters.topK",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "type" : "Number"
-  }, {
     "id" : "provider.openai.model.parameters.maxOutputTokens",
     "label" : "Maximum Output Tokens",
     "optional" : true,
@@ -637,6 +623,22 @@
     "group" : "parameters",
     "binding" : {
       "name" : "provider.openai.model.parameters.maxOutputTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.model.parameters.maxCompletionTokens",
+    "label" : "Maximum Completion Tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "parameters",
+    "binding" : {
+      "name" : "provider.openai.model.parameters.maxCompletionTokens",
       "type" : "zeebe:input"
     },
     "condition" : {

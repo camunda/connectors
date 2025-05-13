@@ -88,7 +88,44 @@ public sealed interface ProviderConfiguration
                 defaultValueType = TemplateProperty.DefaultValueType.String,
                 constraints = @PropertyConstraints(notEmpty = true))
             String model,
-        @Valid ModelParameters parameters) {}
+        @Valid AnthropicModelParameters parameters) {
+
+      public record AnthropicModelParameters(
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Maximum Tokens",
+                  description =
+                      "The maximum number of tokens per request to generate before stopping.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer maxTokens,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Temperature",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double temperature,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "top P",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double topP,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "top K",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer topK) {}
+    }
   }
 
   @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock")
@@ -129,7 +166,35 @@ public sealed interface ProviderConfiguration
                 defaultValueType = TemplateProperty.DefaultValueType.String,
                 constraints = @PropertyConstraints(notEmpty = true))
             String model,
-        @Valid ModelParameters parameters) {}
+        @Valid BedrockModelParameters parameters) {
+
+      public record BedrockModelParameters(
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Maximum Output Tokens",
+                  description = "The maximum number of tokens to allow in the generated response.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer maxOutputTokens,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Temperature",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double temperature,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "top P",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double topP) {}
+    }
   }
 
   @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
@@ -190,40 +255,49 @@ public sealed interface ProviderConfiguration
                 defaultValueType = TemplateProperty.DefaultValueType.String,
                 constraints = @PropertyConstraints(notEmpty = true))
             String model,
-        @Valid ModelParameters parameters) {}
-  }
+        @Valid OpenAiModelParameters parameters) {
 
-  record ModelParameters(
-      @Min(0)
-          @TemplateProperty(
-              group = "parameters",
-              label = "Maximum Output Tokens",
-              type = TemplateProperty.PropertyType.Number,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Integer maxOutputTokens,
-      @Min(0)
-          @TemplateProperty(
-              group = "parameters",
-              label = "Temperature",
-              type = TemplateProperty.PropertyType.Number,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Double temperature,
-      @Min(0)
-          @TemplateProperty(
-              group = "parameters",
-              label = "top P",
-              type = TemplateProperty.PropertyType.Number,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Double topP,
-      @Min(0)
-          @TemplateProperty(
-              group = "parameters",
-              label = "top K",
-              type = TemplateProperty.PropertyType.Number,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Integer topK) {}
+      public record OpenAiModelParameters(
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Maximum Output Tokens",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer maxOutputTokens,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Maximum Completion Tokens",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer maxCompletionTokens,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Temperature",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double temperature,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "top P",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double topP,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "top K",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer topK) {}
+    }
+  }
 }
