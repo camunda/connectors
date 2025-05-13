@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -46,7 +45,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CamundaClientAdHocToolsSchemaResolverTest {
 
   private static final Long PROCESS_DEFINITION_KEY = 123456L;
-  private static final String AD_HOC_SUBPROCESS_ID = "Agent_Tools";
+  private static final String AD_HOC_SUB_PROCESS_ID = "Agent_Tools";
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private CamundaClient camundaClient;
@@ -89,7 +88,7 @@ class CamundaClientAdHocToolsSchemaResolverTest {
     when(schemaGenerator.generateToolSchema(any())).thenReturn(expectedEmptySchema);
     doReturn(expectedToolASchema).when(schemaGenerator).generateToolSchema(toolAInputParams);
 
-    final var result = resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUBPROCESS_ID);
+    final var result = resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID);
 
     assertThat(result).isNotNull();
     assertThat(result.toolDefinitions())
@@ -136,10 +135,10 @@ class CamundaClientAdHocToolsSchemaResolverTest {
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"   "})
-  void throwsExceptionWhenAdHocSubprocessIdIsInvalid(String adHocSubprocessId) {
-    assertThatThrownBy(() -> resolver.resolveSchema(123456L, adHocSubprocessId))
+  void throwsExceptionWhenAdHocSubProcessIdIsInvalid(String adHocSubProcessId) {
+    assertThatThrownBy(() -> resolver.resolveSchema(123456L, adHocSubProcessId))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("adHocSubprocessId cannot be null or empty");
+        .hasMessage("adHocSubProcessId cannot be null or empty");
 
     verifyNoInteractions(camundaClient, feelInputParamExtractor, schemaGenerator);
   }
@@ -149,12 +148,12 @@ class CamundaClientAdHocToolsSchemaResolverTest {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn("DUMMY");
 
-    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUBPROCESS_ID))
+    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
         .isInstanceOf(ModelParseException.class);
   }
 
   @Test
-  void throwsExceptionWhenAdHocSubprocessWithRequestedIdDoesNotExist() {
+  void throwsExceptionWhenAdHocSubProcessWithRequestedIdDoesNotExist() {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn(bpmnXml);
 
@@ -162,10 +161,10 @@ class CamundaClientAdHocToolsSchemaResolverTest {
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
-              assertThat(e.getErrorCode()).isEqualTo("AD_HOC_SUBPROCESS_NOT_FOUND");
+              assertThat(e.getErrorCode()).isEqualTo("AD_HOC_SUB_PROCESS_NOT_FOUND");
               assertThat(e.getMessage())
                   .isEqualTo(
-                      "Unable to resolve tools schema. Ad-hoc subprocess with ID 'DUMMY' was not found.");
+                      "Unable to resolve tools schema. Ad-hoc sub-process with ID 'DUMMY' was not found.");
             });
   }
 
@@ -178,7 +177,7 @@ class CamundaClientAdHocToolsSchemaResolverTest {
         .when(feelInputParamExtractor)
         .extractInputParams("fromAi(toolCall.inputParameter, \"An input parameter\")");
 
-    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUBPROCESS_ID))
+    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
@@ -199,7 +198,7 @@ class CamundaClientAdHocToolsSchemaResolverTest {
         .when(feelInputParamExtractor)
         .extractInputParams("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
-    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUBPROCESS_ID))
+    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
@@ -217,7 +216,7 @@ class CamundaClientAdHocToolsSchemaResolverTest {
     when(schemaGenerator.generateToolSchema(any()))
         .thenThrow(new SchemaGenerationException("I can't generate this schema"));
 
-    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUBPROCESS_ID))
+    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {

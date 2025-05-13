@@ -140,7 +140,6 @@
       <bpmn:extensionElements>
         <zeebe:formDefinition formId="fraud-detection-process-enter-tax-form" />
         <zeebe:properties>
-          <zeebe:property name="camunda:adHocActivityInputSchema" value="{&#34;taxSubmission&#34;: {&#34;fullName&#34;:&#34;Niall&#34;,&#34;nationalID&#34;:&#34;212133242&#34;,&#34;dob&#34;:&#34;2025-02-17&#34;,&#34;totalIncome&#34;:12,&#34;totalExpenses&#34;:1232143,&#34;largePurches&#34;:[&#34;car&#34;,&#34;stocks&#34;],&#34;charitableDonations&#34;:&#34;I gave 5 euro to a homeless man&#34;}}" />
           <zeebe:property name="camundaModeler:exampleOutputJson" value="{&#34;taxSubmission&#34;: {&#34;fullName&#34;:&#34;John Smith&#34;,&#34;dob&#34;:&#34;1980-04-05&#34;,&#34;emailAddress&#34;:&#34;johnny.s@gmail.com&#34;,&#34;totalIncome&#34;:70000,&#34;totalExpenses&#34;:3500,&#34;largePurchases&#34;:[&#34;stocks&#34;],&#34;charitableDonations&#34;:&#34;I gave 5€ to a homeless man.&#34;}}" />
         </zeebe:properties>
       </bpmn:extensionElements>
