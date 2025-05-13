@@ -117,6 +117,8 @@
           <zeebe:input source="Agent_Tools" target="data.containerElementId" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
+          <zeebe:header key="elementTemplateVersion" value="0" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.adhoctoolsschema.v0" />
           <zeebe:header key="resultVariable" value="resolvedSchema" />
           <zeebe:header key="retryBackoff" value="PT0S" />
         </zeebe:taskHeaders>
@@ -166,10 +168,6 @@
           <zeebe:input source="=agent.context" target="data.context" />
           <zeebe:input source="=50" target="data.memory.maxMessages" />
           <zeebe:input source="=9" target="data.limits.maxModelCalls" />
-          <zeebe:input source="=8192" target="provider.openai.model.parameters.maxOutputTokens" />
-          <zeebe:input source="=0.8" target="provider.openai.model.parameters.temperature" />
-          <zeebe:input source="=1" target="provider.openai.model.parameters.topP" />
-          <zeebe:input source="=50" target="provider.openai.model.parameters.topK" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="0" />

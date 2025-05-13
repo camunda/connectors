@@ -76,7 +76,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
         Optional.ofNullable(requestData.context()).orElseGet(AgentContext::empty);
 
     // initialize configured model
-    final ChatModel chatModel = chatModelFactory.createChatModel(request);
+    final ChatModel chatModel = chatModelFactory.createChatModel(request.provider());
 
     // set up memory and load from context if available
     final AgentContextChatMemoryStore chatMemoryStore =

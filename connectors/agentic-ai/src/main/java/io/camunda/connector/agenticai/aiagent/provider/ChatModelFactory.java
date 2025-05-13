@@ -8,11 +8,10 @@ package io.camunda.connector.agenticai.aiagent.provider;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
+import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration;
@@ -29,8 +28,8 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class ChatModelFactory {
 
-  public ChatModel createChatModel(AgentRequest request) {
-    return switch (request.provider()) {
+  public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
+    return switch (providerConfiguration) {
       case AnthropicProviderConfiguration anthropic -> createAnthropicChatModel(anthropic);
       case BedrockProviderConfiguration bedrock -> createBedrockChatModel(bedrock);
       case OpenAiProviderConfiguration openai -> createOpenaiChatModel(openai);
@@ -51,10 +50,12 @@ public class ChatModelFactory {
     }
 
     final var modelParameters = connection.model().parameters();
-    Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
-    Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxTokens);
-    Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
-    Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
+    if (modelParameters != null) {
+      Optional.ofNullable(modelParameters.maxTokens()).ifPresent(builder::maxTokens);
+      Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
+      Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
+      Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
+    }
 
     return builder.build();
   }
@@ -78,43 +79,51 @@ public class ChatModelFactory {
       bedrockClientBuilder.endpointOverride(URI.create(connection.endpoint()));
     }
 
-    return BedrockChatModel.builder()
-        .client(bedrockClientBuilder.build())
-        .modelId(connection.model().model())
-        .defaultRequestParameters(
-            applyModelParameters(
-                    DefaultChatRequestParameters.builder(), connection.model().parameters())
-                .build())
-        .build();
+    final var builder =
+        BedrockChatModel.builder()
+            .client(bedrockClientBuilder.build())
+            .modelId(connection.model().model());
+
+    final var modelParameters = connection.model().parameters();
+    if (modelParameters != null) {
+      final var requestParametersBuilder = BedrockChatRequestParameters.builder();
+      Optional.ofNullable(modelParameters.maxTokens())
+          .ifPresent(requestParametersBuilder::maxOutputTokens);
+      Optional.ofNullable(modelParameters.temperature())
+          .ifPresent(requestParametersBuilder::temperature);
+      Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
+
+      builder.defaultRequestParameters(requestParametersBuilder.build());
+    }
+
+    return builder.build();
   }
 
   private OpenAiChatModel createOpenaiChatModel(OpenAiProviderConfiguration configuration) {
     final var connection = configuration.openai();
 
-    final var modelBuilder =
+    final var builder =
         OpenAiChatModel.builder()
             .apiKey(connection.authentication().apiKey())
-            .modelName(connection.model().model())
-            .defaultRequestParameters(
-                applyModelParameters(
-                        OpenAiChatRequestParameters.builder(), connection.model().parameters())
-                    .build());
+            .modelName(connection.model().model());
 
     Optional.ofNullable(connection.authentication().organization())
-        .ifPresent(modelBuilder::organizationId);
-    Optional.ofNullable(connection.authentication().project()).ifPresent(modelBuilder::projectId);
-    Optional.ofNullable(connection.endpoint()).ifPresent(modelBuilder::baseUrl);
+        .ifPresent(builder::organizationId);
+    Optional.ofNullable(connection.authentication().project()).ifPresent(builder::projectId);
+    Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
-    return modelBuilder.build();
-  }
+    final var modelParameters = connection.model().parameters();
+    if (modelParameters != null) {
+      final var requestParametersBuilder = OpenAiChatRequestParameters.builder();
+      Optional.ofNullable(modelParameters.maxCompletionTokens())
+          .ifPresent(requestParametersBuilder::maxCompletionTokens);
+      Optional.ofNullable(modelParameters.temperature())
+          .ifPresent(requestParametersBuilder::temperature);
+      Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
 
-  private DefaultChatRequestParameters.Builder<?> applyModelParameters(
-      DefaultChatRequestParameters.Builder<?> builder,
-      ProviderConfiguration.ModelParameters modelParameters) {
-    Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
-    Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxOutputTokens);
-    Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
-    Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
-    return builder;
+      builder.defaultRequestParameters(requestParametersBuilder.build());
+    }
+
+    return builder.build();
   }
 }
