@@ -335,7 +335,7 @@ class ChatModelFactoryTest {
     private static final String OPEN_AI_MODEL = "openAiModel";
 
     private static final OpenAiModelParameters DEFAULT_MODEL_PARAMETERS =
-        new OpenAiModelParameters(10, 5, 1.0, 0.8, 50);
+        new OpenAiModelParameters(10, 1.0, 0.8);
 
     @Captor private ArgumentCaptor<OpenAiChatRequestParameters> modelParametersArgumentCaptor;
 
@@ -362,11 +362,10 @@ class ChatModelFactoryTest {
 
             final var parameters = modelParametersArgumentCaptor.getValue();
             assertThat(parameters).isNotNull();
-            assertThat(parameters.maxOutputTokens())
-                .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
+            assertThat(parameters.maxCompletionTokens())
+                .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxCompletionTokens());
             assertThat(parameters.temperature()).isEqualTo(DEFAULT_MODEL_PARAMETERS.temperature());
             assertThat(parameters.topP()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topP());
-            assertThat(parameters.topK()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topK());
           });
     }
 
@@ -428,11 +427,9 @@ class ChatModelFactoryTest {
               final var parameters = modelParametersArgumentCaptor.getValue();
               assertThat(parameters).isNotNull().isInstanceOf(OpenAiChatRequestParameters.class);
 
-              assertThat(parameters.maxOutputTokens()).isNull();
               assertThat(parameters.maxCompletionTokens()).isNull();
               assertThat(parameters.temperature()).isNull();
               assertThat(parameters.topP()).isNull();
-              assertThat(parameters.topK()).isNull();
             }
           });
     }
@@ -457,7 +454,7 @@ class ChatModelFactoryTest {
     }
 
     static Stream<OpenAiModelParameters> nullModelParameters() {
-      return Stream.of(new OpenAiModelParameters(null, null, null, null, null));
+      return Stream.of(new OpenAiModelParameters(null, null, null));
     }
   }
 

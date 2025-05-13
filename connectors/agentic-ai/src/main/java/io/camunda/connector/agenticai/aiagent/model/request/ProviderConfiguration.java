@@ -272,14 +272,6 @@ public sealed interface ProviderConfiguration
           @Min(0)
               @TemplateProperty(
                   group = "parameters",
-                  label = "Maximum Output Tokens",
-                  type = TemplateProperty.PropertyType.Number,
-                  feel = Property.FeelMode.required,
-                  optional = true)
-              Integer maxOutputTokens,
-          @Min(0)
-              @TemplateProperty(
-                  group = "parameters",
                   label = "Maximum Completion Tokens",
                   description =
                       "The maximum number of tokens per request to generate before stopping. Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
@@ -306,15 +298,7 @@ public sealed interface ProviderConfiguration
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
-              Double topP,
-          @Min(0)
-              @TemplateProperty(
-                  group = "parameters",
-                  label = "top K",
-                  type = TemplateProperty.PropertyType.Number,
-                  feel = Property.FeelMode.required,
-                  optional = true)
-              Integer topK) {}
+              Double topP) {}
     }
   }
 }

@@ -115,14 +115,11 @@ public class ChatModelFactory {
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
       final var requestParametersBuilder = OpenAiChatRequestParameters.builder();
-      Optional.ofNullable(modelParameters.maxOutputTokens())
-          .ifPresent(requestParametersBuilder::maxOutputTokens);
       Optional.ofNullable(modelParameters.maxCompletionTokens())
           .ifPresent(requestParametersBuilder::maxCompletionTokens);
       Optional.ofNullable(modelParameters.temperature())
           .ifPresent(requestParametersBuilder::temperature);
       Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
-      Optional.ofNullable(modelParameters.topK()).ifPresent(requestParametersBuilder::topK);
 
       builder.defaultRequestParameters(requestParametersBuilder.build());
     }
