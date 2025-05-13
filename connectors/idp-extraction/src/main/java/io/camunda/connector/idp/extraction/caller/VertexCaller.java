@@ -16,7 +16,8 @@ import com.google.cloud.vertexai.generativeai.PartMaker;
 import com.google.cloud.vertexai.generativeai.ResponseHandler;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.LlmModel;
-import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
+import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
+import io.camunda.connector.idp.extraction.model.providers.gcp.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.io.IOException;
@@ -30,8 +31,9 @@ public class VertexCaller {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VertexCaller.class);
 
-  public String generateContent(ExtractionRequestData input, VertexProvider baseRequest)
+  public String generateContent(ExtractionRequestData input, GcpProvider baseRequest)
       throws Exception {
+    var configuration = (VertexRequestConfiguration) baseRequest.getConfiguration();
     LlmModel llmModel = LlmModel.fromId(input.converseData().modelId());
     String fileUri;
     final String fileName;
@@ -54,8 +56,8 @@ public class VertexCaller {
           GcsUtil.uploadNewFileFromDocument(
               input.document(),
               fileName,
-              baseRequest.getConfiguration().bucketName(),
-              baseRequest.getConfiguration().projectId(),
+              configuration.getBucketName(),
+              configuration.getProjectId(),
               baseRequest.getAuthentication());
       LOGGER.debug("File uploaded to GCS with URI: {}", fileUri);
     } catch (IOException e) {
@@ -85,9 +87,9 @@ public class VertexCaller {
           () -> {
             try {
               GcsUtil.deleteObjectFromBucket(
-                  baseRequest.getConfiguration().bucketName(),
+                  configuration.getBucketName(),
                   fileName,
-                  baseRequest.getConfiguration().projectId(),
+                  configuration.getProjectId(),
                   baseRequest.getAuthentication());
               LOGGER.debug("File deleted from GCS");
             } catch (Exception e) {

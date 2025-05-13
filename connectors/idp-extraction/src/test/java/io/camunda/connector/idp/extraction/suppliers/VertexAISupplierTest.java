@@ -10,10 +10,10 @@ import static io.camunda.connector.idp.extraction.utils.GcsUtil.getCredentials;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.vertexai.VertexAI;
-import io.camunda.connector.idp.extraction.model.providers.GcpAuthentication;
-import io.camunda.connector.idp.extraction.model.providers.GcpAuthenticationType;
-import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
-import io.camunda.connector.idp.extraction.model.providers.VertexRequestConfiguration;
+import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthentication;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
+import io.camunda.connector.idp.extraction.model.providers.gcp.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,7 @@ class VertexAISupplierTest {
   @Test
   void getVertexAI_withBearerToken() throws IOException {
     // Given
-    VertexProvider baseRequest =
+    GcpProvider baseRequest =
         createBaseRequest(
             new GcpAuthentication(
                 GcpAuthenticationType.BEARER, "test-token", null, null, null, null));
@@ -47,7 +47,7 @@ class VertexAISupplierTest {
   @Test
   void getVertexAI_withRefreshToken() throws IOException {
     // Given
-    VertexProvider baseRequest =
+    GcpProvider baseRequest =
         createBaseRequest(
             new GcpAuthentication(
                 GcpAuthenticationType.REFRESH,
@@ -69,11 +69,11 @@ class VertexAISupplierTest {
         .isEqualTo(getCredentials(baseRequest.getAuthentication()));
   }
 
-  private VertexProvider createBaseRequest(GcpAuthentication authentication) {
+  private GcpProvider createBaseRequest(GcpAuthentication authentication) {
     VertexRequestConfiguration configuration =
         new VertexRequestConfiguration(REGION, PROJECT_ID, BUCKET_NAME);
 
-    VertexProvider baseRequest = new VertexProvider();
+    GcpProvider baseRequest = new GcpProvider();
     baseRequest.setAuthentication(authentication);
     baseRequest.setConfiguration(configuration);
     return baseRequest;
