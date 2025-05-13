@@ -17,8 +17,8 @@ public record AdHocToolsSchemaRequest(@Valid @NotNull AdHocToolsSchemaRequestDat
       @NotBlank
           @TemplateProperty(
               group = "tools",
-              label = "Ad-hoc subprocess ID",
-              description = "The ID of the subprocess containing the tools to be called",
+              label = "Ad-hoc sub-process ID",
+              description = "The ID of the sub-process containing the tools to be called",
               constraints = @PropertyConstraints(notEmpty = true))
           String containerElementId) {}
 }

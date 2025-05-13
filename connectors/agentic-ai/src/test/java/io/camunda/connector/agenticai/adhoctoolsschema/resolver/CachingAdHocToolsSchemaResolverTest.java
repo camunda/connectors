@@ -38,8 +38,8 @@ class CachingAdHocToolsSchemaResolverTest {
   private static final Long PROCESS_DEFINITION_KEY_1 = 123456L;
   private static final Long PROCESS_DEFINITION_KEY_2 = 654321L;
 
-  private static final String AD_HOC_SUBPROCESS_ID_1 = "AHSP_1";
-  private static final String AD_HOC_SUBPROCESS_ID_2 = "AHSP_2";
+  private static final String AD_HOC_SUB_PROCESS_ID_1 = "AHSP_1";
+  private static final String AD_HOC_SUB_PROCESS_ID_2 = "AHSP_2";
 
   @Mock private AdHocToolsSchemaResolver delegate;
   private CachingAdHocToolsSchemaResolver resolver;
@@ -55,15 +55,15 @@ class CachingAdHocToolsSchemaResolverTest {
   @Test
   void returnsCachedValue() {
     final var mockedResponse = mock(AdHocToolsSchemaResponse.class);
-    when(delegate.resolveSchema(PROCESS_DEFINITION_KEY_1, AD_HOC_SUBPROCESS_ID_1))
+    when(delegate.resolveSchema(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1))
         .thenReturn(mockedResponse);
 
-    final var response1 = resolver.resolveSchema(PROCESS_DEFINITION_KEY_1, AD_HOC_SUBPROCESS_ID_1);
-    final var response2 = resolver.resolveSchema(PROCESS_DEFINITION_KEY_1, AD_HOC_SUBPROCESS_ID_1);
+    final var response1 = resolver.resolveSchema(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
+    final var response2 = resolver.resolveSchema(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
 
     assertThat(response1).isSameAs(response2).isSameAs(mockedResponse);
 
-    verify(delegate, times(1)).resolveSchema(PROCESS_DEFINITION_KEY_1, AD_HOC_SUBPROCESS_ID_1);
+    verify(delegate, times(1)).resolveSchema(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1);
     verifyNoMoreInteractions(delegate);
   }
 
@@ -94,7 +94,7 @@ class CachingAdHocToolsSchemaResolverTest {
   @NullSource
   @ValueSource(longs = {0, -10})
   void throwsExceptionWhenProcessDefinitionKeyIsInvalid(Long processDefinitionKey) {
-    assertThatThrownBy(() -> resolver.resolveSchema(processDefinitionKey, AD_HOC_SUBPROCESS_ID_1))
+    assertThatThrownBy(() -> resolver.resolveSchema(processDefinitionKey, AD_HOC_SUB_PROCESS_ID_1))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Process definition key must not be null or negative");
 
@@ -104,10 +104,10 @@ class CachingAdHocToolsSchemaResolverTest {
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"   "})
-  void throwsExceptionWhenAdHocSubprocessIdIsInvalid(String adHocSubprocessId) {
-    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY_1, adHocSubprocessId))
+  void throwsExceptionWhenAdHocSubProcessIdIsInvalid(String adHocSubProcessId) {
+    assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY_1, adHocSubProcessId))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("adHocSubprocessId cannot be null or empty");
+        .hasMessage("adHocSubProcessId cannot be null or empty");
 
     verifyNoInteractions(delegate);
   }
@@ -115,10 +115,10 @@ class CachingAdHocToolsSchemaResolverTest {
   static Stream<Arguments> differentCacheKeys() {
     return Stream.of(
         arguments(
-            Pair.of(PROCESS_DEFINITION_KEY_1, AD_HOC_SUBPROCESS_ID_1),
-            Pair.of(PROCESS_DEFINITION_KEY_1, AD_HOC_SUBPROCESS_ID_2)),
+            Pair.of(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1),
+            Pair.of(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_2)),
         arguments(
-            Pair.of(PROCESS_DEFINITION_KEY_1, AD_HOC_SUBPROCESS_ID_1),
-            Pair.of(PROCESS_DEFINITION_KEY_2, AD_HOC_SUBPROCESS_ID_1)));
+            Pair.of(PROCESS_DEFINITION_KEY_1, AD_HOC_SUB_PROCESS_ID_1),
+            Pair.of(PROCESS_DEFINITION_KEY_2, AD_HOC_SUB_PROCESS_ID_1)));
   }
 }

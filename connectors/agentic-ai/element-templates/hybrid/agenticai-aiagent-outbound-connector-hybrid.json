@@ -437,8 +437,8 @@
     "type" : "String"
   }, {
     "id" : "data.tools.containerElementId",
-    "label" : "Ad-hoc subprocess ID",
-    "description" : "The ID of the subprocess containing the tools to be called",
+    "label" : "Ad-hoc sub-process ID",
+    "description" : "The ID of the sub-process containing the tools to be called",
     "optional" : true,
     "feel" : "optional",
     "group" : "tools",
@@ -450,7 +450,7 @@
   }, {
     "id" : "data.tools.toolCallResults",
     "label" : "Tool Call Results",
-    "description" : "Tool call results as returned by the subprocess",
+    "description" : "Tool call results as returned by the sub-process",
     "optional" : true,
     "feel" : "required",
     "group" : "tools",

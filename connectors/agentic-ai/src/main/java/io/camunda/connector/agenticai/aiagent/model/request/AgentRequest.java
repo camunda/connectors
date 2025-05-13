@@ -124,15 +124,15 @@ Reveal **no** additional private reasoning outside these tags.
     public record ToolsConfiguration(
         @TemplateProperty(
                 group = "tools",
-                label = "Ad-hoc subprocess ID",
-                description = "The ID of the subprocess containing the tools to be called",
+                label = "Ad-hoc sub-process ID",
+                description = "The ID of the sub-process containing the tools to be called",
                 optional = true)
             String containerElementId,
         @FEEL
             @TemplateProperty(
                 group = "tools",
                 label = "Tool Call Results",
-                description = "Tool call results as returned by the subprocess",
+                description = "Tool call results as returned by the sub-process",
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.required,
                 optional = true)
