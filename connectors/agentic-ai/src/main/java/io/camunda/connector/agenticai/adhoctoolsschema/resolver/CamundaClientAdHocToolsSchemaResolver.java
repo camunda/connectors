@@ -42,8 +42,8 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
   private static final Logger LOGGER =
       LoggerFactory.getLogger(CamundaClientAdHocToolsSchemaResolver.class);
 
-  private static final String ERROR_CODE_AD_HOC_SUBPROCESS_NOT_FOUND =
-      "AD_HOC_SUBPROCESS_NOT_FOUND";
+  private static final String ERROR_CODE_AD_HOC_SUB_PROCESS_NOT_FOUND =
+      "AD_HOC_SUB_PROCESS_NOT_FOUND";
   private static final String ERROR_CODE_AD_HOC_TOOL_DEFINITION_INVALID =
       "AD_HOC_TOOL_DEFINITION_INVALID";
   private static final String ERROR_CODE_AD_HOC_TOOL_SCHEMA_INVALID = "AD_HOC_TOOL_SCHEMA_INVALID";
@@ -63,18 +63,18 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
 
   @Override
   public AdHocToolsSchemaResponse resolveSchema(
-      Long processDefinitionKey, String adHocSubprocessId) {
+      Long processDefinitionKey, String adHocSubProcessId) {
     if (processDefinitionKey == null || processDefinitionKey <= 0) {
       throw new IllegalArgumentException("Process definition key must not be null or negative");
     }
 
-    if (adHocSubprocessId == null || adHocSubprocessId.isBlank()) {
-      throw new IllegalArgumentException("adHocSubprocessId cannot be null or empty");
+    if (adHocSubProcessId == null || adHocSubProcessId.isBlank()) {
+      throw new IllegalArgumentException("adHocSubProcessId cannot be null or empty");
     }
 
     LOGGER.info(
-        "Resolving tool schema for ad-hoc subprocess {} in process definition with key {}",
-        adHocSubprocessId,
+        "Resolving tool schema for ad-hoc sub-process {} in process definition with key {}",
+        adHocSubProcessId,
         processDefinitionKey);
 
     final String processDefinitionXml =
@@ -84,12 +84,12 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
         Bpmn.readModelFromStream(
             new ByteArrayInputStream(processDefinitionXml.getBytes(StandardCharsets.UTF_8)));
 
-    final var processElement = modelInstance.getModelElementById(adHocSubprocessId);
+    final var processElement = modelInstance.getModelElementById(adHocSubProcessId);
     if (!(processElement instanceof final AdHocSubProcess adHocSubProcess)) {
       throw new ConnectorException(
-          ERROR_CODE_AD_HOC_SUBPROCESS_NOT_FOUND,
-          "Unable to resolve tools schema. Ad-hoc subprocess with ID '%s' was not found."
-              .formatted(adHocSubprocessId));
+          ERROR_CODE_AD_HOC_SUB_PROCESS_NOT_FOUND,
+          "Unable to resolve tools schema. Ad-hoc sub-process with ID '%s' was not found."
+              .formatted(adHocSubProcessId));
     }
 
     final var toolDefinitions =

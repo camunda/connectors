@@ -1,8 +1,8 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Ad-hoc subprocess tools schema (alpha)",
+  "name" : "Hybrid Ad-hoc tools schema (alpha)",
   "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v0-hybrid",
-  "description" : "Connector to fetch tools schema information from an ad-hoc subprocess",
+  "description" : "Connector to fetch tools schema information from an ad-hoc sub-process",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -45,8 +45,8 @@
     "type" : "String"
   }, {
     "id" : "data.containerElementId",
-    "label" : "Ad-hoc subprocess ID",
-    "description" : "The ID of the subprocess containing the tools to be called",
+    "label" : "Ad-hoc sub-process ID",
+    "description" : "The ID of the sub-process containing the tools to be called",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

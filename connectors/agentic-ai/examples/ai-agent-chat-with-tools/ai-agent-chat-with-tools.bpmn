@@ -270,7 +270,7 @@
 
 - Loads previous memory from provided variables
 - Checks limits (e.g. maximum LLM model calls)
-- Loads available tool information from ad-hoc subprocess definition
+- Loads available tool information from ad-hoc sub-process definition
 - Merges the current request (either a user message or a tool call response) into the memory
 - Calls the LLM, including previous/edited memory + available tools schema
 - Returns memory trimmed to amount of latest messages
