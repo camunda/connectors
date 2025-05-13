@@ -26,7 +26,6 @@
           <zeebe:input source="=agent.context" target="data.context" />
           <zeebe:input source="=20" target="data.memory.maxMessages" />
           <zeebe:input source="=20" target="data.limits.maxModelCalls" />
-          <zeebe:input source="=8192" target="provider.bedrock.model.parameters.maxOutputTokens" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="0" />

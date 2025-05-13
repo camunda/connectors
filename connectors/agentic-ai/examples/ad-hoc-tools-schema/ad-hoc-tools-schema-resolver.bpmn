@@ -44,6 +44,8 @@
           <zeebe:input source="Dummy_Tools" target="data.containerElementId" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
+          <zeebe:header key="elementTemplateVersion" value="0" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.adhoctoolsschema.v0" />
           <zeebe:header key="resultVariable" value="toolsResult" />
           <zeebe:header key="retryBackoff" value="PT0S" />
         </zeebe:taskHeaders>
