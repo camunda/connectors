@@ -41,7 +41,7 @@
   }, {
     "id" : "parameters",
     "label" : "Model Parameters",
-    "tooltip" : "Configuration of common model parameters to optimize and fine-tune LLM responses.",
+    "tooltip" : "Optional configuration of common model parameters to optimize and fine-tune LLM responses. Limits such as maximum output tokens are <strong>per LLM request</strong>.",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -124,7 +124,7 @@
   }, {
     "id" : "provider.bedrock.region",
     "label" : "Region",
-    "description" : "Specify the AWS region",
+    "description" : "Specify the AWS region (example: <code>eu-west-1</code>)",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -502,13 +502,13 @@
     },
     "type" : "Number"
   }, {
-    "id" : "provider.anthropic.model.parameters.maxOutputTokens",
-    "label" : "Maximum Output Tokens",
+    "id" : "provider.anthropic.model.parameters.maxTokens",
+    "label" : "Maximum Tokens",
     "optional" : true,
     "feel" : "required",
     "group" : "parameters",
     "binding" : {
-      "name" : "provider.anthropic.model.parameters.maxOutputTokens",
+      "name" : "provider.anthropic.model.parameters.maxTokens",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -516,6 +516,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.anthropic.model.parameters.temperature",
@@ -532,6 +533,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
+    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.anthropic.model.parameters.topP",
@@ -548,6 +550,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.anthropic.model.parameters.topK",
@@ -564,15 +567,16 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
+    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "provider.bedrock.model.parameters.maxOutputTokens",
-    "label" : "Maximum Output Tokens",
+    "id" : "provider.bedrock.model.parameters.maxTokens",
+    "label" : "Maximum Tokens",
     "optional" : true,
     "feel" : "required",
     "group" : "parameters",
     "binding" : {
-      "name" : "provider.bedrock.model.parameters.maxOutputTokens",
+      "name" : "provider.bedrock.model.parameters.maxTokens",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -580,6 +584,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
+    "tooltip" : "The maximum number of tokens to allow in the generated response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.bedrock.model.parameters.temperature",
@@ -596,6 +601,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
+    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.bedrock.model.parameters.topP",
@@ -612,31 +618,16 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "provider.bedrock.model.parameters.topK",
-    "label" : "top K",
+    "id" : "provider.openai.model.parameters.maxCompletionTokens",
+    "label" : "Maximum Completion Tokens",
     "optional" : true,
     "feel" : "required",
     "group" : "parameters",
     "binding" : {
-      "name" : "provider.bedrock.model.parameters.topK",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "type" : "Number"
-  }, {
-    "id" : "provider.openai.model.parameters.maxOutputTokens",
-    "label" : "Maximum Output Tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.openai.model.parameters.maxOutputTokens",
+      "name" : "provider.openai.model.parameters.maxCompletionTokens",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -644,6 +635,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.openai.model.parameters.temperature",
@@ -660,6 +652,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.openai.model.parameters.topP",
@@ -676,22 +669,7 @@
       "equals" : "openai",
       "type" : "simple"
     },
-    "type" : "Number"
-  }, {
-    "id" : "provider.openai.model.parameters.topK",
-    "label" : "top K",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.openai.model.parameters.topK",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "version",

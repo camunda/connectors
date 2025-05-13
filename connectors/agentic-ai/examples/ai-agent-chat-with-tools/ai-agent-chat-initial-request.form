@@ -26,7 +26,7 @@
   "type": "default",
   "id": "ai-agent-chat-initial-request",
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.6.0",
+  "executionPlatformVersion": "8.8.0",
   "exporter": {
     "name": "Camunda Modeler",
     "version": "5.34.0"

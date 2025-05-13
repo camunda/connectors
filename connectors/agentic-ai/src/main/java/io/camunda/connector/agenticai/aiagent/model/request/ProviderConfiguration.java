@@ -48,7 +48,7 @@ public sealed interface ProviderConfiguration
         ProviderConfiguration.OpenAiProviderConfiguration {
 
   @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
-  record AnthropicProviderConfiguration(AnthropicConnection anthropic)
+  record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection anthropic)
       implements ProviderConfiguration {
 
     @TemplateProperty(ignore = true)
@@ -62,8 +62,8 @@ public sealed interface ProviderConfiguration
                 feel = Property.FeelMode.disabled,
                 optional = true)
             String endpoint,
-        @NotNull @Valid AnthropicAuthentication authentication,
-        AnthropicModel model) {}
+        @Valid @NotNull AnthropicAuthentication authentication,
+        @Valid @NotNull AnthropicModel model) {}
 
     public record AnthropicAuthentication(
         @NotBlank
@@ -88,19 +88,64 @@ public sealed interface ProviderConfiguration
                 defaultValueType = TemplateProperty.DefaultValueType.String,
                 constraints = @PropertyConstraints(notEmpty = true))
             String model,
-        @Valid ModelParameters parameters) {}
+        @Valid AnthropicModelParameters parameters) {
+
+      public record AnthropicModelParameters(
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Maximum Tokens",
+                  tooltip =
+                      "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer maxTokens,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Temperature",
+                  tooltip =
+                      "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double temperature,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "top P",
+                  tooltip =
+                      "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double topP,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "top K",
+                  tooltip =
+                      "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer topK) {}
+    }
   }
 
   @TemplateSubType(id = BEDROCK_ID, label = "AWS Bedrock")
-  record BedrockProviderConfiguration(BedrockConnection bedrock) implements ProviderConfiguration {
+  record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bedrock)
+      implements ProviderConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String BEDROCK_ID = "bedrock";
 
     public record BedrockConnection(
-        @TemplateProperty(
+        @NotBlank
+            @TemplateProperty(
                 group = "model",
-                description = "Specify the AWS region",
+                description = "Specify the AWS region (example: <code>eu-west-1</code>)",
                 constraints = @PropertyConstraints(notEmpty = true))
             String region,
         @FEEL
@@ -111,8 +156,8 @@ public sealed interface ProviderConfiguration
                 feel = Property.FeelMode.disabled,
                 optional = true)
             String endpoint,
-        AwsAuthentication authentication,
-        BedrockModel model) {}
+        @Valid @NotNull AwsAuthentication authentication,
+        @Valid @NotNull BedrockModel model) {}
 
     public record BedrockModel(
         @NotBlank
@@ -127,11 +172,45 @@ public sealed interface ProviderConfiguration
                 defaultValueType = TemplateProperty.DefaultValueType.String,
                 constraints = @PropertyConstraints(notEmpty = true))
             String model,
-        @Valid ModelParameters parameters) {}
+        @Valid BedrockModelParameters parameters) {
+
+      public record BedrockModelParameters(
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Maximum Tokens",
+                  tooltip =
+                      "The maximum number of tokens to allow in the generated response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer maxTokens,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Temperature",
+                  tooltip =
+                      "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double temperature,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "top P",
+                  tooltip =
+                      "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double topP) {}
+    }
   }
 
   @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
-  record OpenAiProviderConfiguration(OpenAiConnection openai) implements ProviderConfiguration {
+  record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection openai)
+      implements ProviderConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String OPENAI_ID = "openai";
@@ -144,8 +223,8 @@ public sealed interface ProviderConfiguration
                 feel = Property.FeelMode.disabled,
                 optional = true)
             String endpoint,
-        OpenAiAuthentication authentication,
-        OpenAiModel model) {}
+        @Valid @NotNull OpenAiAuthentication authentication,
+        @Valid @NotNull OpenAiModel model) {}
 
     public record OpenAiAuthentication(
         @NotBlank
@@ -187,40 +266,39 @@ public sealed interface ProviderConfiguration
                 defaultValueType = TemplateProperty.DefaultValueType.String,
                 constraints = @PropertyConstraints(notEmpty = true))
             String model,
-        @Valid ModelParameters parameters) {}
-  }
+        @Valid OpenAiModelParameters parameters) {
 
-  record ModelParameters(
-      @Min(0)
-          @TemplateProperty(
-              group = "parameters",
-              label = "Maximum Output Tokens",
-              type = TemplateProperty.PropertyType.Number,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Integer maxOutputTokens,
-      @Min(0)
-          @TemplateProperty(
-              group = "parameters",
-              label = "Temperature",
-              type = TemplateProperty.PropertyType.Number,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Double temperature,
-      @Min(0)
-          @TemplateProperty(
-              group = "parameters",
-              label = "top P",
-              type = TemplateProperty.PropertyType.Number,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Double topP,
-      @Min(0)
-          @TemplateProperty(
-              group = "parameters",
-              label = "top K",
-              type = TemplateProperty.PropertyType.Number,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Integer topK) {}
+      public record OpenAiModelParameters(
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Maximum Completion Tokens",
+                  tooltip =
+                      "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer maxCompletionTokens,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "Temperature",
+                  tooltip =
+                      "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double temperature,
+          @Min(0)
+              @TemplateProperty(
+                  group = "parameters",
+                  label = "top P",
+                  tooltip =
+                      "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double topP) {}
+    }
+  }
 }
