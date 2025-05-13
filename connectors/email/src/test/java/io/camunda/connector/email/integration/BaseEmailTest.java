@@ -149,16 +149,6 @@ public class BaseEmailTest {
     greenMailUser.deliver(mimeMessage);
   }
 
-  protected String getLastEmailMessageId() {
-    Message message = getLastReceivedEmails()[0];
-    try {
-      String messageId = message.getHeader("Message-ID")[0];
-      return messageId.trim().replaceAll("[<>]", "");
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   protected String getUnsecurePop3Port() {
     return String.valueOf(greenMail.getPop3().getPort());
   }
