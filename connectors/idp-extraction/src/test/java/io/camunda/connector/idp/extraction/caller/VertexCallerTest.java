@@ -19,8 +19,8 @@ import com.google.cloud.vertexai.api.Part;
 import com.google.cloud.vertexai.generativeai.GenerativeModel;
 import com.google.cloud.vertexai.generativeai.ResponseHandler;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
-import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
-import io.camunda.connector.idp.extraction.model.providers.VertexRequestConfiguration;
+import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
+import io.camunda.connector.idp.extraction.model.providers.gcp.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ class VertexCallerTest {
     }
 
     @Override
-    public String generateContent(ExtractionRequestData input, VertexProvider baseRequest)
+    public String generateContent(ExtractionRequestData input, GcpProvider baseRequest)
         throws Exception {
       GenerateContentResponse response =
           mockModel.generateContent(
@@ -51,11 +51,11 @@ class VertexCallerTest {
     }
   }
 
-  private VertexProvider createBaseRequest() {
+  private GcpProvider createBaseRequest() {
     VertexRequestConfiguration configuration =
         new VertexRequestConfiguration("region", "project-id", "bucket-name");
 
-    VertexProvider baseRequest = new VertexProvider();
+    GcpProvider baseRequest = new GcpProvider();
     baseRequest.setConfiguration(configuration);
     return baseRequest;
   }
@@ -89,7 +89,7 @@ class VertexCallerTest {
             .when(() -> ResponseHandler.getText(any()))
             .thenReturn(expectedResponse);
 
-        VertexProvider baseRequest = createBaseRequest();
+        GcpProvider baseRequest = createBaseRequest();
         TestVertexCaller testCaller = new TestVertexCaller(mockGenerativeModel);
 
         String result =
@@ -133,7 +133,7 @@ class VertexCallerTest {
             .thenReturn(expectedResponse);
 
         ExtractionRequestData requestData = ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA;
-        VertexProvider baseRequest = createBaseRequest();
+        GcpProvider baseRequest = createBaseRequest();
         TestVertexCaller testCaller = new TestVertexCaller(mockGenerativeModel);
 
         String result = testCaller.generateContent(requestData, baseRequest);

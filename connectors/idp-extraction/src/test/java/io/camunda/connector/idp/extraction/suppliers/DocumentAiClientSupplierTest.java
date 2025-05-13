@@ -10,10 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mockStatic;
 
 import com.google.cloud.documentai.v1.DocumentProcessorServiceClient;
-import io.camunda.connector.idp.extraction.model.providers.DocumentAIProvider;
-import io.camunda.connector.idp.extraction.model.providers.DocumentAiRequestConfiguration;
-import io.camunda.connector.idp.extraction.model.providers.GcpAuthentication;
-import io.camunda.connector.idp.extraction.model.providers.GcpAuthenticationType;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthentication;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
 import io.camunda.connector.idp.extraction.supplier.DocumentAiClientSupplier;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.io.IOException;
@@ -22,27 +20,19 @@ import org.mockito.MockedStatic;
 
 class DocumentAiClientSupplierTest {
 
-  private static final String PROJECT_ID = "test-project";
-  private static final String REGION = "test-region";
-  private static final String PROCESSOR_ID = "test-processor";
-
   private final DocumentAiClientSupplier supplier = new DocumentAiClientSupplier();
 
   @Test
   void getDocumentAiClient_withBearerToken() throws IOException {
     // Given
-    DocumentAIProvider baseRequest =
-        createBaseRequest(
-            new GcpAuthentication(
-                GcpAuthenticationType.BEARER, "test-token", null, null, null, null));
+    GcpAuthentication authentication =
+        new GcpAuthentication(GcpAuthenticationType.BEARER, "test-token", null, null, null, null);
 
     // When/Then
     try (MockedStatic<GcsUtil> gcsUtilMock = mockStatic(GcsUtil.class)) {
-      gcsUtilMock
-          .when(() -> GcsUtil.getCredentials(baseRequest.getAuthentication()))
-          .thenCallRealMethod();
+      gcsUtilMock.when(() -> GcsUtil.getCredentials(authentication)).thenCallRealMethod();
 
-      DocumentProcessorServiceClient client = supplier.getDocumentAiClient(baseRequest);
+      DocumentProcessorServiceClient client = supplier.getDocumentAiClient(authentication);
 
       assertThat(client).isNotNull();
       assertThat(client).isInstanceOf(DocumentProcessorServiceClient.class);
@@ -52,36 +42,23 @@ class DocumentAiClientSupplierTest {
   @Test
   void getDocumentAiClient_withRefreshToken() throws IOException {
     // Given
-    DocumentAIProvider baseRequest =
-        createBaseRequest(
-            new GcpAuthentication(
-                GcpAuthenticationType.REFRESH,
-                null,
-                "refresh-token",
-                "client-id",
-                "client-secret",
-                null));
+    GcpAuthentication authentication =
+        new GcpAuthentication(
+            GcpAuthenticationType.REFRESH,
+            null,
+            "refresh-token",
+            "client-id",
+            "client-secret",
+            null);
 
     // When/Then
     try (MockedStatic<GcsUtil> gcsUtilMock = mockStatic(GcsUtil.class)) {
-      gcsUtilMock
-          .when(() -> GcsUtil.getCredentials(baseRequest.getAuthentication()))
-          .thenCallRealMethod();
+      gcsUtilMock.when(() -> GcsUtil.getCredentials(authentication)).thenCallRealMethod();
 
-      DocumentProcessorServiceClient client = supplier.getDocumentAiClient(baseRequest);
+      DocumentProcessorServiceClient client = supplier.getDocumentAiClient(authentication);
 
       assertThat(client).isNotNull();
       assertThat(client).isInstanceOf(DocumentProcessorServiceClient.class);
     }
-  }
-
-  private DocumentAIProvider createBaseRequest(GcpAuthentication authentication) {
-    DocumentAiRequestConfiguration configuration =
-        new DocumentAiRequestConfiguration(REGION, PROJECT_ID, PROCESSOR_ID);
-
-    DocumentAIProvider baseRequest = new DocumentAIProvider();
-    baseRequest.setAuthentication(authentication);
-    baseRequest.setConfiguration(configuration);
-    return baseRequest;
   }
 }

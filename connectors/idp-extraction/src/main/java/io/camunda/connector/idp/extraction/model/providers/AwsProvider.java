@@ -12,7 +12,7 @@ import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import io.camunda.connector.idp.extraction.model.TextExtractionEngineType;
+import io.camunda.connector.idp.extraction.model.providers.aws.TextExtractionEngineType;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "aws", label = "Amazon Web Services Provider")
