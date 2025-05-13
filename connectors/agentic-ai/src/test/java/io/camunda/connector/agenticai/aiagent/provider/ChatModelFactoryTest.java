@@ -141,13 +141,17 @@ class ChatModelFactoryTest {
     private void testAnthropicChatModelBuilder(
         AnthropicProviderConfiguration providerConfig,
         ThrowingConsumer<AnthropicChatModelBuilder> builderAssertions) {
-      var chatModelBuilder = spy(AnthropicChatModel.builder());
+      final var chatModelBuilder = spy(AnthropicChatModel.builder());
+      final var chatModelResultCaptor = new ResultCaptor<AnthropicChatModel>();
+      doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
+
       try (MockedStatic<AnthropicChatModel> chatModelMock =
           Mockito.mockStatic(AnthropicChatModel.class, Answers.CALLS_REAL_METHODS)) {
         chatModelMock.when(AnthropicChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
         assertThat(chatModel).isNotNull().isInstanceOf(AnthropicChatModel.class);
+        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
         builderAssertions.accept(chatModelBuilder);
       }
@@ -304,7 +308,12 @@ class ChatModelFactoryTest {
         BedrockProviderConfiguration providerConfig,
         ThrowingConsumer<BedrockBuilderContext> builderAssertions) {
       final var clientBuilder = spy(BedrockRuntimeClient.builder());
+      final var clientResultCaptor = new ResultCaptor<BedrockRuntimeClient>();
+      doAnswer(clientResultCaptor).when(clientBuilder).build();
+
       final var chatModelBuilder = spy(BedrockChatModel.builder());
+      final var chatModelResultCaptor = new ResultCaptor<OpenAiChatModel>();
+      doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
 
       try (MockedStatic<BedrockRuntimeClient> clientMock =
               Mockito.mockStatic(BedrockRuntimeClient.class, Answers.CALLS_REAL_METHODS);
@@ -313,14 +322,12 @@ class ChatModelFactoryTest {
         clientMock.when(BedrockRuntimeClient::builder).thenReturn(clientBuilder);
         chatModelMock.when(BedrockChatModel::builder).thenReturn(chatModelBuilder);
 
-        final var clientResultCaptor = new ResultCaptor<BedrockRuntimeClient>();
-        doAnswer(clientResultCaptor).when(clientBuilder).build();
-
         final var builders =
             new BedrockBuilderContext(clientBuilder, clientResultCaptor, chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
         assertThat(chatModel).isNotNull().isInstanceOf(BedrockChatModel.class);
+        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
         builderAssertions.accept(builders);
       }
@@ -436,13 +443,17 @@ class ChatModelFactoryTest {
     private void testOpenAiChatModelBuilder(
         OpenAiProviderConfiguration providerConfig,
         ThrowingConsumer<OpenAiChatModelBuilder> builderAssertions) {
-      var chatModelBuilder = spy(OpenAiChatModel.builder());
+      final var chatModelBuilder = spy(OpenAiChatModel.builder());
+      final var chatModelResultCaptor = new ResultCaptor<OpenAiChatModel>();
+      doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
+
       try (MockedStatic<OpenAiChatModel> chatModelMock =
           Mockito.mockStatic(OpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
         chatModelMock.when(OpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
         assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
+        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
         builderAssertions.accept(chatModelBuilder);
       }
