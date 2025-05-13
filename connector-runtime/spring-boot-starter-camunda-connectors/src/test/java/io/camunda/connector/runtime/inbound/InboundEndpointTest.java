@@ -83,7 +83,7 @@ public class InboundEndpointTest {
                     System.currentTimeMillis())));
 
     InboundConnectorRestController statusController =
-        new InboundConnectorRestController(executableRegistry);
+        new InboundConnectorRestController(executableRegistry, null);
 
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());
@@ -110,7 +110,7 @@ public class InboundEndpointTest {
                     System.currentTimeMillis())));
 
     InboundConnectorRestController statusController =
-        new InboundConnectorRestController(executableRegistry);
+        new InboundConnectorRestController(executableRegistry, null);
 
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());
