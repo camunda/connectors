@@ -87,7 +87,7 @@ public class ChatModelFactory {
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
       final var requestParametersBuilder = BedrockChatRequestParameters.builder();
-      Optional.ofNullable(modelParameters.maxOutputTokens())
+      Optional.ofNullable(modelParameters.maxTokens())
           .ifPresent(requestParametersBuilder::maxOutputTokens);
       Optional.ofNullable(modelParameters.temperature())
           .ifPresent(requestParametersBuilder::temperature);

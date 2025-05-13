@@ -44,7 +44,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           id = "parameters",
           label = "Model Parameters",
           tooltip =
-              "Configuration of common model parameters to optimize and fine-tune LLM responses. Limits such as maximum output tokens are <strong>per LLM request</strong>.",
+              "Optional configuration of common model parameters to optimize and fine-tune LLM responses. Limits such as maximum output tokens are <strong>per LLM request</strong>.",
           openByDefault = false)
     },
     icon = "aiagent.svg")

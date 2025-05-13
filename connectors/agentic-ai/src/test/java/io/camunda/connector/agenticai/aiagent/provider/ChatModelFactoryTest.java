@@ -235,7 +235,7 @@ class ChatModelFactoryTest {
             final var parameters = modelParametersArgumentCaptor.getValue();
             assertThat(parameters).isNotNull().isInstanceOf(BedrockChatRequestParameters.class);
             assertThat(parameters.maxOutputTokens())
-                .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
+                .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxTokens());
             assertThat(parameters.temperature()).isEqualTo(DEFAULT_MODEL_PARAMETERS.temperature());
             assertThat(parameters.topP()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topP());
           });

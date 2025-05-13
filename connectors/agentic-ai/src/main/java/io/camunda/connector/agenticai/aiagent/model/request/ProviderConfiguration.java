@@ -96,7 +96,7 @@ public sealed interface ProviderConfiguration
                   group = "parameters",
                   label = "Maximum Tokens",
                   description =
-                      "The maximum number of tokens per request to generate before stopping.",
+                      "The maximum number of tokens per request to generate before stopping. Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
@@ -105,6 +105,8 @@ public sealed interface ProviderConfiguration
               @TemplateProperty(
                   group = "parameters",
                   label = "Temperature",
+                  tooltip =
+                      "Floating point number between <code>0</code> and <code>1</code>. The higher the number, the more randomness will be injected into the response. Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
@@ -113,6 +115,8 @@ public sealed interface ProviderConfiguration
               @TemplateProperty(
                   group = "parameters",
                   label = "top P",
+                  tooltip =
+                      "Floating point number between <code>0</code> and <code>1</code>. Recommended for advanced use cases only, you usually only need to use <code>temperature</code>. Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
@@ -121,6 +125,8 @@ public sealed interface ProviderConfiguration
               @TemplateProperty(
                   group = "parameters",
                   label = "top K",
+                  tooltip =
+                      "Integer greater than <code>0</code>. Recommended for advanced use cases only, you usually only need to use <code>temperature</code>. Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
@@ -139,7 +145,7 @@ public sealed interface ProviderConfiguration
         @NotBlank
             @TemplateProperty(
                 group = "model",
-                description = "Specify the AWS region",
+                description = "Specify the AWS region (example: <code>eu-west-1</code>)",
                 constraints = @PropertyConstraints(notEmpty = true))
             String region,
         @FEEL
@@ -172,16 +178,19 @@ public sealed interface ProviderConfiguration
           @Min(0)
               @TemplateProperty(
                   group = "parameters",
-                  label = "Maximum Output Tokens",
-                  description = "The maximum number of tokens to allow in the generated response.",
+                  label = "Maximum Tokens",
+                  tooltip =
+                      "The maximum number of tokens to allow in the generated response. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
-              Integer maxOutputTokens,
+              Integer maxTokens,
           @Min(0)
               @TemplateProperty(
                   group = "parameters",
                   label = "Temperature",
+                  tooltip =
+                      "Floating point number between <code>0</code> and <code>1</code>. The higher the number, the more randomness will be injected into the response. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
@@ -190,6 +199,8 @@ public sealed interface ProviderConfiguration
               @TemplateProperty(
                   group = "parameters",
                   label = "top P",
+                  tooltip =
+                      "Floating point number between <code>0</code> and <code>1</code>. Recommended for advanced use cases only, you usually only need to use <code>temperature</code>. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
@@ -270,6 +281,8 @@ public sealed interface ProviderConfiguration
               @TemplateProperty(
                   group = "parameters",
                   label = "Maximum Completion Tokens",
+                  description =
+                      "The maximum number of tokens per request to generate before stopping. Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
@@ -278,6 +291,8 @@ public sealed interface ProviderConfiguration
               @TemplateProperty(
                   group = "parameters",
                   label = "Temperature",
+                  tooltip =
+                      "Floating point number between <code>0</code> and <code>2</code>. The higher the number, the more randomness will be injected into the response. Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
@@ -286,6 +301,8 @@ public sealed interface ProviderConfiguration
               @TemplateProperty(
                   group = "parameters",
                   label = "top P",
+                  tooltip =
+                      "Recommended for advanced use cases only, you usually only need to use <code>temperature</code>. Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
