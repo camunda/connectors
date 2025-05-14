@@ -62,7 +62,7 @@ class PollingTextractCallerTest {
   }
 
   @Test
-  void callTextractDocumentAnalysisWithSuccess() throws Exception {
+  void callTextractTextDetectionWithSuccess() throws Exception {
     String jobId = "1";
     GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
         GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
@@ -94,7 +94,7 @@ class PollingTextractCallerTest {
   }
 
   @Test
-  void callTextractDocumentAnalysisWithEmptyResult() throws Exception {
+  void callTextractTextDetectionWithEmptyResult() throws Exception {
     String jobId = "1";
     GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
         GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
@@ -123,7 +123,7 @@ class PollingTextractCallerTest {
   }
 
   @Test
-  void callTextractDocumentAnalysisWithFailure() {
+  void callTextractTextDetectionWithFailure() {
     String jobId = "1";
     GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
         GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();

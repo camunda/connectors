@@ -11,13 +11,13 @@ import software.amazon.awssdk.services.textract.TextractClient;
 import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionRequest;
 import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionResponse;
 
-public class TextractTask implements Callable<GetDocumentTextDetectionResponse> {
+public class TextractTextDetectionTask implements Callable<GetDocumentTextDetectionResponse> {
 
   private final GetDocumentTextDetectionRequest docAnalysisReq;
 
   private final TextractClient textractClient;
 
-  public TextractTask(
+  public TextractTextDetectionTask(
       GetDocumentTextDetectionRequest documentAnalysisRequest, TextractClient textractClient) {
     this.docAnalysisReq = documentAnalysisRequest;
     this.textractClient = textractClient;

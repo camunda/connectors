@@ -10,7 +10,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
-import io.camunda.connector.idp.extraction.model.TextractTask;
+import io.camunda.connector.idp.extraction.model.TextractAnalysisTask;
+import io.camunda.connector.idp.extraction.model.TextractTextDetectionTask;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
 import io.camunda.document.Document;
 import java.util.ArrayList;
@@ -34,6 +35,11 @@ public class PollingTextractCaller {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PollingTextractCaller.class);
 
+  private enum TextractProcessType {
+    TEXT_DETECTION,
+    DOCUMENT_ANALYSIS
+  }
+
   public String call(
       Document document,
       String bucketName,
@@ -41,7 +47,13 @@ public class PollingTextractCaller {
       S3AsyncClient s3AsyncClient)
       throws Exception {
 
-    List<Block> allBlocks = processDocument(document, bucketName, textractClient, s3AsyncClient);
+    List<Block> allBlocks =
+        processDocument(
+            document,
+            bucketName,
+            textractClient,
+            s3AsyncClient,
+            TextractProcessType.TEXT_DETECTION);
 
     return allBlocks.stream()
         .filter(block -> block.blockType().equals(BlockType.LINE))
@@ -56,56 +68,110 @@ public class PollingTextractCaller {
       S3AsyncClient s3AsyncClient)
       throws Exception {
 
-    List<Block> allBlocks = processDocument(document, bucketName, textractClient, s3AsyncClient);
-
-    return extractKeyValuePairsWithConfidence(allBlocks);
+    List<Block> allBlocks =
+        processDocument(
+            document,
+            bucketName,
+            textractClient,
+            s3AsyncClient,
+            TextractProcessType.DOCUMENT_ANALYSIS);
+    return extractDataFromDocument(allBlocks);
   }
 
   private List<Block> processDocument(
       Document document,
       String bucketName,
       TextractClient textractClient,
-      S3AsyncClient s3AsyncClient)
+      S3AsyncClient s3AsyncClient,
+      TextractProcessType processType)
       throws Exception {
 
     S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
 
-    LOGGER.debug(
-        "Starting polling task for document text detection with document: {}", s3Object.name());
+    LOGGER.debug("Starting polling task for {} with document: {}", processType, s3Object.name());
 
-    final StartDocumentTextDetectionRequest startDocumentTextDetectionRequest =
-        StartDocumentTextDetectionRequest.builder()
-            .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
-            .build();
+    String jobId;
+    if (processType == TextractProcessType.DOCUMENT_ANALYSIS) {
+      List<FeatureType> featureTypes = new ArrayList<>();
+      featureTypes.add(FeatureType.FORMS);
+      featureTypes.add(FeatureType.TABLES);
 
-    final StartDocumentTextDetectionResponse response =
-        textractClient.startDocumentTextDetection(startDocumentTextDetectionRequest);
+      final StartDocumentAnalysisRequest startDocumentAnalysisRequest =
+          StartDocumentAnalysisRequest.builder()
+              .featureTypes(featureTypes)
+              .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
+              .build();
+
+      jobId = textractClient.startDocumentAnalysis(startDocumentAnalysisRequest).jobId();
+    } else {
+      final StartDocumentTextDetectionRequest startDocumentTextDetectionRequest =
+          StartDocumentTextDetectionRequest.builder()
+              .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
+              .build();
+
+      jobId = textractClient.startDocumentTextDetection(startDocumentTextDetectionRequest).jobId();
+    }
 
     List<Block> allBlocks;
     try (ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor()) {
-      final String jobId = response.jobId();
-      final TextractTask firstTextractTask =
-          prepareTextractTextDetectionTask(jobId, textractClient);
-      final GetDocumentTextDetectionResponse firstDocumentResult =
-          executeTextDetectionTask(firstTextractTask, 0, executorService);
+      Object firstTask =
+          processType == TextractProcessType.DOCUMENT_ANALYSIS
+              ? prepareTextractAnalysisTask(jobId, textractClient)
+              : prepareTextractTextDetectionTask(jobId, textractClient);
 
-      allBlocks = new ArrayList<>(firstDocumentResult.blocks());
-      boolean isAnalysisFinished = firstDocumentResult.jobStatus().equals(JobStatus.SUCCEEDED);
+      Object firstDocumentResult =
+          processType == TextractProcessType.DOCUMENT_ANALYSIS
+              ? executeAnalysisTask((TextractAnalysisTask) firstTask, 0, executorService)
+              : executeTextDetectionTask((TextractTextDetectionTask) firstTask, 0, executorService);
+
+      List<Block> blocks =
+          processType == TextractProcessType.DOCUMENT_ANALYSIS
+              ? ((GetDocumentAnalysisResponse) firstDocumentResult).blocks()
+              : ((GetDocumentTextDetectionResponse) firstDocumentResult).blocks();
+
+      JobStatus jobStatus =
+          processType == TextractProcessType.DOCUMENT_ANALYSIS
+              ? ((GetDocumentAnalysisResponse) firstDocumentResult).jobStatus()
+              : ((GetDocumentTextDetectionResponse) firstDocumentResult).jobStatus();
+
+      allBlocks = new ArrayList<>(blocks);
+      boolean isAnalysisFinished = jobStatus.equals(JobStatus.SUCCEEDED);
 
       while (!isAnalysisFinished) {
-        final TextractTask nextTextractTask =
-            prepareTextractTextDetectionTask(jobId, textractClient);
-        GetDocumentTextDetectionResponse nextDocumentResult =
-            executeTextDetectionTask(nextTextractTask, DELAY_BETWEEN_POLLING, executorService);
-        JobStatus newJobStatus = nextDocumentResult.jobStatus();
+        Object nextTask =
+            processType == TextractProcessType.DOCUMENT_ANALYSIS
+                ? prepareTextractAnalysisTask(jobId, textractClient)
+                : prepareTextractTextDetectionTask(jobId, textractClient);
+
+        Object nextDocumentResult =
+            processType == TextractProcessType.DOCUMENT_ANALYSIS
+                ? executeAnalysisTask(
+                    (TextractAnalysisTask) nextTask, DELAY_BETWEEN_POLLING, executorService)
+                : executeTextDetectionTask(
+                    (TextractTextDetectionTask) nextTask, DELAY_BETWEEN_POLLING, executorService);
+
+        JobStatus newJobStatus =
+            processType == TextractProcessType.DOCUMENT_ANALYSIS
+                ? ((GetDocumentAnalysisResponse) nextDocumentResult).jobStatus()
+                : ((GetDocumentTextDetectionResponse) nextDocumentResult).jobStatus();
+
+        List<Block> nextBlocks =
+            processType == TextractProcessType.DOCUMENT_ANALYSIS
+                ? ((GetDocumentAnalysisResponse) nextDocumentResult).blocks()
+                : ((GetDocumentTextDetectionResponse) nextDocumentResult).blocks();
+
+        String statusMessage =
+            processType == TextractProcessType.DOCUMENT_ANALYSIS
+                ? ((GetDocumentAnalysisResponse) nextDocumentResult).statusMessage()
+                : ((GetDocumentTextDetectionResponse) nextDocumentResult).statusMessage();
 
         switch (newJobStatus) {
           case SUCCEEDED -> {
             isAnalysisFinished = true;
-            allBlocks.addAll(nextDocumentResult.blocks());
+            allBlocks.addAll(nextBlocks);
           }
-          case FAILED -> throw new ConnectorException(nextDocumentResult.statusMessage());
-          default -> allBlocks.addAll(nextDocumentResult.blocks());
+          case FAILED -> throw new ConnectorException(statusMessage);
+          default -> allBlocks.addAll(nextBlocks);
         }
       }
     }
@@ -115,27 +181,56 @@ public class PollingTextractCaller {
     return allBlocks;
   }
 
-  private TextractTask prepareTextractTextDetectionTask(
+  private TextractAnalysisTask prepareTextractAnalysisTask(
+      String jobId, TextractClient textractClient) {
+    GetDocumentAnalysisRequest documentAnalysisRequest =
+        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    return new TextractAnalysisTask(documentAnalysisRequest, textractClient);
+  }
+
+  private GetDocumentAnalysisResponse executeAnalysisTask(
+      TextractAnalysisTask task, long delay, ScheduledExecutorService executorService)
+      throws Exception {
+    ScheduledFuture<GetDocumentAnalysisResponse> nextDocumentResultFuture =
+        executorService.schedule(task, delay, SECONDS);
+    return nextDocumentResultFuture.get();
+  }
+
+  private TextractTextDetectionTask prepareTextractTextDetectionTask(
       String jobId, TextractClient textractClient) {
     GetDocumentTextDetectionRequest documentTextDetectionRequest =
         GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
 
-    return new TextractTask(documentTextDetectionRequest, textractClient);
+    return new TextractTextDetectionTask(documentTextDetectionRequest, textractClient);
   }
 
   private GetDocumentTextDetectionResponse executeTextDetectionTask(
-      TextractTask task, long delay, ScheduledExecutorService executorService) throws Exception {
+      TextractTextDetectionTask task, long delay, ScheduledExecutorService executorService)
+      throws Exception {
     ScheduledFuture<GetDocumentTextDetectionResponse> nextDocumentResultFuture =
         executorService.schedule(task, delay, SECONDS);
     return nextDocumentResultFuture.get();
   }
 
-  private StructuredExtractionResponse extractKeyValuePairsWithConfidence(List<Block> blocks) {
+  private StructuredExtractionResponse extractDataFromDocument(List<Block> blocks) {
     Map<String, String> keyValuePairs = new HashMap<>();
     Map<String, Float> confidenceScores = new HashMap<>();
     Map<String, Block> blockMap =
         blocks.stream().collect(Collectors.toMap(Block::id, block -> block));
+    Map<String, Integer> keyOccurrences = new HashMap<>();
 
+    extractKeyValueSet(blocks, blockMap, keyValuePairs, keyOccurrences, confidenceScores);
+
+    return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
+  }
+
+  private void extractKeyValueSet(
+      List<Block> blocks,
+      Map<String, Block> blockMap,
+      Map<String, String> keyValuePairs,
+      Map<String, Integer> keyOccurrences,
+      Map<String, Float> confidenceScores) {
     blocks.stream()
         .filter(
             block ->
@@ -143,7 +238,18 @@ public class PollingTextractCaller {
                     && block.entityTypes().contains(EntityType.KEY))
         .forEach(
             keyBlock -> {
-              String key = getTextFromRelationships(keyBlock, blockMap);
+              String originalKey = getTextFromRelationships(keyBlock, blockMap);
+              String key = originalKey;
+
+              // Handle duplicate keys by adding a suffix
+              if (keyValuePairs.containsKey(key)) {
+                int count = keyOccurrences.getOrDefault(originalKey, 1) + 1;
+                keyOccurrences.put(originalKey, count);
+                key = originalKey + " " + count;
+              } else {
+                keyOccurrences.put(originalKey, 1);
+              }
+
               Block valueBlock =
                   blockMap.get(
                       keyBlock.relationships().stream()
@@ -163,8 +269,6 @@ public class PollingTextractCaller {
               keyValuePairs.put(key, value);
               confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
             });
-
-    return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
   }
 
   private String getTextFromRelationships(Block block, Map<String, Block> blockMap) {
@@ -176,7 +280,16 @@ public class PollingTextractCaller {
         .filter(relation -> relation.type().equals(RelationshipType.CHILD))
         .flatMap(relation -> relation.ids().stream())
         .map(blockMap::get)
-        .map(Block::text)
+        .map(
+            valueBlock -> {
+              if (valueBlock.blockType().equals(BlockType.SELECTION_ELEMENT)) {
+                return valueBlock.selectionStatus().equals(SelectionStatus.SELECTED)
+                    ? "true"
+                    : "false";
+              } else {
+                return valueBlock.text();
+              }
+            })
         .collect(Collectors.joining(" "));
   }
 }
