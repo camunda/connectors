@@ -204,7 +204,9 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     if (context instanceof Outbound) {
       newGroups.add(
           PropertyGroup.ADD_CONNECTORS_DETAILS_OUTPUT.apply(template.id(), template.version()));
-      newGroups.add(PropertyGroup.OUTPUT_GROUP_OUTBOUND);
+      newGroups.add(
+          PropertyGroup.OUTPUT_GROUP_OUTBOUND.apply(
+              template.defaultResultVariable(), template.defaultResultExpression()));
       newGroups.add(PropertyGroup.ERROR_GROUP);
       newGroups.add(PropertyGroup.RETRIES_GROUP);
     } else {
@@ -225,7 +227,9 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       if (configuration.features().get(GenerationFeature.INBOUND_DEDUPLICATION) == Boolean.TRUE) {
         newGroups.add(PropertyGroup.DEDUPLICATION_GROUP);
       }
-      newGroups.add(PropertyGroup.OUTPUT_GROUP_INBOUND);
+      newGroups.add(
+          PropertyGroup.OUTPUT_GROUP_INBOUND.apply(
+              template.defaultResultVariable(), template.defaultResultExpression()));
     }
     return newGroups;
   }
