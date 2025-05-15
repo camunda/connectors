@@ -9,12 +9,9 @@ package io.camunda.connector.agenticai.aiagent.tools;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
-import io.camunda.connector.agenticai.jsonschema.JsonSchemaElementModule;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,11 +30,12 @@ class ToolSpecificationConverterTest {
   void shouldConvertToAndFromMap() {
     // Given
     JsonObjectSchema parameters = createSimpleObjectSchema();
-    ToolSpecification original = ToolSpecification.builder()
-        .name("testTool")
-        .description("A test tool")
-        .parameters(parameters)
-        .build();
+    ToolSpecification original =
+        ToolSpecification.builder()
+            .name("testTool")
+            .description("A test tool")
+            .parameters(parameters)
+            .build();
 
     // When
     Map<String, Object> map = converter.asMap(original);
@@ -54,18 +52,20 @@ class ToolSpecificationConverterTest {
 
     assertThat(resultParams.properties()).containsKey("message");
     assertThat(resultParams.required()).contains("message");
-    assertThat(resultParams.additionalProperties()).isEqualTo(originalParams.additionalProperties());
+    assertThat(resultParams.additionalProperties())
+        .isEqualTo(originalParams.additionalProperties());
   }
 
   @Test
   void shouldConvertToAndFromString() throws JsonProcessingException {
     // Given
     JsonObjectSchema parameters = createSimpleObjectSchema();
-    ToolSpecification original = ToolSpecification.builder()
-        .name("testTool")
-        .description("A test tool")
-        .parameters(parameters)
-        .build();
+    ToolSpecification original =
+        ToolSpecification.builder()
+            .name("testTool")
+            .description("A test tool")
+            .parameters(parameters)
+            .build();
 
     // When
     String json = converter.asString(original);
@@ -82,18 +82,20 @@ class ToolSpecificationConverterTest {
 
     assertThat(resultParams.properties()).containsKey("message");
     assertThat(resultParams.required()).contains("message");
-    assertThat(resultParams.additionalProperties()).isEqualTo(originalParams.additionalProperties());
+    assertThat(resultParams.additionalProperties())
+        .isEqualTo(originalParams.additionalProperties());
   }
 
   @Test
   void shouldRoundTripViaString() throws Exception {
     // Given
     JsonObjectSchema parameters = createSimpleObjectSchema();
-    ToolSpecification original = ToolSpecification.builder()
-        .name("testTool")
-        .description("A test tool")
-        .parameters(parameters)
-        .build();
+    ToolSpecification original =
+        ToolSpecification.builder()
+            .name("testTool")
+            .description("A test tool")
+            .parameters(parameters)
+            .build();
 
     // When
     String json = converter.asString(original);
@@ -108,11 +110,12 @@ class ToolSpecificationConverterTest {
   void shouldRoundTripViaMap() throws JsonProcessingException {
     // Given
     JsonObjectSchema parameters = createSimpleObjectSchema();
-    ToolSpecification original = ToolSpecification.builder()
-        .name("testTool")
-        .description("A test tool")
-        .parameters(parameters)
-        .build();
+    ToolSpecification original =
+        ToolSpecification.builder()
+            .name("testTool")
+            .description("A test tool")
+            .parameters(parameters)
+            .build();
 
     // When
     Map<String, Object> map = converter.asMap(original);
@@ -128,11 +131,12 @@ class ToolSpecificationConverterTest {
   void shouldRoundTripFromStringToMapAndBack() throws Exception {
     // Given
     JsonObjectSchema parameters = createSimpleObjectSchema();
-    ToolSpecification original = ToolSpecification.builder()
-        .name("testTool")
-        .description("A test tool")
-        .parameters(parameters)
-        .build();
+    ToolSpecification original =
+        ToolSpecification.builder()
+            .name("testTool")
+            .description("A test tool")
+            .parameters(parameters)
+            .build();
 
     // When
     String json = converter.asString(original);
@@ -149,11 +153,12 @@ class ToolSpecificationConverterTest {
   void shouldRoundTripFromMapToStringAndBack() throws JsonProcessingException {
     // Given
     JsonObjectSchema parameters = createSimpleObjectSchema();
-    ToolSpecification original = ToolSpecification.builder()
-        .name("testTool")
-        .description("A test tool")
-        .parameters(parameters)
-        .build();
+    ToolSpecification original =
+        ToolSpecification.builder()
+            .name("testTool")
+            .description("A test tool")
+            .parameters(parameters)
+            .build();
 
     // When
     Map<String, Object> map = converter.asMap(original);
@@ -170,7 +175,8 @@ class ToolSpecificationConverterTest {
   @Test
   void shouldDeserializeFromMultilineString() throws JsonProcessingException {
     // Given
-    String jsonString = """
+    String jsonString =
+        """
         {
           "name": "weatherTool",
           "description": "Get current weather in a given location",
@@ -210,7 +216,8 @@ class ToolSpecificationConverterTest {
   @Test
   void shouldRoundTripFromMultilineString() throws Exception {
     // Given
-    String jsonString = """
+    String jsonString =
+        """
         {
           "name": "weatherTool",
           "description": "Get current weather in a given location",
@@ -244,7 +251,8 @@ class ToolSpecificationConverterTest {
 
     // Verify the content is preserved
     assertThat(deserializedAgain.name()).isEqualTo("weatherTool");
-    assertThat(deserializedAgain.description()).isEqualTo("Get current weather in a given location");
+    assertThat(deserializedAgain.description())
+        .isEqualTo("Get current weather in a given location");
     assertThat(deserializedAgain.parameters()).isInstanceOf(JsonObjectSchema.class);
 
     JsonObjectSchema params = (JsonObjectSchema) deserializedAgain.parameters();
@@ -254,9 +262,8 @@ class ToolSpecificationConverterTest {
   }
 
   private JsonObjectSchema createSimpleObjectSchema() {
-    JsonStringSchema messageSchema = JsonStringSchema.builder()
-        .description("Message to echo")
-        .build();
+    JsonStringSchema messageSchema =
+        JsonStringSchema.builder().description("Message to echo").build();
 
     return JsonObjectSchema.builder()
         .addProperty("message", messageSchema)

@@ -33,7 +33,8 @@ public class ToolSpecificationDeserializer extends JsonDeserializer<ToolSpecific
 
     JsonObjectSchema parameters = null;
     if (node.has("parameters")) {
-      JsonSchemaElement element = mapper.treeToValue(node.get("parameters"), JsonSchemaElement.class);
+      JsonSchemaElement element =
+          mapper.treeToValue(node.get("parameters"), JsonSchemaElement.class);
       if (element instanceof JsonObjectSchema) {
         parameters = (JsonObjectSchema) element;
       } else {

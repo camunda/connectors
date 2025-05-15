@@ -133,12 +133,10 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
               "Agent is waiting for MCP tool lookup results, but no MCP clients were defined.");
         }
 
-        final var mcpLookupToolCallResults = Optional.ofNullable(requestData.tools())
-            .map(ToolsConfiguration::toolCallResults)
-            .orElse(Collections.emptyList());
-
-        
-
+        final var mcpLookupToolCallResults =
+            Optional.ofNullable(requestData.tools())
+                .map(ToolsConfiguration::toolCallResults)
+                .orElse(Collections.emptyList());
 
       } else {
         agentContext = agentContext.withState(AgentState.READY);
