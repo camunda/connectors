@@ -370,21 +370,21 @@ class ChatModelFactoryTest {
     }
 
     @Test
-    void createsOpenAiChatModelWithCustomOrganizationAndProject() {
+    void createsOpenAiChatModelWithCustomOrganizationAndProjectIds() {
       final var providerConfig =
           new OpenAiProviderConfiguration(
               new OpenAiConnection(
                   null,
                   new OpenAiProviderConfiguration.OpenAiAuthentication(
-                      OPEN_AI_API_KEY, "MY_ORG", "MY_PROJECT"),
+                      OPEN_AI_API_KEY, "MY_ORG_ID", "MY_PROJECT_ID"),
                   new OpenAiProviderConfiguration.OpenAiModel(
                       OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testOpenAiChatModelBuilder(
           providerConfig,
           (builder) -> {
-            verify(builder).organizationId("MY_ORG");
-            verify(builder).projectId("MY_PROJECT");
+            verify(builder).organizationId("MY_ORG_ID");
+            verify(builder).projectId("MY_PROJECT_ID");
           });
     }
 

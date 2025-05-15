@@ -107,9 +107,9 @@ public class ChatModelFactory {
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model());
 
-    Optional.ofNullable(connection.authentication().organization())
+    Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
-    Optional.ofNullable(connection.authentication().project()).ifPresent(builder::projectId);
+    Optional.ofNullable(connection.authentication().projectId()).ifPresent(builder::projectId);
     Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
     final var modelParameters = connection.model().parameters();

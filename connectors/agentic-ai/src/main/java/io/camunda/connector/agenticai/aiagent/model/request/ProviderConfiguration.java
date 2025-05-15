@@ -284,21 +284,22 @@ public sealed interface ProviderConfiguration
             String apiKey,
         @TemplateProperty(
                 group = "provider",
-                label = "Organization",
+                label = "Organization ID",
                 description =
-                    "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">documentation</a>.",
+                    "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 optional = true)
-            String organization,
+            String organizationId,
         @TemplateProperty(
                 group = "provider",
-                label = "Project",
-                description = "For members with multiple projects.",
+                label = "Project ID",
+                description =
+                    "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 optional = true)
-            String project) {}
+            String projectId) {}
 
     public record OpenAiModel(
         @NotBlank

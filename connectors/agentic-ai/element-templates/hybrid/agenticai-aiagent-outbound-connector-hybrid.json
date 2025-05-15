@@ -266,14 +266,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.authentication.organization",
-    "label" : "Organization",
-    "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">documentation</a>.",
+    "id" : "provider.openai.authentication.organizationId",
+    "label" : "Organization ID",
+    "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.authentication.organization",
+      "name" : "provider.openai.authentication.organizationId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -283,14 +283,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.authentication.project",
-    "label" : "Project",
-    "description" : "For members with multiple projects.",
+    "id" : "provider.openai.authentication.projectId",
+    "label" : "Project ID",
+    "description" : "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.authentication.project",
+      "name" : "provider.openai.authentication.projectId",
       "type" : "zeebe:input"
     },
     "condition" : {
