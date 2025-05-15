@@ -17,29 +17,36 @@
   },
   "groups" : [ {
     "id" : "provider",
-    "label" : "Model Provider"
+    "label" : "Model Provider",
+    "openByDefault" : false
   }, {
     "id" : "model",
-    "label" : "Model"
+    "label" : "Model",
+    "openByDefault" : false
   }, {
     "id" : "systemPrompt",
     "label" : "System Prompt",
-    "tooltip" : "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins.It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent and aligned with its intended purpose. These instructions help shape how the AI interprets and responds to user input throughout the conversation."
+    "tooltip" : "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins.It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent and aligned with its intended purpose. These instructions help shape how the AI interprets and responds to user input throughout the conversation.",
+    "openByDefault" : false
   }, {
     "id" : "userPrompt",
     "label" : "User Prompt",
-    "tooltip" : "A user prompt is the message or question you give to the AI to start or continue a conversation. It tells the AI what you need, whether it's information, help with a task, or just a chat. The AI uses your prompt to understand how to respond."
+    "tooltip" : "A user prompt is the message or question you give to the AI to start or continue a conversation. It tells the AI what you need, whether it's information, help with a task, or just a chat. The AI uses your prompt to understand how to respond.",
+    "openByDefault" : false
   }, {
     "id" : "tools",
     "label" : "Tools",
-    "tooltip" : "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop."
+    "tooltip" : "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop.",
+    "openByDefault" : false
   }, {
     "id" : "memory",
     "label" : "Memory",
-    "tooltip" : "Configuration of the Agent's short-term/conversational memory."
+    "tooltip" : "Configuration of the Agent's short-term/conversational memory.",
+    "openByDefault" : false
   }, {
     "id" : "limits",
-    "label" : "Limits"
+    "label" : "Limits",
+    "openByDefault" : false
   }, {
     "id" : "connector",
     "label" : "Connector"

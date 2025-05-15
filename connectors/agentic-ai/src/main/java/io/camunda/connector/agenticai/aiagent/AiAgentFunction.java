@@ -27,8 +27,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     version = 0,
     inputDataClass = AgentRequest.class,
     propertyGroups = {
-      @PropertyGroup(id = "provider", label = "Model Provider"),
-      @PropertyGroup(id = "model", label = "Model"),
+      @PropertyGroup(id = "provider", label = "Model Provider", openByDefault = false),
+      @PropertyGroup(id = "model", label = "Model", openByDefault = false),
       @PropertyGroup(
           id = "systemPrompt",
           label = "System Prompt",
@@ -36,24 +36,28 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
               "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins."
                   + "It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent "
                   + "and aligned with its intended purpose. These instructions help shape how the AI interprets and responds "
-                  + "to user input throughout the conversation."),
+                  + "to user input throughout the conversation.",
+          openByDefault = false),
       @PropertyGroup(
           id = "userPrompt",
           label = "User Prompt",
           tooltip =
               "A user prompt is the message or question you give to the AI to start or continue a conversation. It tells "
                   + "the AI what you need, whether it's information, help with a task, or just a chat. The AI uses your prompt "
-                  + "to understand how to respond."),
+                  + "to understand how to respond.",
+          openByDefault = false),
       @PropertyGroup(
           id = "tools",
           label = "Tools",
           tooltip =
-              "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop."),
+              "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop.",
+          openByDefault = false),
       @PropertyGroup(
           id = "memory",
           label = "Memory",
-          tooltip = "Configuration of the Agent's short-term/conversational memory."),
-      @PropertyGroup(id = "limits", label = "Limits")
+          tooltip = "Configuration of the Agent's short-term/conversational memory.",
+          openByDefault = false),
+      @PropertyGroup(id = "limits", label = "Limits", openByDefault = false)
     },
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {
