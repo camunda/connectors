@@ -167,7 +167,7 @@
   }, {
     "id" : "provider.bedrock.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>",
+    "description" : "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>",
     "value" : "credentials",
     "group" : "provider",
     "binding" : {

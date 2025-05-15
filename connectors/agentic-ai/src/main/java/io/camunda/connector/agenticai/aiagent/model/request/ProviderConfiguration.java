@@ -173,7 +173,7 @@ public sealed interface ProviderConfiguration
         name = "type",
         defaultValue = "credentials",
         description =
-            "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>")
+            "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>")
     public sealed interface AwsAuthentication
         permits AwsAuthentication.AwsDefaultCredentialsChainAuthentication,
             AwsAuthentication.AwsStaticCredentialsAuthentication {
