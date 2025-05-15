@@ -29,16 +29,30 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model Provider"),
       @PropertyGroup(id = "model", label = "Model"),
-      @PropertyGroup(id = "systemPrompt", label = "System Prompt"),
-      @PropertyGroup(id = "userPrompt", label = "User Prompt"),
+      @PropertyGroup(
+          id = "systemPrompt",
+          label = "System Prompt",
+          tooltip =
+              "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins."
+                  + "It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent "
+                  + "and aligned with its intended purpose. These instructions help shape how the AI interprets and responds "
+                  + "to user input throughout the conversation."),
+      @PropertyGroup(
+          id = "userPrompt",
+          label = "User Prompt",
+          tooltip =
+              "A user prompt is the message or question you give to the AI to start or continue a conversation. It tells "
+                  + "the AI what you need, whether it's information, help with a task, or just a chat. The AI uses your prompt "
+                  + "to understand how to respond."),
       @PropertyGroup(
           id = "tools",
           label = "Tools",
-          tooltip = "Configuration of tools which should be made available to the agent."),
+          tooltip =
+              "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop."),
       @PropertyGroup(
           id = "memory",
           label = "Memory",
-          tooltip = "Configuration of the Agent's short-term memory."),
+          tooltip = "Configuration of the Agent's short-term/conversational memory."),
       @PropertyGroup(id = "limits", label = "Limits")
     },
     icon = "aiagent.svg")

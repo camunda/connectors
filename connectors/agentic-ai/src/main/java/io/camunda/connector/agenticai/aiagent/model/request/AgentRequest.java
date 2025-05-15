@@ -125,7 +125,11 @@ Reveal **no** additional private reasoning outside these tags.
         @TemplateProperty(
                 group = "tools",
                 label = "Ad-hoc sub-process ID",
-                description = "The ID of the sub-process containing the tools to be called",
+                description = "The ID of the sub-process containing the tools to be called.",
+                tooltip =
+                    "When configured, the AI agent connector will resolve available tools from the sub-process. To actually "
+                        + "use the tools, you need to model your process to include a tools feedback loop, routing into the "
+                        + "ad-hoc sub-process and back to the AI agent connector. Details see in the documentation.",
                 optional = true)
             String containerElementId,
         @FEEL
@@ -133,6 +137,10 @@ Reveal **no** additional private reasoning outside these tags.
                 group = "tools",
                 label = "Tool Call Results",
                 description = "Tool call results as returned by the sub-process",
+                tooltip =
+                    "Like the ad-hoc sub-process this needs to be modeled in your process and configured to the tool call "
+                        + "results provided by the ad-hoc sub-process execution as part of the tools feedback loop. Details see "
+                        + "in the documentation.",
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.required,
                 optional = true)

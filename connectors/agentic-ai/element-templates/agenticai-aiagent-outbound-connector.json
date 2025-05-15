@@ -23,18 +23,20 @@
     "label" : "Model"
   }, {
     "id" : "systemPrompt",
-    "label" : "System Prompt"
+    "label" : "System Prompt",
+    "tooltip" : "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins.It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent and aligned with its intended purpose. These instructions help shape how the AI interprets and responds to user input throughout the conversation."
   }, {
     "id" : "userPrompt",
-    "label" : "User Prompt"
+    "label" : "User Prompt",
+    "tooltip" : "A user prompt is the message or question you give to the AI to start or continue a conversation. It tells the AI what you need, whether it's information, help with a task, or just a chat. The AI uses your prompt to understand how to respond."
   }, {
     "id" : "tools",
     "label" : "Tools",
-    "tooltip" : "Configuration of tools which should be made available to the agent."
+    "tooltip" : "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop."
   }, {
     "id" : "memory",
     "label" : "Memory",
-    "tooltip" : "Configuration of the Agent's short-term memory."
+    "tooltip" : "Configuration of the Agent's short-term/conversational memory."
   }, {
     "id" : "limits",
     "label" : "Limits"
@@ -598,7 +600,7 @@
   }, {
     "id" : "data.tools.containerElementId",
     "label" : "Ad-hoc sub-process ID",
-    "description" : "The ID of the sub-process containing the tools to be called",
+    "description" : "The ID of the sub-process containing the tools to be called.",
     "optional" : true,
     "feel" : "optional",
     "group" : "tools",
@@ -606,6 +608,7 @@
       "name" : "data.tools.containerElementId",
       "type" : "zeebe:input"
     },
+    "tooltip" : "When configured, the AI agent connector will resolve available tools from the sub-process. To actually use the tools, you need to model your process to include a tools feedback loop, routing into the ad-hoc sub-process and back to the AI agent connector. Details see in the documentation.",
     "type" : "String"
   }, {
     "id" : "data.tools.toolCallResults",
@@ -618,6 +621,7 @@
       "name" : "data.tools.toolCallResults",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Like the ad-hoc sub-process this needs to be modeled in your process and configured to the tool call results provided by the ad-hoc sub-process execution as part of the tools feedback loop. Details see in the documentation.",
     "type" : "Text"
   }, {
     "id" : "data.agentContext",
