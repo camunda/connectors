@@ -89,15 +89,25 @@ public class DocumentAiCaller {
   private StructuredExtractionResponse extractFormFieldsWithConfidence(Document document) {
     Map<String, String> keyValuePairs = new HashMap<>();
     Map<String, Float> confidenceScores = new HashMap<>();
+    Map<String, Integer> keyOccurrences = new HashMap<>();
 
     // Process form fields from Document AI response
     for (Document.Page page : document.getPagesList()) {
       for (Document.Page.FormField formField : page.getFormFieldsList()) {
         if (formField.hasFieldName() && formField.hasFieldValue()) {
-          String name = getTextFromLayout(document, formField.getFieldName().getTextAnchor());
-          String value = getTextFromLayout(document, formField.getFieldValue().getTextAnchor());
+          String originalKey = getTextFromLayout(formField.getFieldName().getTextAnchor());
+          String key = originalKey;
+          String value = getValueFromFormField(formField);
 
-          if (name != null && !name.trim().isEmpty()) {
+          if (!key.isEmpty()) {
+            // Handle duplicate keys by adding a suffix
+            if (keyValuePairs.containsKey(key)) {
+              int count = keyOccurrences.getOrDefault(originalKey, 1) + 1;
+              keyOccurrences.put(originalKey, count);
+              key = originalKey + " " + count;
+            } else {
+              keyOccurrences.put(originalKey, 1);
+            }
             // Get confidence scores from both name and value fields
             float nameConfidence = formField.getFieldName().getConfidence();
             float valueConfidence = formField.getFieldValue().getConfidence();
@@ -105,37 +115,9 @@ public class DocumentAiCaller {
             // Use the lower of the two confidence scores (conservative approach)
             float combinedConfidence = Math.min(nameConfidence, valueConfidence);
 
-            keyValuePairs.put(name.trim(), value != null ? value.trim() : "");
-            confidenceScores.put(name.trim(), combinedConfidence);
+            keyValuePairs.put(key, value);
+            confidenceScores.put(key, combinedConfidence);
           }
-        }
-      }
-    }
-
-    // If available, also get key-value pairs from entities
-    for (Document.Entity entity : document.getEntitiesList()) {
-      if (entity.getType().equals("key_value_pair") || entity.getType().equals("form_field")) {
-        String key = null;
-        String value = null;
-        float keyConfidence = 0;
-        float valueConfidence = 0;
-
-        for (Document.Entity property : entity.getPropertiesList()) {
-          if (property.getType().equals("key")) {
-            key = property.getMentionText();
-            keyConfidence = property.getConfidence();
-          } else if (property.getType().equals("value")) {
-            value = property.getMentionText();
-            valueConfidence = property.getConfidence();
-          }
-        }
-
-        if (key != null && !key.trim().isEmpty()) {
-          // Use the lower of the two confidence scores
-          float combinedConfidence = Math.min(keyConfidence, valueConfidence);
-
-          keyValuePairs.put(key.trim(), value != null ? value.trim() : "");
-          confidenceScores.put(key.trim(), combinedConfidence);
         }
       }
     }
@@ -143,21 +125,21 @@ public class DocumentAiCaller {
     return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
   }
 
-  private String getTextFromLayout(Document document, Document.TextAnchor textAnchor) {
-    if (textAnchor == null || textAnchor.getTextSegmentsList().isEmpty()) {
+  private String getValueFromFormField(Document.Page.FormField formField) {
+    String valueType = formField.getValueType();
+    if (valueType != null && valueType.equals("unfilled_checkbox")) {
+      return "false";
+    } else if (valueType != null && valueType.equals("filled_checkbox")) {
+      return "true";
+    } else {
+      return getTextFromLayout(formField.getFieldValue().getTextAnchor());
+    }
+  }
+
+  private String getTextFromLayout(Document.TextAnchor textAnchor) {
+    if (textAnchor == null) {
       return "";
     }
-
-    StringBuilder result = new StringBuilder();
-    for (Document.TextAnchor.TextSegment segment : textAnchor.getTextSegmentsList()) {
-      int startIndex = (int) segment.getStartIndex();
-      int endIndex = (int) segment.getEndIndex();
-
-      if (startIndex >= 0 && endIndex > startIndex && endIndex <= document.getText().length()) {
-        result.append(document.getText(), startIndex, endIndex);
-      }
-    }
-
-    return result.toString();
+    return textAnchor.getContent().trim();
   }
 }
