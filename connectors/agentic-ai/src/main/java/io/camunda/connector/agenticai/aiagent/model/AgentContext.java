@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -15,20 +16,27 @@ public record AgentContext(
     AgentState state,
     AgentMetrics metrics,
     List<Map<String, Object>> memory,
-    List<Map<String, Object>> toolSpecifications) {
+    List<AdHocToolDefinition> toolDefinitions,
+    List<String> mcpClientIds) {
+
   public static final AgentContext EMPTY =
       new AgentContext(
-          AgentState.EMPTY, AgentMetrics.EMPTY, Collections.emptyList(), Collections.emptyList());
+          AgentState.EMPTY,
+          AgentMetrics.EMPTY,
+          Collections.emptyList(),
+          Collections.emptyList(),
+          Collections.emptyList());
 
   public AgentContext {
     Objects.requireNonNull(state, "Agent state must not be null");
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(memory, "Agent memory must not be null");
-    Objects.requireNonNull(toolSpecifications, "Tool specifications must not be null");
+    Objects.requireNonNull(toolDefinitions, "Tool specifications must not be null");
+    Objects.requireNonNull(mcpClientIds, "MCP client IDs must not be null");
   }
 
   public AgentContext withState(AgentState state) {
-    return new AgentContext(state, metrics, memory, toolSpecifications);
+    return new AgentContext(state, metrics, memory, toolDefinitions, mcpClientIds);
   }
 
   public boolean isInState(AgentState state) {
@@ -44,14 +52,19 @@ public record AgentContext(
   }
 
   public AgentContext withMetrics(AgentMetrics metrics) {
-    return new AgentContext(state, metrics, memory, toolSpecifications);
+    return new AgentContext(state, metrics, memory, toolDefinitions, mcpClientIds);
   }
 
   public AgentContext withMemory(List<Map<String, Object>> memory) {
-    return new AgentContext(state, metrics, memory, toolSpecifications);
+    return new AgentContext(state, metrics, Collections.unmodifiableList(memory), toolDefinitions, mcpClientIds);
   }
 
-  public AgentContext withToolSpecifications(List<Map<String, Object>> toolSpecifications) {
-    return new AgentContext(state, metrics, memory, toolSpecifications);
+  public AgentContext withToolDefinitions(List<AdHocToolDefinition> toolDefinitions) {
+    return new AgentContext(state, metrics, memory, Collections.unmodifiableList(toolDefinitions), mcpClientIds);
+  }
+
+  public AgentContext withMcpClientIds(List<String> mcpClientIds) {
+    return new AgentContext(
+        state, metrics, memory, toolDefinitions, Collections.unmodifiableList(mcpClientIds));
   }
 }

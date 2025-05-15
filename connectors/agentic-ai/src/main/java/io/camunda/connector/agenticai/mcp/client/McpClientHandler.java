@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.mcp.client;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolCallResult;
@@ -46,7 +47,14 @@ public class McpClientHandler {
 
     return switch (method) {
       case METHOD_TOOLS_LIST:
-        yield client.listTools().stream().map(toolSpecificationConverter::asMap).toList();
+        yield client.listTools().stream()
+            .map(
+                toolSpecification ->
+                    new AdHocToolDefinition(
+                        toolSpecification.name(),
+                        toolSpecification.description(),
+                        toolSpecificationConverter.schemaAsMap(toolSpecification.parameters())))
+            .toList();
       case METHOD_TOOLS_CALL:
         final var toolExecutionRequest = createToolExecutionRequest(parameters);
         yield new McpClientToolCallResult(

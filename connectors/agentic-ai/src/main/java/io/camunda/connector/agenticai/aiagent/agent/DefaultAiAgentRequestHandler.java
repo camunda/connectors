@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
@@ -20,6 +19,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.memory.AgentContextChatMemoryStore;
@@ -53,6 +53,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
 
   public static final String MCP_PREFIX = "MCP_";
   public static final String MCP_NAMESPACE_SEPARATOR = "___";
+  public static final String MCP_TOOLS_LIST_PREFIX = MCP_PREFIX + "toolsList_";
 
   private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
@@ -97,89 +98,101 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     AgentContext agentContext =
         Optional.ofNullable(requestData.context()).orElseGet(AgentContext::empty);
 
-    // tools lookup
-    final var toolsContainerElementId =
-        Optional.ofNullable(requestData.tools())
-            .map(ToolsConfiguration::containerElementId)
-            .filter(id -> !id.isBlank())
-            .orElse(null);
-
-    List<String> mcpClientIds = Collections.emptyList();
-    List<ToolSpecification> toolSpecifications = new ArrayList<>();
     List<ToolCallResult> toolCallResults =
         Optional.ofNullable(requestData.tools())
             .map(ToolsConfiguration::toolCallResults)
             .filter(tcr -> !tcr.isEmpty())
             .orElseGet(Collections::emptyList);
 
-    if (toolsContainerElementId != null) {
-      final var adHocToolsSchema =
-          schemaResolver.resolveSchema(
-              context.getJobContext().getProcessDefinitionKey(), toolsContainerElementId);
+    if (agentContext.isInState(AgentState.EMPTY)) {
+      // tools lookup
+      final var toolsContainerElementId =
+          Optional.ofNullable(requestData.tools())
+              .map(ToolsConfiguration::containerElementId)
+              .filter(id -> !id.isBlank())
+              .orElse(null);
 
-      mcpClientIds = adHocToolsSchema.mcpClientIds();
-      adHocToolsSchema.toolDefinitions().stream()
-          .map(toolSpecificationConverter::asToolSpecification)
-          .forEach(toolSpecifications::add);
+      if (toolsContainerElementId != null) {
+        final var adHocToolsSchema =
+            schemaResolver.resolveSchema(
+                context.getJobContext().getProcessDefinitionKey(), toolsContainerElementId);
 
-      if (agentContext.isInState(AgentState.EMPTY)) {
-        if (mcpClientIds.isEmpty()) {
+        agentContext =
+            agentContext
+                .withToolDefinitions(adHocToolsSchema.toolDefinitions())
+                .withMcpClientIds(adHocToolsSchema.mcpClientIds());
+
+        if (agentContext.mcpClientIds().isEmpty()) {
           agentContext = agentContext.withState(AgentState.READY);
         } else {
+          agentContext = agentContext.withState(AgentState.TOOL_LOOKUP);
+
           List<ToolCall> mcpListToolsToolCalls =
-              mcpClientIds.stream()
+              agentContext.mcpClientIds().stream()
                   .map(
                       mcpClientId ->
                           new ToolCall(
-                              "MCP_toolsList_%s".formatted(mcpClientId),
+                              MCP_TOOLS_LIST_PREFIX + mcpClientId,
                               mcpClientId,
                               Map.of("method", "tools/list", "params", Map.of())))
                   .toList();
 
-          return new AgentResponse(
-              agentContext.withState(AgentState.TOOL_LOOKUP), null, mcpListToolsToolCalls);
+          return new AgentResponse(agentContext, Collections.emptyMap(), mcpListToolsToolCalls);
         }
-      } else if (agentContext.isInState(AgentState.TOOL_LOOKUP)) {
-        if (mcpClientIds.isEmpty()) {
-          // should never happen
-          throw new ConnectorException(
-              ERROR_CODE_WAITING_FOR_TOOL_LOOKUP_NO_MCP_CLIENTS,
-              "Agent is waiting for MCP tool lookup results, but no MCP clients were defined.");
-        }
-
-        // MCP: add tool specifications from MCP tool lookup results with MCP prefix and MCP
-        // activity name
-        toolCallResults.stream()
-            .map(
-                mcpLookupResult -> {
-                  // hacky-whacky
-                  final var mapContent =
-                      objectMapper.convertValue(
-                          mcpLookupResult.content(),
-                          new TypeReference<List<Map<String, Object>>>() {});
-
-                  return mapContent.stream()
-                      .map(toolSpecificationConverter::fromMap)
-                      .map(
-                          toolSpecification ->
-                              ToolSpecification.builder()
-                                  .name(
-                                      MCP_PREFIX
-                                          + mcpLookupResult.name()
-                                          + MCP_NAMESPACE_SEPARATOR
-                                          + toolSpecification.name())
-                                  .description(toolSpecification.description())
-                                  .parameters(toolSpecification.parameters())
-                                  .build())
-                      .toList();
-                })
-            .flatMap(List::stream)
-            .forEach(toolSpecifications::add);
-
-        toolCallResults = Collections.emptyList();
-        agentContext = agentContext.withState(AgentState.READY);
       }
+    } else if (agentContext.isInState(AgentState.TOOL_LOOKUP)) {
+      if (agentContext.mcpClientIds().isEmpty()) {
+        // this should never happen
+        throw new ConnectorException(
+            ERROR_CODE_WAITING_FOR_TOOL_LOOKUP_NO_MCP_CLIENTS,
+            "Agent is waiting for MCP tool lookup results, but no MCP clients were identified.");
+      }
+
+      List<AdHocToolDefinition> mergedToolDefinitions =
+          new ArrayList<>(agentContext.toolDefinitions());
+
+      // MCP: add tool specifications from MCP tool lookup results with MCP prefix and MCP
+      // activity name
+      toolCallResults.stream()
+          .filter(toolCallResult -> toolCallResult.id().startsWith(MCP_TOOLS_LIST_PREFIX))
+          .forEach(
+              mcpLookupResult -> {
+                List<AdHocToolDefinition> mcpServerToolDefinitions =
+                    objectMapper
+                        .convertValue(
+                            mcpLookupResult.content(),
+                            new TypeReference<List<AdHocToolDefinition>>() {})
+                        .stream()
+                        .map(
+                            toolDefinition ->
+                                new AdHocToolDefinition(
+                                    MCP_PREFIX
+                                        + mcpLookupResult.name()
+                                        + MCP_NAMESPACE_SEPARATOR
+                                        + toolDefinition.name(),
+                                    toolDefinition.description(),
+                                    toolDefinition.inputSchema()))
+                        .toList();
+
+                mergedToolDefinitions.addAll(mcpServerToolDefinitions);
+              });
+
+      // update tool call results to not contain any tool lookups
+      toolCallResults =
+          toolCallResults.stream()
+              .filter(tcr -> !tcr.id().startsWith(MCP_TOOLS_LIST_PREFIX))
+              .toList();
+
+      agentContext = agentContext
+          .withState(AgentState.READY)
+          .withToolDefinitions(Collections.unmodifiableList(mergedToolDefinitions));
     }
+
+    // tools as L4j specifications
+    final var toolSpecifications =
+        agentContext.toolDefinitions().stream()
+            .map(toolSpecificationConverter::asToolSpecification)
+            .toList();
 
     // initialize configured model
     final ChatModel chatModel = chatModelFactory.createChatModel(request.provider());
@@ -203,8 +216,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
 
     // update memory with system + new user messages/tool call responses
     addSystemPromptIfNecessary(chatMemory, requestData);
-    addUserMessagesFromRequest(
-        agentContext, chatMemory, requestData, toolCallResults, mcpClientIds);
+    addUserMessagesFromRequest(agentContext, chatMemory, requestData, toolCallResults);
 
     // call LLM API with updated messages + resolved tool specifications
     final var chatRequest =
@@ -297,8 +309,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
       AgentContext agentContext,
       ChatMemory chatMemory,
       AgentRequest.AgentRequestData requestData,
-      List<ToolCallResult> toolCallResults,
-      List<String> mcpClientIds) {
+      List<ToolCallResult> toolCallResults) {
     // throw an error when receiving tool call results on an empty context as
     // most likely this is a modeling error
     if (agentContext.isEmpty() && !toolCallResults.isEmpty()) {
@@ -320,7 +331,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
           .map(
               toolExecutionResultMessage -> {
                 // MCP: add MCP prefix and actual MCP tool to result message
-                if (mcpClientIds.contains(toolExecutionResultMessage.toolName())) {
+                if (agentContext.mcpClientIds().contains(toolExecutionResultMessage.toolName())) {
                   McpClientToolCallResult mcpClientToolCallResult;
                   try {
                     mcpClientToolCallResult =

@@ -78,6 +78,11 @@ public class ToolSpecificationConverter {
         toolSpecification, ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
   }
 
+  public Map<String, Object> schemaAsMap(JsonObjectSchema schema) {
+    return objectMapper.convertValue(
+        schema, ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
+  }
+
   public ToolSpecification fromMap(Map<String, Object> toolSpecification) {
     return objectMapper.convertValue(toolSpecification, ToolSpecification.class);
   }
