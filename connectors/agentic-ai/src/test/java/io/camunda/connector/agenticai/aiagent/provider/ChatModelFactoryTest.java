@@ -27,14 +27,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicModel.AnthropicModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
-import io.camunda.connector.aws.model.impl.AwsAuthentication;
-import io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import java.net.URI;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
@@ -196,7 +195,8 @@ class ChatModelFactoryTest {
               new BedrockConnection(
                   BEDROCK_REGION,
                   null,
-                  new AwsStaticCredentialsAuthentication(BEDROCK_ACCESS_KEY, BEDROCK_SECRET_KEY),
+                  new AwsAuthentication.AwsStaticCredentialsAuthentication(
+                      BEDROCK_ACCESS_KEY, BEDROCK_SECRET_KEY),
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testCreateBedrockChatModelWithCredentials(

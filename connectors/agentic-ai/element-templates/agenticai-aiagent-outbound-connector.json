@@ -17,10 +17,7 @@
   },
   "groups" : [ {
     "id" : "provider",
-    "label" : "Provider"
-  }, {
-    "id" : "authentication",
-    "label" : "Authentication"
+    "label" : "Model Provider"
   }, {
     "id" : "model",
     "label" : "Model"
@@ -99,6 +96,25 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "provider.anthropic.authentication.apiKey",
+    "label" : "Anthropic API Key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.bedrock.region",
     "label" : "Region",
     "description" : "Specify the AWS region (example: <code>eu-west-1</code>)",
@@ -135,46 +151,11 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "provider.openai.endpoint",
-    "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use a custom API endpoint",
-    "optional" : true,
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.endpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "provider.anthropic.authentication.apiKey",
-    "label" : "Anthropic API Key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "provider.anthropic.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "provider.bedrock.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "description" : "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>",
     "value" : "credentials",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.authentication.type",
       "type" : "zeebe:input"
@@ -201,7 +182,7 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.authentication.accessKey",
       "type" : "zeebe:input"
@@ -227,7 +208,7 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.authentication.secretKey",
       "type" : "zeebe:input"
@@ -245,6 +226,22 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.openai.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use a custom API endpoint",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.openai.authentication.apiKey",
     "label" : "OpenAI API Key",
     "optional" : false,
@@ -252,7 +249,7 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.openai.authentication.apiKey",
       "type" : "zeebe:input"
@@ -269,7 +266,7 @@
     "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.openai.authentication.organization",
       "type" : "zeebe:input"
@@ -286,7 +283,7 @@
     "description" : "For members with multiple projects.",
     "optional" : true,
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.openai.authentication.project",
       "type" : "zeebe:input"

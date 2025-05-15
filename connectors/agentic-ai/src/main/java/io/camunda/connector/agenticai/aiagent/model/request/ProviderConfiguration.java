@@ -12,7 +12,6 @@ import static io.camunda.connector.agenticai.aiagent.model.request.ProviderConfi
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.aws.model.impl.AwsAuthentication;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -68,7 +67,7 @@ public sealed interface ProviderConfiguration
     public record AnthropicAuthentication(
         @NotBlank
             @TemplateProperty(
-                group = "authentication",
+                group = "provider",
                 label = "Anthropic API Key",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
@@ -159,6 +158,54 @@ public sealed interface ProviderConfiguration
         @Valid @NotNull AwsAuthentication authentication,
         @Valid @NotNull BedrockModel model) {}
 
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes({
+      @JsonSubTypes.Type(
+          value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
+          name = "credentials"),
+      @JsonSubTypes.Type(
+          value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
+          name = "defaultCredentialsChain"),
+    })
+    @TemplateDiscriminatorProperty(
+        label = "Authentication",
+        group = "provider",
+        name = "type",
+        defaultValue = "credentials",
+        description =
+            "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>")
+    public sealed interface AwsAuthentication
+        permits AwsAuthentication.AwsDefaultCredentialsChainAuthentication,
+            AwsAuthentication.AwsStaticCredentialsAuthentication {
+      @TemplateSubType(id = "credentials", label = "Credentials")
+      record AwsStaticCredentialsAuthentication(
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Access key",
+                  description =
+                      "Provide an IAM access key tailored to a user, equipped with the necessary permissions")
+              @NotBlank
+              String accessKey,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Secret key",
+                  description =
+                      "Provide a secret key of a user with permissions to invoke specified AWS Lambda function")
+              @NotBlank
+              String secretKey)
+          implements AwsAuthentication {
+        @Override
+        public String toString() {
+          return "AwsStaticCredentialsAuthentication{accessKey=[REDACTED], secretKey=[REDACTED]}";
+        }
+      }
+
+      @TemplateSubType(
+          id = "defaultCredentialsChain",
+          label = "Default Credentials Chain (Hybrid/Self-Managed only)")
+      record AwsDefaultCredentialsChainAuthentication() implements AwsAuthentication {}
+    }
+
     public record BedrockModel(
         @NotBlank
             @TemplateProperty(
@@ -229,14 +276,14 @@ public sealed interface ProviderConfiguration
     public record OpenAiAuthentication(
         @NotBlank
             @TemplateProperty(
-                group = "authentication",
+                group = "provider",
                 label = "OpenAI API Key",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
             String apiKey,
         @TemplateProperty(
-                group = "authentication",
+                group = "provider",
                 label = "Organization",
                 description =
                     "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">documentation</a>.",
@@ -245,7 +292,7 @@ public sealed interface ProviderConfiguration
                 optional = true)
             String organization,
         @TemplateProperty(
-                group = "authentication",
+                group = "provider",
                 label = "Project",
                 description = "For members with multiple projects.",
                 type = TemplateProperty.PropertyType.String,

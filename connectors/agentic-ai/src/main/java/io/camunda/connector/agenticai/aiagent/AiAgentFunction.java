@@ -27,8 +27,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     version = 0,
     inputDataClass = AgentRequest.class,
     propertyGroups = {
-      @PropertyGroup(id = "provider", label = "Provider"),
-      @PropertyGroup(id = "authentication", label = "Authentication"),
+      @PropertyGroup(id = "provider", label = "Model Provider"),
       @PropertyGroup(id = "model", label = "Model"),
       @PropertyGroup(id = "systemPrompt", label = "System Prompt"),
       @PropertyGroup(id = "userPrompt", label = "User Prompt"),
