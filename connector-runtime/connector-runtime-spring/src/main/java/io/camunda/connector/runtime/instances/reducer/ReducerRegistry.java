@@ -21,6 +21,7 @@ import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorRes
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +35,9 @@ public class ReducerRegistry {
           new TypeReference<ActiveInboundConnectorResponse>() {}.getType(),
           new ActiveInboundConnectorResponseReducer(),
           new TypeReference<List<InstanceAwareModel.InstanceAwareActivity>>() {}.getType(),
+          Reducers.mergeListsReducer(),
+          new TypeReference<
+              List<Collection<InstanceAwareModel.InstanceAwareActivity>>>() {}.getType(),
           Reducers.mergeListsReducer(),
           new TypeReference<List<InstanceAwareModel.InstanceAwareHealth>>() {}.getType(),
           Reducers.mergeListsReducer());

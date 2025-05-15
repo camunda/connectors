@@ -27,8 +27,6 @@ import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -43,9 +41,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/inbound-instances")
 public class InboundInstancesRestController {
-
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(InboundInstancesRestController.class);
 
   private final InstanceForwardingRouter instanceForwardingRouter;
   private final InboundInstancesService inboundInstancesService;
