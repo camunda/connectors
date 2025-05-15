@@ -16,24 +16,36 @@
  */
 package io.camunda.connector.runtime.inbound.controller;
 
-import io.camunda.connector.api.inbound.Activity;
+import static io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient.X_CAMUNDA_FORWARDED_FOR;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.executable.*;
+import io.camunda.connector.runtime.instances.InstanceAwareModel;
+import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class InboundConnectorRestController {
 
   private final InboundExecutableRegistry executableRegistry;
   private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
+  private final InstanceForwardingRouter instanceForwardingRouter;
 
-  public InboundConnectorRestController(InboundExecutableRegistry executableRegistry) {
+  @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
+  private String hostname;
+
+  public InboundConnectorRestController(
+      InboundExecutableRegistry executableRegistry,
+      @Autowired(required = false) InstanceForwardingRouter instanceForwardingRouter) {
     this.executableRegistry = executableRegistry;
+    this.instanceForwardingRouter = instanceForwardingRouter;
   }
 
   @GetMapping("/inbound")
@@ -54,14 +66,41 @@ public class InboundConnectorRestController {
   }
 
   @GetMapping("/tenants/{tenantId}/inbound/{bpmnProcessId}/{elementId}/logs")
-  public List<Collection<Activity>> getActiveInboundConnectorLogs(
+  public List<Collection<InstanceAwareModel.InstanceAwareActivity>> getActiveInboundConnectorLogs(
       @PathVariable(value = "tenantId") String tenantId,
       @PathVariable(value = "bpmnProcessId") String bpmnProcessId,
-      @PathVariable(value = "elementId") String elementId) {
+      @PathVariable(value = "elementId") String elementId,
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () -> getActivityLogs(tenantId, bpmnProcessId, elementId, hostname),
+        new TypeReference<>() {});
+  }
+
+  private List<Collection<InstanceAwareModel.InstanceAwareActivity>> getActivityLogs(
+      String tenantId, String bpmnProcessId, String elementId, String hostname) {
     var result =
         executableRegistry.query(
             new ActiveExecutableQuery(bpmnProcessId, elementId, null, tenantId));
-    return result.stream().map(ActiveExecutableResponse::logs).collect(Collectors.toList());
+    return result.stream()
+        .map(ActiveExecutableResponse::logs)
+        .filter(Predicate.not(Collection::isEmpty))
+        .map(
+            activities ->
+                activities.stream()
+                    .map(
+                        activity -> {
+                          return new InstanceAwareModel.InstanceAwareActivity(
+                              activity.severity(),
+                              activity.tag(),
+                              activity.timestamp(),
+                              activity.message(),
+                              hostname);
+                        })
+                    .toList())
+        .collect(Collectors.toList());
   }
 
   private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
