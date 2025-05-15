@@ -220,17 +220,6 @@ public class PollingTextractCaller {
         blocks.stream().collect(Collectors.toMap(Block::id, block -> block));
     Map<String, Integer> keyOccurrences = new HashMap<>();
 
-    extractKeyValueSet(blocks, blockMap, keyValuePairs, keyOccurrences, confidenceScores);
-
-    return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
-  }
-
-  private void extractKeyValueSet(
-      List<Block> blocks,
-      Map<String, Block> blockMap,
-      Map<String, String> keyValuePairs,
-      Map<String, Integer> keyOccurrences,
-      Map<String, Float> confidenceScores) {
     blocks.stream()
         .filter(
             block ->
@@ -269,6 +258,8 @@ public class PollingTextractCaller {
               keyValuePairs.put(key, value);
               confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
             });
+
+    return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
   }
 
   private String getTextFromRelationships(Block block, Map<String, Block> blockMap) {

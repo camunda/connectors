@@ -95,20 +95,19 @@ public class DocumentAiCaller {
     for (Document.Page page : document.getPagesList()) {
       for (Document.Page.FormField formField : page.getFormFieldsList()) {
         if (formField.hasFieldName() && formField.hasFieldValue()) {
-          String originalKey = getTextFromLayout(formField.getFieldName().getTextAnchor()).trim();
+          String originalKey = getTextFromLayout(formField.getFieldName().getTextAnchor());
           String key = originalKey;
-          String value = getValueFromFormField(formField).trim();
-
-          // Handle duplicate keys by adding a suffix
-          if (keyValuePairs.containsKey(key)) {
-            int count = keyOccurrences.getOrDefault(originalKey, 1) + 1;
-            keyOccurrences.put(originalKey, count);
-            key = originalKey + " " + count;
-          } else {
-            keyOccurrences.put(originalKey, 1);
-          }
+          String value = getValueFromFormField(formField);
 
           if (!key.isEmpty()) {
+            // Handle duplicate keys by adding a suffix
+            if (keyValuePairs.containsKey(key)) {
+              int count = keyOccurrences.getOrDefault(originalKey, 1) + 1;
+              keyOccurrences.put(originalKey, count);
+              key = originalKey + " " + count;
+            } else {
+              keyOccurrences.put(originalKey, 1);
+            }
             // Get confidence scores from both name and value fields
             float nameConfidence = formField.getFieldName().getConfidence();
             float valueConfidence = formField.getFieldValue().getConfidence();
@@ -141,6 +140,6 @@ public class DocumentAiCaller {
     if (textAnchor == null) {
       return "";
     }
-    return textAnchor.getContent();
+    return textAnchor.getContent().trim();
   }
 }
