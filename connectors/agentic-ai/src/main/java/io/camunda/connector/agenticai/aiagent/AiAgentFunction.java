@@ -27,8 +27,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     version = 0,
     inputDataClass = AgentRequest.class,
     propertyGroups = {
-      @PropertyGroup(id = "model", label = "Model"),
+      @PropertyGroup(id = "provider", label = "Provider"),
       @PropertyGroup(id = "authentication", label = "Authentication"),
+      @PropertyGroup(id = "model", label = "Model"),
       @PropertyGroup(id = "systemPrompt", label = "System Prompt"),
       @PropertyGroup(id = "userPrompt", label = "User Prompt"),
       @PropertyGroup(
@@ -39,13 +40,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           id = "memory",
           label = "Memory",
           tooltip = "Configuration of the Agent's short-term memory."),
-      @PropertyGroup(id = "limits", label = "Limits"),
-      @PropertyGroup(
-          id = "parameters",
-          label = "Model Parameters",
-          tooltip =
-              "Optional configuration of common model parameters to optimize and fine-tune LLM responses. Limits such as maximum output tokens are <strong>per LLM request</strong>.",
-          openByDefault = false)
+      @PropertyGroup(id = "limits", label = "Limits")
     },
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {
