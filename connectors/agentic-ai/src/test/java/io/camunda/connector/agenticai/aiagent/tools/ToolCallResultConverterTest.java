@@ -40,8 +40,7 @@ class ToolCallResultConverterTest {
 
   @Test
   void supportsStringContentResults() {
-    final Map<String, Object> toolCallResult =
-        Map.of("id", "toolId", "name", "toolName", "content", "result");
+    final ToolCallResult toolCallResult = new ToolCallResult("toolId", "toolName", "result");
 
     final var resultMessage = toolCallResultConverter.asToolExecutionResultMessage(toolCallResult);
 
@@ -59,8 +58,7 @@ class ToolCallResultConverterTest {
     content.put("foo", "bar");
     content.put("list", List.of("A", "B", "C"));
 
-    final Map<String, Object> toolCallResult =
-        Map.of("id", "toolId", "name", "toolName", "content", content);
+    final ToolCallResult toolCallResult = new ToolCallResult("toolId", "toolName", content);
 
     final var resultMessage = toolCallResultConverter.asToolExecutionResultMessage(toolCallResult);
 
@@ -79,8 +77,7 @@ class ToolCallResultConverterTest {
     content.put("document1", createDocument("Hello, world!", "text/plain", "test.txt"));
     content.put("document2", createDocument("<PDF CONTENT>", "application/pdf", "test.pdf"));
 
-    final Map<String, Object> toolCallResult =
-        Map.of("id", "toolId", "name", "toolName", "content", content);
+    final ToolCallResult toolCallResult = new ToolCallResult("toolId", "toolName", content);
 
     final var resultMessage = toolCallResultConverter.asToolExecutionResultMessage(toolCallResult);
 
@@ -96,25 +93,8 @@ class ToolCallResultConverterTest {
   }
 
   @Test
-  void defaultsIdAndToolNameToEmptyIfMissing() {
-    final Map<String, Object> toolCallResult = Map.of("content", "result");
-
-    final var resultMessage = toolCallResultConverter.asToolExecutionResultMessage(toolCallResult);
-
-    assertThat(resultMessage)
-        .extracting(
-            ToolExecutionResultMessage::id,
-            ToolExecutionResultMessage::toolName,
-            ToolExecutionResultMessage::text)
-        .containsExactly("", "", "result");
-  }
-
-  @Test
   void defaultsIdAndToolNameToEmptyIfNull() {
-    final Map<String, Object> toolCallResult = new LinkedHashMap<>();
-    toolCallResult.put("id", null);
-    toolCallResult.put("name", null);
-    toolCallResult.put("content", "result");
+    final ToolCallResult toolCallResult = new ToolCallResult(null, null, "result");
 
     final var resultMessage = toolCallResultConverter.asToolExecutionResultMessage(toolCallResult);
 
@@ -128,8 +108,8 @@ class ToolCallResultConverterTest {
 
   @Test
   void throwsExceptionWhenContentCannotBeSerialized() {
-    final Map<String, Object> toolCallResult =
-        Map.of("id", "toolId", "name", "toolName", "content", new DummyClass());
+    final ToolCallResult toolCallResult =
+        new ToolCallResult("toolId", "toolName", new DummyClass());
 
     assertThatThrownBy(() -> toolCallResultConverter.asToolExecutionResultMessage(toolCallResult))
         .isInstanceOf(ConnectorException.class)

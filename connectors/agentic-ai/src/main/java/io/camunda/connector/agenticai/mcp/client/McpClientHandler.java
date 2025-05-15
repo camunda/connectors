@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientToolCallResult;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,8 @@ public class McpClientHandler {
         yield client.listTools().stream().map(toolSpecificationConverter::asMap).toList();
       case METHOD_TOOLS_CALL:
         final var toolExecutionRequest = createToolExecutionRequest(parameters);
-        yield client.executeTool(toolExecutionRequest);
+        yield new McpClientToolCallResult(
+            toolExecutionRequest.name(), client.executeTool(toolExecutionRequest));
       default:
         throw new IllegalArgumentException("Unsupported method: " + method);
     };
