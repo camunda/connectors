@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtrac
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.DefaultAdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
@@ -23,10 +24,12 @@ import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.tools.protocol.McpGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -66,12 +69,16 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AdHocToolsSchemaResolver adHocToolsSchemaResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
+      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       FeelInputParamExtractor feelInputParamExtractor,
       AdHocToolSchemaGenerator adHocToolSchemaGenerator) {
 
     final var resolver =
         new CamundaClientAdHocToolsSchemaResolver(
-            camundaClient, feelInputParamExtractor, adHocToolSchemaGenerator);
+            camundaClient,
+            gatewayToolDefinitionResolvers,
+            feelInputParamExtractor,
+            adHocToolSchemaGenerator);
 
     final var cacheConfiguration = configuration.tools().cache();
     if (cacheConfiguration.enabled()) {
@@ -149,6 +156,13 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AiAgentFunction aiAgentFunction(AiAgentRequestHandler aiAgentRequestHandler) {
     return new AiAgentFunction(aiAgentRequestHandler);
+  }
+
+  // TODO move all MCP related things to dedicated autoconfiguration
+  @Bean
+  @ConditionalOnMissingBean
+  public McpGatewayToolDefinitionResolver mcpGatewayToolDefinitionResolver() {
+    return new McpGatewayToolDefinitionResolver();
   }
 
   @Bean

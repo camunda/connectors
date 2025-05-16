@@ -119,8 +119,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
 
         agentContext =
             agentContext
-                .withToolDefinitions(adHocToolsSchema.toolDefinitions())
-                .withMcpClientIds(adHocToolsSchema.mcpClientIds());
+                .withToolDefinitions(adHocToolsSchema.toolDefinitions());
+                // .withMcpClientIds(adHocToolsSchema.mcpClientIds());
 
         if (agentContext.mcpClientIds().isEmpty()) {
           agentContext = agentContext.withState(AgentState.READY);

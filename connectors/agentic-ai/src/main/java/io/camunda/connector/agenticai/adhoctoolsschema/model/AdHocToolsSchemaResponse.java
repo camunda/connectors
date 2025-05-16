@@ -12,9 +12,23 @@ import java.util.List;
 import java.util.Map;
 
 public record AdHocToolsSchemaResponse(
-    List<AdHocToolDefinition> toolDefinitions, List<String> mcpClientIds) {
+    List<AdHocToolDefinition> toolDefinitions, List<GatewayToolDefinition> gatewayToolDefinitions) {
+
+  /** A tool definition, being a single tool available within the ad-hoc sub-process. */
   @JsonInclude(JsonInclude.Include.NON_ABSENT)
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record AdHocToolDefinition(
       String name, String description, Map<String, Object> inputSchema) {}
+
+  /**
+   * A gateway tool definition, being an entrypoint for multiple tools. Tool discovery needs to be
+   * done at runtime.
+   *
+   * <p>Example use case: MCP Client is a gateway to multiple tools exposed by the connected MCP
+   * server
+   */
+  @JsonInclude(JsonInclude.Include.NON_ABSENT)
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record GatewayToolDefinition(
+      String name, String description, Map<String, Object> properties) {}
 }

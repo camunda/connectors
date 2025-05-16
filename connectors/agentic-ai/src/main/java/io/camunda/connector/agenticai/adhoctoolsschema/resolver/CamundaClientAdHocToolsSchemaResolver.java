@@ -6,28 +6,26 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
-import static io.camunda.connector.agenticai.mcp.client.McpClientFunction.MCP_CLIENT_BASE_TYPE;
-
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.GatewayToolDefinition;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.SchemaGenerationException;
+import io.camunda.connector.agenticai.util.BpmnUtils;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.AdHocSubProcess;
 import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
 import io.camunda.zeebe.model.bpmn.instance.FlowNode;
-import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeMapping;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeOutput;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -35,9 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
-import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,14 +48,17 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
   private static final String ERROR_CODE_AD_HOC_TOOL_SCHEMA_INVALID = "AD_HOC_TOOL_SCHEMA_INVALID";
 
   private final CamundaClient camundaClient;
+  private final List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers;
   private final FeelInputParamExtractor feelInputParamExtractor;
   private final AdHocToolSchemaGenerator schemaGenerator;
 
   public CamundaClientAdHocToolsSchemaResolver(
       CamundaClient camundaClient,
+      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       FeelInputParamExtractor feelInputParamExtractor,
       AdHocToolSchemaGenerator schemaGenerator) {
     this.camundaClient = camundaClient;
+    this.gatewayToolDefinitionResolvers = gatewayToolDefinitionResolvers;
     this.feelInputParamExtractor = feelInputParamExtractor;
     this.schemaGenerator = schemaGenerator;
   }
@@ -98,48 +96,42 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
 
     final var toolElements =
         adHocSubProcess.getChildElementsByType(FlowNode.class).stream()
-            .filter(this::isToolElement)
+            .filter(this::isEligibleElement)
             .toList();
 
-    final var mcpClientIds =
-        toolElements.stream().filter(this::isMcpClient).map(FlowNode::getId).toList();
-
-    final var toolDefinitions =
-        toolElements.stream()
-            .filter(flowNode -> !mcpClientIds.contains(flowNode.getId()))
-            .map(this::mapActivityToToolDefinition)
-            .toList();
-
-    return new AdHocToolsSchemaResponse(toolDefinitions, mcpClientIds);
+    return resolveTools(toolElements);
   }
 
-  private boolean isToolElement(FlowNode element) {
+  protected boolean isEligibleElement(FlowNode element) {
     return element.getIncoming().isEmpty() && !(element instanceof BoundaryEvent);
   }
 
-  private boolean isMcpClient(FlowNode element) {
-    if (!(element instanceof ServiceTask)) {
-      return false;
-    }
+  protected AdHocToolsSchemaResponse resolveTools(List<FlowNode> toolElements) {
+    // resolve gateway tool definitions
+    final var gatewayToolDefinitions =
+        gatewayToolDefinitionResolvers.stream()
+            .flatMap(resolver -> resolver.resolveGatewayToolDefinitions(toolElements).stream())
+            .toList();
 
-    // TODO make more dynamic/configurable?
-    final var taskDefinition = element.getSingleExtensionElement(ZeebeTaskDefinition.class);
-    return taskDefinition != null && taskDefinition.getType().startsWith(MCP_CLIENT_BASE_TYPE);
+    final var gatewayFlowNodeIds =
+        gatewayToolDefinitions.stream().map(GatewayToolDefinition::name).toList();
+
+    // map all non-gateway tool elements to tool definitions
+    final var toolDefinitions =
+        toolElements.stream()
+            .filter(flowNode -> !gatewayFlowNodeIds.contains(flowNode.getId()))
+            .map(this::mapActivityToToolDefinition)
+            .toList();
+
+    return new AdHocToolsSchemaResponse(toolDefinitions, gatewayToolDefinitions);
   }
 
   private AdHocToolDefinition mapActivityToToolDefinition(FlowNode element) {
-    final var documentation = getDocumentation(element).orElseGet(element::getName);
+    final var documentation =
+        BpmnUtils.getElementDocumentation(element).orElseGet(element::getName);
     final var inputSchema = generateInputSchema(element);
 
     return new AdHocToolDefinition(element.getId(), documentation, inputSchema);
-  }
-
-  private Optional<String> getDocumentation(FlowNode element) {
-    return element.getDocumentations().stream()
-        .filter(d -> "text/plain".equals(d.getTextFormat()))
-        .findFirst()
-        .map(ModelElementInstance::getTextContent)
-        .filter(StringUtils::isNotBlank);
   }
 
   private Map<String, Object> generateInputSchema(FlowNode element) {
