@@ -15,9 +15,9 @@ import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration;
-import io.camunda.connector.aws.model.impl.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
-import io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import java.net.URI;
 import java.util.Optional;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -107,9 +107,9 @@ public class ChatModelFactory {
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model());
 
-    Optional.ofNullable(connection.authentication().organization())
+    Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
-    Optional.ofNullable(connection.authentication().project()).ifPresent(builder::projectId);
+    Optional.ofNullable(connection.authentication().projectId()).ifPresent(builder::projectId);
     Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
     final var modelParameters = connection.model().parameters();

@@ -16,32 +16,36 @@
     "value" : "bpmn:ServiceTask"
   },
   "groups" : [ {
-    "id" : "model",
-    "label" : "Model"
+    "id" : "provider",
+    "label" : "Model Provider",
+    "openByDefault" : false
   }, {
-    "id" : "authentication",
-    "label" : "Authentication"
+    "id" : "model",
+    "label" : "Model",
+    "openByDefault" : false
   }, {
     "id" : "systemPrompt",
-    "label" : "System Prompt"
+    "label" : "System Prompt",
+    "tooltip" : "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins.It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent and aligned with its intended purpose. These instructions help shape how the AI interprets and responds to user input throughout the conversation.",
+    "openByDefault" : false
   }, {
     "id" : "userPrompt",
-    "label" : "User Prompt"
+    "label" : "User Prompt",
+    "tooltip" : "A user prompt is the message or question you give to the AI to start or continue a conversation. It tells the AI what you need, whether it's information, help with a task, or just a chat. The AI uses your prompt to understand how to respond.",
+    "openByDefault" : false
   }, {
     "id" : "tools",
     "label" : "Tools",
-    "tooltip" : "Configuration of tools which should be made available to the agent."
+    "tooltip" : "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop.",
+    "openByDefault" : false
   }, {
     "id" : "memory",
     "label" : "Memory",
-    "tooltip" : "Configuration of the Agent's short-term memory."
+    "tooltip" : "Configuration of the Agent's short-term/conversational memory.",
+    "openByDefault" : false
   }, {
     "id" : "limits",
-    "label" : "Limits"
-  }, {
-    "id" : "parameters",
-    "label" : "Model Parameters",
-    "tooltip" : "Optional configuration of common model parameters to optimize and fine-tune LLM responses. Limits such as maximum output tokens are <strong>per LLM request</strong>.",
+    "label" : "Limits",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -65,10 +69,10 @@
     "type" : "Hidden"
   }, {
     "id" : "provider.type",
-    "label" : "Model Provider",
+    "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
     "value" : "anthropic",
-    "group" : "model",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.type",
       "type" : "zeebe:input"
@@ -89,7 +93,7 @@
     "label" : "Endpoint",
     "description" : "Specify endpoint if need to use a custom API endpoint",
     "optional" : true,
-    "group" : "model",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.anthropic.endpoint",
       "type" : "zeebe:input"
@@ -101,18 +105,16 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "provider.anthropic.model.model",
-    "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
+    "id" : "provider.anthropic.authentication.apiKey",
+    "label" : "Anthropic API Key",
     "optional" : false,
-    "value" : "claude-3-5-sonnet-20240620",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "model",
+    "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.model.model",
+      "name" : "provider.anthropic.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -130,7 +132,7 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "model",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.region",
       "type" : "zeebe:input"
@@ -146,7 +148,7 @@
     "label" : "Endpoint",
     "description" : "Specify endpoint if need to use a custom API endpoint",
     "optional" : true,
-    "group" : "model",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.endpoint",
       "type" : "zeebe:input"
@@ -158,88 +160,11 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "provider.bedrock.model.model",
-    "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "value" : "anthropic.claude-3-5-sonnet-20240620-v1:0",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.bedrock.model.model",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.endpoint",
-    "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use a custom API endpoint",
-    "optional" : true,
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openai.endpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "provider.openai.model.model",
-    "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "value" : "gpt-4o",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.openai.model.model",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.anthropic.authentication.apiKey",
-    "label" : "Anthropic API Key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "provider.anthropic.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "provider.bedrock.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "description" : "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>",
     "value" : "credentials",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.authentication.type",
       "type" : "zeebe:input"
@@ -266,7 +191,7 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.authentication.accessKey",
       "type" : "zeebe:input"
@@ -292,7 +217,7 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.authentication.secretKey",
       "type" : "zeebe:input"
@@ -310,6 +235,22 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.openai.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use a custom API endpoint",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "provider.openai.authentication.apiKey",
     "label" : "OpenAI API Key",
     "optional" : false,
@@ -317,7 +258,7 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
       "name" : "provider.openai.authentication.apiKey",
       "type" : "zeebe:input"
@@ -329,14 +270,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.authentication.organization",
-    "label" : "Organization",
-    "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">documentation</a>.",
+    "id" : "provider.openai.authentication.organizationId",
+    "label" : "Organization ID",
+    "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.authentication.organization",
+      "name" : "provider.openai.authentication.organizationId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -346,14 +287,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.authentication.project",
-    "label" : "Project",
-    "description" : "For members with multiple projects.",
+    "id" : "provider.openai.authentication.projectId",
+    "label" : "Project ID",
+    "description" : "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.authentication.project",
+      "name" : "provider.openai.authentication.projectId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -362,6 +303,239 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "provider.anthropic.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "value" : "claude-3-5-sonnet-20240620",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.model.parameters.maxTokens",
+    "label" : "Maximum Tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.anthropic.model.parameters.topK",
+    "label" : "top K",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.topK",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.bedrock.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "value" : "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.bedrock.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.model.parameters.maxTokens",
+    "label" : "Maximum Tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.bedrock.model.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to allow in the generated response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.bedrock.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.bedrock.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.bedrock.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.bedrock.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "value" : "gpt-4o",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openai.model.parameters.maxCompletionTokens",
+    "label" : "Maximum Completion Tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.model.parameters.maxCompletionTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openai.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openai.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
   }, {
     "id" : "data.systemPrompt.prompt",
     "label" : "System Prompt",
@@ -433,7 +607,7 @@
   }, {
     "id" : "data.tools.containerElementId",
     "label" : "Ad-hoc sub-process ID",
-    "description" : "The ID of the sub-process containing the tools to be called",
+    "description" : "The ID of the sub-process containing the tools to be called.",
     "optional" : true,
     "feel" : "optional",
     "group" : "tools",
@@ -441,6 +615,7 @@
       "name" : "data.tools.containerElementId",
       "type" : "zeebe:input"
     },
+    "tooltip" : "When configured, the AI agent connector will resolve available tools from the sub-process. To actually use the tools, you need to model your process to include a tools feedback loop, routing into the ad-hoc sub-process and back to the AI agent connector. Details see in the documentation.",
     "type" : "String"
   }, {
     "id" : "data.tools.toolCallResults",
@@ -453,6 +628,7 @@
       "name" : "data.tools.toolCallResults",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Like the ad-hoc sub-process this needs to be modeled in your process and configured to the tool call results provided by the ad-hoc sub-process execution as part of the tools feedback loop. Details see in the documentation.",
     "type" : "Text"
   }, {
     "id" : "data.agentContext",
@@ -500,176 +676,6 @@
       "name" : "data.limits.maxModelCalls",
       "type" : "zeebe:input"
     },
-    "type" : "Number"
-  }, {
-    "id" : "provider.anthropic.model.parameters.maxTokens",
-    "label" : "Maximum Tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.maxTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.anthropic.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.anthropic.model.parameters.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.anthropic.model.parameters.topK",
-    "label" : "top K",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.topK",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.bedrock.model.parameters.maxTokens",
-    "label" : "Maximum Tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.bedrock.model.parameters.maxTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "tooltip" : "The maximum number of tokens to allow in the generated response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.bedrock.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.bedrock.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.bedrock.model.parameters.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.bedrock.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openai.model.parameters.maxCompletionTokens",
-    "label" : "Maximum Completion Tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.openai.model.parameters.maxCompletionTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openai.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.openai.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.openai.model.parameters.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "parameters",
-    "binding" : {
-      "name" : "provider.openai.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "version",
