@@ -259,7 +259,7 @@
             <zeebe:input source="0" target="annotations.mcpClientSupportVersion" />
             <zeebe:input source="everything" target="data.client.clientId" />
             <zeebe:input source="=toolCall.method" target="data.operation.method" />
-            <zeebe:input source="=toolCall.params" target="data.operation.parameters" />
+            <zeebe:input source="=toolCall.params" target="data.operation.params" />
           </zeebe:ioMapping>
           <zeebe:taskHeaders>
             <zeebe:header key="elementTemplateVersion" value="0" />

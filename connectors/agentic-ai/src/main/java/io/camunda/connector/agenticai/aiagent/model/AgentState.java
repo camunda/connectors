@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 public enum AgentState {
   EMPTY,
-  TOOL_LOOKUP,
+  TOOL_DISCOVERY,
   READY,
   WAITING_FOR_TOOL_INPUT
 }

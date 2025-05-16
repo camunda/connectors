@@ -15,6 +15,8 @@ import java.util.List;
 
 public interface GatewayToolHandler {
 
+  String type();
+
   ToolDiscoveryContext initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
 

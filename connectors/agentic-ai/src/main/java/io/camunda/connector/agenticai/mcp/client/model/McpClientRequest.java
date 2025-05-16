@@ -69,6 +69,6 @@ public record McpClientRequest(
                 defaultValue = "=toolCall.params",
                 feel = Property.FeelMode.required,
                 optional = true)
-            Map<String, Object> parameters) {}
+            Map<String, Object> params) {}
   }
 }

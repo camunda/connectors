@@ -6,11 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -38,7 +36,8 @@ import io.camunda.connector.agenticai.aiagent.tools.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientToolCallResult;
+import io.camunda.connector.agenticai.aiagent.tools.protocol.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.tools.protocol.GatewayToolHandler.ToolDiscoveryContext;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
@@ -47,19 +46,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
-
-  public static final String MCP_PREFIX = "MCP_";
-  public static final String MCP_NAMESPACE_SEPARATOR = "___";
-  public static final String MCP_TOOLS_LIST_PREFIX = MCP_PREFIX + "toolsList_";
 
   private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
 
-  private static final String ERROR_CODE_WAITING_FOR_TOOL_LOOKUP_NO_MCP_CLIENTS =
-      "WAITING_FOR_TOOL_LOOKUP_NO_MCP_CLIENTS";
   private static final String ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS =
       "WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS";
   private static final String ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT =
@@ -70,6 +64,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   private final ObjectMapper objectMapper;
   private final ChatModelFactory chatModelFactory;
   private final AdHocToolsSchemaResolver schemaResolver;
+  private final Map<String, GatewayToolHandler> gatewayToolHandlers;
   private final ToolSpecificationConverter toolSpecificationConverter;
   private final ToolCallingHandler toolCallingHandler;
   private final ToolCallResultConverter toolCallResultConverter;
@@ -79,6 +74,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
       ObjectMapper objectMapper,
       ChatModelFactory chatModelFactory,
       AdHocToolsSchemaResolver schemaResolver,
+      List<GatewayToolHandler> gatewayToolHandlers,
       ToolSpecificationConverter toolSpecificationConverter,
       ToolCallingHandler toolCallingHandler,
       ToolCallResultConverter toolCallResultConverter,
@@ -90,6 +86,18 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     this.toolCallingHandler = toolCallingHandler;
     this.toolCallResultConverter = toolCallResultConverter;
     this.documentConverter = documentConverter;
+
+    this.gatewayToolHandlers =
+        gatewayToolHandlers.stream()
+            .collect(
+                Collectors.toMap(
+                    GatewayToolHandler::type,
+                    Function.identity(),
+                    (g1, g2) -> {
+                      throw new IllegalArgumentException(
+                          "Duplicate gateway tool handler type: %s".formatted(g1.type()));
+                    },
+                    LinkedHashMap::new));
   }
 
   @Override
@@ -101,91 +109,85 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     List<ToolCallResult> toolCallResults =
         Optional.ofNullable(requestData.tools())
             .map(ToolsConfiguration::toolCallResults)
-            .filter(tcr -> !tcr.isEmpty())
             .orElseGet(Collections::emptyList);
 
-    if (agentContext.isInState(AgentState.EMPTY)) {
-      // tools lookup
-      final var toolsContainerElementId =
-          Optional.ofNullable(requestData.tools())
-              .map(ToolsConfiguration::containerElementId)
-              .filter(id -> !id.isBlank())
-              .orElse(null);
+    switch (agentContext.state()) {
+      case EMPTY -> {
+        final var toolsContainerElementId =
+            Optional.ofNullable(requestData.tools())
+                .map(ToolsConfiguration::containerElementId)
+                .filter(id -> !id.isBlank())
+                .orElse(null);
 
-      if (toolsContainerElementId != null) {
-        final var adHocToolsSchema =
-            schemaResolver.resolveSchema(
-                context.getJobContext().getProcessDefinitionKey(), toolsContainerElementId);
+        if (toolsContainerElementId != null) {
+          final var adHocToolsSchema =
+              schemaResolver.resolveSchema(
+                  context.getJobContext().getProcessDefinitionKey(), toolsContainerElementId);
+
+          // add tool definitions to agent context
+          agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
+
+          // initiate tool discovery
+          List<ToolCall> toolDiscoveryToolCalls = new ArrayList<>();
+          for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
+            ToolDiscoveryContext toolDiscoveryContext =
+                gatewayToolHandler.initiateToolDiscovery(
+                    agentContext, adHocToolsSchema.gatewayToolDefinitions());
+
+            agentContext = toolDiscoveryContext.agentContext();
+            toolDiscoveryToolCalls.addAll(toolDiscoveryContext.toolDiscoveryToolCalls());
+          }
+
+          if (toolDiscoveryToolCalls.isEmpty()) {
+            // no tool discovery needed
+            agentContext = agentContext.withState(AgentState.READY);
+          } else {
+            agentContext = agentContext.withState(AgentState.TOOL_DISCOVERY);
+            return new AgentResponse(agentContext, Collections.emptyMap(), toolDiscoveryToolCalls);
+          }
+        }
+      }
+
+      case TOOL_DISCOVERY -> {
+        Map<String, List<ToolCallResult>> groupedByGateway =
+            toolCallResults.stream()
+                .collect(
+                    Collectors.groupingBy(
+                        toolCallResult -> {
+                          for (GatewayToolHandler gatewayToolHandler :
+                              gatewayToolHandlers.values()) {
+                            if (gatewayToolHandler.handlesToolDiscoveryResult(toolCallResult)) {
+                              return gatewayToolHandler.type();
+                            }
+                          }
+
+                          return "default";
+                        }));
+
+        List<AdHocToolDefinition> mergedToolDefinitions =
+            new ArrayList<>(agentContext.toolDefinitions());
+
+        for (Map.Entry<String, List<ToolCallResult>> groupedToolCallResults :
+            groupedByGateway.entrySet()) {
+          if (groupedToolCallResults.getKey().equals("default")) {
+            continue;
+          }
+
+          final var gatewayToolHandler = gatewayToolHandlers.get(groupedToolCallResults.getKey());
+          List<AdHocToolDefinition> gatewayToolDefinitions =
+              gatewayToolHandler.handleToolDiscoveryResults(
+                  agentContext, groupedToolCallResults.getValue());
+          mergedToolDefinitions.addAll(gatewayToolDefinitions);
+        }
+
+        // remaining tool call results not being part of tool discovery
+        toolCallResults = groupedByGateway.getOrDefault("default", Collections.emptyList());
 
         agentContext =
             agentContext
-                .withToolDefinitions(adHocToolsSchema.toolDefinitions());
-                // .withMcpClientIds(adHocToolsSchema.mcpClientIds());
-
-        if (agentContext.mcpClientIds().isEmpty()) {
-          agentContext = agentContext.withState(AgentState.READY);
-        } else {
-          agentContext = agentContext.withState(AgentState.TOOL_LOOKUP);
-
-          List<ToolCall> mcpListToolsToolCalls =
-              agentContext.mcpClientIds().stream()
-                  .map(
-                      mcpClientId ->
-                          new ToolCall(
-                              MCP_TOOLS_LIST_PREFIX + mcpClientId,
-                              mcpClientId,
-                              Map.of("method", "tools/list", "params", Map.of())))
-                  .toList();
-
-          return new AgentResponse(agentContext, Collections.emptyMap(), mcpListToolsToolCalls);
-        }
+                .withState(AgentState.READY)
+                .withToolDefinitions(Collections.unmodifiableList(mergedToolDefinitions));
       }
-    } else if (agentContext.isInState(AgentState.TOOL_LOOKUP)) {
-      if (agentContext.mcpClientIds().isEmpty()) {
-        // this should never happen
-        throw new ConnectorException(
-            ERROR_CODE_WAITING_FOR_TOOL_LOOKUP_NO_MCP_CLIENTS,
-            "Agent is waiting for MCP tool lookup results, but no MCP clients were identified.");
-      }
-
-      List<AdHocToolDefinition> mergedToolDefinitions =
-          new ArrayList<>(agentContext.toolDefinitions());
-
-      // MCP: add tool specifications from MCP tool lookup results with MCP prefix and MCP
-      // activity name
-      toolCallResults.stream()
-          .filter(toolCallResult -> toolCallResult.id().startsWith(MCP_TOOLS_LIST_PREFIX))
-          .forEach(
-              mcpLookupResult -> {
-                List<AdHocToolDefinition> mcpServerToolDefinitions =
-                    objectMapper
-                        .convertValue(
-                            mcpLookupResult.content(),
-                            new TypeReference<List<AdHocToolDefinition>>() {})
-                        .stream()
-                        .map(
-                            toolDefinition ->
-                                new AdHocToolDefinition(
-                                    MCP_PREFIX
-                                        + mcpLookupResult.name()
-                                        + MCP_NAMESPACE_SEPARATOR
-                                        + toolDefinition.name(),
-                                    toolDefinition.description(),
-                                    toolDefinition.inputSchema()))
-                        .toList();
-
-                mergedToolDefinitions.addAll(mcpServerToolDefinitions);
-              });
-
-      // update tool call results to not contain any tool lookups
-      toolCallResults =
-          toolCallResults.stream()
-              .filter(tcr -> !tcr.id().startsWith(MCP_TOOLS_LIST_PREFIX))
-              .toList();
-
-      agentContext = agentContext
-          .withState(AgentState.READY)
-          .withToolDefinitions(Collections.unmodifiableList(mergedToolDefinitions));
     }
 
     // tools as L4j specifications
@@ -230,42 +232,10 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     chatMemory.add(aiMessage);
 
     // extract tool call requests from LLM response
-    final var toolCalls =
-        toolCallingHandler.extractToolCalls(toolSpecifications, aiMessage).stream()
-            .map(
-                toolCall -> {
-                  String toolCallName = toolCall.metadata().name();
-                  if (toolCallName.startsWith(MCP_PREFIX)
-                      && toolCallName.contains(MCP_NAMESPACE_SEPARATOR)) {
-                    // MCP: remove MCP prefix and namespace from tool call name as this needs to map
-                    // to the actual activity ID
-
-                    String[] toolCallParts =
-                        toolCallName.substring(MCP_PREFIX.length()).split(MCP_NAMESPACE_SEPARATOR);
-
-                    if (toolCallParts.length != 2 && StringUtils.isBlank(toolCallParts[0])
-                        || StringUtils.isBlank(toolCallParts[1])) {
-                      throw new RuntimeException(
-                          "Failed to parse MCP tool call name '%s'".formatted(toolCallName));
-                    }
-
-                    String mcpActivityId = toolCallParts[0];
-                    String mcpToolName = toolCallParts[1];
-
-                    Map<String, Object> toolCallParams = new LinkedHashMap<>();
-                    toolCallParams.put("name", mcpToolName);
-                    toolCallParams.put("arguments", toolCall.arguments());
-
-                    Map<String, Object> mcpParams = new LinkedHashMap<>();
-                    mcpParams.put("method", "tools/call");
-                    mcpParams.put("params", toolCallParams);
-
-                    return new ToolCall(toolCall.metadata().id(), mcpActivityId, mcpParams);
-                  }
-
-                  return toolCall;
-                })
-            .toList();
+    var toolCalls = toolCallingHandler.extractToolCalls(toolSpecifications, aiMessage);
+    for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
+      toolCalls = gatewayToolHandler.transformToolCalls(agentContext, toolCalls);
+    }
 
     final var nextAgentState =
         !toolCalls.isEmpty() ? AgentState.WAITING_FOR_TOOL_INPUT : AgentState.READY;
@@ -326,32 +296,14 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
             "Agent is waiting for tool input, but tool call results were empty. Is the tool feedback loop configured correctly?");
       }
 
-      toolCallResults.stream()
+      var transformedToolCallResults = toolCallResults;
+      for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
+        transformedToolCallResults =
+            gatewayToolHandler.transformToolCallResults(agentContext, transformedToolCallResults);
+      }
+
+      transformedToolCallResults.stream()
           .map(toolCallResultConverter::asToolExecutionResultMessage)
-          .map(
-              toolExecutionResultMessage -> {
-                // MCP: add MCP prefix and actual MCP tool to result message
-                if (agentContext.mcpClientIds().contains(toolExecutionResultMessage.toolName())) {
-                  McpClientToolCallResult mcpClientToolCallResult;
-                  try {
-                    mcpClientToolCallResult =
-                        objectMapper.readValue(
-                            toolExecutionResultMessage.text(), McpClientToolCallResult.class);
-                  } catch (Exception e) {
-                    throw new RuntimeException("Failed to parse MCP tool call result", e);
-                  }
-
-                  return ToolExecutionResultMessage.toolExecutionResultMessage(
-                      toolExecutionResultMessage.id(),
-                      MCP_PREFIX
-                          + toolExecutionResultMessage.toolName()
-                          + MCP_NAMESPACE_SEPARATOR
-                          + mcpClientToolCallResult.toolName(),
-                      mcpClientToolCallResult.result());
-                }
-
-                return toolExecutionResultMessage;
-              })
           .forEach(chatMemory::add);
     } else {
       // feed messages with the user input message (first iteration or user follow-up request)

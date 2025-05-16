@@ -24,7 +24,9 @@ import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallResultConverter;
 import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.tools.protocol.McpGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.tools.protocol.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.tools.protocol.McpClientGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.tools.protocol.McpClientGatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
@@ -138,6 +140,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       ObjectMapper objectMapper,
       ChatModelFactory chatModelFactory,
       AdHocToolsSchemaResolver schemaResolver,
+      List<GatewayToolHandler> gatewayToolHandlers,
       ToolSpecificationConverter toolSpecificationConverter,
       ToolCallingHandler toolCallingHandler,
       ToolCallResultConverter toolCallResultConverter,
@@ -146,6 +149,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         objectMapper,
         chatModelFactory,
         schemaResolver,
+        gatewayToolHandlers,
         toolSpecificationConverter,
         toolCallingHandler,
         toolCallResultConverter,
@@ -161,8 +165,14 @@ public class AgenticAiConnectorsAutoConfiguration {
   // TODO move all MCP related things to dedicated autoconfiguration
   @Bean
   @ConditionalOnMissingBean
-  public McpGatewayToolDefinitionResolver mcpGatewayToolDefinitionResolver() {
-    return new McpGatewayToolDefinitionResolver();
+  public McpClientGatewayToolDefinitionResolver mcpGatewayToolDefinitionResolver() {
+    return new McpClientGatewayToolDefinitionResolver();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpClientGatewayToolHandler mcpGatewayToolHandler(ObjectMapper objectMapper) {
+    return new McpClientGatewayToolHandler(objectMapper);
   }
 
   @Bean

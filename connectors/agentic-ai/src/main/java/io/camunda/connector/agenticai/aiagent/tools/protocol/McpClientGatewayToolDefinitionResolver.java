@@ -18,15 +18,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class McpGatewayToolDefinitionResolver implements GatewayToolDefinitionResolver {
+public class McpClientGatewayToolDefinitionResolver implements GatewayToolDefinitionResolver {
+
+  public static final String PROPERTY_TYPE = "type";
+  public static final String PROPERTY_GATEWAY_TYPE = "gatewayType";
 
   private final List<String> taskDefinitionTypePrefixes;
 
-  public McpGatewayToolDefinitionResolver() {
+  public McpClientGatewayToolDefinitionResolver() {
     this(List.of(MCP_CLIENT_BASE_TYPE));
   }
 
-  public McpGatewayToolDefinitionResolver(List<String> taskDefinitionTypePrefixes) {
+  public McpClientGatewayToolDefinitionResolver(List<String> taskDefinitionTypePrefixes) {
     this.taskDefinitionTypePrefixes = taskDefinitionTypePrefixes;
   }
 
@@ -41,7 +44,11 @@ public class McpGatewayToolDefinitionResolver implements GatewayToolDefinitionRe
                 new GatewayToolDefinition(
                     serviceTaskElement.element().getId(),
                     BpmnUtils.getElementDocumentation(serviceTaskElement.element()).orElse(null),
-                    Map.of("type", serviceTaskElement.taskDefinition.getType(), "mcpClient", true)))
+                    Map.of(
+                        PROPERTY_TYPE,
+                        serviceTaskElement.taskDefinition.getType(),
+                        PROPERTY_GATEWAY_TYPE,
+                        McpClientGatewayToolHandler.GATEWAY_TYPE)))
         .toList();
   }
 

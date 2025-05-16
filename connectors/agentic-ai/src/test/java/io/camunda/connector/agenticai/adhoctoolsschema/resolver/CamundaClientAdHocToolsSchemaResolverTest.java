@@ -25,6 +25,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,6 +51,9 @@ class CamundaClientAdHocToolsSchemaResolverTest {
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private CamundaClient camundaClient;
+
+  @Spy
+  private List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers = new ArrayList<>();
 
   @Mock private FeelInputParamExtractor feelInputParamExtractor;
   @Mock private AdHocToolSchemaGenerator schemaGenerator;

@@ -1,5 +1,12 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.agenticai.aiagent.tools.protocol;
 
+import static io.camunda.connector.agenticai.aiagent.tools.protocol.McpClientGatewayToolDefinitionResolver.PROPERTY_GATEWAY_TYPE;
 import static io.camunda.connector.agenticai.aiagent.tools.protocol.McpToolCallIdentifier.MCP_PREFIX;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,15 +22,22 @@ import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import java.util.List;
 import java.util.Map;
 
-public class McpGatewayToolHandler implements GatewayToolHandler {
+public class McpClientGatewayToolHandler implements GatewayToolHandler {
+
+  public static final String GATEWAY_TYPE = "mcpClient";
 
   public static final String PROPERTY_MCP_CLIENTS = "mcpClients";
   public static final String MCP_TOOLS_DISCOVERY_PREFIX = MCP_PREFIX + "toolsList_";
 
   private final ObjectMapper objectMapper;
 
-  public McpGatewayToolHandler(ObjectMapper objectMapper) {
+  public McpClientGatewayToolHandler(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
+  }
+
+  @Override
+  public String type() {
+    return GATEWAY_TYPE;
   }
 
   @Override
@@ -34,8 +48,9 @@ public class McpGatewayToolHandler implements GatewayToolHandler {
         gatewayToolDefinitions.stream()
             .filter(
                 gatewayToolDefinition -> {
-                  final var mcpClient = gatewayToolDefinition.properties().get("mcpClient");
-                  return mcpClient instanceof Boolean && (Boolean) mcpClient;
+                  final var gatewayType =
+                      gatewayToolDefinition.properties().get(PROPERTY_GATEWAY_TYPE);
+                  return GATEWAY_TYPE.equals(gatewayType);
                 })
             .toList();
 

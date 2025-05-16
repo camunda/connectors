@@ -93,7 +93,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.operation.parameters",
+    "id" : "data.operation.params",
     "label" : "Parameters",
     "description" : "The parameters to be passed to the MCP method.",
     "optional" : true,
@@ -101,7 +101,7 @@
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.operation.parameters",
+      "name" : "data.operation.params",
       "type" : "zeebe:input"
     },
     "type" : "String"

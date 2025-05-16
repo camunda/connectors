@@ -11,7 +11,7 @@ sequenceDiagram
 
   User ->>+ AAC: new request
 
-  %% MCP tool lookup
+  %% MCP tool discovery
   AAC ->>+ MCPC: list tools
   deactivate AAC
   MCPC ->>+ MCPS: list tools
