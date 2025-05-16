@@ -27,25 +27,37 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     version = 0,
     inputDataClass = AgentRequest.class,
     propertyGroups = {
-      @PropertyGroup(id = "model", label = "Model"),
-      @PropertyGroup(id = "authentication", label = "Authentication"),
-      @PropertyGroup(id = "systemPrompt", label = "System Prompt"),
-      @PropertyGroup(id = "userPrompt", label = "User Prompt"),
+      @PropertyGroup(id = "provider", label = "Model Provider", openByDefault = false),
+      @PropertyGroup(id = "model", label = "Model", openByDefault = false),
+      @PropertyGroup(
+          id = "systemPrompt",
+          label = "System Prompt",
+          tooltip =
+              "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins."
+                  + "It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent "
+                  + "and aligned with its intended purpose. These instructions help shape how the AI interprets and responds "
+                  + "to user input throughout the conversation.",
+          openByDefault = false),
+      @PropertyGroup(
+          id = "userPrompt",
+          label = "User Prompt",
+          tooltip =
+              "A user prompt is the message or question you give to the AI to start or continue a conversation. It tells "
+                  + "the AI what you need, whether it's information, help with a task, or just a chat. The AI uses your prompt "
+                  + "to understand how to respond.",
+          openByDefault = false),
       @PropertyGroup(
           id = "tools",
           label = "Tools",
-          tooltip = "Configuration of tools which should be made available to the agent."),
+          tooltip =
+              "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop.",
+          openByDefault = false),
       @PropertyGroup(
           id = "memory",
           label = "Memory",
-          tooltip = "Configuration of the Agent's short-term memory."),
-      @PropertyGroup(id = "limits", label = "Limits"),
-      @PropertyGroup(
-          id = "parameters",
-          label = "Model Parameters",
-          tooltip =
-              "Optional configuration of common model parameters to optimize and fine-tune LLM responses. Limits such as maximum output tokens are <strong>per LLM request</strong>.",
-          openByDefault = false)
+          tooltip = "Configuration of the Agent's short-term/conversational memory.",
+          openByDefault = false),
+      @PropertyGroup(id = "limits", label = "Limits", openByDefault = false)
     },
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {

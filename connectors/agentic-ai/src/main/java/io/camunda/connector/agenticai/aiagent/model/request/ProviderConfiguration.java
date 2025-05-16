@@ -12,7 +12,6 @@ import static io.camunda.connector.agenticai.aiagent.model.request.ProviderConfi
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.aws.model.impl.AwsAuthentication;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -37,8 +36,8 @@ import jakarta.validation.constraints.NotNull;
       name = OPENAI_ID)
 })
 @TemplateDiscriminatorProperty(
-    label = "Model Provider",
-    group = "model",
+    label = "Provider",
+    group = "provider",
     name = "type",
     description = "Specify the LLM provider to use.",
     defaultValue = ANTHROPIC_ID)
@@ -56,7 +55,7 @@ public sealed interface ProviderConfiguration
 
     public record AnthropicConnection(
         @TemplateProperty(
-                group = "model",
+                group = "provider",
                 description = "Specify endpoint if need to use a custom API endpoint",
                 type = TemplateProperty.PropertyType.Hidden,
                 feel = Property.FeelMode.disabled,
@@ -68,7 +67,7 @@ public sealed interface ProviderConfiguration
     public record AnthropicAuthentication(
         @NotBlank
             @TemplateProperty(
-                group = "authentication",
+                group = "provider",
                 label = "Anthropic API Key",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
@@ -93,7 +92,7 @@ public sealed interface ProviderConfiguration
       public record AnthropicModelParameters(
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "Maximum Tokens",
                   tooltip =
                       "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
@@ -103,7 +102,7 @@ public sealed interface ProviderConfiguration
               Integer maxTokens,
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "Temperature",
                   tooltip =
                       "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
@@ -113,7 +112,7 @@ public sealed interface ProviderConfiguration
               Double temperature,
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "top P",
                   tooltip =
                       "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
@@ -123,7 +122,7 @@ public sealed interface ProviderConfiguration
               Double topP,
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "top K",
                   tooltip =
                       "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
@@ -144,13 +143,13 @@ public sealed interface ProviderConfiguration
     public record BedrockConnection(
         @NotBlank
             @TemplateProperty(
-                group = "model",
+                group = "provider",
                 description = "Specify the AWS region (example: <code>eu-west-1</code>)",
                 constraints = @PropertyConstraints(notEmpty = true))
             String region,
         @FEEL
             @TemplateProperty(
-                group = "model",
+                group = "provider",
                 description = "Specify endpoint if need to use a custom API endpoint",
                 type = TemplateProperty.PropertyType.Hidden,
                 feel = Property.FeelMode.disabled,
@@ -158,6 +157,54 @@ public sealed interface ProviderConfiguration
             String endpoint,
         @Valid @NotNull AwsAuthentication authentication,
         @Valid @NotNull BedrockModel model) {}
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes({
+      @JsonSubTypes.Type(
+          value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
+          name = "credentials"),
+      @JsonSubTypes.Type(
+          value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
+          name = "defaultCredentialsChain"),
+    })
+    @TemplateDiscriminatorProperty(
+        label = "Authentication",
+        group = "provider",
+        name = "type",
+        defaultValue = "credentials",
+        description =
+            "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>")
+    public sealed interface AwsAuthentication
+        permits AwsAuthentication.AwsDefaultCredentialsChainAuthentication,
+            AwsAuthentication.AwsStaticCredentialsAuthentication {
+      @TemplateSubType(id = "credentials", label = "Credentials")
+      record AwsStaticCredentialsAuthentication(
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Access key",
+                  description =
+                      "Provide an IAM access key tailored to a user, equipped with the necessary permissions")
+              @NotBlank
+              String accessKey,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Secret key",
+                  description =
+                      "Provide a secret key of a user with permissions to invoke specified AWS Lambda function")
+              @NotBlank
+              String secretKey)
+          implements AwsAuthentication {
+        @Override
+        public String toString() {
+          return "AwsStaticCredentialsAuthentication{accessKey=[REDACTED], secretKey=[REDACTED]}";
+        }
+      }
+
+      @TemplateSubType(
+          id = "defaultCredentialsChain",
+          label = "Default Credentials Chain (Hybrid/Self-Managed only)")
+      record AwsDefaultCredentialsChainAuthentication() implements AwsAuthentication {}
+    }
 
     public record BedrockModel(
         @NotBlank
@@ -177,17 +224,17 @@ public sealed interface ProviderConfiguration
       public record BedrockModelParameters(
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "Maximum Tokens",
                   tooltip =
-                      "The maximum number of tokens to allow in the generated response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
+                      "The maximum number of tokens per request to allow in the generated response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
                   feel = Property.FeelMode.required,
                   optional = true)
               Integer maxTokens,
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "Temperature",
                   tooltip =
                       "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
@@ -197,7 +244,7 @@ public sealed interface ProviderConfiguration
               Double temperature,
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "top P",
                   tooltip =
                       "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
@@ -217,7 +264,7 @@ public sealed interface ProviderConfiguration
 
     public record OpenAiConnection(
         @TemplateProperty(
-                group = "model",
+                group = "provider",
                 description = "Specify endpoint if need to use a custom API endpoint",
                 type = TemplateProperty.PropertyType.Hidden,
                 feel = Property.FeelMode.disabled,
@@ -229,29 +276,30 @@ public sealed interface ProviderConfiguration
     public record OpenAiAuthentication(
         @NotBlank
             @TemplateProperty(
-                group = "authentication",
+                group = "provider",
                 label = "OpenAI API Key",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
             String apiKey,
         @TemplateProperty(
-                group = "authentication",
-                label = "Organization",
+                group = "provider",
+                label = "Organization ID",
                 description =
-                    "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">documentation</a>.",
+                    "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 optional = true)
-            String organization,
+            String organizationId,
         @TemplateProperty(
-                group = "authentication",
-                label = "Project",
-                description = "For members with multiple projects.",
+                group = "provider",
+                label = "Project ID",
+                description =
+                    "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 optional = true)
-            String project) {}
+            String projectId) {}
 
     public record OpenAiModel(
         @NotBlank
@@ -271,7 +319,7 @@ public sealed interface ProviderConfiguration
       public record OpenAiModelParameters(
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "Maximum Completion Tokens",
                   tooltip =
                       "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
@@ -281,7 +329,7 @@ public sealed interface ProviderConfiguration
               Integer maxCompletionTokens,
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "Temperature",
                   tooltip =
                       "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
@@ -291,7 +339,7 @@ public sealed interface ProviderConfiguration
               Double temperature,
           @Min(0)
               @TemplateProperty(
-                  group = "parameters",
+                  group = "model",
                   label = "top P",
                   tooltip =
                       "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
