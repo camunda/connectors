@@ -640,6 +640,7 @@
     "label" : "Agent Context",
     "description" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response.",
     "optional" : false,
+    "value" : "=agent.context",
     "constraints" : {
       "notEmpty" : true
     },
@@ -708,6 +709,7 @@
     "id" : "resultVariable",
     "label" : "Result variable",
     "description" : "Name of variable to store the response in",
+    "value" : "agent",
     "group" : "output",
     "binding" : {
       "key" : "resultVariable",
