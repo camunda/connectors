@@ -22,7 +22,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class AgentContextTest {
   private static final AgentContext EMPTY_CONTEXT =
-      new AgentContext(AgentState.EMPTY, AgentMetrics.empty(), List.of(), List.of(), List.of());
+      new AgentContext(AgentState.EMPTY, AgentMetrics.empty(), List.of(), List.of(), Map.of());
 
   @Test
   void emptyContext() {
@@ -85,10 +85,9 @@ class AgentContextTest {
       AgentMetrics metrics,
       List<Map<String, Object>> memory,
       List<AdHocToolDefinition> toolDefinitions,
-      List<String> mcpClientIds,
+      Map<String, Object> properties,
       String exceptionMessage) {
-    assertThatThrownBy(
-            () -> new AgentContext(state, metrics, memory, toolDefinitions, mcpClientIds))
+    assertThatThrownBy(() -> new AgentContext(state, metrics, memory, toolDefinitions, properties))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
@@ -98,33 +97,16 @@ class AgentContextTest {
     final var metrics = AgentMetrics.empty();
     final var memory = Collections.emptyList();
     final var toolSpecifications = Collections.emptyList();
-    final var mcpClientIds = Collections.emptyList();
+    final var properties = Collections.emptyMap();
 
     return Stream.of(
         arguments(
-            null,
-            metrics,
-            memory,
-            toolSpecifications,
-            mcpClientIds,
-            "Agent state must not be null"),
+            null, metrics, memory, toolSpecifications, properties, "Agent state must not be null"),
         arguments(
-            state,
-            null,
-            memory,
-            toolSpecifications,
-            mcpClientIds,
-            "Agent metrics must not be null"),
+            state, null, memory, toolSpecifications, properties, "Agent metrics must not be null"),
         arguments(
-            state,
-            metrics,
-            null,
-            toolSpecifications,
-            mcpClientIds,
-            "Agent memory must not be null"),
-        arguments(
-            state, metrics, memory, null, mcpClientIds, "Tool specifications must not be null"),
-        arguments(
-            state, metrics, memory, toolSpecifications, null, "MCP client IDs must not be null"));
+            state, metrics, null, toolSpecifications, properties, "Agent memory must not be null"),
+        arguments(state, metrics, memory, null, properties, "Tool specifications must not be null"),
+        arguments(state, metrics, memory, toolSpecifications, null, "Properties must not be null"));
   }
 }

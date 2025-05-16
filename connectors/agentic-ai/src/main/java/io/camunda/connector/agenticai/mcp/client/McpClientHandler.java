@@ -6,11 +6,16 @@
  */
 package io.camunda.connector.agenticai.mcp.client;
 
+import static io.camunda.connector.agenticai.mcp.client.model.McpClientMessage.METHOD_TOOLS_CALL;
+import static io.camunda.connector.agenticai.mcp.client.model.McpClientMessage.METHOD_TOOLS_LIST;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientListToolsResult;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientMessage;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolCallResult;
 import java.util.Map;
@@ -20,9 +25,6 @@ import org.slf4j.LoggerFactory;
 public class McpClientHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(McpClientHandler.class);
-
-  public static final String METHOD_TOOLS_LIST = "tools/list";
-  public static final String METHOD_TOOLS_CALL = "tools/call";
 
   private final McpClientRegistry clientRegistry;
   private final ObjectMapper objectMapper;
@@ -39,28 +41,31 @@ public class McpClientHandler {
 
   public Object handle(McpClientRequest request) {
     final var clientId = request.data().client().clientId();
-    final var method = request.data().operation().method();
-    final var parameters = request.data().operation().parameters();
+    final var message =
+        objectMapper.convertValue(request.data().operation(), McpClientMessage.class);
 
-    LOGGER.debug("Handling request for method '{}' with on MCP client '{}'", method, clientId);
+    LOGGER.debug(
+        "Handling request for method '{}' with on MCP client '{}'", message.method(), clientId);
     final var client = clientRegistry.getClient(clientId);
 
-    return switch (method) {
+    return switch (message.method()) {
       case METHOD_TOOLS_LIST:
-        yield client.listTools().stream()
-            .map(
-                toolSpecification ->
-                    new AdHocToolDefinition(
-                        toolSpecification.name(),
-                        toolSpecification.description(),
-                        toolSpecificationConverter.schemaAsMap(toolSpecification.parameters())))
-            .toList();
+        final var toolDefinitions =
+            client.listTools().stream()
+                .map(
+                    toolSpecification ->
+                        new AdHocToolDefinition(
+                            toolSpecification.name(),
+                            toolSpecification.description(),
+                            toolSpecificationConverter.schemaAsMap(toolSpecification.parameters())))
+                .toList();
+        yield new McpClientListToolsResult(toolDefinitions);
       case METHOD_TOOLS_CALL:
-        final var toolExecutionRequest = createToolExecutionRequest(parameters);
+        final var toolExecutionRequest = createToolExecutionRequest(message.params());
         yield new McpClientToolCallResult(
             toolExecutionRequest.name(), client.executeTool(toolExecutionRequest));
       default:
-        throw new IllegalArgumentException("Unsupported method: " + method);
+        throw new IllegalArgumentException("Unsupported method: " + message.method());
     };
   }
 
