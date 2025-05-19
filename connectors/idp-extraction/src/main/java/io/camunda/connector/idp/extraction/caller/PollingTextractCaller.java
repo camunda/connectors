@@ -214,12 +214,13 @@ public class PollingTextractCaller {
   }
 
   private StructuredExtractionResponse extractDataFromDocument(List<Block> blocks) {
-    Map<String, String> keyValuePairs = new HashMap<>();
+    Map<String, Object> keyValuePairs = new HashMap<>();
     Map<String, Float> confidenceScores = new HashMap<>();
     Map<String, Block> blockMap =
         blocks.stream().collect(Collectors.toMap(Block::id, block -> block));
     Map<String, Integer> keyOccurrences = new HashMap<>();
 
+    // extract key-value pairs
     blocks.stream()
         .filter(
             block ->
@@ -258,6 +259,42 @@ public class PollingTextractCaller {
               keyValuePairs.put(key, value);
               confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
             });
+
+    // extract table data
+    List<Block> tables =
+        blocks.stream().filter(block -> block.blockType().equals(BlockType.TABLE)).toList();
+
+    for (Block table : tables) {
+      List<List<String>> data = new ArrayList<>();
+      table.relationships().stream()
+          .filter(relation -> relation.type().equals(RelationshipType.CHILD))
+          .flatMap(relation -> relation.ids().stream())
+          .map(blockMap::get)
+          .filter(block -> block.blockType().equals(BlockType.CELL))
+          .forEach(
+              block -> {
+                String cellText = getTextFromRelationships(block, blockMap);
+                int colIndex = block.columnIndex() - 1;
+                int rowIndex = block.rowIndex() - 1;
+
+                // ensure the outer list has enough rows
+                while (data.size() <= rowIndex) {
+                  data.add(new ArrayList<>());
+                }
+
+                List<String> row = data.get(rowIndex);
+
+                // ensure the row list has enough columns
+                while (row.size() <= colIndex) {
+                  row.add("");
+                }
+
+                row.set(colIndex, cellText);
+              });
+      String tableKey = "table " + (tables.indexOf(table) + 1);
+      keyValuePairs.put(tableKey, data);
+      confidenceScores.put(tableKey, table.confidence());
+    }
 
     return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
   }
