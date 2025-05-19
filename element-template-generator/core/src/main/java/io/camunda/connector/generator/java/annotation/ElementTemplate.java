@@ -98,6 +98,20 @@ public @interface ElementTemplate {
 
   ConnectorElementType[] elementTypes() default {};
 
+  /**
+   * Default result variable value.
+   *
+   * <p>If not specified, no default variable value will be set.
+   */
+  String defaultResultVariable() default "";
+
+  /**
+   * Default result expression value.
+   *
+   * <p>If not specified, no default expression value will be set.
+   */
+  String defaultResultExpression() default "";
+
   /** Metadata tags for the connector. Will be used in Camunda Modeler. */
   @interface Metadata {
 
