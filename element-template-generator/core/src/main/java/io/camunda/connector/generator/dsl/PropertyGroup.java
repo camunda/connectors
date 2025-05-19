@@ -37,18 +37,19 @@ public record PropertyGroup(
     String tooltip,
     Boolean openByDefault) {
 
-  public static PropertyGroup OUTPUT_GROUP_OUTBOUND =
-      PropertyGroup.builder()
-          .id("output")
-          .label("Output mapping")
-          .properties(
-              CommonProperties.resultVariable()
-                  .binding(new ZeebeTaskHeader("resultVariable"))
-                  .build(),
-              CommonProperties.resultExpression()
-                  .binding(new ZeebeTaskHeader("resultExpression"))
-                  .build())
-          .build();
+  public static BiFunction<String, String, PropertyGroup> OUTPUT_GROUP_OUTBOUND =
+      (resultVariableValue, resultExpressionValue) ->
+          PropertyGroup.builder()
+              .id("output")
+              .label("Output mapping")
+              .properties(
+                  CommonProperties.resultVariable(resultVariableValue)
+                      .binding(new ZeebeTaskHeader("resultVariable"))
+                      .build(),
+                  CommonProperties.resultExpression(resultExpressionValue)
+                      .binding(new ZeebeTaskHeader("resultExpression"))
+                      .build())
+              .build();
 
   public static BiFunction<String, Integer, PropertyGroup> ADD_CONNECTORS_DETAILS_OUTPUT =
       (id, version) ->
@@ -62,18 +63,19 @@ public record PropertyGroup(
                   CommonProperties.id(id).binding(new ZeebeTaskHeader("elementTemplateId")).build())
               .build();
 
-  public static PropertyGroup OUTPUT_GROUP_INBOUND =
-      PropertyGroup.builder()
-          .id("output")
-          .label("Output mapping")
-          .properties(
-              CommonProperties.resultVariable()
-                  .binding(new ZeebeProperty("resultVariable"))
-                  .build(),
-              CommonProperties.resultExpression()
-                  .binding(new ZeebeProperty("resultExpression"))
-                  .build())
-          .build();
+  public static BiFunction<String, String, PropertyGroup> OUTPUT_GROUP_INBOUND =
+      (resultVariableValue, resultExpressionValue) ->
+          PropertyGroup.builder()
+              .id("output")
+              .label("Output mapping")
+              .properties(
+                  CommonProperties.resultVariable(resultVariableValue)
+                      .binding(new ZeebeProperty("resultVariable"))
+                      .build(),
+                  CommonProperties.resultExpression(resultExpressionValue)
+                      .binding(new ZeebeProperty("resultExpression"))
+                      .build())
+              .build();
 
   public static PropertyGroup ERROR_GROUP =
       PropertyGroup.builder()

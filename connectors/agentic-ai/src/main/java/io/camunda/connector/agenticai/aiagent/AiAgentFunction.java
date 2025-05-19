@@ -26,6 +26,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     engineVersion = "^8.8",
     version = 0,
     inputDataClass = AgentRequest.class,
+    defaultResultVariable = "agent",
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model Provider", openByDefault = false),
       @PropertyGroup(id = "model", label = "Model", openByDefault = false),
