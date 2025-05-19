@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
@@ -54,6 +55,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
 
+  private static final String ERROR_CODE_AGENT_IN_INVALID_STATE = "IN_INVALID_STATE";
   private static final String ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS =
       "WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS";
   private static final String ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT =
@@ -102,19 +104,93 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
 
   @Override
   public AgentResponse handleRequest(OutboundConnectorContext context, AgentRequest request) {
-    final AgentRequest.AgentRequestData requestData = request.data();
-    AgentContext agentContext =
-        Optional.ofNullable(requestData.context()).orElseGet(AgentContext::empty);
+    final var agentInitializationResult = initializeAgent(context, request);
+    if (agentInitializationResult.agentResponse() != null) {
+      return agentInitializationResult.agentResponse();
+    }
 
+    final var agentContext = agentInitializationResult.agentContext();
+
+    // tools as L4j specifications
+    final var toolSpecifications =
+        agentContext.toolDefinitions().stream()
+            .map(toolSpecificationConverter::asToolSpecification)
+            .toList();
+
+    // initialize configured model
+    final ChatModel chatModel = chatModelFactory.createChatModel(request.provider());
+
+    // set up memory and load from context if available
+    final AgentContextChatMemoryStore chatMemoryStore =
+        new AgentContextChatMemoryStore(objectMapper);
+    chatMemoryStore.loadFromAgentContext(agentContext);
+
+    final ChatMemory chatMemory =
+        MessageWindowChatMemory.builder()
+            .maxMessages(
+                Optional.ofNullable(request.data().memory())
+                    .map(MemoryConfiguration::maxMessages)
+                    .orElse(DEFAULT_MAX_MEMORY_MESSAGES))
+            .chatMemoryStore(chatMemoryStore)
+            .build();
+
+    // check configured limits
+    checkLimits(request.data(), agentContext);
+
+    // update memory with system + new user messages/tool call responses
+    addSystemPromptIfNecessary(chatMemory, request.data());
+    addUserMessagesFromRequest(
+        agentContext, chatMemory, request.data(), agentInitializationResult.toolCallResults());
+
+    // call LLM API with updated messages + resolved tool specifications
+    final var chatRequest =
+        ChatRequest.builder()
+            .messages(chatMemory.messages())
+            .toolSpecifications(toolSpecifications)
+            .build();
+
+    final ChatResponse chatResponse = chatModel.chat(chatRequest);
+    final AiMessage aiMessage = chatResponse.aiMessage();
+    chatMemory.add(aiMessage);
+
+    // extract tool call requests from LLM response
+    var toolCalls = toolCallingHandler.extractToolCalls(toolSpecifications, aiMessage);
+    for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
+      toolCalls = gatewayToolHandler.transformToolCalls(agentContext, toolCalls);
+    }
+
+    final var nextAgentState =
+        !toolCalls.isEmpty() ? AgentState.WAITING_FOR_TOOL_INPUT : AgentState.READY;
+
+    // update context
+    final var updatedContext =
+        chatMemoryStore
+            .storeToAgentContext(agentContext)
+            .withState(nextAgentState)
+            .withMetrics(
+                agentContext
+                    .metrics()
+                    .incrementModelCalls(1)
+                    .incrementTokenUsage(AgentMetrics.TokenUsage.from(chatResponse.tokenUsage())));
+
+    return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolCalls);
+  }
+
+  private AgentInitializationResult initializeAgent(
+      OutboundConnectorContext context, AgentRequest request) {
+
+    AgentContext agentContext =
+        Optional.ofNullable(request.data().context()).orElseGet(AgentContext::empty);
     List<ToolCallResult> toolCallResults =
-        Optional.ofNullable(requestData.tools())
+        Optional.ofNullable(request.data().tools())
             .map(ToolsConfiguration::toolCallResults)
             .orElseGet(Collections::emptyList);
+    AgentResponse agentResponse = null;
 
     switch (agentContext.state()) {
       case EMPTY -> {
         final var toolsContainerElementId =
-            Optional.ofNullable(requestData.tools())
+            Optional.ofNullable(request.data().tools())
                 .map(ToolsConfiguration::containerElementId)
                 .filter(id -> !id.isBlank())
                 .orElse(null);
@@ -143,7 +219,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
             agentContext = agentContext.withState(AgentState.READY);
           } else {
             agentContext = agentContext.withState(AgentState.TOOL_DISCOVERY);
-            return new AgentResponse(agentContext, Collections.emptyMap(), toolDiscoveryToolCalls);
+            agentResponse =
+                new AgentResponse(agentContext, Collections.emptyMap(), toolDiscoveryToolCalls);
           }
         }
       }
@@ -181,7 +258,8 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
         }
 
         // remaining tool call results not being part of tool discovery
-        toolCallResults = groupedByGateway.getOrDefault("default", Collections.emptyList());
+        toolCallResults =
+            groupedByGateway.getOrDefault("default", Collections.emptyList());
 
         agentContext =
             agentContext
@@ -190,71 +268,10 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
       }
     }
 
-    // tools as L4j specifications
-    final var toolSpecifications =
-        agentContext.toolDefinitions().stream()
-            .map(toolSpecificationConverter::asToolSpecification)
-            .toList();
-
-    // initialize configured model
-    final ChatModel chatModel = chatModelFactory.createChatModel(request.provider());
-
-    // set up memory and load from context if available
-    final AgentContextChatMemoryStore chatMemoryStore =
-        new AgentContextChatMemoryStore(objectMapper);
-    chatMemoryStore.loadFromAgentContext(agentContext);
-
-    final ChatMemory chatMemory =
-        MessageWindowChatMemory.builder()
-            .maxMessages(
-                Optional.ofNullable(requestData.memory())
-                    .map(MemoryConfiguration::maxMessages)
-                    .orElse(DEFAULT_MAX_MEMORY_MESSAGES))
-            .chatMemoryStore(chatMemoryStore)
-            .build();
-
-    // check configured limits
-    checkLimits(requestData, agentContext);
-
-    // update memory with system + new user messages/tool call responses
-    addSystemPromptIfNecessary(chatMemory, requestData);
-    addUserMessagesFromRequest(agentContext, chatMemory, requestData, toolCallResults);
-
-    // call LLM API with updated messages + resolved tool specifications
-    final var chatRequest =
-        ChatRequest.builder()
-            .messages(chatMemory.messages())
-            .toolSpecifications(toolSpecifications)
-            .build();
-
-    final ChatResponse chatResponse = chatModel.chat(chatRequest);
-    final AiMessage aiMessage = chatResponse.aiMessage();
-    chatMemory.add(aiMessage);
-
-    // extract tool call requests from LLM response
-    var toolCalls = toolCallingHandler.extractToolCalls(toolSpecifications, aiMessage);
-    for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
-      toolCalls = gatewayToolHandler.transformToolCalls(agentContext, toolCalls);
-    }
-
-    final var nextAgentState =
-        !toolCalls.isEmpty() ? AgentState.WAITING_FOR_TOOL_INPUT : AgentState.READY;
-
-    // update context
-    final var updatedContext =
-        chatMemoryStore
-            .storeToAgentContext(agentContext)
-            .withState(nextAgentState)
-            .withMetrics(
-                agentContext
-                    .metrics()
-                    .incrementModelCalls(1)
-                    .incrementTokenUsage(AgentMetrics.TokenUsage.from(chatResponse.tokenUsage())));
-
-    return new AgentResponse(updatedContext, updatedContext.memory().getLast(), toolCalls);
+    return new AgentInitializationResult(agentContext, toolCallResults, agentResponse);
   }
 
-  private void checkLimits(AgentRequest.AgentRequestData requestData, AgentContext agentContext) {
+  private void checkLimits(AgentRequestData requestData, AgentContext agentContext) {
     final int maxModelCalls =
         Optional.ofNullable(requestData.limits())
             .map(LimitsConfiguration::maxModelCalls)
@@ -268,7 +285,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   }
 
   private void addSystemPromptIfNecessary(
-      ChatMemory chatMemory, AgentRequest.AgentRequestData requestData) {
+      ChatMemory chatMemory, AgentRequestData requestData) {
     // add system prompt if this is the first request
     if (chatMemory.messages().isEmpty()) {
       chatMemory.add(promptFromConfiguration(requestData.systemPrompt()).toSystemMessage());
@@ -278,7 +295,7 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
   private void addUserMessagesFromRequest(
       AgentContext agentContext,
       ChatMemory chatMemory,
-      AgentRequest.AgentRequestData requestData,
+      AgentRequestData requestData,
       List<ToolCallResult> toolCallResults) {
     // throw an error when receiving tool call results on an empty context as
     // most likely this is a modeling error
@@ -289,35 +306,46 @@ public class DefaultAiAgentRequestHandler implements AiAgentRequestHandler {
     }
 
     // add tool call results to chat memory
-    if (agentContext.isInState(AgentState.WAITING_FOR_TOOL_INPUT)) {
-      if (toolCallResults.isEmpty()) {
+    switch (agentContext.state()) {
+      case WAITING_FOR_TOOL_INPUT -> {
+        if (toolCallResults.isEmpty()) {
+          throw new ConnectorException(
+              ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS,
+              "Agent is waiting for tool input, but tool call results were empty. Is the tool feedback loop configured correctly?");
+        }
+
+        var transformedToolCallResults = toolCallResults;
+        for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
+          transformedToolCallResults =
+              gatewayToolHandler.transformToolCallResults(agentContext, transformedToolCallResults);
+        }
+
+        transformedToolCallResults.stream()
+            .map(toolCallResultConverter::asToolExecutionResultMessage)
+            .forEach(chatMemory::add);
+      }
+      case READY -> {
+        // feed messages with the user input message (first iteration or user follow-up request)
+        final var userPrompt = requestData.userPrompt();
+        final var userMessageBuilder =
+            UserMessage.builder()
+                .addContent(new TextContent(promptFromConfiguration(userPrompt).text()));
+
+        // add documents as content blocks
+        Optional.ofNullable(userPrompt.documents())
+            .orElseGet(Collections::emptyList)
+            .forEach(
+                document -> userMessageBuilder.addContent(documentConverter.convert(document)));
+
+        chatMemory.add(userMessageBuilder.build());
+      }
+
+      default -> {
         throw new ConnectorException(
-            ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS,
-            "Agent is waiting for tool input, but tool call results were empty. Is the tool feedback loop configured correctly?");
+            ERROR_CODE_AGENT_IN_INVALID_STATE,
+            "Agent is in invalid state '%s', not ready to for adding user messages"
+                .formatted(agentContext.state()));
       }
-
-      var transformedToolCallResults = toolCallResults;
-      for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
-        transformedToolCallResults =
-            gatewayToolHandler.transformToolCallResults(agentContext, transformedToolCallResults);
-      }
-
-      transformedToolCallResults.stream()
-          .map(toolCallResultConverter::asToolExecutionResultMessage)
-          .forEach(chatMemory::add);
-    } else {
-      // feed messages with the user input message (first iteration or user follow-up request)
-      final var userPrompt = requestData.userPrompt();
-      final var userMessageBuilder =
-          UserMessage.builder()
-              .addContent(new TextContent(promptFromConfiguration(userPrompt).text()));
-
-      // add documents as content blocks
-      Optional.ofNullable(userPrompt.documents())
-          .orElseGet(Collections::emptyList)
-          .forEach(document -> userMessageBuilder.addContent(documentConverter.convert(document)));
-
-      chatMemory.add(userMessageBuilder.build());
     }
   }
 
