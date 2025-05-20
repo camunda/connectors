@@ -96,14 +96,14 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.excludedFields",
-    "label" : "Excluded Fields",
-    "description" : "List of fields that should not be returned from the extraction",
+    "id" : "input.includedFields",
+    "label" : "Included Fields",
+    "description" : "List of fields that should be returned from the extraction",
     "optional" : false,
-    "value" : "= input.excludedFields",
+    "value" : "= input.includedFields",
     "group" : "input",
     "binding" : {
-      "name" : "input.excludedFields",
+      "name" : "input.includedFields",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
