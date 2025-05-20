@@ -338,7 +338,7 @@ class DocumentAiCallerTest {
   }
 
   private Document.Page.Table.TableRow createMockTableRowWithSegments(
-      List<int[]> cellPositions, List<Float> confidences, String fullText) {
+      List<int[]> cellPositions, List<Float> confidences) {
 
     Document.Page.Table.TableRow mockRow = mock(Document.Page.Table.TableRow.class);
     List<Document.Page.Table.TableCell> cells = new ArrayList<>();
