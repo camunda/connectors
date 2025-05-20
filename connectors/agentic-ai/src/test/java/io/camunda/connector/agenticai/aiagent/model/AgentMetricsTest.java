@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -19,7 +20,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class AgentMetricsTest {
-  private static final AgentMetrics EMPTY_METRICS = AgentMetrics.empty();
+  private static final AgentMetrics EMPTY_METRICS = new AgentMetrics(0, new TokenUsage(0, 0));
 
   @Test
   void emptyMetrics() {
@@ -108,5 +109,27 @@ class AgentMetricsTest {
           arguments(new dev.langchain4j.model.output.TokenUsage(10), new TokenUsage(10, 0)),
           arguments(new dev.langchain4j.model.output.TokenUsage(10, 20), new TokenUsage(10, 20)));
     }
+  }
+
+  @ParameterizedTest
+  @MethodSource("invalidConstructorParameters")
+  void throwsExceptionOnInvalidConstructorParameters(
+      int modelCalls,
+      TokenUsage tokenUsage,
+      Class<? extends Throwable> exceptionClass,
+      String exceptionMessage) {
+    assertThatThrownBy(() -> new AgentMetrics(modelCalls, tokenUsage))
+        .isInstanceOf(exceptionClass)
+        .hasMessage(exceptionMessage);
+  }
+
+  static Stream<Arguments> invalidConstructorParameters() {
+    return Stream.of(
+        arguments(
+            -10,
+            TokenUsage.empty(),
+            IllegalArgumentException.class,
+            "Model calls must be non-negative"),
+        arguments(10, null, NullPointerException.class, "Token usage must not be null"));
   }
 }

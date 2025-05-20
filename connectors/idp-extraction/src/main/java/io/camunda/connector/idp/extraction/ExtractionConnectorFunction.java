@@ -22,18 +22,15 @@ import io.camunda.connector.idp.extraction.service.UnstructuredService;
     engineVersion = "^8.7",
     id = "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
     name = "IDP extraction outbound Connector",
-    version = 1,
+    version = 2,
     description = "Execute IDP extraction requests",
     icon = "icon.svg",
     documentationRef = "https://docs.camunda.io/docs/guides/",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
-      //      When wanting to generate a full-featured connector template we need to uncomment this
-      //      @ElementTemplate.PropertyGroup(id = "provider", label = "Provider selection"),
-      //      @ElementTemplate.PropertyGroup(id = "authentication", label = "Provider
-      // authentication"),
-      //      @ElementTemplate.PropertyGroup(id = "configuration", label = "Provider
-      // configuration"),
+      @ElementTemplate.PropertyGroup(id = "provider", label = "Provider selection"),
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Provider authentication"),
+      @ElementTemplate.PropertyGroup(id = "configuration", label = "Provider configuration"),
     },
     inputDataClass = ExtractionRequest.class)
 public class ExtractionConnectorFunction implements OutboundConnectorFunction {

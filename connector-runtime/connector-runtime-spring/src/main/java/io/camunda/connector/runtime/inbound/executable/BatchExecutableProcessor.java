@@ -215,26 +215,29 @@ public class BatchExecutableProcessor {
     InboundConnectorExecutable<InboundConnectorContext> newExecutable =
         connectorFactory.getInstance(cancelled.context().getDefinition().type());
     LOG.warn("Inbound connector executable has requested its reactivation");
-    RetryPolicy<Object> retryPolicy =
-        RetryPolicy.builder()
-            .withDelay(retryException.getBackoffDuration())
-            .onFailedAttempt(
-                event ->
-                    LOG.error(
-                        "Reactivation failed for inbound connector: {}",
-                        cancelled.context().getDefinition().type(),
-                        event.getLastException()))
-            .onRetry(
-                event ->
-                    LOG.warn(
-                        "Failure #{} to reactivate connector: {}. Retrying.",
-                        event.getAttemptCount(),
-                        cancelled.context().getDefinition().type()))
-            .withMaxRetries(retryException.getRetries())
-            .build();
-
-    return Failsafe.with(retryPolicy)
-        .getAsync(() -> tryRestart(newExecutable, cancelled.context()));
+    try {
+      RetryPolicy<Object> retryPolicy =
+          RetryPolicy.builder()
+              .withDelay(retryException.getBackoffDuration())
+              .onFailedAttempt(
+                  event ->
+                      LOG.error(
+                          "Reactivation failed for inbound connector: {}",
+                          cancelled.context().getDefinition().type(),
+                          event.getLastException()))
+              .onRetry(
+                  event ->
+                      LOG.warn(
+                          "Failure #{} to reactivate connector: {}. Retrying.",
+                          event.getAttemptCount(),
+                          cancelled.context().getDefinition().type()))
+              .withMaxRetries(retryException.getRetries())
+              .build();
+      return Failsafe.with(retryPolicy)
+          .getAsync(() -> tryRestart(newExecutable, cancelled.context()));
+    } catch (Exception e) {
+      return CompletableFuture.failedFuture(e);
+    }
   }
 
   private Activated tryRestart(

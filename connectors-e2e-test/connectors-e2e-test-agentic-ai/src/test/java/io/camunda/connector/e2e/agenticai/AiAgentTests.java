@@ -16,23 +16,35 @@
  */
 package io.camunda.connector.e2e.agenticai;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.filter;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.ImageContent.DetailLevel;
+import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.data.pdf.PdfFile;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
@@ -40,39 +52,62 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.client.api.search.response.Incident;
 import io.camunda.client.api.worker.JobWorker;
+import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentContentSerializer.CamundaDocumentResponseModel;
 import io.camunda.connector.agenticai.aiagent.memory.AgentContextChatMemoryStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 public class AiAgentTests extends BaseAgenticAiTest {
 
+  @RegisterExtension
+  static WireMockExtension wm =
+      WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
+
+  @Autowired private ResourceLoader resourceLoader;
+
   @MockitoBean private ChatModelFactory chatModelFactory;
-  @Mock private ChatLanguageModel chatModel;
+  @Mock private ChatModel chatModel;
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
+
+  @MockitoSpyBean private ToolCallingHandler toolCallingHandler;
 
   private JobWorker jobWorker;
   private final AtomicInteger jobWorkerCounter = new AtomicInteger(0);
@@ -82,10 +117,21 @@ public class AiAgentTests extends BaseAgenticAiTest {
   @BeforeEach
   void setUp() {
     when(chatModelFactory.createChatModel(any())).thenReturn(chatModel);
+    openUserFeedbackJobWorker();
 
+    // WireMock returns the content type for the YAML file as application/json, so
+    // we need to override the stub manually
+    wm.stubFor(
+        get(urlPathEqualTo("/test.yaml"))
+            .willReturn(
+                aResponse()
+                    .withBodyFile("test.yaml")
+                    .withHeader("Content-Type", "application/yaml")));
+  }
+
+  private void openUserFeedbackJobWorker() {
     userFeedbackVariables.set(Collections.emptyMap());
     jobWorkerCounter.set(0);
-
     jobWorker =
         camundaClient
             .newWorker()
@@ -114,6 +160,26 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
     @Test
     void executesAgentWithoutUserFeedback() throws Exception {
+      testBasicExecutionWithoutFeedbackLoop(m -> m, true);
+    }
+
+    @Test
+    void basicExecutionWorksWithoutOptionalConfiguration() throws Exception {
+      testBasicExecutionWithoutFeedbackLoop(
+          withoutInputsMatching(
+              i ->
+                  i.getTarget().startsWith("data.tools.")
+                      || i.getTarget().startsWith("data.memory.")
+                      || i.getTarget().startsWith("data.limits.")),
+          false);
+
+      verify(toolCallingHandler, never()).loadToolSpecifications(any(), any());
+    }
+
+    private void testBasicExecutionWithoutFeedbackLoop(
+        Function<BpmnModelInstance, BpmnModelInstance> modelModifier,
+        boolean assertToolSpecifications)
+        throws Exception {
       final var initialUserPrompt = "Write a haiku about the sea";
       final var expectedConversation =
           List.of(
@@ -138,10 +204,11 @@ public class AiAgentTests extends BaseAgenticAiTest {
               userSatisfiedFeedback()));
 
       final var zeebeTest =
-          createProcessInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+          createProcessInstance(
+                  modelModifier, Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
               .waitForProcessCompletion();
 
-      assertLastChatRequest(1, expectedConversation);
+      assertLastChatRequest(1, expectedConversation, assertToolSpecifications);
 
       final var agentResponse = getAgentResponse(zeebeTest);
       assertAgentResponse(
@@ -286,13 +353,276 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
+
+    @ParameterizedTest
+    @CsvSource({
+      "test.csv,text,text/csv",
+      "test.gif,base64,image/gif",
+      "test.jpg,base64,image/jpeg",
+      "test.json,text,application/json",
+      "test.pdf,base64,application/pdf",
+      "test.png,base64,image/png",
+      "test.txt,text,text/plain",
+      "test.webp,base64,image/webp",
+      "test.xml,text,application/xml",
+      "test.yaml,text,application/yaml"
+    })
+    void supportsDocumentResponsesFromToolCalls(String filename, String type, String mimeType)
+        throws Exception {
+      DownloadFileToolResult expectedDownloadFileResult;
+      if (type.equals("text")) {
+        expectedDownloadFileResult =
+            new DownloadFileToolResult(
+                200,
+                new CamundaDocumentResponseModel(type, mimeType, testFileContent(filename).get()));
+      } else {
+        expectedDownloadFileResult =
+            new DownloadFileToolResult(
+                200,
+                new CamundaDocumentResponseModel(
+                    type, mimeType, testFileContentBase64(filename).get()));
+      }
+
+      final var initialUserPrompt = "Go and download a document!";
+      final var expectedConversation =
+          List.of(
+              new SystemMessage(
+                  "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
+              new UserMessage(initialUserPrompt),
+              new AiMessage(
+                  "The user asked me to download a document. I will call the Download_A_File tool to do so.",
+                  List.of(
+                      ToolExecutionRequest.builder()
+                          .id("aaa111")
+                          .name("Download_A_File")
+                          .arguments("{\"url\": \"%s\"}".formatted(wm.baseUrl() + "/" + filename))
+                          .build())),
+              new ToolExecutionResultMessage(
+                  "aaa111",
+                  "Download_A_File",
+                  objectMapper.writeValueAsString(expectedDownloadFileResult)),
+              new AiMessage(
+                  "I loaded a document and learned that it contains interesting data. Anything specific you want to know?"),
+              new UserMessage("What is the content type?"),
+              new AiMessage("The content type is '%s'".formatted(mimeType)));
+
+      mockChatInteractions(
+          ChatInteraction.of(
+              ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(10, 20))
+                          .build())
+                  .aiMessage((AiMessage) expectedConversation.get(2))
+                  .build()),
+          ChatInteraction.of(
+              ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(100, 200))
+                          .build())
+                  .aiMessage((AiMessage) expectedConversation.get(4))
+                  .build(),
+              userFollowUpFeedback("What is the content type?")),
+          ChatInteraction.of(
+              ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(11, 22))
+                          .build())
+                  .aiMessage((AiMessage) expectedConversation.get(6))
+                  .build(),
+              userSatisfiedFeedback()));
+
+      final var zeebeTest =
+          createProcessInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+              .waitForProcessCompletion();
+
+      assertLastChatRequest(3, expectedConversation);
+
+      final var agentResponse = getAgentResponse(zeebeTest);
+      assertAgentResponse(
+          agentResponse,
+          new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)),
+          expectedConversation);
+
+      assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    }
   }
 
   @Nested
-  class Guardrails {
+  class UserPromptDocuments {
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = {
+          "test.csv",
+          "test.gif",
+          "test.jpg",
+          "test.json",
+          "test.pdf",
+          "test.png",
+          "test.txt",
+          "test.webp",
+          "test.xml",
+          "test.yaml"
+        })
+    void handlesDocumentType(String filename) throws Exception {
+      final var initialUserPrompt = "Summarize the following document";
+      final var expectedConversation =
+          List.of(
+              new SystemMessage(
+                  "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
+              UserMessage.builder()
+                  .addContent(new TextContent(initialUserPrompt))
+                  .addContent(asContentBlock(filename))
+                  .build(),
+              new AiMessage("TL;DR: it is pretty interesting"));
+
+      mockChatInteractions(
+          ChatInteraction.of(
+              ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(10, 20))
+                          .build())
+                  .aiMessage(new AiMessage("TL;DR: it is pretty interesting"))
+                  .build(),
+              userSatisfiedFeedback()));
+
+      final var zeebeTest =
+          createProcessInstance(
+                  Map.of(
+                      "action",
+                      "executeAgent",
+                      "userPrompt",
+                      initialUserPrompt,
+                      "downloadUrls",
+                      List.of(wm.baseUrl() + "/" + filename)))
+              .waitForProcessCompletion();
+
+      assertLastChatRequest(1, expectedConversation);
+
+      final var agentResponse = getAgentResponse(zeebeTest);
+      assertAgentResponse(
+          agentResponse,
+          new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)),
+          expectedConversation);
+
+      assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    }
 
     @Test
-    void raisesErrorWhenMaximumModelCallsAreReached() throws IOException {
+    void handlesMultipleDocuments() throws Exception {
+      final var initialUserPrompt = "Summarize the following documents";
+      final var expectedConversation =
+          List.of(
+              new SystemMessage(
+                  "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
+              UserMessage.builder()
+                  .addContent(new TextContent(initialUserPrompt))
+                  .addContent(asContentBlock("test.txt"))
+                  .addContent(asContentBlock("test.jpg"))
+                  .build(),
+              new AiMessage("TL;DR: they contain a lot of interesting information."));
+
+      mockChatInteractions(
+          ChatInteraction.of(
+              ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(10, 20))
+                          .build())
+                  .aiMessage(new AiMessage("TL;DR: they contain a lot of interesting information."))
+                  .build(),
+              userSatisfiedFeedback()));
+
+      final var zeebeTest =
+          createProcessInstance(
+                  Map.of(
+                      "action",
+                      "executeAgent",
+                      "userPrompt",
+                      initialUserPrompt,
+                      "downloadUrls",
+                      List.of(wm.baseUrl() + "/test.txt", wm.baseUrl() + "/test.jpg")))
+              .waitForProcessCompletion();
+
+      assertLastChatRequest(1, expectedConversation);
+
+      final var agentResponse = getAgentResponse(zeebeTest);
+      assertAgentResponse(
+          agentResponse,
+          new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)),
+          expectedConversation);
+
+      assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    }
+
+    @Test
+    void raisesIncidentWhenDocumentTypeIsNotSupported() throws Exception {
+      final var zeebeTest =
+          createProcessInstance(
+                  Map.of(
+                      "action",
+                      "executeAgent",
+                      "userPrompt",
+                      "Summarize the following document",
+                      "downloadUrls",
+                      List.of(wm.baseUrl() + "/unsupported.zip")))
+              .waitForActiveIncidents();
+
+      assertIncident(
+          zeebeTest,
+          incident -> {
+            assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+            assertThat(incident.getErrorMessage())
+                .startsWith(
+                    "Unsupported content type 'application/zip' for document with reference");
+          });
+    }
+
+    private Content asContentBlock(String filename) throws Exception {
+      final Supplier<String> text = testFileContent(filename);
+      final Supplier<String> b64 = testFileContentBase64(filename);
+
+      return switch (filename) {
+        case "test.txt", "test.yaml", "test.csv", "test.json", "test.xml" ->
+            TextContent.from(text.get());
+        case "test.pdf" -> PdfFileContent.from(PdfFile.builder().base64Data(b64.get()).build());
+        case "test.gif" -> ImageContent.from(b64.get(), "image/gif", DetailLevel.AUTO);
+        case "test.jpg" -> ImageContent.from(b64.get(), "image/jpeg", DetailLevel.AUTO);
+        case "test.png" -> ImageContent.from(b64.get(), "image/png", DetailLevel.AUTO);
+        case "test.webp" -> ImageContent.from(b64.get(), "image/webp", DetailLevel.AUTO);
+        default -> throw new IllegalStateException("Unsupported file: " + filename);
+      };
+    }
+  }
+
+  @Nested
+  class Limits {
+
+    @Test
+    void raisesIncidentWhenMaximumModelCallsAreReached() throws Throwable {
+      // 9 = custom value set in the process definition
+      testMaxModelCallsLoop(m -> m, 9);
+    }
+
+    @Test
+    void fallsBackToADefaultMaxModelCallsLimitWhenNoLimitIsConfigured() throws Throwable {
+      // 10 = default value
+      testMaxModelCallsLoop(
+          withoutInputsMatching(input -> input.getTarget().startsWith("data.limits.")), 10);
+    }
+
+    private void testMaxModelCallsLoop(
+        Function<BpmnModelInstance, BpmnModelInstance> modelModifier, int expectedMaxModelCalls)
+        throws Throwable {
       // infinite loop - always returning the same answer and handling the same user feedback
       doAnswer(
               invocationOnMock -> {
@@ -313,24 +643,31 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
       final var zeebeTest =
           createProcessInstance(
+                  modelModifier,
                   Map.of("action", "executeAgent", "userPrompt", "Write a haiku about the sea"))
               .waitForActiveIncidents();
 
       assertIncident(
           zeebeTest,
           incident -> {
-            assertThat(incident.getElementId()).isEqualTo("AI_Agent");
+            assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
             assertThat(incident.getErrorMessage())
-                .isEqualTo("Maximum number of model calls reached");
+                .isEqualTo(
+                    "Maximum number of model calls reached (modelCalls: %1$d, limit: %1$d)"
+                        .formatted(expectedMaxModelCalls));
           });
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertThat(agentResponse.context().metrics().modelCalls()).isEqualTo(10);
+      assertThat(agentResponse.context().metrics().modelCalls()).isEqualTo(expectedMaxModelCalls);
 
       final var chatMemoryMessages = chatMemoryMessages(agentResponse.context());
       assertThat(chatMemoryMessages).filteredOn(msg -> msg instanceof SystemMessage).hasSize(1);
-      assertThat(chatMemoryMessages).filteredOn(msg -> msg instanceof AiMessage).hasSize(10);
-      assertThat(chatMemoryMessages).filteredOn(msg -> msg instanceof UserMessage).hasSize(10);
+      assertThat(chatMemoryMessages)
+          .filteredOn(msg -> msg instanceof AiMessage)
+          .hasSize(expectedMaxModelCalls);
+      assertThat(chatMemoryMessages)
+          .filteredOn(msg -> msg instanceof UserMessage)
+          .hasSize(expectedMaxModelCalls);
     }
   }
 
@@ -348,10 +685,21 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
   private void assertLastChatRequest(
       int expectedChatRequestCount, List<ChatMessage> expectedConversation) {
+    assertLastChatRequest(expectedChatRequestCount, expectedConversation, true);
+  }
+
+  private void assertLastChatRequest(
+      int expectedChatRequestCount,
+      List<ChatMessage> expectedConversation,
+      boolean assertToolSpecifications) {
     assertThat(chatRequestCaptor.getAllValues()).hasSize(expectedChatRequestCount);
 
     final var lastChatRequest = chatRequestCaptor.getValue();
-    assertToolSpecifications(lastChatRequest);
+
+    if (assertToolSpecifications) {
+      assertToolSpecifications(lastChatRequest);
+    }
+
     assertThat(lastChatRequest.messages())
         .as("The last chat request should contain all messages except the last response")
         .containsExactlyElementsOf(
@@ -362,7 +710,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
       AgentResponse agentResponse, AgentMetrics expectedMetrics, List<ChatMessage> expectedMessages)
       throws JsonProcessingException {
     assertThat(agentResponse).isNotNull();
-    assertThat(agentResponse.toolsToCall()).isEmpty();
+    assertThat(agentResponse.toolCalls()).isEmpty();
     assertTrue(agentResponse.context().isInState(AgentState.READY));
     assertThat(agentResponse.context().metrics()).isEqualTo(expectedMetrics);
 
@@ -388,9 +736,14 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
   private void assertToolSpecifications(ChatRequest chatRequest) {
     assertThat(chatRequest.toolSpecifications())
-        .hasSize(4)
         .extracting(ToolSpecification::name)
-        .containsExactly("GetDateAndTime", "SuperfluxProduct", "Search_The_Web", "An_Event");
+        .containsExactly(
+            "GetDateAndTime",
+            "SuperfluxProduct",
+            "Search_The_Web",
+            "A_Complex_Tool",
+            "Download_A_File",
+            "An_Event");
   }
 
   private void assertIncident(ZeebeTest zeebeTest, ThrowingConsumer<Incident> assertion) {
@@ -408,16 +761,51 @@ public class AiAgentTests extends BaseAgenticAiTest {
   }
 
   private AgentResponse getAgentResponse(ZeebeTest zeebeTest) throws JsonProcessingException {
-    final var agentVariable =
+    final var agentVariableSearchResult =
         new CamundaDataSource(camundaClient)
                 .findVariablesByProcessInstanceKey(
                     zeebeTest.getProcessInstanceEvent().getProcessInstanceKey())
                 .stream()
                 .filter(variable -> variable.getName().equals("agent"))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Agent variable not found"));
+                .orElseThrow(() -> new RuntimeException("Agent variable 'agent' not found"));
 
-    return objectMapper.readValue(agentVariable.getValue(), AgentResponse.class);
+    if (agentVariableSearchResult.isTruncated()) {
+      final var agentVariable =
+          camundaClient
+              .newVariableGetRequest(agentVariableSearchResult.getVariableKey())
+              .send()
+              .join();
+
+      return objectMapper.readValue(agentVariable.getValue(), AgentResponse.class);
+    }
+
+    return objectMapper.readValue(agentVariableSearchResult.getValue(), AgentResponse.class);
+  }
+
+  private Resource testFileResource(String filename) {
+    return resourceLoader.getResource("classpath:__files/" + filename);
+  }
+
+  private Supplier<String> testFileContent(String filename) {
+    return () -> {
+      try {
+        return testFileResource(filename).getContentAsString(StandardCharsets.UTF_8);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    };
+  }
+
+  private Supplier<String> testFileContentBase64(String filename) {
+    return () -> {
+      try {
+        return Base64.getEncoder()
+            .encodeToString(testFileResource(filename).getContentAsByteArray());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
   }
 
   private Map<String, Object> userSatisfiedFeedback() {
@@ -437,4 +825,6 @@ public class AiAgentTests extends BaseAgenticAiTest {
       return new ChatInteraction(chatResponse, userFeedback);
     }
   }
+
+  private record DownloadFileToolResult(int status, CamundaDocumentResponseModel document) {}
 }

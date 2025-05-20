@@ -24,7 +24,7 @@ import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
     name = "RabbitMQ Outbound Connector",
     description = "Send message to RabbitMQ",
     inputDataClass = RabbitMqRequest.class,
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "routing", label = "Routing"),

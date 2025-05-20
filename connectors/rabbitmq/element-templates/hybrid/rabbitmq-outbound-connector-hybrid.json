@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -251,7 +251,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

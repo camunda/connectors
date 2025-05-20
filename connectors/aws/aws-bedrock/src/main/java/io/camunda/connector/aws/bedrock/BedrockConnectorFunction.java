@@ -26,7 +26,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
         @ElementTemplate.Metadata(
             keywords = {"invoke model", "run inference", "invokemodel API", "converse API"}),
     inputDataClass = BedrockRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

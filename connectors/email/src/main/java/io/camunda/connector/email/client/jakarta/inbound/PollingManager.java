@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.email.client.jakarta.inbound;
 
-import io.camunda.connector.api.inbound.ActivationCheckResult;
-import io.camunda.connector.api.inbound.CorrelationRequest;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
@@ -18,6 +18,8 @@ import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
 import jakarta.mail.*;
 import jakarta.mail.search.FlagTerm;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -48,6 +50,19 @@ public class PollingManager {
     this.jakartaUtils = jakartaUtils;
     this.folder = folder;
     this.store = store;
+  }
+
+  private static ReadEmailResponse createResponse(Email email, List<Document> documents) {
+    return new ReadEmailResponse(
+        email.messageId(),
+        email.from(),
+        email.headers(),
+        email.subject(),
+        email.size(),
+        email.body().bodyAsPlainText(),
+        email.body().bodyAsHtml(),
+        documents,
+        email.receivedAt());
   }
 
   public static PollingManager create(
@@ -87,6 +102,57 @@ public class PollingManager {
     }
   }
 
+  private List<Document> createDocumentList(Email email) {
+    return email.body().attachments().stream()
+        .map(
+            document ->
+                this.connectorContext.create(
+                    DocumentCreationRequest.from(document.inputStream())
+                        .contentType(document.contentType())
+                        .fileName(document.name())
+                        .build()))
+        .toList();
+  }
+
+  private boolean correlate(Email email) {
+    List<Document> documents = createDocumentList(email);
+    CorrelationRequest correlationRequest =
+        CorrelationRequest.builder()
+            .variables(createResponse(email, documents))
+            .messageId(email.messageId())
+            .build();
+    return switch (this.connectorContext.correlate(correlationRequest)) {
+      case CorrelationResult.Failure failure ->
+          switch (failure.handlingStrategy()) {
+            case CorrelationFailureHandlingStrategy.ForwardErrorToUpstream ignored -> {
+              this.connectorContext.log(
+                  Activity.level(Severity.ERROR)
+                      .tag("ForwardErrorToUpstream")
+                      .message(
+                          "Error processing mail: %s, message %s"
+                              .formatted(email.messageId(), failure.message())));
+              yield false;
+            }
+            case CorrelationFailureHandlingStrategy.Ignore ignored -> {
+              this.connectorContext.log(
+                  Activity.level(Severity.INFO)
+                      .tag("Ignore")
+                      .message(
+                          "No activation condition was met for email: %s. `Consume unmatched event` was selected. Continuing.."
+                              .formatted(email.messageId())));
+              yield true;
+            }
+          };
+      case CorrelationResult.Success ignored -> {
+        this.connectorContext.log(
+            Activity.level(Severity.INFO)
+                .tag("Success")
+                .message("Correlated email: %s".formatted(email.messageId())));
+        yield true;
+      }
+    };
+  }
+
   public void poll() {
     this.prepareForPolling();
     switch (this.emailListenerConfig.pollingConfig()) {
@@ -118,8 +184,10 @@ public class PollingManager {
     try {
       Message[] messages = this.folder.getMessages();
       Arrays.stream(messages).forEach(message -> this.processMail((IMAPMessage) message, pollAll));
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
+    } catch (Exception e) {
+      this.connectorContext.log(
+          Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
+      this.connectorContext.cancel(new ConnectorException(e.getMessage(), e));
     }
   }
 
@@ -129,8 +197,16 @@ public class PollingManager {
       Message[] unseenMessages = this.folder.search(unseenFlagTerm, this.folder.getMessages());
       Arrays.stream(unseenMessages)
           .forEach(message -> this.processMail((IMAPMessage) message, pollUnseen));
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
+    } catch (Exception e) {
+      this.connectorContext.log(
+          Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
+      this.connectorContext.cancel(
+          ConnectorRetryException.builder()
+              .cause(e)
+              .message(e.getMessage())
+              .retries(2)
+              .backoffDuration(Duration.of(3, ChronoUnit.SECONDS))
+              .build());
     }
   }
 
@@ -138,59 +214,62 @@ public class PollingManager {
     // Setting `peek` to true prevents the library to trigger any side effects when reading the
     // message, such as marking it as read
     message.setPeek(true);
-    this.correlateEmail(message, connectorContext);
+    Email email = this.jakartaUtils.createEmail(message);
+    boolean markAsProcessed = process(email);
     message.setPeek(false);
-    switch (pollingConfig.handlingStrategy()) {
-      case READ -> this.jakartaUtils.markAsSeen(message);
-      case DELETE -> this.jakartaUtils.markAsDeleted(message);
-      case MOVE -> this.jakartaUtils.moveMessage(this.store, message, pollingConfig.targetFolder());
+    if (markAsProcessed) {
+      switch (pollingConfig.handlingStrategy()) {
+        case READ -> this.jakartaUtils.markAsSeen(message);
+        case DELETE -> this.jakartaUtils.markAsDeleted(message);
+        case MOVE -> {
+          this.jakartaUtils.markAsSeen(message);
+          this.jakartaUtils.moveMessage(this.store, message, pollingConfig.targetFolder());
+        }
+      }
     }
   }
 
-  private void correlateEmail(Message message, InboundConnectorContext connectorContext) {
-    Email email = this.jakartaUtils.createEmail(message);
-    List<Document> documents = this.createDocumentList(email, connectorContext);
-    connectorContext.correlate(
-        CorrelationRequest.builder()
-            .variables(
-                new ReadEmailResponse(
-                    email.messageId(),
-                    email.from(),
-                    email.headers(),
-                    email.subject(),
-                    email.size(),
-                    email.body().bodyAsPlainText(),
-                    email.body().bodyAsHtml(),
-                    documents,
-                    email.receivedAt()))
-            .messageId(email.messageId())
-            .build());
-  }
-
-  private List<Document> createDocumentList(Email email, InboundConnectorContext connectorContext) {
-    if (!(connectorContext.canActivate(
-            new ReadEmailResponse(
-                email.messageId(),
-                email.from(),
-                email.headers(),
-                email.subject(),
-                email.size(),
-                email.body().bodyAsPlainText(),
-                email.body().bodyAsHtml(),
-                List.of(),
-                email.receivedAt()))
-        instanceof ActivationCheckResult.Success)) {
-      return List.of();
-    } else
-      return email.body().attachments().stream()
-          .map(
-              document ->
-                  connectorContext.create(
-                      DocumentCreationRequest.from(document.inputStream())
-                          .contentType(document.contentType())
-                          .fileName(document.name())
-                          .build()))
-          .toList();
+  private boolean process(Email email) {
+    this.connectorContext.log(
+        Activity.level(Severity.INFO)
+            .tag("new-email")
+            .message("Processing email: %s".formatted(email.messageId())));
+    ActivationCheckResult activationCheckResult =
+        this.connectorContext.canActivate(createResponse(email, List.of()));
+    return switch (activationCheckResult) {
+      case ActivationCheckResult.Failure failure ->
+          switch (failure) {
+            case ActivationCheckResult.Failure.NoMatchingElement noMatchingElement -> {
+              if (noMatchingElement.discardUnmatchedEvents()) {
+                this.connectorContext.log(
+                    Activity.level(Severity.INFO)
+                        .tag("NoMatchingElement")
+                        .message(
+                            "No matching activation condition. Discarding unmatched email: %s"
+                                .formatted(email.messageId())));
+                yield true;
+              } else {
+                this.connectorContext.log(
+                    Activity.level(Severity.INFO)
+                        .tag("NoMatchingElement")
+                        .message(
+                            "No matching activation condition. Not discarding unmatched email: %s"
+                                .formatted(email.messageId())));
+                yield false;
+              }
+            }
+            case ActivationCheckResult.Failure.TooManyMatchingElements ignored -> {
+              this.connectorContext.log(
+                  Activity.level(Severity.ERROR)
+                      .tag("TooManyMatchingElements")
+                      .message(
+                          "Too many matching activation conditions. Email: %s"
+                              .formatted(email.messageId())));
+              yield false;
+            }
+          };
+      case ActivationCheckResult.Success ignored -> correlate(email);
+    };
   }
 
   public long delay() {

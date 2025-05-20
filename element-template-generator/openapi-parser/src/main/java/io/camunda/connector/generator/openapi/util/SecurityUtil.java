@@ -38,7 +38,25 @@ public class SecurityUtil {
 
   public static List<HttpAuthentication> parseAuthentication(
       List<SecurityRequirement> security, Components components) {
-    if (security == null) {
+
+    boolean operationSecuritySchemeOverwritesGlobalWithNoAuth =
+        (security != null && security.isEmpty());
+    boolean operationSecuritySchemeAndGlobalSchemeIsEmtpy =
+        (security == null && components == null)
+            || (security == null && components.getSecuritySchemes() == null);
+
+    if (operationSecuritySchemeOverwritesGlobalWithNoAuth
+        || operationSecuritySchemeAndGlobalSchemeIsEmtpy) {
+      LOG.info("No security schemes found, providing default security section");
+      return List.of(
+          new HttpAuthentication.NoAuth(),
+          new HttpAuthentication.BasicAuth(""),
+          new HttpAuthentication.BearerAuth(),
+          new HttpAuthentication.OAuth2("", Set.of("")),
+          new HttpAuthentication.ApiKey("", "", ""));
+    }
+    boolean operationSecuritySchemeIsEmptyFallbackToGlobal = (security == null);
+    if (operationSecuritySchemeIsEmptyFallbackToGlobal) {
       return Collections.emptyList();
     }
 

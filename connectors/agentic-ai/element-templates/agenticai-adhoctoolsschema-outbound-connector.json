@@ -1,8 +1,8 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Ad-hoc subprocess tools schema (alpha)",
+  "name" : "Ad-hoc tools schema (alpha)",
   "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v0",
-  "description" : "Connector to fetch tools schema information from an ad-hoc subprocess",
+  "description" : "Connector to fetch tools schema information from an ad-hoc sub-process",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -18,6 +18,9 @@
   "groups" : [ {
     "id" : "tools",
     "label" : "Available Tools"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -37,9 +40,12 @@
     "type" : "Hidden"
   }, {
     "id" : "data.containerElementId",
-    "label" : "Ad-hoc subprocess ID containing tools",
-    "description" : "The ID of the subprocess containing the tools to be called",
+    "label" : "Ad-hoc sub-process ID",
+    "description" : "The ID of the sub-process containing the tools to be called",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "tools",
     "binding" : {
@@ -47,6 +53,28 @@
       "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.agenticai.adhoctoolsschema.v0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

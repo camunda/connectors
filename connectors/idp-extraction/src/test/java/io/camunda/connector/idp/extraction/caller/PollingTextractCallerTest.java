@@ -62,13 +62,13 @@ class PollingTextractCallerTest {
   }
 
   @Test
-  void callTextractDocumentAnalysisWithSuccess() throws Exception {
+  void callTextractTextDetectionWithSuccess() throws Exception {
     String jobId = "1";
-    GetDocumentAnalysisRequest getDocumentAnalysisRequest =
-        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
 
-    GetDocumentAnalysisResponse getDocumentAnalysisResponse =
-        GetDocumentAnalysisResponse.builder()
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse =
+        GetDocumentTextDetectionResponse.builder()
             .jobStatus(JobStatus.SUCCEEDED)
             .blocks(
                 List.of(
@@ -76,14 +76,14 @@ class PollingTextractCallerTest {
                     Block.builder().text("BBB").blockType(BlockType.LINE).build()))
             .build();
 
-    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
-        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
 
-    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(startDocumentAnalysisResponse);
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
 
-    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest))
-        .thenReturn(getDocumentAnalysisResponse);
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest))
+        .thenReturn(getDocumentTextDetectionResponse);
 
     String expectedExtractedText = "AAA\nBBB";
     String extractedText =
@@ -94,25 +94,25 @@ class PollingTextractCallerTest {
   }
 
   @Test
-  void callTextractDocumentAnalysisWithEmptyResult() throws Exception {
+  void callTextractTextDetectionWithEmptyResult() throws Exception {
     String jobId = "1";
-    GetDocumentAnalysisRequest getDocumentAnalysisRequest =
-        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
 
-    GetDocumentAnalysisResponse getDocumentAnalysisResponse =
-        GetDocumentAnalysisResponse.builder()
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse =
+        GetDocumentTextDetectionResponse.builder()
             .jobStatus(JobStatus.SUCCEEDED)
             .blocks(List.of())
             .build();
 
-    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
-        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
 
-    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(startDocumentAnalysisResponse);
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
 
-    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest))
-        .thenReturn(getDocumentAnalysisResponse);
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest))
+        .thenReturn(getDocumentTextDetectionResponse);
 
     String expectedExtractedText = "";
     String extractedText =
@@ -123,25 +123,25 @@ class PollingTextractCallerTest {
   }
 
   @Test
-  void callTextractDocumentAnalysisWithFailure() {
+  void callTextractTextDetectionWithFailure() {
     String jobId = "1";
-    GetDocumentAnalysisRequest getDocumentAnalysisRequest =
-        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
 
-    GetDocumentAnalysisResponse getDocumentAnalysisResponse =
-        GetDocumentAnalysisResponse.builder()
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse =
+        GetDocumentTextDetectionResponse.builder()
             .jobStatus(JobStatus.FAILED)
             .statusMessage("Test exception message")
             .build();
 
-    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
-        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
 
-    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(startDocumentAnalysisResponse);
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
 
-    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest))
-        .thenReturn(getDocumentAnalysisResponse);
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest))
+        .thenReturn(getDocumentTextDetectionResponse);
 
     PollingTextractCaller pollingTextractCaller = new PollingTextractCaller();
 

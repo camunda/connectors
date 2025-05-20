@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
         @ElementTemplate.Metadata(
             keywords = {"create file", "create file from template", "create folder"}),
     inputDataClass = GoogleDriveRequest.class,
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),

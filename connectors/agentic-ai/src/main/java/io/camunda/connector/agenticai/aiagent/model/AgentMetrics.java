@@ -6,9 +6,20 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public record AgentMetrics(int modelCalls, TokenUsage tokenUsage) {
+  public static final AgentMetrics EMPTY = new AgentMetrics(0, TokenUsage.empty());
+
+  public AgentMetrics {
+    if (modelCalls < 0) {
+      throw new IllegalArgumentException("Model calls must be non-negative");
+    }
+
+    Objects.requireNonNull(tokenUsage, "Token usage must not be null");
+  }
+
   public AgentMetrics withModelCalls(int modelCalls) {
     return new AgentMetrics(modelCalls, tokenUsage);
   }
@@ -25,11 +36,16 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage) {
     return withTokenUsage(tokenUsage.add(additionalTokenUsage));
   }
 
+  public boolean isEmpty() {
+    return this.equals(EMPTY);
+  }
+
   public static AgentMetrics empty() {
-    return new AgentMetrics(0, TokenUsage.empty());
+    return EMPTY;
   }
 
   public record TokenUsage(int inputTokenCount, int outputTokenCount) {
+    public static final TokenUsage EMPTY = new TokenUsage(0, 0);
 
     public int totalTokenCount() {
       return inputTokenCount + outputTokenCount;
@@ -41,8 +57,12 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage) {
           outputTokenCount() + tokenUsage.outputTokenCount());
     }
 
+    public boolean isEmpty() {
+      return this.equals(EMPTY);
+    }
+
     public static TokenUsage empty() {
-      return new TokenUsage(0, 0);
+      return EMPTY;
     }
 
     public static TokenUsage from(dev.langchain4j.model.output.TokenUsage tokenUsage) {

@@ -1,0 +1,53 @@
+{
+  "components": [
+    {
+      "text": "{{instructions}}\n\n---\n\n**Recipient**: {{recipient_name}} &lt;{{recipient_email}}&gt;\n**Subject**: {{email_subject}}\n\n{{email_body}}\n",
+      "type": "text",
+      "layout": {
+        "row": "Row_1ko9ud1",
+        "columns": null
+      },
+      "id": "Field_0wn5mar"
+    },
+    {
+      "type": "separator",
+      "layout": {
+        "row": "Row_1loqtfk",
+        "columns": null
+      },
+      "id": "Field_0uhe0yn"
+    },
+    {
+      "label": "Can you send the e-mail?",
+      "type": "checkbox",
+      "layout": {
+        "row": "Row_03aistc",
+        "columns": null
+      },
+      "id": "Field_0weyspd",
+      "key": "emailOk"
+    },
+    {
+      "label": "E-mail sending operator feedback",
+      "type": "textarea",
+      "layout": {
+        "row": "Row_18xl7gf",
+        "columns": null
+      },
+      "id": "Field_001235a",
+      "key": "operatorFeedback",
+      "conditional": {
+        "hide": "=emailOk"
+      }
+    }
+  ],
+  "type": "default",
+  "id": "ai-agent-chat-human-send-email-request",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.34.0"
+  },
+  "schemaVersion": 18
+}

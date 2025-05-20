@@ -23,8 +23,8 @@ public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver
 
   @Override
   public AdHocToolsSchemaResponse resolveSchema(
-      Long processDefinitionKey, String adHocSubprocessId) {
-    return cache.get(new AdHocToolsIdentifier(processDefinitionKey, adHocSubprocessId));
+      Long processDefinitionKey, String adHocSubProcessId) {
+    return cache.get(new AdHocToolsIdentifier(processDefinitionKey, adHocSubProcessId));
   }
 
   private LoadingCache<AdHocToolsIdentifier, AdHocToolsSchemaResponse> buildCache(
@@ -36,10 +36,20 @@ public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver
     Optional.ofNullable(config.expireAfterWrite()).ifPresent(builder::expireAfterWrite);
 
     return builder.build(
-        id -> delegate.resolveSchema(id.processDefinitionKey(), id.adHocSubprocessId()));
+        id -> delegate.resolveSchema(id.processDefinitionKey(), id.adHocSubProcessId()));
   }
 
-  private record AdHocToolsIdentifier(Long processDefinitionKey, String adHocSubprocessId) {}
+  private record AdHocToolsIdentifier(Long processDefinitionKey, String adHocSubProcessId) {
+    private AdHocToolsIdentifier {
+      if (processDefinitionKey == null || processDefinitionKey <= 0) {
+        throw new IllegalArgumentException("Process definition key must not be null or negative");
+      }
+
+      if (adHocSubProcessId == null || adHocSubProcessId.isBlank()) {
+        throw new IllegalArgumentException("adHocSubProcessId cannot be null or empty");
+      }
+    }
+  }
 
   public record CacheConfiguration(Long maximumSize, Duration expireAfterWrite) {}
 }

@@ -6,6 +6,19 @@
  */
 package io.camunda.connector.agenticai.aiagent.tools;
 
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ADDITIONAL_PROPERTIES;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_DESCRIPTION;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ENUM;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ITEMS;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_REQUIRED;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_ARRAY;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_BOOLEAN;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_INTEGER;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_NUMBER;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_OBJECT;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_STRING;
 import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,21 +45,6 @@ import java.util.Map;
  * dev.langchain4j.mcp.client.ToolSpecificationHelper.
  */
 public class ToolSpecificationConverter {
-
-  private static final String TYPE_OBJECT = "object";
-  private static final String TYPE_STRING = "string";
-  private static final String TYPE_NUMBER = "number";
-  private static final String TYPE_INTEGER = "integer";
-  private static final String TYPE_BOOLEAN = "boolean";
-  private static final String TYPE_ARRAY = "array";
-
-  private static final String PROPERTY_TYPE = "type";
-  private static final String PROPERTY_DESCRIPTION = "description";
-  private static final String PROPERTY_REQUIRED = "required";
-  private static final String PROPERTY_ADDITIONAL_PROPERTIES = "additionalProperties";
-  private static final String PROPERTY_PROPERTIES = "properties";
-  private static final String PROPERTY_ENUM = "enum";
-  private static final String PROPERTY_ITEMS = "items";
 
   private final JsonSchemaFactory jsonSchemaFactory;
 

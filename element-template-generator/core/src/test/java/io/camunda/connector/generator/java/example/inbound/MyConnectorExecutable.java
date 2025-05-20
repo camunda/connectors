@@ -21,13 +21,6 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
-@InboundConnector(name = "my-inbound-connector", type = "my-inbound-connector-type")
-@ElementTemplate(
-    engineVersion = "^8.7",
-    id = MyConnectorExecutable.ID,
-    name = MyConnectorExecutable.NAME,
-    inputDataClass = MyConnectorProperties.class,
-    icon = "my-connector-icon.png")
 public class MyConnectorExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 
   public static final String ID = "my-inbound-connector-template";
@@ -38,4 +31,33 @@ public class MyConnectorExecutable implements InboundConnectorExecutable<Inbound
 
   @Override
   public void deactivate() {}
+
+  @InboundConnector(name = "my-inbound-connector", type = "my-inbound-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorExecutable.ID,
+      name = MyConnectorExecutable.NAME,
+      inputDataClass = MyConnectorProperties.class,
+      icon = "my-connector-icon.png")
+  public static class MinimallyAnnotated extends MyConnectorExecutable {}
+
+  @InboundConnector(name = "my-inbound-connector", type = "my-inbound-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorExecutable.ID,
+      name = MyConnectorExecutable.NAME,
+      inputDataClass = MyConnectorProperties.class,
+      icon = "my-connector-icon.png",
+      defaultResultVariable = "myResultVariable")
+  public static class MinimallyAnnotatedWithResultVariable extends MyConnectorExecutable {}
+
+  @InboundConnector(name = "my-inbound-connector", type = "my-inbound-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorExecutable.ID,
+      name = MyConnectorExecutable.NAME,
+      inputDataClass = MyConnectorProperties.class,
+      icon = "my-connector-icon.png",
+      defaultResultExpression = "={ myResponse: request }")
+  public static class MinimallyAnnotatedWithResultExpression extends MyConnectorExecutable {}
 }

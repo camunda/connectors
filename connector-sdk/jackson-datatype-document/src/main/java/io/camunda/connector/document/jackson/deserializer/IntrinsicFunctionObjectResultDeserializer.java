@@ -16,11 +16,12 @@
  */
 package io.camunda.connector.document.jackson.deserializer;
 
-import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isOperation;
+import static io.camunda.connector.document.jackson.deserializer.DeserializationUtil.isIntrinsicFunction;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import io.camunda.intrinsic.IntrinsicFunctionParams;
 import java.io.IOException;
@@ -29,17 +30,20 @@ public class IntrinsicFunctionObjectResultDeserializer extends AbstractDeseriali
 
   private final IntrinsicFunctionExecutor operationExecutor;
 
-  public IntrinsicFunctionObjectResultDeserializer(IntrinsicFunctionExecutor operationExecutor) {
+  public IntrinsicFunctionObjectResultDeserializer(
+      IntrinsicFunctionExecutor operationExecutor, DocumentModuleSettings settings) {
+    super(settings);
     this.operationExecutor = operationExecutor;
   }
 
   @Override
   protected Object handleJsonNode(JsonNode node, DeserializationContext context)
       throws IOException {
-    if (!isOperation(node)) {
+    if (!isIntrinsicFunction(node)) {
       throw new IllegalArgumentException(
           "Unsupported document format. Expected an operation, got: " + node);
     }
+    DeserializationUtil.tryDecrementIntrinsicFunctionCounter(context);
     final IntrinsicFunctionModel operation =
         context.readTreeAsValue(node, IntrinsicFunctionModel.class);
     final IntrinsicFunctionParams params =

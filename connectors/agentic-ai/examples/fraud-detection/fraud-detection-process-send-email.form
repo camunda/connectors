@@ -1,0 +1,49 @@
+{
+  "components": [
+    {
+      "text": "# E-Mail Body",
+      "type": "text",
+      "layout": {
+        "row": "Row_18aw07r",
+        "columns": null
+      },
+      "id": "Field_09n3pq9"
+    },
+    {
+      "text": "=emailBody",
+      "type": "text",
+      "layout": {
+        "row": "Row_0wkhavr",
+        "columns": null
+      },
+      "id": "Field_1rx8pjf"
+    },
+    {
+      "type": "separator",
+      "layout": {
+        "row": "Row_0n7xc4d",
+        "columns": null
+      },
+      "id": "Field_04c20dn"
+    },
+    {
+      "label": "User Response",
+      "type": "textarea",
+      "layout": {
+        "row": "Row_04bsh7q",
+        "columns": null
+      },
+      "id": "Field_1qrykkr",
+      "key": "userResponse"
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.34.0"
+  },
+  "schemaVersion": 18,
+  "id": "fraud-detection-process-send-email",
+  "type": "default"
+}

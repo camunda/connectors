@@ -14,18 +14,6 @@ import java.util.Map;
 public record AdHocToolsSchemaResponse(List<AdHocToolDefinition> toolDefinitions) {
   @JsonInclude(JsonInclude.Include.NON_ABSENT)
   @JsonIgnoreProperties(ignoreUnknown = true)
-  public record AdHocToolDefinition(String name, String description, JsonSchema inputSchema) {
-
-    @JsonInclude(JsonInclude.Include.NON_ABSENT)
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record JsonSchema(
-        String type,
-        Map<String, Object> properties,
-        List<String> required,
-        Boolean additionalProperties) {
-      public static JsonSchema empty() {
-        return new JsonSchema("object", Map.of(), List.of(), null);
-      }
-    }
-  }
+  public record AdHocToolDefinition(
+      String name, String description, Map<String, Object> inputSchema) {}
 }

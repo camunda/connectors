@@ -31,6 +31,11 @@
       <artifactId>connector-agentic-ai</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-http-json</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>io.camunda</groupId>
