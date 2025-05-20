@@ -34,21 +34,6 @@ public record ToolCallResultMessage(
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class ToolCallResultMessageJacksonProxyBuilder {
-    private final ToolCallResultMessageBuilder builder = ToolCallResultMessageBuilder.builder();
-
-    public ToolCallResultMessageJacksonProxyBuilder results(List<ToolCallResult> results) {
-      builder.results(results);
-      return this;
-    }
-
-    public ToolCallResultMessageJacksonProxyBuilder metadata(Map<String, Object> metadata) {
-      builder.metadata(metadata);
-      return this;
-    }
-
-    public ToolCallResultMessage build() {
-      return builder.build();
-    }
-  }
+  public static class ToolCallResultMessageJacksonProxyBuilder
+      extends ToolCallResultMessageBuilder {}
 }

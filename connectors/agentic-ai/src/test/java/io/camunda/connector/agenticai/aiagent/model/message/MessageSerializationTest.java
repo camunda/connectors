@@ -25,30 +25,40 @@ class MessageSerializationTest {
   void messagesCanBeSerializedAndDeserialized() throws Exception {
     final List<Message> messages =
         List.of(
-            SystemMessage.builder().addContent(textContent("You are a helpful assistant.")).build(),
+            SystemMessage.builder()
+                .content(List.of(textContent("You are a helpful assistant.")))
+                .build(),
             UserMessage.builder()
                 .name("user1")
-                .addContent(textContent("What is the time?"))
+                .content(List.of(textContent("What is the time?")))
                 .build(),
             AssistantMessage.builder()
-                .addContent(textContent("<thinking>I should call the get_time tool</thinking>"))
-                .addToolCallRequests(
-                    ToolCallRequest.builder()
-                        .id("123456")
-                        .name("get_time")
-                        .arguments(Map.of("when", "now"))
-                        .build())
+                .content(
+                    List.of(textContent("<thinking>I should call the get_time tool</thinking>")))
+                .toolCallRequests(
+                    List.of(
+                        ToolCallRequest.builder()
+                            .id("123456")
+                            .name("get_time")
+                            .arguments(Map.of("when", "now"))
+                            .build()))
                 .build(),
             ToolCallResultMessage.builder()
-                .addResults(
-                    ToolCallResult.builder()
-                        .id("123456")
-                        .name("get_time")
-                        .data(Map.of("when", "now", "time", "12:00"))
-                        .build())
+                .results(
+                    List.of(
+                        ToolCallResult.builder()
+                            .id("123456")
+                            .name("get_time")
+                            .data(Map.of("when", "now", "time", "12:00"))
+                            .build()))
                 .build(),
-            AssistantMessage.builder().addContent(textContent("The time now is 12:00")).build(),
-            UserMessage.builder().name("user1").addContent(textContent("Thank you!")).build());
+            AssistantMessage.builder()
+                .content(List.of(textContent("The time now is 12:00")))
+                .build(),
+            UserMessage.builder()
+                .name("user1")
+                .content(List.of(textContent("Thank you!")))
+                .build());
 
     final var serialized =
         objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(messages);

@@ -38,34 +38,7 @@ public record AssistantMessage(
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class AssistantMessageJacksonProxyBuilder {
-    private final AssistantMessageBuilder builder = AssistantMessageBuilder.builder();
-
-    public AssistantMessageJacksonProxyBuilder stopReason(StopReason stopReason) {
-      builder.stopReason(stopReason);
-      return this;
-    }
-
-    public AssistantMessageJacksonProxyBuilder content(List<ContentBlock> content) {
-      builder.content(content);
-      return this;
-    }
-
-    public AssistantMessageJacksonProxyBuilder toolCallRequests(
-        List<ToolCallRequest> toolCallRequests) {
-      builder.toolCallRequests(toolCallRequests);
-      return this;
-    }
-
-    public AssistantMessageJacksonProxyBuilder metadata(Map<String, Object> metadata) {
-      builder.metadata(metadata);
-      return this;
-    }
-
-    public AssistantMessage build() {
-      return builder.build();
-    }
-  }
+  public static class AssistantMessageJacksonProxyBuilder extends AssistantMessageBuilder {}
 
   public enum StopReason {
     STOP,
