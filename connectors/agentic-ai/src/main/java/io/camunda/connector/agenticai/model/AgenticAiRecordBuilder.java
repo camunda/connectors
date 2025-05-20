@@ -16,11 +16,11 @@ import java.lang.annotation.Target;
 @RecordBuilder.Template(
     options =
         @RecordBuilder.Options(
+            publicBuilderConstructors = true,
             addFunctionalMethodsToWith = true,
             interpretNotNulls = true,
             defaultNotNull = true,
-            useImmutableCollections = true,
-            addSingleItemCollectionBuilders = true))
+            useImmutableCollections = true))
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
 @Inherited

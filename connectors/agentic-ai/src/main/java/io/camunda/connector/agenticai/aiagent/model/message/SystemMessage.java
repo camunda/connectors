@@ -34,21 +34,5 @@ public record SystemMessage(
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class SystemMessageJacksonProxyBuilder {
-    private final SystemMessageBuilder builder = SystemMessageBuilder.builder();
-
-    public SystemMessageJacksonProxyBuilder content(List<ContentBlock> content) {
-      builder.content(content);
-      return this;
-    }
-
-    public SystemMessageJacksonProxyBuilder metadata(Map<String, Object> metadata) {
-      builder.metadata(metadata);
-      return this;
-    }
-
-    public SystemMessage build() {
-      return builder.build();
-    }
-  }
+  public static class SystemMessageJacksonProxyBuilder extends SystemMessageBuilder {}
 }

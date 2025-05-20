@@ -36,26 +36,5 @@ public record UserMessage(
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class UserMessageJacksonProxyBuilder {
-    private final UserMessageBuilder builder = UserMessageBuilder.builder();
-
-    public UserMessageJacksonProxyBuilder name(String name) {
-      builder.name(name);
-      return this;
-    }
-
-    public UserMessageJacksonProxyBuilder content(List<ContentBlock> content) {
-      builder.content(content);
-      return this;
-    }
-
-    public UserMessageJacksonProxyBuilder metadata(Map<String, Object> metadata) {
-      builder.metadata(metadata);
-      return this;
-    }
-
-    public UserMessage build() {
-      return builder.build();
-    }
-  }
+  public static class UserMessageJacksonProxyBuilder extends UserMessageBuilder {}
 }

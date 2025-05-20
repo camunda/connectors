@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.Map;
-import java.util.Objects;
 
 @AgenticAiRecordBuilder
 @JsonInclude(JsonInclude.Include.ALWAYS)
@@ -21,48 +20,10 @@ import java.util.Objects;
 public record ToolCallResult(String id, String name, Map<String, Object> data)
     implements ToolCallResultBuilder.With {
 
-  public ToolCallResult {
-    data = Objects.requireNonNullElseGet(data, Map::of);
-  }
-
-  // Additional constructors with default values
-  public ToolCallResult(String id, String name) {
-    this(id, name, Map.of());
-  }
-
-  public ToolCallResult(String id) {
-    this(id, "", Map.of());
-  }
-
-  public ToolCallResult() {
-    this("", "", Map.of());
-  }
-
   public static ToolCallResultBuilder builder() {
     return ToolCallResultBuilder.builder();
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class ToolCallResultJacksonProxyBuilder {
-    private final ToolCallResultBuilder builder = ToolCallResultBuilder.builder();
-
-    public ToolCallResultJacksonProxyBuilder id(String id) {
-      builder.id(id);
-      return this;
-    }
-
-    public ToolCallResultJacksonProxyBuilder name(String name) {
-      builder.name(name);
-      return this;
-    }
-
-    public ToolCallResultJacksonProxyBuilder data(Map<String, Object> data) {
-      builder.data(data);
-      return this;
-    }
-
-    public ToolCallResult build() {
-      return builder.build();
-    }
-  }
+  public static class ToolCallResultJacksonProxyBuilder extends ToolCallResultBuilder {}
 }
