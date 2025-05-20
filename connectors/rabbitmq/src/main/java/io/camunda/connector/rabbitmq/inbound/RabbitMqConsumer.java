@@ -80,8 +80,11 @@ public class RabbitMqConsumer extends DefaultConsumer {
       }
 
       case Failure failure -> {
-        final String errorLogMessage = "Failed to handle AMQP message with delivery tag " + envelope.getDeliveryTag()
-            + ", reason: " + failure.message();
+        final String errorLogMessage =
+            "Failed to handle AMQP message with delivery tag "
+                + envelope.getDeliveryTag()
+                + ", reason: "
+                + failure.message();
 
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream fwdStrategy -> {
@@ -89,15 +92,13 @@ public class RabbitMqConsumer extends DefaultConsumer {
               context.log(
                   Activity.level(Severity.WARNING)
                       .tag(LogTag.MESSAGE)
-                      .message(errorLogMessage + ". Message will be requeued.")
-              );
+                      .message(errorLogMessage + ". Message will be requeued."));
               getChannel().basicReject(envelope.getDeliveryTag(), true);
             } else {
               context.log(
                   Activity.level(Severity.WARNING)
                       .tag(LogTag.MESSAGE)
-                      .message(errorLogMessage + ". Message will be dropped.")
-              );
+                      .message(errorLogMessage + ". Message will be dropped."));
               getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
           }
@@ -105,8 +106,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
             context.log(
                 Activity.level(Severity.WARNING)
                     .tag(LogTag.MESSAGE)
-                    .message(errorLogMessage + ". Message will be acknowledged.")
-            );
+                    .message(errorLogMessage + ". Message will be acknowledged."));
             getChannel().basicAck(envelope.getDeliveryTag(), false);
           }
         }

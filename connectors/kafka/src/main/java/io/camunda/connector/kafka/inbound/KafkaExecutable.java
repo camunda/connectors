@@ -87,9 +87,11 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
       context.log(
           Activity.level(Severity.INFO)
               .tag(LogTag.CONSUMER)
-              .message("Subscription activation for process " + context.getDefinition().elements()
-                  .stream().map(
-                      ProcessElement::bpmnProcessId).toList()));
+              .message(
+                  "Subscription activation for process "
+                      + context.getDefinition().elements().stream()
+                          .map(ProcessElement::bpmnProcessId)
+                          .toList()));
 
       KafkaConnectorProperties elementProps =
           context.bindProperties(KafkaConnectorProperties.class);

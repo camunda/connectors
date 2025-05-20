@@ -87,9 +87,12 @@ public class RabbitMqExecutable implements InboundConnectorExecutable<InboundCon
         Activity.level(Severity.INFO)
             .tag(LogTag.CONSUMER)
             .message(
-                String.format("Subscription activation requested for queue name %s, process ID: %s",
-                    properties.getQueueName(), context.getDefinition().elements().stream().map(
-                        ProcessElement::bpmnProcessId).toList())));
+                String.format(
+                    "Subscription activation requested for queue name %s, process ID: %s",
+                    properties.getQueueName(),
+                    context.getDefinition().elements().stream()
+                        .map(ProcessElement::bpmnProcessId)
+                        .toList())));
 
     initializeConsumer(context, properties);
   }

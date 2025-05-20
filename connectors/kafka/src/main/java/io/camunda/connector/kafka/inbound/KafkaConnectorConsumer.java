@@ -174,14 +174,16 @@ public class KafkaConnectorConsumer {
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream ignored -> {
             throw new RuntimeException(
-                "Message cannot be processed: " + failure.message()
+                "Message cannot be processed: "
+                    + failure.message()
                     + ". Offset will not be committed.");
           }
-          case Ignore ignored -> context.log(
-              Activity.level(Severity.INFO)
-                  .tag(LogTag.MESSAGE)
-                  .message(
-                      "Message not correlated, but the error is ignored. Offset will be committed"));
+          case Ignore ignored ->
+              context.log(
+                  Activity.level(Severity.INFO)
+                      .tag(LogTag.MESSAGE)
+                      .message(
+                          "Message not correlated, but the error is ignored. Offset will be committed"));
         }
       }
     }

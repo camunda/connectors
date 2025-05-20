@@ -155,8 +155,8 @@ public class InboundWebhookRestController {
         var documents = createDocuments(connector.context(), webhookResult, payload.parts());
         var ctxData = toWebhookTriggerResultContext(webhookResult, documents);
         // correlate
-        var correlationResult = connector.context()
-            .correlate(CorrelationRequest.builder().variables(ctxData).build());
+        var correlationResult =
+            connector.context().correlate(CorrelationRequest.builder().variables(ctxData).build());
         response = buildResponse(webhookResult, documents, correlationResult);
       }
     } catch (Exception e) {
