@@ -8,24 +8,21 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ContentBlock;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @AgenticAiRecordBuilder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonDeserialize(builder = SystemMessage.SystemMessageJacksonProxyBuilder.class)
 public record SystemMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ContentBlock> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements SystemMessageBuilder.With, Message, ContentMessage {
-
-  public SystemMessage {
-    content = Objects.requireNonNullElseGet(content, List::of);
-    metadata = Objects.requireNonNullElseGet(metadata, Map::of);
-  }
 
   @Override
   public MessageRole role() {
@@ -34,5 +31,24 @@ public record SystemMessage(
 
   public static SystemMessageBuilder builder() {
     return SystemMessageBuilder.builder();
+  }
+
+  @JsonPOJOBuilder(withPrefix = "")
+  public static class SystemMessageJacksonProxyBuilder {
+    private final SystemMessageBuilder builder = SystemMessageBuilder.builder();
+
+    public SystemMessageJacksonProxyBuilder content(List<ContentBlock> content) {
+      builder.content(content);
+      return this;
+    }
+
+    public SystemMessageJacksonProxyBuilder metadata(Map<String, Object> metadata) {
+      builder.metadata(metadata);
+      return this;
+    }
+
+    public SystemMessage build() {
+      return builder.build();
+    }
   }
 }

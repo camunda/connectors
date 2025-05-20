@@ -8,26 +8,23 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ContentBlock;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.springframework.lang.Nullable;
 
 @AgenticAiRecordBuilder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonDeserialize(builder = UserMessage.UserMessageJacksonProxyBuilder.class)
 public record UserMessage(
     @Nullable String name,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ContentBlock> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements UserMessageBuilder.With, Message, ContentMessage {
-
-  public UserMessage {
-    content = Objects.requireNonNullElseGet(content, List::of);
-    metadata = Objects.requireNonNullElseGet(metadata, Map::of);
-  }
 
   @Override
   public MessageRole role() {
@@ -36,5 +33,29 @@ public record UserMessage(
 
   public static UserMessageBuilder builder() {
     return UserMessageBuilder.builder();
+  }
+
+  @JsonPOJOBuilder(withPrefix = "")
+  public static class UserMessageJacksonProxyBuilder {
+    private final UserMessageBuilder builder = UserMessageBuilder.builder();
+
+    public UserMessageJacksonProxyBuilder name(String name) {
+      builder.name(name);
+      return this;
+    }
+
+    public UserMessageJacksonProxyBuilder content(List<ContentBlock> content) {
+      builder.content(content);
+      return this;
+    }
+
+    public UserMessageJacksonProxyBuilder metadata(Map<String, Object> metadata) {
+      builder.metadata(metadata);
+      return this;
+    }
+
+    public UserMessage build() {
+      return builder.build();
+    }
   }
 }
