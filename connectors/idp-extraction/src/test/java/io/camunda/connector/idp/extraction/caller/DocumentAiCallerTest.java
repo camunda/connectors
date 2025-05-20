@@ -229,20 +229,17 @@ class DocumentAiCallerTest {
     Document.Page.Table.TableRow headerRow =
         createMockTableRowWithSegments(
             List.of(new int[] {0, 4}, new int[] {5, 8}, new int[] {9, 17}),
-            List.of(0.95f, 0.94f, 0.93f),
-            fullText);
+            List.of(0.95f, 0.94f, 0.93f));
 
     // Create body rows with proper text segments
     Document.Page.Table.TableRow bodyRow1 =
         createMockTableRowWithSegments(
             List.of(new int[] {18, 26}, new int[] {27, 29}, new int[] {30, 38}),
-            List.of(0.92f, 0.91f, 0.90f),
-            fullText);
+            List.of(0.92f, 0.91f, 0.90f));
     Document.Page.Table.TableRow bodyRow2 =
         createMockTableRowWithSegments(
             List.of(new int[] {39, 49}, new int[] {50, 52}, new int[] {53, 59}),
-            List.of(0.89f, 0.88f, 0.87f),
-            fullText);
+            List.of(0.89f, 0.88f, 0.87f));
 
     when(mockTable.getHeaderRowsList()).thenReturn(List.of(headerRow));
     when(mockTable.getBodyRowsList()).thenReturn(List.of(bodyRow1, bodyRow2));
