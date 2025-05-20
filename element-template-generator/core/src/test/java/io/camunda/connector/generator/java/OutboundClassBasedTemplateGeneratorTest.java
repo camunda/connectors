@@ -133,12 +133,38 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void resultVariablePropertyWithValue() {
+      var template =
+          generator
+              .generate(MyConnectorFunction.MinimallyAnnotatedWithResultVariable.class)
+              .getFirst();
+      var property = getPropertyByLabel("Result variable", template);
+      assertThat(property.getType()).isEqualTo("String");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(property.getFeel()).isNull();
+      assertThat(property.getValue()).isEqualTo("myResultVariable");
+    }
+
+    @Test
     void resultExpressionProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Result expression", template);
       assertThat(property.getType()).isEqualTo("Text");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
       assertThat(property.getFeel()).isEqualTo(FeelMode.required);
+    }
+
+    @Test
+    void resultExpressionPropertyWithValue() {
+      var template =
+          generator
+              .generate(MyConnectorFunction.MinimallyAnnotatedWithResultExpression.class)
+              .getFirst();
+      var property = getPropertyByLabel("Result expression", template);
+      assertThat(property.getType()).isEqualTo("Text");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(property.getFeel()).isEqualTo(FeelMode.required);
+      assertThat(property.getValue()).isEqualTo("={ myResponse: response }");
     }
 
     @Test
