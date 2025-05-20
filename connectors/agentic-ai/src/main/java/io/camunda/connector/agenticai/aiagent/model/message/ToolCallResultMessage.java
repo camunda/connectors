@@ -8,24 +8,21 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.tools.ToolCallResult;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @AgenticAiRecordBuilder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonDeserialize(builder = ToolCallResultMessage.ToolCallResultMessageJacksonProxyBuilder.class)
 public record ToolCallResultMessage(
     List<ToolCallResult> results,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements ToolCallResultMessageBuilder.With, Message {
-
-  public ToolCallResultMessage {
-    results = Objects.requireNonNullElseGet(results, List::of);
-    metadata = Objects.requireNonNullElseGet(metadata, Map::of);
-  }
 
   @Override
   public MessageRole role() {
@@ -34,5 +31,24 @@ public record ToolCallResultMessage(
 
   public static ToolCallResultMessageBuilder builder() {
     return ToolCallResultMessageBuilder.builder();
+  }
+
+  @JsonPOJOBuilder(withPrefix = "")
+  public static class ToolCallResultMessageJacksonProxyBuilder {
+    private final ToolCallResultMessageBuilder builder = ToolCallResultMessageBuilder.builder();
+
+    public ToolCallResultMessageJacksonProxyBuilder results(List<ToolCallResult> results) {
+      builder.results(results);
+      return this;
+    }
+
+    public ToolCallResultMessageJacksonProxyBuilder metadata(Map<String, Object> metadata) {
+      builder.metadata(metadata);
+      return this;
+    }
+
+    public ToolCallResultMessage build() {
+      return builder.build();
+    }
   }
 }
