@@ -6,15 +6,16 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public record AgentContext(
-    AgentState state, AgentMetrics metrics, List<Map<String, Object>> memory) {
-  public static final AgentContext EMPTY =
-      new AgentContext(AgentState.READY, AgentMetrics.EMPTY, Collections.emptyList());
+@AgenticAiRecordBuilder
+public record AgentContext(AgentState state, AgentMetrics metrics, List<Map<String, Object>> memory)
+    implements AgentContextBuilder.With {
 
   public AgentContext {
     Objects.requireNonNull(state, "Agent state must not be null");
@@ -22,27 +23,19 @@ public record AgentContext(
     Objects.requireNonNull(memory, "Agent memory must not be null");
   }
 
-  public AgentContext withState(AgentState state) {
-    return new AgentContext(state, metrics, memory);
-  }
+  public static final AgentContext EMPTY =
+      new AgentContext(AgentState.READY, AgentMetrics.EMPTY, Collections.emptyList());
 
   public boolean isInState(AgentState state) {
     return this.state == state;
   }
 
+  @JsonIgnore
   public boolean isEmpty() {
     return this.equals(EMPTY);
   }
 
   public static AgentContext empty() {
     return EMPTY;
-  }
-
-  public AgentContext withMetrics(AgentMetrics metrics) {
-    return new AgentContext(state, metrics, memory);
-  }
-
-  public AgentContext withMemory(List<Map<String, Object>> memory) {
-    return new AgentContext(state, metrics, memory);
   }
 }

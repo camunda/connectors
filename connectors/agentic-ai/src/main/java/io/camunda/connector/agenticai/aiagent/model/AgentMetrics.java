@@ -6,11 +6,16 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.Objects;
 import java.util.Optional;
 
-public record AgentMetrics(int modelCalls, TokenUsage tokenUsage) {
-  public static final AgentMetrics EMPTY = new AgentMetrics(0, TokenUsage.empty());
+@AgenticAiRecordBuilder
+public record AgentMetrics(int modelCalls, TokenUsage tokenUsage)
+    implements AgentMetricsBuilder.With {
+  public static final AgentMetrics EMPTY =
+      AgentMetricsBuilder.builder().tokenUsage(TokenUsage.empty()).build();
 
   public AgentMetrics {
     if (modelCalls < 0) {
@@ -20,22 +25,15 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage) {
     Objects.requireNonNull(tokenUsage, "Token usage must not be null");
   }
 
-  public AgentMetrics withModelCalls(int modelCalls) {
-    return new AgentMetrics(modelCalls, tokenUsage);
-  }
-
   public AgentMetrics incrementModelCalls(int additionalModelCalls) {
     return withModelCalls(modelCalls + additionalModelCalls);
-  }
-
-  public AgentMetrics withTokenUsage(TokenUsage tokenUsage) {
-    return new AgentMetrics(modelCalls, tokenUsage);
   }
 
   public AgentMetrics incrementTokenUsage(TokenUsage additionalTokenUsage) {
     return withTokenUsage(tokenUsage.add(additionalTokenUsage));
   }
 
+  @JsonIgnore
   public boolean isEmpty() {
     return this.equals(EMPTY);
   }
@@ -44,17 +42,25 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage) {
     return EMPTY;
   }
 
-  public record TokenUsage(int inputTokenCount, int outputTokenCount) {
-    public static final TokenUsage EMPTY = new TokenUsage(0, 0);
+  public static AgentMetricsBuilder builder() {
+    return AgentMetricsBuilder.builder();
+  }
+
+  @AgenticAiRecordBuilder
+  public record TokenUsage(int inputTokenCount, int outputTokenCount)
+      implements AgentMetricsTokenUsageBuilder.With {
+    public static final TokenUsage EMPTY = AgentMetricsTokenUsageBuilder.builder().build();
 
     public int totalTokenCount() {
       return inputTokenCount + outputTokenCount;
     }
 
     public TokenUsage add(TokenUsage tokenUsage) {
-      return new TokenUsage(
-          inputTokenCount() + tokenUsage.inputTokenCount(),
-          outputTokenCount() + tokenUsage.outputTokenCount());
+      return with(
+          builder ->
+              builder
+                  .inputTokenCount(builder.inputTokenCount() + tokenUsage.inputTokenCount())
+                  .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount()));
     }
 
     public boolean isEmpty() {
@@ -65,14 +71,19 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage) {
       return EMPTY;
     }
 
+    public static AgentMetricsTokenUsageBuilder builder() {
+      return AgentMetricsTokenUsageBuilder.builder();
+    }
+
     public static TokenUsage from(dev.langchain4j.model.output.TokenUsage tokenUsage) {
       if (tokenUsage == null) {
         return empty();
       }
 
-      return new TokenUsage(
-          Optional.ofNullable(tokenUsage.inputTokenCount()).orElse(0),
-          Optional.ofNullable(tokenUsage.outputTokenCount()).orElse(0));
+      return builder()
+          .inputTokenCount(Optional.ofNullable(tokenUsage.inputTokenCount()).orElse(0))
+          .outputTokenCount(Optional.ofNullable(tokenUsage.outputTokenCount()).orElse(0))
+          .build();
     }
   }
 }
