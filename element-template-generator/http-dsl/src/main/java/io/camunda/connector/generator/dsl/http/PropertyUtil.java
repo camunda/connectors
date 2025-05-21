@@ -328,18 +328,15 @@ public class PropertyUtil {
       String operationId, HttpOperationProperty property, String group) {
     PropertyBuilder builder =
         switch (property.type()) {
-          case STRING ->
-              StringProperty.builder().value(property.valueOrExample()).feel(FeelMode.optional);
-          case HIDDEN ->
-              HiddenProperty.builder().value(property.valueOrExample()).feel(FeelMode.disabled);
+          case STRING -> StringProperty.builder().value(property.example()).feel(FeelMode.optional);
+          case HIDDEN -> HiddenProperty.builder().value(property.example()).feel(FeelMode.disabled);
           case ENUM ->
               DropdownProperty.builder()
                   .choices(
                       property.choices().stream()
                           .map(choice -> new DropdownChoice(choice, choice))
                           .toList());
-          case FEEL ->
-              StringProperty.builder().value(property.valueOrExample()).feel(FeelMode.required);
+          case FEEL -> StringProperty.builder().value(property.example()).feel(FeelMode.required);
         };
 
     // shade property id with operation id as there may be duplicates in different operations

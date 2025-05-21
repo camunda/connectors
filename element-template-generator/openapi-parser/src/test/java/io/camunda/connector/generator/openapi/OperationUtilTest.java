@@ -75,9 +75,7 @@ public class OperationUtilTest {
     boolean hasMatch =
         operationParseResults.getFirst().builder().getProperties().stream()
             .anyMatch(
-                p ->
-                    p.id().equals("Content-Type")
-                        && p.valueOrExample().equals("multipart/form-data"));
+                p -> p.id().equals("Content-Type") && p.example().equals("multipart/form-data"));
 
     assertThat(hasMatch).isEqualTo(expectHeaderIsAdded);
   }

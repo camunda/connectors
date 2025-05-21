@@ -29,6 +29,7 @@ import io.camunda.connector.http.base.model.HttpMethod;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -164,11 +165,15 @@ public class OperationUtil {
         properties.addAll(((BodyParseResult.Detailed) body).properties());
       }
 
-      if (operation.getRequestBody().getContent().containsKey("multipart/form-data")) {
-        properties.add(
-            HttpOperationProperty.createHiddenProperty(
-                "Content-Type", Target.HEADER, "", true, "multipart/form-data"));
-      }
+      Optional.ofNullable(operation.getRequestBody())
+          .map(RequestBody::getContent)
+          .filter(content -> content.containsKey("multipart/form-data"))
+          .ifPresent(
+              content -> {
+                properties.add(
+                    HttpOperationProperty.createHiddenProperty(
+                        "Content-Type", Target.HEADER, "", true, "multipart/form-data"));
+              });
 
       var opBuilder =
           HttpOperation.builder()

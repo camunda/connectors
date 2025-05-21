@@ -109,7 +109,7 @@ public class ParameterUtilTest {
       var property = ParameterUtil.transformToProperty(parameter, null);
 
       // then
-      JSONAssert.assertEquals("[\"foo\", \"bar\"]", property.valueOrExample(), true);
+      JSONAssert.assertEquals("[\"foo\", \"bar\"]", property.example(), true);
     }
 
     @Test
@@ -128,7 +128,7 @@ public class ParameterUtilTest {
       var property = ParameterUtil.transformToProperty(parameter, null);
 
       // then
-      assertThat(property.valueOrExample()).isEqualTo("foo");
+      assertThat(property.example()).isEqualTo("foo");
     }
   }
 }
