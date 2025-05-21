@@ -4,37 +4,36 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.message;
+package io.camunda.connector.agenticai.domain.model.message;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.domain.model.tools.ToolCallResult;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.List;
 import java.util.Map;
-import org.springframework.lang.Nullable;
 
 @AgenticAiRecordBuilder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonDeserialize(builder = UserMessage.UserMessageJacksonProxyBuilder.class)
-public record UserMessage(
-    @Nullable String name,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
+@JsonDeserialize(builder = ToolCallResultMessage.ToolCallResultMessageJacksonProxyBuilder.class)
+public record ToolCallResultMessage(
+    List<ToolCallResult> results,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
-    implements UserMessageBuilder.With, Message, ContentMessage {
+    implements ToolCallResultMessageBuilder.With, Message {
 
   @Override
   public MessageRole role() {
-    return MessageRole.USER;
+    return MessageRole.TOOL_CALL_RESULT;
   }
 
-  public static UserMessageBuilder builder() {
-    return UserMessageBuilder.builder();
+  public static ToolCallResultMessageBuilder builder() {
+    return ToolCallResultMessageBuilder.builder();
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class UserMessageJacksonProxyBuilder extends UserMessageBuilder {}
+  public static class ToolCallResultMessageJacksonProxyBuilder
+      extends ToolCallResultMessageBuilder {}
 }

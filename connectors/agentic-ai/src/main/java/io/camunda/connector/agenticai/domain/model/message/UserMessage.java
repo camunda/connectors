@@ -4,14 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.message;
+package io.camunda.connector.agenticai.domain.model.message;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.tools.ToolCallRequest;
+import io.camunda.connector.agenticai.domain.model.message.content.Content;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.List;
 import java.util.Map;
@@ -20,31 +19,22 @@ import org.springframework.lang.Nullable;
 @AgenticAiRecordBuilder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonDeserialize(builder = AssistantMessage.AssistantMessageJacksonProxyBuilder.class)
-public record AssistantMessage(
-    @Nullable StopReason stopReason,
+@JsonDeserialize(builder = UserMessage.UserMessageJacksonProxyBuilder.class)
+public record UserMessage(
+    @Nullable String name,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCallRequest> toolCallRequests,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
-    implements AssistantMessageBuilder.With, Message, ContentMessage {
+    implements UserMessageBuilder.With, Message, ContentMessage {
 
   @Override
   public MessageRole role() {
-    return MessageRole.ASSISTANT;
+    return MessageRole.USER;
   }
 
-  public static AssistantMessageBuilder builder() {
-    return AssistantMessageBuilder.builder();
+  public static UserMessageBuilder builder() {
+    return UserMessageBuilder.builder();
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class AssistantMessageJacksonProxyBuilder extends AssistantMessageBuilder {}
-
-  public enum StopReason {
-    STOP,
-    LENGTH,
-    TOOL_EXECUTION,
-    CONTENT_FILTER,
-    OTHER
-  }
+  public static class UserMessageJacksonProxyBuilder extends UserMessageBuilder {}
 }

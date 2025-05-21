@@ -4,13 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.message;
+package io.camunda.connector.agenticai.domain.model.message;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.model.message.tools.ToolCallResult;
+import io.camunda.connector.agenticai.domain.model.message.content.Content;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.List;
 import java.util.Map;
@@ -18,22 +18,21 @@ import java.util.Map;
 @AgenticAiRecordBuilder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonDeserialize(builder = ToolCallResultMessage.ToolCallResultMessageJacksonProxyBuilder.class)
-public record ToolCallResultMessage(
-    List<ToolCallResult> results,
+@JsonDeserialize(builder = SystemMessage.SystemMessageJacksonProxyBuilder.class)
+public record SystemMessage(
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
-    implements ToolCallResultMessageBuilder.With, Message {
+    implements SystemMessageBuilder.With, Message, ContentMessage {
 
   @Override
   public MessageRole role() {
-    return MessageRole.TOOL_CALL_RESULT;
+    return MessageRole.SYSTEM;
   }
 
-  public static ToolCallResultMessageBuilder builder() {
-    return ToolCallResultMessageBuilder.builder();
+  public static SystemMessageBuilder builder() {
+    return SystemMessageBuilder.builder();
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class ToolCallResultMessageJacksonProxyBuilder
-      extends ToolCallResultMessageBuilder {}
+  public static class SystemMessageJacksonProxyBuilder extends SystemMessageBuilder {}
 }
