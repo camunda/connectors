@@ -4,15 +4,15 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.message;
+package io.camunda.connector.agenticai.domain.model.message;
 
-import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.domain.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.message.tools.ToolCallRequest;
-import io.camunda.connector.agenticai.aiagent.model.message.tools.ToolCallResult;
+import io.camunda.connector.agenticai.domain.model.tools.ToolCallRequest;
+import io.camunda.connector.agenticai.domain.model.tools.ToolCallResult;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

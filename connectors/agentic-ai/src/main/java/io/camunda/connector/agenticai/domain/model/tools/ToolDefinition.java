@@ -4,35 +4,26 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.message;
+package io.camunda.connector.agenticai.domain.model.tools;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
-import java.util.List;
 import java.util.Map;
 
 @AgenticAiRecordBuilder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonDeserialize(builder = SystemMessage.SystemMessageJacksonProxyBuilder.class)
-public record SystemMessage(
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
-    implements SystemMessageBuilder.With, Message, ContentMessage {
+@JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
+public record ToolDefinition(String name, String description, Map<String, Object> inputSchema)
+    implements ToolDefinitionBuilder.With {
 
-  @Override
-  public MessageRole role() {
-    return MessageRole.SYSTEM;
-  }
-
-  public static SystemMessageBuilder builder() {
-    return SystemMessageBuilder.builder();
+  public static ToolDefinitionBuilder builder() {
+    return ToolDefinitionBuilder.builder();
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class SystemMessageJacksonProxyBuilder extends SystemMessageBuilder {}
+  public static class ToolDefinitionJacksonProxyBuilder extends ToolDefinitionBuilder {}
 }
