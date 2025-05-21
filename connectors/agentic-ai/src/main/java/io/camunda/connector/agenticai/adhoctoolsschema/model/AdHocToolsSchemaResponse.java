@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.model;
 
-import io.camunda.connector.agenticai.domain.model.tools.ToolDefinition;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 
 public record AdHocToolsSchemaResponse(List<ToolDefinition> toolDefinitions) {}

@@ -6,13 +6,16 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import static io.camunda.connector.agenticai.model.message.UserMessage.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import io.camunda.connector.agenticai.aiagent.memory.MemoryData;
+import io.camunda.connector.agenticai.aiagent.memory.ProcessVariableMemoryData;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,14 +24,18 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class AgentContextTest {
   private static final AgentContext EMPTY_CONTEXT =
-      new AgentContext(AgentState.READY, AgentMetrics.empty(), List.of());
+      new AgentContext(
+          AgentState.READY,
+          AgentMetrics.empty(),
+          List.of(),
+          new ProcessVariableMemoryData(List.of()));
 
   @Test
   void emptyContext() {
     final var context = AgentContext.empty();
     assertThat(context.state()).isEqualTo(AgentState.READY);
     assertThat(context.metrics()).isEqualTo(AgentMetrics.empty());
-    assertThat(context.memory()).isEmpty();
+    assertThat(context.memory().messages()).isEmpty();
     assertThat(context).isNotSameAs(EMPTY_CONTEXT).isEqualTo(EMPTY_CONTEXT);
   }
 
@@ -62,8 +69,8 @@ class AgentContextTest {
 
   @Test
   void withMemory() {
-    final var newMessage = Map.of("message", new Object());
-    final var updatedMemory = List.of(newMessage);
+    final var newMessage = userMessage("Hello");
+    final var updatedMemory = new ProcessVariableMemoryData(List.of(newMessage));
 
     final var initialContext = AgentContext.empty();
     final var updatedContext = initialContext.withMemory(updatedMemory);
@@ -73,8 +80,9 @@ class AgentContextTest {
 
     assertThat(updatedContext.memory())
         .isEqualTo(updatedMemory)
-        .isNotEqualTo(initialContext.memory())
-        .containsExactly(newMessage);
+        .isNotEqualTo(initialContext.memory());
+
+    assertThat(updatedContext.memory().messages()).containsExactly(newMessage);
   }
 
   @ParameterizedTest
@@ -82,9 +90,10 @@ class AgentContextTest {
   void throwsExceptionOnInvalidConstructorParameters(
       AgentState state,
       AgentMetrics metrics,
-      List<Map<String, Object>> memory,
+      List<ToolDefinition> toolDefinitions,
+      MemoryData memory,
       String exceptionMessage) {
-    assertThatThrownBy(() -> new AgentContext(state, metrics, memory))
+    assertThatThrownBy(() -> new AgentContext(state, metrics, toolDefinitions, memory))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
@@ -92,11 +101,13 @@ class AgentContextTest {
   static Stream<Arguments> invalidConstructorParameters() {
     final var state = AgentState.READY;
     final var metrics = AgentMetrics.empty();
-    final var memory = Collections.emptyList();
+    final var toolDefinitions = List.of();
+    final var memory = new ProcessVariableMemoryData(Collections.emptyList());
 
     return Stream.of(
-        arguments(null, metrics, memory, "Agent state must not be null"),
-        arguments(state, null, memory, "Agent metrics must not be null"),
-        arguments(state, metrics, null, "Agent memory must not be null"));
+        arguments(null, metrics, toolDefinitions, memory, "Agent state must not be null"),
+        arguments(state, null, toolDefinitions, memory, "Agent metrics must not be null"),
+        arguments(state, metrics, null, memory, "Tool definitions must not be null"),
+        arguments(state, metrics, toolDefinitions, null, "Agent memory must not be null"));
   }
 }

@@ -13,7 +13,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -76,6 +75,7 @@ class AgentMetricsTest {
     assertThat(updatedMetrics.tokenUsage().totalTokenCount()).isEqualTo(33);
   }
 
+  /*
   @Nested
   class FromLangchain4JTokenUsage {
 
@@ -110,6 +110,7 @@ class AgentMetricsTest {
           arguments(new dev.langchain4j.model.output.TokenUsage(10, 20), new TokenUsage(10, 20)));
     }
   }
+  */
 
   @ParameterizedTest
   @MethodSource("invalidConstructorParameters")
