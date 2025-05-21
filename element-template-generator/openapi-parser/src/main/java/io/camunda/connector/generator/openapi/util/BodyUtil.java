@@ -37,7 +37,7 @@ public class BodyUtil {
 
   // ordered by priority if endpoint allows multiple
   private static final List<String> SUPPORTED_BODY_MEDIA_TYPES =
-      List.of("application/json", "text/plain");
+      List.of("application/json", "text/plain", "multipart/form-data");
 
   public static BodyParseResult parseBody(
       RequestBody requestBody, Components components, OpenApiGenerationSource.Options options) {

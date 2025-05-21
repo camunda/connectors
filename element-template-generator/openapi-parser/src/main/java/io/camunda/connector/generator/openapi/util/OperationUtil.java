@@ -21,6 +21,7 @@ import static io.camunda.connector.generator.openapi.util.SecurityUtil.parseAuth
 import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOperation;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
+import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.camunda.connector.generator.dsl.http.OperationParseResult;
 import io.camunda.connector.generator.openapi.OpenApiGenerationSource.Options;
 import io.camunda.connector.generator.openapi.util.BodyUtil.BodyParseResult;
@@ -161,6 +162,12 @@ public class OperationUtil {
       } else {
         bodyFeelExpression = ((BodyParseResult.Detailed) body).feelBuilder();
         properties.addAll(((BodyParseResult.Detailed) body).properties());
+      }
+
+      if (operation.getRequestBody().getContent().containsKey("multipart/form-data")) {
+        properties.add(
+            HttpOperationProperty.createHiddenProperty(
+                "Content-Type", Target.HEADER, "", true, "multipart/form-data"));
       }
 
       var opBuilder =

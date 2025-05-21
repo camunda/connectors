@@ -26,11 +26,18 @@ public record HttpOperationProperty(
     boolean required,
     Type type,
     List<String> choices,
-    String example) {
+    String valueOrExample) {
 
   public static HttpOperationProperty createStringProperty(
-      String id, Target target, String description, boolean required, String example) {
-    return new HttpOperationProperty(id, target, description, required, Type.STRING, null, example);
+      String id, Target target, String description, boolean required, String valueOrExample) {
+    return new HttpOperationProperty(
+        id, target, description, required, Type.STRING, null, valueOrExample);
+  }
+
+  public static HttpOperationProperty createHiddenProperty(
+      String id, Target target, String description, boolean required, String valueOrExample) {
+    return new HttpOperationProperty(
+        id, target, description, required, Type.HIDDEN, null, valueOrExample);
   }
 
   public static HttpOperationProperty createEnumProperty(
@@ -44,8 +51,9 @@ public record HttpOperationProperty(
   }
 
   public static HttpOperationProperty createFeelProperty(
-      String id, Target target, String description, boolean required, String example) {
-    return new HttpOperationProperty(id, target, description, required, Type.FEEL, null, example);
+      String id, Target target, String description, boolean required, String valueOrExample) {
+    return new HttpOperationProperty(
+        id, target, description, required, Type.FEEL, null, valueOrExample);
   }
 
   public enum Target {
@@ -58,6 +66,7 @@ public record HttpOperationProperty(
   public enum Type {
     STRING,
     ENUM,
-    FEEL
+    FEEL,
+    HIDDEN
   }
 }
