@@ -37,7 +37,7 @@ import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
+import io.camunda.connector.agenticai.domain.model.tools.ToolDefinition;
 import java.util.Map;
 
 /**
@@ -67,8 +67,7 @@ public class ToolSpecificationConverter {
         .build();
   }
 
-  public ToolSpecification asToolSpecification(
-      AdHocToolsSchemaResponse.AdHocToolDefinition toolDefinition) {
+  public ToolSpecification asToolSpecification(ToolDefinition toolDefinition) {
     JsonNode schemaNode = JsonMapperFactory.getInstance().valueToTree(toolDefinition.inputSchema());
     final var inputSchema = convertToJsonObjectSchema(schemaNode);
 
