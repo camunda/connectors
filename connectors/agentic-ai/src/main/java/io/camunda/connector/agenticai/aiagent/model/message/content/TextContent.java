@@ -9,14 +9,14 @@ package io.camunda.connector.agenticai.aiagent.model.message.content;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record TextContentBlock(String text) implements ContentBlock {
-  public TextContentBlock {
+public record TextContent(String text) implements Content {
+  public TextContent {
     if (text == null || text.isBlank()) {
       throw new IllegalArgumentException("Text cannot be null or empty");
     }
   }
 
-  public static TextContentBlock textContent(String text) {
-    return new TextContentBlock(text);
+  public static TextContent textContent(String text) {
+    return new TextContent(text);
   }
 }
