@@ -75,9 +75,9 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
 
     logResult(newlyDeployed, replacedWithDifferentVersion, deletedProcessIds);
 
-    newlyDeployed.forEach(this::newlyDeployed);
-    replacedWithDifferentVersion.forEach(this::replacedWithDifferentVersion);
     deletedProcessIds.forEach(this::deleted);
+    replacedWithDifferentVersion.forEach(this::replacedWithDifferentVersion);
+    newlyDeployed.forEach(this::newlyDeployed);
   }
 
   private void newlyDeployed(
