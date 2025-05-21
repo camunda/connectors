@@ -26,6 +26,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
@@ -154,7 +155,8 @@ public class InboundWebhookRestController {
         var documents = createDocuments(connector.context(), webhookResult, payload.parts());
         var ctxData = toWebhookTriggerResultContext(webhookResult, documents);
         // correlate
-        var correlationResult = connector.context().correlateWithResult(ctxData);
+        var correlationResult =
+            connector.context().correlate(CorrelationRequest.builder().variables(ctxData).build());
         response = buildResponse(webhookResult, documents, correlationResult);
       }
     } catch (Exception e) {

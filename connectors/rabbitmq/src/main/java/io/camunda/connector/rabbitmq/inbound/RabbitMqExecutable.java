@@ -16,6 +16,7 @@ import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -82,12 +83,16 @@ public class RabbitMqExecutable implements InboundConnectorExecutable<InboundCon
   public void activate(InboundConnectorContext context) throws Exception {
     RabbitMqInboundProperties properties = context.bindProperties(RabbitMqInboundProperties.class);
 
-    LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
     context.log(
         Activity.level(Severity.INFO)
-            .tag("Subscription activation")
+            .tag(LogTag.CONSUMER)
             .message(
-                "Subscription activation requested for queue name :" + properties.getQueueName()));
+                String.format(
+                    "Subscription activation requested for queue name %s, process ID: %s",
+                    properties.getQueueName(),
+                    context.getDefinition().elements().stream()
+                        .map(ProcessElement::bpmnProcessId)
+                        .toList())));
 
     initializeConsumer(context, properties);
   }
@@ -116,20 +121,18 @@ public class RabbitMqExecutable implements InboundConnectorExecutable<InboundCon
           new RecoveryListener() {
             @Override
             public void handleRecovery(Recoverable recoverable) {
-              LOGGER.info("Connection recovered successfully: {}", recoverable);
               context.log(
                   Activity.level(Severity.INFO)
-                      .tag("Connection recovery")
+                      .tag(LogTag.CONSUMER)
                       .message("Connection recovered successfully: " + recoverable));
               context.reportHealth(Health.up());
             }
 
             @Override
             public void handleRecoveryStarted(Recoverable recoverable) {
-              LOGGER.info("Connection recovery started: {}", recoverable);
               context.log(
                   Activity.level(Severity.INFO)
-                      .tag("Connection recovery")
+                      .tag(LogTag.CONSUMER)
                       .message("Connection recovery started: " + recoverable));
               context.reportHealth(Health.down());
             }
@@ -148,10 +151,9 @@ public class RabbitMqExecutable implements InboundConnectorExecutable<InboundCon
     context.reportHealth(Health.up(data));
 
     consumerTag = startConsumer(properties, consumer);
-    LOGGER.info("Started RabbitMQ consumer for queue {}", properties.getQueueName());
     context.log(
         Activity.level(Severity.INFO)
-            .tag("Subscription activation")
+            .tag(LogTag.CONSUMER)
             .message("Activated subscription for queue: " + properties.getQueueName()));
     context.reportHealth(Health.up());
   }
