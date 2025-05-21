@@ -18,7 +18,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class FeelInputParamExtractorTest {
 
-  private final FeelInputParamExtractor extractor = new FeelInputParamExtractor();
+  private final FeelInputParamExtractor extractor = new FeelInputParamExtractorImpl();
 
   @ParameterizedTest
   @MethodSource("testFeelExpressionsWithExpectedInputParams")

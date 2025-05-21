@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.Objects;
-import java.util.Optional;
 
 @AgenticAiRecordBuilder
 public record AgentMetrics(int modelCalls, TokenUsage tokenUsage)
@@ -73,17 +72,6 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage)
 
     public static AgentMetricsTokenUsageBuilder builder() {
       return AgentMetricsTokenUsageBuilder.builder();
-    }
-
-    public static TokenUsage from(dev.langchain4j.model.output.TokenUsage tokenUsage) {
-      if (tokenUsage == null) {
-        return empty();
-      }
-
-      return builder()
-          .inputTokenCount(Optional.ofNullable(tokenUsage.inputTokenCount()).orElse(0))
-          .outputTokenCount(Optional.ofNullable(tokenUsage.outputTokenCount()).orElse(0))
-          .build();
     }
   }
 }

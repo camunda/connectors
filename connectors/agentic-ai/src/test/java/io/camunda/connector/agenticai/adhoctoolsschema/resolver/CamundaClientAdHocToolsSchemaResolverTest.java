@@ -20,7 +20,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtrac
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.SchemaGenerationException;
-import io.camunda.connector.agenticai.domain.model.tools.ToolDefinition;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
 import java.nio.file.Files;

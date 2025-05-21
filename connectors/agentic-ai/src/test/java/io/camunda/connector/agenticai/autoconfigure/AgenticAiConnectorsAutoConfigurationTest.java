@@ -13,17 +13,15 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.document.CamundaDocumentToContentConverter;
-import io.camunda.connector.agenticai.aiagent.provider.ChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.tools.ToolCallingHandler;
-import io.camunda.connector.agenticai.aiagent.tools.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryImpl;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.util.List;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -37,14 +35,12 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   private static final List<Class<?>> AGENTIC_AI_BEANS =
       List.of(
-          FeelInputParamExtractor.class,
+          FeelInputParamExtractorImpl.class,
           AdHocToolSchemaGenerator.class,
           AdHocToolsSchemaResolver.class,
           AdHocToolsSchemaFunction.class,
-          ChatModelFactory.class,
-          ToolSpecificationConverter.class,
-          ToolCallingHandler.class,
-          CamundaDocumentToContentConverter.class,
+          ChatModelFactoryImpl.class,
+          DocumentToContentConverterImpl.class,
           AiAgentRequestHandler.class,
           AiAgentFunction.class);
 

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -145,7 +146,7 @@ Reveal **no** additional private reasoning outside these tags.
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.required,
                 optional = true)
-            List<Map<String, Object>> toolCallResults) {}
+            List<ToolCallResult> toolCallResults) {}
 
     public record MemoryConfiguration(
         // TODO support more advanced eviction policies (token window)
