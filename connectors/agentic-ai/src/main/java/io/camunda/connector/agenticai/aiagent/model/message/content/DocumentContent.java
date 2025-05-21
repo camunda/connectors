@@ -10,14 +10,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.camunda.document.Document;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record DocumentContentBlock(Document document) implements ContentBlock {
-  public DocumentContentBlock {
+public record DocumentContent(Document document) implements Content {
+  public DocumentContent {
     if (document == null) {
       throw new IllegalArgumentException("Document cannot be null");
     }
   }
 
-  public static DocumentContentBlock from(Document document) {
-    return new DocumentContentBlock(document);
+  public static DocumentContent documentContent(Document document) {
+    return new DocumentContent(document);
   }
 }

@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.message;
 
-import io.camunda.connector.agenticai.aiagent.model.message.content.ContentBlock;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.List;
 
 public interface ContentMessage {
-  List<ContentBlock> content();
+  List<Content> content();
 }

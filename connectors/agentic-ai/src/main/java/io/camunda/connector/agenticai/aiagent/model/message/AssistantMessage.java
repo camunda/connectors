@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ContentBlock;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.tools.ToolCallRequest;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import java.util.List;
@@ -23,7 +23,7 @@ import org.springframework.lang.Nullable;
 @JsonDeserialize(builder = AssistantMessage.AssistantMessageJacksonProxyBuilder.class)
 public record AssistantMessage(
     @Nullable StopReason stopReason,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ContentBlock> content,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCallRequest> toolCallRequests,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements AssistantMessageBuilder.With, Message, ContentMessage {

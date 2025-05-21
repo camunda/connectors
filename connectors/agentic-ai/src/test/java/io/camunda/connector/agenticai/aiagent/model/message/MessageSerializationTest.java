@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.message;
 
-import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContentBlock.textContent;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
