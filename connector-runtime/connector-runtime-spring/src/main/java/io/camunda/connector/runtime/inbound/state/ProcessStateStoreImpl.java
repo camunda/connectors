@@ -64,7 +64,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
                 })
             .toList();
 
-    LOG.debug("Filtering only old process definitions)");
+    LOG.debug("Filtering only deleted process definitions)");
     var deletedProcessIds =
         processStates.keySet().stream()
             .filter(
