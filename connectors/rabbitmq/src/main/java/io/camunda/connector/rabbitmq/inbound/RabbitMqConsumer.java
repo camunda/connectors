@@ -44,10 +44,9 @@ public class RabbitMqConsumer extends DefaultConsumer {
       String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
       throws IOException {
 
-    LOGGER.debug("Received AMQP message with delivery tag {}", envelope.getDeliveryTag());
     context.log(
         Activity.level(Severity.INFO)
-            .tag("Message")
+            .tag(LogTag.MESSAGE)
             .message("Received AMQP message with delivery tag " + envelope.getDeliveryTag()));
 
     try {
@@ -60,10 +59,9 @@ public class RabbitMqConsumer extends DefaultConsumer {
                   .build());
       handleCorrelationResult(envelope, result);
     } catch (Exception e) {
-      LOGGER.debug("NACK (requeue) - unhandled exception", e);
       context.log(
-          Activity.level(Severity.WARNING)
-              .tag("Message")
+          Activity.level(Severity.ERROR)
+              .tag(LogTag.MESSAGE)
               .message("NACK (requeue) - failed to correlate event"));
       getChannel().basicReject(envelope.getDeliveryTag(), true);
     }
@@ -74,31 +72,41 @@ public class RabbitMqConsumer extends DefaultConsumer {
 
     switch (result) {
       case Success ignored -> {
-        LOGGER.debug("ACK - message correlated successfully");
+        context.log(
+            Activity.level(Severity.INFO)
+                .tag(LogTag.MESSAGE)
+                .message("Message correlated successfully"));
         getChannel().basicAck(envelope.getDeliveryTag(), false);
       }
 
       case Failure failure -> {
-        context.log(
-            Activity.level(Severity.WARNING)
-                .tag("Message")
-                .message(
-                    "Failed to handle AMQP message with delivery tag "
-                        + envelope.getDeliveryTag()
-                        + ", reason: "
-                        + failure.message()));
+        final String errorLogMessage =
+            "Failed to handle AMQP message with delivery tag "
+                + envelope.getDeliveryTag()
+                + ", reason: "
+                + failure.message();
+
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream fwdStrategy -> {
             if (fwdStrategy.isRetryable()) {
-              LOGGER.debug("NACK (requeue) - message not correlated");
+              context.log(
+                  Activity.level(Severity.WARNING)
+                      .tag(LogTag.MESSAGE)
+                      .message(errorLogMessage + ". Message will be requeued."));
               getChannel().basicReject(envelope.getDeliveryTag(), true);
             } else {
-              LOGGER.debug("NACK (drop) - message not correlated");
+              context.log(
+                  Activity.level(Severity.WARNING)
+                      .tag(LogTag.MESSAGE)
+                      .message(errorLogMessage + ". Message will be dropped."));
               getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
           }
           case Ignore ignored -> {
-            LOGGER.debug("ACK - message ignored");
+            context.log(
+                Activity.level(Severity.WARNING)
+                    .tag(LogTag.MESSAGE)
+                    .message(errorLogMessage + ". Message will be acknowledged."));
             getChannel().basicAck(envelope.getDeliveryTag(), false);
           }
         }
@@ -108,11 +116,10 @@ public class RabbitMqConsumer extends DefaultConsumer {
 
   @Override
   public void handleCancel(String consumerTag) {
-    LOGGER.info("Consumer cancelled: {}", consumerTag);
     try {
       context.log(
           Activity.level(Severity.WARNING)
-              .tag("Subscription")
+              .tag(LogTag.CONSUMER)
               .message("Consumer cancelled: " + consumerTag));
       context.cancel(null);
     } catch (Exception e) {
@@ -126,7 +133,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
     LOGGER.error("Consumer shutdown: {}", consumerTag, sig);
     context.log(
         Activity.level(Severity.ERROR)
-            .tag("Subscription")
+            .tag(LogTag.CONSUMER)
             .message("Consumer shutdown: " + consumerTag + sig));
   }
 

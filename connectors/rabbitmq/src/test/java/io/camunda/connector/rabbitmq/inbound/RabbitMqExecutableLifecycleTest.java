@@ -16,6 +16,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.rabbitmq.common.model.UriAuthentication;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,6 +71,7 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
         getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
             .properties(properties)
+            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
             .build();
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
 
@@ -94,6 +97,7 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
         getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
             .properties(properties)
+            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
             .build();
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
 

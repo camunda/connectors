@@ -182,7 +182,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
-    LOG.debug("{}", log);
+    switch (log.severity()) {
+      case DEBUG -> LOG.debug(log.toString());
+      case ERROR -> LOG.error(log.toString());
+      case INFO -> LOG.info(log.toString());
+      case WARNING -> LOG.warn(log.toString());
+    }
     this.logs.add(log);
   }
 
