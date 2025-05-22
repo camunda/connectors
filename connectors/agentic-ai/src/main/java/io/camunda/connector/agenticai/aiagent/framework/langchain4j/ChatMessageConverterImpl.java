@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -105,12 +106,16 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   }
 
   @Override
-  public AssistantMessage toAssistantMessage(AiMessage aiMessage) {
-    return toAssistantMessageBuilder(aiMessage).build();
+  public AssistantMessage toAssistantMessage(ChatResponse chatResponse) {
+    return toAssistantMessageBuilder(chatResponse).build();
   }
 
-  protected AssistantMessageBuilder toAssistantMessageBuilder(AiMessage aiMessage) {
+  protected AssistantMessageBuilder toAssistantMessageBuilder(ChatResponse chatResponse) {
     final var builder = AssistantMessage.builder();
+    Optional.ofNullable(chatResponse.finishReason())
+        .ifPresent(finishReason -> builder.finishReason(finishReason.toString()));
+
+    final var aiMessage = chatResponse.aiMessage();
     builder.content(List.of(TextContent.textContent(aiMessage.text())));
 
     final var toolCalls =
