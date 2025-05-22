@@ -13,8 +13,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchema
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationMemory;
+import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.MessageWindowConversationMemory;
-import io.camunda.connector.agenticai.aiagent.memory.ProcessVariableMemoryStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -72,17 +72,17 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
                 .map(MemoryConfiguration::maxMessages)
                 .orElse(DEFAULT_MAX_MEMORY_MESSAGES));
 
-    final var memoryStore = new ProcessVariableMemoryStore();
-    memoryStore.loadIntoMemory(agentContext, conversationMemory);
+    final var conversationStore = new InProcessConversationStore();
+    conversationStore.loadFromContext(agentContext, conversationMemory);
 
     // check configured limits
     checkLimits(requestData, agentContext);
 
-    // update memory with system + new user messages/tool call responses
+    // update memory with system message + new user messages/tool call responses
     addSystemPromptIfNecessary(conversationMemory, requestData);
     addUserMessagesFromRequest(agentContext, conversationMemory, requestData);
 
-    // call framework with full conversation memory
+    // call framework with memory
     AiFrameworkChatResponse<?> frameworkChatResponse =
         framework.executeChatRequest(request, agentContext, conversationMemory);
     agentContext = frameworkChatResponse.agentContext();
@@ -92,12 +92,14 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
     final var toolCalls =
         assistantMessage.toolCalls().stream().map(ToolCallProcessVariable::from).toList();
+    final var nextAgentState =
+        toolCalls.isEmpty() ? AgentState.READY : AgentState.WAITING_FOR_TOOL_INPUT;
 
-    // store conversation context + update the next agent state based on tool calls
+    // store memory to context and update the next agent state based on tool calls
     agentContext =
-        memoryStore
-            .store(agentContext, conversationMemory)
-            .withState(!toolCalls.isEmpty() ? AgentState.WAITING_FOR_TOOL_INPUT : AgentState.READY);
+        conversationStore
+            .storeToContext(agentContext, conversationMemory)
+            .withState(nextAgentState);
 
     return new AgentResponse(agentContext, assistantMessage, toolCalls);
   }

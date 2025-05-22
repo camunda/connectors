@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.camunda.connector.agenticai.aiagent.memory.MemoryData;
-import io.camunda.connector.agenticai.aiagent.memory.ProcessVariableMemoryData;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationRecord;
+import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationRecord;
 import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.Collections;
@@ -17,14 +17,17 @@ import java.util.Objects;
 
 @AgenticAiRecordBuilder
 public record AgentContext(
-    AgentState state, AgentMetrics metrics, List<ToolDefinition> toolDefinitions, MemoryData memory)
+    AgentState state,
+    AgentMetrics metrics,
+    List<ToolDefinition> toolDefinitions,
+    ConversationRecord conversation)
     implements AgentContextBuilder.With {
 
   public AgentContext {
     Objects.requireNonNull(state, "Agent state must not be null");
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
-    Objects.requireNonNull(memory, "Agent memory must not be null");
+    Objects.requireNonNull(conversation, "Agent conversation must not be null");
   }
 
   public static final AgentContext EMPTY =
@@ -32,7 +35,7 @@ public record AgentContext(
           AgentState.READY,
           AgentMetrics.EMPTY,
           Collections.emptyList(),
-          new ProcessVariableMemoryData(Collections.emptyList()));
+          new InProcessConversationRecord(Collections.emptyList()));
 
   public boolean isInState(AgentState state) {
     return this.state == state;

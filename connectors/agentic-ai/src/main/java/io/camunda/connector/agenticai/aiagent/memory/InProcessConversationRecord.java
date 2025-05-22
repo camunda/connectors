@@ -6,10 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.camunda.connector.agenticai.model.message.Message;
+import java.util.List;
 
-public interface MemoryStore {
-  void loadIntoMemory(AgentContext agentContext, ConversationMemory memory);
-
-  AgentContext store(AgentContext agentContext, ConversationMemory memory);
-}
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record InProcessConversationRecord(List<Message> messages) implements ConversationRecord {}
