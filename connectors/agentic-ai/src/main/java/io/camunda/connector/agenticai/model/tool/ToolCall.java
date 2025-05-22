@@ -6,16 +6,12 @@
  */
 package io.camunda.connector.agenticai.model.tool;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import java.util.Map;
 
-@AgenticAiRecordBuilder
-@JsonInclude(JsonInclude.Include.ALWAYS)
-@JsonIgnoreProperties(ignoreUnknown = true)
+@AgenticAiRecord
 @JsonDeserialize(builder = ToolCall.ToolCallJacksonProxyBuilder.class)
 public record ToolCall(String id, String name, Map<String, Object> arguments)
     implements ToolCallBuilder.With {

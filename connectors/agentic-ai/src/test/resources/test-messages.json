@@ -1,59 +1,88 @@
 [
   {
-    "type": "SYSTEM",
-    "text": "You are a helpful assistant. Be nice."
-  },
-  {
-    "type": "USER",
-    "contents": [
+    "role": "system",
+    "content": [
       {
-        "text": "What is the weather in Munich?",
-        "type": "TEXT"
-      },
-      {
-        "text": "Is it typical for this time of the year?",
-        "type": "TEXT"
+        "type": "text",
+        "text": "You are a helpful assistant. Be nice."
       }
     ]
   },
   {
-    "type": "AI",
-    "text": "To give an answer, I need to first look up the weather in Munich. Considering available tools, I should call the getWeather tool. In addition I will call the getDateTime tool to know the current date and time.",
-    "toolExecutionRequests": [
+    "role": "user",
+    "name": "user1",
+    "content": [
+      {
+        "type": "text",
+        "text": "What is the weather in Munich?"
+      },
+      {
+        "type": "text",
+        "text": "Is it typical for this time of the year?"
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "To give an answer, I need to first look up the weather in Munich. Considering available tools, I should call the getWeather tool. In addition I will call the getDateTime tool to know the current date and time."
+      }
+    ],
+    "toolCalls": [
       {
         "id": "abcdef",
         "name": "getWeather",
-        "arguments": "{\"location\": \"MUC\"}"
+        "arguments": {
+          "location": "MUC"
+        }
       },
       {
         "id": "fedcba",
-        "name": "getDateTime"
+        "name": "getDateTime",
+        "arguments": {}
       }
     ]
   },
   {
-    "type": "TOOL_EXECUTION_RESULT",
-    "id": "abcdef",
-    "toolName": "getWeather",
-    "text": "Sunny, 22°C"
-  },
-  {
-    "type": "TOOL_EXECUTION_RESULT",
-    "id": "fedcba",
-    "toolName": "getDateTime",
-    "text": "2025-04-14T15:56:50"
-  },
-  {
-    "type": "AI",
-    "text": "The weather in Munich is sunny with a temperature of 22°C. This is typical for April.",
-    "toolExecutionRequests": []
-  },
-  {
-    "type": "USER",
-    "contents": [
+    "role": "tool_call_result",
+    "results": [
       {
-        "text": "Thank you!",
-        "type": "TEXT"
+        "id": "abcdef",
+        "name": "getWeather",
+        "content": "Sunny, 22°C"
+      },
+      {
+        "id": "fedcba",
+        "name": "getDateTime",
+        "content": {
+          "time": "15:56:50",
+          "date": "2025-04-14",
+          "iso": "2025-04-14T15:56:50"
+        }
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "The weather in Munich is sunny with a temperature of 22°C. This is typical for April."
+      }
+    ],
+    "metadata": {
+      "some": "value"
+    }
+  },
+  {
+    "role": "user",
+    "name": "user1",
+    "content": [
+      {
+        "type": "text",
+        "text": "Thank you!"
       }
     ]
   }

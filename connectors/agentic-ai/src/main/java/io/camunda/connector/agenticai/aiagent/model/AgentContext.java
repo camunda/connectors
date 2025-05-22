@@ -6,47 +6,41 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationRecord;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationRecord;
-import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
-import java.util.Collections;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.lang.Nullable;
 
-@AgenticAiRecordBuilder
+@AgenticAiRecord
+@JsonDeserialize(builder = AgentContext.AgentContextJacksonProxyBuilder.class)
 public record AgentContext(
-    AgentState state,
-    AgentMetrics metrics,
+    @RecordBuilder.Initializer("DEFAULT_STATE") AgentState state,
+    @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
     List<ToolDefinition> toolDefinitions,
-    ConversationRecord conversation)
+    @Nullable ConversationRecord conversation)
     implements AgentContextBuilder.With {
+
+  public static final AgentState DEFAULT_STATE = AgentState.READY;
 
   public AgentContext {
     Objects.requireNonNull(state, "Agent state must not be null");
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
-    Objects.requireNonNull(conversation, "Agent conversation must not be null");
-  }
-
-  public static final AgentContext EMPTY =
-      new AgentContext(
-          AgentState.READY,
-          AgentMetrics.EMPTY,
-          Collections.emptyList(),
-          new InProcessConversationRecord(Collections.emptyList()));
-
-  public boolean isInState(AgentState state) {
-    return this.state == state;
-  }
-
-  @JsonIgnore
-  public boolean isEmpty() {
-    return this.equals(EMPTY);
   }
 
   public static AgentContext empty() {
-    return EMPTY;
+    return builder().build();
   }
+
+  public static AgentContextBuilder builder() {
+    return AgentContextBuilder.builder();
+  }
+
+  @JsonPOJOBuilder(withPrefix = "")
+  public static class AgentContextJacksonProxyBuilder extends AgentContextBuilder {}
 }

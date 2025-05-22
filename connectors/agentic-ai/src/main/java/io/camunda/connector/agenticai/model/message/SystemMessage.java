@@ -8,28 +8,20 @@ package io.camunda.connector.agenticai.model.message;
 
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import java.util.List;
 import java.util.Map;
 
-@AgenticAiRecordBuilder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
+@AgenticAiRecord
 @JsonDeserialize(builder = SystemMessage.SystemMessageJacksonProxyBuilder.class)
 public record SystemMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements SystemMessageBuilder.With, Message, ContentMessage {
-
-  @Override
-  public MessageRole role() {
-    return MessageRole.SYSTEM;
-  }
 
   public static SystemMessage systemMessage(String text) {
     return builder().content(List.of(textContent(text))).build();

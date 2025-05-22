@@ -6,15 +6,12 @@
  */
 package io.camunda.connector.agenticai.model.message;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class MessageSerializationTest {
@@ -23,51 +20,28 @@ class MessageSerializationTest {
 
   @Test
   void messagesCanBeSerializedAndDeserialized() throws Exception {
-    final List<Message> messages =
-        List.of(
-            SystemMessage.builder()
-                .content(List.of(textContent("You are a helpful assistant.")))
-                .build(),
-            UserMessage.builder()
-                .name("user1")
-                .content(List.of(textContent("What is the time?")))
-                .build(),
-            AssistantMessage.builder()
-                .content(
-                    List.of(textContent("<thinking>I should call the get_time tool</thinking>")))
-                .toolCalls(
-                    List.of(
-                        ToolCall.builder()
-                            .id("123456")
-                            .name("get_time")
-                            .arguments(Map.of("when", "now"))
-                            .build()))
-                .build(),
-            ToolCallResultMessage.builder()
-                .results(
-                    List.of(
-                        ToolCallResult.builder()
-                            .id("123456")
-                            .name("get_time")
-                            .content(Map.of("when", "now", "time", "12:00"))
-                            .build()))
-                .build(),
-            AssistantMessage.builder()
-                .content(List.of(textContent("The time now is 12:00")))
-                .build(),
-            UserMessage.builder()
-                .name("user1")
-                .content(List.of(textContent("Thank you!")))
-                .build());
-
+    final var wrapper = new MessagesWrapper(TestMessagesFixture.testMessages());
     final var serialized =
-        objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(messages);
+        objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(wrapper);
 
-    final var deserialized =
-        objectMapper.readValue(serialized, new TypeReference<List<Message>>() {});
+    final var deserialized = objectMapper.readValue(serialized, MessagesWrapper.class);
 
-    assertThat(deserialized)
+    assertThat(deserialized).usingRecursiveComparison().isEqualTo(wrapper);
+
+    assertThat(deserialized.messages())
         .usingRecursiveFieldByFieldElementComparator()
-        .containsExactlyElementsOf(messages);
+        .containsExactlyElementsOf(TestMessagesFixture.testMessages());
   }
+
+  @Test
+  void messagesCanBeDeserializedFromFixture() throws IOException {
+    // test that representation stored in fixture file is stable
+    final var fromFile = TestMessagesFixture.testMessagesFromFile();
+
+    assertThat(fromFile)
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactlyElementsOf(TestMessagesFixture.testMessages());
+  }
+
+  private record MessagesWrapper(List<Message> messages) {}
 }

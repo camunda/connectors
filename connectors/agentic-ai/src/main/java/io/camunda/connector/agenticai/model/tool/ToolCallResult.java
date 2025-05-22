@@ -8,17 +8,14 @@ package io.camunda.connector.agenticai.model.tool;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import java.util.Map;
 import org.springframework.lang.Nullable;
 
-@AgenticAiRecordBuilder
-@JsonInclude(JsonInclude.Include.ALWAYS)
-@JsonIgnoreProperties(ignoreUnknown = true)
+@AgenticAiRecord
 @JsonDeserialize(builder = ToolCallResult.ToolCallResultJacksonProxyBuilder.class)
 public record ToolCallResult(
     @Nullable String id,
