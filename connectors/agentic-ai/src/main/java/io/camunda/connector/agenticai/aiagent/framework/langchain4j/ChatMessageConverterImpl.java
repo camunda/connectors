@@ -6,9 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
+import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.internal.Json;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -19,8 +25,10 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.document.Document;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.util.CollectionUtils;
 
@@ -28,11 +36,15 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   private final ToolCallConverter toolCallConverter;
   private final DocumentToContentConverter documentToContentConverter;
+  private final ObjectMapper objectMapper;
 
   public ChatMessageConverterImpl(
-      ToolCallConverter toolCallConverter, DocumentToContentConverter documentToContentConverter) {
+      ToolCallConverter toolCallConverter,
+      DocumentToContentConverter documentToContentConverter,
+      ObjectMapper objectMapper) {
     this.toolCallConverter = toolCallConverter;
     this.documentToContentConverter = documentToContentConverter;
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -112,8 +124,11 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   protected AssistantMessageBuilder toAssistantMessageBuilder(ChatResponse chatResponse) {
     final var builder = AssistantMessage.builder();
-    Optional.ofNullable(chatResponse.finishReason())
-        .ifPresent(finishReason -> builder.finishReason(finishReason.toString()));
+
+    if (chatResponse.metadata() != null) {
+      builder.metadata(
+          Map.of("framework", serializedChatResponseMetadata(chatResponse.metadata())));
+    }
 
     final var aiMessage = chatResponse.aiMessage();
     builder.content(List.of(TextContent.textContent(aiMessage.text())));
@@ -124,6 +139,21 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     builder.toolCalls(toolCalls);
 
     return builder;
+  }
+
+  protected Map<String, Object> serializedChatResponseMetadata(ChatResponseMetadata metadata) {
+    if (metadata == null) {
+      return Map.of();
+    }
+
+    try {
+      return objectMapper.readValue(
+          Json.toJson(metadata), ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(
+          "Failed to deserialize chat response metadata: %s"
+              .formatted(humanReadableJsonProcessingExceptionMessage(e)));
+    }
   }
 
   @Override
