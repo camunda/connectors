@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -38,7 +39,7 @@ public interface ChatMessageConverter {
 
   dev.langchain4j.data.message.AiMessage fromAssistantMessage(AssistantMessage assistantMessage);
 
-  AssistantMessage toAssistantMessage(dev.langchain4j.data.message.AiMessage aiMessage);
+  AssistantMessage toAssistantMessage(ChatResponse chatResponse);
 
   List<dev.langchain4j.data.message.ToolExecutionResultMessage> fromToolCallResultMessage(
       ToolCallResultMessage toolCallResultMessage);

@@ -22,7 +22,7 @@ import org.springframework.lang.Nullable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonDeserialize(builder = AssistantMessage.AssistantMessageJacksonProxyBuilder.class)
 public record AssistantMessage(
-    @Nullable StopReason stopReason,
+    @Nullable String finishReason,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCall> toolCalls,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
@@ -43,12 +43,4 @@ public record AssistantMessage(
 
   @JsonPOJOBuilder(withPrefix = "")
   public static class AssistantMessageJacksonProxyBuilder extends AssistantMessageBuilder {}
-
-  public enum StopReason {
-    STOP,
-    LENGTH,
-    TOOL_EXECUTION,
-    CONTENT_FILTER,
-    OTHER
-  }
 }

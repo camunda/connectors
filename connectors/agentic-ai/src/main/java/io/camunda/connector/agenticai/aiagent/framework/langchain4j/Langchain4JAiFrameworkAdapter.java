@@ -46,8 +46,7 @@ public class Langchain4JAiFrameworkAdapter
 
     final ChatModel chatModel = chatModelFactory.createChatModel(request.provider());
     final ChatResponse chatResponse = chatModel.chat(chatRequest);
-    final AssistantMessage assistantMessage =
-        chatMessageConverter.toAssistantMessage(chatResponse.aiMessage());
+    final AssistantMessage assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse);
 
     final var updatedAgentContext =
         agentContext.withMetrics(
