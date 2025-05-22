@@ -15,14 +15,12 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import java.util.List;
 import java.util.Map;
-import org.springframework.lang.Nullable;
 
 @AgenticAiRecordBuilder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonDeserialize(builder = AssistantMessage.AssistantMessageJacksonProxyBuilder.class)
 public record AssistantMessage(
-    @Nullable String finishReason,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCall> toolCalls,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
