@@ -20,10 +20,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -32,7 +34,6 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ChatMessageDeserializer;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.ImageContent.DetailLevel;
@@ -50,13 +51,16 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.client.api.search.response.Incident;
 import io.camunda.client.api.worker.JobWorker;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationRecord;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -73,6 +77,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
+import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -88,6 +93,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 public class AiAgentTests extends BaseAgenticAiTest {
@@ -102,7 +108,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
   @Mock private ChatModel chatModel;
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
 
-  // @MockitoSpyBean private ToolCallingHandler toolCallingHandler;
+  @MockitoSpyBean private AdHocToolsSchemaResolver schemaResolver;
 
   private JobWorker jobWorker;
   private final AtomicInteger jobWorkerCounter = new AtomicInteger(0);
@@ -168,7 +174,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
                       || i.getTarget().startsWith("data.limits.")),
           false);
 
-      // verify(toolCallingHandler, never()).loadToolSpecifications(any(), any());
+      verify(schemaResolver, never()).resolveSchema(any(), any());
     }
 
     private void testBasicExecutionWithoutFeedbackLoop(
@@ -209,7 +215,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertAgentResponse(
           agentResponse,
           new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)),
-          expectedConversation);
+          ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(1);
     }
@@ -264,7 +270,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertAgentResponse(
           agentResponse,
           new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)),
-          expectedConversation);
+          ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
@@ -344,7 +350,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertAgentResponse(
           agentResponse,
           new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)),
-          expectedConversation);
+          ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
@@ -369,7 +375,8 @@ public class AiAgentTests extends BaseAgenticAiTest {
         expectedDownloadFileResult =
             new DownloadFileToolResult(
                 200,
-                new DocumentToContentResponseModel(type, mimeType, testFileContent(filename).get()));
+                new DocumentToContentResponseModel(
+                    type, mimeType, testFileContent(filename).get()));
       } else {
         expectedDownloadFileResult =
             new DownloadFileToolResult(
@@ -442,7 +449,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertAgentResponse(
           agentResponse,
           new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)),
-          expectedConversation);
+          ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
@@ -506,7 +513,7 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertAgentResponse(
           agentResponse,
           new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)),
-          expectedConversation);
+          ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(1);
     }
@@ -554,7 +561,11 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertAgentResponse(
           agentResponse,
           new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)),
-          expectedConversation);
+          assistantMessage ->
+              assertThat(assistantMessage.content())
+                  .hasSize(1)
+                  .containsExactly(
+                      textContent("TL;DR: they contain a lot of interesting information.")));
 
       assertThat(jobWorkerCounter.get()).isEqualTo(1);
     }
@@ -655,13 +666,18 @@ public class AiAgentTests extends BaseAgenticAiTest {
       final var agentResponse = getAgentResponse(zeebeTest);
       assertThat(agentResponse.context().metrics().modelCalls()).isEqualTo(expectedMaxModelCalls);
 
-      final var chatMemoryMessages = chatMemoryMessages(agentResponse.context());
-      assertThat(chatMemoryMessages).filteredOn(msg -> msg instanceof SystemMessage).hasSize(1);
-      assertThat(chatMemoryMessages)
-          .filteredOn(msg -> msg instanceof AiMessage)
+      final var conversationMessages =
+          ((InProcessConversationRecord) agentResponse.context().conversation()).messages();
+      assertThat(conversationMessages)
+          .filteredOn(
+              msg -> msg instanceof io.camunda.connector.agenticai.model.message.SystemMessage)
+          .hasSize(1);
+      assertThat(conversationMessages)
+          .filteredOn(msg -> msg instanceof AssistantMessage)
           .hasSize(expectedMaxModelCalls);
-      assertThat(chatMemoryMessages)
-          .filteredOn(msg -> msg instanceof UserMessage)
+      assertThat(conversationMessages)
+          .filteredOn(
+              msg -> msg instanceof io.camunda.connector.agenticai.model.message.UserMessage)
           .hasSize(expectedMaxModelCalls);
     }
   }
@@ -697,37 +713,36 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
     assertThat(lastChatRequest.messages())
         .as("The last chat request should contain all messages except the last response")
+        .usingRecursiveFieldByFieldElementComparator(
+            RecursiveComparisonConfiguration.builder()
+                .withEqualsForType(
+                    new ToolExecutionRequestEqualsPredicate(), ToolExecutionRequest.class)
+                .build())
         .containsExactlyElementsOf(
             expectedConversation.subList(0, expectedConversation.size() - 1));
   }
 
   private void assertAgentResponse(
-      AgentResponse agentResponse, AgentMetrics expectedMetrics, List<ChatMessage> expectedMessages)
-      throws JsonProcessingException {
+      AgentResponse agentResponse, AgentMetrics expectedMetrics, String expectedResponseText) {
+    assertAgentResponse(
+        agentResponse,
+        expectedMetrics,
+        assistantMessage -> {
+          assertThat(assistantMessage.content())
+              .hasSize(1)
+              .containsExactly(textContent(expectedResponseText));
+        });
+  }
+
+  private void assertAgentResponse(
+      AgentResponse agentResponse,
+      AgentMetrics expectedMetrics,
+      ThrowingConsumer<AssistantMessage> responseAssertions) {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.toolCalls()).isEmpty();
-    assertTrue(agentResponse.context().isInState(AgentState.READY));
+    assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics()).isEqualTo(expectedMetrics);
-
-    final var chatMemoryMessages = chatMemoryMessages(agentResponse.context());
-    assertThat(chatMemoryMessages).containsExactlyElementsOf(expectedMessages);
-
-    assertAgentResponseMessage(agentResponse, expectedMessages.getLast());
-  }
-
-  private List<ChatMessage> chatMemoryMessages(AgentContext agentContext) {
-    // AgentContextChatMemoryStore chatMemoryStore = new AgentContextChatMemoryStore(objectMapper);
-    // chatMemoryStore.loadFromAgentContext(agentContext);
-    // return chatMemoryStore.getMessages(AgentContextChatMemoryStore.DEFAULT_MEMORY_ID);
-    return List.of();
-  }
-
-  private void assertAgentResponseMessage(AgentResponse agentResponse, ChatMessage expectedResponse)
-      throws JsonProcessingException {
-    final var responseMessage =
-        ChatMessageDeserializer.messageFromJson(
-            objectMapper.writeValueAsString(agentResponse.response()));
-    assertThat(responseMessage).isEqualTo(expectedResponse);
+    responseAssertions.accept(agentResponse.response());
   }
 
   private void assertToolSpecifications(ChatRequest chatRequest) {
