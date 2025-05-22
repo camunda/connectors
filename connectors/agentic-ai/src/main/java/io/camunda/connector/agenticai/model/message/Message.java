@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.model.message;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.util.Map;
@@ -18,11 +17,6 @@ import java.util.Map;
   @JsonSubTypes.Type(value = UserMessage.class, name = "user"),
   @JsonSubTypes.Type(value = ToolCallResultMessage.class, name = "tool_call_result"),
 })
-public sealed interface Message
-    permits SystemMessage, AssistantMessage, UserMessage, ToolCallResultMessage {
-
-  @JsonProperty
-  MessageRole role();
-
+public interface Message {
   Map<String, Object> metadata();
 }

@@ -165,14 +165,14 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
     // throw an error when receiving tool call results on an empty context as
     // most likely this is a modeling error
-    if (agentContext.isEmpty() && !toolCallResults.isEmpty()) {
+    if (agentContext.conversation() == null && !toolCallResults.isEmpty()) {
       throw new ConnectorException(
           ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT,
-          "Agent received tool call results, but the agent context was empty (no tool call requests). Is the context configured correctly?");
+          "Agent received tool call results, but the agent context was empty (no previous conversation). Is the context configured correctly?");
     }
 
     // add tool call results to chat memory
-    if (agentContext.isInState(AgentState.WAITING_FOR_TOOL_INPUT)) {
+    if (agentContext.state() == AgentState.WAITING_FOR_TOOL_INPUT) {
       if (toolCallResults.isEmpty()) {
         throw new ConnectorException(
             ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS,

@@ -11,4 +11,14 @@ import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record InProcessConversationRecord(List<Message> messages) implements ConversationRecord {}
+public record InProcessConversationRecord(List<Message> messages) implements ConversationRecord {
+  public InProcessConversationRecord {
+    if (messages == null) {
+      throw new IllegalArgumentException("Messages cannot be null");
+    }
+  }
+
+  public static InProcessConversationRecord empty() {
+    return new InProcessConversationRecord(List.of());
+  }
+}

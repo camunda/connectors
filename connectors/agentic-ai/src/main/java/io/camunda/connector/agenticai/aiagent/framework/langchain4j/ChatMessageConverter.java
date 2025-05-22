@@ -26,6 +26,7 @@ public interface ChatMessageConverter {
           fromToolCallResultMessage(toolCallResultMessage).stream()
               .map(ChatMessage.class::cast)
               .toList();
+      default -> throw new IllegalArgumentException("Unknown message type: " + message.getClass());
     };
   }
 

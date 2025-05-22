@@ -6,16 +6,18 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.Objects;
 
-@AgenticAiRecordBuilder
-public record AgentMetrics(int modelCalls, TokenUsage tokenUsage)
+@AgenticAiRecord
+@JsonDeserialize(builder = AgentMetrics.AgentMetricsJacksonProxyBuilder.class)
+public record AgentMetrics(
+    int modelCalls,
+    @RecordBuilder.Initializer(source = TokenUsage.class, value = "empty") TokenUsage tokenUsage)
     implements AgentMetricsBuilder.With {
-  public static final AgentMetrics EMPTY =
-      AgentMetricsBuilder.builder().tokenUsage(TokenUsage.empty()).build();
-
   public AgentMetrics {
     if (modelCalls < 0) {
       throw new IllegalArgumentException("Model calls must be non-negative");
@@ -32,23 +34,21 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage)
     return withTokenUsage(tokenUsage.add(additionalTokenUsage));
   }
 
-  @JsonIgnore
-  public boolean isEmpty() {
-    return this.equals(EMPTY);
-  }
-
   public static AgentMetrics empty() {
-    return EMPTY;
+    return builder().build();
   }
 
   public static AgentMetricsBuilder builder() {
     return AgentMetricsBuilder.builder();
   }
 
-  @AgenticAiRecordBuilder
+  @JsonPOJOBuilder(withPrefix = "")
+  public static class AgentMetricsJacksonProxyBuilder extends AgentMetricsBuilder {}
+
+  @AgenticAiRecord
+  @JsonDeserialize(builder = TokenUsage.AgentMetricsTokenUsageJacksonProxyBuilder.class)
   public record TokenUsage(int inputTokenCount, int outputTokenCount)
       implements AgentMetricsTokenUsageBuilder.With {
-    public static final TokenUsage EMPTY = AgentMetricsTokenUsageBuilder.builder().build();
 
     public int totalTokenCount() {
       return inputTokenCount + outputTokenCount;
@@ -62,16 +62,16 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage)
                   .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount()));
     }
 
-    public boolean isEmpty() {
-      return this.equals(EMPTY);
-    }
-
     public static TokenUsage empty() {
-      return EMPTY;
+      return builder().build();
     }
 
     public static AgentMetricsTokenUsageBuilder builder() {
       return AgentMetricsTokenUsageBuilder.builder();
     }
+
+    @JsonPOJOBuilder(withPrefix = "")
+    public static class AgentMetricsTokenUsageJacksonProxyBuilder
+        extends AgentMetricsTokenUsageBuilder {}
   }
 }

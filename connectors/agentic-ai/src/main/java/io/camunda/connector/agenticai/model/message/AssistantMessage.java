@@ -6,19 +6,18 @@
  */
 package io.camunda.connector.agenticai.model.message;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import java.util.List;
 import java.util.Map;
 
-@AgenticAiRecordBuilder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
+@AgenticAiRecord
 @JsonDeserialize(builder = AssistantMessage.AssistantMessageJacksonProxyBuilder.class)
 public record AssistantMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
@@ -26,13 +25,20 @@ public record AssistantMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements AssistantMessageBuilder.With, Message, ContentMessage {
 
-  @Override
-  public MessageRole role() {
-    return MessageRole.ASSISTANT;
-  }
-
   public boolean hasToolCallRequests() {
     return toolCalls != null && !toolCalls.isEmpty();
+  }
+
+  public static AssistantMessage assistantMessage(String text) {
+    return builder().content(List.of(textContent(text))).build();
+  }
+
+  public static AssistantMessage assistantMessage(String text, List<ToolCall> toolCalls) {
+    return builder().content(List.of(textContent(text))).toolCalls(toolCalls).build();
+  }
+
+  public static AssistantMessage assistantMessage(List<Content> content) {
+    return builder().content(content).build();
   }
 
   public static AssistantMessageBuilder builder() {

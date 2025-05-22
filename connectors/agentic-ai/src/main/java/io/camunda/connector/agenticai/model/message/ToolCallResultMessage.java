@@ -6,27 +6,23 @@
  */
 package io.camunda.connector.agenticai.model.message;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.model.AgenticAiRecordBuilder;
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 import java.util.Map;
 
-@AgenticAiRecordBuilder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
+@AgenticAiRecord
 @JsonDeserialize(builder = ToolCallResultMessage.ToolCallResultMessageJacksonProxyBuilder.class)
 public record ToolCallResultMessage(
     List<ToolCallResult> results,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements ToolCallResultMessageBuilder.With, Message {
 
-  @Override
-  public MessageRole role() {
-    return MessageRole.TOOL_CALL_RESULT;
+  public static ToolCallResultMessage toolCallResultMessage(List<ToolCallResult> results) {
+    return builder().results(results).build();
   }
 
   public static ToolCallResultMessageBuilder builder() {

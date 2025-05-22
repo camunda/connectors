@@ -6,9 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import java.util.List;
 
+@AgenticAiRecord
 public record AgentResponse(
     AgentContext context, AssistantMessage response, List<ToolCallProcessVariable> toolCalls) {}
