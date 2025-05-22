@@ -21,6 +21,7 @@ import static io.camunda.connector.generator.openapi.util.SecurityUtil.parseAuth
 import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOperation;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
+import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.camunda.connector.generator.dsl.http.OperationParseResult;
 import io.camunda.connector.generator.openapi.OpenApiGenerationSource.Options;
 import io.camunda.connector.generator.openapi.util.BodyUtil.BodyParseResult;
@@ -28,6 +29,7 @@ import io.camunda.connector.http.base.model.HttpMethod;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -162,6 +164,16 @@ public class OperationUtil {
         bodyFeelExpression = ((BodyParseResult.Detailed) body).feelBuilder();
         properties.addAll(((BodyParseResult.Detailed) body).properties());
       }
+
+      Optional.ofNullable(operation.getRequestBody())
+          .map(RequestBody::getContent)
+          .filter(content -> content.containsKey("multipart/form-data"))
+          .ifPresent(
+              content -> {
+                properties.add(
+                    HttpOperationProperty.createHiddenProperty(
+                        "Content-Type", Target.HEADER, "", true, "multipart/form-data"));
+              });
 
       var opBuilder =
           HttpOperation.builder()

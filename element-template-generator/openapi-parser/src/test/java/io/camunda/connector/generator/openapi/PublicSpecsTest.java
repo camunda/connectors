@@ -36,8 +36,8 @@ public class PublicSpecsTest {
     return Stream.of(
         Arguments.of("src/test/resources/publicSpecs/paycom.yaml", 30, 0),
         Arguments.of("src/test/resources/publicSpecs/paypalcheckout.yaml", 8, 0),
-        Arguments.of("src/test/resources/publicSpecs/peachpay.yaml", 20, 2),
-        Arguments.of("src/test/resources/publicSpecs/stripe.yaml", 42, 11));
+        Arguments.of("src/test/resources/publicSpecs/peachpay.yaml", 21, 1),
+        Arguments.of("src/test/resources/publicSpecs/stripe.yaml", 44, 9));
   }
 
   private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());

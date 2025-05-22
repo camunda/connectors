@@ -34,10 +34,10 @@ import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class PropertyUtil {
@@ -254,8 +254,8 @@ public class PropertyUtil {
     List<Property> properties = new ArrayList<>();
 
     for (var operation : operations) {
-      Set<String> headerProperties = new HashSet<>();
-      Set<String> queryProperties = new HashSet<>();
+      Map<String, String> headerProperties = new HashMap<>();
+      Map<String, String> queryProperties = new HashMap<>();
       List<Property> transformedProperties = new ArrayList<>();
 
       for (var property : operation.properties()) {
@@ -270,9 +270,9 @@ public class PropertyUtil {
         }
 
         if (property.target() == Target.HEADER) {
-          headerProperties.add(binding.name());
+          headerProperties.put(property.id(), binding.name());
         } else if (property.target() == Target.QUERY) {
-          queryProperties.add(binding.name());
+          queryProperties.put(property.id(), binding.name());
         }
         transformedProperties.add(transformed);
       }
@@ -329,6 +329,7 @@ public class PropertyUtil {
     PropertyBuilder builder =
         switch (property.type()) {
           case STRING -> StringProperty.builder().value(property.example()).feel(FeelMode.optional);
+          case HIDDEN -> HiddenProperty.builder().value(property.example()).feel(FeelMode.disabled);
           case ENUM ->
               DropdownProperty.builder()
                   .choices(
@@ -419,13 +420,13 @@ public class PropertyUtil {
     return PropertyGroup.builder().id("url").label("URL").properties(urlProperty).build();
   }
 
-  private static String buildContextExpression(Set<String> properties) {
+  private static String buildContextExpression(Map<String, String> properties) {
     StringBuilder sb = new StringBuilder();
     sb.append("={");
-    var it = properties.iterator();
+    var it = properties.entrySet().iterator();
     while (it.hasNext()) {
-      var prop = it.next();
-      sb.append(prop).append(": ").append(prop);
+      var entry = it.next();
+      sb.append(entry.getKey()).append(": ").append(entry.getValue());
       if (it.hasNext()) {
         sb.append(", ");
       }
