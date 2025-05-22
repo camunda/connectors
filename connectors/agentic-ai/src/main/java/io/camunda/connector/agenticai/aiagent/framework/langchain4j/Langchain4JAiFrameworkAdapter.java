@@ -38,7 +38,7 @@ public class Langchain4JAiFrameworkAdapter
   public Langchain4JAiFrameworkChatResponse executeChatRequest(
       AgentRequest request, AgentContext agentContext, ConversationMemory conversationMemory) {
 
-    final var messages = chatMessageConverter.map(conversationMemory.messages());
+    final var messages = chatMessageConverter.map(conversationMemory.filteredMessages());
     final var toolSpecifications = toolSpecificationConverter.map(agentContext.toolDefinitions());
 
     final var chatRequest =

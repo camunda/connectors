@@ -8,13 +8,11 @@ package io.camunda.connector.agenticai.aiagent.memory;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.model.message.Message;
-import java.util.List;
 
+/**
+ * A record of a conversation, stored externally. This contains all the data needed to load the
+ * conversation again.
+ */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({
-  @JsonSubTypes.Type(value = ProcessVariableMemoryData.class, name = "process-variable")
-})
-public interface MemoryData {
-  List<Message> messages();
-}
+@JsonSubTypes({@JsonSubTypes.Type(value = InProcessConversationRecord.class, name = "in-process")})
+public interface ConversationRecord {}

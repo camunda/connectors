@@ -9,13 +9,22 @@ package io.camunda.connector.agenticai.aiagent.memory;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 
+/**
+ * The loaded conversation memory containing all messages. Can optionally apply filters to the
+ * messages before passing them back to the LLM.
+ */
 public interface ConversationMemory {
-
   void addMessages(List<Message> messages);
 
   void addMessage(Message message);
 
-  List<Message> messages();
+  /** All messages which should be stored. */
+  List<Message> allMessages();
+
+  /** Filtered message view which should be included in the LLM request. */
+  default List<Message> filteredMessages() {
+    return allMessages();
+  }
 
   void clear();
 }

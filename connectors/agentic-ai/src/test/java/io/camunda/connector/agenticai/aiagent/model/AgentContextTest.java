@@ -6,13 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import static io.camunda.connector.agenticai.model.message.UserMessage.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import io.camunda.connector.agenticai.aiagent.memory.MemoryData;
-import io.camunda.connector.agenticai.aiagent.memory.ProcessVariableMemoryData;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationRecord;
+import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationRecord;
+import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.Collections;
 import java.util.List;
@@ -28,14 +28,15 @@ class AgentContextTest {
           AgentState.READY,
           AgentMetrics.empty(),
           List.of(),
-          new ProcessVariableMemoryData(List.of()));
+          new InProcessConversationRecord(List.of()));
 
   @Test
   void emptyContext() {
     final var context = AgentContext.empty();
     assertThat(context.state()).isEqualTo(AgentState.READY);
     assertThat(context.metrics()).isEqualTo(AgentMetrics.empty());
-    assertThat(context.memory().messages()).isEmpty();
+    assertThat(context.toolDefinitions()).isEmpty();
+    assertThat(context.conversation()).isEqualTo(new InProcessConversationRecord(List.of()));
     assertThat(context).isNotSameAs(EMPTY_CONTEXT).isEqualTo(EMPTY_CONTEXT);
   }
 
@@ -68,21 +69,22 @@ class AgentContextTest {
   }
 
   @Test
-  void withMemory() {
-    final var newMessage = userMessage("Hello");
-    final var updatedMemory = new ProcessVariableMemoryData(List.of(newMessage));
+  void withConversation() {
+    final var newMessage = UserMessage.userMessage("Hello");
+    final var updatedConversation = new InProcessConversationRecord(List.of(newMessage));
 
     final var initialContext = AgentContext.empty();
-    final var updatedContext = initialContext.withMemory(updatedMemory);
+    final var updatedContext = initialContext.withConversation(updatedConversation);
 
     assertThat(updatedContext).isNotEqualTo(initialContext);
-    assertThat(initialContext.memory()).isEqualTo(EMPTY_CONTEXT.memory());
+    assertThat(initialContext.conversation()).isEqualTo(EMPTY_CONTEXT.conversation());
 
-    assertThat(updatedContext.memory())
-        .isEqualTo(updatedMemory)
-        .isNotEqualTo(initialContext.memory());
+    assertThat(updatedContext.conversation())
+        .isEqualTo(updatedConversation)
+        .isNotEqualTo(initialContext.conversation());
 
-    assertThat(updatedContext.memory().messages()).containsExactly(newMessage);
+    assertThat(((InProcessConversationRecord) updatedContext.conversation()).messages())
+        .containsExactly(newMessage);
   }
 
   @ParameterizedTest
@@ -91,9 +93,9 @@ class AgentContextTest {
       AgentState state,
       AgentMetrics metrics,
       List<ToolDefinition> toolDefinitions,
-      MemoryData memory,
+      ConversationRecord conversation,
       String exceptionMessage) {
-    assertThatThrownBy(() -> new AgentContext(state, metrics, toolDefinitions, memory))
+    assertThatThrownBy(() -> new AgentContext(state, metrics, toolDefinitions, conversation))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
@@ -102,12 +104,12 @@ class AgentContextTest {
     final var state = AgentState.READY;
     final var metrics = AgentMetrics.empty();
     final var toolDefinitions = List.of();
-    final var memory = new ProcessVariableMemoryData(Collections.emptyList());
+    final var conversation = new InProcessConversationRecord(Collections.emptyList());
 
     return Stream.of(
-        arguments(null, metrics, toolDefinitions, memory, "Agent state must not be null"),
-        arguments(state, null, toolDefinitions, memory, "Agent metrics must not be null"),
-        arguments(state, metrics, null, memory, "Tool definitions must not be null"),
-        arguments(state, metrics, toolDefinitions, null, "Agent memory must not be null"));
+        arguments(null, metrics, toolDefinitions, conversation, "Agent state must not be null"),
+        arguments(state, null, toolDefinitions, conversation, "Agent metrics must not be null"),
+        arguments(state, metrics, null, conversation, "Tool definitions must not be null"),
+        arguments(state, metrics, toolDefinitions, null, "Agent conversation must not be null"));
   }
 }
