@@ -47,7 +47,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
 
-public class BaseMultiInstancesTest {
+abstract class BaseMultiInstancesTest {
   final InboundExecutableRegistry executableRegistry1 =
       Mockito.mock(InboundExecutableRegistry.class);
   final InboundExecutableRegistry executableRegistry2 =

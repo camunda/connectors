@@ -47,7 +47,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = TestConnectorRuntimeApplication.class)
@@ -56,7 +56,7 @@ class InboundInstancesRestControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @MockitoSpyBean private InboundExecutableRegistry executableRegistry;
+  @MockitoBean private InboundExecutableRegistry executableRegistry;
 
   private static final String TYPE_1 = "webhook";
 
