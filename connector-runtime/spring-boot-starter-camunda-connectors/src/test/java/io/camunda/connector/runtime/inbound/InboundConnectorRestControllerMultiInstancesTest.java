@@ -25,12 +25,15 @@ import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import java.time.ZoneOffset;
 import java.util.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
+@ExtendWith(MockitoExtension.class)
 class InboundConnectorRestControllerMultiInstancesTest extends BaseMultiInstancesTest {
-
+  
   @Test
   public void shouldReturnActivityLogs_whenTypeProvided() {
     ResponseEntity<List<Collection<InstanceAwareModel.InstanceAwareActivity>>> response =
