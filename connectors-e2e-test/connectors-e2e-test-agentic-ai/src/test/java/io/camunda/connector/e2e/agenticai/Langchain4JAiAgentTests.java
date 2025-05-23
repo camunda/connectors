@@ -96,7 +96,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
-public class AiAgentTests extends BaseAgenticAiTest {
+public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
 
   @RegisterExtension
   static WireMockExtension wm =
