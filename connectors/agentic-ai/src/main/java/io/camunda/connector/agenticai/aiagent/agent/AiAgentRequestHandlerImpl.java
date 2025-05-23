@@ -22,12 +22,15 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
@@ -101,7 +104,34 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
             .storeToContext(agentContext, conversationMemory)
             .withState(nextAgentState);
 
-    return new AgentResponse(agentContext, assistantMessage, toolCalls);
+    return createResponse(request, agentContext, toolCalls, assistantMessage);
+  }
+
+  private AgentResponse createResponse(
+      AgentRequest request,
+      AgentContext agentContext,
+      List<ToolCallProcessVariable> toolCalls,
+      AssistantMessage assistantMessage) {
+    final var responseConfiguration =
+        Optional.ofNullable(request.data().response())
+            // default to text content only if not configured
+            .orElseGet(() -> new ResponseConfiguration(true, false));
+
+    final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
+
+    if (responseConfiguration.includeText()) {
+      assistantMessage.content().stream()
+          .filter(c -> c instanceof TextContent)
+          .map(c -> ((TextContent) c).text())
+          .findFirst()
+          .ifPresent(builder::responseText);
+    }
+
+    if (responseConfiguration.includeAssistantMessage()) {
+      builder.responseMessage(assistantMessage);
+    }
+
+    return builder.build();
   }
 
   private AgentContext initializeAgentContext(

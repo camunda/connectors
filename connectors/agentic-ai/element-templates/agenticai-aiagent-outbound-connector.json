@@ -48,6 +48,11 @@
     "label" : "Limits",
     "openByDefault" : false
   }, {
+    "id" : "response",
+    "label" : "Response",
+    "tooltip" : "Defines which elements of the Agent result should be added to the response.",
+    "openByDefault" : false
+  }, {
     "id" : "connector",
     "label" : "Connector"
   }, {
@@ -678,6 +683,34 @@
       "type" : "zeebe:input"
     },
     "type" : "Number"
+  }, {
+    "id" : "data.response.includeText",
+    "label" : "Include text output",
+    "description" : "Adds the first text output of the assistant message to the response.",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.includeText",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "The text output will be available as <code>response.responseText</code>.",
+    "type" : "Boolean"
+  }, {
+    "id" : "data.response.includeAssistantMessage",
+    "label" : "Include assistant message",
+    "description" : "Adds the full assistant message to the response.",
+    "optional" : false,
+    "value" : false,
+    "feel" : "static",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.includeAssistantMessage",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "In addition to the text content, the message may include multiple additional content blocks and metadata. The message output will be available as <code>response.responseMessage</code>.",
+    "type" : "Boolean"
   }, {
     "id" : "version",
     "label" : "Version",
