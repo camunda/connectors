@@ -33,7 +33,7 @@ import org.springframework.http.ResponseEntity;
 
 @ExtendWith(MockitoExtension.class)
 class InboundConnectorRestControllerMultiInstancesTest extends BaseMultiInstancesTest {
-  
+
   @Test
   public void shouldReturnActivityLogs_whenTypeProvided() {
     ResponseEntity<List<Collection<InstanceAwareModel.InstanceAwareActivity>>> response =

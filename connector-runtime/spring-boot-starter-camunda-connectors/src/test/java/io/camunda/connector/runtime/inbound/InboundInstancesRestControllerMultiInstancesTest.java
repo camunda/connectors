@@ -40,7 +40,7 @@ import org.springframework.http.ResponseEntity;
 
 @ExtendWith(MockitoExtension.class)
 class InboundInstancesRestControllerMultiInstancesTest extends BaseMultiInstancesTest {
-  
+
   @Test
   public void shouldReturnConnectorInstances() {
     ResponseEntity<List<ConnectorInstances>> response =

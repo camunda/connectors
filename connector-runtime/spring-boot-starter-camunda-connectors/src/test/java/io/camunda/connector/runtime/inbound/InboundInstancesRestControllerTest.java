@@ -56,8 +56,7 @@ class InboundInstancesRestControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @MockitoBean
-  private InboundExecutableRegistry executableRegistry;
+  @MockitoBean private InboundExecutableRegistry executableRegistry;
 
   private static final String TYPE_1 = "webhook";
 
