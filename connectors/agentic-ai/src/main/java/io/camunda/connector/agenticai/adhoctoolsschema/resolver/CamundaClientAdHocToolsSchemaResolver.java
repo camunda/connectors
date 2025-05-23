@@ -11,9 +11,9 @@ import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.SchemaGenerationException;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -105,11 +105,15 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
     return element.getIncoming().isEmpty() && !(element instanceof BoundaryEvent);
   }
 
-  private AdHocToolDefinition mapActivityToToolDefinition(FlowNode element) {
+  private ToolDefinition mapActivityToToolDefinition(FlowNode element) {
     final var documentation = getDocumentation(element).orElseGet(element::getName);
     final var inputSchema = generateInputSchema(element);
 
-    return new AdHocToolDefinition(element.getId(), documentation, inputSchema);
+    return ToolDefinition.builder()
+        .name(element.getId())
+        .description(documentation)
+        .inputSchema(inputSchema)
+        .build();
   }
 
   private Optional<String> getDocumentation(FlowNode element) {
