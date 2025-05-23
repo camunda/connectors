@@ -1,34 +1,10 @@
 {
   "components": [
     {
-      "label": "Conversation",
-      "components": [
-        {
-          "text": "=agent.context.memory",
-          "type": "text",
-          "layout": {
-            "row": "Row_12e5ibq",
-            "columns": null
-          },
-          "id": "Field_1oekhzq"
-        }
-      ],
-      "showOutline": true,
-      "type": "group",
-      "layout": {
-        "row": "Row_02uha0c",
-        "columns": null
-      },
-      "id": "Field_0rned2j",
-      "conditional": {
-        "hide": "=true"
-      }
-    },
-    {
       "label": "Latest Message",
       "components": [
         {
-          "text": "=agent.chatResponse.text",
+          "text": "=agent.responseText",
           "type": "text",
           "layout": {
             "row": "Row_0bbt4ob",
@@ -105,7 +81,7 @@
   "executionPlatformVersion": "8.8.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.34.0"
+    "version": "5.35.0"
   },
   "schemaVersion": 18
 }

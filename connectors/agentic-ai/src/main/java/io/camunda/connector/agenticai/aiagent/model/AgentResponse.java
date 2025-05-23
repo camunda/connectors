@@ -6,11 +6,27 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import java.util.List;
+import org.springframework.lang.Nullable;
 
 @AgenticAiRecord
+@JsonDeserialize(builder = AgentResponse.AgentResponseJacksonProxyBuilder.class)
 public record AgentResponse(
-    AgentContext context, AssistantMessage response, List<ToolCallProcessVariable> toolCalls) {}
+    AgentContext context,
+    List<ToolCallProcessVariable> toolCalls,
+    @Nullable AssistantMessage responseMessage,
+    @Nullable String responseText)
+    implements AgentResponseBuilder.With {
+
+  public static AgentResponseBuilder builder() {
+    return AgentResponseBuilder.builder();
+  }
+
+  @JsonPOJOBuilder(withPrefix = "")
+  public static class AgentResponseJacksonProxyBuilder extends AgentResponseBuilder {}
+}
