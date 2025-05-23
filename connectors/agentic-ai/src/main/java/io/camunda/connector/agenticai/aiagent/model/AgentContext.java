@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.memory.ConversationRecord;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationContext;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.soabase.recordbuilder.core.RecordBuilder;
@@ -22,7 +22,7 @@ public record AgentContext(
     @RecordBuilder.Initializer("DEFAULT_STATE") AgentState state,
     @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
     List<ToolDefinition> toolDefinitions,
-    @Nullable ConversationRecord conversation)
+    @Nullable ConversationContext conversation)
     implements AgentContextBuilder.With {
 
   public static final AgentState DEFAULT_STATE = AgentState.READY;

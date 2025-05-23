@@ -12,7 +12,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationRecord;
+import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
@@ -83,20 +83,20 @@ class AgentContextTest {
   @Test
   void withConversation() {
     final var newMessage = UserMessage.userMessage("Hello");
-    final var newConversation = new InProcessConversationRecord(List.of(newMessage));
+    final var newConversationContext = new InProcessConversationContext(List.of(newMessage));
 
     final var initialContext = AgentContext.empty();
-    final var updatedContext = initialContext.withConversation(newConversation);
+    final var updatedContext = initialContext.withConversation(newConversationContext);
 
     assertThat(updatedContext).isNotEqualTo(initialContext);
     assertThat(initialContext.conversation()).isEqualTo(EMPTY_CONTEXT.conversation());
 
     assertThat(updatedContext.conversation())
         .isNotNull()
-        .isEqualTo(newConversation)
+        .isEqualTo(newConversationContext)
         .isNotEqualTo(initialContext.conversation());
 
-    assertThat(((InProcessConversationRecord) updatedContext.conversation()).messages())
+    assertThat(((InProcessConversationContext) updatedContext.conversation()).messages())
         .containsExactly(newMessage);
   }
 
@@ -110,7 +110,7 @@ class AgentContextTest {
     assertThatThrownBy(
             () ->
                 new AgentContext(
-                    state, metrics, toolDefinitions, InProcessConversationRecord.empty()))
+                    state, metrics, toolDefinitions, InProcessConversationContext.empty()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
@@ -128,7 +128,7 @@ class AgentContextTest {
                         .inputSchema(Map.of("type", "object"))
                         .build()))
             .conversation(
-                new InProcessConversationRecord(List.of(UserMessage.userMessage("Hello"))))
+                new InProcessConversationContext(List.of(UserMessage.userMessage("Hello"))))
             .build();
 
     final var serialized =

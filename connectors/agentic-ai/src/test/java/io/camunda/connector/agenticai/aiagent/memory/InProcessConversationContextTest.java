@@ -12,19 +12,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import org.junit.jupiter.api.Test;
 
-class InProcessConversationRecordTest {
+class InProcessConversationContextTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   void canBeSerializedAndDeserialized() throws Exception {
     final var conversationRecord =
-        new InProcessConversationRecord(TestMessagesFixture.testMessages());
+        new InProcessConversationContext(TestMessagesFixture.testMessages());
 
     final var serialized =
         objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(conversationRecord);
 
-    final var deserialized = objectMapper.readValue(serialized, InProcessConversationRecord.class);
+    final var deserialized = objectMapper.readValue(serialized, InProcessConversationContext.class);
 
     assertThat(deserialized).usingRecursiveComparison().isEqualTo(conversationRecord);
   }

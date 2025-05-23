@@ -54,7 +54,7 @@ import io.camunda.client.api.worker.JobWorker;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationRecord;
+import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -716,7 +716,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
       assertThat(agentResponse.context().metrics().modelCalls()).isEqualTo(expectedMaxModelCalls);
 
       final var conversationMessages =
-          ((InProcessConversationRecord) agentResponse.context().conversation()).messages();
+          ((InProcessConversationContext) agentResponse.context().conversation()).messages();
       assertThat(conversationMessages)
           .filteredOn(
               msg -> msg instanceof io.camunda.connector.agenticai.model.message.SystemMessage)

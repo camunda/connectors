@@ -14,5 +14,5 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * conversation again.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = InProcessConversationRecord.class, name = "in-process")})
-public interface ConversationRecord {}
+@JsonSubTypes({@JsonSubTypes.Type(value = InProcessConversationContext.class, name = "in-process")})
+public interface ConversationContext {}

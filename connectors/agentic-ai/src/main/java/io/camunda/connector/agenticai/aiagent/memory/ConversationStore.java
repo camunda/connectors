@@ -6,26 +6,21 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 
 /**
  * Responsible for storing and loading conversation records to external systems and loading them
- * into conversation memory.
+ * into runtime memory.
  */
 public interface ConversationStore<C> {
 
-  Class<C> conversationRecordClass();
+  Class<C> conversationContextClass();
 
-  default boolean supportsRecord(ConversationRecord conversationRecord) {
-    return conversationRecordClass().isInstance(conversationRecord);
+  default boolean supportsConversationContext(ConversationContext conversationContext) {
+    return conversationContextClass().isInstance(conversationContext);
   }
 
-  void loadFromContext(AgentContext agentContext, ConversationMemory memory);
+  void loadIntoRuntimeMemory(ConversationContext conversationContext, RuntimeMemory memory);
 
-  ConversationRecord store(AgentContext agentContext, ConversationMemory memory);
-
-  default AgentContext storeToContext(AgentContext agentContext, ConversationMemory memory) {
-    ConversationRecord conversationRecord = store(agentContext, memory);
-    return agentContext.withConversation(conversationRecord);
-  }
+  ConversationContext store(ConversationContext conversationContext, RuntimeMemory memory);
 }

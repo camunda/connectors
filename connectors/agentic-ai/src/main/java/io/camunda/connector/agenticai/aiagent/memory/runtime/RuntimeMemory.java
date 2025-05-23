@@ -4,16 +4,21 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.runtime;
 
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 
 /**
- * The loaded conversation memory containing all messages. Can optionally apply filters to the
- * messages before passing them back to the LLM.
+ * Runtime memory interface for storing and retrieving messages during agent execution.
+ *
+ * <p>A @{@link io.camunda.connector.agenticai.aiagent.memory.ConversationStore} is responsible to
+ * load messages from a {@link io.camunda.connector.agenticai.aiagent.memory.ConversationContext}
+ * into the runtime memory on entering the agent and to store messages from the runtime memory into
+ * the {@link io.camunda.connector.agenticai.aiagent.memory.ConversationContext} before exiting the
+ * agent.
  */
-public interface ConversationMemory {
+public interface RuntimeMemory {
   void addMessages(List<Message> messages);
 
   void addMessage(Message message);

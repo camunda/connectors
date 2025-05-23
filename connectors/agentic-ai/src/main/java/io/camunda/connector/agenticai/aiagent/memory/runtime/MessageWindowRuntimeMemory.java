@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.runtime;
 
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -13,14 +13,17 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MessageWindowConversationMemory extends AbstractConversationMemory
-    implements ConversationMemory {
+/**
+ * Exposes a filtered view of the last-n messages in the conversation. Oldest messages are removed
+ * first, while making sure to also remove orphaned tool call results.
+ */
+public class MessageWindowRuntimeMemory extends AbstractRuntimeMemory implements RuntimeMemory {
 
   private final int maxMessages;
   private final ArrayList<Message> messages = new ArrayList<>();
   private List<Message> filteredMessages;
 
-  public MessageWindowConversationMemory(int maxMessages) {
+  public MessageWindowRuntimeMemory(int maxMessages) {
     if (maxMessages < 0) {
       throw new IllegalArgumentException(
           "maxMessages must be greater than zero (was %d)".formatted(maxMessages));

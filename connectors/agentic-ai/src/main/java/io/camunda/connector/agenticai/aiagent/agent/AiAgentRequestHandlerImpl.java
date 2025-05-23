@@ -12,9 +12,9 @@ import dev.langchain4j.model.input.PromptTemplate;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.memory.ConversationMemory;
 import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.memory.MessageWindowConversationMemory;
+import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -69,29 +69,29 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
     AgentContext agentContext = initializeAgentContext(context, request);
 
     // set up memory and load from context if available
-    final var conversationMemory =
-        new MessageWindowConversationMemory(
+    final var runtimeMemory =
+        new MessageWindowRuntimeMemory(
             Optional.ofNullable(requestData.memory())
                 .map(MemoryConfiguration::maxMessages)
                 .orElse(DEFAULT_MAX_MEMORY_MESSAGES));
 
     final var conversationStore = new InProcessConversationStore();
-    conversationStore.loadFromContext(agentContext, conversationMemory);
+    conversationStore.loadIntoRuntimeMemory(agentContext.conversation(), runtimeMemory);
 
     // check configured limits
     checkLimits(requestData, agentContext);
 
     // update memory with system message + new user messages/tool call responses
-    addSystemPromptIfNecessary(conversationMemory, requestData);
-    addUserMessagesFromRequest(agentContext, conversationMemory, requestData);
+    addSystemPromptIfNecessary(runtimeMemory, requestData);
+    addUserMessagesFromRequest(agentContext, runtimeMemory, requestData);
 
     // call framework with memory
     AiFrameworkChatResponse<?> frameworkChatResponse =
-        framework.executeChatRequest(request, agentContext, conversationMemory);
+        framework.executeChatRequest(request, agentContext, runtimeMemory);
     agentContext = frameworkChatResponse.agentContext();
 
     final var assistantMessage = frameworkChatResponse.assistantMessage();
-    conversationMemory.addMessage(assistantMessage);
+    runtimeMemory.addMessage(assistantMessage);
 
     final var toolCalls =
         assistantMessage.toolCalls().stream().map(ToolCallProcessVariable::from).toList();
@@ -99,10 +99,10 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
         toolCalls.isEmpty() ? AgentState.READY : AgentState.WAITING_FOR_TOOL_INPUT;
 
     // store memory to context and update the next agent state based on tool calls
+    final var updatedConversationContext =
+        conversationStore.store(agentContext.conversation(), runtimeMemory);
     agentContext =
-        conversationStore
-            .storeToContext(agentContext, conversationMemory)
-            .withState(nextAgentState);
+        agentContext.withConversation(updatedConversationContext).withState(nextAgentState);
 
     return createResponse(request, agentContext, toolCalls, assistantMessage);
   }
@@ -175,7 +175,7 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
   }
 
   private void addSystemPromptIfNecessary(
-      ConversationMemory memory, AgentRequest.AgentRequestData requestData) {
+      RuntimeMemory memory, AgentRequest.AgentRequestData requestData) {
     if (StringUtils.isNotBlank(requestData.systemPrompt().prompt())) {
       // memory will take care of replacing any existing system message if already present
       memory.addMessage(
@@ -184,9 +184,7 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
   }
 
   private void addUserMessagesFromRequest(
-      AgentContext agentContext,
-      ConversationMemory memory,
-      AgentRequest.AgentRequestData requestData) {
+      AgentContext agentContext, RuntimeMemory memory, AgentRequest.AgentRequestData requestData) {
     final var toolCallResults =
         Optional.ofNullable(requestData.tools())
             .map(ToolsConfiguration::toolCallResults)

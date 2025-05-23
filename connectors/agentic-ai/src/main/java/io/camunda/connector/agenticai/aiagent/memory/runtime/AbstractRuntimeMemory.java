@@ -4,13 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.runtime;
 
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import java.util.ArrayList;
 
-public abstract class AbstractConversationMemory {
+public abstract class AbstractRuntimeMemory {
 
   protected void addMessageWithSystemMessageSupport(ArrayList<Message> messages, Message message) {
     if (message instanceof SystemMessage) {

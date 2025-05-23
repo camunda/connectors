@@ -6,35 +6,34 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 
-public class InProcessConversationStore implements ConversationStore<InProcessConversationRecord> {
+public class InProcessConversationStore implements ConversationStore<InProcessConversationContext> {
 
   @Override
-  public Class<InProcessConversationRecord> conversationRecordClass() {
-    return InProcessConversationRecord.class;
+  public Class<InProcessConversationContext> conversationContextClass() {
+    return InProcessConversationContext.class;
   }
 
   @Override
-  public void loadFromContext(AgentContext agentContext, ConversationMemory memory) {
-    if (agentContext.conversation() == null) {
+  public void loadIntoRuntimeMemory(ConversationContext conversationContext, RuntimeMemory memory) {
+    if (conversationContext == null) {
       return;
     }
 
-    if (!(agentContext.conversation()
-        instanceof InProcessConversationRecord(List<Message> messages))) {
+    if (!(conversationContext instanceof InProcessConversationContext(List<Message> messages))) {
       throw new IllegalStateException(
-          "Unsupported conversation record: %s"
-              .formatted(agentContext.conversation().getClass().getSimpleName()));
+          "Unsupported conversation context: %s"
+              .formatted(conversationContext.getClass().getSimpleName()));
     }
 
     memory.addMessages(messages);
   }
 
   @Override
-  public ConversationRecord store(AgentContext agentContext, ConversationMemory memory) {
-    return new InProcessConversationRecord(memory.allMessages());
+  public ConversationContext store(ConversationContext conversationContext, RuntimeMemory memory) {
+    return new InProcessConversationContext(memory.allMessages());
   }
 }
