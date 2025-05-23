@@ -177,9 +177,55 @@ public class AiAgentTests extends BaseAgenticAiTest {
       verify(schemaResolver, never()).resolveSchema(any(), any());
     }
 
+    @Nested
+    class Response {
+      @Test
+      void fallsBackToResponseTextWhenConfigurationIsMissing() throws Exception {
+        testBasicExecutionWithoutFeedbackLoop(
+            withoutInputsMatching(i -> i.getTarget().startsWith("data.response.")),
+            false,
+            true,
+            false);
+      }
+
+      @Test
+      void returnsOnlyResponseTextIfConfigured() throws Exception {
+        testBasicExecutionWithoutFeedbackLoop(
+            withModifiedInputs(
+                Map.ofEntries(
+                    Map.entry("data.response.includeText", i -> i.setSource("=true")),
+                    Map.entry(
+                        "data.response.includeAssistantMessage", i -> i.setSource("=false")))),
+            false,
+            true,
+            false);
+      }
+
+      @Test
+      void returnsOnlyResponseMessageIfConfigured() throws Exception {
+        testBasicExecutionWithoutFeedbackLoop(
+            withModifiedInputs(
+                Map.ofEntries(
+                    Map.entry("data.response.includeText", i -> i.setSource("=false")),
+                    Map.entry("data.response.includeAssistantMessage", i -> i.setSource("=true")))),
+            false,
+            false,
+            true);
+      }
+    }
+
     private void testBasicExecutionWithoutFeedbackLoop(
         Function<BpmnModelInstance, BpmnModelInstance> modelModifier,
         boolean assertToolSpecifications)
+        throws Exception {
+      testBasicExecutionWithoutFeedbackLoop(modelModifier, assertToolSpecifications, true, true);
+    }
+
+    private void testBasicExecutionWithoutFeedbackLoop(
+        Function<BpmnModelInstance, BpmnModelInstance> modelModifier,
+        boolean assertToolSpecifications,
+        boolean expectResponseText,
+        boolean expectResponseMessage)
         throws Exception {
       final var initialUserPrompt = "Write a haiku about the sea";
       final var expectedConversation =
@@ -212,10 +258,20 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(1, expectedConversation, assertToolSpecifications);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(
-          agentResponse,
-          new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)),
-          ((AiMessage) expectedConversation.getLast()).text());
+      assertAgentResponse(agentResponse, new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)));
+
+      final var expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+      if (expectResponseText) {
+        assertAgentResponseText(agentResponse, expectedResponseText);
+      } else {
+        assertThat(agentResponse.responseText()).isNull();
+      }
+
+      if (expectResponseMessage) {
+        assertAgentResponseMessage(agentResponse, expectedResponseText);
+      } else {
+        assertThat(agentResponse.responseMessage()).isNull();
+      }
 
       assertThat(jobWorkerCounter.get()).isEqualTo(1);
     }
@@ -267,10 +323,9 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(2, expectedConversation);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(
-          agentResponse,
-          new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)),
-          ((AiMessage) expectedConversation.getLast()).text());
+      assertAgentResponse(agentResponse, new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)));
+      assertAgentResponseTextAndMessage(
+          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
@@ -348,9 +403,9 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
       final var agentResponse = getAgentResponse(zeebeTest);
       assertAgentResponse(
-          agentResponse,
-          new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)),
-          ((AiMessage) expectedConversation.getLast()).text());
+          agentResponse, new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)));
+      assertAgentResponseTextAndMessage(
+          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
@@ -447,9 +502,9 @@ public class AiAgentTests extends BaseAgenticAiTest {
 
       final var agentResponse = getAgentResponse(zeebeTest);
       assertAgentResponse(
-          agentResponse,
-          new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)),
-          ((AiMessage) expectedConversation.getLast()).text());
+          agentResponse, new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)));
+      assertAgentResponseTextAndMessage(
+          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
@@ -510,10 +565,9 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(1, expectedConversation);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(
-          agentResponse,
-          new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)),
-          ((AiMessage) expectedConversation.getLast()).text());
+      assertAgentResponse(agentResponse, new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)));
+      assertAgentResponseTextAndMessage(
+          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(1);
     }
@@ -558,14 +612,9 @@ public class AiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(1, expectedConversation);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(
-          agentResponse,
-          new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)),
-          assistantMessage ->
-              assertThat(assistantMessage.content())
-                  .hasSize(1)
-                  .containsExactly(
-                      textContent("TL;DR: they contain a lot of interesting information.")));
+      assertAgentResponse(agentResponse, new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)));
+      assertAgentResponseTextAndMessage(
+          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
 
       assertThat(jobWorkerCounter.get()).isEqualTo(1);
     }
@@ -722,27 +771,28 @@ public class AiAgentTests extends BaseAgenticAiTest {
             expectedConversation.subList(0, expectedConversation.size() - 1));
   }
 
-  private void assertAgentResponse(
-      AgentResponse agentResponse, AgentMetrics expectedMetrics, String expectedResponseText) {
-    assertAgentResponse(
-        agentResponse,
-        expectedMetrics,
-        assistantMessage -> {
-          assertThat(assistantMessage.content())
-              .hasSize(1)
-              .containsExactly(textContent(expectedResponseText));
-        });
-  }
-
-  private void assertAgentResponse(
-      AgentResponse agentResponse,
-      AgentMetrics expectedMetrics,
-      ThrowingConsumer<AssistantMessage> responseAssertions) {
+  private void assertAgentResponse(AgentResponse agentResponse, AgentMetrics expectedMetrics) {
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.toolCalls()).isEmpty();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics()).isEqualTo(expectedMetrics);
-    responseAssertions.accept(agentResponse.response());
+  }
+
+  private void assertAgentResponseTextAndMessage(
+      AgentResponse agentResponse, String expectedResponseText) {
+    assertAgentResponseText(agentResponse, expectedResponseText);
+    assertAgentResponseMessage(agentResponse, expectedResponseText);
+  }
+
+  private void assertAgentResponseText(AgentResponse agentResponse, String expectedResponseText) {
+    assertThat(agentResponse.responseText()).isEqualTo(expectedResponseText);
+  }
+
+  private void assertAgentResponseMessage(
+      AgentResponse agentResponse, String expectedResponseText) {
+    assertThat(agentResponse.responseMessage().content())
+        .hasSize(1)
+        .containsExactly(textContent(expectedResponseText));
   }
 
   private void assertToolSpecifications(ChatRequest chatRequest) {
