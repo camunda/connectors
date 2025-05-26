@@ -1,12 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "AI Agent (alpha)",
-  "id" : "io.camunda.connectors.agenticai.aiagent.v0",
-  "description" : "Provides a default AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
+  "name" : "AI Agent",
+  "id" : "io.camunda.connectors.agenticai.aiagent.v1",
+  "description" : "Provides a generic AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 0,
+  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -66,7 +67,7 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda.agenticai:aiagent:0",
+    "value" : "io.camunda.agenticai:aiagent:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
@@ -735,7 +736,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "0",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -746,7 +747,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.agenticai.aiagent.v0",
+    "value" : "io.camunda.connectors.agenticai.aiagent.v1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",

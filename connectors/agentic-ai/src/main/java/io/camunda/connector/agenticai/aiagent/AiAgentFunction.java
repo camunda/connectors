@@ -15,16 +15,18 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
 @OutboundConnector(
-    name = "AI Agent (alpha)",
+    name = "AI Agent",
     inputVariables = {"provider", "data"},
-    type = "io.camunda.agenticai:aiagent:0")
+    type = "io.camunda.agenticai:aiagent:1")
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.aiagent.v0",
-    name = "AI Agent (alpha)",
+    id = "io.camunda.connectors.agenticai.aiagent.v1",
+    name = "AI Agent",
     description =
-        "Provides a default AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
+        "Provides a generic AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
+    documentationRef =
+        "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
     engineVersion = "^8.8",
-    version = 0,
+    version = 1,
     inputDataClass = AgentRequest.class,
     defaultResultVariable = "agent",
     propertyGroups = {
