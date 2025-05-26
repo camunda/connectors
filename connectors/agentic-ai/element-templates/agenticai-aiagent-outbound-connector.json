@@ -709,7 +709,7 @@
       "name" : "data.response.includeAssistantMessage",
       "type" : "zeebe:input"
     },
-    "tooltip" : "In addition to the text content, the message may include multiple additional content blocks and metadata. The message output will be available as <code>response.responseMessage</code>.",
+    "tooltip" : "In addition to the text content, the message may include multiple additional content blocks and metadata such as token usage. The message output will be available as <code>response.responseMessage</code>.",
     "type" : "Boolean"
   }, {
     "id" : "version",

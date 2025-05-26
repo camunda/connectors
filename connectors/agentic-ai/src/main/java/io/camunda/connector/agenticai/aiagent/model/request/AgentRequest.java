@@ -195,7 +195,7 @@ Reveal **no** additional private reasoning outside these tags.
                 label = "Include assistant message",
                 description = "Adds the full assistant message to the response.",
                 tooltip =
-                    "In addition to the text content, the message may include multiple additional content blocks and metadata. The message output will be available as <code>response.responseMessage</code>.",
+                    "In addition to the text content, the message may include multiple additional content blocks and metadata such as token usage. The message output will be available as <code>response.responseMessage</code>.",
                 type = TemplateProperty.PropertyType.Boolean,
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 defaultValue = "false")
