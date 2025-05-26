@@ -19,7 +19,10 @@ class InProcessConversationContextTest {
   @Test
   void canBeSerializedAndDeserialized() throws Exception {
     final var conversationRecord =
-        new InProcessConversationContext(TestMessagesFixture.testMessages());
+        InProcessConversationContext.builder()
+            .id("test-conversation")
+            .messages(TestMessagesFixture.testMessages())
+            .build();
 
     final var serialized =
         objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(conversationRecord);

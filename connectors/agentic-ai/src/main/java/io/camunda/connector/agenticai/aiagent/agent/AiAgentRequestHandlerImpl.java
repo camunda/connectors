@@ -76,7 +76,7 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
                 .orElse(DEFAULT_MAX_MEMORY_MESSAGES));
 
     final var conversationStore = new InProcessConversationStore();
-    conversationStore.loadIntoRuntimeMemory(agentContext.conversation(), runtimeMemory);
+    conversationStore.loadIntoRuntimeMemory(context, agentContext, runtimeMemory);
 
     // check configured limits
     checkLimits(requestData, agentContext);
@@ -99,10 +99,10 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
         toolCalls.isEmpty() ? AgentState.READY : AgentState.WAITING_FOR_TOOL_INPUT;
 
     // store memory to context and update the next agent state based on tool calls
-    final var updatedConversationContext =
-        conversationStore.store(agentContext.conversation(), runtimeMemory);
     agentContext =
-        agentContext.withConversation(updatedConversationContext).withState(nextAgentState);
+        conversationStore
+            .storeFromRuntimeMemory(context, agentContext, runtimeMemory)
+            .withState(nextAgentState);
 
     return createResponse(request, agentContext, toolCalls, assistantMessage);
   }

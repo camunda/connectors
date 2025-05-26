@@ -7,8 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.memory;
 
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
-import io.camunda.connector.agenticai.model.message.Message;
-import java.util.List;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.UUID;
 
 public class InProcessConversationStore implements ConversationStore<InProcessConversationContext> {
 
@@ -18,22 +19,42 @@ public class InProcessConversationStore implements ConversationStore<InProcessCo
   }
 
   @Override
-  public void loadIntoRuntimeMemory(ConversationContext conversationContext, RuntimeMemory memory) {
-    if (conversationContext == null) {
+  public void loadIntoRuntimeMemory(
+      OutboundConnectorContext context, AgentContext agentContext, RuntimeMemory memory) {
+    final var previousConversationContext = loadPreviousConversationContext(agentContext);
+    if (previousConversationContext == null) {
       return;
     }
 
-    if (!(conversationContext instanceof InProcessConversationContext(List<Message> messages))) {
-      throw new IllegalStateException(
-          "Unsupported conversation context: %s"
-              .formatted(conversationContext.getClass().getSimpleName()));
-    }
-
-    memory.addMessages(messages);
+    memory.addMessages(previousConversationContext.messages());
   }
 
   @Override
-  public ConversationContext store(ConversationContext conversationContext, RuntimeMemory memory) {
-    return new InProcessConversationContext(memory.allMessages());
+  public AgentContext storeFromRuntimeMemory(
+      OutboundConnectorContext context, AgentContext agentContext, RuntimeMemory memory) {
+    final var previousConversationContext = loadPreviousConversationContext(agentContext);
+    final var conversationContextBuilder =
+        previousConversationContext != null
+            ? previousConversationContext.with()
+            : InProcessConversationContext.builder().id(UUID.randomUUID().toString());
+
+    final var conversationContext =
+        conversationContextBuilder.messages(memory.allMessages()).build();
+    return agentContext.withConversation(conversationContext);
+  }
+
+  private InProcessConversationContext loadPreviousConversationContext(AgentContext agentContext) {
+    if (agentContext.conversation() == null) {
+      return null;
+    }
+
+    if (!(agentContext.conversation()
+        instanceof InProcessConversationContext conversationContext)) {
+      throw new IllegalStateException(
+          "Unsupported conversation context: %s"
+              .formatted(agentContext.conversation().getClass().getSimpleName()));
+    }
+
+    return conversationContext;
   }
 }

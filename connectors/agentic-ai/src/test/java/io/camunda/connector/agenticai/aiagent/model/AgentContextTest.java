@@ -83,7 +83,10 @@ class AgentContextTest {
   @Test
   void withConversation() {
     final var newMessage = UserMessage.userMessage("Hello");
-    final var newConversationContext = new InProcessConversationContext(List.of(newMessage));
+    final var newConversationContext =
+        InProcessConversationContext.builder("test-conversation")
+            .messages(List.of(newMessage))
+            .build();
 
     final var initialContext = AgentContext.empty();
     final var updatedContext = initialContext.withConversation(newConversationContext);
@@ -110,7 +113,10 @@ class AgentContextTest {
     assertThatThrownBy(
             () ->
                 new AgentContext(
-                    state, metrics, toolDefinitions, InProcessConversationContext.empty()))
+                    state,
+                    metrics,
+                    toolDefinitions,
+                    InProcessConversationContext.builder("test-conversation").build()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
@@ -128,7 +134,9 @@ class AgentContextTest {
                         .inputSchema(Map.of("type", "object"))
                         .build()))
             .conversation(
-                new InProcessConversationContext(List.of(UserMessage.userMessage("Hello"))))
+                InProcessConversationContext.builder("test-conversation")
+                    .messages(List.of(UserMessage.userMessage("Hello")))
+                    .build())
             .build();
 
     final var serialized =

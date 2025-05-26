@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.memory;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.Map;
 
 /**
  * A record of a conversation, stored externally. This contains all the data needed to load the
@@ -15,4 +16,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({@JsonSubTypes.Type(value = InProcessConversationContext.class, name = "in-process")})
-public interface ConversationContext {}
+public interface ConversationContext {
+  String id();
+
+  Map<String, Object> properties();
+}
