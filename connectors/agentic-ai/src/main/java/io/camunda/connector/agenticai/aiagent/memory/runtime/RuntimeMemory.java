@@ -19,9 +19,11 @@ import java.util.List;
  * agent.
  */
 public interface RuntimeMemory {
-  void addMessages(List<Message> messages);
-
   void addMessage(Message message);
+
+  default void addMessages(List<Message> messages) {
+    messages.forEach(this::addMessage);
+  }
 
   /** All messages which should be stored. */
   List<Message> allMessages();

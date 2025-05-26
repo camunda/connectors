@@ -9,10 +9,27 @@ package io.camunda.connector.agenticai.aiagent.memory.runtime;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import java.util.ArrayList;
+import java.util.List;
 
-public abstract class AbstractRuntimeMemory {
+public class DefaultRuntimeMemory implements RuntimeMemory {
+  private final ArrayList<Message> messages = new ArrayList<>();
 
-  protected void addMessageWithSystemMessageSupport(ArrayList<Message> messages, Message message) {
+  @Override
+  public void addMessage(Message message) {
+    addMessageWithSystemMessageSupport(messages, message);
+  }
+
+  @Override
+  public List<Message> allMessages() {
+    return List.copyOf(messages);
+  }
+
+  @Override
+  public void clear() {
+    messages.clear();
+  }
+
+  private void addMessageWithSystemMessageSupport(ArrayList<Message> messages, Message message) {
     if (message instanceof SystemMessage) {
       final var existingSystemMessage =
           messages.stream().filter(m -> m instanceof SystemMessage).findFirst().orElse(null);

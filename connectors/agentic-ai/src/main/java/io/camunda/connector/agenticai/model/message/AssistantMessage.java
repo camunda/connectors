@@ -25,7 +25,7 @@ public record AssistantMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements AssistantMessageBuilder.With, Message, ContentMessage {
 
-  public boolean hasToolCallRequests() {
+  public boolean hasToolCalls() {
     return toolCalls != null && !toolCalls.isEmpty();
   }
 
