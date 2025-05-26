@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import java.net.URI;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Nested;
@@ -344,8 +345,9 @@ class ChatModelFactoryTest {
       final var providerConfig =
           new OpenAiProviderConfiguration(
               new OpenAiConnection(
-                  null,
                   new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  null,
+                  Map.of(),
                   new OpenAiProviderConfiguration.OpenAiModel(
                       OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -374,9 +376,10 @@ class ChatModelFactoryTest {
       final var providerConfig =
           new OpenAiProviderConfiguration(
               new OpenAiConnection(
-                  null,
                   new OpenAiProviderConfiguration.OpenAiAuthentication(
                       OPEN_AI_API_KEY, "MY_ORG_ID", "MY_PROJECT_ID"),
+                  null,
+                  Map.of(),
                   new OpenAiProviderConfiguration.OpenAiModel(
                       OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -389,19 +392,21 @@ class ChatModelFactoryTest {
     }
 
     @Test
-    void createsOpenAiChatModelWithCustomEndpoint() {
+    void createsOpenAiChatModelWithCustomEndpointAndHeaders() {
       final var providerConfig =
           new OpenAiProviderConfiguration(
               new OpenAiConnection(
-                  "https://my-custom-endpoint.local",
                   new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  "https://my-custom-endpoint.local/openai/v1",
+                  Map.of("my-header", "my-value"),
                   new OpenAiProviderConfiguration.OpenAiModel(
                       OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testOpenAiChatModelBuilder(
           providerConfig,
           (builder) -> {
-            verify(builder).baseUrl("https://my-custom-endpoint.local");
+            verify(builder).baseUrl("https://my-custom-endpoint.local/openai/v1");
+            verify(builder).customHeaders(Map.of("my-header", "my-value"));
           });
     }
 
@@ -412,8 +417,9 @@ class ChatModelFactoryTest {
       final var providerConfig =
           new OpenAiProviderConfiguration(
               new OpenAiConnection(
-                  null,
                   new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  null,
+                  Map.of(),
                   new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, modelParameters)));
 
       testOpenAiChatModelBuilder(
