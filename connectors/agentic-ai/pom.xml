@@ -18,7 +18,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.json-schema-validator>1.5.6</version.json-schema-validator>
+    <version.json-schema-validator>1.5.7</version.json-schema-validator>
     <version.record-builder>47</version.record-builder>
   </properties>
 
