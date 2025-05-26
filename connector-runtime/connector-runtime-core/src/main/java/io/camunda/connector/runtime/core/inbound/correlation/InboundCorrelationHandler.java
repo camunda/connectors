@@ -222,6 +222,7 @@ public class InboundCorrelationHandler {
     } catch (ClientStatusException ex) {
       if (Status.ALREADY_EXISTS.getCode().equals(ex.getStatus().getCode())) {
         result = new MessageAlreadyCorrelated(getElementContext(activatedElement));
+        LOG.debug("Message already correlated: {}", ex.getMessage());
       } else {
         LOG.info("Failed to publish message: ", ex);
         result =
