@@ -29,7 +29,7 @@
   }, {
     "id" : "systemPrompt",
     "label" : "System Prompt",
-    "tooltip" : "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins.It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent and aligned with its intended purpose. These instructions help shape how the AI interprets and responds to user input throughout the conversation.",
+    "tooltip" : "A system prompt is a set of foundational instructions given to a model before any user interaction begins. It defines the AI agent’s role, behavior, tone, and communication style, ensuring that responses remain consistent and aligned with the AI agent’s intended purpose. These instructions help shape how the model interprets and responds to user input throughout the conversation.",
     "openByDefault" : false
   }, {
     "id" : "userPrompt",
@@ -39,7 +39,7 @@
   }, {
     "id" : "tools",
     "label" : "Tools",
-    "tooltip" : "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop.",
+    "tooltip" : "Tools are optional features the AI Agent can use to perform specific tasks. Configure this if the agent should participate in a tools feedback loop.",
     "openByDefault" : false
   }, {
     "id" : "memory",
@@ -583,7 +583,7 @@
   }, {
     "id" : "data.systemPrompt.parameters",
     "label" : "System Prompt Parameters",
-    "description" : "Map of parameters which can be used in <code>{{parameter}}</code> format in the prompt text.",
+    "description" : "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.",
     "optional" : true,
     "feel" : "required",
     "group" : "systemPrompt",
@@ -591,7 +591,7 @@
       "name" : "data.systemPrompt.parameters",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Default parameters provided by the integration: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
+    "tooltip" : "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
     "type" : "String"
   }, {
     "id" : "data.userPrompt.prompt",
@@ -610,7 +610,7 @@
   }, {
     "id" : "data.userPrompt.parameters",
     "label" : "User Prompt Parameters",
-    "description" : "Map of parameters which can be used in <code>{{parameter}}</code> format in the prompt text.",
+    "description" : "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.",
     "optional" : true,
     "feel" : "required",
     "group" : "userPrompt",
@@ -618,12 +618,12 @@
       "name" : "data.userPrompt.parameters",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Default parameters provided by the integration: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
+    "tooltip" : "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
     "type" : "String"
   }, {
     "id" : "data.userPrompt.documents",
     "label" : "Documents",
-    "description" : "Documents to be included in the user prompt",
+    "description" : "Documents to be included in the user prompt.",
     "optional" : true,
     "feel" : "required",
     "group" : "userPrompt",
@@ -631,12 +631,12 @@
       "name" : "data.userPrompt.documents",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Referenced documents will be transparently added to the user prompt.",
+    "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details and supported file types.",
     "type" : "String"
   }, {
     "id" : "data.tools.containerElementId",
     "label" : "Ad-hoc sub-process ID",
-    "description" : "The ID of the sub-process containing the tools to be called.",
+    "description" : "ID of the sub-process that contains the tools the AI agent can use.",
     "optional" : true,
     "feel" : "optional",
     "group" : "tools",
@@ -644,12 +644,12 @@
       "name" : "data.tools.containerElementId",
       "type" : "zeebe:input"
     },
-    "tooltip" : "When configured, the AI agent connector will resolve available tools from the sub-process. To actually use the tools, you need to model your process to include a tools feedback loop, routing into the ad-hoc sub-process and back to the AI agent connector. Details see in the documentation.",
+    "tooltip" : "Add an ad-hoc sub-process ID to attach the AI agent to the tools. Ensure your process includes a tools feedback loop routing into the ad-hoc sub-process and back to the AI agent connector. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.tools.toolCallResults",
     "label" : "Tool Call Results",
-    "description" : "Tool call results as returned by the sub-process",
+    "description" : "Tool call results as returned by the sub-process.",
     "optional" : true,
     "feel" : "required",
     "group" : "tools",
@@ -657,12 +657,11 @@
       "name" : "data.tools.toolCallResults",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Like the ad-hoc sub-process this needs to be modeled in your process and configured to the tool call results provided by the ad-hoc sub-process execution as part of the tools feedback loop. Details see in the documentation.",
+    "tooltip" : "This defines where to handle tool call results returned by the ad-hoc sub-process. Model this as part of your process and route it into the tools feedback loop. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Text"
   }, {
     "id" : "data.agentContext",
     "label" : "Agent Context",
-    "description" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response.",
     "optional" : false,
     "value" : "=agent.context",
     "constraints" : {
@@ -674,11 +673,12 @@
       "name" : "data.context",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Text"
   }, {
     "id" : "data.memory.maxMessages",
     "label" : "Maximum messages",
-    "description" : "Maximum amount of messages to keep in short-term/conversation memory.",
+    "description" : "Maximum number of recent messages the AI agent retains in short-term memory during a conversation.",
     "optional" : false,
     "value" : 20,
     "constraints" : {
@@ -690,6 +690,7 @@
       "name" : "data.memory.maxMessages",
       "type" : "zeebe:input"
     },
+    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM and evict older messages. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Number"
   }, {
     "id" : "data.limits.maxModelCalls",
@@ -733,7 +734,7 @@
       "name" : "data.response.includeAssistantMessage",
       "type" : "zeebe:input"
     },
-    "tooltip" : "In addition to the text content, the message may include multiple additional content blocks and metadata such as token usage. The message output will be available as <code>response.responseMessage</code>.",
+    "tooltip" : "In addition to the text content, the assistant message may include multiple additional content blocks and metadata (such as token usage). The message output will be available as <code>response.responseMessage</code>.",
     "type" : "Boolean"
   }, {
     "id" : "version",

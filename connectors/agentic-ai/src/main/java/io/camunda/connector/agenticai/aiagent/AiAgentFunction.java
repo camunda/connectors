@@ -34,9 +34,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           id = "systemPrompt",
           label = "System Prompt",
           tooltip =
-              "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins."
-                  + "It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent "
-                  + "and aligned with its intended purpose. These instructions help shape how the AI interprets and responds "
+              "A system prompt is a set of foundational instructions given to a model before any user interaction begins. "
+                  + "It defines the AI agent’s role, behavior, tone, and communication style, ensuring that responses remain consistent "
+                  + "and aligned with the AI agent’s intended purpose. These instructions help shape how the model interprets and responds "
                   + "to user input throughout the conversation.",
           openByDefault = false),
       @PropertyGroup(
@@ -51,7 +51,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           id = "tools",
           label = "Tools",
           tooltip =
-              "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop.",
+              "Tools are optional features the AI Agent can use to perform specific tasks. Configure this if the agent should participate in a tools feedback loop.",
           openByDefault = false),
       @PropertyGroup(
           id = "memory",
