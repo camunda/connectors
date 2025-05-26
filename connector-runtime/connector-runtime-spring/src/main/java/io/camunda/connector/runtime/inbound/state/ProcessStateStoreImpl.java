@@ -63,7 +63,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
                 })
             .toList();
 
-    LOG.debug("Filtering only old process definitions)");
+    LOG.debug("Filtering only deleted process definitions)");
     var deletedProcessIds =
         processStates.keySet().stream()
             .filter(
@@ -74,9 +74,9 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
 
     logResult(newlyDeployed, replacedWithDifferentVersion, deletedProcessIds);
 
-    newlyDeployed.forEach(this::newlyDeployed);
-    replacedWithDifferentVersion.forEach(this::replacedWithDifferentVersion);
     deletedProcessIds.forEach(this::deleted);
+    replacedWithDifferentVersion.forEach(this::replacedWithDifferentVersion);
+    newlyDeployed.forEach(this::newlyDeployed);
   }
 
   private void newlyDeployed(
