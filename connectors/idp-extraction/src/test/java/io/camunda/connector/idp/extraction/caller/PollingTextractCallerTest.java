@@ -15,6 +15,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.idp.extraction.model.Polygon;
+import io.camunda.connector.idp.extraction.model.PolygonPoint;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
 import io.camunda.document.Document;
@@ -162,6 +164,17 @@ class PollingTextractCallerTest {
   void extractKeyValuePairsWithConfidence_HandlesTablesCorrectly() throws Exception {
     // Arrange
     String jobId = "1";
+
+    // Create mock geometry for blocks
+    Geometry mockGeometry =
+        Geometry.builder()
+            .polygon(
+                List.of(
+                    Point.builder().x(0.1f).y(0.1f).build(),
+                    Point.builder().x(0.2f).y(0.1f).build(),
+                    Point.builder().x(0.2f).y(0.2f).build(),
+                    Point.builder().x(0.1f).y(0.2f).build()))
+            .build();
 
     // Mock TEXT blocks for cell contents
     Block nameHeaderBlock =
@@ -320,12 +333,14 @@ class PollingTextractCallerTest {
                     Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t9")).build()))
             .build();
 
-    // Create table block with relationships to cells
+    // Create table block with relationships to cells - ADD GEOMETRY AND PAGE
     Block tableBlock =
         Block.builder()
             .id("table1")
             .blockType(BlockType.TABLE)
             .confidence(0.96f)
+            .geometry(mockGeometry)
+            .page(1)
             .relationships(
                 List.of(
                     Relationship.builder()
@@ -334,7 +349,7 @@ class PollingTextractCallerTest {
                         .build()))
             .build();
 
-    // Create key-value pair for form field
+    // Create key-value pair for form field - ADD GEOMETRY AND PAGE
     Block keyBlock =
         Block.builder()
             .id("k1")
@@ -342,6 +357,8 @@ class PollingTextractCallerTest {
             .blockType(BlockType.KEY_VALUE_SET)
             .entityTypes(List.of(EntityType.KEY))
             .confidence(0.98f)
+            .geometry(mockGeometry)
+            .page(1)
             .relationships(
                 List.of(
                     Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t10")).build(),
@@ -354,6 +371,8 @@ class PollingTextractCallerTest {
             .blockType(BlockType.KEY_VALUE_SET)
             .entityTypes(List.of(EntityType.VALUE))
             .confidence(0.97f)
+            .geometry(mockGeometry)
+            .page(1)
             .relationships(
                 List.of(
                     Relationship.builder()
@@ -443,5 +462,125 @@ class PollingTextractCallerTest {
 
     // Check table confidence - the value is not divided by 100 for tables
     assertEquals(0.96f, response.confidenceScore().get("table 1"), 0.01f);
+  }
+
+  @Test
+  void extractKeyValuePairs_ExtractsPositionInformation() throws Exception {
+    String jobId = "1";
+
+    // Create mock geometry for key block
+    Geometry keyGeometry =
+        Geometry.builder()
+            .boundingBox(
+                BoundingBox.builder().left(0.1f).top(0.1f).width(0.2f).height(0.1f).build())
+            .polygon(
+                List.of(
+                    Point.builder().x(0.1f).y(0.1f).build(),
+                    Point.builder().x(0.3f).y(0.1f).build(),
+                    Point.builder().x(0.3f).y(0.2f).build(),
+                    Point.builder().x(0.1f).y(0.2f).build()))
+            .build();
+
+    // Create mock geometry for value block
+    Geometry valueGeometry =
+        Geometry.builder()
+            .boundingBox(
+                BoundingBox.builder().left(0.4f).top(0.1f).width(0.1f).height(0.1f).build())
+            .polygon(
+                List.of(
+                    Point.builder().x(0.4f).y(0.1f).build(),
+                    Point.builder().x(0.5f).y(0.1f).build(),
+                    Point.builder().x(0.5f).y(0.2f).build(),
+                    Point.builder().x(0.4f).y(0.2f).build()))
+            .build();
+
+    // Create key-value blocks
+    Block keyBlock =
+        Block.builder()
+            .id("k1")
+            .text("Invoice")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.KEY))
+            .confidence(98.0f)
+            .geometry(keyGeometry)
+            .page(1)
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t1")).build(),
+                    Relationship.builder().type(RelationshipType.VALUE).ids(List.of("v1")).build()))
+            .build();
+
+    Block valueBlock =
+        Block.builder()
+            .id("v1")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.VALUE))
+            .confidence(97.0f)
+            .geometry(valueGeometry)
+            .page(1)
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t2")).build()))
+            .build();
+
+    Block keyTextBlock =
+        Block.builder()
+            .id("t1")
+            .text("Invoice")
+            .blockType(BlockType.WORD)
+            .confidence(98.0f)
+            .build();
+
+    Block valueTextBlock =
+        Block.builder().id("t2").text("123").blockType(BlockType.WORD).confidence(97.0f).build();
+
+    // Create response with all blocks
+    GetDocumentAnalysisResponse getDocumentAnalysisResponse =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .blocks(List.of(keyBlock, valueBlock, keyTextBlock, valueTextBlock))
+            .build();
+
+    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
+        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(startDocumentAnalysisResponse);
+
+    when(textractClient.getDocumentAnalysis(any(GetDocumentAnalysisRequest.class)))
+        .thenReturn(getDocumentAnalysisResponse);
+
+    // Act
+    StructuredExtractionResponse response =
+        new PollingTextractCaller()
+            .extractKeyValuePairsWithConfidence(
+                mockedDocument, "test-bucket", textractClient, s3AsyncClient);
+
+    // Assert
+    // Check extracted field and confidence
+    assertEquals("123", response.extractedFields().get("Invoice"));
+    assertEquals(0.97f, response.confidenceScore().get("Invoice"));
+
+    // Check position information
+    assertTrue(response.geometry().containsKey("Invoice"));
+    Polygon polygon = response.geometry().get("Invoice");
+
+    // Check page number
+    assertEquals(1, polygon.getPage());
+
+    // Check the points list
+    List<PolygonPoint> points = polygon.getPoints();
+    assertEquals(4, points.size());
+
+    // Verify the coordinates of the bounding box
+    // It should have the top-left point of the key and extend to include the value
+    assertEquals(0.1f, points.get(0).getX());
+    assertEquals(0.1f, points.get(0).getY());
+    assertEquals(0.5f, points.get(1).getX());
+    assertEquals(0.1f, points.get(1).getY());
+    assertEquals(0.5f, points.get(2).getX());
+    assertEquals(0.2f, points.get(2).getY());
+    assertEquals(0.1f, points.get(3).getX());
+    assertEquals(0.2f, points.get(3).getY());
   }
 }

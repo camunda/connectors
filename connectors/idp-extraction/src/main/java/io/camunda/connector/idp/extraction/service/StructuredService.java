@@ -111,6 +111,7 @@ public class StructuredService implements ExtractionService {
       StructuredExtractionResponse response, ExtractionRequestData input) {
     Map<String, Object> parsedResults = new HashMap<>();
     Map<String, Float> processedConfidenceScores = new HashMap<>();
+    Map<String, Polygon> processedGeometry = new HashMap<>();
     Map<String, String> originalKeys = new HashMap<>();
 
     response
@@ -130,14 +131,15 @@ public class StructuredService implements ExtractionService {
                   && value != null) {
                 parsedResults.put(variableName, value);
                 originalKeys.put(variableName, key);
-
+                processedGeometry.put(variableName, response.geometry().get(key));
                 if (confidenceScore != null) {
                   processedConfidenceScores.put(variableName, confidenceScore);
                 }
               }
             });
 
-    return new StructuredExtractionResult(parsedResults, processedConfidenceScores, originalKeys);
+    return new StructuredExtractionResult(
+        parsedResults, processedConfidenceScores, originalKeys, processedGeometry);
   }
 
   /**

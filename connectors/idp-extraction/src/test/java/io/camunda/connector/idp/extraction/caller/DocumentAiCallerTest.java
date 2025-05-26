@@ -12,12 +12,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.cloud.documentai.v1.BoundingPoly;
 import com.google.cloud.documentai.v1.Document;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceClient;
+import com.google.cloud.documentai.v1.NormalizedVertex;
 import com.google.cloud.documentai.v1.ProcessRequest;
 import com.google.cloud.documentai.v1.ProcessResponse;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
+import io.camunda.connector.idp.extraction.model.Polygon;
+import io.camunda.connector.idp.extraction.model.PolygonPoint;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
@@ -61,6 +65,15 @@ class DocumentAiCallerTest {
     // Create mock Layout objects
     Document.Page.Layout mockNameLayout = mock(Document.Page.Layout.class);
     Document.Page.Layout mockValueLayout = mock(Document.Page.Layout.class);
+
+    // Mock bounding poly for layouts
+    BoundingPoly mockBoundingPoly = mock(BoundingPoly.class);
+    when(mockNameLayout.hasBoundingPoly()).thenReturn(true);
+    when(mockNameLayout.getBoundingPoly()).thenReturn(mockBoundingPoly);
+    when(mockValueLayout.hasBoundingPoly()).thenReturn(true);
+    when(mockValueLayout.getBoundingPoly()).thenReturn(mockBoundingPoly);
+    when(mockBoundingPoly.getVerticesCount()).thenReturn(0);
+    when(mockBoundingPoly.getVerticesList()).thenReturn(List.of());
 
     // Set up text anchors properly for the new implementation
     Document.TextAnchor mockNameAnchor = createTextAnchor(0, 7); // "Invoice"
@@ -225,6 +238,17 @@ class DocumentAiCallerTest {
     // Create mock table
     Document.Page.Table mockTable = mock(Document.Page.Table.class);
 
+    // Add layout to the table itself
+    Document.Page.Layout mockTableLayout = mock(Document.Page.Layout.class);
+    BoundingPoly mockTableBoundingPoly = mock(BoundingPoly.class);
+    when(mockTableLayout.hasBoundingPoly()).thenReturn(true);
+    when(mockTableLayout.getBoundingPoly()).thenReturn(mockTableBoundingPoly);
+    when(mockTableBoundingPoly.getVerticesCount()).thenReturn(0);
+    when(mockTableBoundingPoly.getVerticesList()).thenReturn(List.of());
+
+    when(mockTable.hasLayout()).thenReturn(true);
+    when(mockTable.getLayout()).thenReturn(mockTableLayout);
+
     // Create header row with proper text segments
     Document.Page.Table.TableRow headerRow =
         createMockTableRowWithSegments(
@@ -292,6 +316,127 @@ class DocumentAiCallerTest {
         0.91f, response.confidenceScore().get("table 1"), 0.01f); // Allow small rounding difference
   }
 
+  @Test
+  void extractKeyValuePairs_ExtractsPositionInformation() throws Exception {
+    // Arrange
+    DocumentAiClientSupplier mockSupplier = mock(DocumentAiClientSupplier.class);
+    DocumentProcessorServiceClient mockClient = mock(DocumentProcessorServiceClient.class);
+    ProcessResponse mockResponse = mock(ProcessResponse.class);
+    Document mockDocument = mock(Document.class);
+
+    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class))).thenReturn(mockClient);
+    when(mockClient.processDocument((ProcessRequest) any())).thenReturn(mockResponse);
+    when(mockResponse.getDocument()).thenReturn(mockDocument);
+
+    DocumentAiCaller caller = new DocumentAiCaller(mockSupplier);
+
+    // Mock document page
+    Document.Page mockPage = mock(Document.Page.class);
+    when(mockPage.getTablesList()).thenReturn(List.of());
+    // Set page number
+    when(mockPage.getPageNumber()).thenReturn(1);
+
+    // Set up document text
+    when(mockDocument.getText()).thenReturn("Invoice 123");
+
+    // Create form field with specific position information
+    Document.Page.FormField mockFormField = mock(Document.Page.FormField.class);
+    Document.Page.Layout mockNameLayout = mock(Document.Page.Layout.class);
+    Document.Page.Layout mockValueLayout = mock(Document.Page.Layout.class);
+
+    // Create text anchors
+    Document.TextAnchor mockNameAnchor = createTextAnchor(0, 7); // "Invoice"
+    Document.TextAnchor mockValueAnchor = createTextAnchor(8, 11); // "123"
+
+    // Create bounding poly with specific coordinates
+    BoundingPoly mockNameBoundingPoly =
+        createBoundingPolyWithVertices(
+            0.1f, 0.1f, // top-left
+            0.3f, 0.1f, // top-right
+            0.3f, 0.2f, // bottom-right
+            0.1f, 0.2f // bottom-left
+            );
+
+    BoundingPoly mockValueBoundingPoly =
+        createBoundingPolyWithVertices(
+            0.4f, 0.1f, // top-left
+            0.5f, 0.1f, // top-right
+            0.5f, 0.2f, // bottom-right
+            0.4f, 0.2f // bottom-left
+            );
+
+    // Configure layouts
+    when(mockNameLayout.hasBoundingPoly()).thenReturn(true);
+    when(mockNameLayout.getBoundingPoly()).thenReturn(mockNameBoundingPoly);
+    when(mockValueLayout.hasBoundingPoly()).thenReturn(true);
+    when(mockValueLayout.getBoundingPoly()).thenReturn(mockValueBoundingPoly);
+    when(mockNameLayout.getTextAnchor()).thenReturn(mockNameAnchor);
+    when(mockValueLayout.getTextAnchor()).thenReturn(mockValueAnchor);
+    when(mockNameLayout.getConfidence()).thenReturn(0.95f);
+    when(mockValueLayout.getConfidence()).thenReturn(0.9f);
+
+    // Configure form field
+    when(mockFormField.getFieldName()).thenReturn(mockNameLayout);
+    when(mockFormField.getFieldValue()).thenReturn(mockValueLayout);
+    when(mockFormField.hasFieldName()).thenReturn(true);
+    when(mockFormField.hasFieldValue()).thenReturn(true);
+    when(mockFormField.getValueType()).thenReturn(null);
+
+    // Add form field to page
+    when(mockPage.getFormFieldsList()).thenReturn(List.of(mockFormField));
+    when(mockDocument.getPagesList()).thenReturn(List.of(mockPage));
+
+    // Setup request data
+    GcpProvider baseRequest = new GcpProvider();
+    DocumentAiRequestConfiguration configuration =
+        new DocumentAiRequestConfiguration("us", "test-project", "test-processor");
+    baseRequest.setConfiguration(configuration);
+    GcpAuthentication authentication =
+        new GcpAuthentication(GcpAuthenticationType.BEARER, "test-token", null, null, null, null);
+    baseRequest.setAuthentication(authentication);
+
+    ExtractionRequestData requestData = mock(ExtractionRequestData.class);
+    io.camunda.document.Document mockInputDocument = mock(io.camunda.document.Document.class);
+    DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
+    InputStream mockInputStream = new ByteArrayInputStream("test content".getBytes());
+
+    when(requestData.document()).thenReturn(mockInputDocument);
+    when(mockInputDocument.asInputStream()).thenReturn(mockInputStream);
+    when(mockInputDocument.metadata()).thenReturn(mockMetadata);
+    when(mockMetadata.getContentType()).thenReturn("application/pdf");
+
+    // Act
+    StructuredExtractionResponse response =
+        caller.extractKeyValuePairsWithConfidence(requestData, baseRequest);
+
+    // Assert
+    // Check extracted field and confidence
+    assertEquals("123", response.extractedFields().get("Invoice"));
+    assertEquals(0.9f, response.confidenceScore().get("Invoice"));
+
+    // Check position information
+    assertTrue(response.geometry().containsKey("Invoice"));
+    Polygon polygon = response.geometry().get("Invoice");
+
+    // Check page number (should match the page we set up)
+    assertEquals(1, polygon.getPage());
+
+    // Check the points list
+    List<PolygonPoint> points = polygon.getPoints();
+    assertEquals(4, points.size());
+
+    // Verify the coordinates of the bounding box
+    // It should have the top-left point of the name and extend to include the value
+    assertEquals(0.1f, points.get(0).getX());
+    assertEquals(0.1f, points.get(0).getY());
+    assertEquals(0.5f, points.get(1).getX());
+    assertEquals(0.1f, points.get(1).getY());
+    assertEquals(0.5f, points.get(2).getX());
+    assertEquals(0.2f, points.get(2).getY());
+    assertEquals(0.1f, points.get(3).getX());
+    assertEquals(0.2f, points.get(3).getY());
+  }
+
   // Add new helper methods to create text anchors with segments
   private Document.TextAnchor createTextAnchor(int startIndex, int endIndex) {
     Document.TextAnchor mockAnchor = mock(Document.TextAnchor.class);
@@ -315,6 +460,15 @@ class DocumentAiCallerTest {
     Document.Page.FormField mockFormField = mock(Document.Page.FormField.class);
     Document.Page.Layout mockNameLayout = mock(Document.Page.Layout.class);
     Document.Page.Layout mockValueLayout = mock(Document.Page.Layout.class);
+
+    // Add bounding poly mocks
+    BoundingPoly mockBoundingPoly = mock(BoundingPoly.class);
+    when(mockNameLayout.hasBoundingPoly()).thenReturn(true);
+    when(mockNameLayout.getBoundingPoly()).thenReturn(mockBoundingPoly);
+    when(mockValueLayout.hasBoundingPoly()).thenReturn(true);
+    when(mockValueLayout.getBoundingPoly()).thenReturn(mockBoundingPoly);
+    when(mockBoundingPoly.getVerticesCount()).thenReturn(0);
+    when(mockBoundingPoly.getVerticesList()).thenReturn(List.of());
 
     Document.TextAnchor mockNameAnchor = createTextAnchor(keyStartIndex, keyEndIndex);
     Document.TextAnchor mockValueAnchor = createTextAnchor(valueStartIndex, valueEndIndex);
@@ -348,6 +502,13 @@ class DocumentAiCallerTest {
       Document.Page.Layout mockLayout = mock(Document.Page.Layout.class);
       Document.TextAnchor mockTextAnchor = createTextAnchor(position[0], position[1]);
 
+      // Add bounding poly mock
+      BoundingPoly mockBoundingPoly = mock(BoundingPoly.class);
+      when(mockLayout.hasBoundingPoly()).thenReturn(true);
+      when(mockLayout.getBoundingPoly()).thenReturn(mockBoundingPoly);
+      when(mockBoundingPoly.getVerticesCount()).thenReturn(0);
+      when(mockBoundingPoly.getVerticesList()).thenReturn(List.of());
+
       when(mockCell.hasLayout()).thenReturn(true);
       when(mockCell.getLayout()).thenReturn(mockLayout);
       when(mockLayout.getTextAnchor()).thenReturn(mockTextAnchor);
@@ -358,5 +519,24 @@ class DocumentAiCallerTest {
 
     when(mockRow.getCellsList()).thenReturn(cells);
     return mockRow;
+  }
+
+  // Helper method to create a bounding poly with specific coordinates
+  private BoundingPoly createBoundingPolyWithVertices(float... coordinates) {
+    BoundingPoly mockBoundingPoly = mock(BoundingPoly.class);
+    List<NormalizedVertex> vertices = new ArrayList<>();
+
+    // Create 4 vertices (top-left, top-right, bottom-right, bottom-left)
+    for (int i = 0; i < coordinates.length; i += 2) {
+      NormalizedVertex vertex = mock(NormalizedVertex.class);
+      when(vertex.getX()).thenReturn(coordinates[i]);
+      when(vertex.getY()).thenReturn(coordinates[i + 1]);
+      vertices.add(vertex);
+    }
+
+    when(mockBoundingPoly.getVerticesCount()).thenReturn(vertices.size());
+    when(mockBoundingPoly.getNormalizedVerticesList()).thenReturn(vertices);
+
+    return mockBoundingPoly;
   }
 }
