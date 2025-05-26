@@ -1,13 +1,12 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Ad-hoc tools schema",
-  "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v1-hybrid",
-  "description" : "Connector to fetch tools schema information from an ad-hoc sub-process",
+  "name" : "Ad-hoc subprocess tools schema (alpha)",
+  "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v0",
+  "description" : "Connector to fetch tools schema information from an ad-hoc subprocess",
   "metadata" : {
     "keywords" : [ ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/",
-  "version" : 1,
+  "version" : 0,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -17,9 +16,6 @@
     "value" : "bpmn:ServiceTask"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "tools",
     "label" : "Available Tools"
   }, {
@@ -36,22 +32,17 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
-    "value" : "io.camunda.agenticai:adhoctoolsschema:1",
-    "group" : "taskDefinitionType",
+    "value" : "io.camunda.agenticai:adhoctoolsschema:0",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "data.containerElementId",
-    "label" : "Ad-hoc sub-process ID",
-    "description" : "The ID of the sub-process containing the tools to be called",
+    "label" : "Ad-hoc subprocess ID containing tools",
+    "description" : "The ID of the subprocess containing the tools to be called",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "tools",
     "binding" : {
@@ -63,7 +54,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "0",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -74,7 +65,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.agenticai.adhoctoolsschema.v1",
+    "value" : "io.camunda.connectors.agenticai.adhoctoolsschema.v0",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",

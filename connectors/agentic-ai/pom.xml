@@ -127,7 +127,7 @@
               <connectorClass>io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.adhoctoolsschema.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.adhoctoolsschema.v1</templateId>
                   <templateFileName>agenticai-adhoctoolsschema-outbound-connector.json</templateFileName>
                 </file>
               </files>
@@ -138,7 +138,7 @@
               <connectorClass>io.camunda.connector.agenticai.aiagent.AiAgentFunction</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.aiagent.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.aiagent.v1</templateId>
                   <templateFileName>agenticai-aiagent-outbound-connector.json</templateFileName>
                 </file>
               </files>
