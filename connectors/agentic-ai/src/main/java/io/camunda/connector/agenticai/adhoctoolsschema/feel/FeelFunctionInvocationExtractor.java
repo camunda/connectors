@@ -15,7 +15,7 @@ import org.camunda.feel.syntaxtree.ParsedExpression;
 import scala.Product;
 import scala.jdk.javaapi.CollectionConverters;
 
-class FeelFunctionInvocationExtractor {
+public class FeelFunctionInvocationExtractor {
   private final Predicate<FunctionInvocation> functionPredicate;
 
   public FeelFunctionInvocationExtractor(Predicate<FunctionInvocation> functionPredicate) {

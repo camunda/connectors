@@ -31,7 +31,9 @@ import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,13 +101,33 @@ public abstract class BaseAgenticAiTest {
   protected Function<BpmnModelInstance, BpmnModelInstance> withoutInputsMatching(
       Predicate<ZeebeInput> filter) {
     return (model) -> {
-      final ServiceTask aiAgentTask = model.getModelElementById(AI_AGENT_TASK_ID);
-      final var inputs = aiAgentTask.getSingleExtensionElement(ZeebeIoMapping.class).getInputs();
+      final var inputs = getModelInputs(model);
 
       final var toRemove = inputs.stream().filter(filter).toList();
       inputs.removeAll(toRemove);
 
       return model;
     };
+  }
+
+  protected Function<BpmnModelInstance, BpmnModelInstance> withModifiedInputs(
+      Map<String, Consumer<ZeebeInput>> modifiers) {
+    return (model) -> {
+      final var inputs = getModelInputs(model);
+
+      for (final var input : inputs) {
+        final var modifier = modifiers.get(input.getTarget());
+        if (modifier != null) {
+          modifier.accept(input);
+        }
+      }
+
+      return model;
+    };
+  }
+
+  protected Collection<ZeebeInput> getModelInputs(BpmnModelInstance model) {
+    final ServiceTask aiAgentTask = model.getModelElementById(AI_AGENT_TASK_ID);
+    return aiAgentTask.getSingleExtensionElement(ZeebeIoMapping.class).getInputs();
   }
 }

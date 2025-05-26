@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -39,7 +40,8 @@ public record AgentRequest(
       @Valid @NotNull UserPromptConfiguration userPrompt,
       @Valid ToolsConfiguration tools,
       @Valid MemoryConfiguration memory,
-      @Valid LimitsConfiguration limits) {
+      @Valid LimitsConfiguration limits,
+      @Valid ResponseConfiguration response) {
 
     public interface PromptConfiguration {
       String PROMPT_PARAMETERS_DESCRIPTION =
@@ -145,7 +147,7 @@ Reveal **no** additional private reasoning outside these tags.
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.required,
                 optional = true)
-            List<Map<String, Object>> toolCallResults) {}
+            List<ToolCallResult> toolCallResults) {}
 
     public record MemoryConfiguration(
         // TODO support more advanced eviction policies (token window)
@@ -175,5 +177,28 @@ Reveal **no** additional private reasoning outside these tags.
             @NotNull
             @Min(1)
             Integer maxModelCalls) {}
+
+    public record ResponseConfiguration(
+        @TemplateProperty(
+                group = "response",
+                label = "Include text output",
+                description =
+                    "Adds the first text output of the assistant message to the response.",
+                tooltip =
+                    "The text output will be available as <code>response.responseText</code>.",
+                type = TemplateProperty.PropertyType.Boolean,
+                defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+                defaultValue = "true")
+            boolean includeText,
+        @TemplateProperty(
+                group = "response",
+                label = "Include assistant message",
+                description = "Adds the full assistant message to the response.",
+                tooltip =
+                    "In addition to the text content, the message may include multiple additional content blocks and metadata such as token usage. The message output will be available as <code>response.responseMessage</code>.",
+                type = TemplateProperty.PropertyType.Boolean,
+                defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+                defaultValue = "false")
+            boolean includeAssistantMessage) {}
   }
 }

@@ -58,7 +58,12 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           label = "Memory",
           tooltip = "Configuration of the Agent's short-term/conversational memory.",
           openByDefault = false),
-      @PropertyGroup(id = "limits", label = "Limits", openByDefault = false)
+      @PropertyGroup(id = "limits", label = "Limits", openByDefault = false),
+      @PropertyGroup(
+          id = "response",
+          label = "Response",
+          tooltip = "Defines which elements of the Agent result should be added to the response.",
+          openByDefault = false)
     },
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {

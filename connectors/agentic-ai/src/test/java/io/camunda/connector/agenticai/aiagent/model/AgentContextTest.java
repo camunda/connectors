@@ -10,7 +10,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import java.util.Collections;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
+import io.camunda.connector.agenticai.model.message.UserMessage;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -20,15 +24,17 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class AgentContextTest {
-  private static final AgentContext EMPTY_CONTEXT =
-      new AgentContext(AgentState.READY, AgentMetrics.empty(), List.of());
+  private static final AgentContext EMPTY_CONTEXT = AgentContext.empty();
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   void emptyContext() {
     final var context = AgentContext.empty();
     assertThat(context.state()).isEqualTo(AgentState.READY);
     assertThat(context.metrics()).isEqualTo(AgentMetrics.empty());
-    assertThat(context.memory()).isEmpty();
+    assertThat(context.toolDefinitions()).isEmpty();
+    assertThat(context.conversation()).isNull();
     assertThat(context).isNotSameAs(EMPTY_CONTEXT).isEqualTo(EMPTY_CONTEXT);
   }
 
@@ -41,8 +47,6 @@ class AgentContextTest {
     assertThat(initialContext.state()).isEqualTo(EMPTY_CONTEXT.state());
 
     assertThat(updatedContext.state()).isEqualTo(AgentState.WAITING_FOR_TOOL_INPUT);
-    assertThat(updatedContext.isInState(AgentState.WAITING_FOR_TOOL_INPUT)).isTrue();
-    assertThat(updatedContext.isInState(AgentState.READY)).isFalse();
   }
 
   @Test
@@ -61,19 +65,41 @@ class AgentContextTest {
   }
 
   @Test
-  void withMemory() {
-    final var newMessage = Map.of("message", new Object());
-    final var updatedMemory = List.of(newMessage);
+  void withToolDefinitions() {
+    final var toolDefinition = ToolDefinition.builder().name("toolA").description("A tool").build();
+    final var toolDefinitions = List.of(toolDefinition);
 
     final var initialContext = AgentContext.empty();
-    final var updatedContext = initialContext.withMemory(updatedMemory);
+    final var updatedContext = initialContext.withToolDefinitions(toolDefinitions);
 
     assertThat(updatedContext).isNotEqualTo(initialContext);
-    assertThat(initialContext.memory()).isEqualTo(EMPTY_CONTEXT.memory());
+    assertThat(initialContext.toolDefinitions()).isEqualTo(EMPTY_CONTEXT.toolDefinitions());
 
-    assertThat(updatedContext.memory())
-        .isEqualTo(updatedMemory)
-        .isNotEqualTo(initialContext.memory())
+    assertThat(updatedContext.toolDefinitions())
+        .isNotNull()
+        .containsExactlyElementsOf(toolDefinitions);
+  }
+
+  @Test
+  void withConversation() {
+    final var newMessage = UserMessage.userMessage("Hello");
+    final var newConversationContext =
+        InProcessConversationContext.builder("test-conversation")
+            .messages(List.of(newMessage))
+            .build();
+
+    final var initialContext = AgentContext.empty();
+    final var updatedContext = initialContext.withConversation(newConversationContext);
+
+    assertThat(updatedContext).isNotEqualTo(initialContext);
+    assertThat(initialContext.conversation()).isEqualTo(EMPTY_CONTEXT.conversation());
+
+    assertThat(updatedContext.conversation())
+        .isNotNull()
+        .isEqualTo(newConversationContext)
+        .isNotEqualTo(initialContext.conversation());
+
+    assertThat(((InProcessConversationContext) updatedContext.conversation()).messages())
         .containsExactly(newMessage);
   }
 
@@ -82,21 +108,53 @@ class AgentContextTest {
   void throwsExceptionOnInvalidConstructorParameters(
       AgentState state,
       AgentMetrics metrics,
-      List<Map<String, Object>> memory,
+      List<ToolDefinition> toolDefinitions,
       String exceptionMessage) {
-    assertThatThrownBy(() -> new AgentContext(state, metrics, memory))
+    assertThatThrownBy(
+            () ->
+                new AgentContext(
+                    state,
+                    metrics,
+                    toolDefinitions,
+                    InProcessConversationContext.builder("test-conversation").build()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
+  }
+
+  @Test
+  void canBeSerializedAndDeserialized() throws JsonProcessingException {
+    final var agentContext =
+        AgentContext.builder()
+            .metrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+            .toolDefinitions(
+                List.of(
+                    ToolDefinition.builder()
+                        .name("toolA")
+                        .description("A tool")
+                        .inputSchema(Map.of("type", "object"))
+                        .build()))
+            .conversation(
+                InProcessConversationContext.builder("test-conversation")
+                    .messages(List.of(UserMessage.userMessage("Hello")))
+                    .build())
+            .build();
+
+    final var serialized =
+        objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(agentContext);
+
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+
+    assertThat(deserialized).usingRecursiveComparison().isEqualTo(agentContext);
   }
 
   static Stream<Arguments> invalidConstructorParameters() {
     final var state = AgentState.READY;
     final var metrics = AgentMetrics.empty();
-    final var memory = Collections.emptyList();
+    final var toolDefinitions = List.of();
 
     return Stream.of(
-        arguments(null, metrics, memory, "Agent state must not be null"),
-        arguments(state, null, memory, "Agent metrics must not be null"),
-        arguments(state, metrics, null, "Agent memory must not be null"));
+        arguments(null, metrics, toolDefinitions, "Agent state must not be null"),
+        arguments(state, null, toolDefinitions, "Agent metrics must not be null"),
+        arguments(state, metrics, null, "Tool definitions must not be null"));
   }
 }
