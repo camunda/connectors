@@ -94,16 +94,14 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       AssistantMessage assistantMessage) {
     final var builder = AiMessage.builder();
 
-    final var textContent =
-        assistantMessage.content().stream().filter(c -> c instanceof TextContent).toList();
-
-    if (textContent.size() > 1) {
+    if (assistantMessage.content().size() != 1
+        || !(assistantMessage.content().getFirst() instanceof TextContent(String text))) {
       throw new IllegalArgumentException(
-          "AiMessage currently only supports a single TextContent block, %d found"
-              .formatted(textContent.size()));
-    } else if (textContent.size() == 1) {
-      builder.text(((TextContent) textContent.getFirst()).text());
+          "AiMessage currently only supports a single TextContent block, %d content blocks found instead."
+              .formatted(assistantMessage.content().size()));
     }
+
+    builder.text(text);
 
     final var toolExecutionRequests =
         assistantMessage.toolCalls().stream()
