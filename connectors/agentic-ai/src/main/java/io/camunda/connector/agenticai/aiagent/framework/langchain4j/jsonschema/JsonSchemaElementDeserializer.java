@@ -8,10 +8,12 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema;
 
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ADDITIONAL_PROPERTIES;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ANYOF;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_DEFINITIONS;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_DESCRIPTION;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ENUM;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ITEMS;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_REF;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_REQUIRED;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_ARRAY;
@@ -25,6 +27,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -36,10 +39,12 @@ import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -59,7 +64,11 @@ public class JsonSchemaElementDeserializer extends JsonDeserializer<JsonSchemaEl
       return createAnyOfSchema(node, objectMapper);
     }
 
-    String nodeType = node.has(PROPERTY_TYPE) ? node.get(PROPERTY_TYPE).asText() : TYPE_OBJECT;
+    if (node.has(PROPERTY_REF)) {
+      return createReferenceSchema(node);
+    }
+
+    String nodeType = node.has(PROPERTY_TYPE) ? node.get(PROPERTY_TYPE).asText() : null;
 
     return switch (nodeType) {
       case TYPE_OBJECT -> createObjectSchema(node, objectMapper);
@@ -68,7 +77,8 @@ public class JsonSchemaElementDeserializer extends JsonDeserializer<JsonSchemaEl
       case TYPE_INTEGER -> createIntegerSchema(node);
       case TYPE_BOOLEAN -> createBooleanSchema(node);
       case TYPE_ARRAY -> createArraySchema(node, objectMapper);
-      default -> throw new IllegalArgumentException("Unknown element type: " + nodeType);
+      case null, default ->
+          throw new JsonMappingException(jp, "Unknown JSON schema element type: " + nodeType);
     };
   }
 
@@ -86,6 +96,18 @@ public class JsonSchemaElementDeserializer extends JsonDeserializer<JsonSchemaEl
             property.getKey(),
             objectMapper.treeToValue(property.getValue(), JsonSchemaElement.class));
       }
+    }
+
+    if (node.has(PROPERTY_DEFINITIONS)) {
+      ObjectNode definitionsNode = (ObjectNode) node.get(PROPERTY_DEFINITIONS);
+      Map<String, JsonSchemaElement> definitions = new LinkedHashMap<>();
+      for (Map.Entry<String, JsonNode> definition : definitionsNode.properties()) {
+        definitions.put(
+            definition.getKey(),
+            objectMapper.treeToValue(definition.getValue(), JsonSchemaElement.class));
+      }
+
+      builder.definitions(definitions);
     }
 
     if (node.has(PROPERTY_REQUIRED)) {
@@ -144,6 +166,10 @@ public class JsonSchemaElementDeserializer extends JsonDeserializer<JsonSchemaEl
     }
 
     return builder.build();
+  }
+
+  private JsonReferenceSchema createReferenceSchema(JsonNode node) {
+    return JsonReferenceSchema.builder().reference(node.get(PROPERTY_REF).asText()).build();
   }
 
   private JsonArraySchema createArraySchema(JsonNode node, ObjectMapper objectMapper)

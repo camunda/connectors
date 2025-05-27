@@ -7,7 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
@@ -16,6 +18,7 @@ import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import java.nio.file.Files;
@@ -62,7 +65,7 @@ class JsonSchemaElementModuleTest {
   }
 
   @Test
-  void shouldSerializeAndDeserializeSimpleObjectSchema() throws Exception {
+  void shouldHandleSimpleObjectSchema() throws Exception {
     String json =
         """
         {
@@ -96,7 +99,7 @@ class JsonSchemaElementModuleTest {
   }
 
   @Test
-  void shouldSerializeAndDeserializeComplexObjectSchema() throws Exception {
+  void shouldHandleComplexObjectSchema() throws Exception {
     String json =
         """
         {
@@ -369,6 +372,107 @@ class JsonSchemaElementModuleTest {
   }
 
   @Test
+  void shouldHandleSchemaWithReferences() throws Exception {
+    String json =
+        """
+        {
+          "type": "object",
+          "properties": {
+            "user": {
+              "$ref": "#/$defs/User"
+            }
+          },
+          "required": [
+            "user"
+          ],
+          "additionalProperties": false,
+          "$defs": {
+            "User": {
+              "type": "object",
+              "description": "User object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "User's name"
+                },
+                "age": {
+                  "type": "integer",
+                  "description": "User's age"
+                },
+                "friends": {
+                  "type": "array",
+                  "description": "List of user's friends",
+                  "items": {
+                    "$ref": "#/$defs/User"
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "age"
+              ]
+            }
+          }
+        }
+        """;
+
+    assertSchemaSerializationAndDeserialization(
+        json,
+        schema -> {
+          assertThat(schema.properties()).containsKey("user");
+          assertThat(schema.properties().get("user"))
+              .asInstanceOf(InstanceOfAssertFactories.type(JsonReferenceSchema.class))
+              .satisfies(
+                  referenceSchema -> {
+                    assertThat(referenceSchema.reference()).isEqualTo("#/$defs/User");
+                  });
+
+          assertThat(schema.required()).containsExactly("user");
+          assertThat(schema.additionalProperties()).isFalse();
+
+          assertThat(schema.definitions()).containsKey("User");
+          assertThat(schema.definitions().get("User"))
+              .asInstanceOf(InstanceOfAssertFactories.type(JsonObjectSchema.class))
+              .satisfies(
+                  userSchema -> {
+                    assertThat(userSchema.description()).isEqualTo("User object");
+                    assertThat(userSchema.properties()).containsOnlyKeys("name", "age", "friends");
+
+                    assertThat(userSchema.properties().get("name"))
+                        .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
+                        .satisfies(
+                            stringSchema -> {
+                              assertThat(stringSchema.description()).isEqualTo("User's name");
+                            });
+
+                    assertThat(userSchema.properties().get("age"))
+                        .asInstanceOf(InstanceOfAssertFactories.type(JsonIntegerSchema.class))
+                        .satisfies(
+                            integerSchema -> {
+                              assertThat(integerSchema.description()).isEqualTo("User's age");
+                            });
+
+                    assertThat(userSchema.properties().get("friends"))
+                        .asInstanceOf(InstanceOfAssertFactories.type(JsonArraySchema.class))
+                        .satisfies(
+                            arraySchema -> {
+                              assertThat(arraySchema.description())
+                                  .isEqualTo("List of user's friends");
+                              assertThat(arraySchema.items())
+                                  .asInstanceOf(
+                                      InstanceOfAssertFactories.type(JsonReferenceSchema.class))
+                                  .satisfies(
+                                      itemReference ->
+                                          assertThat(itemReference.reference())
+                                              .isEqualTo("#/$defs/User"));
+                            });
+
+                    assertThat(userSchema.required()).containsExactly("name", "age");
+                  });
+        });
+  }
+
+  @Test
   void shouldIgnoreUnknownProperties() throws Exception {
     String json =
         """
@@ -405,6 +509,21 @@ class JsonSchemaElementModuleTest {
         false);
   }
 
+  @Test
+  void throwsExceptionWhenDeserializingUnknownType() {
+    assertThatThrownBy(
+            () -> objectMapper.readValue("{\"type\": \"dummy\"}", JsonSchemaElement.class))
+        .isInstanceOf(JsonMappingException.class)
+        .hasMessageStartingWith("Unknown JSON schema element type: dummy");
+  }
+
+  @Test
+  void throwsExceptionWhenSerializingUnknownType() {
+    assertThatThrownBy(() -> objectMapper.writeValueAsString(new JsonTestSchema()))
+        .isInstanceOf(JsonMappingException.class)
+        .hasMessage("Unsupported schema type: " + JsonTestSchema.class.getName());
+  }
+
   private void assertSchemaSerializationAndDeserialization(
       String inputJson, ThrowingConsumer<JsonObjectSchema> schemaAssertions) throws Exception {
     assertSchemaSerializationAndDeserialization(inputJson, schemaAssertions, true);
@@ -430,5 +549,12 @@ class JsonSchemaElementModuleTest {
     assertThat(deserialized)
         .asInstanceOf(InstanceOfAssertFactories.type(JsonObjectSchema.class))
         .satisfies(schemaAssertions);
+  }
+
+  private class JsonTestSchema implements JsonSchemaElement {
+    @Override
+    public String description() {
+      return "test";
+    }
   }
 }
