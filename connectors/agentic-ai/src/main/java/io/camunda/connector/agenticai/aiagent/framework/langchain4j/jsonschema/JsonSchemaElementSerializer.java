@@ -8,10 +8,12 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema;
 
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ADDITIONAL_PROPERTIES;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ANYOF;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_DEFINITIONS;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_DESCRIPTION;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ENUM;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_ITEMS;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_REF;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_REQUIRED;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_ARRAY;
@@ -31,6 +33,7 @@ import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import java.io.IOException;
@@ -49,10 +52,12 @@ public class JsonSchemaElementSerializer extends JsonSerializer<JsonSchemaElemen
       case JsonNumberSchema numberSchema -> serializeNumberSchema(numberSchema, gen);
       case JsonIntegerSchema integerSchema -> serializeIntegerSchema(integerSchema, gen);
       case JsonBooleanSchema booleanSchema -> serializeBooleanSchema(booleanSchema, gen);
+      case JsonReferenceSchema referenceSchema -> serializeReferenceSchema(referenceSchema, gen);
       case JsonArraySchema arraySchema -> serializeArraySchema(arraySchema, gen);
       case JsonAnyOfSchema anyOfSchema -> serializeAnyOfSchema(anyOfSchema, gen);
       default ->
-          throw new IllegalArgumentException("Unknown schema type: " + value.getClass().getName());
+          throw new IllegalArgumentException(
+              "Unsupported schema type: " + value.getClass().getName());
     }
   }
 
@@ -67,6 +72,7 @@ public class JsonSchemaElementSerializer extends JsonSerializer<JsonSchemaElemen
     }
 
     serializeMapOfSchemaElements(PROPERTY_PROPERTIES, schema.properties(), gen);
+    serializeMapOfSchemaElements(PROPERTY_DEFINITIONS, schema.definitions(), gen);
 
     List<String> required = schema.required();
     if (required != null && !required.isEmpty()) {
@@ -156,6 +162,19 @@ public class JsonSchemaElementSerializer extends JsonSerializer<JsonSchemaElemen
     gen.writeStartObject();
 
     gen.writeStringField(PROPERTY_TYPE, TYPE_BOOLEAN);
+
+    if (schema.description() != null) {
+      gen.writeStringField(PROPERTY_DESCRIPTION, schema.description());
+    }
+
+    gen.writeEndObject();
+  }
+
+  private void serializeReferenceSchema(JsonReferenceSchema schema, JsonGenerator gen)
+      throws IOException {
+    gen.writeStartObject();
+
+    gen.writeStringField(PROPERTY_REF, schema.reference());
 
     if (schema.description() != null) {
       gen.writeStringField(PROPERTY_DESCRIPTION, schema.description());
