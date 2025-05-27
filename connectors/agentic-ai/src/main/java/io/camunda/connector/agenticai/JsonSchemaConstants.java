@@ -22,5 +22,6 @@ public abstract class JsonSchemaConstants {
   public static final String PROPERTY_ADDITIONAL_PROPERTIES = "additionalProperties";
   public static final String PROPERTY_PROPERTIES = "properties";
   public static final String PROPERTY_ENUM = "enum";
+  public static final String PROPERTY_ANYOF = "anyOf";
   public static final String PROPERTY_ITEMS = "items";
 }
