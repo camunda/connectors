@@ -20,9 +20,11 @@ import com.google.common.collect.EvictingQueue;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
@@ -53,8 +55,10 @@ public class BatchExecutableProcessor {
   private final ConnectorsInboundMetrics connectorsInboundMetrics;
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
-  @Value("${camunda.connector.inbound.log.size:10}")
+  @Value("${camunda.connector.inbound.log.size:100}")
   private int inboundLogsSize;
+
+  private static final String LIFECYCLE_LOG_TAG = "lifecycle";
 
   public BatchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
@@ -185,10 +189,12 @@ public class BatchExecutableProcessor {
       connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
       return new FailedToActivate(data, e.getMessage());
     }
-    LOG.info(
-        "Inbound connector {} activated with deduplication ID '{}'",
-        data.type(),
-        data.deduplicationId());
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag(LIFECYCLE_LOG_TAG)
+            .message(String.format("Inbound connector %s activated with deduplication ID '%s'",
+                data.type(), data.deduplicationId()))
+    );
     connectorsInboundMetrics.increaseActivation(data.connectorElements().getFirst());
     return new Activated(executable, context);
   }
@@ -198,12 +204,13 @@ public class BatchExecutableProcessor {
     for (var activeExecutable : executables) {
       if (activeExecutable instanceof Activated activated) {
         try {
-          LOG.info("Deactivating executable: {}", activated.context().getDefinition().type());
           if (activated.executable() instanceof WebhookConnectorExecutable) {
             LOG.debug("Unregistering webhook: {}", activated.context().getDefinition().type());
             webhookConnectorRegistry.deregister(activated);
           }
           activated.executable().deactivate();
+          activated.context().log(Activity.level(Severity.INFO).tag(LIFECYCLE_LOG_TAG)
+              .message("Deactivated executable: " + activated.context().getDefinition().type()));
         } catch (Exception e) {
           LOG.error("Failed to deactivate executable", e);
         }

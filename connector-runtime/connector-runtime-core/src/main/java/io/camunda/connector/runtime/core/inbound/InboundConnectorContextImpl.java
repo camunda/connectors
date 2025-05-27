@@ -21,6 +21,15 @@ import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.InvalidInput;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ZeebeClientStatus;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
@@ -59,6 +68,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final Long activationTimestamp;
   private Health health = Health.unknown();
   private Map<String, Object> propertiesWithSecrets;
+
+  private static final String CORRELATION_LOG_TAG = "correlation";
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -119,7 +130,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private CorrelationResult correlateWithResultInternal(CorrelationRequest correlationRequest) {
     try {
-      return correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
+      var result = correlationHandler.correlate(connectorDetails.connectorElements(),
+          correlationRequest);
+      log(result);
+      return result;
     } catch (ConnectorInputException connectorInputException) {
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
@@ -136,6 +150,52 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               .message("Failed to correlate inbound event " + exception.getMessage()));
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
+    }
+  }
+
+  private void log(CorrelationResult correlationResult) {
+    switch (correlationResult) {
+      case Success success:
+        log(success);
+        break;
+      case Failure failure:
+        log(failure);
+        break;
+    }
+  }
+
+  private void log(Success success) {
+    switch (success) {
+      case ProcessInstanceCreated ignored:
+        Activity.level(Severity.INFO).tag(CORRELATION_LOG_TAG).message("Process instance created");
+        break;
+      case MessagePublished ignored:
+        Activity.level(Severity.INFO).tag(CORRELATION_LOG_TAG).message("Message published");
+        break;
+      case MessageAlreadyCorrelated ignored:
+        Activity.level(Severity.WARNING).tag(CORRELATION_LOG_TAG).message("Duplicate message");
+        break;
+    }
+  }
+
+  private void log(Failure failure) {
+    switch (failure) {
+      case ActivationConditionNotMet ignored:
+        Activity.level(Severity.WARNING).tag(CORRELATION_LOG_TAG)
+            .message("Activation condition not met");
+        break;
+      case InvalidInput ignored:
+        Activity.level(Severity.ERROR).tag(CORRELATION_LOG_TAG)
+            .message("Invalid input: " + failure.message());
+        break;
+      case ZeebeClientStatus ignored:
+        Activity.level(Severity.ERROR).tag(CORRELATION_LOG_TAG)
+            .message("Zeebe client status error: " + failure.message());
+        break;
+      case Other ignored:
+        Activity.level(Severity.ERROR).tag(CORRELATION_LOG_TAG)
+            .message("Error: " + failure.message());
+        break;
     }
   }
 

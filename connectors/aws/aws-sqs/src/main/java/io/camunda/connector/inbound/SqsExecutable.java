@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
           templateIdOverride = "io.camunda.connectors.AWSSQS.boundary.v1",
           templateNameOverride = "Amazon SQS Boundary Event Connector")
     })
-public class SqsExecutable implements InboundConnectorExecutable {
+public class SqsExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
   private final AmazonSQSClientSupplier sqsClientSupplier;
@@ -139,11 +139,6 @@ public class SqsExecutable implements InboundConnectorExecutable {
   @Override
   public void deactivate() {
     sqsQueueConsumer.setQueueConsumerActive(false);
-    LOGGER.debug("Deactivating subscription");
-    context.log(
-        Activity.level(Severity.INFO)
-            .tag("Subscription activation")
-            .message("Deactivating subscription"));
     context.reportHealth(Health.down());
     if (executorService != null) {
       LOGGER.debug("Shutting down executor service");
