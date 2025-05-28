@@ -25,7 +25,7 @@ public record AgentContext(
     @Nullable ConversationContext conversation)
     implements AgentContextBuilder.With {
 
-  public static final AgentState DEFAULT_STATE = AgentState.READY;
+  public static final AgentState DEFAULT_STATE = AgentState.INITIALIZING;
 
   public AgentContext {
     Objects.requireNonNull(state, "Agent state must not be null");

@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import java.util.List;
@@ -94,8 +95,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
-      AdHocToolsSchemaResolver schemaResolver, AiFrameworkAdapter<?> aiFrameworkAdapter) {
-    return new AiAgentRequestHandlerImpl(schemaResolver, aiFrameworkAdapter);
+      AdHocToolsSchemaResolver schemaResolver,
+      List<GatewayToolHandler> gatewayToolHandlers,
+      AiFrameworkAdapter<?> aiFrameworkAdapter) {
+    return new AiAgentRequestHandlerImpl(schemaResolver, gatewayToolHandlers, aiFrameworkAdapter);
   }
 
   @Bean
