@@ -17,10 +17,10 @@
 package io.camunda.intrinsic.functions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.document.Document;
 import io.camunda.intrinsic.IntrinsicFunction;
 import io.camunda.intrinsic.IntrinsicFunctionProvider;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import java.io.IOException;
 import javax.annotation.Nullable;
 
