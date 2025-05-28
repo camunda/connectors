@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -37,7 +38,11 @@ import org.springframework.context.annotation.Import;
     havingValue = "true",
     matchIfMissing = true)
 @EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
-@Import({AgenticAiLangchain4JFrameworkConfiguration.class, McpClientConfiguration.class})
+@Import({
+  AgenticAiLangchain4JFrameworkConfiguration.class,
+  McpClientConfiguration.class,
+  McpDiscoveryConfiguration.class
+})
 public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
