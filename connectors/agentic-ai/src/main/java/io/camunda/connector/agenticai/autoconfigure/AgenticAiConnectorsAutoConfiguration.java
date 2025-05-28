@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtrac
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGeneratorImpl;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
@@ -23,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -56,12 +58,16 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AdHocToolsSchemaResolver adHocToolsSchemaResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
+      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       FeelInputParamExtractor feelInputParamExtractor,
       AdHocToolSchemaGenerator adHocToolSchemaGenerator) {
 
     final var resolver =
         new CamundaClientAdHocToolsSchemaResolver(
-            camundaClient, feelInputParamExtractor, adHocToolSchemaGenerator);
+            camundaClient,
+            gatewayToolDefinitionResolvers,
+            feelInputParamExtractor,
+            adHocToolSchemaGenerator);
 
     final var cacheConfiguration = configuration.tools().cache();
     if (cacheConfiguration.enabled()) {

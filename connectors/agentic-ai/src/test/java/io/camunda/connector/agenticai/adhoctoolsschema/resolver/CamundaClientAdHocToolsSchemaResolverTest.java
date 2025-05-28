@@ -20,8 +20,11 @@ import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtrac
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.SchemaGenerationException;
+import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.util.BpmnUtils;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.zeebe.model.bpmn.instance.FlowNode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +40,6 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -47,17 +49,36 @@ class CamundaClientAdHocToolsSchemaResolverTest {
   private static final Long PROCESS_DEFINITION_KEY = 123456L;
   private static final String AD_HOC_SUB_PROCESS_ID = "Agent_Tools";
 
+  private static final Map<String, Object> EXPECTED_EMPTY_SCHEMA =
+      Map.of("type", "object", "comment", "emptySchema", "dummy", true);
+  private static final Map<String, Object> EXPECTED_TOOL_A_SCHEMA =
+      Map.of("type", "object", "comment", "toolASchema", "dummy", true);
+
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private CamundaClient camundaClient;
 
   @Mock private FeelInputParamExtractor feelInputParamExtractor;
   @Mock private AdHocToolSchemaGenerator schemaGenerator;
-  @InjectMocks private CamundaClientAdHocToolsSchemaResolver resolver;
+
+  private CamundaClientAdHocToolsSchemaResolver resolver;
+  private CamundaClientAdHocToolsSchemaResolver resolverWithGatewayToolDefinitionResolvers;
 
   private String bpmnXml;
 
   @BeforeEach
   void setUp() throws IOException {
+    resolver =
+        new CamundaClientAdHocToolsSchemaResolver(
+            camundaClient, List.of(), feelInputParamExtractor, schemaGenerator);
+    resolverWithGatewayToolDefinitionResolvers =
+        new CamundaClientAdHocToolsSchemaResolver(
+            camundaClient,
+            List.of(
+                new SimpleToolGatewayToolDefinitionResolver(),
+                new ComplexToolGatewayToolDefinitionResolver()),
+            feelInputParamExtractor,
+            schemaGenerator);
+
     bpmnXml =
         Files.readString(
             Path.of(getClass().getClassLoader().getResource("ad-hoc-tools.bpmn").getFile()));
@@ -67,11 +88,6 @@ class CamundaClientAdHocToolsSchemaResolverTest {
   void loadsAdHocToolSchema() {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn(bpmnXml);
-
-    final Map<String, Object> expectedToolASchema =
-        Map.of("type", "object", "comment", "toolASchema", "dummy", true);
-    final Map<String, Object> expectedEmptySchema =
-        Map.of("type", "object", "comment", "emptySchema", "dummy", true);
 
     final var toolAInputParams =
         List.of(
@@ -85,40 +101,106 @@ class CamundaClientAdHocToolsSchemaResolverTest {
         .when(feelInputParamExtractor)
         .extractInputParams("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
-    when(schemaGenerator.generateToolSchema(any())).thenReturn(expectedEmptySchema);
-    doReturn(expectedToolASchema).when(schemaGenerator).generateToolSchema(toolAInputParams);
+    when(schemaGenerator.generateToolSchema(any())).thenReturn(EXPECTED_EMPTY_SCHEMA);
+    doReturn(EXPECTED_TOOL_A_SCHEMA).when(schemaGenerator).generateToolSchema(toolAInputParams);
 
     final var result = resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID);
 
     assertThat(result).isNotNull();
     assertThat(result.toolDefinitions())
         .isNotEmpty()
-        .satisfiesExactlyInAnyOrder(
-            td -> {
-              assertThat(td.name()).isEqualTo("A_Complex_Tool");
-              assertThat(td.description()).isEqualTo("A very complex tool");
-              assertThat(td.inputSchema()).isEqualTo(expectedEmptySchema);
-            },
-            td -> {
-              assertThat(td.name()).isEqualTo("Tool_A");
-              assertThat(td.description()).isEqualTo("The A tool");
-              assertThat(td.inputSchema()).isEqualTo(expectedToolASchema);
-            },
-            td -> {
-              assertThat(td.name()).isEqualTo("Simple_Tool");
-              assertThat(td.description()).isEqualTo("A simple tool");
-              assertThat(td.inputSchema()).isEqualTo(expectedEmptySchema);
-            },
-            td -> {
-              assertThat(td.name()).isEqualTo("An_Event");
-              assertThat(td.description()).isEqualTo("An event!");
-              assertThat(td.inputSchema()).isEqualTo(expectedEmptySchema);
-            });
+        .containsExactlyInAnyOrder(
+            ToolDefinition.builder()
+                .name("Simple_Tool")
+                .description("A simple tool")
+                .inputSchema(EXPECTED_EMPTY_SCHEMA)
+                .build(),
+            ToolDefinition.builder()
+                .name("Tool_A")
+                .description("The A tool")
+                .inputSchema(EXPECTED_TOOL_A_SCHEMA)
+                .build(),
+            ToolDefinition.builder()
+                .name("An_Event")
+                .description("An event!")
+                .inputSchema(EXPECTED_EMPTY_SCHEMA)
+                .build(),
+            ToolDefinition.builder()
+                .name("A_Complex_Tool")
+                .description("A very complex tool")
+                .inputSchema(EXPECTED_EMPTY_SCHEMA)
+                .build());
 
     assertThat(result.toolDefinitions())
         .extracting(ToolDefinition::name)
         .doesNotContain(
             "Tool_B", "Event_Follow_Up_Task", "Complex_Tool_Error", "Handle_Complex_Tool_Error");
+    assertThat(result.gatewayToolDefinitions()).isEmpty();
+  }
+
+  @Test
+  void loadsAdHocToolSchemaWithGatewayToolDefinitions() {
+    when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
+        .thenReturn(bpmnXml);
+
+    final var toolAInputParams =
+        List.of(
+            new FeelInputParam("inputParameter", "An input parameter"),
+            new FeelInputParam("outputParameter", "An output parameter"));
+
+    doReturn(List.of(toolAInputParams.get(0)))
+        .when(feelInputParamExtractor)
+        .extractInputParams("fromAi(toolCall.inputParameter, \"An input parameter\")");
+    doReturn(List.of(toolAInputParams.get(1)))
+        .when(feelInputParamExtractor)
+        .extractInputParams("fromAi(toolCall.outputParameter, \"An output parameter\")");
+
+    when(schemaGenerator.generateToolSchema(any())).thenReturn(EXPECTED_EMPTY_SCHEMA);
+    doReturn(EXPECTED_TOOL_A_SCHEMA).when(schemaGenerator).generateToolSchema(toolAInputParams);
+
+    final var result =
+        resolverWithGatewayToolDefinitionResolvers.resolveSchema(
+            PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID);
+
+    assertThat(result).isNotNull();
+    assertThat(result.toolDefinitions())
+        .isNotEmpty()
+        .containsExactlyInAnyOrder(
+            ToolDefinition.builder()
+                .name("Tool_A")
+                .description("The A tool")
+                .inputSchema(EXPECTED_TOOL_A_SCHEMA)
+                .build(),
+            ToolDefinition.builder()
+                .name("An_Event")
+                .description("An event!")
+                .inputSchema(EXPECTED_EMPTY_SCHEMA)
+                .build());
+    assertThat(result.toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .doesNotContain(
+            "Simple_Tool",
+            "A_Complex_Tool",
+            "Tool_B",
+            "Event_Follow_Up_Task",
+            "Complex_Tool_Error",
+            "Handle_Complex_Tool_Error");
+
+    assertThat(result.gatewayToolDefinitions())
+        .isNotEmpty()
+        .containsExactlyInAnyOrder(
+            GatewayToolDefinition.builder()
+                .type("simpleTool")
+                .name("Simple_Tool")
+                .description("A simple tool")
+                .properties(Map.of("simple", true))
+                .build(),
+            GatewayToolDefinition.builder()
+                .type("complexTool")
+                .name("A_Complex_Tool")
+                .description("A very complex tool")
+                .properties(Map.of("toolType", "complex"))
+                .build());
   }
 
   @ParameterizedTest
@@ -225,5 +307,43 @@ class CamundaClientAdHocToolsSchemaResolverTest {
                   .isEqualTo(
                       "Failed to generate ad-hoc tool schema for element 'A_Complex_Tool': I can't generate this schema");
             });
+  }
+
+  private static class SimpleToolGatewayToolDefinitionResolver
+      implements GatewayToolDefinitionResolver {
+
+    @Override
+    public List<GatewayToolDefinition> resolveGatewayToolDefinitions(List<FlowNode> elements) {
+      return elements.stream()
+          .filter(element -> element.getId().equals("Simple_Tool"))
+          .map(
+              element ->
+                  GatewayToolDefinition.builder()
+                      .type("simpleTool")
+                      .name(element.getId())
+                      .description(BpmnUtils.getElementDocumentation(element).orElse(null))
+                      .properties(Map.of("simple", true))
+                      .build())
+          .toList();
+    }
+  }
+
+  private static class ComplexToolGatewayToolDefinitionResolver
+      implements GatewayToolDefinitionResolver {
+
+    @Override
+    public List<GatewayToolDefinition> resolveGatewayToolDefinitions(List<FlowNode> elements) {
+      return elements.stream()
+          .filter(element -> element.getId().equals("A_Complex_Tool"))
+          .map(
+              element ->
+                  GatewayToolDefinition.builder()
+                      .type("complexTool")
+                      .name(element.getId())
+                      .description(BpmnUtils.getElementDocumentation(element).orElse(null))
+                      .properties(Map.of("toolType", "complex"))
+                      .build())
+          .toList();
+    }
   }
 }

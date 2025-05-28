@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
+import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentation;
+
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractionException;
@@ -13,6 +15,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtrac
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.SchemaGenerationException;
+import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -31,9 +34,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
-import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +49,17 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
   private static final String ERROR_CODE_AD_HOC_TOOL_SCHEMA_INVALID = "AD_HOC_TOOL_SCHEMA_INVALID";
 
   private final CamundaClient camundaClient;
+  private final List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers;
   private final FeelInputParamExtractor feelInputParamExtractor;
   private final AdHocToolSchemaGenerator schemaGenerator;
 
   public CamundaClientAdHocToolsSchemaResolver(
       CamundaClient camundaClient,
+      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       FeelInputParamExtractor feelInputParamExtractor,
       AdHocToolSchemaGenerator schemaGenerator) {
     this.camundaClient = camundaClient;
+    this.gatewayToolDefinitionResolvers = gatewayToolDefinitionResolvers;
     this.feelInputParamExtractor = feelInputParamExtractor;
     this.schemaGenerator = schemaGenerator;
   }
@@ -92,21 +95,39 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
               .formatted(adHocSubProcessId));
     }
 
-    final var toolDefinitions =
+    final var toolElements =
         adHocSubProcess.getChildElementsByType(FlowNode.class).stream()
-            .filter(this::isToolElement)
-            .map(this::mapActivityToToolDefinition)
+            .filter(this::isEligibleElement)
             .toList();
 
-    return new AdHocToolsSchemaResponse(toolDefinitions);
+    return resolveTools(toolElements);
   }
 
-  private boolean isToolElement(FlowNode element) {
+  protected boolean isEligibleElement(FlowNode element) {
     return element.getIncoming().isEmpty() && !(element instanceof BoundaryEvent);
   }
 
+  protected AdHocToolsSchemaResponse resolveTools(List<FlowNode> toolElements) {
+    final var gatewayToolDefinitions =
+        gatewayToolDefinitionResolvers.stream()
+            .flatMap(resolver -> resolver.resolveGatewayToolDefinitions(toolElements).stream())
+            .toList();
+
+    final var gatewayFlowNodeIds =
+        gatewayToolDefinitions.stream().map(GatewayToolDefinition::name).toList();
+
+    // map all non-gateway tool elements to tool definitions
+    final var toolDefinitions =
+        toolElements.stream()
+            .filter(flowNode -> !gatewayFlowNodeIds.contains(flowNode.getId()))
+            .map(this::mapActivityToToolDefinition)
+            .toList();
+
+    return new AdHocToolsSchemaResponse(toolDefinitions, gatewayToolDefinitions);
+  }
+
   private ToolDefinition mapActivityToToolDefinition(FlowNode element) {
-    final var documentation = getDocumentation(element).orElseGet(element::getName);
+    final var documentation = getElementDocumentation(element).orElseGet(element::getName);
     final var inputSchema = generateInputSchema(element);
 
     return ToolDefinition.builder()
@@ -114,14 +135,6 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
         .description(documentation)
         .inputSchema(inputSchema)
         .build();
-  }
-
-  private Optional<String> getDocumentation(FlowNode element) {
-    return element.getDocumentations().stream()
-        .filter(d -> "text/plain".equals(d.getTextFormat()))
-        .findFirst()
-        .map(ModelElementInstance::getTextContent)
-        .filter(StringUtils::isNotBlank);
   }
 
   private Map<String, Object> generateInputSchema(FlowNode element) {
