@@ -4,24 +4,20 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.discovery.configuration;
+package io.camunda.connector.agenticai.mcp.discovery;
 
 import static io.camunda.connector.agenticai.mcp.client.McpClientFunction.MCP_CLIENT_BASE_TYPE;
+import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentation;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.util.BpmnUtils;
 import io.camunda.zeebe.model.bpmn.instance.FlowNode;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class McpClientGatewayToolDefinitionResolver implements GatewayToolDefinitionResolver {
-
-  public static final String PROPERTY_TYPE = "type";
-  public static final String PROPERTY_GATEWAY_TYPE = "gatewayType";
 
   private final List<String> taskDefinitionTypePrefixes;
 
@@ -41,14 +37,11 @@ public class McpClientGatewayToolDefinitionResolver implements GatewayToolDefini
         .filter(this::isMcpClient)
         .map(
             serviceTaskElement ->
-                new GatewayToolDefinition(
-                    serviceTaskElement.element().getId(),
-                    BpmnUtils.getElementDocumentation(serviceTaskElement.element()).orElse(null),
-                    Map.of(
-                        PROPERTY_TYPE,
-                        serviceTaskElement.taskDefinition.getType(),
-                        PROPERTY_GATEWAY_TYPE,
-                        "mcpClient")))
+                GatewayToolDefinition.builder()
+                    .type(McpClientGatewayToolHandler.GATEWAY_TYPE)
+                    .name(serviceTaskElement.element().getId())
+                    .description(getElementDocumentation(serviceTaskElement.element()).orElse(null))
+                    .build())
         .toList();
   }
 
