@@ -28,27 +28,21 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRe
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryContext;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
@@ -57,33 +51,19 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
   private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
 
   private final AdHocToolsSchemaResolver schemaResolver;
-  private final Map<String, GatewayToolHandler> gatewayToolHandlers;
+  private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AiFrameworkAdapter<?> framework;
   private final AgentResponseHandler responseHandler;
 
   public AiAgentRequestHandlerImpl(
       AdHocToolsSchemaResolver schemaResolver,
-      List<GatewayToolHandler> gatewayToolHandlers,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
       AgentResponseHandler responseHandler) {
     this.schemaResolver = schemaResolver;
-    this.gatewayToolHandlers = mapGatewayToolHandlers(gatewayToolHandlers);
+    this.gatewayToolHandlers = gatewayToolHandlers;
     this.framework = framework;
     this.responseHandler = responseHandler;
-  }
-
-  private Map<String, GatewayToolHandler> mapGatewayToolHandlers(
-      List<GatewayToolHandler> gatewayToolHandlers) {
-    return gatewayToolHandlers.stream()
-        .collect(
-            Collectors.toMap(
-                GatewayToolHandler::type,
-                Function.identity(),
-                (g1, g2) -> {
-                  throw new IllegalArgumentException(
-                      "Duplicate gateway tool handler type: %s".formatted(g1.type()));
-                },
-                LinkedHashMap::new));
   }
 
   @Override
@@ -122,11 +102,9 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
     final var assistantMessage = frameworkChatResponse.assistantMessage();
     runtimeMemory.addMessage(assistantMessage);
 
-    var toolCalls = assistantMessage.toolCalls();
-    for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
-      toolCalls = gatewayToolHandler.transformToolCalls(agentContext, toolCalls);
-    }
-
+    // apply potential gateway tool call transformations & map tool call to process variable format
+    var toolCalls =
+        gatewayToolHandlers.transformToolCalls(agentContext, assistantMessage.toolCalls());
     final var processVariableToolCalls =
         toolCalls.stream().map(ToolCallProcessVariable::from).toList();
 
@@ -173,71 +151,41 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
           agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
 
           // initiate tool discovery
-          List<ToolCall> toolDiscoveryToolCalls = new ArrayList<>();
-          for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
-            GatewayToolDiscoveryContext toolDiscoveryContext =
-                gatewayToolHandler.initiateToolDiscovery(
-                    agentContext, adHocToolsSchema.gatewayToolDefinitions());
+          GatewayToolDiscoveryInitiationResult initiationResult =
+              gatewayToolHandlers.initiateToolDiscovery(
+                  agentContext, adHocToolsSchema.gatewayToolDefinitions());
+          agentContext = initiationResult.agentContext();
 
-            // update agent context with updated context from discovery (e.g. added properties)
-            agentContext = toolDiscoveryContext.agentContext();
-            toolDiscoveryToolCalls.addAll(toolDiscoveryContext.toolDiscoveryToolCalls());
-          }
-
-          if (toolDiscoveryToolCalls.isEmpty()) {
+          if (initiationResult.toolDiscoveryToolCalls().isEmpty()) {
             // no tool discovery needed
             agentContext = agentContext.withState(AgentState.READY);
           } else {
+            // execute tool discovery tool calls before agent is read for requests
             agentContext = agentContext.withState(AgentState.TOOL_DISCOVERY);
             agentResponse =
                 AgentResponse.builder()
                     .context(agentContext)
                     .toolCalls(
-                        toolDiscoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
+                        initiationResult.toolDiscoveryToolCalls().stream()
+                            .map(ToolCallProcessVariable::from)
+                            .toList())
                     .build();
           }
         }
       }
 
       case TOOL_DISCOVERY -> {
-        Map<String, List<ToolCallResult>> groupedByGateway =
-            toolCallResults.stream()
-                .collect(
-                    Collectors.groupingBy(
-                        toolCallResult -> {
-                          for (GatewayToolHandler gatewayToolHandler :
-                              gatewayToolHandlers.values()) {
-                            if (gatewayToolHandler.handlesToolDiscoveryResult(toolCallResult)) {
-                              return gatewayToolHandler.type();
-                            }
-                          }
-
-                          return "default";
-                        }));
-
-        List<ToolDefinition> mergedToolDefinitions =
-            new ArrayList<>(agentContext.toolDefinitions());
-
-        for (Map.Entry<String, List<ToolCallResult>> groupedToolCallResults :
-            groupedByGateway.entrySet()) {
-          if (groupedToolCallResults.getKey().equals("default")) {
-            continue;
-          }
-
-          final var gatewayToolHandler = gatewayToolHandlers.get(groupedToolCallResults.getKey());
-          List<ToolDefinition> gatewayToolDefinitions =
-              gatewayToolHandler.handleToolDiscoveryResults(
-                  agentContext, groupedToolCallResults.getValue());
-          mergedToolDefinitions.addAll(gatewayToolDefinitions);
-        }
+        final var gatewayToolDiscoveryResult =
+            gatewayToolHandlers.handleToolDiscoveryResults(agentContext, toolCallResults);
 
         // remaining tool call results not being part of tool discovery
-        toolCallResults = groupedByGateway.getOrDefault("default", Collections.emptyList());
+        toolCallResults = gatewayToolDiscoveryResult.toolCallResults();
 
         agentContext =
-            agentContext
+            gatewayToolDiscoveryResult
+                .agentContext()
                 .withState(AgentState.READY)
-                .withToolDefinitions(Collections.unmodifiableList(mergedToolDefinitions));
+                .withToolDefinitions(gatewayToolDiscoveryResult.toolDefinitions());
       }
     }
 
@@ -288,11 +236,8 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
               "Agent is waiting for tool input, but tool call results were empty. Is the tool feedback loop configured correctly?");
         }
 
-        var transformedToolCallResults = toolCallResults;
-        for (GatewayToolHandler gatewayToolHandler : gatewayToolHandlers.values()) {
-          transformedToolCallResults =
-              gatewayToolHandler.transformToolCallResults(agentContext, transformedToolCallResults);
-        }
+        var transformedToolCallResults =
+            gatewayToolHandlers.transformToolCallResults(agentContext, toolCallResults);
 
         memory.addMessage(
             ToolCallResultMessage.builder().results(transformedToolCallResults).build());
