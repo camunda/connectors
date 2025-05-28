@@ -103,6 +103,16 @@ class AgentContextTest {
         .containsExactly(newMessage);
   }
 
+  @Test
+  void withPropertyAddsToExistingProperties() {
+    final var initialContext = AgentContext.builder().properties(Map.of("foo", "bar")).build();
+    final var updatedContext = initialContext.withProperty("baz", "qux");
+
+    assertThat(updatedContext).isNotEqualTo(initialContext);
+    assertThat(updatedContext.properties())
+        .containsExactlyInAnyOrderEntriesOf(Map.of("foo", "bar", "baz", "qux"));
+  }
+
   @ParameterizedTest
   @MethodSource("invalidConstructorParameters")
   void throwsExceptionOnInvalidConstructorParameters(
@@ -116,7 +126,8 @@ class AgentContextTest {
                     state,
                     metrics,
                     toolDefinitions,
-                    InProcessConversationContext.builder("test-conversation").build()))
+                    InProcessConversationContext.builder("test-conversation").build(),
+                    Map.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
