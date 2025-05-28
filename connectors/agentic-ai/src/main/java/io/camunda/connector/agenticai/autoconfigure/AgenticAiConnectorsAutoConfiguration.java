@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -97,9 +98,11 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
       AdHocToolsSchemaResolver schemaResolver,
+      List<GatewayToolHandler> gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       AgentResponseHandler responseHandler) {
-    return new AiAgentRequestHandlerImpl(schemaResolver, aiFrameworkAdapter, responseHandler);
+    return new AiAgentRequestHandlerImpl(
+        schemaResolver, gatewayToolHandlers, aiFrameworkAdapter, responseHandler);
   }
 
   @Bean
