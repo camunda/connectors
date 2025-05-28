@@ -116,7 +116,8 @@ class AgentContextTest {
                     state,
                     metrics,
                     toolDefinitions,
-                    InProcessConversationContext.builder("test-conversation").build()))
+                    InProcessConversationContext.builder("test-conversation").build(),
+                    Map.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
