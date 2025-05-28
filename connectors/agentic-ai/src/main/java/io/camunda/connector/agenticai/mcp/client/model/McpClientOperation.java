@@ -48,6 +48,10 @@ public sealed interface McpClientOperation
       return METHOD;
     }
 
+    public static McpClientCallToolOperation create(String name, Map<String, Object> arguments) {
+      return new McpClientCallToolOperation(new McpClientCallToolOperationParams(name, arguments));
+    }
+
     public record McpClientCallToolOperationParams(String name, Map<String, Object> arguments) {}
   }
 }
