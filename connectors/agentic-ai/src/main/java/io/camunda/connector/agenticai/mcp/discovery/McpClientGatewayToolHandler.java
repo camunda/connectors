@@ -10,7 +10,7 @@ import static io.camunda.connector.agenticai.mcp.discovery.McpToolCallIdentifier
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryContext;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
@@ -44,7 +44,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   }
 
   @Override
-  public GatewayToolDiscoveryContext initiateToolDiscovery(
+  public GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
     final var mcpGatewayToolDefinitions =
         gatewayToolDefinitions.stream()
@@ -53,7 +53,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
     // nothing to discover
     if (mcpGatewayToolDefinitions.isEmpty()) {
-      return new GatewayToolDiscoveryContext(agentContext, List.of());
+      return new GatewayToolDiscoveryInitiationResult(agentContext, List.of());
     }
 
     final var updatedAgentContext =
@@ -72,7 +72,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
                         listToolsOperation))
             .toList();
 
-    return new GatewayToolDiscoveryContext(updatedAgentContext, discoveryToolCalls);
+    return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
   }
 
   @Override

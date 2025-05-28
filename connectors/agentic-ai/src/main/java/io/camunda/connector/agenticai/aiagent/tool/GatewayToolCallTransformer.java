@@ -7,19 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 
-public interface GatewayToolHandler extends GatewayToolCallTransformer {
-  String type();
+public interface GatewayToolCallTransformer {
+  List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls);
 
-  GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
-      AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
-
-  boolean handlesToolDiscoveryResult(ToolCallResult toolCallResult);
-
-  List<ToolDefinition> handleToolDiscoveryResults(
+  List<ToolCallResult> transformToolCallResults(
       AgentContext agentContext, List<ToolCallResult> toolCallResults);
 }
