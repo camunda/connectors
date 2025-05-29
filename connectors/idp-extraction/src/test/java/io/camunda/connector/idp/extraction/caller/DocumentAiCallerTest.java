@@ -527,7 +527,7 @@ class DocumentAiCallerTest {
     List<NormalizedVertex> vertices = new ArrayList<>();
 
     // Create 4 vertices (top-left, top-right, bottom-right, bottom-left)
-    for (int i = 0; i < coordinates.length; i += 2) {
+    for (int i = 0; i < coordinates.length - 1; i += 2) {
       NormalizedVertex vertex = mock(NormalizedVertex.class);
       when(vertex.getX()).thenReturn(coordinates[i]);
       when(vertex.getY()).thenReturn(coordinates[i + 1]);
