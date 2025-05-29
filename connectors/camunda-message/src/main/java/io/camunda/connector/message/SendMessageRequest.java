@@ -41,7 +41,7 @@ public record SendMessageRequest(
     record Publish(
         @TemplateProperty(
                 optional = true,
-                label = "Time to live (in ms)",
+                label = "Time to live (as ISO 8601)",
                 description = "Duration for which the message remains buffered")
             Duration timeToLive,
         @TemplateProperty(optional = true, label = "Message id (optional)") String messageId)

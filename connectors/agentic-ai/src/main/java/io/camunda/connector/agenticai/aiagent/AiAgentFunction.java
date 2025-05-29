@@ -15,16 +15,18 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
 @OutboundConnector(
-    name = "AI Agent (alpha)",
+    name = "AI Agent",
     inputVariables = {"provider", "data"},
-    type = "io.camunda.agenticai:aiagent:0")
+    type = "io.camunda.agenticai:aiagent:1")
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.aiagent.v0",
-    name = "AI Agent (alpha)",
+    id = "io.camunda.connectors.agenticai.aiagent.v1",
+    name = "AI Agent",
     description =
-        "Provides a default AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
+        "Provides a generic AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
+    documentationRef =
+        "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
     engineVersion = "^8.8",
-    version = 0,
+    version = 1,
     inputDataClass = AgentRequest.class,
     defaultResultVariable = "agent",
     propertyGroups = {
@@ -34,9 +36,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           id = "systemPrompt",
           label = "System Prompt",
           tooltip =
-              "A system prompt is a set of foundational instructions given to an AI agent before any user interaction begins."
-                  + "It defines the AI’s role, behavior, tone, and communication style, ensuring that responses remain consistent "
-                  + "and aligned with its intended purpose. These instructions help shape how the AI interprets and responds "
+              "A system prompt is a set of foundational instructions given to a model before any user interaction begins. "
+                  + "It defines the AI agent’s role, behavior, tone, and communication style, ensuring that responses remain consistent "
+                  + "and aligned with the AI agent’s intended purpose. These instructions help shape how the model interprets and responds "
                   + "to user input throughout the conversation.",
           openByDefault = false),
       @PropertyGroup(
@@ -51,14 +53,19 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           id = "tools",
           label = "Tools",
           tooltip =
-              "Optional tools which should be made available to the agent. Configure this group if you AI Agent should be part of a tools feedback loop.",
+              "Tools are optional features the AI Agent can use to perform specific tasks. Configure this if the agent should participate in a tools feedback loop.",
           openByDefault = false),
       @PropertyGroup(
           id = "memory",
           label = "Memory",
           tooltip = "Configuration of the Agent's short-term/conversational memory.",
           openByDefault = false),
-      @PropertyGroup(id = "limits", label = "Limits", openByDefault = false)
+      @PropertyGroup(id = "limits", label = "Limits", openByDefault = false),
+      @PropertyGroup(
+          id = "response",
+          label = "Response",
+          tooltip = "Defines which elements of the Agent result should be added to the response.",
+          openByDefault = false)
     },
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {

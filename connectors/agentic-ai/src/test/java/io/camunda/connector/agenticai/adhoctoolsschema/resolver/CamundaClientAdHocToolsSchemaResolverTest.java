@@ -18,9 +18,9 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse.AdHocToolDefinition;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.SchemaGenerationException;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -116,7 +116,7 @@ class CamundaClientAdHocToolsSchemaResolverTest {
             });
 
     assertThat(result.toolDefinitions())
-        .extracting(AdHocToolDefinition::name)
+        .extracting(ToolDefinition::name)
         .doesNotContain(
             "Tool_B", "Event_Follow_Up_Task", "Complex_Tool_Error", "Handle_Complex_Tool_Error");
   }

@@ -1,12 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Ad-hoc tools schema (alpha)",
-  "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v0-hybrid",
+  "name" : "Hybrid Ad-hoc tools schema",
+  "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v1-hybrid",
   "description" : "Connector to fetch tools schema information from an ad-hoc sub-process",
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 0,
+  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/",
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -36,7 +37,7 @@
   } ],
   "properties" : [ {
     "id" : "taskDefinitionType",
-    "value" : "io.camunda.agenticai:adhoctoolsschema:0",
+    "value" : "io.camunda.agenticai:adhoctoolsschema:1",
     "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
@@ -62,7 +63,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "0",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -73,7 +74,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.agenticai.adhoctoolsschema.v0",
+    "value" : "io.camunda.connectors.agenticai.adhoctoolsschema.v1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",

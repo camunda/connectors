@@ -22,6 +22,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -263,14 +264,26 @@ public sealed interface ProviderConfiguration
     public static final String OPENAI_ID = "openai";
 
     public record OpenAiConnection(
+        @Valid @NotNull OpenAiAuthentication authentication,
         @TemplateProperty(
                 group = "provider",
-                description = "Specify endpoint if need to use a custom API endpoint",
-                type = TemplateProperty.PropertyType.Hidden,
-                feel = Property.FeelMode.disabled,
+                label = "Custom API endpoint",
+                description = "Optional custom API endpoint.",
+                tooltip =
+                    "Configure a custom OpenAI compatible API endpoint to use the connector with an OpenAI compatible API. "
+                        + "Typically ends in <code>/v1</code>.",
+                type = TemplateProperty.PropertyType.String,
+                feel = Property.FeelMode.optional,
                 optional = true)
             String endpoint,
-        @Valid @NotNull OpenAiAuthentication authentication,
+        @FEEL
+            @TemplateProperty(
+                group = "provider",
+                label = "Custom headers",
+                description = "Map of custom HTTP headers to add to the request.",
+                feel = Property.FeelMode.required,
+                optional = true)
+            Map<String, String> headers,
         @Valid @NotNull OpenAiModel model) {}
 
     public record OpenAiAuthentication(

@@ -6,14 +6,7 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
-import java.util.Map;
 
-public record AdHocToolsSchemaResponse(List<AdHocToolDefinition> toolDefinitions) {
-  @JsonInclude(JsonInclude.Include.NON_ABSENT)
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  public record AdHocToolDefinition(
-      String name, String description, Map<String, Object> inputSchema) {}
-}
+public record AdHocToolsSchemaResponse(List<ToolDefinition> toolDefinitions) {}
