@@ -9,6 +9,7 @@ package io.camunda.connector.idp.extraction.caller;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.LlmModel;
+import io.camunda.connector.idp.extraction.utils.AwsLlmModelUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
@@ -24,12 +25,18 @@ public class BedrockCaller {
 
   public String call(
       ExtractionRequestData input,
+      String awsRegion,
       String extractedText,
       BedrockRuntimeClient bedrockRuntimeClient) {
     LOGGER.debug("Calling AWS Bedrock model with extraction request data: {}", input);
 
     ConverseData converseData = input.converseData();
-    LlmModel llmModel = LlmModel.fromId(converseData.modelId());
+    final String modelId =
+        AwsLlmModelUtil.supportsCrossRegionInference(awsRegion)
+            ? AwsLlmModelUtil.processModelIdForCrossRegion(converseData.modelId(), awsRegion)
+            : converseData.modelId();
+
+    LlmModel llmModel = LlmModel.fromId(modelId);
 
     ConverseResponse response =
         bedrockRuntimeClient.converse(
@@ -51,7 +58,7 @@ public class BedrockCaller {
                       .build();
 
               request
-                  .modelId(converseData.modelId())
+                  .modelId(modelId)
                   .messages(message)
                   .inferenceConfig(
                       config ->
