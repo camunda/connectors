@@ -9,5 +9,5 @@ package io.camunda.connector.agenticai.mcp.client;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 
 public interface McpClientFactory<C> {
-  C createClient(McpClientConfigurationProperties.McpClientConfiguration config);
+  C createClient(String clientId, McpClientConfigurationProperties.McpClientConfiguration config);
 }

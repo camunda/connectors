@@ -13,9 +13,11 @@ import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
@@ -52,21 +54,58 @@ public class Langchain4JMcpClientHandler implements McpClientHandler {
     LOGGER.debug(
         "Handling request for method '{}' with on MCP client '{}'", message.method(), clientId);
     final var client = clientRegistry.getClient(clientId);
+    final var toolNameFilter = McpToolNameFilter.from(request.data().tools());
 
     return switch (message) {
-      case McpClientOperation.McpClientListToolsOperation ignored -> {
-        final var toolDefinitions =
-            client.listTools().stream().map(toolSpecificationConverter::asToolDefinition).toList();
-        yield new McpClientListToolsResult(toolDefinitions);
-      }
-
-      case McpClientCallToolOperation callTool -> executeTool(client, callTool.params());
+      case McpClientListToolsOperation ignored -> listTools(client, toolNameFilter);
+      case McpClientCallToolOperation callTool ->
+          executeTool(client, toolNameFilter, callTool.params());
     };
   }
 
+  private McpClientListToolsResult listTools(McpClient client, McpToolNameFilter toolNameFilter) {
+    final var toolSpecifications = client.listTools();
+    if (toolSpecifications.isEmpty()) {
+      LOGGER.warn("No tools found for MCP client '{}'", client.key());
+      return new McpClientListToolsResult(Collections.emptyList());
+    }
+
+    final var filteredToolSpecifications =
+        toolSpecifications.stream()
+            .filter(toolSpecification -> toolNameFilter.test(toolSpecification.name()))
+            .toList();
+    final var filteredToolDefinitions =
+        filteredToolSpecifications.stream()
+            .map(toolSpecificationConverter::asToolDefinition)
+            .toList();
+
+    if (filteredToolDefinitions.isEmpty()) {
+      LOGGER.warn(
+          "No tools left after filtering tools for for MCP client '{}'. Filter: {}",
+          client.key(),
+          toolNameFilter);
+      return new McpClientListToolsResult(Collections.emptyList());
+    }
+
+    return new McpClientListToolsResult(filteredToolDefinitions);
+  }
+
   private McpClientCallToolResult executeTool(
-      McpClient client, McpClientCallToolOperationParams params) {
+      McpClient client, McpToolNameFilter toolNameFilter, McpClientCallToolOperationParams params) {
     final var toolExecutionRequest = createToolExecutionRequest(params);
+    if (!toolNameFilter.test(toolExecutionRequest.name())) {
+      LOGGER.error(
+          "MCP Tool '{}' for client '{}' is not included in the filter {}.",
+          toolExecutionRequest.name(),
+          client.key(),
+          toolNameFilter);
+      return new McpClientCallToolResult(
+          toolExecutionRequest.name(),
+          List.of(
+              TextContent.textContent(
+                  "Tool not included in filter: %s".formatted(toolExecutionRequest.name()))),
+          true);
+    }
 
     try {
       final var result = client.executeTool(toolExecutionRequest);
