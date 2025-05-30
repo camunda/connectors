@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client;
 
-import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientRemoteRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -14,37 +14,38 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
-    name = "MCP Client (alpha)",
+    name = "MCP Remote Client (alpha)",
     inputVariables = {"data"},
-    type = McpClientFunction.MCP_CLIENT_TYPE)
+    type = McpClientRemoteFunction.MCP_CLIENT_REMOTE_TYPE)
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.mcp.client.v0",
-    name = "MCP Client (alpha)",
-    description = "MCP (Model Context Protocol) Client.",
+    id = "io.camunda.connectors.agenticai.mcp.client.remote.v0",
+    name = "MCP Remote Client (alpha)",
+    description =
+        "MCP (Model Context Protocol) Client, directly initiating remote connections. Less performant than the MCP Client which is configured on the runtime.",
     engineVersion = "^8.8",
     version = 0,
-    inputDataClass = McpClientRequest.class,
+    inputDataClass = McpClientRemoteRequest.class,
     defaultResultVariable = "toolCallResult",
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "client", label = "MCP Client"),
+      @ElementTemplate.PropertyGroup(id = "connection", label = "HTTP Connection"),
       @ElementTemplate.PropertyGroup(id = "tools", label = "Tools"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation")
     },
     icon = "mcp-client.svg")
-public class McpClientFunction implements OutboundConnectorFunction {
+public class McpClientRemoteFunction implements OutboundConnectorFunction {
 
-  public static final String MCP_CLIENT_BASE_TYPE = "io.camunda.agenticai:mcpclient";
-  public static final String MCP_CLIENT_TYPE = MCP_CLIENT_BASE_TYPE + ":0";
+  public static final String MCP_CLIENT_REMOTE_BASE_TYPE = "io.camunda.agenticai:mcpclientremote";
+  public static final String MCP_CLIENT_REMOTE_TYPE = MCP_CLIENT_REMOTE_BASE_TYPE + ":0";
 
-  private final McpClientHandler handler;
+  private final McpClientRemoteHandler handler;
 
-  public McpClientFunction(McpClientHandler handler) {
+  public McpClientRemoteFunction(McpClientRemoteHandler handler) {
     this.handler = handler;
   }
 
   @Override
   public McpClientResult execute(OutboundConnectorContext context) {
-    final McpClientRequest request = context.bindVariables(McpClientRequest.class);
+    final McpClientRemoteRequest request = context.bindVariables(McpClientRemoteRequest.class);
     return handler.handle(context, request);
   }
 }
