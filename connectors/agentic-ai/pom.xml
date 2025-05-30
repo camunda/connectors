@@ -150,6 +150,17 @@
               <generateHybridTemplates>true</generateHybridTemplates>
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.agenticai.mcp.client.McpClientRemoteFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.mcp.client.remote.v0</templateId>
+                  <templateFileName>agenticai-mcp-client-remote-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+            </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>

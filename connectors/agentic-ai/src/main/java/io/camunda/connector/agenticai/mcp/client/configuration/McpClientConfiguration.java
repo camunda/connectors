@@ -8,12 +8,16 @@ package io.camunda.connector.agenticai.mcp.client.configuration;
 
 import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
+import io.camunda.connector.agenticai.mcp.client.McpClientRemoteFunction;
+import io.camunda.connector.agenticai.mcp.client.McpClientRemoteHandler;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
+// TODO make this more granular (decide which functions to enable)
 @Configuration
 @ConditionalOnProperty(
     value = "camunda.connector.agenticai.mcp.client.enabled",
@@ -22,8 +26,16 @@ import org.springframework.context.annotation.Import;
 @EnableConfigurationProperties(McpClientConfigurationProperties.class)
 @Import(McpClientLangchain4JFrameworkConfiguration.class)
 public class McpClientConfiguration {
+
   @Bean
+  @ConditionalOnMissingBean
   public McpClientFunction mcpClientFunction(McpClientHandler mcpClientHandler) {
     return new McpClientFunction(mcpClientHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpClientRemoteFunction mcpClientRemoteFunction(McpClientRemoteHandler handler) {
+    return new McpClientRemoteFunction(handler);
   }
 }
