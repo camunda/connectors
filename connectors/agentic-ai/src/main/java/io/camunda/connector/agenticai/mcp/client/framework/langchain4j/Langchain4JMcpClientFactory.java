@@ -19,9 +19,9 @@ import java.util.Optional;
 public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> {
 
   @Override
-  public McpClient createClient(McpClientConfiguration config) {
+  public McpClient createClient(String clientId, McpClientConfiguration config) {
     final var transport = createTransport(config.stio() != null ? config.stio() : config.http());
-    final var builder = new DefaultMcpClient.Builder().transport(transport);
+    final var builder = new DefaultMcpClient.Builder().key(clientId).transport(transport);
 
     Optional.ofNullable(config.initializationTimeout()).map(builder::initializationTimeout);
     Optional.ofNullable(config.toolExecutionTimeout()).map(builder::toolExecutionTimeout);
