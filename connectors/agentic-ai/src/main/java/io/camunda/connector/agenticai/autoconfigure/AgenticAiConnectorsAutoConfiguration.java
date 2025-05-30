@@ -18,6 +18,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefin
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGeneratorImpl;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -103,11 +105,19 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AiAgentRequestHandler aiAgentRequestHandler(
+  public AgentInitializer aiAgentInitializer(
       AdHocToolsSchemaResolver schemaResolver,
+      GatewayToolHandlerRegistry gatewayToolHandlerRegistry) {
+    return new AgentInitializerImpl(schemaResolver, gatewayToolHandlerRegistry);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AiAgentRequestHandler aiAgentRequestHandler(
+      AgentInitializer agentInitializer,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter) {
-    return new AiAgentRequestHandlerImpl(schemaResolver, gatewayToolHandlers, aiFrameworkAdapter);
+    return new AiAgentRequestHandlerImpl(agentInitializer, gatewayToolHandlers, aiFrameworkAdapter);
   }
 
   @Bean

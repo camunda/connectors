@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
 import dev.langchain4j.model.input.PromptTemplate;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationStore;
@@ -23,8 +22,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRe
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -57,22 +54,22 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
   private static final String ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED =
       "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
 
-  private final AdHocToolsSchemaResolver schemaResolver;
+  private final AgentInitializer agentInitializer;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AiFrameworkAdapter<?> framework;
 
   public AiAgentRequestHandlerImpl(
-      AdHocToolsSchemaResolver schemaResolver,
+      AgentInitializer agentInitializer,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework) {
-    this.schemaResolver = schemaResolver;
+    this.agentInitializer = agentInitializer;
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.framework = framework;
   }
 
   @Override
   public AgentResponse handleRequest(OutboundConnectorContext context, AgentRequest request) {
-    final var agentInitializationResult = initializeAgent(context, request);
+    final var agentInitializationResult = agentInitializer.initializeAgent(context, request);
     if (agentInitializationResult.agentResponse() != null) {
       // return agent response if needed (e.g. tool discovery tool calls before calling the LLM)
       return agentInitializationResult.agentResponse();
@@ -149,77 +146,6 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
     }
 
     return builder.build();
-  }
-
-  private AgentInitializationResult initializeAgent(
-      OutboundConnectorContext context, AgentRequest request) {
-
-    AgentContext agentContext =
-        Optional.ofNullable(request.data().context()).orElseGet(AgentContext::empty);
-
-    List<ToolCallResult> toolCallResults =
-        Optional.ofNullable(request.data().tools())
-            .map(ToolsConfiguration::toolCallResults)
-            .orElseGet(Collections::emptyList);
-
-    AgentResponse agentResponse = null;
-
-    switch (agentContext.state()) {
-      case INITIALIZING -> {
-        final var toolsContainerElementId =
-            Optional.ofNullable(request.data().tools())
-                .map(ToolsConfiguration::containerElementId)
-                .filter(id -> !id.isBlank())
-                .orElse(null);
-
-        if (toolsContainerElementId != null) {
-          final var adHocToolsSchema =
-              schemaResolver.resolveSchema(
-                  context.getJobContext().getProcessDefinitionKey(), toolsContainerElementId);
-
-          // add tool definitions to agent context
-          agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
-
-          // initiate tool discovery
-          GatewayToolDiscoveryInitiationResult initiationResult =
-              gatewayToolHandlers.initiateToolDiscovery(
-                  agentContext, adHocToolsSchema.gatewayToolDefinitions());
-          agentContext = initiationResult.agentContext();
-
-          if (initiationResult.toolDiscoveryToolCalls().isEmpty()) {
-            // no tool discovery needed
-            agentContext = agentContext.withState(AgentState.READY);
-          } else {
-            // execute tool discovery tool calls before agent is read for requests
-            agentContext = agentContext.withState(AgentState.TOOL_DISCOVERY);
-            agentResponse =
-                AgentResponse.builder()
-                    .context(agentContext)
-                    .toolCalls(
-                        initiationResult.toolDiscoveryToolCalls().stream()
-                            .map(ToolCallProcessVariable::from)
-                            .toList())
-                    .build();
-          }
-        }
-      }
-
-      case TOOL_DISCOVERY -> {
-        final var gatewayToolDiscoveryResult =
-            gatewayToolHandlers.handleToolDiscoveryResults(agentContext, toolCallResults);
-
-        // remaining tool call results not being part of tool discovery
-        toolCallResults = gatewayToolDiscoveryResult.toolCallResults();
-
-        agentContext =
-            gatewayToolDiscoveryResult
-                .agentContext()
-                .withState(AgentState.READY)
-                .withToolDefinitions(gatewayToolDiscoveryResult.toolDefinitions());
-      }
-    }
-
-    return new AgentInitializationResult(agentContext, toolCallResults, agentResponse);
   }
 
   private void checkLimits(AgentRequest.AgentRequestData requestData, AgentContext agentContext) {
