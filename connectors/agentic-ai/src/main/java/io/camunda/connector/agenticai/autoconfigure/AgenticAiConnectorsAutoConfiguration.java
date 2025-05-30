@@ -20,6 +20,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocTool
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
@@ -94,6 +96,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public GatewayToolHandlerRegistry gatewayToolHandlerRegistry(
+      List<GatewayToolHandler> gatewayToolHandlers) {
+    return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentInitializer aiAgentInitializer(
       AdHocToolsSchemaResolver schemaResolver, GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new AgentInitializerImpl(schemaResolver, gatewayToolHandlers);
@@ -101,9 +110,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public GatewayToolHandlerRegistry gatewayToolHandlerRegistry(
-      List<GatewayToolHandler> gatewayToolHandlers) {
-    return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
+  public AgentMessagesHandler aiAgentMessagesHandler(
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentMessagesHandlerImpl(gatewayToolHandlers);
   }
 
   @Bean
@@ -116,11 +125,16 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
       AgentInitializer agentInitializer,
+      AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       AgentResponseHandler responseHandler) {
     return new AiAgentRequestHandlerImpl(
-        agentInitializer, gatewayToolHandlers, aiFrameworkAdapter, responseHandler);
+        agentInitializer,
+        messagesHandler,
+        gatewayToolHandlers,
+        aiFrameworkAdapter,
+        responseHandler);
   }
 
   @Bean
