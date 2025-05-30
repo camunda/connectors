@@ -10,8 +10,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandler;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientRemoteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -54,11 +56,26 @@ public class McpClientLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public Langchain4JMcpClientExecutor langchain4JMcpClientExecutor(
+      ObjectMapper objectMapper, ToolSpecificationConverter toolSpecificationConverter) {
+    return new Langchain4JMcpClientExecutor(objectMapper, toolSpecificationConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public Langchain4JMcpClientHandler langchain4JMcpClientHandler(
+      ObjectMapper objectMapper,
       McpClientRegistry<McpClient> mcpClientRegistry,
-      ToolSpecificationConverter toolSpecificationConverter,
-      ObjectMapper objectMapper) {
-    return new Langchain4JMcpClientHandler(
-        mcpClientRegistry, toolSpecificationConverter, objectMapper);
+      Langchain4JMcpClientExecutor mcpClientExecutor) {
+    return new Langchain4JMcpClientHandler(objectMapper, mcpClientRegistry, mcpClientExecutor);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public Langchain4JMcpClientRemoteHandler langchain4JMcpClientRemoteHandler(
+      ObjectMapper objectMapper,
+      Langchain4JMcpClientFactory mcpClientFactory,
+      Langchain4JMcpClientExecutor mcpClientExecutor) {
+    return new Langchain4JMcpClientRemoteHandler(objectMapper, mcpClientFactory, mcpClientExecutor);
   }
 }

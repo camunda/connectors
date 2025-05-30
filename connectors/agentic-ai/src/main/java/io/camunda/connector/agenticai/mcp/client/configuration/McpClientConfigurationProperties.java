@@ -53,7 +53,7 @@ public record McpClientConfigurationProperties(
       @NotBlank String sseUrl,
       @NotNull @DefaultValue Map<String, String> headers, // TODO NOT SUPPORTED YET
       Duration timeout,
-      @DefaultValue("true") boolean logRequests,
-      @DefaultValue("true") boolean logResponses)
+      @DefaultValue("false") boolean logRequests,
+      @DefaultValue("false") boolean logResponses)
       implements McpClientTransportConfiguration {}
 }

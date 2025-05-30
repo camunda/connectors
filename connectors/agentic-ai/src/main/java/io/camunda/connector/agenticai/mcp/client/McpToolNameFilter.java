@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client;
 
-import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -36,16 +36,15 @@ public class McpToolNameFilter implements Predicate<String> {
     return "McpToolNameFilter{" + "included=" + included + ", excluded=" + excluded + '}';
   }
 
-  public static McpToolNameFilter from(
-      McpClientRequest.McpClientRequestData.ToolsConfiguration toolsConfiguration) {
+  public static McpToolNameFilter from(McpClientToolsConfiguration toolsConfiguration) {
     final var included =
         Optional.ofNullable(toolsConfiguration)
-            .map(McpClientRequest.McpClientRequestData.ToolsConfiguration::included)
+            .map(McpClientToolsConfiguration::included)
             .orElseGet(Collections::emptyList);
 
     final var excluded =
         Optional.ofNullable(toolsConfiguration)
-            .map(McpClientRequest.McpClientRequestData.ToolsConfiguration::excluded)
+            .map(McpClientToolsConfiguration::excluded)
             .orElseGet(Collections::emptyList);
 
     return new McpToolNameFilter(included, excluded);
