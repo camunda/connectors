@@ -37,7 +37,6 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -52,12 +51,16 @@ class CamundaClientAdHocToolsSchemaResolverTest {
 
   @Mock private FeelInputParamExtractor feelInputParamExtractor;
   @Mock private AdHocToolSchemaGenerator schemaGenerator;
-  @InjectMocks private CamundaClientAdHocToolsSchemaResolver resolver;
+  private CamundaClientAdHocToolsSchemaResolver resolver;
 
   private String bpmnXml;
 
   @BeforeEach
   void setUp() throws IOException {
+    // TODO add tests for gateway tool definitions
+    resolver =
+        new CamundaClientAdHocToolsSchemaResolver(
+            camundaClient, List.of(), feelInputParamExtractor, schemaGenerator);
     bpmnXml =
         Files.readString(
             Path.of(getClass().getClassLoader().getResource("ad-hoc-tools.bpmn").getFile()));
