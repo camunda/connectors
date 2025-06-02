@@ -39,7 +39,8 @@ public class Langchain4JAiFrameworkAdapter
       AgentRequest request, AgentContext agentContext, RuntimeMemory runtimeMemory) {
 
     final var messages = chatMessageConverter.map(runtimeMemory.filteredMessages());
-    final var toolSpecifications = toolSpecificationConverter.map(agentContext.toolDefinitions());
+    final var toolSpecifications =
+        toolSpecificationConverter.asToolSpecifications(agentContext.toolDefinitions());
 
     final var chatRequest =
         ChatRequest.builder().messages(messages).toolSpecifications(toolSpecifications).build();

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
@@ -20,6 +21,7 @@ import java.nio.file.Path;
 import java.util.List;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolSpecificationConverterTest {
 
@@ -99,6 +101,66 @@ class ToolSpecificationConverterTest {
               assertThat(schema.required()).containsExactly("path", "edits");
               assertThat(schema.additionalProperties()).isFalse();
             });
+  }
+
+  @Test
+  void convertsToolSpecificationToToolDefinition() throws Exception {
+    final var toolSpecification =
+        ToolSpecification.builder()
+            .name("test_tool")
+            .description("A test tool for validation")
+            .parameters(
+                JsonObjectSchema.builder()
+                    .addStringProperty("name", "Your name")
+                    .addNumberProperty("age", "Your age")
+                    .addEnumProperty(
+                        "eatingPreferences",
+                        List.of("vegetarian", "vegan", "anything"),
+                        "Your eating preferences")
+                    .required("name", "age")
+                    .build())
+            .build();
+
+    final var toolDefinition = toolSpecificationConverter.asToolDefinition(toolSpecification);
+
+    assertThat(toolDefinition.name()).isEqualTo("test_tool");
+    assertThat(toolDefinition.description()).isEqualTo("A test tool for validation");
+    assertThat(toolDefinition.inputSchema().get("type")).isEqualTo("object");
+    assertThat(toolDefinition.inputSchema().get("required"))
+        .asInstanceOf(InstanceOfAssertFactories.list(String.class))
+        .containsExactly("name", "age");
+
+    final String expectedSchemaJson =
+        """
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Your name"
+            },
+            "age": {
+              "type": "number",
+              "description": "Your age"
+            },
+            "eatingPreferences": {
+              "description": "Your eating preferences",
+              "enum": [
+                "vegetarian",
+                "vegan",
+                "anything"
+              ]
+            }
+          },
+          "required": [
+            "name",
+            "age"
+          ]
+        }
+        """;
+
+    JSONAssert.assertEquals(
+        expectedSchemaJson, objectMapper.writeValueAsString(toolDefinition.inputSchema()), true);
   }
 
   private TestToolDefinitions loadToolDefinitions(String path) throws IOException {

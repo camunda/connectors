@@ -12,6 +12,8 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaElementModule;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.util.ObjectMapperConstants;
+import java.util.Map;
 
 /**
  * Validates and converts a JSON schema to a tool specification. Conversion logic is based on
@@ -51,6 +53,27 @@ public class ToolSpecificationConverterImpl implements ToolSpecificationConverte
     } catch (Exception e) {
       throw new ParseSchemaException(
           "Failed to parse input schema for tool '%s'".formatted(toolDefinition.name()), e);
+    }
+  }
+
+  @Override
+  public ToolDefinition asToolDefinition(ToolSpecification toolSpecification) {
+    return ToolDefinition.builder()
+        .name(toolSpecification.name())
+        .description(toolSpecification.description())
+        .inputSchema(schemaToMap(toolSpecification))
+        .build();
+  }
+
+  private Map<String, Object> schemaToMap(ToolSpecification toolSpecification) {
+    try {
+      return objectMapper.convertValue(
+          toolSpecification.parameters(), ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
+    } catch (Exception e) {
+      throw new ParseSchemaException(
+          "Failed to convert JSON schema for tool specification '%s'"
+              .formatted(toolSpecification.name()),
+          e);
     }
   }
 
