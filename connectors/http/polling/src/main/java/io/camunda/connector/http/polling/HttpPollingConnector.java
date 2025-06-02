@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
 @InboundConnector(name = "HTTP_POLLING", type = "io.camunda:http-polling:1")
 public class HttpPollingConnector
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpPollingConnector.class);
 
   private final HttpService httpService;
   private final SharedExecutorService executorService;
@@ -74,7 +73,6 @@ public class HttpPollingConnector
 
   @Override
   public void deactivate() {
-    LOGGER.debug("Deactivating the HttpPolling connector");
     processInstancesFetcherTask.stop();
   }
 }

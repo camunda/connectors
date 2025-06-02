@@ -210,7 +210,8 @@ public class BatchExecutableProcessor {
           }
           activated.executable().deactivate();
           activated.context().log(Activity.level(Severity.INFO).tag(LIFECYCLE_LOG_TAG)
-              .message("Deactivated executable: " + activated.context().getDefinition().type()));
+              .message("Deactivated executable: " + activated.context().getDefinition().type()
+                  + " with executable ID " + activated.executableId()));
         } catch (Exception e) {
           LOG.error("Failed to deactivate executable", e);
         }

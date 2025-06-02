@@ -138,7 +138,7 @@ public class PollingManager {
             case CorrelationFailureHandlingStrategy.ForwardErrorToUpstream ignored -> {
               this.connectorContext.log(
                   Activity.level(Severity.ERROR)
-                      .tag("ForwardErrorToUpstream")
+                      .tag("Message") // TODO: standardize tags
                       .message(
                           "Error processing mail: %s, message %s"
                               .formatted(email.messageId(), failure.message())));
@@ -147,20 +147,14 @@ public class PollingManager {
             case CorrelationFailureHandlingStrategy.Ignore ignored -> {
               this.connectorContext.log(
                   Activity.level(Severity.INFO)
-                      .tag("Ignore")
+                      .tag("Message") // TODO: standardize tags
                       .message(
                           "No activation condition was met for email: %s. `Consume unmatched event` was selected. Continuing.."
                               .formatted(email.messageId())));
               yield true;
             }
           };
-      case CorrelationResult.Success ignored -> {
-        this.connectorContext.log(
-            Activity.level(Severity.INFO)
-                .tag("Success")
-                .message("Correlated email: %s".formatted(email.messageId())));
-        yield true;
-      }
+      case CorrelationResult.Success ignored -> true;
     };
   }
 
