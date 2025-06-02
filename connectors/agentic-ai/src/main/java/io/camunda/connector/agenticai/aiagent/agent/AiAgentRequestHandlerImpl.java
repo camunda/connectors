@@ -23,15 +23,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRe
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
@@ -57,11 +53,15 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
   private final AdHocToolsSchemaResolver schemaResolver;
   private final AiFrameworkAdapter<?> framework;
+  private final AgentResponseHandler responseHandler;
 
   public AiAgentRequestHandlerImpl(
-      AdHocToolsSchemaResolver schemaResolver, AiFrameworkAdapter<?> framework) {
+      AdHocToolsSchemaResolver schemaResolver,
+      AiFrameworkAdapter<?> framework,
+      AgentResponseHandler responseHandler) {
     this.schemaResolver = schemaResolver;
     this.framework = framework;
+    this.responseHandler = responseHandler;
   }
 
   @Override
@@ -105,39 +105,7 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
             .storeFromRuntimeMemory(context, agentContext, runtimeMemory)
             .withState(nextAgentState);
 
-    return createResponse(request, agentContext, toolCalls, assistantMessage);
-  }
-
-  private AgentResponse createResponse(
-      AgentRequest request,
-      AgentContext agentContext,
-      List<ToolCallProcessVariable> toolCalls,
-      AssistantMessage assistantMessage) {
-    final var responseConfiguration =
-        Optional.ofNullable(request.data().response())
-            // default to text content only if not configured
-            .orElseGet(
-                () -> new ResponseConfiguration(new TextResponseFormatConfiguration(true), false));
-
-    final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
-
-    // keep null handling for backward compatibility
-    if (responseConfiguration.format() == null
-        || (responseConfiguration.format()
-                instanceof TextResponseFormatConfiguration(boolean includeText)
-            && includeText)) {
-      assistantMessage.content().stream()
-          .filter(c -> c instanceof TextContent)
-          .map(c -> ((TextContent) c).text())
-          .findFirst()
-          .ifPresent(builder::responseText);
-    }
-
-    if (responseConfiguration.includeAssistantMessage()) {
-      builder.responseMessage(assistantMessage);
-    }
-
-    return builder.build();
+    return responseHandler.createResponse(request, agentContext, assistantMessage, toolCalls);
   }
 
   private AgentContext initializeAgentContext(

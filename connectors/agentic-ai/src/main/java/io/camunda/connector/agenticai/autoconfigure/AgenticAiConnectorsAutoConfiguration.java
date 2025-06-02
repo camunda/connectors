@@ -17,6 +17,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdH
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGeneratorImpl;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
+import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -81,9 +83,17 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public AgentResponseHandler aiAgentResponseHandler() {
+    return new AgentResponseHandlerImpl();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
-      AdHocToolsSchemaResolver schemaResolver, AiFrameworkAdapter<?> aiFrameworkAdapter) {
-    return new AiAgentRequestHandlerImpl(schemaResolver, aiFrameworkAdapter);
+      AdHocToolsSchemaResolver schemaResolver,
+      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      AgentResponseHandler responseHandler) {
+    return new AiAgentRequestHandlerImpl(schemaResolver, aiFrameworkAdapter, responseHandler);
   }
 
   @Bean
