@@ -6,6 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT;
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
 import dev.langchain4j.model.input.PromptTemplate;
@@ -42,14 +46,6 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
   private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
-
-  private static final String ERROR_CODE_NO_USER_MESSAGE_CONTENT = "NO_USER_MESSAGE_CONTENT";
-  private static final String ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS =
-      "WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS";
-  private static final String ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT =
-      "TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT";
-  private static final String ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED =
-      "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED";
 
   private final AdHocToolsSchemaResolver schemaResolver;
   private final AiFrameworkAdapter<?> framework;

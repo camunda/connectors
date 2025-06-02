@@ -20,7 +20,8 @@ public record AgentResponse(
     AgentContext context,
     List<ToolCallProcessVariable> toolCalls,
     @Nullable AssistantMessage responseMessage,
-    @Nullable String responseText)
+    @Nullable String responseText,
+    @Nullable Object responseJson)
     implements AgentResponseBuilder.With {
 
   public static AgentResponseBuilder builder() {

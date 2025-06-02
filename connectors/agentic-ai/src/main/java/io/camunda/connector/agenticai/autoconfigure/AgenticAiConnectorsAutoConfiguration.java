@@ -83,8 +83,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentResponseHandler aiAgentResponseHandler() {
-    return new AgentResponseHandlerImpl();
+  public AgentResponseHandler aiAgentResponseHandler(ObjectMapper objectMapper) {
+    return new AgentResponseHandlerImpl(objectMapper);
   }
 
   @Bean
