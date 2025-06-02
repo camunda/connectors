@@ -193,7 +193,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
         testBasicExecutionWithoutFeedbackLoop(
             withModifiedInputs(
                 Map.ofEntries(
-                    Map.entry("data.response.includeText", i -> i.setSource("=true")),
+                    Map.entry("data.response.format.includeText", i -> i.setSource("=true")),
                     Map.entry(
                         "data.response.includeAssistantMessage", i -> i.setSource("=false")))),
             false,
@@ -206,7 +206,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
         testBasicExecutionWithoutFeedbackLoop(
             withModifiedInputs(
                 Map.ofEntries(
-                    Map.entry("data.response.includeText", i -> i.setSource("=false")),
+                    Map.entry("data.response.format.includeText", i -> i.setSource("=false")),
                     Map.entry("data.response.includeAssistantMessage", i -> i.setSource("=true")))),
             false,
             false,

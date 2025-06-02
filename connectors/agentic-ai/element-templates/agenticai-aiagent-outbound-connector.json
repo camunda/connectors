@@ -705,7 +705,25 @@
     },
     "type" : "Number"
   }, {
-    "id" : "data.response.includeText",
+    "id" : "data.response.format.type",
+    "label" : "Response Format",
+    "description" : "Specify the response format.",
+    "value" : "text",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.format.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Text",
+      "value" : "text"
+    }, {
+      "name" : "JSON",
+      "value" : "json"
+    } ]
+  }, {
+    "id" : "data.response.format.includeText",
     "label" : "Include text output",
     "description" : "Adds the first text output of the assistant message to the response.",
     "optional" : false,
@@ -713,11 +731,37 @@
     "feel" : "static",
     "group" : "response",
     "binding" : {
-      "name" : "data.response.includeText",
+      "name" : "data.response.format.includeText",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.response.format.type",
+      "equals" : "text",
+      "type" : "simple"
     },
     "tooltip" : "The text output will be available as <code>response.responseText</code>.",
     "type" : "Boolean"
+  }, {
+    "id" : "data.response.format.responseSchema",
+    "label" : "Response JSON schema",
+    "description" : "Provide a response <a href=\"https://json-schema.org/\" target=\"_blank\">JSON schema</a> to structure the output.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.format.responseSchema",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.response.format.type",
+      "equals" : "json",
+      "type" : "simple"
+    },
+    "tooltip" : "The response will be structured according to the provided schema. A parsed version of the response will be available as <code>response.responseObject</code>.",
+    "type" : "String"
   }, {
     "id" : "data.response.includeAssistantMessage",
     "label" : "Include assistant message",

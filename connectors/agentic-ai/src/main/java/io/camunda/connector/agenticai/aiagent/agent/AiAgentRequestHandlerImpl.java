@@ -22,8 +22,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
@@ -115,11 +116,16 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
     final var responseConfiguration =
         Optional.ofNullable(request.data().response())
             // default to text content only if not configured
-            .orElseGet(() -> new ResponseConfiguration(true, false));
+            .orElseGet(
+                () -> new ResponseConfiguration(new TextResponseFormatConfiguration(true), false));
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
 
-    if (responseConfiguration.includeText()) {
+    // keep null handling for backward compatibility
+    if (responseConfiguration.format() == null
+        || (responseConfiguration.format()
+                instanceof TextResponseFormatConfiguration(boolean includeText)
+            && includeText)) {
       assistantMessage.content().stream()
           .filter(c -> c instanceof TextContent)
           .map(c -> ((TextContent) c).text())
