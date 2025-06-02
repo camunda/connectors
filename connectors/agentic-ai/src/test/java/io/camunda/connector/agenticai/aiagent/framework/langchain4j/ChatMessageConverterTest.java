@@ -148,6 +148,16 @@ class ChatMessageConverterTest {
   }
 
   @Test
+  void fromAssistantMessage_withoutAnyContent_returnsAiMessage() {
+    AssistantMessage assistantMessage = AssistantMessage.builder().build();
+
+    AiMessage result = chatMessageConverter.fromAssistantMessage(assistantMessage);
+
+    assertThat(result.text()).isNull();
+    assertThat(result.toolExecutionRequests()).isEmpty();
+  }
+
+  @Test
   void fromAssistantMessage_withToolCalls_includesToolExecutionRequests() {
     ToolCall toolCall = ToolCall.builder().id("toolCallId").name("toolName").build();
     AssistantMessage assistantMessage =
@@ -184,7 +194,7 @@ class ChatMessageConverterTest {
   }
 
   @Test
-  void toAssistantMessage_convertsFromChatResponse() throws Exception {
+  void toAssistantMessage_convertsFromChatResponse() {
     final var aiMessage = AiMessage.builder().text("AI response").build();
 
     final var chatResponseMetadata =
@@ -218,6 +228,32 @@ class ChatMessageConverterTest {
         .containsEntry(
             "tokenUsage",
             Map.of("inputTokenCount", 10, "outputTokenCount", 20, "totalTokenCount", 30));
+  }
+
+  @Test
+  void toAssistantMessage_convertsFromChatResponse_withoutContentText() {
+    final var aiMessage = AiMessage.builder().build();
+
+    final var chatResponseMetadata =
+        ChatResponseMetadata.builder()
+            .finishReason(FinishReason.STOP)
+            .tokenUsage(new TokenUsage(10, 0))
+            .build();
+
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.content()).isEmpty();
+
+    assertThat(result.metadata()).containsKey("framework");
+    assertThat(result.metadata().get("framework"))
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .containsEntry("finishReason", "STOP")
+        .containsEntry(
+            "tokenUsage",
+            Map.of("inputTokenCount", 10, "outputTokenCount", 0, "totalTokenCount", 10));
   }
 
   @Test
