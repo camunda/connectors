@@ -48,7 +48,7 @@ public record ResponseConfiguration(
       group = "response",
       label = "Response Format",
       name = "type",
-      description = "Specify the response format.",
+      description = "Specify the response format. Support for JSON mode varies by provider.",
       defaultValue = "text")
   public sealed interface ResponseFormatConfiguration {
     @TemplateSubType(id = "text", label = "Text")
@@ -71,22 +71,22 @@ public record ResponseConfiguration(
         @FEEL
             @TemplateProperty(
                 group = "response",
+                label = "Response JSON schema",
+                description =
+                    "An optional response <a href=\"https://json-schema.org/\" target=\"_blank\">JSON schema</a> to instruct the model how to structure the output.",
+                tooltip =
+                    "If supported by the model, the response will be structured according to the provided schema. A parsed version of the response will be available as <code>response.responseJson</code>.",
+                feel = Property.FeelMode.required)
+            Map<String, Object> schema,
+        @FEEL
+            @TemplateProperty(
+                group = "response",
                 label = "Response JSON schema name",
                 description =
                     "An optional name for the response JSON schema to make the model aware of the expected output.",
                 feel = Property.FeelMode.optional,
                 defaultValue = "Response")
-            String schemaName,
-        @FEEL
-            @TemplateProperty(
-                group = "response",
-                label = "Response JSON schema",
-                description =
-                    "Optional response <a href=\"https://json-schema.org/\" target=\"_blank\">JSON schema</a> to instruct the model how to structure the output. Support varies by provider.",
-                tooltip =
-                    "The response will be structured according to the provided schema. A parsed version of the response will be available as <code>response.responseJson</code>.",
-                feel = Property.FeelMode.required)
-            Map<String, Object> schema)
+            String schemaName)
         implements ResponseFormatConfiguration {}
   }
 }
