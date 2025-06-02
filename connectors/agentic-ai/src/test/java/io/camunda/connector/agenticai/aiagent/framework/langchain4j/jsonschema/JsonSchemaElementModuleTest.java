@@ -551,7 +551,7 @@ class JsonSchemaElementModuleTest {
         .satisfies(schemaAssertions);
   }
 
-  private class JsonTestSchema implements JsonSchemaElement {
+  private static class JsonTestSchema implements JsonSchemaElement {
     @Override
     public String description() {
       return "test";
