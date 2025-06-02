@@ -78,8 +78,9 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   public Langchain4JAiFrameworkAdapter langchain4JAiFrameworkAdapter(
       ChatModelFactory chatModelFactory,
       ChatMessageConverter chatMessageConverter,
-      ToolSpecificationConverter toolSpecificationConverter) {
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JAiFrameworkAdapter(
-        chatModelFactory, chatMessageConverter, toolSpecificationConverter);
+        chatModelFactory, chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
   }
 }
