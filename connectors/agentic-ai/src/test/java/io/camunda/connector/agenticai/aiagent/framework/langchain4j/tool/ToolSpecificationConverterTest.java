@@ -14,6 +14,7 @@ import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,7 +28,7 @@ class ToolSpecificationConverterTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final ToolSpecificationConverter toolSpecificationConverter =
-      new ToolSpecificationConverterImpl(objectMapper);
+      new ToolSpecificationConverterImpl(new JsonSchemaConverter(objectMapper));
 
   @Test
   void convertsToolDefinitionToToolSpecification() throws Exception {
