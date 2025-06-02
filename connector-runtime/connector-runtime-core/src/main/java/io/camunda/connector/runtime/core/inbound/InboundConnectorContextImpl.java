@@ -34,6 +34,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -63,7 +64,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
 
   private final Consumer<Throwable> cancellationCallback;
-  private final EvictingQueue<Activity> logs;
+  private final ActivityLogWriter activityLogWriter;
   private final DocumentFactory documentFactory;
   private final Long activationTimestamp;
   private Health health = Health.unknown();
@@ -79,7 +80,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      EvictingQueue<Activity> logs) {
+      ActivityLogWriter activityLogWriter) {
     super(secretProvider, validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
@@ -89,7 +90,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             connectorDetails.rawPropertiesWithoutKeywords());
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
-    this.logs = logs;
+    this.activityLogWriter = activityLogWriter;
     this.activationTimestamp = System.currentTimeMillis();
   }
 
@@ -243,13 +244,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
-    switch (log.severity()) {
-      case DEBUG -> LOG.debug(log.toString());
-      case ERROR -> LOG.error(log.toString());
-      case INFO -> LOG.info(log.toString());
-      case WARNING -> LOG.warn(log.toString());
-    }
-    this.logs.add(log);
+    activityLogWriter.log();
   }
 
   @Override

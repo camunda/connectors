@@ -19,17 +19,72 @@ package io.camunda.connector.api.inbound;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
-// TODO:
-public record Activity(
-    Severity severity,
-    String tag,
-    OffsetDateTime timestamp,
-    String message,
-    Map<String, Object> data) {
+// We avoid using a record here to ensure backward compatibility when adding new fields
+public class Activity {
+    private final Severity severity;
+    private final String tag;
+    private final OffsetDateTime timestamp;
+    private final String message;
+    private final Map<String, Object> data;
 
+  public Activity(Severity severity, String tag, OffsetDateTime timestamp, String message,
+      Map<String, Object> data) {
+    this.severity = severity;
+    this.tag = tag;
+    this.timestamp = timestamp;
+    this.message = message;
+    this.data = data;
+  }
+
+  public Severity severity() {
+    return severity;
+  }
+
+  public String tag() {
+    return tag;
+  }
+
+  public OffsetDateTime timestamp() {
+    return timestamp;
+  }
+
+  public String message() {
+    return message;
+  }
+
+  public Map<String, Object> data() {
+    return data;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Activity activity = (Activity) o;
+    return severity == activity.severity && Objects.equals(tag, activity.tag)
+        && Objects.equals(timestamp, activity.timestamp) && Objects.equals(
+        message, activity.message) && Objects.equals(data, activity.data);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(severity, tag, timestamp, message, data);
+  }
+
+  @Override
+  public String toString() {
+    return "Activity{" +
+        "severity=" + severity +
+        ", tag='" + tag + '\'' +
+        ", timestamp=" + timestamp +
+        ", message='" + message + '\'' +
+        ", data=" + data +
+        '}';
+  }
 
   public static BuilderStep level(Severity severity) {
     return new BuilderStep(severity);
@@ -44,14 +99,14 @@ public record Activity(
       this.severity = severity;
     }
 
-
-
     public Builder tag(String tag) {
       return new Builder(this.severity, tag);
     }
   }
 
-  // Builder
+  // todo: add a real builder
+  // (not a real) Builder
+  @Deprecated
   public static final class Builder {
 
     Severity severity;
@@ -73,11 +128,12 @@ public record Activity(
       return new Activity(severity, tag, timestamp, buildMessage(message, exception), data);
     }
 
-    public Activity data(String message, Map<String, Object> data) {
+    public Activity messageWithData(String message, Map<String, Object> data) {
       return new Activity(severity, tag, timestamp, message, data);
     }
 
-    public Activity data(String message, Throwable exception, Map<String, Object> data) {
+    public Activity messageWithExceptionAndData(
+        String message, Throwable exception, Map<String, Object> data) {
       return new Activity(severity, tag, timestamp, buildMessage(message, exception), data);
     }
 

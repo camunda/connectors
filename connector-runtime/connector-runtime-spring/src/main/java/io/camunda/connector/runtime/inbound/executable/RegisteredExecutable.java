@@ -27,7 +27,8 @@ public sealed interface RegisteredExecutable {
 
   record Activated(
       InboundConnectorExecutable<InboundConnectorContext> executable,
-      InboundConnectorReportingContext context)
+      InboundConnectorReportingContext context,
+      String executableId) // TODO: add this everywhere
       implements RegisteredExecutable {}
 
   record Cancelled(
