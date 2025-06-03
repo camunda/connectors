@@ -16,6 +16,8 @@ RUN apt-get update && \
 RUN groupadd --gid 1001 camunda && useradd --no-create-home --gid 1001 --uid 1001 camunda
 USER 1001:1001
 
+ENV CAMUNDA_CONNECTOR_RUNTIME_SAAS=true
 ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
+
 # Using entry point to allow downstream images to add JVM arguments using CMD
 ENTRYPOINT ["java", "-cp", "/opt/app/*", "io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication"]
