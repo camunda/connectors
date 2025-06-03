@@ -17,7 +17,7 @@ RUN groupadd --gid 1001 camunda && useradd --no-create-home --gid 1001 --uid 100
 USER 1001:1001
 
 ENV CAMUNDA_CONNECTOR_RUNTIME_SAAS=true
-ENV CAMUNDA_CLIENT_CONFIG_PATH=/tmp/connectors
+ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
 
 # Using entry point to allow downstream images to add JVM arguments using CMD
 ENTRYPOINT ["java", "-cp", "/opt/app/*", "io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication"]
