@@ -67,7 +67,7 @@ abstract class BaseAdHocToolsSchemaTests extends BaseAgenticAiTest {
 
   private Variable getResolvedSchemaVariable(ZeebeTest zeebeTest) {
     return new CamundaDataSource(camundaClient)
-            .findGlobalVariablesByProcessInstanceKey(
+            .findVariablesByProcessInstanceKey(
                 zeebeTest.getProcessInstanceEvent().getProcessInstanceKey())
             .stream()
             .filter(variable -> variable.getName().equals(RESOLVED_SCHEMA_VARIABLE))
