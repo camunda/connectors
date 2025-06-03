@@ -9,6 +9,7 @@ camunda:
     agenticai:
       mcp:
         client:
+          enabled: true
           clients:
             # replace path to files to the directory you want the model to have access to
             # you can also add multiple paths, see https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem
