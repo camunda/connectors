@@ -35,7 +35,7 @@ public record ResponseConfiguration(
 
   public ResponseConfiguration {
     if (format == null) {
-      format = new TextResponseFormatConfiguration(true);
+      format = new TextResponseFormatConfiguration(true, false);
     }
   }
 
@@ -63,7 +63,19 @@ public record ResponseConfiguration(
                 type = TemplateProperty.PropertyType.Boolean,
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 defaultValue = "true")
-            boolean includeText)
+            boolean includeText,
+        @TemplateProperty(
+                group = "response",
+                label = "Parse the text response as JSON",
+                description =
+                    "Tries to parse the first text output of the assistant message as JSON object.",
+                tooltip =
+                    "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). "
+                        + "Make sure to instruct the model to return valid JSON in the system prompt. "
+                        + "The parsed JSON will be available as <code>response.responseJson</code>. "
+                        + "If parsing fails, null will be returned for the JSON reponse, but the text content will still be available if the option is enabled.",
+                type = TemplateProperty.PropertyType.Boolean)
+            boolean parseTextToJson)
         implements ResponseFormatConfiguration {}
 
     @TemplateSubType(id = "json", label = "JSON")

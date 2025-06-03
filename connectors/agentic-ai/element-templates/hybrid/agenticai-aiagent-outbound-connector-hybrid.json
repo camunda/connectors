@@ -747,6 +747,24 @@
     "tooltip" : "The text output will be available as <code>response.responseText</code>.",
     "type" : "Boolean"
   }, {
+    "id" : "data.response.format.parseTextToJson",
+    "label" : "Parse the text response as JSON",
+    "description" : "Tries to parse the first text output of the assistant message as JSON object.",
+    "optional" : false,
+    "feel" : "static",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.format.parseTextToJson",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.response.format.type",
+      "equals" : "text",
+      "type" : "simple"
+    },
+    "tooltip" : "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). Make sure to instruct the model to return valid JSON in the system prompt. The parsed JSON will be available as <code>response.responseJson</code>. If parsing fails, null will be returned for the JSON reponse, but the text content will still be available if the option is enabled.",
+    "type" : "Boolean"
+  }, {
     "id" : "data.response.format.schema",
     "label" : "Response JSON schema",
     "description" : "An optional response <a href=\"https://json-schema.org/\" target=\"_blank\">JSON schema</a> to instruct the model how to structure the output.",

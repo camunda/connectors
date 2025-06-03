@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
+import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,13 +21,18 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AgentResponseHandlerImpl implements AgentResponseHandler {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AgentResponseHandlerImpl.class);
+  private static final ResponseConfiguration DEFAULT_RESPONSE_CONFIGURATION =
+      new ResponseConfiguration(new TextResponseFormatConfiguration(true, false), false);
 
   private final ObjectMapper objectMapper;
 
@@ -41,11 +47,9 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       AssistantMessage assistantMessage,
       List<ToolCallProcessVariable> toolCalls) {
 
+    // default to text content only if not configured
     final var responseConfiguration =
-        Optional.ofNullable(request.data().response())
-            // default to text content only if not configured
-            .orElseGet(
-                () -> new ResponseConfiguration(new TextResponseFormatConfiguration(true), false));
+        Optional.ofNullable(request.data().response()).orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
     if (responseConfiguration.includeAssistantMessage()) {
@@ -54,7 +58,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
     findFirstResponseText(assistantMessage)
         .ifPresent(
-            responseText -> addFirstResponseText(responseConfiguration, builder, responseText));
+            responseText -> handleFirstResponseText(responseConfiguration, builder, responseText));
 
     return builder.build();
   }
@@ -67,7 +71,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
         .findFirst();
   }
 
-  private void addFirstResponseText(
+  private void handleFirstResponseText(
       ResponseConfiguration responseConfiguration,
       AgentResponseBuilder responseBuilder,
       String responseText) {
@@ -77,25 +81,54 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     }
 
     // keep null handling for backward compatibility
-    if (responseConfiguration.format() == null
-        || (responseConfiguration.format()
-                instanceof TextResponseFormatConfiguration(boolean includeText)
-            && includeText)) {
+    final var format =
+        Optional.ofNullable(responseConfiguration.format())
+            .orElseGet(DEFAULT_RESPONSE_CONFIGURATION::format);
+
+    switch (format) {
+      case TextResponseFormatConfiguration textFormat ->
+          handleTextResponseFormat(responseBuilder, responseText, textFormat);
+      case JsonResponseFormatConfiguration ignored ->
+          handleJsonResponseFormat(responseBuilder, responseText);
+    }
+  }
+
+  private void handleTextResponseFormat(
+      AgentResponseBuilder responseBuilder,
+      String responseText,
+      TextResponseFormatConfiguration textFormat) {
+    if (textFormat.includeText()) {
       responseBuilder.responseText(responseText);
     }
 
-    if (responseConfiguration.format() instanceof JsonResponseFormatConfiguration) {
+    if (textFormat.parseTextToJson()) {
       try {
-        Object responseJson = objectMapper.readValue(responseText, Object.class);
-        responseBuilder.responseJson(responseJson);
-      } catch (JsonProcessingException e) {
-        throw new ConnectorException(
-            ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT,
-            "Failed to parse response content as JSON: %s"
-                .formatted(
-                    JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage(
-                        e)));
+        parseTextToResponseJson(responseBuilder, responseText);
+      } catch (Exception e) {
+        var message = e.getMessage();
+        if (e instanceof JsonProcessingException jpe) {
+          message = humanReadableJsonProcessingExceptionMessage(jpe);
+        }
+
+        LOGGER.warn("Failed to parse response content as JSON: {}", message);
       }
     }
+  }
+
+  private void handleJsonResponseFormat(AgentResponseBuilder responseBuilder, String responseText) {
+    try {
+      parseTextToResponseJson(responseBuilder, responseText);
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT,
+          "Failed to parse response content as JSON: %s"
+              .formatted(humanReadableJsonProcessingExceptionMessage(e)));
+    }
+  }
+
+  private void parseTextToResponseJson(AgentResponseBuilder responseBuilder, String responseText)
+      throws JsonProcessingException {
+    Object responseJson = objectMapper.readValue(responseText, Object.class);
+    responseBuilder.responseJson(responseJson);
   }
 }
