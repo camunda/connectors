@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.35.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:process id="ai-agent-chat-with-mcp" name="AI Agent Chat With MCP" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formId="ai-agent-chat-initial-request" />
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_0pbzrme</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_0pbzrme" sourceRef="StartEvent_1" targetRef="Gateway_0z6ctwk" />
+    <bpmn:serviceTask id="AI_Agent" name="AI Agent" zeebe:modelerTemplate="io.camunda.connectors.agenticai.aiagent.v1" zeebe:modelerTemplateVersion="1" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda.agenticai:aiagent:1" retries="3" />
+        <zeebe:ioMapping>
+          <zeebe:input source="openai" target="provider.type" />
+          <zeebe:input source="{{secrets.OPENAI_API_KEY}}" target="provider.openai.authentication.apiKey" />
+          <zeebe:input source="gpt-4.1" target="provider.openai.model.model" />
+          <zeebe:input source="You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you have tools available to manage and query your memory, make sure to consult your memory first before asking the user about past interactions or when referring to other people. For example: when the user asks about a specific person, consult your memory first to gather all the needed facts anout that person before giving an answer." target="data.systemPrompt.prompt" />
+          <zeebe:input source="=if (is defined(followUpInput)) then followUpInput else inputText" target="data.userPrompt.prompt" />
+          <zeebe:input source="=if (is defined(followUpInput) or is defined(followUpDocuments)) then followUpDocuments else inputDocuments" target="data.userPrompt.documents" />
+          <zeebe:input source="Agent_Tools" target="data.tools.containerElementId" />
+          <zeebe:input source="=toolCallResults" target="data.tools.toolCallResults" />
+          <zeebe:input source="=agent.context" target="data.context" />
+          <zeebe:input source="=20" target="data.memory.maxMessages" />
+          <zeebe:input source="=20" target="data.limits.maxModelCalls" />
+          <zeebe:input source="text" target="data.response.format.type" />
+          <zeebe:input source="=true" target="data.response.format.includeText" />
+          <zeebe:input source="=true" target="data.response.includeAssistantMessage" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="elementTemplateVersion" value="1" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.aiagent.v1" />
+          <zeebe:header key="resultVariable" value="agent" />
+          <zeebe:header key="retryBackoff" value="PT2S" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_050377t</bpmn:incoming>
+      <bpmn:outgoing>Flow_041ffce</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_0z6ctwk">
+      <bpmn:incoming>Flow_0pbzrme</bpmn:incoming>
+      <bpmn:incoming>Flow_10x2etf</bpmn:incoming>
+      <bpmn:incoming>Flow_0ojrvh4</bpmn:incoming>
+      <bpmn:outgoing>Flow_050377t</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateCatchEvent id="Event_1ynf9aq" name="Handle user follow up">
+      <bpmn:outgoing>Flow_0ojrvh4</bpmn:outgoing>
+      <bpmn:linkEventDefinition id="LinkEventDefinition_1xhmsl2" name="user_follow_up" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Event_11zcrdo" name="Handle tools follow up">
+      <bpmn:outgoing>Flow_10x2etf</bpmn:outgoing>
+      <bpmn:linkEventDefinition id="LinkEventDefinition_0iu6pw3" name="tools_follow_up" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_10x2etf" sourceRef="Event_11zcrdo" targetRef="Gateway_0z6ctwk" />
+    <bpmn:sequenceFlow id="Flow_0ojrvh4" sourceRef="Event_1ynf9aq" targetRef="Gateway_0z6ctwk" />
+    <bpmn:userTask id="User_Feedback" name="User Feedback">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="ai-agent-chat-user-feedback" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_11y3kim</bpmn:incoming>
+      <bpmn:outgoing>Flow_09y08ef</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_1dcg4ha" name="User satisfied?">
+      <bpmn:incoming>Flow_09y08ef</bpmn:incoming>
+      <bpmn:outgoing>Flow_19gp461</bpmn:outgoing>
+      <bpmn:outgoing>Flow_16c9bwj</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateThrowEvent id="Event_User_Follow_Up" name="User follow up">
+      <bpmn:incoming>Flow_19gp461</bpmn:incoming>
+      <bpmn:linkEventDefinition id="LinkEventDefinition_1j5h3eh" name="user_follow_up" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="Flow_09y08ef" sourceRef="User_Feedback" targetRef="Gateway_1dcg4ha" />
+    <bpmn:sequenceFlow id="Flow_19gp461" name="no" sourceRef="Gateway_1dcg4ha" targetRef="Event_User_Follow_Up">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied = null or userSatisfied = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="Event_0i39jej">
+      <bpmn:incoming>Flow_16c9bwj</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_16c9bwj" name="yes" sourceRef="Gateway_1dcg4ha" targetRef="Event_0i39jej">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_041ffce" sourceRef="AI_Agent" targetRef="Gateway_0bukj01" />
+    <bpmn:exclusiveGateway id="Gateway_0bukj01" name="Includes tool calls?">
+      <bpmn:incoming>Flow_041ffce</bpmn:incoming>
+      <bpmn:outgoing>Flow_00lg7l2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_11y3kim</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:adHocSubProcess id="Agent_Tools" name="Agent Tools">
+      <bpmn:extensionElements>
+        <zeebe:adHoc activeElementsCollection="=[toolCall._meta.name]" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_00lg7l2</bpmn:incoming>
+      <bpmn:outgoing>Flow_01k9dy1</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:extensionElements>
+          <zeebe:loopCharacteristics inputCollection="=agent.toolCalls" inputElement="toolCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
+        </bpmn:extensionElements>
+      </bpmn:multiInstanceLoopCharacteristics>
+      <bpmn:intermediateThrowEvent id="Event_19s4fqs">
+        <bpmn:extensionElements>
+          <zeebe:properties>
+            <zeebe:property name="io.camunda.agenticai.gateway.type" value="mcpClient" />
+          </zeebe:properties>
+        </bpmn:extensionElements>
+        <bpmn:outgoing>Flow_085l1z3</bpmn:outgoing>
+      </bpmn:intermediateThrowEvent>
+      <bpmn:serviceTask id="Activity_1lxcmjh" name="Deepwiki" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.remote.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclientremote:0" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="https://mcp.deepwiki.com/sse" target="data.connection.sseUrl" />
+            <zeebe:input source="=toolCall.method" target="data.operation.method" />
+            <zeebe:input source="=toolCall.params" target="data.operation.params" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="0" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.remote.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0ixfrp0</bpmn:incoming>
+        <bpmn:incoming>Flow_0688ffj</bpmn:incoming>
+      </bpmn:serviceTask>
+      <bpmn:exclusiveGateway id="Gateway_115zcj9" name="Is tool call?" default="Flow_0ixfrp0">
+        <bpmn:incoming>Flow_085l1z3</bpmn:incoming>
+        <bpmn:outgoing>Flow_0ixfrp0</bpmn:outgoing>
+        <bpmn:outgoing>Flow_19yhpei</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:sequenceFlow id="Flow_0ixfrp0" name="no" sourceRef="Gateway_115zcj9" targetRef="Activity_1lxcmjh" />
+      <bpmn:sequenceFlow id="Flow_085l1z3" sourceRef="Event_19s4fqs" targetRef="Gateway_115zcj9" />
+      <bpmn:sequenceFlow id="Flow_19yhpei" sourceRef="Gateway_115zcj9" targetRef="Activity_0mdux6v">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCall.method = "tools/call"</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:exclusiveGateway id="Gateway_0fgu5ui" name="Execution allowed?">
+        <bpmn:incoming>Flow_0jw5z8p</bpmn:incoming>
+        <bpmn:outgoing>Flow_0qtq8yf</bpmn:outgoing>
+        <bpmn:outgoing>Flow_0688ffj</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:intermediateThrowEvent id="Event_1e3tdvb" name="MCP execution not allowed">
+        <bpmn:extensionElements>
+          <zeebe:ioMapping>
+            <zeebe:output source="={&#34;isError&#34;: true, &#34;content&#34;: [{&#34;type&#34;: &#34;text&#34;, &#34;text&#34;: &#34;Tool call was not allowed by the user&#34;}]}" target="toolCallResult" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0qtq8yf</bpmn:incoming>
+      </bpmn:intermediateThrowEvent>
+      <bpmn:sequenceFlow id="Flow_0qtq8yf" name="no" sourceRef="Gateway_0fgu5ui" targetRef="Event_1e3tdvb">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCallAllowed = false</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_0jw5z8p" sourceRef="Activity_0mdux6v" targetRef="Gateway_0fgu5ui" />
+      <bpmn:sequenceFlow id="Flow_0688ffj" name="yes" sourceRef="Gateway_0fgu5ui" targetRef="Activity_1lxcmjh">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCallAllowed = true</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:userTask id="Activity_0mdux6v" name="Ask for confirmation">
+        <bpmn:extensionElements>
+          <zeebe:userTask />
+          <zeebe:formDefinition formId="MCP_Tool_Call_Confirmation" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_19yhpei</bpmn:incoming>
+        <bpmn:outgoing>Flow_0jw5z8p</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:serviceTask id="OpenMemory" name="OpenMemory" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="openmemory" target="data.client.clientId" />
+            <zeebe:input source="=toolCall.method" target="data.operation.method" />
+            <zeebe:input source="=toolCall.params" target="data.operation.params" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="0" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Filesystem" name="Filesystem" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="filesystem" target="data.client.clientId" />
+            <zeebe:input source="=toolCall.method" target="data.operation.method" />
+            <zeebe:input source="=toolCall.params" target="data.operation.params" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="0" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+    </bpmn:adHocSubProcess>
+    <bpmn:intermediateThrowEvent id="Event_1hi12xn" name="Tools follow up">
+      <bpmn:incoming>Flow_01k9dy1</bpmn:incoming>
+      <bpmn:linkEventDefinition id="LinkEventDefinition_05e1y25" name="tools_follow_up" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="Flow_00lg7l2" name="yes" sourceRef="Gateway_0bukj01" targetRef="Agent_Tools">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=not(is empty(agent.toolCalls))</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_01k9dy1" sourceRef="Agent_Tools" targetRef="Event_1hi12xn" />
+    <bpmn:sequenceFlow id="Flow_11y3kim" name="no" sourceRef="Gateway_0bukj01" targetRef="User_Feedback">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=is empty(agent.toolCalls)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_050377t" sourceRef="Gateway_0z6ctwk" targetRef="AI_Agent" />
+    <bpmn:textAnnotation id="TextAnnotation_0rg9ar3">
+      <bpmn:text>Rough outline of the functionality
+
+- Loads previous memory from provided variables
+- Checks limits (e.g. maximum LLM model calls)
+- Loads available tool information from ad-hoc sub-process definition
+- Merges the current request (either a user message or a tool call response) into the memory
+- Calls the LLM, including previous/edited memory + available tools schema
+- Returns memory trimmed to amount of latest messages
+- Returns last response
+- Returns tools to call, including their parameters</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_0ic98nl" associationDirection="None" sourceRef="AI_Agent" targetRef="TextAnnotation_0rg9ar3" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ai-agent-chat-with-mcp">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="442" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0xj2598_di" bpmnElement="AI_Agent" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="340" y="420" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0z6ctwk_di" bpmnElement="Gateway_0z6ctwk" isMarkerVisible="true">
+        <dc:Bounds x="245" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1vly22n" bpmnElement="Event_1ynf9aq" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="252" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="240" y="316" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1m69yzg" bpmnElement="Event_11zcrdo" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="252" y="532" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="239" y="575" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1fam9db_di" bpmnElement="User_Feedback">
+        <dc:Bounds x="640" y="420" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1dcg4ha_di" bpmnElement="Gateway_1dcg4ha" isMarkerVisible="true">
+        <dc:Bounds x="805" y="435" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="794" y="492" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_07erbg0_di" bpmnElement="Event_User_Follow_Up" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="812" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="795" y="333" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0i39jej_di" bpmnElement="Event_0i39jej">
+        <dc:Bounds x="912" y="442" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0bukj01_di" bpmnElement="Gateway_0bukj01" isMarkerVisible="true">
+        <dc:Bounds x="505" y="435" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="499" y="406" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="Agent_Tools" isExpanded="true">
+        <dc:Bounds x="480" y="560" width="530" height="580" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_19s4fqs_di" bpmnElement="Event_19s4fqs">
+        <dc:Bounds x="532" y="822" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_04601bs_di" bpmnElement="Activity_1lxcmjh">
+        <dc:Bounds x="740" y="800" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_115zcj9_di" bpmnElement="Gateway_115zcj9" isMarkerVisible="true">
+        <dc:Bounds x="615" y="815" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="612" y="791" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0fgu5ui_di" bpmnElement="Gateway_0fgu5ui" isMarkerVisible="true">
+        <dc:Bounds x="765" y="955" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="766" y="1012" width="49" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1e3tdvb_di" bpmnElement="Event_1e3tdvb">
+        <dc:Bounds x="892" y="962" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="873" y="1005" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ke4gic_di" bpmnElement="Activity_0mdux6v">
+        <dc:Bounds x="590" y="940" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1mw2r64" bpmnElement="Filesystem">
+        <dc:Bounds x="550" y="640" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1fx0n0u_di" bpmnElement="OpenMemory">
+        <dc:Bounds x="670" y="640" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0ixfrp0_di" bpmnElement="Flow_0ixfrp0">
+        <di:waypoint x="665" y="840" />
+        <di:waypoint x="740" y="840" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="696" y="822" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_085l1z3_di" bpmnElement="Flow_085l1z3">
+        <di:waypoint x="568" y="840" />
+        <di:waypoint x="615" y="840" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19yhpei_di" bpmnElement="Flow_19yhpei">
+        <di:waypoint x="640" y="865" />
+        <di:waypoint x="640" y="940" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0qtq8yf_di" bpmnElement="Flow_0qtq8yf">
+        <di:waypoint x="815" y="980" />
+        <di:waypoint x="892" y="980" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="847" y="962" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0jw5z8p_di" bpmnElement="Flow_0jw5z8p">
+        <di:waypoint x="690" y="980" />
+        <di:waypoint x="765" y="980" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0688ffj_di" bpmnElement="Flow_0688ffj">
+        <di:waypoint x="790" y="955" />
+        <di:waypoint x="790" y="880" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="801" y="923" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Event_0gbt4n4_di" bpmnElement="Event_1hi12xn" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="665" y="1202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="647" y="1245" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_0rg9ar3_di" bpmnElement="TextAnnotation_0rg9ar3">
+        <dc:Bounds x="401" y="80" width="578" height="156" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0pbzrme_di" bpmnElement="Flow_0pbzrme">
+        <di:waypoint x="188" y="460" />
+        <di:waypoint x="245" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10x2etf_di" bpmnElement="Flow_10x2etf">
+        <di:waypoint x="270" y="532" />
+        <di:waypoint x="270" y="485" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ojrvh4_di" bpmnElement="Flow_0ojrvh4">
+        <di:waypoint x="270" y="388" />
+        <di:waypoint x="270" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09y08ef_di" bpmnElement="Flow_09y08ef">
+        <di:waypoint x="740" y="460" />
+        <di:waypoint x="805" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19gp461_di" bpmnElement="Flow_19gp461">
+        <di:waypoint x="830" y="435" />
+        <di:waypoint x="830" y="388" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="839" y="408" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16c9bwj_di" bpmnElement="Flow_16c9bwj">
+        <di:waypoint x="855" y="460" />
+        <di:waypoint x="912" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="875" y="442" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_041ffce_di" bpmnElement="Flow_041ffce">
+        <di:waypoint x="440" y="460" />
+        <di:waypoint x="505" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_00lg7l2_di" bpmnElement="Flow_00lg7l2">
+        <di:waypoint x="530" y="485" />
+        <di:waypoint x="530" y="560" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="507" y="509" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_01k9dy1_di" bpmnElement="Flow_01k9dy1">
+        <di:waypoint x="683" y="1140" />
+        <di:waypoint x="683" y="1202" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11y3kim_di" bpmnElement="Flow_11y3kim">
+        <di:waypoint x="555" y="460" />
+        <di:waypoint x="640" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="591" y="442" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_050377t_di" bpmnElement="Flow_050377t">
+        <di:waypoint x="295" y="460" />
+        <di:waypoint x="340" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0ic98nl_di" bpmnElement="Association_0ic98nl">
+        <di:waypoint x="410" y="420" />
+        <di:waypoint x="502" y="236" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

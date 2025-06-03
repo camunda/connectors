@@ -1,0 +1,32 @@
+{
+  "components": [
+    {
+      "text": "# MCP Tool Call Confirmation\n\nThe model requested to call the following MCP tool:\n\n---\n\n#### Tool name\n\n`{{toolCall.params.name}}`\n\n---\n\n#### Arguments\n\n```\n{{toolCall.params.arguments}}```\n",
+      "type": "text",
+      "layout": {
+        "row": "Row_15t4qqk",
+        "columns": null
+      },
+      "id": "Field_0gy0i2y"
+    },
+    {
+      "label": "Allow tool execution?",
+      "type": "checkbox",
+      "layout": {
+        "row": "Row_1h844sr",
+        "columns": null
+      },
+      "id": "Field_1xdnw57",
+      "key": "toolCallAllowed"
+    }
+  ],
+  "type": "default",
+  "id": "MCP_Tool_Call_Confirmation",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.35.0"
+  },
+  "schemaVersion": 18
+}
