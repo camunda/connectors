@@ -824,7 +824,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
   private AgentResponse getAgentResponse(ZeebeTest zeebeTest) throws JsonProcessingException {
     final var agentVariableSearchResult =
         new CamundaDataSource(camundaClient)
-                .findGlobalVariablesByProcessInstanceKey(
+                .findVariablesByProcessInstanceKey(
                     zeebeTest.getProcessInstanceEvent().getProcessInstanceKey())
                 .stream()
                 .filter(variable -> variable.getName().equals("agent"))
