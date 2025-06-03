@@ -8,14 +8,17 @@
       <bpmn:outgoing>Flow_0pbzrme</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_0pbzrme" sourceRef="StartEvent_1" targetRef="Gateway_0z6ctwk" />
-    <bpmn:serviceTask id="AI_Agent" name="AI Agent" zeebe:modelerTemplate="io.camunda.connectors.agenticai.aiagent.v1" zeebe:modelerTemplateVersion="1" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K">
+    <bpmn:serviceTask id="ai-agent" name="AI Agent" zeebe:modelerTemplate="io.camunda.connectors.agenticai.aiagent.v1" zeebe:modelerTemplateVersion="1" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda.agenticai:aiagent:1" retries="3" />
         <zeebe:ioMapping>
-          <zeebe:input source="openai" target="provider.type" />
-          <zeebe:input source="{{secrets.OPENAI_API_KEY}}" target="provider.openai.authentication.apiKey" />
-          <zeebe:input source="gpt-4.1" target="provider.openai.model.model" />
-          <zeebe:input source="You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you have tools available to manage and query your memory, make sure to consult your memory first before asking the user about past interactions or when referring to other people. For example: when the user asks about a specific person, consult your memory first to gather all the needed facts anout that person before giving an answer." target="data.systemPrompt.prompt" />
+          <zeebe:input source="bedrock" target="provider.type" />
+          <zeebe:input source="eu-central-1" target="provider.bedrock.region" />
+          <zeebe:input source="credentials" target="provider.bedrock.authentication.type" />
+          <zeebe:input source="{{secrets.AWS_BEDROCK_ACCESS_KEY}}" target="provider.bedrock.authentication.accessKey" />
+          <zeebe:input source="{{secrets.AWS_BEDROCK_SECRET_KEY}}" target="provider.bedrock.authentication.secretKey" />
+          <zeebe:input source="anthropic.claude-3-5-sonnet-20240620-v1:0" target="provider.bedrock.model.model" />
+          <zeebe:input source="You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you&#39;re not able to look up appropriate data.&#10;&#10;Thinking, step by step, before you execute your tools, you think using the template `&#60;thinking&#62;&#60;context&#62;&#60;/context&#62;&#60;reflection&#62;&#60;/reflection&#62;&#60;/thinking&#62;`" target="data.systemPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput)) then followUpInput else inputText" target="data.userPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput) or is defined(followUpDocuments)) then followUpDocuments else inputDocuments" target="data.userPrompt.documents" />
           <zeebe:input source="Agent_Tools" target="data.tools.containerElementId" />
@@ -25,7 +28,7 @@
           <zeebe:input source="=20" target="data.limits.maxModelCalls" />
           <zeebe:input source="text" target="data.response.format.type" />
           <zeebe:input source="=true" target="data.response.format.includeText" />
-          <zeebe:input source="=true" target="data.response.includeAssistantMessage" />
+          <zeebe:input source="=false" target="data.response.includeAssistantMessage" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="1" />
@@ -39,20 +42,10 @@
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="Gateway_0z6ctwk">
       <bpmn:incoming>Flow_0pbzrme</bpmn:incoming>
-      <bpmn:incoming>Flow_10x2etf</bpmn:incoming>
-      <bpmn:incoming>Flow_0ojrvh4</bpmn:incoming>
+      <bpmn:incoming>Flow_01k9dy1</bpmn:incoming>
+      <bpmn:incoming>Flow_19gp461</bpmn:incoming>
       <bpmn:outgoing>Flow_050377t</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:intermediateCatchEvent id="Event_1ynf9aq" name="Handle user follow up">
-      <bpmn:outgoing>Flow_0ojrvh4</bpmn:outgoing>
-      <bpmn:linkEventDefinition id="LinkEventDefinition_1xhmsl2" name="user_follow_up" />
-    </bpmn:intermediateCatchEvent>
-    <bpmn:intermediateCatchEvent id="Event_11zcrdo" name="Handle tools follow up">
-      <bpmn:outgoing>Flow_10x2etf</bpmn:outgoing>
-      <bpmn:linkEventDefinition id="LinkEventDefinition_0iu6pw3" name="tools_follow_up" />
-    </bpmn:intermediateCatchEvent>
-    <bpmn:sequenceFlow id="Flow_10x2etf" sourceRef="Event_11zcrdo" targetRef="Gateway_0z6ctwk" />
-    <bpmn:sequenceFlow id="Flow_0ojrvh4" sourceRef="Event_1ynf9aq" targetRef="Gateway_0z6ctwk" />
     <bpmn:userTask id="User_Feedback" name="User Feedback">
       <bpmn:extensionElements>
         <zeebe:userTask />
@@ -66,12 +59,8 @@
       <bpmn:outgoing>Flow_19gp461</bpmn:outgoing>
       <bpmn:outgoing>Flow_16c9bwj</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:intermediateThrowEvent id="Event_User_Follow_Up" name="User follow up">
-      <bpmn:incoming>Flow_19gp461</bpmn:incoming>
-      <bpmn:linkEventDefinition id="LinkEventDefinition_1j5h3eh" name="user_follow_up" />
-    </bpmn:intermediateThrowEvent>
     <bpmn:sequenceFlow id="Flow_09y08ef" sourceRef="User_Feedback" targetRef="Gateway_1dcg4ha" />
-    <bpmn:sequenceFlow id="Flow_19gp461" name="no" sourceRef="Gateway_1dcg4ha" targetRef="Event_User_Follow_Up">
+    <bpmn:sequenceFlow id="Flow_19gp461" name="no - we follow up" sourceRef="Gateway_1dcg4ha" targetRef="Gateway_0z6ctwk">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied = null or userSatisfied = false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:endEvent id="Event_0i39jej">
@@ -80,7 +69,7 @@
     <bpmn:sequenceFlow id="Flow_16c9bwj" name="yes" sourceRef="Gateway_1dcg4ha" targetRef="Event_0i39jej">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_041ffce" sourceRef="AI_Agent" targetRef="Gateway_0bukj01" />
+    <bpmn:sequenceFlow id="Flow_041ffce" sourceRef="ai-agent" targetRef="Gateway_0bukj01" />
     <bpmn:exclusiveGateway id="Gateway_0bukj01" name="Includes tool calls?">
       <bpmn:incoming>Flow_041ffce</bpmn:incoming>
       <bpmn:outgoing>Flow_00lg7l2</bpmn:outgoing>
@@ -97,6 +86,38 @@
           <zeebe:loopCharacteristics inputCollection="=agent.toolCalls" inputElement="toolCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         </bpmn:extensionElements>
       </bpmn:multiInstanceLoopCharacteristics>
+      <bpmn:serviceTask id="Filesystem" name="Filesystem" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="filesystem" target="data.client.clientId" />
+            <zeebe:input source="=toolCall.method" target="data.operation.method" />
+            <zeebe:input source="=toolCall.params" target="data.operation.params" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="0" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="OpenMemory" name="OpenMemory" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="openmemory" target="data.client.clientId" />
+            <zeebe:input source="=toolCall.method" target="data.operation.method" />
+            <zeebe:input source="=toolCall.params" target="data.operation.params" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="0" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
       <bpmn:intermediateThrowEvent id="Event_19s4fqs">
         <bpmn:extensionElements>
           <zeebe:properties>
@@ -128,15 +149,10 @@
         <bpmn:outgoing>Flow_0ixfrp0</bpmn:outgoing>
         <bpmn:outgoing>Flow_19yhpei</bpmn:outgoing>
       </bpmn:exclusiveGateway>
-      <bpmn:sequenceFlow id="Flow_0ixfrp0" name="no" sourceRef="Gateway_115zcj9" targetRef="Activity_1lxcmjh" />
-      <bpmn:sequenceFlow id="Flow_085l1z3" sourceRef="Event_19s4fqs" targetRef="Gateway_115zcj9" />
-      <bpmn:sequenceFlow id="Flow_19yhpei" sourceRef="Gateway_115zcj9" targetRef="Activity_0mdux6v">
-        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCall.method = "tools/call"</bpmn:conditionExpression>
-      </bpmn:sequenceFlow>
       <bpmn:exclusiveGateway id="Gateway_0fgu5ui" name="Execution allowed?">
         <bpmn:incoming>Flow_0jw5z8p</bpmn:incoming>
-        <bpmn:outgoing>Flow_0qtq8yf</bpmn:outgoing>
         <bpmn:outgoing>Flow_0688ffj</bpmn:outgoing>
+        <bpmn:outgoing>Flow_0qtq8yf</bpmn:outgoing>
       </bpmn:exclusiveGateway>
       <bpmn:intermediateThrowEvent id="Event_1e3tdvb" name="MCP execution not allowed">
         <bpmn:extensionElements>
@@ -146,13 +162,6 @@
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_0qtq8yf</bpmn:incoming>
       </bpmn:intermediateThrowEvent>
-      <bpmn:sequenceFlow id="Flow_0qtq8yf" name="no" sourceRef="Gateway_0fgu5ui" targetRef="Event_1e3tdvb">
-        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCallAllowed = false</bpmn:conditionExpression>
-      </bpmn:sequenceFlow>
-      <bpmn:sequenceFlow id="Flow_0jw5z8p" sourceRef="Activity_0mdux6v" targetRef="Gateway_0fgu5ui" />
-      <bpmn:sequenceFlow id="Flow_0688ffj" name="yes" sourceRef="Gateway_0fgu5ui" targetRef="Activity_1lxcmjh">
-        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCallAllowed = true</bpmn:conditionExpression>
-      </bpmn:sequenceFlow>
       <bpmn:userTask id="Activity_0mdux6v" name="Ask for confirmation">
         <bpmn:extensionElements>
           <zeebe:userTask />
@@ -161,88 +170,72 @@
         <bpmn:incoming>Flow_19yhpei</bpmn:incoming>
         <bpmn:outgoing>Flow_0jw5z8p</bpmn:outgoing>
       </bpmn:userTask>
-      <bpmn:serviceTask id="OpenMemory" name="OpenMemory" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
-        <bpmn:extensionElements>
-          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
-          <zeebe:ioMapping>
-            <zeebe:input source="openmemory" target="data.client.clientId" />
-            <zeebe:input source="=toolCall.method" target="data.operation.method" />
-            <zeebe:input source="=toolCall.params" target="data.operation.params" />
-          </zeebe:ioMapping>
-          <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="0" />
-            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
-            <zeebe:header key="resultVariable" value="toolCallResult" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
-          </zeebe:taskHeaders>
-        </bpmn:extensionElements>
-      </bpmn:serviceTask>
-      <bpmn:serviceTask id="Filesystem" name="Filesystem" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
-        <bpmn:extensionElements>
-          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
-          <zeebe:ioMapping>
-            <zeebe:input source="filesystem" target="data.client.clientId" />
-            <zeebe:input source="=toolCall.method" target="data.operation.method" />
-            <zeebe:input source="=toolCall.params" target="data.operation.params" />
-          </zeebe:ioMapping>
-          <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="0" />
-            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
-            <zeebe:header key="resultVariable" value="toolCallResult" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
-          </zeebe:taskHeaders>
-        </bpmn:extensionElements>
-      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_085l1z3" sourceRef="Event_19s4fqs" targetRef="Gateway_115zcj9" />
+      <bpmn:sequenceFlow id="Flow_0ixfrp0" name="no" sourceRef="Gateway_115zcj9" targetRef="Activity_1lxcmjh" />
+      <bpmn:sequenceFlow id="Flow_0688ffj" name="yes" sourceRef="Gateway_0fgu5ui" targetRef="Activity_1lxcmjh">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCallAllowed = true</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_19yhpei" sourceRef="Gateway_115zcj9" targetRef="Activity_0mdux6v">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCall.method = "tools/call"</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_0jw5z8p" sourceRef="Activity_0mdux6v" targetRef="Gateway_0fgu5ui" />
+      <bpmn:sequenceFlow id="Flow_0qtq8yf" name="no" sourceRef="Gateway_0fgu5ui" targetRef="Event_1e3tdvb">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCallAllowed = false</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
     </bpmn:adHocSubProcess>
-    <bpmn:intermediateThrowEvent id="Event_1hi12xn" name="Tools follow up">
-      <bpmn:incoming>Flow_01k9dy1</bpmn:incoming>
-      <bpmn:linkEventDefinition id="LinkEventDefinition_05e1y25" name="tools_follow_up" />
-    </bpmn:intermediateThrowEvent>
     <bpmn:sequenceFlow id="Flow_00lg7l2" name="yes" sourceRef="Gateway_0bukj01" targetRef="Agent_Tools">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=not(is empty(agent.toolCalls))</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_01k9dy1" sourceRef="Agent_Tools" targetRef="Event_1hi12xn" />
     <bpmn:sequenceFlow id="Flow_11y3kim" name="no" sourceRef="Gateway_0bukj01" targetRef="User_Feedback">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=is empty(agent.toolCalls)</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_050377t" sourceRef="Gateway_0z6ctwk" targetRef="AI_Agent" />
+    <bpmn:sequenceFlow id="Flow_050377t" sourceRef="Gateway_0z6ctwk" targetRef="ai-agent" />
+    <bpmn:sequenceFlow id="Flow_01k9dy1" sourceRef="Agent_Tools" targetRef="Gateway_0z6ctwk" />
     <bpmn:textAnnotation id="TextAnnotation_0rg9ar3">
       <bpmn:text>Rough outline of the functionality
 
-- Loads previous memory from provided variables
-- Checks limits (e.g. maximum LLM model calls)
+- Loads previous agent context (conversation, metrics, ...)
 - Loads available tool information from ad-hoc sub-process definition
+- Resolves tool information from gateway tool definitions such as MCP
+- Checks limits (e.g. maximum LLM model calls)
 - Merges the current request (either a user message or a tool call response) into the memory
-- Calls the LLM, including previous/edited memory + available tools schema
-- Returns memory trimmed to amount of latest messages
-- Returns last response
+- Calls the LLM, including previous/edited memory (limited to max amount of messages) + available tools schema
+- Returns last response as text or JSON format, depending on the configuration
 - Returns tools to call, including their parameters</bpmn:text>
     </bpmn:textAnnotation>
-    <bpmn:association id="Association_0ic98nl" associationDirection="None" sourceRef="AI_Agent" targetRef="TextAnnotation_0rg9ar3" />
+    <bpmn:association id="Association_0ic98nl" associationDirection="None" sourceRef="ai-agent" targetRef="TextAnnotation_0rg9ar3" />
+    <bpmn:textAnnotation id="TextAnnotation_1keavvi">
+      <bpmn:text>For every tool call in &lt;agent.toolCalls&gt;</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_0q5n90x" associationDirection="None" sourceRef="Agent_Tools" targetRef="TextAnnotation_1keavvi" />
+    <bpmn:textAnnotation id="TextAnnotation_1cvjkfu">
+      <bpmn:text>Every execution (flow node or sequence of flow nodes) MUST write &lt;toolCallResult&gt; variable</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="TextAnnotation_1tvejhg">
+      <bpmn:text>Every task inside of an execution MAY query for external inputs provided by the model through the fromAI helper:
+
+fromAi(toolCall.id, "The user ID", "number")
+
+The outside brain &lt;AI Agent&gt; will take that information to instruct the model which data to provide in which format.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="TextAnnotation_0xt28ql">
+      <bpmn:text>Must produce output as &lt;toolCallResults=[ { id, name, content } ]&gt;</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_14t02ll" associationDirection="None" sourceRef="Agent_Tools" targetRef="TextAnnotation_0xt28ql" />
+    <bpmn:association id="Association_1fwv17d" associationDirection="None" sourceRef="TextAnnotation_1cvjkfu" targetRef="OpenMemory" />
+    <bpmn:association id="Association_0l8l9q2" associationDirection="None" sourceRef="TextAnnotation_1tvejhg" targetRef="OpenMemory" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ai-agent-chat-with-mcp">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
         <dc:Bounds x="152" y="442" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0xj2598_di" bpmnElement="AI_Agent" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+      <bpmndi:BPMNShape id="Activity_0xj2598_di" bpmnElement="ai-agent" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
         <dc:Bounds x="340" y="420" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_0z6ctwk_di" bpmnElement="Gateway_0z6ctwk" isMarkerVisible="true">
         <dc:Bounds x="245" y="435" width="50" height="50" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_1vly22n" bpmnElement="Event_1ynf9aq" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
-        <dc:Bounds x="252" y="352" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="240" y="316" width="60" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_1m69yzg" bpmnElement="Event_11zcrdo" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
-        <dc:Bounds x="252" y="532" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="239" y="575" width="62" height="27" />
-        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1fam9db_di" bpmnElement="User_Feedback">
         <dc:Bounds x="640" y="420" width="100" height="80" />
@@ -254,12 +247,6 @@
           <dc:Bounds x="794" y="492" width="73" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_07erbg0_di" bpmnElement="Event_User_Follow_Up" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
-        <dc:Bounds x="812" y="352" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="795" y="333" width="70" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_0i39jej_di" bpmnElement="Event_0i39jej">
         <dc:Bounds x="912" y="442" width="36" height="36" />
       </bpmndi:BPMNShape>
@@ -269,97 +256,99 @@
           <dc:Bounds x="499" y="406" width="62" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="Agent_Tools" isExpanded="true">
-        <dc:Bounds x="480" y="560" width="530" height="580" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_19s4fqs_di" bpmnElement="Event_19s4fqs">
-        <dc:Bounds x="532" y="822" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_04601bs_di" bpmnElement="Activity_1lxcmjh">
-        <dc:Bounds x="740" y="800" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_115zcj9_di" bpmnElement="Gateway_115zcj9" isMarkerVisible="true">
-        <dc:Bounds x="615" y="815" width="50" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="612" y="791" width="56" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_0fgu5ui_di" bpmnElement="Gateway_0fgu5ui" isMarkerVisible="true">
-        <dc:Bounds x="765" y="955" width="50" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="766" y="1012" width="49" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1e3tdvb_di" bpmnElement="Event_1e3tdvb">
-        <dc:Bounds x="892" y="962" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="873" y="1005" width="75" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0ke4gic_di" bpmnElement="Activity_0mdux6v">
-        <dc:Bounds x="590" y="940" width="100" height="80" />
+      <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="Agent_Tools" isExpanded="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="640" y="560" width="440" height="580" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_1mw2r64" bpmnElement="Filesystem">
-        <dc:Bounds x="550" y="640" width="100" height="80" />
+        <dc:Bounds x="690" y="600" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1fx0n0u_di" bpmnElement="OpenMemory">
-        <dc:Bounds x="670" y="640" width="100" height="80" />
+        <dc:Bounds x="810" y="600" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_0ixfrp0_di" bpmnElement="Flow_0ixfrp0">
-        <di:waypoint x="665" y="840" />
-        <di:waypoint x="740" y="840" />
+      <bpmndi:BPMNShape id="Event_19s4fqs_di" bpmnElement="Event_19s4fqs">
+        <dc:Bounds x="687" y="782" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_04601bs_di" bpmnElement="Activity_1lxcmjh">
+        <dc:Bounds x="860" y="760" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_115zcj9_di" bpmnElement="Gateway_115zcj9" isMarkerVisible="true">
+        <dc:Bounds x="770" y="775" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="696" y="822" width="13" height="14" />
+          <dc:Bounds x="767" y="751" width="56" height="14" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0fgu5ui_di" bpmnElement="Gateway_0fgu5ui" isMarkerVisible="true">
+        <dc:Bounds x="885" y="915" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="886" y="972" width="49" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1e3tdvb_di" bpmnElement="Event_1e3tdvb">
+        <dc:Bounds x="982" y="922" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="963" y="965" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ke4gic_di" bpmnElement="Activity_0mdux6v">
+        <dc:Bounds x="745" y="900" width="100" height="80" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_085l1z3_di" bpmnElement="Flow_085l1z3">
-        <di:waypoint x="568" y="840" />
-        <di:waypoint x="615" y="840" />
+        <di:waypoint x="723" y="800" />
+        <di:waypoint x="770" y="800" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_19yhpei_di" bpmnElement="Flow_19yhpei">
-        <di:waypoint x="640" y="865" />
-        <di:waypoint x="640" y="940" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0qtq8yf_di" bpmnElement="Flow_0qtq8yf">
-        <di:waypoint x="815" y="980" />
-        <di:waypoint x="892" y="980" />
+      <bpmndi:BPMNEdge id="Flow_0ixfrp0_di" bpmnElement="Flow_0ixfrp0">
+        <di:waypoint x="820" y="800" />
+        <di:waypoint x="860" y="800" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="847" y="962" width="13" height="14" />
+          <dc:Bounds x="833" y="782" width="13" height="14" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0jw5z8p_di" bpmnElement="Flow_0jw5z8p">
-        <di:waypoint x="690" y="980" />
-        <di:waypoint x="765" y="980" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0688ffj_di" bpmnElement="Flow_0688ffj">
-        <di:waypoint x="790" y="955" />
-        <di:waypoint x="790" y="880" />
+        <di:waypoint x="910" y="915" />
+        <di:waypoint x="910" y="840" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="801" y="923" width="18" height="14" />
+          <dc:Bounds x="888" y="876" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="Event_0gbt4n4_di" bpmnElement="Event_1hi12xn" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
-        <dc:Bounds x="665" y="1202" width="36" height="36" />
+      <bpmndi:BPMNEdge id="Flow_19yhpei_di" bpmnElement="Flow_19yhpei">
+        <di:waypoint x="795" y="825" />
+        <di:waypoint x="795" y="900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0jw5z8p_di" bpmnElement="Flow_0jw5z8p">
+        <di:waypoint x="845" y="940" />
+        <di:waypoint x="885" y="940" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0qtq8yf_di" bpmnElement="Flow_0qtq8yf">
+        <di:waypoint x="935" y="940" />
+        <di:waypoint x="982" y="940" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="647" y="1245" width="73" height="14" />
+          <dc:Bounds x="952" y="922" width="13" height="14" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="TextAnnotation_0rg9ar3_di" bpmnElement="TextAnnotation_0rg9ar3">
-        <dc:Bounds x="401" y="80" width="578" height="156" />
+        <dc:Bounds x="401" y="80" width="578" height="170" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1keavvi_di" bpmnElement="TextAnnotation_1keavvi">
+        <dc:Bounds x="1080" y="510" width="240" height="26" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1cvjkfu_di" bpmnElement="TextAnnotation_1cvjkfu">
+        <dc:Bounds x="1210" y="660" width="260" height="60" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1tvejhg_di" bpmnElement="TextAnnotation_1tvejhg">
+        <dc:Bounds x="1210" y="740" width="286" height="142" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_0xt28ql_di" bpmnElement="TextAnnotation_0xt28ql">
+        <dc:Bounds x="1190" y="1090" width="370" height="26" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0pbzrme_di" bpmnElement="Flow_0pbzrme">
         <di:waypoint x="188" y="460" />
         <di:waypoint x="245" y="460" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_10x2etf_di" bpmnElement="Flow_10x2etf">
-        <di:waypoint x="270" y="532" />
-        <di:waypoint x="270" y="485" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0ojrvh4_di" bpmnElement="Flow_0ojrvh4">
-        <di:waypoint x="270" y="388" />
-        <di:waypoint x="270" y="435" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_09y08ef_di" bpmnElement="Flow_09y08ef">
         <di:waypoint x="740" y="460" />
@@ -367,9 +356,11 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_19gp461_di" bpmnElement="Flow_19gp461">
         <di:waypoint x="830" y="435" />
-        <di:waypoint x="830" y="388" />
+        <di:waypoint x="830" y="350" />
+        <di:waypoint x="270" y="350" />
+        <di:waypoint x="270" y="435" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="839" y="408" width="13" height="14" />
+          <dc:Bounds x="748" y="333" width="83" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_16c9bwj_di" bpmnElement="Flow_16c9bwj">
@@ -385,14 +376,11 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_00lg7l2_di" bpmnElement="Flow_00lg7l2">
         <di:waypoint x="530" y="485" />
-        <di:waypoint x="530" y="560" />
+        <di:waypoint x="530" y="850" />
+        <di:waypoint x="640" y="850" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="507" y="509" width="18" height="14" />
+          <dc:Bounds x="541" y="483" width="18" height="14" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_01k9dy1_di" bpmnElement="Flow_01k9dy1">
-        <di:waypoint x="683" y="1140" />
-        <di:waypoint x="683" y="1202" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_11y3kim_di" bpmnElement="Flow_11y3kim">
         <di:waypoint x="555" y="460" />
@@ -405,9 +393,32 @@
         <di:waypoint x="295" y="460" />
         <di:waypoint x="340" y="460" />
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_01k9dy1_di" bpmnElement="Flow_01k9dy1">
+        <di:waypoint x="1080" y="850" />
+        <di:waypoint x="1150" y="850" />
+        <di:waypoint x="1150" y="1210" />
+        <di:waypoint x="270" y="1210" />
+        <di:waypoint x="270" y="485" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Association_0ic98nl_di" bpmnElement="Association_0ic98nl">
         <di:waypoint x="410" y="420" />
-        <di:waypoint x="502" y="236" />
+        <di:waypoint x="495" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0q5n90x_di" bpmnElement="Association_0q5n90x">
+        <di:waypoint x="1080" y="620" />
+        <di:waypoint x="1124" y="536" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_14t02ll_di" bpmnElement="Association_14t02ll">
+        <di:waypoint x="1080" y="964" />
+        <di:waypoint x="1223" y="1090" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_1fwv17d_di" bpmnElement="Association_1fwv17d">
+        <di:waypoint x="1210" y="676" />
+        <di:waypoint x="910" y="645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0l8l9q2_di" bpmnElement="Association_0l8l9q2">
+        <di:waypoint x="1210" y="764" />
+        <di:waypoint x="910" y="667" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
