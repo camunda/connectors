@@ -63,18 +63,25 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
+import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
 import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
@@ -90,6 +97,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -97,12 +105,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
+  private static final String AI_AGENT_TASK_ID = "AI_Agent";
 
   @RegisterExtension
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
   @Autowired private ResourceLoader resourceLoader;
+
+  @Value("classpath:agentic-ai-connectors.bpmn")
+  private Resource process;
 
   @MockitoBean private ChatModelFactory chatModelFactory;
   @Mock private ChatModel chatModel;
@@ -729,6 +741,51 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
               msg -> msg instanceof io.camunda.connector.agenticai.model.message.UserMessage)
           .hasSize(expectedMaxModelCalls);
     }
+  }
+
+  private ZeebeTest createProcessInstance(Map<String, Object> variables) throws IOException {
+    return createProcessInstance(m -> m, variables);
+  }
+
+  private ZeebeTest createProcessInstance(
+      Function<BpmnModelInstance, BpmnModelInstance> modelModifier, Map<String, Object> variables)
+      throws IOException {
+    final var originalModel = Bpmn.readModelFromFile(process.getFile());
+    final var modifiedModel = modelModifier.apply(originalModel);
+    return deployModel(modifiedModel).createInstance(variables);
+  }
+
+  private Function<BpmnModelInstance, BpmnModelInstance> withoutInputsMatching(
+      Predicate<ZeebeInput> filter) {
+    return (model) -> {
+      final var inputs = getModelInputs(model);
+
+      final var toRemove = inputs.stream().filter(filter).toList();
+      inputs.removeAll(toRemove);
+
+      return model;
+    };
+  }
+
+  private Function<BpmnModelInstance, BpmnModelInstance> withModifiedInputs(
+      Map<String, Consumer<ZeebeInput>> modifiers) {
+    return (model) -> {
+      final var inputs = getModelInputs(model);
+
+      for (final var input : inputs) {
+        final var modifier = modifiers.get(input.getTarget());
+        if (modifier != null) {
+          modifier.accept(input);
+        }
+      }
+
+      return model;
+    };
+  }
+
+  private Collection<ZeebeInput> getModelInputs(BpmnModelInstance model) {
+    final ServiceTask aiAgentTask = model.getModelElementById(AI_AGENT_TASK_ID);
+    return aiAgentTask.getSingleExtensionElement(ZeebeIoMapping.class).getInputs();
   }
 
   private void mockChatInteractions(ChatInteraction... chatInteractions) {

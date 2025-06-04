@@ -26,18 +26,10 @@ import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
 
@@ -52,33 +44,26 @@ import org.springframework.core.io.Resource;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
 public abstract class BaseAgenticAiTest {
-
-  static final String PROCESS_DEFINITION_ID = "Agentic_AI_Connectors";
-  static final String AI_AGENT_TASK_ID = "AI_Agent";
-
   @Autowired CamundaClient camundaClient;
   @Autowired ObjectMapper objectMapper;
 
-  @Value("classpath:agentic-ai-connectors.bpmn")
-  Resource process;
-
-  protected ZeebeTest createProcessInstance(Map<String, Object> variables) throws IOException {
-    return createProcessInstance(m -> m, variables);
+  protected ZeebeTest createProcessInstance(Resource model, Map<String, Object> variables)
+      throws IOException {
+    return createProcessInstance(Bpmn.readModelFromFile(model.getFile()), variables);
   }
 
   protected ZeebeTest createProcessInstance(
-      Function<BpmnModelInstance, BpmnModelInstance> modelModifier, Map<String, Object> variables)
-      throws IOException {
-    return deployModel(modelModifier).createInstance(variables);
+      BpmnModelInstance model, Map<String, Object> variables) {
+    return deployModel(model).createInstance(variables);
   }
 
-  protected ZeebeTest deployModel(Function<BpmnModelInstance, BpmnModelInstance> modelModifier)
-      throws IOException {
-    final var originalModel = Bpmn.readModelFromFile(process.getFile());
-    final var modifiedModel = modelModifier.apply(originalModel);
+  protected ZeebeTest deployModel(BpmnModelInstance model) {
+    final var process =
+        model.getDefinitions().getRootElements().stream()
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("No process found in the model"));
 
-    ZeebeTest zeebeTest =
-        ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(modifiedModel);
+    ZeebeTest zeebeTest = ZeebeTest.with(camundaClient).awaitCompleteTopology().deploy(model);
 
     await()
         .pollInSameThread()
@@ -88,7 +73,7 @@ public abstract class BaseAgenticAiTest {
               final var processDefinitions =
                   camundaClient
                       .newProcessDefinitionSearchRequest()
-                      .filter(filter -> filter.processDefinitionId(PROCESS_DEFINITION_ID))
+                      .filter(filter -> filter.processDefinitionId(process.getId()))
                       .send()
                       .join();
 
@@ -96,38 +81,5 @@ public abstract class BaseAgenticAiTest {
             });
 
     return zeebeTest;
-  }
-
-  protected Function<BpmnModelInstance, BpmnModelInstance> withoutInputsMatching(
-      Predicate<ZeebeInput> filter) {
-    return (model) -> {
-      final var inputs = getModelInputs(model);
-
-      final var toRemove = inputs.stream().filter(filter).toList();
-      inputs.removeAll(toRemove);
-
-      return model;
-    };
-  }
-
-  protected Function<BpmnModelInstance, BpmnModelInstance> withModifiedInputs(
-      Map<String, Consumer<ZeebeInput>> modifiers) {
-    return (model) -> {
-      final var inputs = getModelInputs(model);
-
-      for (final var input : inputs) {
-        final var modifier = modifiers.get(input.getTarget());
-        if (modifier != null) {
-          modifier.accept(input);
-        }
-      }
-
-      return model;
-    };
-  }
-
-  protected Collection<ZeebeInput> getModelInputs(BpmnModelInstance model) {
-    final ServiceTask aiAgentTask = model.getModelElementById(AI_AGENT_TASK_ID);
-    return aiAgentTask.getSingleExtensionElement(ZeebeIoMapping.class).getInputs();
   }
 }

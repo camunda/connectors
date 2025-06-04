@@ -33,13 +33,17 @@ import org.springframework.core.io.Resource;
 @SlowTest
 public class AdHocToolsSchemaTests extends BaseAgenticAiTest {
 
+  @Value("classpath:agentic-ai-connectors.bpmn")
+  private Resource process;
+
   @Value("classpath:expected-schema-result.json")
   private Resource expectedSchemaResult;
 
   @Test
   void loadsAdHocToolsSchema() throws IOException {
     final var zeebeTest =
-        createProcessInstance(Map.of("action", "resolveSchema")).waitForProcessCompletion();
+        createProcessInstance(process, Map.of("action", "resolveSchema"))
+            .waitForProcessCompletion();
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableNames("resolvedSchema");
