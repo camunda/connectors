@@ -26,12 +26,10 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
-import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
@@ -48,7 +46,7 @@ public class AdHocToolsSchemaTests extends BaseAgenticAiTest {
   private Resource expectedSchemaResult;
 
   @Test
-  void loadsAdHocToolsSchema(@TempDir File tempDir) throws IOException {
+  void loadsAdHocToolsSchema() throws IOException {
     var elementTemplate =
         ElementTemplate.from(AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH)
             .property("data.containerElementId", "Agent_Tools")
@@ -56,8 +54,7 @@ public class AdHocToolsSchemaTests extends BaseAgenticAiTest {
             .writeTo(new File(tempDir, "template.json"));
 
     var updatedModel =
-        new BpmnFile(Bpmn.readModelFromFile(process.getFile()))
-            .writeToFile(new File(tempDir, "tmp.bpmn"))
+        new BpmnFile(process.getFile())
             .apply(elementTemplate, SCHEMA_RESOLVER_ELEMENT_ID, new File(tempDir, "updated.bpmn"));
 
     final var zeebeTest =

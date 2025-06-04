@@ -24,14 +24,13 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
-import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import java.io.IOException;
+import java.io.File;
 import java.time.Duration;
 import java.util.Map;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.Resource;
 
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
@@ -47,16 +46,13 @@ public abstract class BaseAgenticAiTest {
   @Autowired CamundaClient camundaClient;
   @Autowired ObjectMapper objectMapper;
 
+  @TempDir protected File tempDir;
+
   protected static final String AI_AGENT_ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/element-templates/agenticai-aiagent-outbound-connector.json";
 
   protected static final String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
-
-  protected ZeebeTest createProcessInstance(Resource model, Map<String, Object> variables)
-      throws IOException {
-    return createProcessInstance(Bpmn.readModelFromFile(model.getFile()), variables);
-  }
 
   protected ZeebeTest createProcessInstance(
       BpmnModelInstance model, Map<String, Object> variables) {

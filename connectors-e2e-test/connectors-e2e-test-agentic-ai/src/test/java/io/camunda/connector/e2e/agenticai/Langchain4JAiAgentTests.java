@@ -59,29 +59,24 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.e2e.BpmnFile;
+import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
-import io.camunda.zeebe.model.bpmn.Bpmn;
-import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
 import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
@@ -106,6 +101,24 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 @SlowTest
 public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
   private static final String AI_AGENT_TASK_ID = "AI_Agent";
+  private static final Map<String, String> ELEMENT_TEMPLATE_PROPERTIES =
+      Map.ofEntries(
+          Map.entry("provider.type", "openai"),
+          Map.entry("provider.openai.authentication.apiKey", "DUMMY_API_KEY"),
+          Map.entry("provider.openai.model.model", "gpt-4o"),
+          Map.entry(
+              "data.systemPrompt.prompt",
+              "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
+          Map.entry(
+              "data.userPrompt.prompt",
+              "=if (is defined(followUpUserPrompt)) then followUpUserPrompt else userPrompt"),
+          Map.entry(
+              "data.userPrompt.documents",
+              "=if (is defined(followUpUserPrompt)) then [] else downloadedFiles"),
+          Map.entry("data.tools.containerElementId", "Agent_Tools"),
+          Map.entry("data.tools.toolCallResults", "=toolCallResults"),
+          Map.entry("data.memory.maxMessages", "=50"),
+          Map.entry("data.response.includeAssistantMessage", "=true"));
 
   @RegisterExtension
   static WireMockExtension wm =
@@ -173,17 +186,21 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
 
     @Test
     void executesAgentWithoutUserFeedback() throws Exception {
-      testBasicExecutionWithoutFeedbackLoop(m -> m, true);
+      testBasicExecutionWithoutFeedbackLoop(e -> e, true, true, true);
     }
 
     @Test
     void basicExecutionWorksWithoutOptionalConfiguration() throws Exception {
       testBasicExecutionWithoutFeedbackLoop(
-          withoutInputsMatching(
-              i ->
-                  i.getTarget().startsWith("data.tools.")
-                      || i.getTarget().startsWith("data.memory.")
-                      || i.getTarget().startsWith("data.limits.")),
+          elementTemplate -> {
+            for (String prefix :
+                List.of("data.tools.", "data.memory.", "data.limits.", "data.response.")) {
+              elementTemplate = elementTemplate.withoutPropertyValueStartingWith(prefix);
+            }
+            return elementTemplate;
+          },
+          false,
+          true, // defaults to response text
           false);
 
       verify(schemaResolver, never()).resolveSchema(any(), any());
@@ -192,22 +209,22 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
     @Nested
     class Response {
       @Test
-      void fallsBackToResponseTextWhenConfigurationIsMissing() throws Exception {
+      void fallsBackToResponseTextWhenNoResponsePropertiesAreConfigured() throws Exception {
         testBasicExecutionWithoutFeedbackLoop(
-            withoutInputsMatching(i -> i.getTarget().startsWith("data.response.")),
+            elementTemplate -> elementTemplate.withoutPropertyValueStartingWith("data.response."),
             false,
             true,
             false);
       }
 
       @Test
-      void returnsOnlyResponseTextIfConfigured() throws Exception {
+      void returnsResponseTextIfConfigured() throws Exception {
         testBasicExecutionWithoutFeedbackLoop(
-            withModifiedInputs(
-                Map.ofEntries(
-                    Map.entry("data.response.format.includeText", i -> i.setSource("=true")),
-                    Map.entry(
-                        "data.response.includeAssistantMessage", i -> i.setSource("=false")))),
+            elementTemplate ->
+                elementTemplate
+                    .property("data.response.format.type", "text")
+                    .property("data.response.format.includeText", "=true")
+                    .property("data.response.includeAssistantMessage", "=false"),
             false,
             true,
             false);
@@ -216,25 +233,32 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
       @Test
       void returnsOnlyResponseMessageIfConfigured() throws Exception {
         testBasicExecutionWithoutFeedbackLoop(
-            withModifiedInputs(
-                Map.ofEntries(
-                    Map.entry("data.response.format.includeText", i -> i.setSource("=false")),
-                    Map.entry("data.response.includeAssistantMessage", i -> i.setSource("=true")))),
+            elementTemplate ->
+                elementTemplate
+                    .property("data.response.format.type", "text")
+                    .property("data.response.format.includeText", "=false")
+                    .property("data.response.includeAssistantMessage", "=true"),
+            true,
             false,
-            false,
+            true);
+      }
+
+      @Test
+      void returnsBothResponseTextAndMessageIfConfigured() throws Exception {
+        testBasicExecutionWithoutFeedbackLoop(
+            elementTemplate ->
+                elementTemplate
+                    .property("data.response.format.type", "text")
+                    .property("data.response.format.includeText", "=true")
+                    .property("data.response.includeAssistantMessage", "=true"),
+            true,
+            true,
             true);
       }
     }
 
     private void testBasicExecutionWithoutFeedbackLoop(
-        Function<BpmnModelInstance, BpmnModelInstance> modelModifier,
-        boolean assertToolSpecifications)
-        throws Exception {
-      testBasicExecutionWithoutFeedbackLoop(modelModifier, assertToolSpecifications, true, true);
-    }
-
-    private void testBasicExecutionWithoutFeedbackLoop(
-        Function<BpmnModelInstance, BpmnModelInstance> modelModifier,
+        Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
         boolean assertToolSpecifications,
         boolean expectResponseText,
         boolean expectResponseMessage)
@@ -264,7 +288,8 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
 
       final var zeebeTest =
           createProcessInstance(
-                  modelModifier, Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+                  elementTemplateModifier,
+                  Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
               .waitForProcessCompletion();
 
       assertLastChatRequest(1, expectedConversation, assertToolSpecifications);
@@ -676,19 +701,26 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
 
     @Test
     void raisesIncidentWhenMaximumModelCallsAreReached() throws Throwable {
-      // 9 = custom value set in the process definition
-      testMaxModelCallsLoop(m -> m, 9);
+      testMaxModelCallsLoop(
+          elementTemplate -> elementTemplate.property("data.limits.maxModelCalls", "9"), 9);
     }
 
     @Test
-    void fallsBackToADefaultMaxModelCallsLimitWhenNoLimitIsConfigured() throws Throwable {
-      // 10 = default value
+    void fallsBackToADefaultMaxModelCallsLimitWhenNotExplicitelyConfigured() throws Throwable {
+      // 10 = default value defined in template
+      testMaxModelCallsLoop(e -> e, 10);
+    }
+
+    @Test
+    void fallsBackToADefaultMaxModelCallsLimitWhenMissingFromConfiguration() throws Throwable {
+      // 10 = hardcoded default value in agent logic
       testMaxModelCallsLoop(
-          withoutInputsMatching(input -> input.getTarget().startsWith("data.limits.")), 10);
+          elementTemplate -> elementTemplate.withoutPropertyValue("data.limits.maxModelCalls"), 10);
     }
 
     private void testMaxModelCallsLoop(
-        Function<BpmnModelInstance, BpmnModelInstance> modelModifier, int expectedMaxModelCalls)
+        Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+        int expectedMaxModelCalls)
         throws Throwable {
       // infinite loop - always returning the same answer and handling the same user feedback
       doAnswer(
@@ -710,7 +742,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
 
       final var zeebeTest =
           createProcessInstance(
-                  modelModifier,
+                  elementTemplateModifier,
                   Map.of("action", "executeAgent", "userPrompt", "Write a haiku about the sea"))
               .waitForActiveIncidents();
 
@@ -744,48 +776,23 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
   }
 
   private ZeebeTest createProcessInstance(Map<String, Object> variables) throws IOException {
-    return createProcessInstance(m -> m, variables);
+    return createProcessInstance(e -> e, variables);
   }
 
   private ZeebeTest createProcessInstance(
-      Function<BpmnModelInstance, BpmnModelInstance> modelModifier, Map<String, Object> variables)
+      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+      Map<String, Object> variables)
       throws IOException {
-    final var originalModel = Bpmn.readModelFromFile(process.getFile());
-    final var modifiedModel = modelModifier.apply(originalModel);
-    return deployModel(modifiedModel).createInstance(variables);
-  }
+    var elementTemplate = ElementTemplate.from(AI_AGENT_ELEMENT_TEMPLATE_PATH);
+    ELEMENT_TEMPLATE_PROPERTIES.forEach(elementTemplate::property);
+    elementTemplate = elementTemplateModifier.apply(elementTemplate);
 
-  private Function<BpmnModelInstance, BpmnModelInstance> withoutInputsMatching(
-      Predicate<ZeebeInput> filter) {
-    return (model) -> {
-      final var inputs = getModelInputs(model);
+    final var elementTemplateFile = elementTemplate.writeTo(new File(tempDir, "template.json"));
+    final var updatedModel =
+        new BpmnFile(process.getFile())
+            .apply(elementTemplateFile, AI_AGENT_TASK_ID, new File(tempDir, "updated.bpmn"));
 
-      final var toRemove = inputs.stream().filter(filter).toList();
-      inputs.removeAll(toRemove);
-
-      return model;
-    };
-  }
-
-  private Function<BpmnModelInstance, BpmnModelInstance> withModifiedInputs(
-      Map<String, Consumer<ZeebeInput>> modifiers) {
-    return (model) -> {
-      final var inputs = getModelInputs(model);
-
-      for (final var input : inputs) {
-        final var modifier = modifiers.get(input.getTarget());
-        if (modifier != null) {
-          modifier.accept(input);
-        }
-      }
-
-      return model;
-    };
-  }
-
-  private Collection<ZeebeInput> getModelInputs(BpmnModelInstance model) {
-    final ServiceTask aiAgentTask = model.getModelElementById(AI_AGENT_TASK_ID);
-    return aiAgentTask.getSingleExtensionElement(ZeebeIoMapping.class).getInputs();
+    return deployModel(updatedModel).createInstance(variables);
   }
 
   private void mockChatInteractions(ChatInteraction... chatInteractions) {
