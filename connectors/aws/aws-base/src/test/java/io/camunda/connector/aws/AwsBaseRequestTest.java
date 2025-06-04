@@ -41,7 +41,7 @@ class AwsBaseRequestTest {
   }
 
   @Test
-  void shouldReturnTrue_WhenSaaSAndDifferentAuthIsUsed() {
+  void shouldReturnFalse_WhenSaaSAndDifferentAuthIsUsed() {
     AwsBaseRequest request = new AwsBaseRequest();
     request.setAuthentication(
         new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
