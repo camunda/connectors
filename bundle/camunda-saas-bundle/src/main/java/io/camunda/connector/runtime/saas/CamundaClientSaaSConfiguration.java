@@ -53,6 +53,9 @@ public class CamundaClientSaaSConfiguration {
   @Value("${camunda.client.auth.audience}")
   private String camundaClientAudience;
 
+  @Value("${camunda.client.auth.credentials-cache-path:/tmp/connectors}")
+  private String credentialsCachePath;
+
   public CamundaClientSaaSConfiguration(@Autowired SaaSSecretConfiguration saaSConfiguration) {
     this.internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
   }
@@ -81,6 +84,7 @@ public class CamundaClientSaaSConfiguration {
     builder.clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET));
     builder.authorizationServerUrl(camundaClientTokenUrl);
     builder.audience(camundaClientAudience);
+    builder.credentialsCachePath(credentialsCachePath);
     return builder.build();
   }
 }
