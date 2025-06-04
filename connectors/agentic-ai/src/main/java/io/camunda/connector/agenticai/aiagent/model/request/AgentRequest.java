@@ -172,9 +172,7 @@ Reveal **no** additional private reasoning outside these tags.
                         + "for details.",
                 type = TemplateProperty.PropertyType.Number,
                 defaultValue = "20",
-                defaultValueType = TemplateProperty.DefaultValueType.Number,
-                constraints = @PropertyConstraints(notEmpty = true))
-            @NotNull
+                defaultValueType = TemplateProperty.DefaultValueType.Number)
             @Min(3)
             Integer maxMessages) {}
 
@@ -188,7 +186,6 @@ Reveal **no** additional private reasoning outside these tags.
                 type = TemplateProperty.PropertyType.Number,
                 defaultValue = "10",
                 defaultValueType = TemplateProperty.DefaultValueType.Number)
-            @NotNull
             @Min(1)
             Integer maxModelCalls) {}
   }

@@ -677,9 +677,6 @@
     "description" : "Maximum number of recent messages the AI agent retains in short-term memory during a conversation.",
     "optional" : false,
     "value" : 20,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "static",
     "group" : "memory",
     "binding" : {
@@ -694,9 +691,6 @@
     "description" : "Maximum number of calls to the model as a safety limit to prevent infinite loops.",
     "optional" : false,
     "value" : 10,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "static",
     "group" : "limits",
     "binding" : {
