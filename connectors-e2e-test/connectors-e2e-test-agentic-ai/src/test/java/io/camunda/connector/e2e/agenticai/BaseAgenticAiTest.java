@@ -47,6 +47,12 @@ public abstract class BaseAgenticAiTest {
   @Autowired CamundaClient camundaClient;
   @Autowired ObjectMapper objectMapper;
 
+  protected static final String AI_AGENT_ELEMENT_TEMPLATE_PATH =
+      "../../connectors/agentic-ai/element-templates/agenticai-aiagent-outbound-connector.json";
+
+  protected static final String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
+      "../../connectors/agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
+
   protected ZeebeTest createProcessInstance(Resource model, Map<String, Object> variables)
       throws IOException {
     return createProcessInstance(Bpmn.readModelFromFile(model.getFile()), variables);
