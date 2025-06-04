@@ -30,6 +30,7 @@
       "list repository contributors",
       "create organization invitation",
       "get repository content",
+      "create or update file contents",
       "list code scanning alerts for a repository",
       "list code scanning alerts for an organization",
       "create a workflow dispatch event",
@@ -284,6 +285,10 @@
         {
           "name": "Get repository content",
           "value": "getRepoContent"
+        },
+        {
+          "name": "Create or Update File Content",
+          "value": "uploadFile"
         }
       ],
       "condition": {
@@ -743,6 +748,22 @@
       }
     },
     {
+      "id": "uploadFileMethod",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "put",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
+        ]
+      }
+    },
+    {
       "label": "Owner",
       "description": "Repository owner",
       "group": "configuration",
@@ -847,7 +868,8 @@
           "deleteRepo",
           "updateRepo",
           "listRepoContributors",
-          "getRepoContent"
+          "getRepoContent",
+          "uploadFile"
         ]
       }
     },
@@ -1049,7 +1071,8 @@
           "deleteRepo",
           "updateRepo",
           "listRepoContributors",
-          "getRepoContent"
+          "getRepoContent",
+          "uploadFile"
         ]
       }
     },
@@ -2161,7 +2184,8 @@
       "condition": {
         "property": "reposOperationType",
         "oneOf": [
-          "getRepoContent"
+          "getRepoContent",
+          "uploadFile"
         ]
       }
     },
@@ -2182,6 +2206,264 @@
         "oneOf": [
           "getRepoContent"
         ]
+      }
+    },
+    {
+      "label": "Branch",
+      "description": "The name of the branch. Default: the repository's main branch",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "branch"
+      },
+      "optional": true,
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
+        ]
+      }
+    },
+    {
+      "label": "Message",
+      "description": "The commit message for the file upload",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "default": "Added file",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "commitMessage"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
+        ]
+      }
+    },
+    {
+      "label": "SHA",
+      "description": "Required if you are updating a file. The blob SHA of the file being replaced.",
+      "group": "input",
+      
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "sha"
+      },
+      "constraints": {
+        "pattern": {
+          "value": "^(=|.{40}|$)",
+          "message": "must consist of 40 characters."
+        },
+        "notEmpty": false
+      },
+      
+      "optional": true,
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
+        ]
+      }
+    },
+    {
+      "label": "Content",
+      "description": "The file to be uploaded. Please check the checkbox below, if it is already base64 encoded",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "content"
+      },
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
+        ]
+      }
+    },
+    {
+      "label": "Content is base64 encoded",
+      "description": "As uploaded content needs to be base64 encoded, you can check this box if the content is already encoded. Otherwise, it will be encoded for you",
+      "group": "input",
+      "type": "Boolean",
+      "default": "=false",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "isBase64Encoded"
+      },
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
+        ]
+      }
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "=if isBase64Encoded then content else to base64(content)",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "b64content"
+      }
+    },
+    {
+      "id": "useCustomCommitter",
+      "label": "Use custom committer",
+      "description": "By default, the committer is the user associated with the access token. Check this box to use a custom committer",
+      "group": "input",
+      "value": false,
+      "type": "Boolean",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "useCustomCommitter"
+      },
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
+        ]
+      }
+    },
+    {
+      "label": "Comitter name",
+      "description": "The name of the person that made the commit",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "committerName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "useCustomCommitter",
+        "equals": true,
+        "type": "simple"
+      }
+    },
+    {
+      "label": "Comitter email",
+      "description": "The email of the person that made the commit",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "committerEmail"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "useCustomCommitter",
+        "equals": true,
+        "type": "simple"
+      }
+    },
+    {
+      "label": "Commit date",
+      "description": "The date of the commit, using ISO-8601",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "committerDate"
+      },
+      "condition": {
+        "property": "useCustomCommitter",
+        "equals": true,
+        "type": "simple"
+      }
+    },
+    {
+      "id": "useCustomAuthor",
+      "label": "Use custom author",
+      "description": "By default, the author is the user associated with the access token. Check this box to use a custom author",
+      "group": "input",
+      "value": false,
+      "type": "Boolean",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "useCustomAuthor"
+      },
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
+        ]
+      }
+    },
+    {
+      "label": "Author name",
+      "description": "The name of the author of the commit",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authorName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "useCustomAuthor",
+        "equals": true,
+        "type": "simple"
+      }
+    },
+    {
+      "label": "Author email",
+      "description": "The email of the author of the commit",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authorEmail"
+      },
+      "constraints": {
+          "notEmpty": true
+      },
+      "condition": {
+        "property": "useCustomAuthor",
+        "equals": true,
+        "type": "simple"
+      }
+    },
+
+    {
+      "label": "Author date",
+      "description": "The authoring date, using ISO-8601",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authorDate"
+      },
+      "condition": {
+        "property": "useCustomAuthor",
+        "equals": true,
+        "type": "simple"
       }
     },
     {
@@ -2275,6 +2557,22 @@
         "property": "reposOperationType",
         "oneOf": [
           "orgInvitation"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "=context merge({\"message\": commitMessage, \"content\": b64content}, if sha != null then {\"sha\": sha} else {}, if branch != null then {\"branch\": branch} else {}, if committerName != null and committerEmail != null then {\"committer\": {\"name\": committerName, \"email\": committerEmail, \"date\": committerDate}} else {}, if authorName != null and authorEmail != null then {\"author\": {\"name\": authorName, \"email\": authorEmail, \"date\": authorDate }} else {})",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
         ]
       },
       "optional": true
@@ -2759,6 +3057,25 @@
       }
     },
     {
+      "label": "Result expression",
+      "id": "resultExpressionUploadFile",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={fileDetails: response.body.content, commitDetails: response.body.commit}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "reposOperationType",
+        "oneOf": [
+          "uploadFile"
+        ]
+      }
+    },
+    {
       "label": "Connection timeout",
       "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
@@ -3096,7 +3413,8 @@
       "condition": {
         "property": "reposOperationType",
         "oneOf": [
-          "getRepoContent"
+          "getRepoContent",
+          "uploadFile"
         ]
       }
     },
