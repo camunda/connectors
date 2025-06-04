@@ -19,6 +19,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -157,7 +158,14 @@ public sealed interface ProviderConfiguration
                 optional = true)
             String endpoint,
         @Valid @NotNull AwsAuthentication authentication,
-        @Valid @NotNull BedrockModel model) {}
+        @Valid @NotNull BedrockModel model) {
+
+      @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
+      public boolean isDefaultCredentialsChainUsedInSaaS() {
+        return System.getenv().containsKey("CAMUNDA_CONNECTOR_RUNTIME_SAAS")
+            && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+      }
+    }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({
