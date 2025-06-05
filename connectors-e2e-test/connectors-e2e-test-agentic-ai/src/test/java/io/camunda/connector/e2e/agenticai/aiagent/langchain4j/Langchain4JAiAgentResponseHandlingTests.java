@@ -22,8 +22,13 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAI
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.model.chat.request.ResponseFormatType;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchema;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.SlowTest;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +37,18 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
 
   @Nested
   class ResponseText {
+
+    @AfterEach
+    void verifyRequestedResponseFormat() {
+      final var lastChatRequest = chatRequestCaptor.getValue();
+      assertThat(lastChatRequest.responseFormat())
+          .isNotNull()
+          .satisfies(
+              format -> {
+                assertThat(format.type()).isEqualTo(ResponseFormatType.TEXT);
+                assertThat(format.jsonSchema()).isNull();
+              });
+    }
 
     @Test
     void fallsBackToResponseTextWhenNoResponsePropertiesAreConfigured() throws Exception {
@@ -133,6 +150,32 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
   @Nested
   class ResponseJson {
 
+    private JsonSchema expectedJsonSchema;
+
+    @BeforeEach
+    void setUp() {
+      expectedJsonSchema = null;
+    }
+
+    @AfterEach
+    void verifyRequestedResponseFormat() {
+      final var lastChatRequest = chatRequestCaptor.getValue();
+      assertThat(lastChatRequest.responseFormat())
+          .isNotNull()
+          .satisfies(
+              format -> {
+                assertThat(format.type()).isEqualTo(ResponseFormatType.JSON);
+
+                if (expectedJsonSchema == null) {
+                  assertThat(format.jsonSchema()).isNull();
+                } else {
+                  assertThat(format.jsonSchema())
+                      .usingRecursiveComparison()
+                      .isEqualTo(expectedJsonSchema);
+                }
+              });
+    }
+
     @Test
     void returnsJsonObject() throws Exception {
       testBasicExecutionWithoutFeedbackLoop(
@@ -159,6 +202,52 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
                   .hasResponseMessageText(HAIKU_JSON)
                   .hasNoResponseText()
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
+    }
+
+    @Test
+    void requestContainsJsonSchemaAndSchemaNameIfConfigured() throws Exception {
+      testBasicExecutionWithoutFeedbackLoop(
+          elementTemplate ->
+              elementTemplate
+                  .property("data.response.format.type", "json")
+                  .property(
+                      "data.response.format.schema",
+                      """
+                      ={
+                        "type": "object",
+                        "properties": {
+                          "text": {
+                            "type": "string"
+                          },
+                          "length": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "length"
+                        ]
+                      }
+                      """)
+                  .property("data.response.format.schemaName", "HaikuSchema"),
+          HAIKU_JSON,
+          true,
+          (agentResponse) ->
+              AgentResponseAssert.assertThat(agentResponse)
+                  .hasResponseMessageText(HAIKU_JSON)
+                  .hasNoResponseText()
+                  .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
+
+      expectedJsonSchema =
+          JsonSchema.builder()
+              .name("HaikuSchema")
+              .rootElement(
+                  JsonObjectSchema.builder()
+                      .addStringProperty("text")
+                      .addNumberProperty("length")
+                      .required("text", "length")
+                      .build())
+              .build();
     }
 
     @Test
