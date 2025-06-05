@@ -57,7 +57,7 @@ public class JsonSchemaElementSerializer extends JsonSerializer<JsonSchemaElemen
       case JsonAnyOfSchema anyOfSchema -> serializeAnyOfSchema(anyOfSchema, gen);
       default ->
           throw new IllegalArgumentException(
-              "Unsupported schema type: " + value.getClass().getName());
+              "Unsupported JSON schema type '%s'".formatted(value.getClass().getSimpleName()));
     }
   }
 

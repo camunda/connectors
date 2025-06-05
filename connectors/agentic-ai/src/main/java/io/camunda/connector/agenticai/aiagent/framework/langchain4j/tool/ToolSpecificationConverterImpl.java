@@ -30,7 +30,7 @@ public class ToolSpecificationConverterImpl implements ToolSpecificationConverte
     final var jsonSchema = parseSchema(toolDefinition);
     if (!(jsonSchema instanceof JsonObjectSchema jsonObjectSchema)) {
       throw new ParseSchemaException(
-          "Failed to parse input schema for tool '%s'. Input schema must be of type object."
+          "Failed to parse input schema for tool '%s': Input schema must be of type object"
               .formatted(toolDefinition.name()));
     }
 
@@ -41,12 +41,14 @@ public class ToolSpecificationConverterImpl implements ToolSpecificationConverte
         .build();
   }
 
-  public JsonSchemaElement parseSchema(ToolDefinition toolDefinition) {
+  private JsonSchemaElement parseSchema(ToolDefinition toolDefinition) {
     try {
       return schemaConverter.mapToSchema(toolDefinition.inputSchema());
     } catch (Exception e) {
       throw new ParseSchemaException(
-          "Failed to parse input schema for tool '%s'".formatted(toolDefinition.name()), e);
+          "Failed to parse input schema for tool '%s': %s"
+              .formatted(toolDefinition.name(), e.getMessage()),
+          e);
     }
   }
 
@@ -64,8 +66,8 @@ public class ToolSpecificationConverterImpl implements ToolSpecificationConverte
       return schemaConverter.schemaToMap(toolSpecification.parameters());
     } catch (Exception e) {
       throw new ParseSchemaException(
-          "Failed to convert JSON schema for tool specification '%s'"
-              .formatted(toolSpecification.name()),
+          "Failed to convert JSON schema for tool specification '%s': %s"
+              .formatted(toolSpecification.name(), e.getMessage()),
           e);
     }
   }

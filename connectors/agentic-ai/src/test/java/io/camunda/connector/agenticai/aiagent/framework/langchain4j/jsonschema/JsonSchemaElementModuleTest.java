@@ -513,15 +513,16 @@ class JsonSchemaElementModuleTest {
   void throwsExceptionWhenDeserializingUnknownType() {
     assertThatThrownBy(
             () -> objectMapper.readValue("{\"type\": \"dummy\"}", JsonSchemaElement.class))
-        .isInstanceOf(JsonMappingException.class)
-        .hasMessageStartingWith("Unknown JSON schema element type: dummy");
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageStartingWith("Unknown JSON schema element type 'dummy'");
   }
 
   @Test
   void throwsExceptionWhenSerializingUnknownType() {
     assertThatThrownBy(() -> objectMapper.writeValueAsString(new JsonTestSchema()))
         .isInstanceOf(JsonMappingException.class)
-        .hasMessage("Unsupported schema type: " + JsonTestSchema.class.getName());
+        .hasMessage(
+            "Unsupported JSON schema type '%s'".formatted(JsonTestSchema.class.getSimpleName()));
   }
 
   private void assertSchemaSerializationAndDeserialization(
