@@ -114,6 +114,7 @@ public class UnstructuredService implements ExtractionService {
       String bedrockResponse =
           bedrockCaller.call(
               input,
+              baseRequest.getConfiguration().region(),
               extractedText,
               bedrockRuntimeClientSupplier.getBedrockRuntimeClient(baseRequest));
       long endTime = System.currentTimeMillis();
