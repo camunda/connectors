@@ -2278,7 +2278,7 @@
     },
     {
       "label": "Content",
-      "description": "The file to be uploaded. Please check the checkbox below, if it is already base64 encoded",
+      "description": "Provide the raw string, document reference or base64 encoded content to upload.",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2295,7 +2295,7 @@
       }
     },
     {
-      "label": "Content is base64 encoded",
+      "label": "Content is already base64 encoded",
       "description": "As uploaded content needs to be base64 encoded, you can check this box if the content is already encoded. Otherwise, it will be encoded for you",
       "group": "input",
       "type": "Boolean",
@@ -2315,7 +2315,7 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "=if isBase64Encoded then content else to base64(content)",
+      "value": "=if isBase64Encoded then content else to {\"camunda.function.type\":\"base64\",\"params\":[content]}",
       "binding": {
         "type": "zeebe:input",
         "name": "b64content"
@@ -2324,7 +2324,7 @@
     {
       "id": "useCustomCommitter",
       "label": "Use custom committer",
-      "description": "By default, the committer is the user associated with the access token. Check this box to use a custom committer",
+      "description": "By default, the committer is the user associated with the access token. Check this box to set a different committer in the commit metadata like octocat <octocat@github.com>.",
       "group": "input",
       "value": false,
       "type": "Boolean",
@@ -2341,7 +2341,7 @@
     },
     {
       "label": "Comitter name",
-      "description": "The name of the person that made the commit",
+      "description": "The name/handle of the person that made the commit, e.g. octocat. Do not include an @",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2380,6 +2380,7 @@
     {
       "label": "Commit date",
       "description": "The date of the commit, using ISO-8601",
+      "tooltip": "2023-10-01T12:00:00Z",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2396,7 +2397,7 @@
     {
       "id": "useCustomAuthor",
       "label": "Use custom author",
-      "description": "By default, the author is the user associated with the access token. Check this box to use a custom author",
+      "description": "By default, the author is the user associated with the access token. Check this box to use a different author in the commit metadata like octocat <octocat@github.com>",
       "group": "input",
       "value": false,
       "type": "Boolean",
@@ -2413,7 +2414,7 @@
     },
     {
       "label": "Author name",
-      "description": "The name of the author of the commit",
+      "description": "The name/handle of the author of the commit, e.g. octocat. Do not include an @",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -2453,6 +2454,7 @@
     {
       "label": "Author date",
       "description": "The authoring date, using ISO-8601",
+      "tooltip": "2023-10-01T12:00:00Z",
       "group": "input",
       "type": "String",
       "feel": "optional",
