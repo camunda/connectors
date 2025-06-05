@@ -20,7 +20,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -57,11 +56,11 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.Doc
 import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
@@ -100,6 +99,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
+  private static final String HAIKU_TEXT =
+      "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
+  private static final String HAIKU_JSON =
+      "{\"text\":\"%s\", \"length\": %d}".formatted(HAIKU_TEXT, HAIKU_TEXT.length());
+
   private static final String AI_AGENT_TASK_ID = "AI_Agent";
   private static final Map<String, String> ELEMENT_TEMPLATE_PROPERTIES =
       Map.ofEntries(
@@ -186,7 +190,15 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
 
     @Test
     void executesAgentWithoutUserFeedback() throws Exception {
-      testBasicExecutionWithoutFeedbackLoop(e -> e, true, true, true);
+      testBasicExecutionWithoutFeedbackLoop(
+          e -> e,
+          HAIKU_TEXT,
+          true,
+          (agentResponse) ->
+              AgentResponseAssert.assertThat(agentResponse)
+                  .hasResponseMessageText(HAIKU_TEXT)
+                  .hasResponseText(HAIKU_TEXT)
+                  .hasNoResponseJson());
     }
 
     @Test
@@ -199,22 +211,32 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
             }
             return elementTemplate;
           },
+          HAIKU_TEXT,
           false,
-          true, // defaults to response text
-          false);
+          (agentResponse) ->
+              // defaults to text
+              AgentResponseAssert.assertThat(agentResponse)
+                  .hasNoResponseMessage()
+                  .hasResponseText(HAIKU_TEXT)
+                  .hasNoResponseJson());
 
       verify(schemaResolver, never()).resolveSchema(any(), any());
     }
 
     @Nested
     class Response {
+
       @Test
       void fallsBackToResponseTextWhenNoResponsePropertiesAreConfigured() throws Exception {
         testBasicExecutionWithoutFeedbackLoop(
             elementTemplate -> elementTemplate.withoutPropertyValueStartingWith("data.response."),
-            false,
+            HAIKU_TEXT,
             true,
-            false);
+            (agentResponse) ->
+                AgentResponseAssert.assertThat(agentResponse)
+                    .hasNoResponseMessage()
+                    .hasResponseText(HAIKU_TEXT)
+                    .hasNoResponseJson());
       }
 
       @Test
@@ -225,9 +247,13 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
                     .property("data.response.format.type", "text")
                     .property("data.response.format.includeText", "=true")
                     .property("data.response.includeAssistantMessage", "=false"),
-            false,
+            HAIKU_TEXT,
             true,
-            false);
+            (agentResponse) ->
+                AgentResponseAssert.assertThat(agentResponse)
+                    .hasNoResponseMessage()
+                    .hasResponseText(HAIKU_TEXT)
+                    .hasNoResponseJson());
       }
 
       @Test
@@ -238,9 +264,13 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
                     .property("data.response.format.type", "text")
                     .property("data.response.format.includeText", "=false")
                     .property("data.response.includeAssistantMessage", "=true"),
+            HAIKU_TEXT,
             true,
-            false,
-            true);
+            (agentResponse) ->
+                AgentResponseAssert.assertThat(agentResponse)
+                    .hasResponseMessageText(HAIKU_TEXT)
+                    .hasNoResponseText()
+                    .hasNoResponseJson());
       }
 
       @Test
@@ -251,17 +281,21 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
                     .property("data.response.format.type", "text")
                     .property("data.response.format.includeText", "=true")
                     .property("data.response.includeAssistantMessage", "=true"),
+            HAIKU_TEXT,
             true,
-            true,
-            true);
+            (agentResponse) ->
+                AgentResponseAssert.assertThat(agentResponse)
+                    .hasResponseMessageText(HAIKU_TEXT)
+                    .hasResponseText(HAIKU_TEXT)
+                    .hasNoResponseJson());
       }
     }
 
     private void testBasicExecutionWithoutFeedbackLoop(
         Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+        String responseText,
         boolean assertToolSpecifications,
-        boolean expectResponseText,
-        boolean expectResponseMessage)
+        ThrowingConsumer<AgentResponse> agentResponseAssertions)
         throws Exception {
       final var initialUserPrompt = "Write a haiku about the sea";
       final var expectedConversation =
@@ -269,8 +303,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
               new SystemMessage(
                   "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
               new UserMessage(initialUserPrompt),
-              new AiMessage(
-                  "Endless waves whisper | moonlight dances on the tide | secrets drift below."));
+              new AiMessage(responseText));
 
       mockChatInteractions(
           ChatInteraction.of(
@@ -280,9 +313,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
                           .finishReason(FinishReason.STOP)
                           .tokenUsage(new TokenUsage(10, 20))
                           .build())
-                  .aiMessage(
-                      new AiMessage(
-                          "Endless waves whisper | moonlight dances on the tide | secrets drift below."))
+                  .aiMessage(new AiMessage(responseText))
                   .build(),
               userSatisfiedFeedback()));
 
@@ -295,20 +326,11 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(1, expectedConversation, assertToolSpecifications);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(agentResponse, new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)));
-
-      final var expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
-      if (expectResponseText) {
-        assertAgentResponseText(agentResponse, expectedResponseText);
-      } else {
-        assertThat(agentResponse.responseText()).isNull();
-      }
-
-      if (expectResponseMessage) {
-        assertAgentResponseMessage(agentResponse, expectedResponseText);
-      } else {
-        assertThat(agentResponse.responseMessage()).isNull();
-      }
+      AgentResponseAssert.assertThat(agentResponse)
+          .isReady()
+          .hasNoToolCalls()
+          .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+          .satisfies(agentResponseAssertions);
 
       assertThat(jobWorkerCounter.get()).isEqualTo(1);
     }
@@ -321,8 +343,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
               new SystemMessage(
                   "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
               new UserMessage(initialUserPrompt),
-              new AiMessage(
-                  "Endless waves whisper | moonlight dances on the tide | secrets drift below."),
+              new AiMessage(HAIKU_TEXT),
               new UserMessage("Add emojis!"),
               new AiMessage(
                   "Endless waves whisper \uD83C\uDF0A | moonlight dances on the tide \uD83C\uDF15 | secrets drift below \uD83C\uDF0C"));
@@ -335,9 +356,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
                           .finishReason(FinishReason.STOP)
                           .tokenUsage(new TokenUsage(10, 20))
                           .build())
-                  .aiMessage(
-                      new AiMessage(
-                          "Endless waves whisper | moonlight dances on the tide | secrets drift below."))
+                  .aiMessage(new AiMessage(HAIKU_TEXT))
                   .build(),
               userFollowUpFeedback("Add emojis!")),
           ChatInteraction.of(
@@ -360,9 +379,13 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(2, expectedConversation);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(agentResponse, new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)));
-      assertAgentResponseTextAndMessage(
-          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
+      String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+      AgentResponseAssert.assertThat(agentResponse)
+          .isReady()
+          .hasNoToolCalls()
+          .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)))
+          .hasResponseMessageText(expectedResponseText)
+          .hasResponseText(expectedResponseText);
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
@@ -439,10 +462,13 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(3, expectedConversation);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(
-          agentResponse, new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)));
-      assertAgentResponseTextAndMessage(
-          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
+      String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+      AgentResponseAssert.assertThat(agentResponse)
+          .isReady()
+          .hasNoToolCalls()
+          .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+          .hasResponseMessageText(expectedResponseText)
+          .hasResponseText(expectedResponseText);
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
@@ -538,10 +564,13 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(3, expectedConversation);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(
-          agentResponse, new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)));
-      assertAgentResponseTextAndMessage(
-          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
+      String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+      AgentResponseAssert.assertThat(agentResponse)
+          .isReady()
+          .hasNoToolCalls()
+          .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+          .hasResponseMessageText(expectedResponseText)
+          .hasResponseText(expectedResponseText);
 
       assertThat(jobWorkerCounter.get()).isEqualTo(2);
     }
@@ -602,9 +631,13 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(1, expectedConversation);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(agentResponse, new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)));
-      assertAgentResponseTextAndMessage(
-          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
+      String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+      AgentResponseAssert.assertThat(agentResponse)
+          .isReady()
+          .hasNoToolCalls()
+          .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+          .hasResponseMessageText(expectedResponseText)
+          .hasResponseText(expectedResponseText);
 
       assertThat(jobWorkerCounter.get()).isEqualTo(1);
     }
@@ -649,9 +682,13 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
       assertLastChatRequest(1, expectedConversation);
 
       final var agentResponse = getAgentResponse(zeebeTest);
-      assertAgentResponse(agentResponse, new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)));
-      assertAgentResponseTextAndMessage(
-          agentResponse, ((AiMessage) expectedConversation.getLast()).text());
+      String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+      AgentResponseAssert.assertThat(agentResponse)
+          .isReady()
+          .hasNoToolCalls()
+          .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+          .hasResponseMessageText(expectedResponseText)
+          .hasResponseText(expectedResponseText);
 
       assertThat(jobWorkerCounter.get()).isEqualTo(1);
     }
@@ -732,9 +769,7 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
                             .finishReason(FinishReason.STOP)
                             .tokenUsage(new TokenUsage(10, 20))
                             .build())
-                    .aiMessage(
-                        new AiMessage(
-                            "Endless waves whisper | moonlight dances on the tide | secrets drift below."))
+                    .aiMessage(new AiMessage(HAIKU_TEXT))
                     .build();
               })
           .when(chatModel)
@@ -833,30 +868,6 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
                 .build())
         .containsExactlyElementsOf(
             expectedConversation.subList(0, expectedConversation.size() - 1));
-  }
-
-  private void assertAgentResponse(AgentResponse agentResponse, AgentMetrics expectedMetrics) {
-    assertThat(agentResponse).isNotNull();
-    assertThat(agentResponse.toolCalls()).isEmpty();
-    assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
-    assertThat(agentResponse.context().metrics()).isEqualTo(expectedMetrics);
-  }
-
-  private void assertAgentResponseTextAndMessage(
-      AgentResponse agentResponse, String expectedResponseText) {
-    assertAgentResponseText(agentResponse, expectedResponseText);
-    assertAgentResponseMessage(agentResponse, expectedResponseText);
-  }
-
-  private void assertAgentResponseText(AgentResponse agentResponse, String expectedResponseText) {
-    assertThat(agentResponse.responseText()).isEqualTo(expectedResponseText);
-  }
-
-  private void assertAgentResponseMessage(
-      AgentResponse agentResponse, String expectedResponseText) {
-    assertThat(agentResponse.responseMessage().content())
-        .hasSize(1)
-        .containsExactly(textContent(expectedResponseText));
   }
 
   private void assertToolSpecifications(ChatRequest chatRequest) {
