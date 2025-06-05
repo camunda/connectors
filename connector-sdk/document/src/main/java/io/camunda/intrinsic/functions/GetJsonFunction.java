@@ -16,28 +16,39 @@
  */
 package io.camunda.intrinsic.functions;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.document.Document;
 import io.camunda.intrinsic.IntrinsicFunction;
 import io.camunda.intrinsic.IntrinsicFunctionProvider;
 import java.io.IOException;
+import java.util.Map;
 import javax.annotation.Nullable;
+import org.camunda.feel.FeelEngine;
+import org.camunda.feel.FeelEngine.Failure;
+import org.camunda.feel.impl.JavaValueMapper;
+import scala.util.Either;
 
 public class GetJsonFunction implements IntrinsicFunctionProvider {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final FeelEngineWrapper feelEngine = new FeelEngineWrapper();
+  private final FeelEngine feelEngine =
+      new FeelEngine.Builder().customValueMapper(new JavaValueMapper()).build();
 
   @IntrinsicFunction(name = "getJson")
   public Object execute(Document document, @Nullable String feelExpression) {
     try {
-      Object json = objectMapper.readValue(document.asByteArray(), Object.class);
+      Map<String, Object> json =
+          objectMapper.readValue(document.asByteArray(), new TypeReference<>() {});
       if (feelExpression == null || feelExpression.isBlank()) {
         return json;
       }
       // FEEL expects variables as a context map, so wrap the JSON as a variable
-      return feelEngine.evaluate(feelExpression, json);
+      Either<Failure, Object> result = feelEngine.evalExpression(feelExpression, json);
+      if (result.isLeft()) {
+        throw new RuntimeException(result.left().get().message());
+      }
+      return result.right().get();
     } catch (IOException e) {
       throw new RuntimeException("Failed to parse document as JSON", e);
     }
