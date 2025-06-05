@@ -21,6 +21,7 @@ import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.Incident;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
@@ -28,6 +29,7 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.time.Duration;
 import java.util.Map;
+import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,16 +45,9 @@ import org.springframework.boot.test.context.SpringBootTest;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
 public abstract class BaseAgenticAiTest {
-  @Autowired CamundaClient camundaClient;
-  @Autowired ObjectMapper objectMapper;
-
+  @Autowired protected CamundaClient camundaClient;
+  @Autowired protected ObjectMapper objectMapper;
   @TempDir protected File tempDir;
-
-  protected static final String AI_AGENT_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/element-templates/agenticai-aiagent-outbound-connector.json";
-
-  protected static final String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
 
   protected ZeebeTest createProcessInstance(
       BpmnModelInstance model, Map<String, Object> variables) {
@@ -83,5 +78,19 @@ public abstract class BaseAgenticAiTest {
             });
 
     return zeebeTest;
+  }
+
+  protected void assertIncident(ZeebeTest zeebeTest, ThrowingConsumer<Incident> assertion) {
+    final var incidents =
+        camundaClient
+            .newIncidentSearchRequest()
+            .filter(
+                filter ->
+                    filter.processInstanceKey(
+                        zeebeTest.getProcessInstanceEvent().getProcessInstanceKey()))
+            .send()
+            .join();
+
+    assertThat(incidents.items()).hasSize(1).first().satisfies(assertion);
   }
 }
