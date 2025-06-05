@@ -146,7 +146,7 @@
     <bpmn:serviceTask id="AI_Agent" name="AI Agent">
       <bpmn:documentation>My superpowered AI agent</bpmn:documentation>
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="dummy" retries="3" />
+        <zeebe:taskDefinition type="dummy" retries="0" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_13mqgrx</bpmn:incoming>
       <bpmn:outgoing>Flow_04hfzs8</bpmn:outgoing>

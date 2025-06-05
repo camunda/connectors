@@ -21,6 +21,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -77,6 +78,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ThrowingConsumer;
 import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.junit.jupiter.api.AfterEach;
@@ -103,6 +106,11 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
       "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
   private static final String HAIKU_JSON =
       "{\"text\":\"%s\", \"length\": %d}".formatted(HAIKU_TEXT, HAIKU_TEXT.length());
+  private static final ThrowingConsumer<Object> HAIKU_JSON_ASSERTIONS =
+      json ->
+          assertThat(json)
+              .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+              .containsExactly(entry("text", HAIKU_TEXT), entry("length", HAIKU_TEXT.length()));
 
   private static final String AI_AGENT_TASK_ID = "AI_Agent";
   private static final Map<String, String> ELEMENT_TEMPLATE_PROPERTIES =
@@ -289,6 +297,67 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
                     .hasResponseText(HAIKU_TEXT)
                     .hasNoResponseJson());
       }
+
+      @Test
+      void triesToParseTextResponseAsJsonIfConfigured() throws Exception {
+        testBasicExecutionWithoutFeedbackLoop(
+            elementTemplate ->
+                elementTemplate
+                    .property("data.response.format.type", "text")
+                    .property("data.response.format.includeText", "=true")
+                    .property("data.response.format.parseTextToJson", "=true"),
+            HAIKU_JSON,
+            true,
+            (agentResponse) ->
+                AgentResponseAssert.assertThat(agentResponse)
+                    .hasResponseText(HAIKU_JSON)
+                    .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
+      }
+
+      @Test
+      void returnsNullAsJsonObjectWhenTextResponseFailsToBeParsedAsJson() throws Exception {
+        testBasicExecutionWithoutFeedbackLoop(
+            elementTemplate ->
+                elementTemplate
+                    .property("data.response.format.type", "text")
+                    .property("data.response.format.includeText", "=true")
+                    .property("data.response.format.parseTextToJson", "=true"),
+            HAIKU_TEXT,
+            true,
+            (agentResponse) ->
+                AgentResponseAssert.assertThat(agentResponse)
+                    .hasResponseText(HAIKU_TEXT)
+                    .hasNoResponseJson());
+      }
+
+      @Test
+      void returnsJsonObject() throws Exception {
+        testBasicExecutionWithoutFeedbackLoop(
+            elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
+            HAIKU_TEXT,
+            true,
+            (agentResponse) ->
+                AgentResponseAssert.assertThat(agentResponse)
+                    .hasNoResponseText()
+                    .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
+      }
+
+      @Test
+      void raisesAnIncidentWhenJsonCouldNotBeParsed() throws Exception {
+        final var setup =
+            setupBasicTestWithoutFeedbackLoop(
+                elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
+                HAIKU_TEXT);
+        setup.getRight().waitForActiveIncidents();
+
+        assertIncident(
+            setup.getRight(),
+            incident -> {
+              assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+              assertThat(incident.getErrorMessage())
+                  .startsWith("Failed to parse response content as JSON");
+            });
+      }
     }
 
     private void testBasicExecutionWithoutFeedbackLoop(
@@ -296,6 +365,24 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
         String responseText,
         boolean assertToolSpecifications,
         ThrowingConsumer<AgentResponse> agentResponseAssertions)
+        throws Exception {
+      final var setup = setupBasicTestWithoutFeedbackLoop(elementTemplateModifier, responseText);
+      setup.getRight().waitForProcessCompletion();
+
+      assertLastChatRequest(1, setup.getLeft(), assertToolSpecifications);
+
+      final var agentResponse = getAgentResponse(setup.getRight());
+      AgentResponseAssert.assertThat(agentResponse)
+          .isReady()
+          .hasNoToolCalls()
+          .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+          .satisfies(agentResponseAssertions);
+
+      assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    }
+
+    private Pair<List<ChatMessage>, ZeebeTest> setupBasicTestWithoutFeedbackLoop(
+        Function<ElementTemplate, ElementTemplate> elementTemplateModifier, String responseText)
         throws Exception {
       final var initialUserPrompt = "Write a haiku about the sea";
       final var expectedConversation =
@@ -319,20 +406,10 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
 
       final var zeebeTest =
           createProcessInstance(
-                  elementTemplateModifier,
-                  Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
-              .waitForProcessCompletion();
+              elementTemplateModifier,
+              Map.of("action", "executeAgent", "userPrompt", initialUserPrompt));
 
-      assertLastChatRequest(1, expectedConversation, assertToolSpecifications);
-
-      final var agentResponse = getAgentResponse(zeebeTest);
-      AgentResponseAssert.assertThat(agentResponse)
-          .isReady()
-          .hasNoToolCalls()
-          .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
-          .satisfies(agentResponseAssertions);
-
-      assertThat(jobWorkerCounter.get()).isEqualTo(1);
+      return Pair.of(expectedConversation, zeebeTest);
     }
 
     @Test
@@ -558,7 +635,9 @@ public class Langchain4JAiAgentTests extends BaseAgenticAiTest {
               userSatisfiedFeedback()));
 
       final var zeebeTest =
-          createProcessInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+          createProcessInstance(
+                  elementTemplate -> elementTemplate.property("retryCount", "3"),
+                  Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
               .waitForProcessCompletion();
 
       assertLastChatRequest(3, expectedConversation);
