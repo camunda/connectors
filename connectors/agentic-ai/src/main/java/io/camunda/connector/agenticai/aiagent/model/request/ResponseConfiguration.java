@@ -29,9 +29,8 @@ public record ResponseConfiguration(
                 "In addition to the text content, the assistant message may include multiple additional content blocks "
                     + "and metadata (such as token usage). The message output will be available as <code>response.responseMessage</code>.",
             type = TemplateProperty.PropertyType.Boolean,
-            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-            defaultValue = "false")
-        boolean includeAssistantMessage) {
+            optional = true)
+        Boolean includeAssistantMessage) {
 
   public ResponseConfiguration {
     if (format == null) {
@@ -63,8 +62,9 @@ public record ResponseConfiguration(
                         + "The parsed JSON will be available as <code>response.responseJson</code>.<br><br>"
                         + "If parsing fails, <code>null</code> will be returned for the JSON response, but the text content "
                         + "will still be available as <code>response.responseText</code>.",
-                type = TemplateProperty.PropertyType.Boolean)
-            boolean parseJson)
+                type = TemplateProperty.PropertyType.Boolean,
+                optional = true)
+            Boolean parseJson)
         implements ResponseFormatConfiguration {}
 
     @TemplateSubType(id = "json", label = "JSON")

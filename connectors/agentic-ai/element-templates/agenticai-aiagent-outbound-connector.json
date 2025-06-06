@@ -720,7 +720,7 @@
     "id" : "data.response.format.parseJson",
     "label" : "Parse the text response as JSON",
     "description" : "Tries to parse the LLM response text as JSON object.",
-    "optional" : false,
+    "optional" : true,
     "feel" : "static",
     "group" : "response",
     "binding" : {
@@ -774,8 +774,7 @@
     "id" : "data.response.includeAssistantMessage",
     "label" : "Include assistant message",
     "description" : "Adds the full assistant message to the response.",
-    "optional" : false,
-    "value" : false,
+    "optional" : true,
     "feel" : "static",
     "group" : "response",
     "binding" : {

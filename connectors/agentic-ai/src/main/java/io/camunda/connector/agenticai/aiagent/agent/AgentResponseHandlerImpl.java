@@ -52,7 +52,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
         Optional.ofNullable(request.data().response()).orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
-    if (responseConfiguration.includeAssistantMessage()) {
+    if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
       builder.responseMessage(assistantMessage);
     }
 
@@ -99,7 +99,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       TextResponseFormatConfiguration textFormat) {
     responseBuilder.responseText(responseText);
 
-    if (textFormat.parseJson()) {
+    if (Boolean.TRUE.equals(textFormat.parseJson())) {
       try {
         parseTextToResponseJson(responseBuilder, responseText);
       } catch (Exception e) {
