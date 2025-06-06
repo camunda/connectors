@@ -51,7 +51,7 @@
   }, {
     "id" : "response",
     "label" : "Response",
-    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.",
+    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/#response\">documentation</a> for details.",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -718,7 +718,7 @@
     } ]
   }, {
     "id" : "data.response.format.parseJson",
-    "label" : "Parse the text response as JSON",
+    "label" : "Parse text as JSON",
     "description" : "Tries to parse the LLM response text as JSON object.",
     "optional" : true,
     "feel" : "static",
@@ -732,7 +732,7 @@
       "equals" : "text",
       "type" : "simple"
     },
-    "tooltip" : "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). Make sure to instruct the model to return valid JSON in the system prompt. The parsed JSON will be available as <code>response.responseJson</code>.<br><br>If parsing fails, <code>null</code> will be returned for the JSON response, but the text content will still be available as <code>response.responseText</code>.",
+    "tooltip" : "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). Make sure to instruct the model to return valid JSON in the system prompt. The parsed JSON will be available as <code>response.responseJson</code>.<br><br>If parsing fails, <code>null</code> will be returned as JSON response, but the text content will still be available as <code>response.responseText</code>.",
     "type" : "Boolean"
   }, {
     "id" : "data.response.format.schema",
@@ -773,7 +773,7 @@
   }, {
     "id" : "data.response.includeAssistantMessage",
     "label" : "Include assistant message",
-    "description" : "Adds the full assistant message to the response.",
+    "description" : "Include the full assistant message as part of the result object.",
     "optional" : true,
     "feel" : "static",
     "group" : "response",
@@ -781,7 +781,7 @@
       "name" : "data.response.includeAssistantMessage",
       "type" : "zeebe:input"
     },
-    "tooltip" : "In addition to the text content, the assistant message may include multiple additional content blocks and metadata (such as token usage). The message output will be available as <code>response.responseMessage</code>.",
+    "tooltip" : "In addition to the text content, the assistant message may include multiple additional content blocks and metadata (such as token usage). The message will be available as <code>response.responseMessage</code>.",
     "type" : "Boolean"
   }, {
     "id" : "version",

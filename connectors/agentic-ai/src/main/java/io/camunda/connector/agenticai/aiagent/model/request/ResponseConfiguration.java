@@ -24,10 +24,10 @@ public record ResponseConfiguration(
     @TemplateProperty(
             group = "response",
             label = "Include assistant message",
-            description = "Adds the full assistant message to the response.",
+            description = "Include the full assistant message as part of the result object.",
             tooltip =
                 "In addition to the text content, the assistant message may include multiple additional content blocks "
-                    + "and metadata (such as token usage). The message output will be available as <code>response.responseMessage</code>.",
+                    + "and metadata (such as token usage). The message will be available as <code>response.responseMessage</code>.",
             type = TemplateProperty.PropertyType.Boolean,
             optional = true)
         Boolean includeAssistantMessage) {
@@ -54,13 +54,13 @@ public record ResponseConfiguration(
     record TextResponseFormatConfiguration(
         @TemplateProperty(
                 group = "response",
-                label = "Parse the text response as JSON",
+                label = "Parse text as JSON",
                 description = "Tries to parse the LLM response text as JSON object.",
                 tooltip =
                     "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). "
                         + "Make sure to instruct the model to return valid JSON in the system prompt. "
                         + "The parsed JSON will be available as <code>response.responseJson</code>.<br><br>"
-                        + "If parsing fails, <code>null</code> will be returned for the JSON response, but the text content "
+                        + "If parsing fails, <code>null</code> will be returned as JSON response, but the text content "
                         + "will still be available as <code>response.responseText</code>.",
                 type = TemplateProperty.PropertyType.Boolean,
                 optional = true)
