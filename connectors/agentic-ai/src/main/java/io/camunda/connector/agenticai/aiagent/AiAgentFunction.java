@@ -64,7 +64,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
       @PropertyGroup(
           id = "response",
           label = "Response",
-          tooltip = "Defines which elements of the Agent result should be added to the response.",
+          tooltip =
+              "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.",
           openByDefault = false)
     },
     icon = "aiagent.svg")

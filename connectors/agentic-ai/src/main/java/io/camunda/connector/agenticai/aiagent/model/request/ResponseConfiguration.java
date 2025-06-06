@@ -60,8 +60,9 @@ public record ResponseConfiguration(
                 tooltip =
                     "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). "
                         + "Make sure to instruct the model to return valid JSON in the system prompt. "
-                        + "The parsed JSON will be available as <code>response.responseJson</code>. "
-                        + "If parsing fails, <code>null</code> will be returned for the JSON response, but the text content will still be available as <code>response.responseText</code>.",
+                        + "The parsed JSON will be available as <code>response.responseJson</code>.<br><br>"
+                        + "If parsing fails, <code>null</code> will be returned for the JSON response, but the text content "
+                        + "will still be available as <code>response.responseText</code>.",
                 type = TemplateProperty.PropertyType.Boolean)
             boolean parseJson)
         implements ResponseFormatConfiguration {}
@@ -71,19 +72,21 @@ public record ResponseConfiguration(
         @FEEL
             @TemplateProperty(
                 group = "response",
-                label = "Response JSON schema",
+                label = "Response JSON Schema",
                 description =
-                    "An optional response <a href=\"https://json-schema.org/\" target=\"_blank\">JSON schema</a> to instruct the model how to structure the output.",
+                    "An optional response <a href=\"https://json-schema.org/\" target=\"_blank\">JSON Schema</a> to instruct the "
+                        + "model how to structure the JSON output.",
                 tooltip =
-                    "If supported by the model, the response will be structured according to the provided schema. A parsed version of the response will be available as <code>response.responseJson</code>.",
+                    "If supported by the model, the response will be structured according to the provided schema. A parsed "
+                        + "version of the response will be available as <code>response.responseJson</code>.",
                 feel = Property.FeelMode.required)
             Map<String, Object> schema,
         @FEEL
             @TemplateProperty(
                 group = "response",
-                label = "Response JSON schema name",
+                label = "Response JSON Schema name",
                 description =
-                    "An optional name for the response JSON schema to make the model aware of the expected output.",
+                    "An optional name for the response JSON Schema to make the model aware of the expected output.",
                 feel = Property.FeelMode.optional,
                 defaultValue = "Response")
             String schemaName)
