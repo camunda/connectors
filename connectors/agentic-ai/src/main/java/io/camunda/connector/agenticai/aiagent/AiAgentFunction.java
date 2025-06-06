@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -28,6 +29,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     engineVersion = "^8.8",
     version = 1,
     inputDataClass = AgentRequest.class,
+    outputDataClass = AgentResponse.class,
     defaultResultVariable = "agent",
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model Provider", openByDefault = false),
@@ -77,7 +79,7 @@ public class AiAgentFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) {
+  public AgentResponse execute(OutboundConnectorContext context) {
     final AgentRequest request = context.bindVariables(AgentRequest.class);
     return aiAgentRequestHandler.handleRequest(context, request);
   }

@@ -6,9 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
 public interface AiAgentRequestHandler {
-  Object handleRequest(OutboundConnectorContext context, AgentRequest request);
+  AgentResponse handleRequest(OutboundConnectorContext context, AgentRequest request);
 }
