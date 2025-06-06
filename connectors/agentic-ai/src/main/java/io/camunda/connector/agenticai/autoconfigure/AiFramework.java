@@ -4,11 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model;
+package io.camunda.connector.agenticai.autoconfigure;
 
-public enum AgentState {
-  INITIALIZING,
-  TOOL_DISCOVERY,
-  READY,
-  WAITING_FOR_TOOL_INPUT
+public enum AiFramework {
+  LANGCHAIN4J;
+
+  public static AiFramework defaultFramework() {
+    return AiFramework.LANGCHAIN4J;
+  }
 }

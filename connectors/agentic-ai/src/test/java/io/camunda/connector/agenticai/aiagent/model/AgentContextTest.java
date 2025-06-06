@@ -31,7 +31,7 @@ class AgentContextTest {
   @Test
   void emptyContext() {
     final var context = AgentContext.empty();
-    assertThat(context.state()).isEqualTo(AgentState.READY);
+    assertThat(context.state()).isEqualTo(AgentState.INITIALIZING);
     assertThat(context.metrics()).isEqualTo(AgentMetrics.empty());
     assertThat(context.toolDefinitions()).isEmpty();
     assertThat(context.conversation()).isNull();
@@ -116,7 +116,8 @@ class AgentContextTest {
                     state,
                     metrics,
                     toolDefinitions,
-                    InProcessConversationContext.builder("test-conversation").build()))
+                    InProcessConversationContext.builder("test-conversation").build(),
+                    Map.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }
