@@ -85,8 +85,7 @@ class AgentResponseHandlerTest {
     void returnsEmptyResponseWhenAssistantMessageDoesNotContainText(
         AssistantMessage assistantMessage) {
       when(request.data().response())
-          .thenReturn(
-              new ResponseConfiguration(new TextResponseFormatConfiguration(true, false), false));
+          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(false), false));
 
       final var response = createResponse(assistantMessage);
 
@@ -98,8 +97,7 @@ class AgentResponseHandlerTest {
     @Test
     void returnsTextResponseIfConfigured() {
       when(request.data().response())
-          .thenReturn(
-              new ResponseConfiguration(new TextResponseFormatConfiguration(true, false), false));
+          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(false), false));
 
       final var response = createResponse(assistantMessage(HAIKU_TEXT));
 
@@ -133,8 +131,7 @@ class AgentResponseHandlerTest {
     @Test
     void triesToParseResponseTextAsJsonIfConfigured() {
       when(request.data().response())
-          .thenReturn(
-              new ResponseConfiguration(new TextResponseFormatConfiguration(true, true), false));
+          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(true), false));
 
       final var response = createResponse(assistantMessage(HAIKU_JSON));
 
@@ -146,8 +143,7 @@ class AgentResponseHandlerTest {
     @Test
     void returnsNullAsJsonObjectWhenParsingJsonFails() {
       when(request.data().response())
-          .thenReturn(
-              new ResponseConfiguration(new TextResponseFormatConfiguration(true, true), false));
+          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(true), false));
 
       final var response = createResponse(assistantMessage(HAIKU_TEXT));
 
@@ -159,28 +155,13 @@ class AgentResponseHandlerTest {
     @Test
     void returnsAssistantMessageIfConfigured() {
       when(request.data().response())
-          .thenReturn(
-              new ResponseConfiguration(new TextResponseFormatConfiguration(true, false), true));
+          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(false), true));
 
       AssistantMessage assistantMessage = assistantMessage(HAIKU_TEXT);
       final var response = createResponse(assistantMessage);
 
       assertThat(response.responseMessage()).isNotNull().isEqualTo(assistantMessage);
       assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
-      assertThat(response.responseJson()).isNull();
-    }
-
-    @Test
-    void returnsOnlyAssistantMessageIfConfigured() {
-      when(request.data().response())
-          .thenReturn(
-              new ResponseConfiguration(new TextResponseFormatConfiguration(false, false), true));
-
-      AssistantMessage assistantMessage = assistantMessage(HAIKU_TEXT);
-      final var response = createResponse(assistantMessage);
-
-      assertThat(response.responseMessage()).isNotNull().isEqualTo(assistantMessage);
-      assertThat(response.responseText()).isNull();
       assertThat(response.responseJson()).isNull();
     }
 

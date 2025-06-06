@@ -722,33 +722,14 @@
       "value" : "json"
     } ]
   }, {
-    "id" : "data.response.format.includeText",
-    "label" : "Include text output",
-    "description" : "Adds the first text output of the assistant message to the response.",
-    "optional" : false,
-    "value" : true,
-    "feel" : "static",
-    "group" : "response",
-    "binding" : {
-      "name" : "data.response.format.includeText",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "data.response.format.type",
-      "equals" : "text",
-      "type" : "simple"
-    },
-    "tooltip" : "The text output will be available as <code>response.responseText</code>.",
-    "type" : "Boolean"
-  }, {
-    "id" : "data.response.format.parseTextToJson",
+    "id" : "data.response.format.parseJson",
     "label" : "Parse the text response as JSON",
-    "description" : "Tries to parse the first text output of the assistant message as JSON object.",
+    "description" : "Tries to parse the LLM response text as JSON object.",
     "optional" : false,
     "feel" : "static",
     "group" : "response",
     "binding" : {
-      "name" : "data.response.format.parseTextToJson",
+      "name" : "data.response.format.parseJson",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -756,7 +737,7 @@
       "equals" : "text",
       "type" : "simple"
     },
-    "tooltip" : "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). Make sure to instruct the model to return valid JSON in the system prompt. The parsed JSON will be available as <code>response.responseJson</code>. If parsing fails, null will be returned for the JSON reponse, but the text content will still be available if the option is enabled.",
+    "tooltip" : "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). Make sure to instruct the model to return valid JSON in the system prompt. The parsed JSON will be available as <code>response.responseJson</code>. If parsing fails, <code>null</code> will be returned for the JSON response, but the text content will still be available as <code>response.responseText</code>.",
     "type" : "Boolean"
   }, {
     "id" : "data.response.format.schema",

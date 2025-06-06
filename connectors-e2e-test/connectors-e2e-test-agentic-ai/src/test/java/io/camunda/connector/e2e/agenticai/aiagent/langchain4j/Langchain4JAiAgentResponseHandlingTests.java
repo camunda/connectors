@@ -69,7 +69,6 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           elementTemplate ->
               elementTemplate
                   .property("data.response.format.type", "text")
-                  .property("data.response.format.includeText", "=true")
                   .property("data.response.includeAssistantMessage", "=false"),
           HAIKU_TEXT,
           true,
@@ -81,29 +80,11 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
     }
 
     @Test
-    void returnsOnlyResponseMessageIfConfigured() throws Exception {
+    void returnsResponseMessageIfConfigured() throws Exception {
       testBasicExecutionWithoutFeedbackLoop(
           elementTemplate ->
               elementTemplate
                   .property("data.response.format.type", "text")
-                  .property("data.response.format.includeText", "=false")
-                  .property("data.response.includeAssistantMessage", "=true"),
-          HAIKU_TEXT,
-          true,
-          (agentResponse) ->
-              AgentResponseAssert.assertThat(agentResponse)
-                  .hasResponseMessageText(HAIKU_TEXT)
-                  .hasNoResponseText()
-                  .hasNoResponseJson());
-    }
-
-    @Test
-    void returnsBothResponseTextAndMessageIfConfigured() throws Exception {
-      testBasicExecutionWithoutFeedbackLoop(
-          elementTemplate ->
-              elementTemplate
-                  .property("data.response.format.type", "text")
-                  .property("data.response.format.includeText", "=true")
                   .property("data.response.includeAssistantMessage", "=true"),
           HAIKU_TEXT,
           true,
@@ -120,8 +101,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           elementTemplate ->
               elementTemplate
                   .property("data.response.format.type", "text")
-                  .property("data.response.format.includeText", "=true")
-                  .property("data.response.format.parseTextToJson", "=true"),
+                  .property("data.response.format.parseJson", "=true"),
           HAIKU_JSON,
           true,
           (agentResponse) ->
@@ -136,8 +116,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           elementTemplate ->
               elementTemplate
                   .property("data.response.format.type", "text")
-                  .property("data.response.format.includeText", "=true")
-                  .property("data.response.format.parseTextToJson", "=true"),
+                  .property("data.response.format.parseJson", "=true"),
           HAIKU_TEXT,
           true,
           (agentResponse) ->

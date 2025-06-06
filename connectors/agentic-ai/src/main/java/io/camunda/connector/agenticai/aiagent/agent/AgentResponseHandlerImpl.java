@@ -32,7 +32,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentResponseHandlerImpl.class);
   private static final ResponseConfiguration DEFAULT_RESPONSE_CONFIGURATION =
-      new ResponseConfiguration(new TextResponseFormatConfiguration(true, false), false);
+      new ResponseConfiguration(new TextResponseFormatConfiguration(false), false);
 
   private final ObjectMapper objectMapper;
 
@@ -97,11 +97,9 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       AgentResponseBuilder responseBuilder,
       String responseText,
       TextResponseFormatConfiguration textFormat) {
-    if (textFormat.includeText()) {
-      responseBuilder.responseText(responseText);
-    }
+    responseBuilder.responseText(responseText);
 
-    if (textFormat.parseTextToJson()) {
+    if (textFormat.parseJson()) {
       try {
         parseTextToResponseJson(responseBuilder, responseText);
       } catch (Exception e) {

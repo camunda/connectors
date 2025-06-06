@@ -227,7 +227,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   private AgentRequest createRequest() {
     return createRequest(
-        new ResponseConfiguration(new TextResponseFormatConfiguration(true, false), false));
+        new ResponseConfiguration(new TextResponseFormatConfiguration(false), false));
   }
 
   private AgentRequest createRequest(ResponseConfiguration responseConfiguration) {
