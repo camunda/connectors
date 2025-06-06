@@ -27,7 +27,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -78,7 +77,8 @@ public class JsonSchemaElementDeserializer extends JsonDeserializer<JsonSchemaEl
       case TYPE_BOOLEAN -> createBooleanSchema(node);
       case TYPE_ARRAY -> createArraySchema(node, objectMapper);
       case null, default ->
-          throw new JsonMappingException(jp, "Unknown JSON schema element type: " + nodeType);
+          throw new IllegalArgumentException(
+              "Unknown JSON schema element type '%s'".formatted(nodeType));
     };
   }
 

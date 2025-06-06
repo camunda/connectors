@@ -6,10 +6,17 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
+import java.util.List;
 
-public interface AiAgentRequestHandler {
-  AgentResponse handleRequest(OutboundConnectorContext context, AgentRequest request);
+public interface AgentResponseHandler {
+  AgentResponse createResponse(
+      AgentRequest request,
+      AgentContext agentContext,
+      AssistantMessage assistantMessage,
+      List<ToolCallProcessVariable> toolCalls);
 }

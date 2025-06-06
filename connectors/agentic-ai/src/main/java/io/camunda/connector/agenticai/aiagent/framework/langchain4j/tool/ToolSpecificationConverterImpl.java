@@ -6,13 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaElementModule;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import java.util.Map;
 
 /**
@@ -21,14 +19,10 @@ import java.util.Map;
  */
 public class ToolSpecificationConverterImpl implements ToolSpecificationConverter {
 
-  private final ObjectMapper objectMapper;
+  private final JsonSchemaConverter schemaConverter;
 
-  public ToolSpecificationConverterImpl(ObjectMapper objectMapper) {
-    this.objectMapper = configuredObjectMapperCopy(objectMapper);
-  }
-
-  private ObjectMapper configuredObjectMapperCopy(ObjectMapper objectMapper) {
-    return objectMapper.copy().registerModule(new JsonSchemaElementModule());
+  public ToolSpecificationConverterImpl(JsonSchemaConverter schemaConverter) {
+    this.schemaConverter = schemaConverter;
   }
 
   @Override
@@ -36,7 +30,7 @@ public class ToolSpecificationConverterImpl implements ToolSpecificationConverte
     final var jsonSchema = parseSchema(toolDefinition);
     if (!(jsonSchema instanceof JsonObjectSchema jsonObjectSchema)) {
       throw new ParseSchemaException(
-          "Failed to parse input schema for tool '%s'. Input schema must be of type object."
+          "Failed to parse input schema for tool '%s': Input schema must be of type object"
               .formatted(toolDefinition.name()));
     }
 
@@ -49,10 +43,12 @@ public class ToolSpecificationConverterImpl implements ToolSpecificationConverte
 
   private JsonSchemaElement parseSchema(ToolDefinition toolDefinition) {
     try {
-      return objectMapper.convertValue(toolDefinition.inputSchema(), JsonSchemaElement.class);
+      return schemaConverter.mapToSchema(toolDefinition.inputSchema());
     } catch (Exception e) {
       throw new ParseSchemaException(
-          "Failed to parse input schema for tool '%s'".formatted(toolDefinition.name()), e);
+          "Failed to parse input schema for tool '%s': %s"
+              .formatted(toolDefinition.name(), e.getMessage()),
+          e);
     }
   }
 
@@ -67,12 +63,11 @@ public class ToolSpecificationConverterImpl implements ToolSpecificationConverte
 
   private Map<String, Object> schemaToMap(ToolSpecification toolSpecification) {
     try {
-      return objectMapper.convertValue(
-          toolSpecification.parameters(), ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
+      return schemaConverter.schemaToMap(toolSpecification.parameters());
     } catch (Exception e) {
       throw new ParseSchemaException(
-          "Failed to convert JSON schema for tool specification '%s'"
-              .formatted(toolSpecification.name()),
+          "Failed to convert JSON schema for tool specification '%s': %s"
+              .formatted(toolSpecification.name(), e.getMessage()),
           e);
     }
   }

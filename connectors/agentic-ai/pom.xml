@@ -128,6 +128,8 @@
                 <file>
                   <templateId>io.camunda.connectors.agenticai.aiagent.v1</templateId>
                   <templateFileName>agenticai-aiagent-outbound-connector.json</templateFileName>
+                  <docTemplatePath>AI_AGENT.peb</docTemplatePath>
+                  <docOutputPath>AI_AGENT.md</docOutputPath>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>

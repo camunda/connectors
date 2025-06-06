@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFac
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
@@ -51,9 +52,15 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public JsonSchemaConverter langchain4JJsonSchemaConverter(ObjectMapper objectMapper) {
+    return new JsonSchemaConverter(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public ToolSpecificationConverter langchain4JToolSpecificationConverter(
-      ObjectMapper objectMapper) {
-    return new ToolSpecificationConverterImpl(objectMapper);
+      JsonSchemaConverter jsonSchemaConverter) {
+    return new ToolSpecificationConverterImpl(jsonSchemaConverter);
   }
 
   @Bean
@@ -71,8 +78,9 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   public Langchain4JAiFrameworkAdapter langchain4JAiFrameworkAdapter(
       ChatModelFactory chatModelFactory,
       ChatMessageConverter chatMessageConverter,
-      ToolSpecificationConverter toolSpecificationConverter) {
+      ToolSpecificationConverter toolSpecificationConverter,
+      JsonSchemaConverter jsonSchemaConverter) {
     return new Langchain4JAiFrameworkAdapter(
-        chatModelFactory, chatMessageConverter, toolSpecificationConverter);
+        chatModelFactory, chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
   }
 }

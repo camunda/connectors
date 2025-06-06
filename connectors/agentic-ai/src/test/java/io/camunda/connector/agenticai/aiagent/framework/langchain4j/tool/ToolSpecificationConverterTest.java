@@ -7,18 +7,22 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -27,7 +31,7 @@ class ToolSpecificationConverterTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final ToolSpecificationConverter toolSpecificationConverter =
-      new ToolSpecificationConverterImpl(objectMapper);
+      new ToolSpecificationConverterImpl(new JsonSchemaConverter(objectMapper));
 
   @Test
   void convertsToolDefinitionToToolSpecification() throws Exception {
@@ -104,6 +108,36 @@ class ToolSpecificationConverterTest {
   }
 
   @Test
+  void asToolSpecificationThrowsExceptionWhenToolDefinitionSchemaIsInvalid() {
+    final var toolDefinition =
+        ToolDefinition.builder()
+            .name("a_tool")
+            .description("This tool has an invalid schema")
+            .inputSchema(Map.of("type", "foobar"))
+            .build();
+
+    assertThatThrownBy(() -> toolSpecificationConverter.asToolSpecification(toolDefinition))
+        .isInstanceOf(ToolSpecificationConverterImpl.ParseSchemaException.class)
+        .hasMessage(
+            "Failed to parse input schema for tool 'a_tool': Unknown JSON schema element type 'foobar'");
+  }
+
+  @Test
+  void asToolSpecificationThrowsExceptionWhenToolDefinitionSchemaIsNotAnObjectSchema() {
+    final var toolDefinition =
+        ToolDefinition.builder()
+            .name("a_tool")
+            .description("This tool has an invalid schema")
+            .inputSchema(Map.of("type", "string", "description", "A string"))
+            .build();
+
+    assertThatThrownBy(() -> toolSpecificationConverter.asToolSpecification(toolDefinition))
+        .isInstanceOf(ToolSpecificationConverterImpl.ParseSchemaException.class)
+        .hasMessage(
+            "Failed to parse input schema for tool 'a_tool': Input schema must be of type object");
+  }
+
+  @Test
   void convertsToolSpecificationToToolDefinition() throws Exception {
     final var toolSpecification =
         ToolSpecification.builder()
@@ -162,6 +196,27 @@ class ToolSpecificationConverterTest {
     JSONAssert.assertEquals(
         expectedSchemaJson, objectMapper.writeValueAsString(toolDefinition.inputSchema()), true);
   }
+
+  @Test
+  void asToolDefinitionThrowsExceptionWhenToolSpecificationSchemaTypeIsNotSupported() {
+    final var toolSpecification =
+        ToolSpecification.builder()
+            .name("a_tool")
+            .description("This tool has an invalid schema")
+            .parameters(
+                JsonObjectSchema.builder()
+                    .addStringProperty("name", "A name")
+                    .addProperty("dummy", new JsonDummySchema("A dummy schema"))
+                    .build())
+            .build();
+
+    assertThatThrownBy(() -> toolSpecificationConverter.asToolDefinition(toolSpecification))
+        .isInstanceOf(ToolSpecificationConverterImpl.ParseSchemaException.class)
+        .hasMessage(
+            "Failed to convert JSON schema for tool specification 'a_tool': Unsupported JSON schema type 'JsonDummySchema'");
+  }
+
+  private record JsonDummySchema(String description) implements JsonSchemaElement {}
 
   private TestToolDefinitions loadToolDefinitions(String path) throws IOException {
     final var inputJson =
