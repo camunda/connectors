@@ -53,6 +53,14 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       Map<String, Object> variables)
       throws IOException {
+    return createProcessInstance(process, elementTemplateModifier, variables);
+  }
+
+  protected ZeebeTest createProcessInstance(
+      Resource process,
+      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+      Map<String, Object> variables)
+      throws IOException {
     var elementTemplate = ElementTemplate.from(AI_AGENT_ELEMENT_TEMPLATE_PATH);
     AI_AGENT_ELEMENT_TEMPLATE_PROPERTIES.forEach(elementTemplate::property);
     elementTemplate = elementTemplateModifier.apply(elementTemplate);
