@@ -41,6 +41,9 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -192,6 +195,29 @@ class Langchain4JAiFrameworkAdapterTest {
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
     assertThat(chatRequest.responseFormat().jsonSchema()).isNotNull();
     assertThat(chatRequest.responseFormat().jsonSchema().name()).isEqualTo(schemaName);
+    assertThat(chatRequest.responseFormat().jsonSchema().rootElement()).isEqualTo(jsonObjectSchema);
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {" "})
+  void usesDefaultSchemaNameIfNullOrBlank(String schemaName) {
+    final Map<String, Object> schema = Map.of("type", "object", "description", "My schema");
+
+    final var jsonObjectSchema = JsonObjectSchema.builder().description("My schema").build();
+    when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
+
+    adapter.executeChatRequest(
+        createRequest(
+            new ResponseConfiguration(
+                new JsonResponseFormatConfiguration(schema, schemaName), false)),
+        AGENT_CONTEXT,
+        runtimeMemory);
+
+    final var chatRequest = chatRequestCaptor.getValue();
+    assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
+    assertThat(chatRequest.responseFormat().jsonSchema()).isNotNull();
+    assertThat(chatRequest.responseFormat().jsonSchema().name()).isEqualTo("Response");
     assertThat(chatRequest.responseFormat().jsonSchema().rootElement()).isEqualTo(jsonObjectSchema);
   }
 

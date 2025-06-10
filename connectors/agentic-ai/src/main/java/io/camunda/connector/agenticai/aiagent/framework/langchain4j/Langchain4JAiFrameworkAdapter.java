@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 
 public class Langchain4JAiFrameworkAdapter
     implements AiFrameworkAdapter<Langchain4JAiFrameworkChatResponse> {
@@ -85,7 +86,10 @@ public class Langchain4JAiFrameworkAdapter
       if (jsonFormat.schema() != null) {
         final var jsonSchema =
             JsonSchema.builder()
-                .name(jsonFormat.schemaName())
+                .name(
+                    Optional.ofNullable(jsonFormat.schemaName())
+                        .filter(StringUtils::isNotBlank)
+                        .orElse("Response"))
                 .rootElement(jsonSchemaConverter.mapToSchema(jsonFormat.schema()))
                 .build();
         builder.jsonSchema(jsonSchema);

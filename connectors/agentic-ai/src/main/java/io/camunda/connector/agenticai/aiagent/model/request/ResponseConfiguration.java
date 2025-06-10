@@ -79,7 +79,8 @@ public record ResponseConfiguration(
                 tooltip =
                     "If supported by the model, the response will be structured according to the provided schema. A parsed "
                         + "version of the response will be available as <code>response.responseJson</code>.",
-                feel = Property.FeelMode.required)
+                feel = Property.FeelMode.required,
+                optional = true)
             Map<String, Object> schema,
         @FEEL
             @TemplateProperty(
@@ -88,7 +89,8 @@ public record ResponseConfiguration(
                 description =
                     "An optional name for the response JSON Schema to make the model aware of the expected output.",
                 feel = Property.FeelMode.optional,
-                defaultValue = "Response")
+                defaultValue = "Response",
+                optional = true)
             String schemaName)
         implements ResponseFormatConfiguration {}
   }
