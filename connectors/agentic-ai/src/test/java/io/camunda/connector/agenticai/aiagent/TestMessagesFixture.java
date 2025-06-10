@@ -25,6 +25,16 @@ public abstract class TestMessagesFixture {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+  public static final List<ToolCallResult> TOOL_CALL_RESULTS =
+      List.of(
+          ToolCallResult.builder().id("abcdef").name("getWeather").content("Sunny, 22°C").build(),
+          ToolCallResult.builder()
+              .id("fedcba")
+              .name("getDateTime")
+              .content(
+                  Map.of("date", "2025-04-14", "time", "15:56:50", "iso", "2025-04-14T15:56:50"))
+              .build());
+
   public static List<Message> testMessages() {
     return List.of(
         SystemMessage.systemMessage("You are a helpful assistant. Be nice."),
@@ -42,20 +52,7 @@ public abstract class TestMessagesFixture {
                     .arguments(Map.of("location", "MUC"))
                     .build(),
                 ToolCall.builder().id("fedcba").name("getDateTime").build())),
-        ToolCallResultMessage.toolCallResultMessage(
-            List.of(
-                ToolCallResult.builder()
-                    .id("abcdef")
-                    .name("getWeather")
-                    .content("Sunny, 22°C")
-                    .build(),
-                ToolCallResult.builder()
-                    .id("fedcba")
-                    .name("getDateTime")
-                    .content(
-                        Map.of(
-                            "date", "2025-04-14", "time", "15:56:50", "iso", "2025-04-14T15:56:50"))
-                    .build())),
+        ToolCallResultMessage.toolCallResultMessage(TOOL_CALL_RESULTS),
         AssistantMessage.assistantMessage(
                 "The weather in Munich is sunny with a temperature of 22°C. This is typical for April.")
             .withMetadata(Map.of("some", "value")),
