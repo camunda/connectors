@@ -2378,23 +2378,6 @@
       }
     },
     {
-      "label": "Commit date",
-      "description": "The date of the commit, using ISO-8601",
-      "tooltip": "2023-10-01T12:00:00Z",
-      "group": "input",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "committerDate"
-      },
-      "condition": {
-        "property": "useCustomCommitter",
-        "equals": true,
-        "type": "simple"
-      }
-    },
-    {
       "id": "useCustomAuthor",
       "label": "Use custom author",
       "description": "By default, the author is the user associated with the access token. Check this box to use a different author in the commit metadata like octocat <octocat@github.com>",
@@ -2443,24 +2426,6 @@
       },
       "constraints": {
           "notEmpty": true
-      },
-      "condition": {
-        "property": "useCustomAuthor",
-        "equals": true,
-        "type": "simple"
-      }
-    },
-
-    {
-      "label": "Author date",
-      "description": "The authoring date, using ISO-8601",
-      "tooltip": "2023-10-01T12:00:00Z",
-      "group": "input",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authorDate"
       },
       "condition": {
         "property": "useCustomAuthor",
