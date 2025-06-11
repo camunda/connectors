@@ -259,7 +259,8 @@ class AgentInitializerTest {
               .withToolDefinitions(TOOL_DEFINITIONS)
               .withProperty("mcpClients", List.of("AnMcpClient"));
 
-      assertThat(result.agentContext()).usingRecursiveComparison().isEqualTo(expectedAgentContext);
+      assertThat(result.agentContext()).isNull();
+      assertThat(result.toolCallResults()).isEmpty();
 
       assertThat(result.agentResponse()).isNotNull();
       assertThat(result.agentResponse().context())
