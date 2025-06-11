@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED;
-
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -18,35 +16,35 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.List;
 import java.util.Optional;
 
 public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
-  private static final int DEFAULT_MAX_MODEL_CALLS = 10;
   private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
 
   private final AgentInitializer agentInitializer;
-  private final AgentMessagesHandler agentMessagesHandler;
+  private final AgentLimitsValidator limitsValidator;
+  private final AgentMessagesHandler messagesHandler;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AiFrameworkAdapter<?> framework;
   private final AgentResponseHandler responseHandler;
 
   public AiAgentRequestHandlerImpl(
       AgentInitializer agentInitializer,
-      AgentMessagesHandler agentMessagesHandler,
+      AgentLimitsValidator limitsValidator,
+      AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
       AgentResponseHandler responseHandler) {
     this.agentInitializer = agentInitializer;
-    this.agentMessagesHandler = agentMessagesHandler;
+    this.limitsValidator = limitsValidator;
+    this.messagesHandler = messagesHandler;
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.framework = framework;
     this.responseHandler = responseHandler;
@@ -82,13 +80,12 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
     final var conversationStore = new InProcessConversationStore();
     conversationStore.loadIntoRuntimeMemory(context, agentContext, runtimeMemory);
 
-    // check configured limits
-    checkLimits(request.data(), agentContext);
+    // validate configured limits
+    limitsValidator.validateConfiguredLimits(context, request, agentContext);
 
     // update memory with system message + new user messages/tool call responses
-    agentMessagesHandler.addSystemMessage(
-        agentContext, runtimeMemory, request.data().systemPrompt());
-    agentMessagesHandler.addMessagesFromRequest(
+    messagesHandler.addSystemMessage(agentContext, runtimeMemory, request.data().systemPrompt());
+    messagesHandler.addMessagesFromRequest(
         agentContext, runtimeMemory, request.data().userPrompt(), toolCallResults);
 
     // call framework with memory
@@ -116,18 +113,5 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
     return responseHandler.createResponse(
         request, agentContext, assistantMessage, processVariableToolCalls);
-  }
-
-  private void checkLimits(AgentRequest.AgentRequestData requestData, AgentContext agentContext) {
-    final int maxModelCalls =
-        Optional.ofNullable(requestData.limits())
-            .map(LimitsConfiguration::maxModelCalls)
-            .orElse(DEFAULT_MAX_MODEL_CALLS);
-    if (agentContext.metrics().modelCalls() >= maxModelCalls) {
-      throw new ConnectorException(
-          ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED,
-          "Maximum number of model calls reached (modelCalls: %d, limit: %d)"
-              .formatted(agentContext.metrics().modelCalls(), maxModelCalls));
-    }
   }
 }

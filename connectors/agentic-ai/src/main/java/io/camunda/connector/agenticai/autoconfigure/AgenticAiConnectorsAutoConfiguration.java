@@ -20,6 +20,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocTool
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
+import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidatorImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
@@ -110,6 +112,12 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public AgentLimitsValidator aiAgentLimitsValidator() {
+    return new AgentLimitsValidatorImpl();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentMessagesHandler aiAgentMessagesHandler(
       GatewayToolHandlerRegistry gatewayToolHandlers) {
     return new AgentMessagesHandlerImpl(gatewayToolHandlers);
@@ -125,12 +133,14 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
       AgentInitializer agentInitializer,
+      AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       AgentResponseHandler responseHandler) {
     return new AiAgentRequestHandlerImpl(
         agentInitializer,
+        limitsValidator,
         messagesHandler,
         gatewayToolHandlers,
         aiFrameworkAdapter,
