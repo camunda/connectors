@@ -2566,7 +2566,7 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "=context merge({\"message\": commitMessage, \"content\": b64content}, if sha != null then {\"sha\": sha} else {}, if branch != null then {\"branch\": branch} else {}, if committerName != null and committerEmail != null then {\"committer\": {\"name\": committerName, \"email\": committerEmail, \"date\": committerDate}} else {}, if authorName != null and authorEmail != null then {\"author\": {\"name\": authorName, \"email\": authorEmail, \"date\": authorDate }} else {})",
+      "value": "=context merge({\"message\": commitMessage, \"content\": b64content}, if sha != null and sha != \"\" then {\"sha\": sha} else {}, if branch != null and branch != \"\" then {\"branch\": branch} else {}, if committerName != null and committerName != \"\" and committerEmail != null and committerEmail != \"\" then {\"committer\": {\"name\": committerName, \"email\": committerEmail, \"date\": committerDate}} else {}, if authorName != null and authorEmail != null then {\"author\": {\"name\": authorName, \"email\": authorEmail, \"date\": authorDate }} else {})",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
