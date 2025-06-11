@@ -8,19 +8,17 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
-import org.springframework.lang.Nullable;
 
-@AgenticAiRecord
-public record AgentInitializationResult(
-    @Nullable AgentContext agentContext,
-    List<ToolCallResult> toolCallResults,
-    @Nullable AgentResponse agentResponse)
-    implements AgentInitializationResultBuilder.With {
+public sealed interface AgentInitializationResult
+    permits AgentInitializationResult.AgentContextInitializationResult,
+        AgentInitializationResult.AgentResponseInitializationResult {
 
-  public static AgentInitializationResultBuilder builder() {
-    return AgentInitializationResultBuilder.builder();
-  }
+  record AgentContextInitializationResult(
+      AgentContext agentContext, List<ToolCallResult> toolCallResults)
+      implements AgentInitializationResult {}
+
+  record AgentResponseInitializationResult(AgentResponse agentResponse)
+      implements AgentInitializationResult {}
 }

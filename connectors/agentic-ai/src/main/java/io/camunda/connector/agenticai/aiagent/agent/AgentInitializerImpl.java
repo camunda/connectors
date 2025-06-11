@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -48,11 +50,7 @@ public class AgentInitializerImpl implements AgentInitializer {
     return switch (agentContext.state()) {
       case INITIALIZING -> initiateToolDiscovery(context, request, agentContext, toolCallResults);
       case TOOL_DISCOVERY -> handleToolDiscoveryResults(agentContext, toolCallResults);
-      default ->
-          AgentInitializationResult.builder()
-              .agentContext(agentContext)
-              .toolCallResults(toolCallResults)
-              .build();
+      default -> new AgentContextInitializationResult(agentContext, toolCallResults);
     };
   }
 
@@ -69,10 +67,8 @@ public class AgentInitializerImpl implements AgentInitializer {
 
     // no ad-hoc sub-process element ID provided, skip tool discovery
     if (toolsContainerElementId == null) {
-      return AgentInitializationResult.builder()
-          .agentContext(agentContext.withState(AgentState.READY))
-          .toolCallResults(toolCallResults)
-          .build();
+      return new AgentContextInitializationResult(
+          agentContext.withState(AgentState.READY), toolCallResults);
     }
 
     final var adHocToolsSchema =
@@ -83,10 +79,8 @@ public class AgentInitializerImpl implements AgentInitializer {
     agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
 
     if (CollectionUtils.isEmpty(adHocToolsSchema.gatewayToolDefinitions())) {
-      return AgentInitializationResult.builder()
-          .agentContext(agentContext.withState(AgentState.READY))
-          .toolCallResults(toolCallResults)
-          .build();
+      return new AgentContextInitializationResult(
+          agentContext.withState(AgentState.READY), toolCallResults);
     }
 
     // handle gateway tool definitions (e.g. MCP)
@@ -104,22 +98,18 @@ public class AgentInitializerImpl implements AgentInitializer {
 
     if (!CollectionUtils.isEmpty(initiationResult.toolDiscoveryToolCalls())) {
       // execute tool discovery tool calls before agent is ready for requests
-      return AgentInitializationResult.builder()
-          .agentResponse(
-              AgentResponse.builder()
-                  .context(agentContext.withState(AgentState.TOOL_DISCOVERY))
-                  .toolCalls(
-                      initiationResult.toolDiscoveryToolCalls().stream()
-                          .map(ToolCallProcessVariable::from)
-                          .toList())
-                  .build())
-          .build();
+      return new AgentResponseInitializationResult(
+          AgentResponse.builder()
+              .context(agentContext.withState(AgentState.TOOL_DISCOVERY))
+              .toolCalls(
+                  initiationResult.toolDiscoveryToolCalls().stream()
+                      .map(ToolCallProcessVariable::from)
+                      .toList())
+              .build());
     } else {
       // no tool discovery needed -> agent is ready for requests
-      return AgentInitializationResult.builder()
-          .agentContext(agentContext.withState(AgentState.READY))
-          .toolCallResults(toolCallResults)
-          .build();
+      return new AgentContextInitializationResult(
+          agentContext.withState(AgentState.READY), toolCallResults);
     }
   }
 
@@ -128,9 +118,8 @@ public class AgentInitializerImpl implements AgentInitializer {
     final var gatewayToolDiscoveryResult =
         gatewayToolHandlers.handleToolDiscoveryResults(agentContext, toolCallResults);
 
-    return AgentInitializationResult.builder()
-        .agentContext(gatewayToolDiscoveryResult.agentContext().withState(AgentState.READY))
-        .toolCallResults(gatewayToolDiscoveryResult.remainingToolCallResults())
-        .build();
+    return new AgentContextInitializationResult(
+        gatewayToolDiscoveryResult.agentContext().withState(AgentState.READY),
+        gatewayToolDiscoveryResult.remainingToolCallResults());
   }
 }

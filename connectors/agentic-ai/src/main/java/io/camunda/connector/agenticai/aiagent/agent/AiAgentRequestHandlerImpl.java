@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationStore;
@@ -20,8 +22,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRe
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.List;
 import java.util.Optional;
 
 public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
@@ -51,13 +55,23 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
   @Override
   public AgentResponse handleRequest(OutboundConnectorContext context, AgentRequest request) {
     final var agentInitializationResult = agentInitializer.initializeAgent(context, request);
-    if (agentInitializationResult.agentResponse() != null) {
-      // return agent response if needed (e.g. tool discovery tool calls before calling the LLM)
-      return agentInitializationResult.agentResponse();
-    }
+    return switch (agentInitializationResult) {
+      // directly return agent response if needed (e.g. tool discovery tool calls before calling the
+      // LLM)
+      case AgentResponseInitializationResult(AgentResponse agentResponse) -> agentResponse;
 
-    AgentContext agentContext = agentInitializationResult.agentContext();
+      case AgentContextInitializationResult(
+              AgentContext agentContext,
+              List<ToolCallResult> toolCallResults) ->
+          handleRequest(context, request, agentContext, toolCallResults);
+    };
+  }
 
+  private AgentResponse handleRequest(
+      OutboundConnectorContext context,
+      AgentRequest request,
+      AgentContext agentContext,
+      List<ToolCallResult> toolCallResults) {
     // set up memory and load from context if available
     final var runtimeMemory =
         new MessageWindowRuntimeMemory(
@@ -75,10 +89,7 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
     agentMessagesHandler.addSystemMessage(
         agentContext, runtimeMemory, request.data().systemPrompt());
     agentMessagesHandler.addMessagesFromRequest(
-        agentContext,
-        runtimeMemory,
-        request.data().userPrompt(),
-        agentInitializationResult.toolCallResults());
+        agentContext, runtimeMemory, request.data().userPrompt(), toolCallResults);
 
     // call framework with memory
     AiFrameworkChatResponse<?> frameworkChatResponse =
