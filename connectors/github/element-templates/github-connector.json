@@ -2315,7 +2315,7 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "=if isBase64Encoded then content else to {\"camunda.function.type\":\"base64\",\"params\":[content]}",
+      "value": "=if isBase64Encoded then content else {\"camunda.function.type\":\"base64\",\"params\":[content]}",
       "binding": {
         "type": "zeebe:input",
         "name": "b64content"
