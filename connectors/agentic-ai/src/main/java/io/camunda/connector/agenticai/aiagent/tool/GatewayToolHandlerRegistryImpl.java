@@ -86,7 +86,7 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
         groupedByGateway.getOrDefault(DEFAULT_TYPE, Collections.emptyList());
 
     return new GatewayToolDiscoveryResult(
-        agentContext, List.copyOf(mergedToolDefinitions), nonGatewayToolCallResults);
+        agentContext.withToolDefinitions(mergedToolDefinitions), nonGatewayToolCallResults);
   }
 
   private Map<String, List<ToolCallResult>> groupToolCallResultsByGateway(

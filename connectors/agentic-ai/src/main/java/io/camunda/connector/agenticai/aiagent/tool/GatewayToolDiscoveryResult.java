@@ -8,10 +8,7 @@ package io.camunda.connector.agenticai.aiagent.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 
 public record GatewayToolDiscoveryResult(
-    AgentContext agentContext,
-    List<ToolDefinition> toolDefinitions,
-    List<ToolCallResult> toolCallResults) {}
+    AgentContext agentContext, List<ToolCallResult> remainingToolCallResults) {}

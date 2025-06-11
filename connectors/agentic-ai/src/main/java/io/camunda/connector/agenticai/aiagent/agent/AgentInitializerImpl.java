@@ -121,11 +121,8 @@ public class AgentInitializerImpl implements AgentInitializer {
         gatewayToolHandlers.handleToolDiscoveryResults(agentContext, toolCallResults);
 
     return new AgentInitializationResult(
-        gatewayToolDiscoveryResult
-            .agentContext()
-            .withState(AgentState.READY)
-            .withToolDefinitions(gatewayToolDiscoveryResult.toolDefinitions()),
-        gatewayToolDiscoveryResult.toolCallResults(),
+        gatewayToolDiscoveryResult.agentContext().withState(AgentState.READY),
+        gatewayToolDiscoveryResult.remainingToolCallResults(),
         null);
   }
 }
