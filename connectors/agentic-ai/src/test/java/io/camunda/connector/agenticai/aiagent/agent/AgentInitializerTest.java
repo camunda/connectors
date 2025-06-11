@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -53,15 +54,6 @@ class AgentInitializerTest {
 
   private static final Long PROCESS_DEFINITION_KEY = 123456789L;
   private static final String CONTAINER_ELEMENT_ID = "test-container-element-id";
-
-  private static final List<ToolDefinition> TOOL_DEFINITIONS =
-      List.of(
-          ToolDefinition.builder().name("GetTime").description("Returns the current time").build(),
-          ToolDefinition.builder()
-              .name("GetTemperature")
-              .description("Returns the current temperature")
-              .inputSchema(Map.of("type", "object"))
-              .build());
 
   private static final List<GatewayToolDefinition> GATEWAY_TOOL_DEFINITIONS =
       List.of(
@@ -308,7 +300,7 @@ class AgentInitializerTest {
             .withToolDefinitions(TOOL_DEFINITIONS)
             .withProperty("mcpClients", List.of("AnMcpClient"));
 
-    public static final List<ToolDefinition> RESOLVED_GATEWAY_TOOL_DEFINITIONS =
+    private static final List<ToolDefinition> RESOLVED_GATEWAY_TOOL_DEFINITIONS =
         List.of(
             ToolDefinition.builder().name("FirstTool").description("First tool").build(),
             ToolDefinition.builder()

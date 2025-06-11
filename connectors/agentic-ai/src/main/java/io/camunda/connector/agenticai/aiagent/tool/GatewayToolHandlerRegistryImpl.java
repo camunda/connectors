@@ -25,6 +25,10 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
 
   private final Map<String, GatewayToolHandler> handlers = new LinkedHashMap<>();
 
+  public GatewayToolHandlerRegistryImpl() {
+    this(List.of());
+  }
+
   public GatewayToolHandlerRegistryImpl(List<GatewayToolHandler> handlers) {
     handlers.forEach(this::register);
   }
@@ -32,11 +36,12 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
   public void register(GatewayToolHandler handler) {
     final var type = Optional.ofNullable(handler).map(GatewayToolHandler::type).orElse(null);
     if (StringUtils.isBlank(type) || type.equals(DEFAULT_TYPE)) {
-      throw new IllegalArgumentException("Invalid gateway tool handler type: %s".formatted(type));
+      throw new IllegalArgumentException("Invalid gateway tool handler type: '%s'".formatted(type));
     }
 
     if (handlers.containsKey(type)) {
-      throw new IllegalArgumentException("Duplicate gateway tool handler type: %s".formatted(type));
+      throw new IllegalArgumentException(
+          "Duplicate gateway tool handler type: '%s'".formatted(type));
     }
 
     handlers.put(type, handler);
@@ -51,7 +56,7 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
     List<ToolCall> toolDiscoveryToolCalls = new ArrayList<>();
     for (GatewayToolHandler gatewayToolHandler : handlers.values()) {
       GatewayToolDiscoveryInitiationResult handlerResult =
-          gatewayToolHandler.initiateToolDiscovery(agentContext, gatewayToolDefinitions);
+          gatewayToolHandler.initiateToolDiscovery(updatedAgentContext, gatewayToolDefinitions);
 
       // update agent context with updated context from discovery (e.g. added properties)
       updatedAgentContext = handlerResult.agentContext();
