@@ -3,6 +3,7 @@
   "name": "RPA Connector",
   "description": "Connects with the Camunda RPA Worker",
   "id": "camunda.connectors.rpa",
+  "version": 1,
   "appliesTo": [
     "bpmn:Task"
   ],
