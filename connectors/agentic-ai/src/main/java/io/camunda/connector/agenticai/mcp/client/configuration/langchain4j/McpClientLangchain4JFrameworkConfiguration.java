@@ -8,10 +8,11 @@ package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
+import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,7 @@ public class McpClientLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpClientRegistry<McpClient> langchain4JMcpClientRegistry(
-      McpClientConfigurationProperties configuration, Langchain4JMcpClientFactory clientFactory) {
+      McpClientConfigurationProperties configuration, McpClientFactory<McpClient> clientFactory) {
     final var registry = new McpClientRegistry<McpClient>();
     configuration
         .clients()
@@ -53,7 +54,7 @@ public class McpClientLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public Langchain4JMcpClientHandler langchain4JMcpClientHandler(
+  public McpClientHandler langchain4JMcpClientHandler(
       ObjectMapper objectMapper,
       McpClientRegistry<McpClient> mcpClientRegistry,
       Langchain4JMcpClientExecutor mcpClientExecutor) {
