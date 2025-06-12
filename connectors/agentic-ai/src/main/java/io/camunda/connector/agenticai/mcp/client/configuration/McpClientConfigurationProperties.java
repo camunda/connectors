@@ -15,7 +15,6 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
@@ -23,13 +22,9 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai.mcp.client")
 public record McpClientConfigurationProperties(
-    @NotNull AiFramework framework,
+    @NotNull @DefaultValue("LANGCHAIN4J") AiFramework framework,
     @NotNull @DefaultValue("true") Boolean enabled,
     @NotNull @DefaultValue Map<@NotBlank String, @NotNull @Valid McpClientConfiguration> clients) {
-
-  public McpClientConfigurationProperties {
-    framework = Optional.ofNullable(framework).orElse(AiFramework.defaultFramework());
-  }
 
   @ValidMcpClientConfiguration
   public record McpClientConfiguration(

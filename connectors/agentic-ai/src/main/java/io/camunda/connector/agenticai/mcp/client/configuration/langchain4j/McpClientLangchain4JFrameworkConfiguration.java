@@ -4,38 +4,33 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client.configuration;
+package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandler;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientRemoteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Configuration
 @ConditionalOnProperty(
     value = "camunda.connector.agenticai.mcp.client.framework",
     havingValue = "langchain4j",
     matchIfMissing = true)
+@Import(McpClientBaseLangchain4JFrameworkConfiguration.class)
 public class McpClientLangchain4JFrameworkConfiguration {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(McpClientLangchain4JFrameworkConfiguration.class);
-
-  @Bean
-  @ConditionalOnMissingBean
-  public Langchain4JMcpClientFactory langchain4JMcpClientFactory() {
-    return new Langchain4JMcpClientFactory();
-  }
 
   @Bean
   @ConditionalOnMissingBean
@@ -46,19 +41,14 @@ public class McpClientLangchain4JFrameworkConfiguration {
         .clients()
         .forEach(
             (id, clientConfig) -> {
-              LOGGER.info("Creating MCP client with ID '{}'", id);
-              final var client = clientFactory.createClient(id, clientConfig);
-              registry.register(id, client);
+              if (clientConfig.enabled()) {
+                LOGGER.info("Creating MCP client with ID '{}'", id);
+                final var client = clientFactory.createClient(id, clientConfig);
+                registry.register(id, client);
+              }
             });
 
     return registry;
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public Langchain4JMcpClientExecutor langchain4JMcpClientExecutor(
-      ObjectMapper objectMapper, ToolSpecificationConverter toolSpecificationConverter) {
-    return new Langchain4JMcpClientExecutor(objectMapper, toolSpecificationConverter);
   }
 
   @Bean
@@ -68,14 +58,5 @@ public class McpClientLangchain4JFrameworkConfiguration {
       McpClientRegistry<McpClient> mcpClientRegistry,
       Langchain4JMcpClientExecutor mcpClientExecutor) {
     return new Langchain4JMcpClientHandler(objectMapper, mcpClientRegistry, mcpClientExecutor);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public Langchain4JMcpClientRemoteHandler langchain4JMcpClientRemoteHandler(
-      ObjectMapper objectMapper,
-      Langchain4JMcpClientFactory mcpClientFactory,
-      Langchain4JMcpClientExecutor mcpClientExecutor) {
-    return new Langchain4JMcpClientRemoteHandler(objectMapper, mcpClientFactory, mcpClientExecutor);
   }
 }
