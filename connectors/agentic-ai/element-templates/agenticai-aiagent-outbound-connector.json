@@ -51,7 +51,7 @@
   }, {
     "id" : "response",
     "label" : "Response",
-    "tooltip" : "Defines which elements of the Agent result should be added to the response.",
+    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/#response\">documentation</a> for details.",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -677,9 +677,6 @@
     "description" : "Maximum number of recent messages the AI agent retains in short-term memory during a conversation.",
     "optional" : false,
     "value" : 20,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "static",
     "group" : "memory",
     "binding" : {
@@ -694,9 +691,6 @@
     "description" : "Maximum number of calls to the model as a safety limit to prevent infinite loops.",
     "optional" : false,
     "value" : 10,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "static",
     "group" : "limits",
     "binding" : {
@@ -705,32 +699,89 @@
     },
     "type" : "Number"
   }, {
-    "id" : "data.response.includeText",
-    "label" : "Include text output",
-    "description" : "Adds the first text output of the assistant message to the response.",
-    "optional" : false,
-    "value" : true,
+    "id" : "data.response.format.type",
+    "label" : "Response Format",
+    "description" : "Specify the response format. Support for JSON mode varies by provider.",
+    "value" : "text",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.format.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Text",
+      "value" : "text"
+    }, {
+      "name" : "JSON",
+      "value" : "json"
+    } ]
+  }, {
+    "id" : "data.response.format.parseJson",
+    "label" : "Parse text as JSON",
+    "description" : "Tries to parse the LLM response text as JSON object.",
+    "optional" : true,
     "feel" : "static",
     "group" : "response",
     "binding" : {
-      "name" : "data.response.includeText",
+      "name" : "data.response.format.parseJson",
       "type" : "zeebe:input"
     },
-    "tooltip" : "The text output will be available as <code>response.responseText</code>.",
+    "condition" : {
+      "property" : "data.response.format.type",
+      "equals" : "text",
+      "type" : "simple"
+    },
+    "tooltip" : "Use this option in combination with models which don't support native JSON mode/structured tool calling (e.g. Anthropic). Make sure to instruct the model to return valid JSON in the system prompt. The parsed JSON will be available as <code>response.responseJson</code>.<br><br>If parsing fails, <code>null</code> will be returned as JSON response, but the text content will still be available as <code>response.responseText</code>.",
     "type" : "Boolean"
+  }, {
+    "id" : "data.response.format.schema",
+    "label" : "Response JSON Schema",
+    "description" : "An optional response <a href=\"https://json-schema.org/\" target=\"_blank\">JSON Schema</a> to instruct the model how to structure the JSON output.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.format.schema",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.response.format.type",
+      "equals" : "json",
+      "type" : "simple"
+    },
+    "tooltip" : "If supported by the model, the response will be structured according to the provided schema. A parsed version of the response will be available as <code>response.responseJson</code>.",
+    "type" : "String"
+  }, {
+    "id" : "data.response.format.schemaName",
+    "label" : "Response JSON Schema name",
+    "description" : "An optional name for the response JSON Schema to make the model aware of the expected output.",
+    "optional" : true,
+    "value" : "Response",
+    "feel" : "optional",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.format.schemaName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.response.format.type",
+      "equals" : "json",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "data.response.includeAssistantMessage",
     "label" : "Include assistant message",
-    "description" : "Adds the full assistant message to the response.",
-    "optional" : false,
-    "value" : false,
+    "description" : "Include the full assistant message as part of the result object.",
+    "optional" : true,
     "feel" : "static",
     "group" : "response",
     "binding" : {
       "name" : "data.response.includeAssistantMessage",
       "type" : "zeebe:input"
     },
-    "tooltip" : "In addition to the text content, the assistant message may include multiple additional content blocks and metadata (such as token usage). The message output will be available as <code>response.responseMessage</code>.",
+    "tooltip" : "In addition to the text content, the assistant message may include multiple additional content blocks and metadata (such as token usage). The message will be available as <code>response.responseMessage</code>.",
     "type" : "Boolean"
   }, {
     "id" : "version",

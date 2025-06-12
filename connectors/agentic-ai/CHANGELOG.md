@@ -1,5 +1,10 @@
 # Agentic AI connectors changelog
 
+## 8.8.0-alpha6
+
+- Added support to define the response format and to opt into JSON mode with a configurable schema for supported models:
+  - https://github.com/camunda/connectors/pull/4833
+
 ## 8.8.0-alpha5
 
 - Revised property panel with updated structure and better tooltips/descriptions:

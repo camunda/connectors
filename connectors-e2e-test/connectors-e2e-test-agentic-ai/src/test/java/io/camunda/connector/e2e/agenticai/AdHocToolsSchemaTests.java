@@ -16,14 +16,18 @@
  */
 package io.camunda.connector.e2e.agenticai;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.client.api.search.response.Variable;
+import io.camunda.connector.e2e.BpmnFile;
+import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -33,16 +37,33 @@ import org.springframework.core.io.Resource;
 @SlowTest
 public class AdHocToolsSchemaTests extends BaseAgenticAiTest {
 
+  private static final String SCHEMA_RESOLVER_ELEMENT_ID = "Resolve_Schema";
+  private static final String RESOLVED_SCHEMA_VARIABLE = "resolvedSchema";
+
+  @Value("classpath:agentic-ai-connectors.bpmn")
+  private Resource process;
+
   @Value("classpath:expected-schema-result.json")
   private Resource expectedSchemaResult;
 
   @Test
   void loadsAdHocToolsSchema() throws IOException {
+    var elementTemplate =
+        ElementTemplate.from(AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH)
+            .property("data.containerElementId", "Agent_Tools")
+            .property("resultVariable", RESOLVED_SCHEMA_VARIABLE)
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(process.getFile())
+            .apply(elementTemplate, SCHEMA_RESOLVER_ELEMENT_ID, new File(tempDir, "updated.bpmn"));
+
     final var zeebeTest =
-        createProcessInstance(Map.of("action", "resolveSchema")).waitForProcessCompletion();
+        createProcessInstance(updatedModel, Map.of("action", "resolveSchema"))
+            .waitForProcessCompletion();
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasVariableNames("resolvedSchema");
+        .hasVariableNames(RESOLVED_SCHEMA_VARIABLE);
 
     final Map<String, Object> expectedSchema =
         objectMapper.readValue(expectedSchemaResult.getFile(), new TypeReference<>() {});
@@ -59,7 +80,7 @@ public class AdHocToolsSchemaTests extends BaseAgenticAiTest {
             .findGlobalVariablesByProcessInstanceKey(
                 zeebeTest.getProcessInstanceEvent().getProcessInstanceKey())
             .stream()
-            .filter(variable -> variable.getName().equals("resolvedSchema"))
+            .filter(variable -> variable.getName().equals(RESOLVED_SCHEMA_VARIABLE))
             .findFirst()
             .orElseThrow(() -> new RuntimeException("Schema variable not found"));
   }
