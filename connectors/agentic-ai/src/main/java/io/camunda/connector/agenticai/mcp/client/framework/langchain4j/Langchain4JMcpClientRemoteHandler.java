@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.mcp.client.McpClient;
+import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpClientRemoteHandler;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.HttpMcpClientTransportConfiguration;
@@ -24,12 +26,12 @@ public class Langchain4JMcpClientRemoteHandler implements McpClientRemoteHandler
       LoggerFactory.getLogger(Langchain4JMcpClientRemoteHandler.class);
 
   private final ObjectMapper objectMapper;
-  private final Langchain4JMcpClientFactory clientFactory;
+  private final McpClientFactory<McpClient> clientFactory;
   private final Langchain4JMcpClientExecutor clientExecutor;
 
   public Langchain4JMcpClientRemoteHandler(
       ObjectMapper objectMapper,
-      Langchain4JMcpClientFactory clientFactory,
+      McpClientFactory<McpClient> clientFactory,
       Langchain4JMcpClientExecutor clientExecutor) {
     this.objectMapper = objectMapper;
     this.clientFactory = clientFactory;

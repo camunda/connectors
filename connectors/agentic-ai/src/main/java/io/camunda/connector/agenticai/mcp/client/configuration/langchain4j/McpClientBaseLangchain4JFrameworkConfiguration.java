@@ -7,7 +7,9 @@
 package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -19,7 +21,7 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public Langchain4JMcpClientFactory langchain4JMcpClientFactory() {
+  public McpClientFactory<McpClient> langchain4JMcpClientFactory() {
     return new Langchain4JMcpClientFactory();
   }
 
