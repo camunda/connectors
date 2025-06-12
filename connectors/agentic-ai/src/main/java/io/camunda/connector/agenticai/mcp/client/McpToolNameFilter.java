@@ -11,6 +11,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class McpToolNameFilter implements Predicate<String> {
 
@@ -33,7 +35,30 @@ public class McpToolNameFilter implements Predicate<String> {
 
   @Override
   public String toString() {
-    return "McpToolNameFilter{" + "included=" + included + ", excluded=" + excluded + '}';
+    return "[" + "included=" + included + ", excluded=" + excluded + ']';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    McpToolNameFilter that = (McpToolNameFilter) o;
+
+    return new EqualsBuilder()
+        .append(included, that.included)
+        .append(excluded, that.excluded)
+        .isEquals();
+  }
+
+  @Override
+  public int hashCode() {
+    return new HashCodeBuilder(17, 37).append(included).append(excluded).toHashCode();
   }
 
   public static McpToolNameFilter from(McpClientToolsConfiguration toolsConfiguration) {
