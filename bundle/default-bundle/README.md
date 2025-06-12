@@ -1,9 +1,13 @@
-Run via Maven / IDE:
+# Running Connector Runtime Locally
 
-Run `io.camunda.connector.runtime.app.LocalConnectorRuntime` class via your favorite IDE.
-You can add an `application.properties` file to `src/test/resources` containing your configurations.
+## Running Options
 
-Run via command line
+### Option 1: Maven / IDE
+
+1. Launch via IDE by running the `io.camunda.connector.runtime.app.LocalConnectorRuntime` class
+2. Configure by adding `application.properties` to `src/test/resources`
+
+### Option 2: Command Line
 
 ```bash
 # java \
@@ -13,3 +17,23 @@ Run via command line
   -Dzeebe.client.cloud.clientSecret=zzz \
   -jar target/connector-runtime-bundle-{VERSION}-with-dependencies.jar
 ```
+
+## Update: Migration to `camunda-distributions` repository
+
+### Why Migrate?
+
+- The `camunda-platform` is now deprecated
+
+### Migration Steps
+
+1. Clone [the repository](https://github.com/camunda/camunda-distributions/tree/main)
+2. Comment out the `connectors` section in the configuration
+3. Update your endpoints:
+    - **Inbound Connectors Webhook**: `http://localhost:8085/inbound/` (Note the port change)
+    - **Operate Interface**: `http://localhost:8081/operate/login` (Now included in core, note the port change)
+
+### Key Changes
+
+- Operate is now integrated into the core distribution
+- Updated port configurations for both webhook and Operate interface
+- Improved compatibility with current connector implementations
