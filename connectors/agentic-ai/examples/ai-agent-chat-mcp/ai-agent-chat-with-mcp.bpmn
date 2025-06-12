@@ -86,22 +86,6 @@
           <zeebe:loopCharacteristics inputCollection="=agent.toolCalls" inputElement="toolCall" outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         </bpmn:extensionElements>
       </bpmn:multiInstanceLoopCharacteristics>
-      <bpmn:serviceTask id="Filesystem" name="Filesystem" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
-        <bpmn:extensionElements>
-          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
-          <zeebe:ioMapping>
-            <zeebe:input source="filesystem" target="data.client.clientId" />
-            <zeebe:input source="=toolCall.method" target="data.operation.method" />
-            <zeebe:input source="=toolCall.params" target="data.operation.params" />
-          </zeebe:ioMapping>
-          <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="0" />
-            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
-            <zeebe:header key="resultVariable" value="toolCallResult" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
-          </zeebe:taskHeaders>
-        </bpmn:extensionElements>
-      </bpmn:serviceTask>
       <bpmn:serviceTask id="OpenMemory" name="OpenMemory" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
         <bpmn:extensionElements>
           <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
@@ -118,7 +102,7 @@
           </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
-      <bpmn:intermediateThrowEvent id="Event_19s4fqs">
+      <bpmn:intermediateThrowEvent id="Filesystem_MCP_Flow">
         <bpmn:extensionElements>
           <zeebe:properties>
             <zeebe:property name="io.camunda.agenticai.gateway.type" value="mcpClient" />
@@ -126,17 +110,17 @@
         </bpmn:extensionElements>
         <bpmn:outgoing>Flow_085l1z3</bpmn:outgoing>
       </bpmn:intermediateThrowEvent>
-      <bpmn:serviceTask id="Activity_1lxcmjh" name="Deepwiki" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.remote.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+      <bpmn:serviceTask id="Filesystem" name="Filesystem" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
         <bpmn:extensionElements>
-          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclientremote:0" retries="3" />
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
           <zeebe:ioMapping>
-            <zeebe:input source="https://mcp.deepwiki.com/sse" target="data.connection.sseUrl" />
+            <zeebe:input source="filesystem" target="data.client.clientId" />
             <zeebe:input source="=toolCall.method" target="data.operation.method" />
             <zeebe:input source="=toolCall.params" target="data.operation.params" />
           </zeebe:ioMapping>
           <zeebe:taskHeaders>
             <zeebe:header key="elementTemplateVersion" value="0" />
-            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.remote.v0" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
             <zeebe:header key="resultVariable" value="toolCallResult" />
             <zeebe:header key="retryBackoff" value="PT0S" />
           </zeebe:taskHeaders>
@@ -144,7 +128,7 @@
         <bpmn:incoming>Flow_0ixfrp0</bpmn:incoming>
         <bpmn:incoming>Flow_0688ffj</bpmn:incoming>
       </bpmn:serviceTask>
-      <bpmn:exclusiveGateway id="Gateway_115zcj9" name="Is tool call?" default="Flow_0ixfrp0">
+      <bpmn:exclusiveGateway id="Gateway_115zcj9" name="Needs confirmation?" default="Flow_19yhpei">
         <bpmn:incoming>Flow_085l1z3</bpmn:incoming>
         <bpmn:outgoing>Flow_0ixfrp0</bpmn:outgoing>
         <bpmn:outgoing>Flow_19yhpei</bpmn:outgoing>
@@ -170,18 +154,70 @@
         <bpmn:incoming>Flow_19yhpei</bpmn:incoming>
         <bpmn:outgoing>Flow_0jw5z8p</bpmn:outgoing>
       </bpmn:userTask>
-      <bpmn:sequenceFlow id="Flow_085l1z3" sourceRef="Event_19s4fqs" targetRef="Gateway_115zcj9" />
-      <bpmn:sequenceFlow id="Flow_0ixfrp0" name="no" sourceRef="Gateway_115zcj9" targetRef="Activity_1lxcmjh" />
-      <bpmn:sequenceFlow id="Flow_0688ffj" name="yes" sourceRef="Gateway_0fgu5ui" targetRef="Activity_1lxcmjh">
+      <bpmn:sequenceFlow id="Flow_085l1z3" sourceRef="Filesystem_MCP_Flow" targetRef="Gateway_115zcj9" />
+      <bpmn:sequenceFlow id="Flow_0ixfrp0" name="no" sourceRef="Gateway_115zcj9" targetRef="Filesystem">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=if toolCall.method = "tools/list" then 
+  true
+else
+  toolCall.method = "tools/call" and list contains([
+    "read_file",
+    "read_multiple_files",
+    "list_directory",
+    "search_files",
+    "get_file_info",
+    "list_allowed_directories"
+  ], toolCall.params.name)</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_0688ffj" name="yes" sourceRef="Gateway_0fgu5ui" targetRef="Filesystem">
         <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCallAllowed = true</bpmn:conditionExpression>
       </bpmn:sequenceFlow>
-      <bpmn:sequenceFlow id="Flow_19yhpei" sourceRef="Gateway_115zcj9" targetRef="Activity_0mdux6v">
-        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCall.method = "tools/call"</bpmn:conditionExpression>
-      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_19yhpei" sourceRef="Gateway_115zcj9" targetRef="Activity_0mdux6v" />
       <bpmn:sequenceFlow id="Flow_0jw5z8p" sourceRef="Activity_0mdux6v" targetRef="Gateway_0fgu5ui" />
       <bpmn:sequenceFlow id="Flow_0qtq8yf" name="no" sourceRef="Gateway_0fgu5ui" targetRef="Event_1e3tdvb">
         <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCallAllowed = false</bpmn:conditionExpression>
       </bpmn:sequenceFlow>
+      <bpmn:serviceTask id="Deepwiki" name="Deepwiki" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.remote.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclientremote:0" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="https://mcp.deepwiki.com/sse" target="data.connection.sseUrl" />
+            <zeebe:input source="=toolCall.method" target="data.operation.method" />
+            <zeebe:input source="=toolCall.params" target="data.operation.params" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="0" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.remote.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Time" name="Time" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.client.v0" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="time" target="data.client.clientId" />
+            <zeebe:input source="=toolCall.method" target="data.operation.method" />
+            <zeebe:input source="=toolCall.params" target="data.operation.params" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="0" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.client.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:scriptTask id="SuperfluxProduct" name="Superflux Product Calculation">
+        <bpmn:documentation>Calculates the superflux product (a very complicated method only this tool can do) given two input numbers</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="toolCallResult" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=fromAi(toolCall.a, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
+            <zeebe:input source="=fromAi(toolCall.b, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
     </bpmn:adHocSubProcess>
     <bpmn:sequenceFlow id="Flow_00lg7l2" name="yes" sourceRef="Gateway_0bukj01" targetRef="Agent_Tools">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=not(is empty(agent.toolCalls))</bpmn:conditionExpression>
@@ -222,9 +258,17 @@ The outside brain &lt;AI Agent&gt; will take that information to instruct the mo
       <bpmn:text>Must produce output as &lt;toolCallResults=[ { id, name, content } ]&gt;</bpmn:text>
     </bpmn:textAnnotation>
     <bpmn:association id="Association_14t02ll" associationDirection="None" sourceRef="Agent_Tools" targetRef="TextAnnotation_0xt28ql" />
-    <bpmn:association id="Association_1fwv17d" associationDirection="None" sourceRef="TextAnnotation_1cvjkfu" targetRef="OpenMemory" />
-    <bpmn:association id="Association_0l8l9q2" associationDirection="None" sourceRef="TextAnnotation_1tvejhg" targetRef="OpenMemory" />
+    <bpmn:association id="Association_1fwv17d" associationDirection="None" sourceRef="TextAnnotation_1cvjkfu" targetRef="Agent_Tools" />
+    <bpmn:association id="Association_0l8l9q2" associationDirection="None" sourceRef="TextAnnotation_1tvejhg" targetRef="Agent_Tools" />
+    <bpmn:textAnnotation id="TextAnnotation_1rkjf45">
+      <bpmn:text>Normal tools still work in combination with MCP clients</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:group id="Group_16cfm2b" categoryValueRef="CategoryValue_19j2i0i" />
+    <bpmn:association id="Association_03owhkm" associationDirection="None" sourceRef="SuperfluxProduct" targetRef="TextAnnotation_1rkjf45" />
   </bpmn:process>
+  <bpmn:category id="Category_0n3121e">
+    <bpmn:categoryValue id="CategoryValue_19j2i0i" value="MCP with user confirmation" />
+  </bpmn:category>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ai-agent-chat-with-mcp">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
@@ -257,74 +301,86 @@ The outside brain &lt;AI Agent&gt; will take that information to instruct the mo
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="Agent_Tools" isExpanded="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
-        <dc:Bounds x="640" y="560" width="440" height="580" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_1mw2r64" bpmnElement="Filesystem">
-        <dc:Bounds x="690" y="600" width="100" height="80" />
-        <bpmndi:BPMNLabel />
+        <dc:Bounds x="640" y="560" width="440" height="630" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1fx0n0u_di" bpmnElement="OpenMemory">
         <dc:Bounds x="810" y="600" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_19s4fqs_di" bpmnElement="Event_19s4fqs">
-        <dc:Bounds x="687" y="782" width="36" height="36" />
+      <bpmndi:BPMNShape id="BPMNShape_0nv9xyn" bpmnElement="Deepwiki">
+        <dc:Bounds x="690" y="600" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_04601bs_di" bpmnElement="Activity_1lxcmjh">
-        <dc:Bounds x="860" y="760" width="100" height="80" />
+      <bpmndi:BPMNShape id="BPMNShape_11biggn" bpmnElement="Time">
+        <dc:Bounds x="930" y="600" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0x0a1hy" bpmnElement="SuperfluxProduct">
+        <dc:Bounds x="720" y="1063" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_19s4fqs_di" bpmnElement="Filesystem_MCP_Flow">
+        <dc:Bounds x="687" y="802" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_115zcj9_di" bpmnElement="Gateway_115zcj9" isMarkerVisible="true">
-        <dc:Bounds x="770" y="775" width="50" height="50" />
+        <dc:Bounds x="770" y="795" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="767" y="751" width="56" height="14" />
+          <dc:Bounds x="762" y="766" width="67" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_04601bs_di" bpmnElement="Filesystem">
+        <dc:Bounds x="860" y="780" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ke4gic_di" bpmnElement="Activity_0mdux6v">
+        <dc:Bounds x="745" y="920" width="100" height="80" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_0fgu5ui_di" bpmnElement="Gateway_0fgu5ui" isMarkerVisible="true">
-        <dc:Bounds x="885" y="915" width="50" height="50" />
+        <dc:Bounds x="885" y="935" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="886" y="972" width="49" height="27" />
+          <dc:Bounds x="886" y="992" width="49" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1e3tdvb_di" bpmnElement="Event_1e3tdvb">
-        <dc:Bounds x="982" y="922" width="36" height="36" />
+        <dc:Bounds x="982" y="942" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="963" y="965" width="75" height="27" />
+          <dc:Bounds x="963" y="985" width="75" height="27" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0ke4gic_di" bpmnElement="Activity_0mdux6v">
-        <dc:Bounds x="745" y="900" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_085l1z3_di" bpmnElement="Flow_085l1z3">
-        <di:waypoint x="723" y="800" />
-        <di:waypoint x="770" y="800" />
+        <di:waypoint x="723" y="820" />
+        <di:waypoint x="770" y="820" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0ixfrp0_di" bpmnElement="Flow_0ixfrp0">
-        <di:waypoint x="820" y="800" />
-        <di:waypoint x="860" y="800" />
+        <di:waypoint x="820" y="820" />
+        <di:waypoint x="860" y="820" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="833" y="782" width="13" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0688ffj_di" bpmnElement="Flow_0688ffj">
-        <di:waypoint x="910" y="915" />
-        <di:waypoint x="910" y="840" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="888" y="876" width="18" height="14" />
+          <dc:Bounds x="833" y="802" width="13" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_19yhpei_di" bpmnElement="Flow_19yhpei">
-        <di:waypoint x="795" y="825" />
-        <di:waypoint x="795" y="900" />
+        <di:waypoint x="795" y="845" />
+        <di:waypoint x="795" y="920" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0688ffj_di" bpmnElement="Flow_0688ffj">
+        <di:waypoint x="910" y="935" />
+        <di:waypoint x="910" y="860" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="888" y="896" width="18" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0jw5z8p_di" bpmnElement="Flow_0jw5z8p">
-        <di:waypoint x="845" y="940" />
-        <di:waypoint x="885" y="940" />
+        <di:waypoint x="845" y="960" />
+        <di:waypoint x="885" y="960" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0qtq8yf_di" bpmnElement="Flow_0qtq8yf">
-        <di:waypoint x="935" y="940" />
-        <di:waypoint x="982" y="940" />
+        <di:waypoint x="935" y="960" />
+        <di:waypoint x="982" y="960" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="952" y="922" width="13" height="14" />
+          <dc:Bounds x="952" y="942" width="13" height="14" />
         </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_03owhkm_di" bpmnElement="Association_03owhkm">
+        <di:waypoint x="820" y="1103" />
+        <di:waypoint x="890" y="1103" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="TextAnnotation_0rg9ar3_di" bpmnElement="TextAnnotation_0rg9ar3">
         <dc:Bounds x="401" y="80" width="578" height="170" />
@@ -396,8 +452,8 @@ The outside brain &lt;AI Agent&gt; will take that information to instruct the mo
       <bpmndi:BPMNEdge id="Flow_01k9dy1_di" bpmnElement="Flow_01k9dy1">
         <di:waypoint x="1080" y="850" />
         <di:waypoint x="1150" y="850" />
-        <di:waypoint x="1150" y="1210" />
-        <di:waypoint x="270" y="1210" />
+        <di:waypoint x="1150" y="1270" />
+        <di:waypoint x="270" y="1270" />
         <di:waypoint x="270" y="485" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Association_0ic98nl_di" bpmnElement="Association_0ic98nl">
@@ -405,7 +461,7 @@ The outside brain &lt;AI Agent&gt; will take that information to instruct the mo
         <di:waypoint x="495" y="250" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Association_0q5n90x_di" bpmnElement="Association_0q5n90x">
-        <di:waypoint x="1080" y="620" />
+        <di:waypoint x="1080" y="621" />
         <di:waypoint x="1124" y="536" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Association_14t02ll_di" bpmnElement="Association_14t02ll">
@@ -413,13 +469,23 @@ The outside brain &lt;AI Agent&gt; will take that information to instruct the mo
         <di:waypoint x="1223" y="1090" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Association_1fwv17d_di" bpmnElement="Association_1fwv17d">
-        <di:waypoint x="1210" y="676" />
-        <di:waypoint x="910" y="645" />
+        <di:waypoint x="1210" y="670" />
+        <di:waypoint x="1080" y="650" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Association_0l8l9q2_di" bpmnElement="Association_0l8l9q2">
-        <di:waypoint x="1210" y="764" />
-        <di:waypoint x="910" y="667" />
+        <di:waypoint x="1210" y="752" />
+        <di:waypoint x="1080" y="700" />
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="TextAnnotation_1rkjf45_di" bpmnElement="TextAnnotation_1rkjf45">
+        <dc:Bounds x="890" y="1068" width="120" height="70" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Group_16cfm2b_di" bpmnElement="Group_16cfm2b">
+        <dc:Bounds x="665" y="730" width="390" height="300" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="824" y="737" width="72" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>
