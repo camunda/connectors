@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai;
+package io.camunda.connector.e2e.agenticai.adhoctoolsschema;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,30 +24,20 @@ import io.camunda.client.api.search.response.Variable;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
-@SlowTest
-public class AdHocToolsSchemaTests extends BaseAgenticAiTest {
+abstract class BaseAdHocToolsSchemaTests extends BaseAgenticAiTest {
 
-  private static final String SCHEMA_RESOLVER_ELEMENT_ID = "Resolve_Schema";
-  private static final String RESOLVED_SCHEMA_VARIABLE = "resolvedSchema";
+  protected static final String SCHEMA_RESOLVER_ELEMENT_ID = "Resolve_Schema";
+  protected static final String RESOLVED_SCHEMA_VARIABLE = "resolvedSchema";
 
-  @Value("classpath:agentic-ai-connectors.bpmn")
-  private Resource process;
-
-  @Value("classpath:expected-schema-result.json")
-  private Resource expectedSchemaResult;
-
-  @Test
-  void loadsAdHocToolsSchema() throws IOException {
+  protected void testAdHocToolSchema(Resource process, Resource expectedResult) throws IOException {
     var elementTemplate =
         ElementTemplate.from(AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH)
             .property("data.containerElementId", "Agent_Tools")
@@ -66,7 +56,7 @@ public class AdHocToolsSchemaTests extends BaseAgenticAiTest {
         .hasVariableNames(RESOLVED_SCHEMA_VARIABLE);
 
     final Map<String, Object> expectedSchema =
-        objectMapper.readValue(expectedSchemaResult.getFile(), new TypeReference<>() {});
+        objectMapper.readValue(expectedResult.getFile(), new TypeReference<>() {});
 
     final var resolvedSchemaVariable = getResolvedSchemaVariable(zeebeTest);
     final Map<String, Object> resolvedSchema =
