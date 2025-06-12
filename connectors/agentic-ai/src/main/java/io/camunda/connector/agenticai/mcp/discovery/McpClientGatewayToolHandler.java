@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpCli
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -170,12 +171,18 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
         objectMapper.convertValue(toolCallResult.content(), McpClientCallToolResult.class);
     final var identifier = new McpToolCallIdentifier(toolCallResult.name(), callToolResult.name());
 
-    // TODO check if we need to convert the content
-    return ToolCallResult.builder()
-        .id(toolCallResult.id())
-        .name(identifier.fullyQualifiedName())
-        .content(callToolResult.content())
-        .build();
+    final var toolCallResultBuilder =
+        ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());
+
+    // directly use the string content if the returned content is a single text content
+    if (callToolResult.content().size() == 1
+        && callToolResult.content().getFirst() instanceof TextContent(String text)) {
+      toolCallResultBuilder.content(text);
+    } else {
+      toolCallResultBuilder.content(callToolResult.content());
+    }
+
+    return toolCallResultBuilder.build();
   }
 
   private Map<String, Object> mcpClientOperationAsMap(McpClientOperation mcpClientOperation) {
