@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.mcp.discovery;
 
+import java.util.Arrays;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -25,22 +27,46 @@ public record McpToolCallIdentifier(String elementName, String mcpToolName) {
   public static final String MCP_PREFIX = "MCP_";
   public static final String MCP_NAMESPACE_SEPARATOR = "___";
 
+  private static final Pattern MCP_TOOL_CALL_PATTERN =
+      Pattern.compile(
+          "^"
+              + MCP_PREFIX
+              + "(?<elementName>.+)"
+              + MCP_NAMESPACE_SEPARATOR
+              + "(?<mcpToolName>.+)$");
+
   public String fullyQualifiedName() {
     return MCP_PREFIX + elementName + MCP_NAMESPACE_SEPARATOR + mcpToolName;
   }
 
   public static boolean isMcpToolCallIdentifier(String toolCallName) {
-    return toolCallName.startsWith(MCP_PREFIX) && toolCallName.contains(MCP_NAMESPACE_SEPARATOR);
+    return !StringUtils.isBlank(toolCallName)
+        && MCP_TOOL_CALL_PATTERN.matcher(toolCallName).matches();
   }
 
   public static McpToolCallIdentifier fromToolCallName(String toolCallName) {
-    String[] parts = toolCallName.substring(MCP_PREFIX.length()).split(MCP_NAMESPACE_SEPARATOR);
-
-    if (parts.length != 2 && StringUtils.isBlank(parts[0]) || StringUtils.isBlank(parts[1])) {
-      throw new IllegalArgumentException(
-          "Failed to parse MCP tool call identifier from '%s'".formatted(toolCallName));
+    if (!toolCallName.startsWith(MCP_PREFIX)) {
+      throw invalidToolCallNameException(toolCallName);
     }
 
-    return new McpToolCallIdentifier(parts[0], parts[1]);
+    final var parts =
+        Arrays.stream(toolCallName.substring(MCP_PREFIX.length()).split(MCP_NAMESPACE_SEPARATOR))
+            .toList()
+            .stream()
+            .map(String::trim)
+            .toList();
+
+    if (parts.size() != 2
+        || StringUtils.isBlank(parts.get(0))
+        || StringUtils.isBlank(parts.get(1))) {
+      throw invalidToolCallNameException(toolCallName);
+    }
+
+    return new McpToolCallIdentifier(parts.get(0), parts.get(1));
+  }
+
+  private static IllegalArgumentException invalidToolCallNameException(String toolCallName) {
+    return new IllegalArgumentException(
+        "Failed to parse MCP tool call identifier from '%s'".formatted(toolCallName));
   }
 }
