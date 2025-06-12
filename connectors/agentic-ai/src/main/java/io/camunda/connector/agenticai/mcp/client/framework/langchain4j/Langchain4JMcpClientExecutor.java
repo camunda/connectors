@@ -94,7 +94,8 @@ public class Langchain4JMcpClientExecutor {
           toolExecutionRequest.name(),
           List.of(
               TextContent.textContent(
-                  "Tool not included in filter: %s".formatted(toolExecutionRequest.name()))),
+                  "Executing tool '%s' is not allowed by filter configuration: %s"
+                      .formatted(toolExecutionRequest.name(), toolNameFilter))),
           true);
     }
 

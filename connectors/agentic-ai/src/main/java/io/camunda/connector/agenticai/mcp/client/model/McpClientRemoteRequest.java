@@ -18,8 +18,7 @@ import org.springframework.lang.Nullable;
 
 public record McpClientRemoteRequest(@Valid @NotNull McpClientRemoteRequestData data) {
   public record McpClientRemoteRequestData(
-      @Valid @NotNull
-          McpClientRemoteRequest.McpClientRemoteRequestData.HttpConnectionConfiguration connection,
+      @Valid @NotNull HttpConnectionConfiguration connection,
       @Valid @Nullable McpClientToolsConfiguration tools,
       @Valid @NotNull McpClientOperationConfiguration operation) {
 
