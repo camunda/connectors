@@ -23,7 +23,6 @@ import java.lang.annotation.Target;
     options =
         @RecordBuilder.Options(
             publicBuilderConstructors = true,
-            addFunctionalMethodsToWith = true,
             interpretNotNulls = true,
             defaultNotNull = true,
             useImmutableCollections = true))

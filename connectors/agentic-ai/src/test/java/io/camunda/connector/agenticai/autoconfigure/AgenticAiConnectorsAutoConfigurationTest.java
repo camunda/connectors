@@ -13,17 +13,28 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractorImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
+import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
+import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryImpl;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.util.List;
+import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
@@ -35,14 +46,30 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   private static final List<Class<?>> AGENTIC_AI_BEANS =
       List.of(
-          FeelInputParamExtractorImpl.class,
+          FeelInputParamExtractor.class,
           AdHocToolSchemaGenerator.class,
           AdHocToolsSchemaResolver.class,
           AdHocToolsSchemaFunction.class,
-          ChatModelFactoryImpl.class,
-          DocumentToContentConverterImpl.class,
+          GatewayToolHandlerRegistry.class,
+          AgentInitializer.class,
+          AgentLimitsValidator.class,
+          AgentMessagesHandler.class,
+          AgentResponseHandler.class,
           AiAgentRequestHandler.class,
           AiAgentFunction.class);
+
+  private static final List<Class<?>> LANGCHAIN4J_BEANS =
+      List.of(
+          ChatModelFactory.class,
+          DocumentToContentConverter.class,
+          ToolCallConverter.class,
+          JsonSchemaConverter.class,
+          ToolSpecificationConverter.class,
+          ChatMessageConverter.class,
+          Langchain4JAiFrameworkAdapter.class);
+
+  private static final List<Class<?>> ALL_BEANS =
+      Stream.concat(AGENTIC_AI_BEANS.stream(), LANGCHAIN4J_BEANS.stream()).toList();
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
@@ -73,7 +100,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
         .run(
             context ->
                 assertAll(
-                    AGENTIC_AI_BEANS.stream()
+                    ALL_BEANS.stream()
                         .map(beanClass -> () -> assertThat(context).hasSingleBean(beanClass))));
   }
 
@@ -84,7 +111,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
         .run(
             context ->
                 assertAll(
-                    AGENTIC_AI_BEANS.stream()
+                    ALL_BEANS.stream()
                         .map(beanClass -> () -> assertThat(context).doesNotHaveBean(beanClass))));
   }
 

@@ -14,15 +14,26 @@ import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtrac
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGeneratorImpl;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
+import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidatorImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
+import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -56,12 +67,16 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AdHocToolsSchemaResolver adHocToolsSchemaResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
+      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       FeelInputParamExtractor feelInputParamExtractor,
       AdHocToolSchemaGenerator adHocToolSchemaGenerator) {
 
     final var resolver =
         new CamundaClientAdHocToolsSchemaResolver(
-            camundaClient, feelInputParamExtractor, adHocToolSchemaGenerator);
+            camundaClient,
+            gatewayToolDefinitionResolvers,
+            feelInputParamExtractor,
+            adHocToolSchemaGenerator);
 
     final var cacheConfiguration = configuration.tools().cache();
     if (cacheConfiguration.enabled()) {
@@ -83,6 +98,33 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public GatewayToolHandlerRegistry gatewayToolHandlerRegistry(
+      List<GatewayToolHandler> gatewayToolHandlers) {
+    return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgentInitializer aiAgentInitializer(
+      AdHocToolsSchemaResolver schemaResolver, GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentInitializerImpl(schemaResolver, gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgentLimitsValidator aiAgentLimitsValidator() {
+    return new AgentLimitsValidatorImpl();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgentMessagesHandler aiAgentMessagesHandler(
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentMessagesHandlerImpl(gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(ObjectMapper objectMapper) {
     return new AgentResponseHandlerImpl(objectMapper);
   }
@@ -90,10 +132,19 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
-      AdHocToolsSchemaResolver schemaResolver,
+      AgentInitializer agentInitializer,
+      AgentLimitsValidator limitsValidator,
+      AgentMessagesHandler messagesHandler,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       AgentResponseHandler responseHandler) {
-    return new AiAgentRequestHandlerImpl(schemaResolver, aiFrameworkAdapter, responseHandler);
+    return new AiAgentRequestHandlerImpl(
+        agentInitializer,
+        limitsValidator,
+        messagesHandler,
+        gatewayToolHandlers,
+        aiFrameworkAdapter,
+        responseHandler);
   }
 
   @Bean

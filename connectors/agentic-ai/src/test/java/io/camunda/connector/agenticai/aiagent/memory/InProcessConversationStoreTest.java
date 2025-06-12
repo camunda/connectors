@@ -18,7 +18,6 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -113,12 +112,5 @@ class InProcessConversationStoreTest {
               assertThat(conversation.id()).isEqualTo(previousConversationContext.id());
               assertThat(conversation.messages()).containsExactlyElementsOf(expectedMessages);
             });
-  }
-
-  private record TestConversationContext(String id) implements ConversationContext {
-    @Override
-    public Map<String, Object> properties() {
-      return Map.of();
-    }
   }
 }

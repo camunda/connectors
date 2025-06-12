@@ -21,13 +21,9 @@ public record AgenticAiConnectorsConfigurationProperties(
 
   public AgenticAiConnectorsConfigurationProperties(
       AiFramework framework, ToolsSchemaConfiguration tools) {
-    this.framework = Optional.ofNullable(framework).orElse(AiFramework.LANGCHAIN4J);
+    this.framework = Optional.ofNullable(framework).orElse(AiFramework.defaultFramework());
     this.tools =
         Optional.ofNullable(tools).orElseGet(ToolsSchemaConfiguration::defaultConfiguration);
-  }
-
-  public enum AiFramework {
-    LANGCHAIN4J
   }
 
   public record ToolsSchemaConfiguration(@Valid CacheConfiguration cache) {

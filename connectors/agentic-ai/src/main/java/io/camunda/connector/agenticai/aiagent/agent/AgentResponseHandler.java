@@ -13,6 +13,13 @@ import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import java.util.List;
 
+/**
+ * Handles the creation of an agent response based on the configuration and the returned assistant
+ * message.
+ *
+ * <p>Depending on the configuration, this handler takes care of parsing the response text into the
+ * desired format (such as JSON).
+ */
 public interface AgentResponseHandler {
   AgentResponse createResponse(
       AgentRequest request,

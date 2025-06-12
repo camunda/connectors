@@ -4,11 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model;
+package io.camunda.connector.agenticai.aiagent.memory;
 
-public enum AgentState {
-  INITIALIZING,
-  TOOL_DISCOVERY,
-  READY,
-  WAITING_FOR_TOOL_INPUT
+import java.util.Map;
+
+public record TestConversationContext(String id) implements ConversationContext {
+  @Override
+  public Map<String, Object> properties() {
+    return Map.of();
+  }
 }
