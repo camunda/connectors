@@ -9,7 +9,13 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
-/** Responsible for initializing the agent context and to initiate tool discovery if necessary. */
+/**
+ * Primarily responsible for initializing the agent context and to resolve tool call results from
+ * the request.
+ *
+ * <p>Can interact with gateway tool handlers to initiate a tool discovery process (e.g. call MCP
+ * client activities to list tools).
+ */
 public interface AgentInitializer {
   AgentInitializationResult initializeAgent(OutboundConnectorContext context, AgentRequest request);
 }

@@ -11,6 +11,10 @@ import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 
+/**
+ * Wrapper around multiple tool handlers, implementing distributing and merging gateway operations
+ * across multiple handlers.
+ */
 public interface GatewayToolHandlerRegistry extends GatewayToolCallTransformer {
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);

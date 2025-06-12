@@ -13,6 +13,17 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRe
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 
+/**
+ * Handles the addition of messages to the agent's memory, including:
+ *
+ * <ul>
+ *   <li>system message
+ *   <li>user messages
+ *   <li>tool call results
+ * </ul>
+ *
+ * Also handles mapping of tool call results in combination with gateway tool handlers.
+ */
 public interface AgentMessagesHandler {
   void addSystemMessage(
       AgentContext agentContext, RuntimeMemory memory, SystemPromptConfiguration systemPrompt);
