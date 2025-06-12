@@ -43,7 +43,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   @Autowired protected ResourceLoader resourceLoader;
 
   @Value("classpath:agentic-ai-connectors.bpmn")
-  private Resource process;
+  protected Resource testProcess;
 
   protected ZeebeTest createProcessInstance(Map<String, Object> variables) throws IOException {
     return createProcessInstance(e -> e, variables);
@@ -53,7 +53,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       Map<String, Object> variables)
       throws IOException {
-    return createProcessInstance(process, elementTemplateModifier, variables);
+    return createProcessInstance(testProcess, elementTemplateModifier, variables);
   }
 
   protected ZeebeTest createProcessInstance(

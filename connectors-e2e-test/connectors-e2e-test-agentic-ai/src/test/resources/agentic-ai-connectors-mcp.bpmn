@@ -74,7 +74,9 @@
         <bpmn:extensionElements>
           <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:0" retries="3" />
           <zeebe:ioMapping>
-            <zeebe:input source="filesystem" target="data.client.clientId" />
+            <zeebe:input source="a-mcp-client" target="data.client.clientId" />
+            <zeebe:input source="=[&#34;toolA&#34;, &#34;toolB&#34;, &#34;toolC&#34;]" target="data.tools.included" />
+            <zeebe:input source="=[&#34;toolB&#34;]" target="data.tools.excluded" />
             <zeebe:input source="=toolCall.method" target="data.operation.method" />
             <zeebe:input source="=toolCall.params" target="data.operation.params" />
           </zeebe:ioMapping>
@@ -92,7 +94,7 @@
           <zeebe:ioMapping>
             <zeebe:input source="http://localhost:1234/sse" target="data.connection.sseUrl" />
             <zeebe:input source="={&#10;  &#34;Authorization&#34;: &#34;dummy&#34;&#10;}" target="data.connection.headers" />
-            <zeebe:input source="=[&#34;toolA&#34;, &#34;toolB&#34;]" target="data.tools.included" />
+            <zeebe:input source="=[&#34;toolA&#34;, &#34;toolB&#34;, &#34;toolC&#34;]" target="data.tools.included" />
             <zeebe:input source="=[&#34;toolB&#34;]" target="data.tools.excluded" />
             <zeebe:input source="=toolCall.method" target="data.operation.method" />
             <zeebe:input source="=toolCall.params" target="data.operation.params" />

@@ -67,6 +67,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.springframework.core.io.Resource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
@@ -127,14 +128,32 @@ abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
     }
   }
 
-  protected void testBasicExecutionWithoutFeedbackLoop(
+  protected ZeebeTest testBasicExecutionWithoutFeedbackLoop(
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       String responseText,
       boolean assertToolSpecifications,
       ThrowingConsumer<AgentResponse> agentResponseAssertions)
       throws Exception {
-    final var testSetup = setupBasicTestWithoutFeedbackLoop(elementTemplateModifier, responseText);
-    testSetup.getRight().waitForProcessCompletion();
+    return testBasicExecutionWithoutFeedbackLoop(
+        testProcess,
+        elementTemplateModifier,
+        responseText,
+        assertToolSpecifications,
+        agentResponseAssertions);
+  }
+
+  protected ZeebeTest testBasicExecutionWithoutFeedbackLoop(
+      Resource process,
+      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+      String responseText,
+      boolean assertToolSpecifications,
+      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      throws Exception {
+    final var testSetup =
+        setupBasicTestWithoutFeedbackLoop(process, elementTemplateModifier, responseText);
+
+    final var zeebeTest = testSetup.getRight();
+    zeebeTest.waitForProcessCompletion();
 
     assertLastChatRequest(1, testSetup.getLeft(), assertToolSpecifications);
 
@@ -146,10 +165,14 @@ abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
         .satisfies(agentResponseAssertions);
 
     assertThat(jobWorkerCounter.get()).isEqualTo(1);
+
+    return zeebeTest;
   }
 
   protected Pair<List<ChatMessage>, ZeebeTest> setupBasicTestWithoutFeedbackLoop(
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier, String responseText)
+      Resource process,
+      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+      String responseText)
       throws Exception {
     final var initialUserPrompt = "Write a haiku about the sea";
     final var expectedConversation =
@@ -173,6 +196,7 @@ abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
 
     final var zeebeTest =
         createProcessInstance(
+            process,
             elementTemplateModifier,
             Map.of("action", "executeAgent", "userPrompt", initialUserPrompt));
 
