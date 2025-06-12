@@ -8,34 +8,35 @@ package io.camunda.connector.agenticai.mcp.client.configuration;
 
 import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
-import io.camunda.connector.agenticai.mcp.client.McpClientRemoteFunction;
-import io.camunda.connector.agenticai.mcp.client.McpClientRemoteHandler;
+import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpClientLangchain4JFrameworkConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-// TODO make this more granular (decide which functions to enable)
+/**
+ * Configuration for MCP clients configured on the runtime. As this is not supported in SaaS (yet)
+ * without any additional configuration, this is disabled by default.
+ */
 @Configuration
-@ConditionalOnProperty(
+@ConditionalOnBooleanProperty(
     value = "camunda.connector.agenticai.mcp.client.enabled",
-    havingValue = "true",
-    matchIfMissing = true)
+    matchIfMissing = false)
 @EnableConfigurationProperties(McpClientConfigurationProperties.class)
 @Import(McpClientLangchain4JFrameworkConfiguration.class)
 public class McpClientConfiguration {
 
-  @Bean
-  @ConditionalOnMissingBean
-  public McpClientFunction mcpClientFunction(McpClientHandler mcpClientHandler) {
-    return new McpClientFunction(mcpClientHandler);
-  }
+  private static final Logger LOGGER = LoggerFactory.getLogger(McpClientConfiguration.class);
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientRemoteFunction mcpClientRemoteFunction(McpClientRemoteHandler handler) {
-    return new McpClientRemoteFunction(handler);
+  public McpClientFunction mcpClientFunction(
+      McpClientConfigurationProperties config, McpClientHandler mcpClientHandler) {
+    LOGGER.debug("Creating McpClientFunction with framework {}", config.framework());
+    return new McpClientFunction(mcpClientHandler);
   }
 }

@@ -7,9 +7,5 @@
 package io.camunda.connector.agenticai.autoconfigure;
 
 public enum AiFramework {
-  LANGCHAIN4J;
-
-  public static AiFramework defaultFramework() {
-    return AiFramework.LANGCHAIN4J;
-  }
+  LANGCHAIN4J
 }

@@ -11,15 +11,14 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefin
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConditionalOnProperty(
+@ConditionalOnBooleanProperty(
     value = "camunda.connector.agenticai.mcp.discovery.enabled",
-    havingValue = "true",
     matchIfMissing = true)
 public class McpDiscoveryConfiguration {
   @Bean
