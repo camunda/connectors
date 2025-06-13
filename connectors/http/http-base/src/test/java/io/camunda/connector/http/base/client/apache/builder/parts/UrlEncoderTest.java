@@ -109,7 +109,8 @@ public class UrlEncoderTest {
             "http://localhost:8080/test?query=hello%20world!"), // partially-encoded url with valid
         // chars
 
-        // Plus sign (in path must be retained as a regular plus sign %2B, in query must be encoded as space %20)
+        // Plus sign (in path must be retained as a regular plus sign %2B, in query must be encoded
+        // as space %20)
         Arguments.of("http://localhost:8080/hello+world", "http://localhost:8080/hello%2Bworld"),
         Arguments.of(
             "http://localhost:8080/test?hello+world", "http://localhost:8080/test?hello%20world"),
