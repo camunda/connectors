@@ -151,11 +151,11 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.mcp.client.McpClientRemoteFunction</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.mcp.client.remote.v0</templateId>
-                  <templateFileName>agenticai-mcp-client-remote-outbound-connector.json</templateFileName>
+                  <templateId>io.camunda.connectors.agenticai.mcp.remoteclient.v0</templateId>
+                  <templateFileName>agenticai-mcp-remote-client-outbound-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>

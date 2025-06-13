@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.agenticai.mcp.client;
 
-import io.camunda.connector.agenticai.mcp.client.model.McpClientRemoteRequest;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
-public interface McpClientRemoteHandler {
-  McpClientResult handle(OutboundConnectorContext context, McpClientRemoteRequest request);
+public interface McpRemoteClientHandler {
+  McpClientResult handle(OutboundConnectorContext context, McpRemoteClientRequest request);
 }
