@@ -1,0 +1,17 @@
+camunda:
+  connector:
+    agenticai:
+      mcp:
+        client:
+          enabled: true
+          # MCP clients are mocked in the e2e tests, so it does not matter what commands
+          # are configured here.
+          clients:
+            filesystem:
+              stio:
+                command:
+                  - 'echo'
+                  - 'hello'
+            a-mcp-client:
+              http:
+                sse-url: http://localhost:2345/sse

@@ -6,12 +6,10 @@
  */
 package io.camunda.connector.agenticai.autoconfigure;
 
+import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
+import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertHasAllBeansOf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.mockito.Mockito.mock;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
@@ -32,14 +30,12 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import java.util.List;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.context.annotation.Bean;
 import org.springframework.validation.FieldError;
 
 class AgenticAiConnectorsAutoConfigurationTest {
@@ -68,6 +64,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ChatMessageConverter.class,
           Langchain4JAiFrameworkAdapter.class);
 
+  // this will need to be updated in case we support different frameworks
   private static final List<Class<?>> ALL_BEANS =
       Stream.concat(AGENTIC_AI_BEANS.stream(), LANGCHAIN4J_BEANS.stream()).toList();
 
@@ -76,43 +73,18 @@ class AgenticAiConnectorsAutoConfigurationTest {
           .withUserConfiguration(TestConfig.class)
           .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class);
 
-  protected static class TestConfig {
-    @Bean
-    public ObjectMapper objectMapper() {
-      return new ObjectMapper();
-    }
-
-    @Bean
-    public CamundaClient camundaClient() {
-      return mock(CamundaClient.class);
-    }
-
-    @Bean
-    public FeelEngineWrapper feelEngineWrapper() {
-      return mock(FeelEngineWrapper.class);
-    }
-  }
-
   @Test
   void whenAgenticAiConnectorsEnabled_thenAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=true")
-        .run(
-            context ->
-                assertAll(
-                    ALL_BEANS.stream()
-                        .map(beanClass -> () -> assertThat(context).hasSingleBean(beanClass))));
+        .run(context -> assertHasAllBeansOf(context, ALL_BEANS));
   }
 
   @Test
   void whenAgenticAiConnectorsDisabled_thenNoAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=false")
-        .run(
-            context ->
-                assertAll(
-                    ALL_BEANS.stream()
-                        .map(beanClass -> () -> assertThat(context).doesNotHaveBean(beanClass))));
+        .run(context -> assertDoesNotHaveAnyBeansOf(context, ALL_BEANS));
   }
 
   @Test

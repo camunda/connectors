@@ -76,7 +76,7 @@ public class Langchain4JAiAgentElementTemplateRegressionTests extends BaseLangch
             ChatResponse.builder()
                 .metadata(
                     ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
+                        .finishReason(FinishReason.TOOL_EXECUTION)
                         .tokenUsage(new TokenUsage(10, 20))
                         .build())
                 .aiMessage((AiMessage) expectedConversation.get(2))

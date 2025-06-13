@@ -12,18 +12,17 @@ import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 import java.util.Optional;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai")
 public record AgenticAiConnectorsConfigurationProperties(
-    @NotNull AiFramework framework, @Valid ToolsSchemaConfiguration tools) {
+    @NotNull @DefaultValue("LANGCHAIN4J") AiFramework framework,
+    @Valid ToolsSchemaConfiguration tools) {
 
-  public AgenticAiConnectorsConfigurationProperties(
-      AiFramework framework, ToolsSchemaConfiguration tools) {
-    this.framework = Optional.ofNullable(framework).orElse(AiFramework.defaultFramework());
-    this.tools =
-        Optional.ofNullable(tools).orElseGet(ToolsSchemaConfiguration::defaultConfiguration);
+  public AgenticAiConnectorsConfigurationProperties {
+    tools = Optional.ofNullable(tools).orElseGet(ToolsSchemaConfiguration::defaultConfiguration);
   }
 
   public record ToolsSchemaConfiguration(@Valid CacheConfiguration cache) {
