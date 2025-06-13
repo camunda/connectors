@@ -102,7 +102,6 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-client>2.8.0</version.google-api-client>
 
-    <!-- TODO: Remove this fixed version, see https://github.com/camunda/connectors/issues/4810 -->
     <version.google-http-client>1.45.2</version.google-http-client>
 
     <version.google-api-services-drive>v3-rev20250511-2.0.0</version.google-api-services-drive>
