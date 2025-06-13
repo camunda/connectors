@@ -54,10 +54,12 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-vertexai</artifactId>
+      <version>${version.google-cloud-vertex-ai}</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-document-ai</artifactId>
+      <version>${version.google-cloud-document-ai}</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
