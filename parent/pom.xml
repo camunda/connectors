@@ -108,8 +108,8 @@ limitations under the License.</license.inlineheader>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.37.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20250325-2.0.0</version.google-api-services-docs>
-    <version.google-api-services-sheets>v4-rev20250513-2.0.0</version.google-api-services-sheets>
     <version.google-libraries-bom>26.61.0</version.google-libraries-bom>
+    <version.google-api-services-sheets>v4-rev20250513-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.53.0</version.google-cloud-storage>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -198,15 +198,6 @@ limitations under the License.</license.inlineheader>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
         <version>${version.logback}</version>
-      </dependency>
-
-      <!-- Google libraries BOM -->
-      <dependency>
-        <groupId>com.google.cloud</groupId>
-        <artifactId>libraries-bom</artifactId>
-        <version>${version.google-libraries-bom}</version>
-        <type>pom</type>
-        <scope>import</scope>
       </dependency>
 
       <!-- LangChain4j BOM -->
@@ -512,23 +503,11 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java</artifactId>
-        <version>4.31.1</version>
-      </dependency>
-
-      <!-- Fix CVE-2024-7254 -->
-      <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java-util</artifactId>
-        <version>4.31.1</version>
-      </dependency>
-
-      <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk18on</artifactId>
         <version>${version.bouncycastle}</version>
       </dependency>
+
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk18on</artifactId>
