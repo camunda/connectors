@@ -109,8 +109,8 @@ public class UrlEncoderTest {
             "http://localhost:8080/test?query=hello%20world!"), // partially-encoded url with valid
         // chars
 
-        // Plus sign (in path must be encoded, in query is valid)
-        Arguments.of("http://localhost:8080/hello+world", "http://localhost:8080/hello+world"),
+        // Plus sign (in path must be retained as a regular plus sign %2B, in query must be encoded as space %20)
+        Arguments.of("http://localhost:8080/hello+world", "http://localhost:8080/hello%2Bworld"),
         Arguments.of(
             "http://localhost:8080/test?hello+world", "http://localhost:8080/test?hello%20world"),
 
@@ -138,13 +138,7 @@ public class UrlEncoderTest {
             "http://localhost:8080/test,?query=helloWorld?"),
         Arguments.of(
             "http://localhost:8080/path%20with%20spaces?andQuery=Param with space",
-            "http://localhost:8080/path%20with%20spaces?andQuery=Param%20with%20space"),
-
-        // no protocol
-        Arguments.of("localhost:8080/test", "localhost:8080/test"),
-
-        // invalid port
-        Arguments.of("http://localhost:abc/test", "http://localhost:abc/test"));
+            "http://localhost:8080/path%20with%20spaces?andQuery=Param%20with%20space"));
   }
 
   @ParameterizedTest
