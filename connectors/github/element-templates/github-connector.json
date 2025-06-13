@@ -2324,7 +2324,7 @@
     {
       "id": "useCustomCommitter",
       "label": "Use custom committer",
-      "description": "By default, the committer is the user associated with the access token. Check this box to set a different committer in the commit metadata like octocat <octocat@github.com>.",
+      "description": "By default, the committer is the user associated with the access token. Check this box to set a different committer in the commit metadata.",
       "group": "input",
       "value": false,
       "type": "Boolean",
@@ -2380,7 +2380,7 @@
     {
       "id": "useCustomAuthor",
       "label": "Use custom author",
-      "description": "By default, the author is the user associated with the access token. Check this box to use a different author in the commit metadata like octocat <octocat@github.com>",
+      "description": "By default, the author is the user associated with the access token. Check this box to use a different author in the commit metadata.",
       "group": "input",
       "value": false,
       "type": "Boolean",
