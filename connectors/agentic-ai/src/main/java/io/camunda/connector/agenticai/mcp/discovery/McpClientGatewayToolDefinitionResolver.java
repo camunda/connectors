@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.mcp.discovery;
 
 import static io.camunda.connector.agenticai.mcp.client.McpClientFunction.MCP_CLIENT_BASE_TYPE;
-import static io.camunda.connector.agenticai.mcp.client.McpClientRemoteFunction.MCP_CLIENT_REMOTE_BASE_TYPE;
+import static io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction.MCP_REMOTE_CLIENT_BASE_TYPE;
 import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentation;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
@@ -22,7 +22,7 @@ public class McpClientGatewayToolDefinitionResolver implements GatewayToolDefini
   private final List<String> mcpClientTaskDefinitionTypePrefixes;
 
   public McpClientGatewayToolDefinitionResolver() {
-    this(List.of(MCP_CLIENT_BASE_TYPE, MCP_CLIENT_REMOTE_BASE_TYPE));
+    this(List.of(MCP_CLIENT_BASE_TYPE, MCP_REMOTE_CLIENT_BASE_TYPE));
   }
 
   public McpClientGatewayToolDefinitionResolver(List<String> mcpClientTaskDefinitionTypePrefixes) {

@@ -16,8 +16,8 @@ import java.time.Duration;
 import java.util.Map;
 import org.springframework.lang.Nullable;
 
-public record McpClientRemoteRequest(@Valid @NotNull McpClientRemoteRequestData data) {
-  public record McpClientRemoteRequestData(
+public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData data) {
+  public record McpRemoteClientRequestData(
       @Valid @NotNull HttpConnectionConfiguration connection,
       @Valid @Nullable McpClientToolsConfiguration tools,
       @Valid @NotNull McpClientOperationConfiguration operation) {

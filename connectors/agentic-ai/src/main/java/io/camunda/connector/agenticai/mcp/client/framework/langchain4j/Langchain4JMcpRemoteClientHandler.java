@@ -9,27 +9,27 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.McpClientRemoteHandler;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.HttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientRemoteRequest;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Langchain4JMcpClientRemoteHandler implements McpClientRemoteHandler {
+public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(Langchain4JMcpClientRemoteHandler.class);
+      LoggerFactory.getLogger(Langchain4JMcpRemoteClientHandler.class);
 
   private final ObjectMapper objectMapper;
   private final McpClientFactory<McpClient> clientFactory;
   private final Langchain4JMcpClientExecutor clientExecutor;
 
-  public Langchain4JMcpClientRemoteHandler(
+  public Langchain4JMcpRemoteClientHandler(
       ObjectMapper objectMapper,
       McpClientFactory<McpClient> clientFactory,
       Langchain4JMcpClientExecutor clientExecutor) {
@@ -39,7 +39,7 @@ public class Langchain4JMcpClientRemoteHandler implements McpClientRemoteHandler
   }
 
   @Override
-  public McpClientResult handle(OutboundConnectorContext context, McpClientRemoteRequest request) {
+  public McpClientResult handle(OutboundConnectorContext context, McpRemoteClientRequest request) {
     final var clientId =
         "%s_%s"
             .formatted(
@@ -63,7 +63,7 @@ public class Langchain4JMcpClientRemoteHandler implements McpClientRemoteHandler
     }
   }
 
-  private McpClientConfiguration createClientConfiguration(McpClientRemoteRequest request) {
+  private McpClientConfiguration createClientConfiguration(McpRemoteClientRequest request) {
     final var connection = request.data().connection();
     final var httpTransportConfiguration =
         new HttpMcpClientTransportConfiguration(

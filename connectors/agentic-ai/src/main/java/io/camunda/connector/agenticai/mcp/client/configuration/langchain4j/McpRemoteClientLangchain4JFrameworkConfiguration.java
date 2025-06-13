@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.McpClientRemoteHandler;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientRemoteHandler;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandler;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -28,10 +28,10 @@ public class McpRemoteClientLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientRemoteHandler langchain4JMcpClientRemoteHandler(
+  public McpRemoteClientHandler langchain4JMcpRemoteClientHandler(
       ObjectMapper objectMapper,
       McpClientFactory<McpClient> mcpClientFactory,
       Langchain4JMcpClientExecutor mcpClientExecutor) {
-    return new Langchain4JMcpClientRemoteHandler(objectMapper, mcpClientFactory, mcpClientExecutor);
+    return new Langchain4JMcpRemoteClientHandler(objectMapper, mcpClientFactory, mcpClientExecutor);
   }
 }

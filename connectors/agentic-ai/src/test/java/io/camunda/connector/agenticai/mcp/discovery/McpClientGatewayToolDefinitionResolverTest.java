@@ -55,7 +55,7 @@ class McpClientGatewayToolDefinitionResolverTest {
             createServiceTask("mcp-task-1", "io.camunda.agenticai:mcpclient:0"),
             createServiceTask("mcp-task-2", "io.camunda.agenticai:mcpclient:1"),
             createServiceTask("other-task", "other:type"),
-            createServiceTask("remote-mcp-task-1", "io.camunda.agenticai:mcpclientremote:1"));
+            createServiceTask("remote-mcp-task-1", "io.camunda.agenticai:mcpremoteclient:1"));
 
     final var result = resolver.resolveGatewayToolDefinitions(elements);
 
@@ -122,7 +122,7 @@ class McpClientGatewayToolDefinitionResolverTest {
         List.of(
             createServiceTask("mcp1", "io.camunda.agenticai:mcpclient:1"),
             createServiceTask("other", "other:type"),
-            createServiceTask("mcp2", "io.camunda.agenticai:mcpclientremote:1"),
+            createServiceTask("mcp2", "io.camunda.agenticai:mcpremoteclient:1"),
             createUserTask("non-service-task"),
             withMcpClientProperty(createUserTask("user-task-with-mcp-client-property")));
 
@@ -174,7 +174,7 @@ class McpClientGatewayToolDefinitionResolverTest {
     final var elements =
         List.<FlowNode>of(
             createServiceTask("mcp1", "io.camunda.agenticai:mcpclient"),
-            createServiceTask("mcp2", "io.camunda.agenticai:mcpclientremote"));
+            createServiceTask("mcp2", "io.camunda.agenticai:mcpremoteclient"));
 
     final var result = customResolver.resolveGatewayToolDefinitions(elements);
 

@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "MCP Remote Client (alpha)",
-  "id" : "io.camunda.connectors.agenticai.mcp.client.remote.v0",
+  "name" : "Hybrid MCP Remote Client (alpha)",
+  "id" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0-hybrid",
   "description" : "MCP (Model Context Protocol) Client, directly initiating remote connections. Less performant than the MCP Client which is configured on the runtime.",
   "metadata" : {
     "keywords" : [ ]
@@ -16,6 +16,9 @@
     "value" : "bpmn:ServiceTask"
   },
   "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
     "id" : "connection",
     "label" : "HTTP Connection"
   }, {
@@ -38,12 +41,14 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda.agenticai:mcpclientremote:0",
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda.agenticai:mcpremoteclient:0",
+    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "data.connection.timeout",
     "label" : "Timeout",
@@ -148,7 +153,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.agenticai.mcp.client.remote.v0",
+    "value" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",

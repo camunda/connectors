@@ -24,10 +24,10 @@ import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientRemoteRequest;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientRemoteRequest.McpClientRemoteRequestData;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientRemoteRequest.McpClientRemoteRequestData.HttpConnectionConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData.HttpConnectionConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -45,7 +45,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class Langchain4JMcpClientRemoteHandlerTest {
+class Langchain4JMcpRemoteClientHandlerTest {
 
   private static final String ELEMENT_ID = "TestClientElement";
   private static final long ELEMENT_INSTANCE_KEY = 123456L;
@@ -85,14 +85,14 @@ class Langchain4JMcpClientRemoteHandlerTest {
 
   @Mock private McpClient mcpClient;
 
-  private Langchain4JMcpClientRemoteHandler handler;
+  private Langchain4JMcpRemoteClientHandler handler;
 
   @BeforeEach
   void setUp() {
     when(context.getJobContext().getElementId()).thenReturn(ELEMENT_ID);
     when(context.getJobContext().getElementInstanceKey()).thenReturn(ELEMENT_INSTANCE_KEY);
 
-    handler = new Langchain4JMcpClientRemoteHandler(objectMapper, clientFactory, clientExecutor);
+    handler = new Langchain4JMcpRemoteClientHandler(objectMapper, clientFactory, clientExecutor);
   }
 
   @Test
@@ -182,9 +182,9 @@ class Langchain4JMcpClientRemoteHandlerTest {
         .hasCause(exception);
   }
 
-  private McpClientRemoteRequest createRequest(McpClientOperationConfiguration operation) {
-    return new McpClientRemoteRequest(
-        new McpClientRemoteRequestData(HTTP_CONFIG, EMPTY_FILTER_CONFIGURATION, operation));
+  private McpRemoteClientRequest createRequest(McpClientOperationConfiguration operation) {
+    return new McpRemoteClientRequest(
+        new McpRemoteClientRequestData(HTTP_CONFIG, EMPTY_FILTER_CONFIGURATION, operation));
   }
 
   static Stream<Map<String, Object>> callToolArguments() {

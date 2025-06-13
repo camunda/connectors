@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.mcp.client.configuration;
 
-import io.camunda.connector.agenticai.mcp.client.McpClientRemoteFunction;
-import io.camunda.connector.agenticai.mcp.client.McpClientRemoteHandler;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpRemoteClientLangchain4JFrameworkConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +31,9 @@ public class McpRemoteClientConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientRemoteFunction mcpClientRemoteFunction(
-      McpRemoteClientConfigurationProperties config, McpClientRemoteHandler handler) {
-    LOGGER.debug("Creating McpClientRemoteFunction with framework {}", config.framework());
-    return new McpClientRemoteFunction(handler);
+  public McpRemoteClientFunction mcpRemoteClientFunction(
+      McpRemoteClientConfigurationProperties config, McpRemoteClientHandler handler) {
+    LOGGER.debug("Creating McpRemoteClientFunction with framework {}", config.framework());
+    return new McpRemoteClientFunction(handler);
   }
 }
