@@ -20,7 +20,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.mcp.client.v0",
     name = "MCP Client (alpha)",
-    description = "MCP (Model Context Protocol) Client.",
+    description =
+        "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations. Compatible with 8.8.0-alpha6 or later.",
     engineVersion = "^8.8",
     version = 0,
     inputDataClass = McpClientRequest.class,
@@ -28,7 +29,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "client", label = "MCP Client"),
       @ElementTemplate.PropertyGroup(id = "tools", label = "Tools"),
-      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation")
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation", openByDefault = false)
     },
     icon = "mcp-client.svg")
 public class McpClientFunction implements OutboundConnectorFunction {

@@ -2,7 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid MCP Remote Client (alpha)",
   "id" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0-hybrid",
-  "description" : "MCP (Model Context Protocol) Client, directly initiating remote connections. Less performant than the MCP Client which is configured on the runtime.",
+  "description" : "MCP (Model Context Protocol) client, operating on temporary remote connections. Only supports tool operations. Compatible with 8.8.0-alpha6 or later.",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -50,16 +50,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.connection.timeout",
-    "label" : "Timeout",
-    "optional" : true,
-    "feel" : "optional",
-    "binding" : {
-      "name" : "data.connection.timeout",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
     "id" : "data.connection.sseUrl",
     "label" : "SSE URL",
     "optional" : false,
@@ -86,9 +76,21 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.connection.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout for the HTTP connection as ISO-8601 duration (example: <code>PT30S</code>)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "data.connection.timeout",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
     "id" : "data.tools.included",
     "label" : "Included Tools",
-    "description" : "Allow-listed tools that can be used by the MCP client. By default, all tools are allowed.",
+    "description" : "List of tools that can be used by the MCP client. By default, all tools are allowed.",
     "optional" : true,
     "feel" : "required",
     "group" : "tools",
@@ -100,7 +102,7 @@
   }, {
     "id" : "data.tools.excluded",
     "label" : "Excluded Tools",
-    "description" : "Tools that are not allowed to be used by the MCP client. Will override any included tools.",
+    "description" : "List of tools that are not allowed to be used by the MCP client. Will override any included tools.",
     "optional" : true,
     "feel" : "required",
     "group" : "tools",
@@ -112,7 +114,7 @@
   }, {
     "id" : "data.operation.method",
     "label" : "Method",
-    "description" : "The MCP method to be called, e.g. <code>tools/list</code>",
+    "description" : "The MCP method to be called, e.g. <code>tools/list</code>.",
     "optional" : false,
     "value" : "=toolCall.method",
     "constraints" : {
@@ -124,6 +126,7 @@
       "name" : "data.operation.method",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The method to be called on the MCP server. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server\">MCP specification</a> for a list of available methods.<br><br>Currently supported:<br><code>tools/list</code>, <code>tools/call</code>",
     "type" : "String"
   }, {
     "id" : "data.operation.params",
@@ -137,6 +140,7 @@
       "name" : "data.operation.params",
       "type" : "zeebe:input"
     },
+    "tooltip" : "The parameter structure depends on the method being called. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server/tools#calling-tools\">MCP specification</a> for an example of the parameters for the <code>tools/call</code> method.",
     "type" : "String"
   }, {
     "id" : "version",

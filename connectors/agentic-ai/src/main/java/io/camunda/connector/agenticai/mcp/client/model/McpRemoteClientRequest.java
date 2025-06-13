@@ -40,6 +40,11 @@ public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData 
                 feel = Property.FeelMode.required,
                 optional = true)
             Map<String, String> headers,
-        @TemplateProperty(optional = true) Duration timeout) {}
+        @TemplateProperty(
+                group = "connection",
+                description =
+                    "Timeout for the HTTP connection as ISO-8601 duration (example: <code>PT30S</code>)",
+                optional = true)
+            Duration timeout) {}
   }
 }
