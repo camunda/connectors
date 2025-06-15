@@ -4,8 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.autoconfigure;
+package io.camunda.connector.agenticai.mcp.client;
 
-public enum AiFramework {
-  LANGCHAIN4J
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
+
+public interface McpClientFactory<C> {
+  C createClient(String clientId, McpClientConfigurationProperties.McpClientConfiguration config);
 }
