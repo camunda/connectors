@@ -77,6 +77,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
   protected static final String HEADER_SLACK_SIGNATURE = "x-slack-signature";
 
   protected static final String FORM_VALUE_COMMAND = "command";
+  protected static final String FORM_VALUE_PAYLOAD = "payload";
   protected static final String COMMAND_RESPONSE_TYPE_KEY = "response_type";
   protected static final String COMMAND_RESPONSE_TYPE_DEFAULT_VALUE = "ephemeral";
   protected static final String COMMAND_RESPONSE_TEXT_KEY = "text";
@@ -115,6 +116,24 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
           new MappedHttpRequest(
               bodyAsMap, Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()), null),
           bodyAsMap,
+          new WebhookHttpResponse(defaultCommandResponse(), null, 200, List.of()));
+    }
+
+    // Interactive message detected
+    if (bodyAsMap.size() == 1 && bodyAsMap.containsKey(FORM_VALUE_PAYLOAD)) {
+      // Payload is a JSON string, so we need to parse it
+      try {
+        bodyAsMap = objectMapper.readValue((String) bodyAsMap.get(FORM_VALUE_PAYLOAD), Map.class);
+      } catch (Exception e) {
+        context.log(
+            Activity.level(Severity.ERROR)
+                .tag("JSON Parsing")
+                .message("Failed to parse 'payload' as JSON: " + e.getMessage()));
+      }
+      return new SlackWebhookProcessingResult(
+          new MappedHttpRequest(
+              bodyAsMap, Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()), null),
+          null,
           new WebhookHttpResponse(defaultCommandResponse(), null, 200, List.of()));
     }
 
