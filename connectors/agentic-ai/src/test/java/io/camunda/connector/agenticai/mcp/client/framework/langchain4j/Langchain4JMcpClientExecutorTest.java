@@ -38,6 +38,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -195,6 +196,28 @@ class Langchain4JMcpClientExecutorTest {
                 assertThat(res.name()).isEqualTo(toolName);
                 assertThat(res.isError()).isFalse();
                 assertThat(res.content()).containsExactly(textContent("Successful result"));
+              });
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = " ")
+    void returnsDefaultResponseText_whenResponseIsNullOrEmpty(String resultText) {
+      final var operation =
+          McpClientCallToolOperation.create("test-tool", Map.of("arg1", "value1"));
+
+      when(mcpClient.executeTool(any())).thenReturn(resultText);
+
+      final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              McpClientCallToolResult.class,
+              res -> {
+                assertThat(res.name()).isEqualTo("test-tool");
+                assertThat(res.isError()).isFalse();
+                assertThat(res.content())
+                    .containsExactly(textContent("Tool execution returned no result"));
               });
     }
 

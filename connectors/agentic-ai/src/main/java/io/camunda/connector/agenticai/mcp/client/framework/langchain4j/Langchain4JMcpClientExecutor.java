@@ -23,11 +23,13 @@ import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Langchain4JMcpClientExecutor {
   private static final Logger LOGGER = LoggerFactory.getLogger(Langchain4JMcpClientExecutor.class);
+  private static final String NO_RESULT_MESSAGE = "Tool execution returned no result";
 
   private final ObjectMapper objectMapper;
   private final ToolSpecificationConverter toolSpecificationConverter;
@@ -110,8 +112,11 @@ public class Langchain4JMcpClientExecutor {
       LOGGER.debug(
           "MCP({}): Successfully executed tool '{}'", client.key(), toolExecutionRequest.name());
 
+      final var normalizedResult =
+          Optional.ofNullable(result).filter(StringUtils::isNotBlank).orElse(NO_RESULT_MESSAGE);
+
       return new McpClientCallToolResult(
-          toolExecutionRequest.name(), List.of(TextContent.textContent(result)), false);
+          toolExecutionRequest.name(), List.of(TextContent.textContent(normalizedResult)), false);
     } catch (Exception e) {
       LOGGER.error(
           "MCP({}): Failed to execute tool '{}'", client.key(), toolExecutionRequest.name(), e);
