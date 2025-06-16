@@ -15,6 +15,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Ticker;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
@@ -37,6 +38,7 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @SuppressWarnings("resource")
 @ExtendWith(MockitoExtension.class)
@@ -160,6 +162,7 @@ class McpRemoteClientRegistryTest {
       final var resolvedClient = registry.getClient(CLIENT_ID, HTTP_CONFIG);
 
       fakeTicker.advance(Duration.ofMinutes(10).plusSeconds(1)); // exceed cache expiration time
+      getCache(registry).cleanUp();
 
       await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> verify(resolvedClient).close());
     }
@@ -185,6 +188,13 @@ class McpRemoteClientRegistryTest {
 
   private ClientConfiguration createClientConfig(ClientCacheConfiguration cacheConfiguration) {
     return new ClientConfiguration(true, false, cacheConfiguration);
+  }
+
+  @SuppressWarnings("unchecked")
+  private Cache<McpRemoteClientIdentifier, McpClient> getCache(
+      McpRemoteClientRegistry<McpClient> registry) {
+    return (Cache<McpRemoteClientIdentifier, McpClient>)
+        ReflectionTestUtils.getField(registry, "cache");
   }
 
   private static class TestTicker implements Ticker {
