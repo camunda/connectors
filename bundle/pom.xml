@@ -168,12 +168,6 @@
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-idp-extraction</artifactId>
         <version>${project.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
