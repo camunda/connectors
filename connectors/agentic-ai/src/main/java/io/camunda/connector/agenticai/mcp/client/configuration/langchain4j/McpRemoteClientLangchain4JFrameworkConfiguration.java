@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandler;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,9 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnProperty(
     value = "camunda.connector.agenticai.mcp.remote-client.framework",
     havingValue = "langchain4j",
+    matchIfMissing = true)
+@ConditionalOnBooleanProperty(
+    value = "camunda.connector.agenticai.mcp.remote-client.enabled",
     matchIfMissing = true)
 @Import(McpClientBaseLangchain4JFrameworkConfiguration.class)
 public class McpRemoteClientLangchain4JFrameworkConfiguration {
