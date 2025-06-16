@@ -82,7 +82,7 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.27.3</version.assertj>
     <version.jackson-bom>2.19.0</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.19.0</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>8.0.2.Final</version.hibernate-validator>
+    <version.hibernate-validator>9.0.1.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
 
