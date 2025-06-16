@@ -15,6 +15,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -23,7 +25,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationStoreFactory;
 import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -48,6 +52,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -73,6 +78,7 @@ class AiAgentRequestHandlerTest {
       new UserPromptConfiguration("What is the weather in Munich?", Map.of(), List.of());
 
   @Mock private AgentInitializer agentInitializer;
+  @Mock private ConversationStoreFactory conversationStoreFactory;
   @Mock private AgentLimitsValidator limitsValidator;
   @Mock private AgentMessagesHandler messagesHandler;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -88,8 +94,17 @@ class AiAgentRequestHandlerTest {
 
   @InjectMocks private AiAgentRequestHandlerImpl requestHandler;
 
+  @BeforeEach
+  void setUp() {
+    doReturn(new InProcessConversationStore())
+        .when(conversationStoreFactory)
+        .createConversationStore(agentRequest);
+  }
+
   @Test
   void directlyReturnsAgentResponseWhenInitializationReturnsResponse() {
+    reset(conversationStoreFactory);
+
     final var agentResponse =
         AgentResponse.builder()
             .context(AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build())

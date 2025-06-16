@@ -30,6 +30,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationStoreFactory;
+import io.camunda.connector.agenticai.aiagent.memory.ConversationStoreFactoryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
@@ -120,6 +122,12 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ConversationStoreFactory aiAgentConversationStoreFactory() {
+    return new ConversationStoreFactoryImpl();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentLimitsValidator aiAgentLimitsValidator() {
     return new AgentLimitsValidatorImpl();
   }
@@ -141,6 +149,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
       AgentInitializer agentInitializer,
+      ConversationStoreFactory conversationStoreFactory,
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
@@ -148,6 +157,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentResponseHandler responseHandler) {
     return new AiAgentRequestHandlerImpl(
         agentInitializer,
+        conversationStoreFactory,
         limitsValidator,
         messagesHandler,
         gatewayToolHandlers,
