@@ -15,7 +15,10 @@ import java.util.Map;
  * conversation again.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = InProcessConversationContext.class, name = "in-process")})
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = InProcessConversationContext.class, name = "in-process"),
+  @JsonSubTypes.Type(value = CamundaDocumentConversationContext.class, name = "camunda-document")
+})
 public interface ConversationContext {
   String id();
 

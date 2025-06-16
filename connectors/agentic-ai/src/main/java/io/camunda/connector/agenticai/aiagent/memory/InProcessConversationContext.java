@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
@@ -17,22 +18,10 @@ import java.util.Map;
 @JsonDeserialize(
     builder = InProcessConversationContext.InProcessConversationContextJacksonProxyBuilder.class)
 public record InProcessConversationContext(
-    String id, List<Message> messages, Map<String, Object> properties)
+    String id,
+    List<Message> messages,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
     implements ConversationContext, InProcessConversationContextBuilder.With {
-  public InProcessConversationContext {
-    if (id == null) {
-      throw new IllegalArgumentException("ID cannot be null");
-    }
-
-    if (messages == null) {
-      throw new IllegalArgumentException("Messages cannot be null");
-    }
-
-    if (properties == null) {
-      throw new IllegalArgumentException("Properties cannot be null");
-    }
-  }
-
   public static InProcessConversationContextBuilder builder() {
     return InProcessConversationContextBuilder.builder();
   }
