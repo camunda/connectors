@@ -58,6 +58,16 @@
         "io.camunda.connector{/,}**"
       ],
       "enabled": false
+    },
+    {
+      "matchBaseBranches": [
+        "release/8.6",
+        "release/8.7"
+      ],
+      "matchPackagePrefixes": [
+        "com.google.http-client:google-http-client"
+      ],
+      "enabled": false
     }
   ],
   "baseBranches": [
