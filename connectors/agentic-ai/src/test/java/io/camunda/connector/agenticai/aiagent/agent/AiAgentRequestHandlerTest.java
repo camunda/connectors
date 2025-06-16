@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -246,7 +247,9 @@ class AiAgentRequestHandlerTest {
 
   @Test
   void usesConfiguredMaxMessagesWhenMessagesExceedContextWindow() {
-    final var runtimeMemory = setupRuntimeMemorySizeTest(new MemoryConfiguration(11));
+    final var runtimeMemory =
+        setupRuntimeMemorySizeTest(
+            new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 11));
 
     assertThat(runtimeMemory.allMessages()).hasSize(31);
     assertThat(runtimeMemory.filteredMessages()).hasSize(11);
@@ -274,7 +277,9 @@ class AiAgentRequestHandlerTest {
 
   @Test
   void usesAllMessagesWhenMessagesWithinContextWindow() {
-    final var runtimeMemory = setupRuntimeMemorySizeTest(new MemoryConfiguration(35));
+    final var runtimeMemory =
+        setupRuntimeMemorySizeTest(
+            new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 35));
 
     assertThat(runtimeMemory.allMessages()).hasSize(31);
     assertThat(runtimeMemory.filteredMessages()).hasSize(31);
@@ -315,7 +320,8 @@ class AiAgentRequestHandlerTest {
   }
 
   static Stream<MemoryConfiguration> memoryConfigurationsWithoutMaxMessages() {
-    return Stream.of(null, new MemoryConfiguration(null));
+    return Stream.of(
+        null, new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), null));
   }
 
   private void mockSystemPrompt(SystemPromptConfiguration systemPromptConfiguration) {

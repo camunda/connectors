@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.document.Document;
@@ -159,6 +160,7 @@ Reveal **no** additional private reasoning outside these tags.
             List<ToolCallResult> toolCallResults) {}
 
     public record MemoryConfiguration(
+        @Valid @NestedProperties(group = "memory") MemoryStorageConfiguration storage,
         // TODO support more advanced eviction policies (token window)
         @TemplateProperty(
                 group = "memory",

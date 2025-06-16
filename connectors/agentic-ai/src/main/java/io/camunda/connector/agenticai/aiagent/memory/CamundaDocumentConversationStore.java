@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.agenticai.aiagent.memory.CamundaDocumentConversationContext.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.document.Document;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,12 +35,16 @@ public class CamundaDocumentConversationStore
       LoggerFactory.getLogger(CamundaDocumentConversationStore.class);
   private static final int PREVIOUS_DOCUMENTS_RETENTION_SIZE = 2;
 
+  private final CamundaDocumentMemoryStorageConfiguration config;
   private final CamundaDocumentStore documentStore;
   private final ObjectMapper objectMapper;
   private final ObjectWriter objectWriter;
 
   public CamundaDocumentConversationStore(
-      CamundaDocumentStore documentStore, ObjectMapper objectMapper) {
+      CamundaDocumentMemoryStorageConfiguration config,
+      CamundaDocumentStore documentStore,
+      ObjectMapper objectMapper) {
+    this.config = config;
     this.documentStore = documentStore;
     this.objectMapper = objectMapper;
     this.objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
@@ -100,16 +106,19 @@ public class CamundaDocumentConversationStore
       throw new RuntimeException("Failed to serialize conversation", e);
     }
 
-    final var documentCreationRequest =
+    final var documentCreationRequestBuilder =
         DocumentCreationRequest.from(
                 new ByteArrayInputStream(serialized.getBytes(StandardCharsets.UTF_8)))
             .processDefinitionId(context.getJobContext().getBpmnProcessId())
             .processInstanceKey(context.getJobContext().getProcessInstanceKey())
             .contentType("application/json")
-            .fileName("%s_conversation.json".formatted(context.getJobContext().getElementId()))
-            .build();
+            .fileName("%s_conversation.json".formatted(context.getJobContext().getElementId()));
 
-    return context.create(documentCreationRequest);
+    Optional.ofNullable(config.timeToLive()).ifPresent(documentCreationRequestBuilder::timeToLive);
+    Optional.ofNullable(config.customProperties())
+        .ifPresent(documentCreationRequestBuilder::customProperties);
+
+    return context.create(documentCreationRequestBuilder.build());
   }
 
   private List<Document> purgePreviousDocuments(List<Document> previousDocuments) {

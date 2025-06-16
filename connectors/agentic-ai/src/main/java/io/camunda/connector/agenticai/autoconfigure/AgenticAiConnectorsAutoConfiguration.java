@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImp
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
+import io.camunda.document.store.CamundaDocumentStore;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -122,8 +123,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ConversationStoreFactory aiAgentConversationStoreFactory() {
-    return new ConversationStoreFactoryImpl();
+  public ConversationStoreFactory aiAgentConversationStoreFactory(
+      ObjectMapper objectMapper, CamundaDocumentStore camundaDocumentStore) {
+    return new ConversationStoreFactoryImpl(objectMapper, camundaDocumentStore);
   }
 
   @Bean
