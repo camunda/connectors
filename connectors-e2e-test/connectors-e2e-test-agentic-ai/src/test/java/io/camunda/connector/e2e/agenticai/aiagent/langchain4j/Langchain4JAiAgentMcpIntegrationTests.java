@@ -21,6 +21,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.McpTestFixt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.assertArg;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,8 +39,9 @@ import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
@@ -65,7 +67,7 @@ public class Langchain4JAiAgentMcpIntegrationTests extends BaseLangchain4JAiAgen
   protected Resource testProcessWithMcp;
 
   @MockitoBean private McpClientRegistry<McpClient> mcpClientRegistry;
-  @MockitoBean private McpClientFactory<McpClient> mcpClientFactory;
+  @MockitoBean private McpRemoteClientRegistry<McpClient> remoteMcpClientRegistry;
 
   @Mock private McpClient aMcpClient;
   @Mock private McpClient aRemoteMcpClient;
@@ -76,8 +78,12 @@ public class Langchain4JAiAgentMcpIntegrationTests extends BaseLangchain4JAiAgen
 
   @BeforeEach
   void mockMcpClients() {
+    when(aMcpClient.key()).thenReturn("a-mcp-client");
     when(aMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
+
     when(aRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
+
+    when(filesystemMcpClient.key()).thenReturn("filesystem");
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     // clients configured on the runtime
@@ -85,25 +91,21 @@ public class Langchain4JAiAgentMcpIntegrationTests extends BaseLangchain4JAiAgen
     doReturn(filesystemMcpClient).when(mcpClientRegistry).getClient("filesystem");
 
     // remote MCP client configured only on the process
-    doReturn(aRemoteMcpClient)
-        .when(mcpClientFactory)
-        .createClient(
-            assertArg(clientId -> assertThat(clientId).startsWith("A_Remote_MCP_Client_")),
+    doAnswer(
+            i -> {
+              final McpRemoteClientIdentifier clientId = i.getArgument(0);
+              when(aRemoteMcpClient.key()).thenReturn(clientId.toString());
+              return aRemoteMcpClient;
+            })
+        .when(remoteMcpClientRegistry)
+        .getClient(
             assertArg(
-                config -> {
-                  assertThat(config.enabled()).isTrue();
-                  assertThat(config.stio()).isNull();
-                  assertThat(config.http())
-                      .isNotNull()
-                      .satisfies(
-                          httpConfig -> {
-                            assertThat(httpConfig.sseUrl()).isEqualTo("http://localhost:1234/sse");
-                            assertThat(httpConfig.headers())
-                                .containsExactly(entry("Authorization", "dummy"));
-                          });
-                  assertThat(config.initializationTimeout()).isNull();
-                  assertThat(config.toolExecutionTimeout()).isNull();
-                  assertThat(config.reconnectInterval()).isNull();
+                clientId -> assertThat(clientId.elementId()).isEqualTo("A_Remote_MCP_Client")),
+            assertArg(
+                connection -> {
+                  assertThat(connection.sseUrl()).isEqualTo("http://localhost:1234/sse");
+                  assertThat(connection.headers()).containsExactly(entry("Authorization", "dummy"));
+                  assertThat(connection.timeout()).isNull();
                 }));
   }
 

@@ -8,11 +8,10 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.HttpMcpClientTransportConfiguration;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
@@ -26,49 +25,29 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
       LoggerFactory.getLogger(Langchain4JMcpRemoteClientHandler.class);
 
   private final ObjectMapper objectMapper;
-  private final McpClientFactory<McpClient> clientFactory;
+  private final McpRemoteClientRegistry<McpClient> remoteClientRegistry;
   private final Langchain4JMcpClientExecutor clientExecutor;
 
   public Langchain4JMcpRemoteClientHandler(
       ObjectMapper objectMapper,
-      McpClientFactory<McpClient> clientFactory,
+      McpRemoteClientRegistry<McpClient> remoteClientRegistry,
       Langchain4JMcpClientExecutor clientExecutor) {
     this.objectMapper = objectMapper;
-    this.clientFactory = clientFactory;
+    this.remoteClientRegistry = remoteClientRegistry;
     this.clientExecutor = clientExecutor;
   }
 
   @Override
   public McpClientResult handle(OutboundConnectorContext context, McpRemoteClientRequest request) {
-    final var clientId =
-        "%s_%s"
-            .formatted(
-                context.getJobContext().getElementId(),
-                context.getJobContext().getElementInstanceKey());
+    final var clientId = McpRemoteClientIdentifier.from(context);
     final var operation =
         objectMapper.convertValue(request.data().operation(), McpClientOperation.class);
     final var toolNameFilter = McpToolNameFilter.from(request.data().tools());
 
-    final var configuration = createClientConfiguration(request);
+    LOGGER.debug("MCP({}): Handling operation '{}' on remote client", clientId, operation.method());
 
-    LOGGER.debug(
-        "MCP({}): Creating temporary HTTP client for operation '{}'", clientId, operation.method());
+    final var client = remoteClientRegistry.getClient(clientId, request.data().connection());
 
-    // TODO add some kind of pooling/connection reuse instead of opening/closing the MCP connection
-    // for each request
-    try (final var client = clientFactory.createClient(clientId, configuration)) {
-      return clientExecutor.execute(client, operation, toolNameFilter);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private McpClientConfiguration createClientConfiguration(McpRemoteClientRequest request) {
-    final var connection = request.data().connection();
-    final var httpTransportConfiguration =
-        new HttpMcpClientTransportConfiguration(
-            connection.sseUrl(), connection.headers(), connection.timeout(), false, false);
-
-    return new McpClientConfiguration(true, null, httpTransportConfiguration, null, null, null);
+    return clientExecutor.execute(client, operation, toolNameFilter);
   }
 }

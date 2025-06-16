@@ -21,8 +21,8 @@ import org.slf4j.LoggerFactory;
 public class Langchain4JMcpClientHandler implements McpClientHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(Langchain4JMcpClientHandler.class);
 
-  private final McpClientRegistry<McpClient> clientRegistry;
   private final ObjectMapper objectMapper;
+  private final McpClientRegistry<McpClient> clientRegistry;
   private final Langchain4JMcpClientExecutor clientExecutor;
 
   public Langchain4JMcpClientHandler(

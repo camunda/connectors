@@ -16,10 +16,9 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.HttpMcpClientTransportConfiguration;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
@@ -47,9 +46,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class Langchain4JMcpRemoteClientHandlerTest {
 
+  private static final long PROCESS_DEFINITION_KEY = 123456L;
   private static final String ELEMENT_ID = "TestClientElement";
-  private static final long ELEMENT_INSTANCE_KEY = 123456L;
-  private static final String CLIENT_ID = "TestClientElement_123456";
+  private static final McpRemoteClientIdentifier CLIENT_ID =
+      new McpRemoteClientIdentifier(PROCESS_DEFINITION_KEY, ELEMENT_ID);
 
   private static final String SSE_URL = "http://localhost:123456/sse";
   private static final Map<String, String> HTTP_HEADERS = Map.of("Authorization", "dummy");
@@ -57,15 +57,6 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
   private static final HttpConnectionConfiguration HTTP_CONFIG =
       new HttpConnectionConfiguration(SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT);
-  private static final McpClientConfiguration EXPECTED_CLIENT_CONFIGURATION =
-      new McpClientConfiguration(
-          true,
-          null,
-          new HttpMcpClientTransportConfiguration(
-              SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT, false, false),
-          null,
-          null,
-          null);
 
   private static final McpClientOperationConfiguration LIST_TOOLS_OPERATION =
       new McpClientOperationConfiguration("tools/list", Map.of());
@@ -77,7 +68,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  @Mock private McpClientFactory<McpClient> clientFactory;
+  @Mock private McpRemoteClientRegistry<McpClient> remoteClientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -89,10 +80,11 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
   @BeforeEach
   void setUp() {
+    when(context.getJobContext().getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
     when(context.getJobContext().getElementId()).thenReturn(ELEMENT_ID);
-    when(context.getJobContext().getElementInstanceKey()).thenReturn(ELEMENT_INSTANCE_KEY);
 
-    handler = new Langchain4JMcpRemoteClientHandler(objectMapper, clientFactory, clientExecutor);
+    handler =
+        new Langchain4JMcpRemoteClientHandler(objectMapper, remoteClientRegistry, clientExecutor);
   }
 
   @Test
@@ -100,8 +92,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
     final var request = createRequest(LIST_TOOLS_OPERATION);
     final var expectedResult = new McpClientListToolsResult(List.of());
 
-    when(clientFactory.createClient(eq(CLIENT_ID), eq(EXPECTED_CLIENT_CONFIGURATION)))
-        .thenReturn(mcpClient);
+    when(remoteClientRegistry.getClient(eq(CLIENT_ID), eq(HTTP_CONFIG))).thenReturn(mcpClient);
     when(clientExecutor.execute(
             eq(mcpClient),
             assertArg(
@@ -124,8 +115,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
     final var expectedResult =
         new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
-    when(clientFactory.createClient(eq(CLIENT_ID), eq(EXPECTED_CLIENT_CONFIGURATION)))
-        .thenReturn(mcpClient);
+    when(remoteClientRegistry.getClient(eq(CLIENT_ID), eq(HTTP_CONFIG))).thenReturn(mcpClient);
     when(clientExecutor.execute(
             eq(mcpClient),
             assertArg(
@@ -158,28 +148,24 @@ class Langchain4JMcpRemoteClientHandlerTest {
   }
 
   @Test
-  void throwsExceptionWhenClientIsNotFound() {
+  void throwsExceptionWhenClientCouldNotBeCreated() {
     final var exception = new IllegalArgumentException("Failed to create client");
-    when(clientFactory.createClient(eq(CLIENT_ID), eq(EXPECTED_CLIENT_CONFIGURATION)))
-        .thenThrow(exception);
+    when(remoteClientRegistry.getClient(eq(CLIENT_ID), eq(HTTP_CONFIG))).thenThrow(exception);
 
     assertThatThrownBy(() -> handler.handle(context, createRequest(LIST_TOOLS_OPERATION)))
-        .isInstanceOf(RuntimeException.class)
-        .hasCause(exception);
+        .isEqualTo(exception);
   }
 
   @Test
   void throwsExceptionWhenExecutorFails() {
     final var exception = new IllegalArgumentException("Execution error");
 
-    when(clientFactory.createClient(eq(CLIENT_ID), eq(EXPECTED_CLIENT_CONFIGURATION)))
-        .thenReturn(mcpClient);
+    when(remoteClientRegistry.getClient(eq(CLIENT_ID), eq(HTTP_CONFIG))).thenReturn(mcpClient);
     when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
         .thenThrow(exception);
 
     assertThatThrownBy(() -> handler.handle(context, createRequest(LIST_TOOLS_OPERATION)))
-        .isInstanceOf(RuntimeException.class)
-        .hasCause(exception);
+        .isEqualTo(exception);
   }
 
   private McpRemoteClientRequest createRequest(McpClientOperationConfiguration operation) {
