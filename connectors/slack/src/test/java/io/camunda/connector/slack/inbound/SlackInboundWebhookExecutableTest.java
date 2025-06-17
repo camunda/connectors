@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import com.slack.api.app_backend.SlackSignature;
@@ -30,6 +31,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -219,6 +221,36 @@ class SlackInboundWebhookExecutableTest {
         .containsEntry(COMMAND_RESPONSE_TEXT_KEY, COMMAND_RESPONSE_TEXT_DEFAULT_VALUE);
     assertThat((Map) result.connectorData()).containsEntry(FORM_VALUE_COMMAND, "/test123");
     assertThat((Map) result.connectorData()).containsEntry("text", "hello world");
+  }
+
+  @Test
+  void triggerWebhook_FormUrlEncodedWithJsonPayload_ParsesPayloadAsJson() throws Exception {
+    final var requestTimeStamp = String.valueOf(now().toInstant().toEpochMilli());
+    Map<String, Object> payloadMap = Map.of("type", "block_actions", "user", Map.of("id", "my_id"));
+    String jsonPayload = new ObjectMapper().writeValueAsString(payloadMap);
+    String formBody = "payload=" + URLEncoder.encode(jsonPayload, UTF_8);
+    Map<String, String> headers =
+        Map.of(
+            HEADER_SLACK_SIGNATURE,
+            slackCurrentSignature(requestTimeStamp, formBody),
+            HEADER_SLACK_REQUEST_TIMESTAMP,
+            requestTimeStamp,
+            HttpHeaders.CONTENT_TYPE,
+            MediaType.FORM_DATA.toString());
+    final var payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn("POST");
+    when(payload.headers()).thenReturn(headers);
+    when(payload.rawBody()).thenReturn(formBody.getBytes(UTF_8));
+
+    testObject.activate(ctx);
+    final var result = testObject.triggerWebhook(payload);
+
+    assertNotNull(result);
+    assertThat(result.request().body()).isInstanceOf(Map.class);
+    Map body = (Map) result.request().body();
+    assertThat(body).containsEntry("type", "block_actions");
+    assertThat(body).containsKey("user");
+    assertThat(((Map) body.get("user")).get("id")).isEqualTo("my_id");
   }
 
   // generate fresh signature because it expires fast
