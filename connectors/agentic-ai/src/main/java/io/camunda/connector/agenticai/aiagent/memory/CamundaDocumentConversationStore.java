@@ -22,6 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -82,7 +83,8 @@ public class CamundaDocumentConversationStore
             ? previousConversationContext.with()
             : CamundaDocumentConversationContext.builder().id(UUID.randomUUID().toString());
 
-    final var updatedDocument = createUpdatedDocument(context, memory);
+    final var updatedDocument =
+        createUpdatedDocument(context, memory, conversationContextBuilder.id());
     conversationContextBuilder.document(updatedDocument);
 
     if (previousConversationContext != null) {
@@ -96,7 +98,8 @@ public class CamundaDocumentConversationStore
     return agentContext.withConversation(conversationContextBuilder.build());
   }
 
-  private Document createUpdatedDocument(OutboundConnectorContext context, RuntimeMemory memory) {
+  private Document createUpdatedDocument(
+      OutboundConnectorContext context, RuntimeMemory memory, String conversationId) {
     final var content = new DocumentContent(memory.allMessages());
 
     String serialized;
@@ -106,17 +109,20 @@ public class CamundaDocumentConversationStore
       throw new RuntimeException("Failed to serialize conversation", e);
     }
 
+    final var properties = new LinkedHashMap<String, Object>();
+    Optional.ofNullable(config.customProperties()).ifPresent(properties::putAll);
+    properties.put("conversationId", conversationId);
+
     final var documentCreationRequestBuilder =
         DocumentCreationRequest.from(
                 new ByteArrayInputStream(serialized.getBytes(StandardCharsets.UTF_8)))
             .processDefinitionId(context.getJobContext().getBpmnProcessId())
             .processInstanceKey(context.getJobContext().getProcessInstanceKey())
             .contentType("application/json")
-            .fileName("%s_conversation.json".formatted(context.getJobContext().getElementId()));
+            .fileName("%s_conversation.json".formatted(context.getJobContext().getElementId()))
+            .customProperties(properties);
 
     Optional.ofNullable(config.timeToLive()).ifPresent(documentCreationRequestBuilder::timeToLive);
-    Optional.ofNullable(config.customProperties())
-        .ifPresent(documentCreationRequestBuilder::customProperties);
 
     return context.create(documentCreationRequestBuilder.build());
   }
