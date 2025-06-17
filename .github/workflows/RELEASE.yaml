@@ -11,26 +11,20 @@ jobs:
     name: Prepare the repository
     runs-on: ubuntu-latest
     outputs:
-      tagType: ${{ steps.validate_tag.outputs.type }}
+      tagType: ${{ steps.prev_version.outputs.release_type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
-      previousTag: ${{ steps.validate_tag.outputs.previousTag }}
+      previousTag: ${{ steps.prev_version.outputs.previous_version }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
-
-      - name: Validate release tag and determine previous tag
-        id: validate_tag
-        run: |
-          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ github.event.release.tag_name }})"
-          if [ $? -ne 0 ]; then
-            echo "Script failed"
-            exit 1
-          fi
-          echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
-          echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
-
+      - name: Identify previous release version
+        id: prev_version
+        uses: camunda/infra-global-github-actions/previous-version@main
+        with:
+          version: "${{ github.event.release.tag_name }}"
+          verbose: 'false'
       # We will update this branch by setting the new version and pushing it
       - name: Determine release branch name
         id: determine_release_branch
