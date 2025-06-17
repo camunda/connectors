@@ -30,6 +30,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.SlowTest;
+import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -41,8 +42,6 @@ public class Langchain4JAiAgentElementTemplateRegressionTests extends BaseLangch
   @ParameterizedTest
   @ValueSource(strings = {"ai-agent.bpmn", "ai-agent-8.8.0-alpha5.bpmn"})
   void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
-    final var processResource = resourceLoader.getResource("classpath:regression/" + processFile);
-
     final var initialUserPrompt = "Explore some of your tools!";
     final var expectedConversation =
         List.of(
@@ -76,7 +75,7 @@ public class Langchain4JAiAgentElementTemplateRegressionTests extends BaseLangch
             ChatResponse.builder()
                 .metadata(
                     ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
+                        .finishReason(FinishReason.TOOL_EXECUTION)
                         .tokenUsage(new TokenUsage(10, 20))
                         .build())
                 .aiMessage((AiMessage) expectedConversation.get(2))
@@ -102,11 +101,10 @@ public class Langchain4JAiAgentElementTemplateRegressionTests extends BaseLangch
                 .build(),
             userSatisfiedFeedback()));
 
+    final var processResource = resourceLoader.getResource("classpath:regression/" + processFile);
     final var zeebeTest =
-        createProcessInstance(
-                processResource,
-                e -> e,
-                Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+        deployModel(Bpmn.readModelFromStream(processResource.getInputStream()))
+            .createInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
     assertLastChatRequest(3, expectedConversation, false);
