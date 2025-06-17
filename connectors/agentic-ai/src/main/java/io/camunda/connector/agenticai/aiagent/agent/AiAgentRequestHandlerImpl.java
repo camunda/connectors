@@ -26,7 +26,7 @@ import java.util.Optional;
 
 public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
-  private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
+  private static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
 
   private final AgentInitializer agentInitializer;
   private final ConversationStoreFactory conversationStoreFactory;
@@ -77,8 +77,8 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
     final var runtimeMemory =
         new MessageWindowRuntimeMemory(
             Optional.ofNullable(request.data().memory())
-                .map(MemoryConfiguration::maxMessages)
-                .orElse(DEFAULT_MAX_MEMORY_MESSAGES));
+                .map(MemoryConfiguration::contextWindowSize)
+                .orElse(DEFAULT_CONTEXT_WINDOW_SIZE));
 
     final var conversationStore = conversationStoreFactory.createConversationStore(request);
     conversationStore.loadIntoRuntimeMemory(context, agentContext, runtimeMemory);

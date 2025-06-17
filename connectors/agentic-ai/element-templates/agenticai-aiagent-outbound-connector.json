@@ -725,18 +725,18 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.memory.maxMessages",
-    "label" : "Maximum messages",
-    "description" : "Maximum number of recent messages the AI agent retains in short-term memory during a conversation.",
+    "id" : "data.memory.contextWindowSize",
+    "label" : "Context window size",
+    "description" : "Maximum number of recent conversation messages which are passed to the model.",
     "optional" : false,
     "value" : 20,
     "feel" : "static",
     "group" : "memory",
     "binding" : {
-      "name" : "data.memory.maxMessages",
+      "name" : "data.memory.contextWindowSize",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM and evict older messages. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Number"
   }, {
     "id" : "data.limits.maxModelCalls",

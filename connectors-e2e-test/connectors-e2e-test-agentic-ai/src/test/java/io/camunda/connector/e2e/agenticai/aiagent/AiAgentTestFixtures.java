@@ -47,7 +47,7 @@ public interface AiAgentTestFixtures {
               "=if (is defined(followUpUserPrompt)) then [] else downloadedFiles"),
           Map.entry("data.tools.containerElementId", "Agent_Tools"),
           Map.entry("data.tools.toolCallResults", "=toolCallResults"),
-          Map.entry("data.memory.maxMessages", "=50"),
+          Map.entry("data.memory.contextWindowSize", "=50"),
           Map.entry("data.response.includeAssistantMessage", "=true"),
           Map.entry("retryCount", "3"),
           Map.entry("retryBackoff", "PT2S"));
