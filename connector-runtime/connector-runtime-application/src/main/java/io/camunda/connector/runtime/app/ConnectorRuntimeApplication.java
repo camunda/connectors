@@ -18,10 +18,8 @@ package io.camunda.connector.runtime.app;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = "io.camunda.connector")
 public class ConnectorRuntimeApplication {
 
   public static void main(String[] args) {
