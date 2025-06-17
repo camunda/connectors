@@ -27,7 +27,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputDataClass = McpRemoteClientRequest.class,
     defaultResultVariable = "toolCallResult",
     propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "connection", label = "HTTP Connection"),
+      @ElementTemplate.PropertyGroup(
+          id = "connection",
+          label = "HTTP Connection",
+          tooltip =
+              "Configure the HTTP/SSE connection to the remote MCP server. Setting authentication headers is not supported yet."),
       @ElementTemplate.PropertyGroup(id = "tools", label = "Tools"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation")
     },

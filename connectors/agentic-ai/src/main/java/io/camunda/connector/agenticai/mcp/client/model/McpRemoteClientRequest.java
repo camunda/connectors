@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model;
 
-import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
@@ -31,19 +30,21 @@ public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData 
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             @NotBlank
             String sseUrl,
-        @FEEL
-            @TemplateProperty(
+        @TemplateProperty(
                 group = "connection",
                 label = "HTTP headers",
                 description =
                     "Map of HTTP headers to add to the request <strong>(NOT SUPPORTED YET)</strong>.",
-                feel = Property.FeelMode.required,
+                type = TemplateProperty.PropertyType.Hidden,
+                feel = Property.FeelMode.disabled,
                 optional = true)
             Map<String, String> headers,
         @TemplateProperty(
                 group = "connection",
                 description =
-                    "Timeout for the HTTP connection as ISO-8601 duration (example: <code>PT30S</code>)",
+                    "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
+                type = TemplateProperty.PropertyType.Hidden,
+                feel = Property.FeelMode.disabled,
                 optional = true)
             Duration timeout) {}
   }
