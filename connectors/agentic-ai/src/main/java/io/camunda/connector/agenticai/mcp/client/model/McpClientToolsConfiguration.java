@@ -15,7 +15,7 @@ public record McpClientToolsConfiguration(
     @FEEL
         @TemplateProperty(
             group = "tools",
-            label = "Included Tools",
+            label = "Included tools",
             description =
                 "List of tools that can be used by the MCP client. By default, all tools are allowed.",
             type = TemplateProperty.PropertyType.Text,
@@ -25,7 +25,7 @@ public record McpClientToolsConfiguration(
     @FEEL
         @TemplateProperty(
             group = "tools",
-            label = "Excluded Tools",
+            label = "Excluded tools",
             description =
                 "List of tools that are not allowed to be used by the MCP client. Will override any included tools.",
             type = TemplateProperty.PropertyType.Text,
