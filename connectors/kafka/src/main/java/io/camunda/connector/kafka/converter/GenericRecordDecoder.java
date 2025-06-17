@@ -16,7 +16,7 @@ import org.apache.avro.generic.GenericRecord;
 
 public class GenericRecordDecoder {
 
-  public GenericRecord decode(Schema schema, Map<String, Object> data) {
+  public GenericRecord envelope(Schema schema, Map<String, Object> data) {
     GenericRecord record = new GenericData.Record(schema);
 
     for (Map.Entry<String, Object> entry : data.entrySet()) {
@@ -34,7 +34,7 @@ public class GenericRecordDecoder {
         }
         // If the field value is a nested Map, convert it to GenericRecord
         else if (fieldValue instanceof Map && fieldSchema.getType() == Schema.Type.RECORD) {
-          fieldValue = decode(fieldSchema, (Map<String, Object>) fieldValue);
+          fieldValue = envelope(fieldSchema, (Map<String, Object>) fieldValue);
         } else if (fieldValue instanceof List<?>) {
           fieldValue = handleListType((List<?>) fieldValue, fieldSchema);
         }
@@ -50,7 +50,7 @@ public class GenericRecordDecoder {
   private Object handleUnionType(Schema unionSchema, Object value) {
     for (Schema schema : unionSchema.getTypes()) {
       if (schema.getType() == Schema.Type.RECORD && value instanceof Map) {
-        return decode(schema, (Map<String, Object>) value);
+        return envelope(schema, (Map<String, Object>) value);
       } else if (schema.getType() == Schema.Type.ARRAY && value instanceof List) {
         return handleListType((List<?>) value, schema);
       }
@@ -64,7 +64,7 @@ public class GenericRecordDecoder {
 
     for (Object item : value) {
       if (item instanceof Map && elementSchema.getType() == Schema.Type.RECORD) {
-        list.add(decode(elementSchema, (Map<String, Object>) item));
+        list.add(envelope(elementSchema, (Map<String, Object>) item));
       } else {
         list.add(item);
       }

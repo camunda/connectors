@@ -83,7 +83,7 @@ public class ProducerRecordFactory {
     var schemaString = strategy.getSchema();
     return switch (strategy.getSchemaType()) {
       case AVRO ->
-          GENERIC_RECORD_DECODER.decode(
+          GENERIC_RECORD_DECODER.envelope(
               new Schema.Parser().parse(schemaString), (Map) messageValue);
       case JSON -> JSON_ENVELOPE_DECODER.decode(schemaString, (Map) messageValue);
     };

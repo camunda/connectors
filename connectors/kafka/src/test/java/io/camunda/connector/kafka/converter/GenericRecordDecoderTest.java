@@ -34,7 +34,7 @@ public class GenericRecordDecoderTest {
   }
 
   @Test
-  public void shouldDecodeMap_whenAllFieldAreSet() {
+  public void shouldEnvelopeMap_whenAllFieldAreSet() {
     // when
     Map<String, Object> value = new HashMap<>();
     value.put("name", "John Doe");
@@ -52,7 +52,7 @@ public class GenericRecordDecoderTest {
     value.put("colleagues", List.of(colleague));
 
     // when
-    GenericRecord record = genericRecordDecoder.decode(schema, value);
+    GenericRecord record = genericRecordDecoder.envelope(schema, value);
 
     // then
     assertThat(record.get("name")).isEqualTo("John Doe");

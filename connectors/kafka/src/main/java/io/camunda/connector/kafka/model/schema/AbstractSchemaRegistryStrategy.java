@@ -13,14 +13,14 @@ import jakarta.validation.constraints.NotBlank;
 
 public abstract class AbstractSchemaRegistryStrategy {
   @TemplateProperty(
-      group = "kafka",
+      group = "schema",
       label = "Schema type",
       id = "schemaType",
       defaultValue = "avro",
       type = TemplateProperty.PropertyType.Dropdown,
       choices = {
         @TemplateProperty.DropdownPropertyChoice(value = "json", label = "JSON"),
-        @TemplateProperty.DropdownPropertyChoice(value = "avro", label = "Avro (alpha)")
+        @TemplateProperty.DropdownPropertyChoice(value = "avro", label = "Avro")
       },
       description =
           "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>")
@@ -28,7 +28,7 @@ public abstract class AbstractSchemaRegistryStrategy {
 
   @NotBlank
   @TemplateProperty(
-      group = "kafka",
+      group = "schema",
       label = "Schema registry URL",
       description = "Provide the schema registry URL",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

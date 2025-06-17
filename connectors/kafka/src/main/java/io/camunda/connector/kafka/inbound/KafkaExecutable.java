@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Kafka Event Connector",
     icon = "icon.svg",
-    version = 7,
+    version = 8,
     inputDataClass = KafkaConnectorProperties.class,
     description = "Consume Kafka messages",
     documentationRef =
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
-      @ElementTemplate.PropertyGroup(id = "message", label = "Message deserialization"),
+      @ElementTemplate.PropertyGroup(id = "schema", label = "Schema")
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(

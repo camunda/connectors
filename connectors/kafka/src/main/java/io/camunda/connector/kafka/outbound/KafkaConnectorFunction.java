@@ -41,10 +41,11 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     name = "Kafka Outbound Connector",
     description = "Produce Kafka message",
     inputDataClass = KafkaConnectorRequest.class,
-    version = 6,
+    version = 7,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
+      @ElementTemplate.PropertyGroup(id = "schema", label = "Schema"),
       @ElementTemplate.PropertyGroup(id = "message", label = "Message")
     },
     documentationRef =
