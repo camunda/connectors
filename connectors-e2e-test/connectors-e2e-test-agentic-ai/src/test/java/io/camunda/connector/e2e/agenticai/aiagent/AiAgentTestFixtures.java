@@ -48,7 +48,9 @@ public interface AiAgentTestFixtures {
           Map.entry("data.tools.containerElementId", "Agent_Tools"),
           Map.entry("data.tools.toolCallResults", "=toolCallResults"),
           Map.entry("data.memory.maxMessages", "=50"),
-          Map.entry("data.response.includeAssistantMessage", "=true"));
+          Map.entry("data.response.includeAssistantMessage", "=true"),
+          Map.entry("retryCount", "3"),
+          Map.entry("retryBackoff", "PT2S"));
 
   String HAIKU_TEXT = "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
   String HAIKU_JSON =
