@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.BaseConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -31,7 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CamundaDocumentConversationStore
-    implements ConversationStore<CamundaDocumentConversationContext> {
+    extends BaseConversationStore<CamundaDocumentConversationContext> {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(CamundaDocumentConversationStore.class);
@@ -88,6 +88,8 @@ public class CamundaDocumentConversationStore
         createUpdatedDocument(context, memory, conversationContextBuilder.id());
     conversationContextBuilder.document(updatedDocument);
 
+    // after write succeeded, try to purge previous documents, but keep at least the last
+    // two documents in case of errors in order to allow recovering the agent state
     if (previousConversationContext != null) {
       List<Document> previousDocuments =
           new ArrayList<>(previousConversationContext.previousDocuments());
@@ -155,21 +157,5 @@ public class CamundaDocumentConversationStore
     }
 
     return updatedPreviousDocuments;
-  }
-
-  private CamundaDocumentConversationContext loadPreviousConversationContext(
-      AgentContext agentContext) {
-    if (agentContext.conversation() == null) {
-      return null;
-    }
-
-    if (!(agentContext.conversation()
-        instanceof CamundaDocumentConversationContext conversationContext)) {
-      throw new IllegalStateException(
-          "Unsupported conversation context: %s"
-              .formatted(agentContext.conversation().getClass().getSimpleName()));
-    }
-
-    return conversationContext;
   }
 }

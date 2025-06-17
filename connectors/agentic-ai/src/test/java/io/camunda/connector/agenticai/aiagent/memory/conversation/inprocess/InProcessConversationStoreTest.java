@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
@@ -68,10 +69,9 @@ class InProcessConversationStoreTest {
     final var agentContext =
         AgentContext.empty().withConversation(new TestConversationContext("dummy"));
 
-    assertThrows(
-        IllegalStateException.class,
-        () -> store.loadIntoRuntimeMemory(context, agentContext, memory),
-        "Unsupported conversation context: Object");
+    assertThatThrownBy(() -> store.loadIntoRuntimeMemory(context, agentContext, memory))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Unsupported conversation context: TestConversationContext");
   }
 
   @Test

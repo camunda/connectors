@@ -9,5 +9,5 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 
 public interface ConversationStoreFactory {
-  ConversationStore<?> createConversationStore(AgentRequest request);
+  ConversationStore createConversationStore(AgentRequest request);
 }

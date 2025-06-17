@@ -27,7 +27,7 @@ public class ConversationStoreFactoryImpl implements ConversationStoreFactory {
   }
 
   @Override
-  public ConversationStore<?> createConversationStore(AgentRequest request) {
+  public ConversationStore createConversationStore(AgentRequest request) {
     final var storageConfig =
         Optional.ofNullable(request.data().memory())
             .map(AgentRequest.AgentRequestData.MemoryConfiguration::storage)

@@ -15,7 +15,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -97,9 +96,8 @@ class AiAgentRequestHandlerTest {
 
   @BeforeEach
   void setUp() {
-    doReturn(new InProcessConversationStore())
-        .when(conversationStoreFactory)
-        .createConversationStore(agentRequest);
+    when(conversationStoreFactory.createConversationStore(agentRequest))
+        .thenReturn(new InProcessConversationStore());
   }
 
   @Test
