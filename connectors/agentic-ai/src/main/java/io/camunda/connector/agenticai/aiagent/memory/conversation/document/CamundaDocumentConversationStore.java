@@ -35,21 +35,31 @@ public class CamundaDocumentConversationStore
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(CamundaDocumentConversationStore.class);
-  private static final int PREVIOUS_DOCUMENTS_RETENTION_SIZE = 2;
+  private static final int DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE = 2;
 
   private final CamundaDocumentMemoryStorageConfiguration config;
   private final CamundaDocumentStore documentStore;
   private final ObjectMapper objectMapper;
   private final ObjectWriter objectWriter;
+  private final int previousDocumentsRetentionSize;
 
   public CamundaDocumentConversationStore(
       CamundaDocumentMemoryStorageConfiguration config,
       CamundaDocumentStore documentStore,
       ObjectMapper objectMapper) {
+    this(config, documentStore, objectMapper, DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE);
+  }
+
+  public CamundaDocumentConversationStore(
+      CamundaDocumentMemoryStorageConfiguration config,
+      CamundaDocumentStore documentStore,
+      ObjectMapper objectMapper,
+      int previousDocumentsRetentionSize) {
     this.config = config;
     this.documentStore = documentStore;
     this.objectMapper = objectMapper;
     this.objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
+    this.previousDocumentsRetentionSize = previousDocumentsRetentionSize;
   }
 
   @Override
@@ -131,14 +141,15 @@ public class CamundaDocumentConversationStore
   }
 
   private List<Document> purgePreviousDocuments(List<Document> previousDocuments) {
-    if (previousDocuments.size() <= PREVIOUS_DOCUMENTS_RETENTION_SIZE) {
+    if (previousDocuments.size() <= previousDocumentsRetentionSize) {
       return previousDocuments;
     }
 
     final var updatedPreviousDocuments = new ArrayList<>(previousDocuments);
     final var removalCandidates =
-        updatedPreviousDocuments.subList(
-            0, updatedPreviousDocuments.size() - PREVIOUS_DOCUMENTS_RETENTION_SIZE);
+        new ArrayList<>(
+            updatedPreviousDocuments.subList(
+                0, updatedPreviousDocuments.size() - previousDocumentsRetentionSize));
 
     for (Document removalCandidate : removalCandidates) {
       if (removalCandidate.reference()

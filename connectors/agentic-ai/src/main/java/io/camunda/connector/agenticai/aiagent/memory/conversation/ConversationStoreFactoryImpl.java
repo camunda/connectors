@@ -38,9 +38,6 @@ public class ConversationStoreFactoryImpl implements ConversationStoreFactory {
       case CamundaDocumentMemoryStorageConfiguration camundaDocumentConfig ->
           new CamundaDocumentConversationStore(
               camundaDocumentConfig, camundaDocumentStore, objectMapper);
-      default ->
-          throw new IllegalStateException(
-              "Unsupported storage type: " + storageConfig.getClass().getName());
     };
   }
 }

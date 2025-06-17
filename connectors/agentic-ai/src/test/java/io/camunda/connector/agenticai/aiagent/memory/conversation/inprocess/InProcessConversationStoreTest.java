@@ -96,9 +96,9 @@ class InProcessConversationStoreTest {
         InProcessConversationContext.builder("test-conversation").messages(TEST_MESSAGES).build();
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
+    store.loadIntoRuntimeMemory(context, agentContext, memory);
 
     final var userMessage = UserMessage.userMessage("User message");
-    memory.addMessages(TEST_MESSAGES);
     memory.addMessage(userMessage);
 
     final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
