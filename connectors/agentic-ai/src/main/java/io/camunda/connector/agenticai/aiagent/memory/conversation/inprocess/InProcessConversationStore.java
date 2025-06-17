@@ -4,8 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;

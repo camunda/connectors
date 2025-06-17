@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.memory.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.soabase.recordbuilder.core.RecordBuilder;

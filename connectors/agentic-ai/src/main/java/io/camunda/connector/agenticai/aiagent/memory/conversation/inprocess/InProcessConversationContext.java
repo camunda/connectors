@@ -4,11 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;

@@ -26,7 +26,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.test.SlowTest;

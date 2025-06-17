@@ -4,9 +4,11 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;

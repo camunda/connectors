@@ -4,12 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;

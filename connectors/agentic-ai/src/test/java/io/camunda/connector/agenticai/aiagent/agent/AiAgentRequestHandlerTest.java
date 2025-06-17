@@ -25,9 +25,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.memory.ConversationStoreFactory;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;

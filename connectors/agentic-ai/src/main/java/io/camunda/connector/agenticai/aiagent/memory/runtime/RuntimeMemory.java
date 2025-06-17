@@ -6,17 +6,17 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.runtime;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 
 /**
  * Runtime memory interface for storing and retrieving messages during agent execution.
  *
- * <p>A @{@link io.camunda.connector.agenticai.aiagent.memory.ConversationStore} is responsible to
- * load messages from a {@link io.camunda.connector.agenticai.aiagent.memory.ConversationContext}
- * into the runtime memory on entering the agent and to store messages from the runtime memory into
- * the {@link io.camunda.connector.agenticai.aiagent.memory.ConversationContext} before exiting the
- * agent.
+ * <p>A @{@link ConversationStore} is responsible to load messages from a {@link
+ * ConversationContext} into the runtime memory on entering the agent and to store messages from the
+ * runtime memory into the {@link ConversationContext} before exiting the agent.
  */
 public interface RuntimeMemory {
   void addMessage(Message message);
