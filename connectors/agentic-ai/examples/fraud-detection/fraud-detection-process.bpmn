@@ -190,6 +190,7 @@
           <zeebe:input source="Fraud_Tools" target="data.tools.containerElementId" />
           <zeebe:input source="=toolCallResults" target="data.tools.toolCallResults" />
           <zeebe:input source="=agent.context" target="data.context" />
+          <zeebe:input source="in-process" target="data.memory.storage.type" />
           <zeebe:input source="=20" target="data.memory.contextWindowSize" />
           <zeebe:input source="=20" target="data.limits.maxModelCalls" />
           <zeebe:input source="text" target="data.response.format.type" />
