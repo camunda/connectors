@@ -88,7 +88,7 @@
             <zeebe:header key="elementTemplateVersion" value="10" />
             <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
             <zeebe:header key="resultExpression" value="={&#10;  toolCallResult: {&#10;    status: response.status,&#10;    document: response.document&#10;  }&#10;}" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
+            <zeebe:header key="retryBackoff" value="PT2S" />
           </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
@@ -215,7 +215,7 @@
           <zeebe:header key="elementTemplateVersion" value="10" />
           <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
           <zeebe:header key="resultExpression" value="={&#10;  document: response.document&#10;}" />
-          <zeebe:header key="retryBackoff" value="PT0S" />
+          <zeebe:header key="retryBackoff" value="PT2S" />
         </zeebe:taskHeaders>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1t4ktrm</bpmn:incoming>

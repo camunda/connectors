@@ -36,9 +36,9 @@ public class IndexWriter {
 
   private static final String VERSION = "version";
   private static final String ID = "id";
-  private static final String CONNECTORS = "connectors/";
   private static final String ENGINES = "engines";
   private static final String CAMUNDA = "camunda";
+  private final Path localRepo;
 
   private IndexWriter(String gitDirectory, Path finalFile, String connectorDirectory) {
     if (!gitDirectory.endsWith(File.separator) && !gitDirectory.isEmpty()) {
@@ -57,6 +57,7 @@ public class IndexWriter {
         "https://raw.githubusercontent.com/camunda/connectors/"
             + getCurrentGitSha256(gitDirectory)
             + "/%s";
+    this.localRepo = Path.of(gitDirectory).toAbsolutePath().normalize();
     this.finalFile = new File(finalFile.toUri());
   }
 
@@ -74,8 +75,8 @@ public class IndexWriter {
     JsonNode jsonNode = toJsonNode(file);
     Integer version = jsonNode.get(VERSION).asInt();
     String key = jsonNode.get(ID).asText();
-    String path = file.getPath();
-    String link = githubLinkFormat.formatted(path.substring(path.lastIndexOf(CONNECTORS)));
+    Path path = file.getAbsoluteFile().toPath();
+    String link = githubLinkFormat.formatted(this.localRepo.relativize(path));
     String engine =
         Optional.ofNullable(jsonNode.get(ENGINES))
             .map(jn -> jn.get(CAMUNDA))
