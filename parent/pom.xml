@@ -76,6 +76,9 @@ limitations under the License.</license.inlineheader>
 
     <!-- Third party dependencies -->
 
+    <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
+    <version.grpc>1.73.0</version.grpc>
+
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.18.0</version.mockito>
     <version.junit-jupiter>5.13.1</version.junit-jupiter>
@@ -187,6 +190,15 @@ limitations under the License.</license.inlineheader>
         <version>${version.spring-boot}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+
+      <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client -->
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>${version.grpc}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <dependency>
