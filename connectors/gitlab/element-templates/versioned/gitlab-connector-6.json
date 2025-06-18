@@ -35,6 +35,9 @@
   "elementType": {
     "value": "bpmn:ServiceTask"
   },
+  "engines": {
+    "camunda": "^8.3"
+  },
   "groups": [
     {
       "id": "endpoint",
@@ -1760,8 +1763,5 @@
         "key": "errorExpression"
       }
     }
-  ],
-  "engines": {
-    "camunda": "^8.3"
-  }
+  ]
 }

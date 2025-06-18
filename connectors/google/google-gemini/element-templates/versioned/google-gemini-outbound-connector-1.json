@@ -18,6 +18,9 @@
   "elementType": {
     "value": "bpmn:ServiceTask"
   },
+  "engines": {
+    "camunda": "^8.7"
+  },
   "groups": [
     {
       "id": "authentication",
@@ -665,8 +668,5 @@
   ],
   "icon": {
     "contents": "data:image/svg+xml;base64,PHN2ZyBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTE2IDguMDE2QTguNTIyIDguNTIyIDAgMDA4LjAxNiAxNmgtLjAzMkE4LjUyMSA4LjUyMSAwIDAwMCA4LjAxNnYtLjAzMkE4LjUyMSA4LjUyMSAwIDAwNy45ODQgMGguMDMyQTguNTIyIDguNTIyIDAgMDAxNiA3Ljk4NHYuMDMyeiIgZmlsbD0idXJsKCNwcmVmaXhfX3BhaW50MF9yYWRpYWxfOTgwXzIwMTQ3KSIvPjxkZWZzPjxyYWRpYWxHcmFkaWVudCBpZD0icHJlZml4X19wYWludDBfcmFkaWFsXzk4MF8yMDE0NyIgY3g9IjAiIGN5PSIwIiByPSIxIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCgxNi4xMzI2IDUuNDU1MyAtNDMuNzAwNDUgMTI5LjIzMjIgMS41ODggNi41MDMpIj48c3RvcCBvZmZzZXQ9Ii4wNjciIHN0b3AtY29sb3I9IiM5MTY4QzAiLz48c3RvcCBvZmZzZXQ9Ii4zNDMiIHN0b3AtY29sb3I9IiM1Njg0RDEiLz48c3RvcCBvZmZzZXQ9Ii42NzIiIHN0b3AtY29sb3I9IiMxQkExRTMiLz48L3JhZGlhbEdyYWRpZW50PjwvZGVmcz48L3N2Zz4="
-  },
-  "engines": {
-    "camunda": "^8.7"
   }
 }

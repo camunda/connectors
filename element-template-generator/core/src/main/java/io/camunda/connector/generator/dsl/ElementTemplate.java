@@ -37,6 +37,7 @@ import java.util.Set;
   "category",
   "appliesTo",
   "elementType",
+  "engines",
   "groups",
   "properties"
 })
