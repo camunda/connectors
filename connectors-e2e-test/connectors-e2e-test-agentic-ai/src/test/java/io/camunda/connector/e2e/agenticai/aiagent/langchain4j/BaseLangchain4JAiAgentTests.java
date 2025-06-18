@@ -31,6 +31,7 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -189,6 +190,120 @@ abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
                     ChatResponseMetadata.builder()
                         .finishReason(FinishReason.STOP)
                         .tokenUsage(new TokenUsage(10, 20))
+                        .build())
+                .aiMessage(new AiMessage(responseText))
+                .build(),
+            userSatisfiedFeedback()));
+
+    final var zeebeTest =
+        createProcessInstance(
+            process,
+            elementTemplateModifier,
+            Map.of("action", "executeAgent", "userPrompt", initialUserPrompt));
+
+    return Pair.of(expectedConversation, zeebeTest);
+  }
+
+  protected ZeebeTest testInteractionWithToolsAndUserFeedbackLoops(
+      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+      String responseText,
+      boolean assertToolSpecifications,
+      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      throws Exception {
+    return testInteractionWithToolsAndUserFeedbackLoops(
+        testProcess,
+        elementTemplateModifier,
+        responseText,
+        assertToolSpecifications,
+        agentResponseAssertions);
+  }
+
+  protected ZeebeTest testInteractionWithToolsAndUserFeedbackLoops(
+      Resource process,
+      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+      String responseText,
+      boolean assertToolSpecifications,
+      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      throws Exception {
+    final var testSetup =
+        setupInteractionWithToolsAndUserFeedbackLoops(
+            process, elementTemplateModifier, responseText);
+
+    final var zeebeTest = testSetup.getRight();
+    zeebeTest.waitForProcessCompletion();
+
+    assertLastChatRequest(3, testSetup.getLeft(), assertToolSpecifications);
+
+    final var agentResponse = getAgentResponse(testSetup.getRight());
+    AgentResponseAssert.assertThat(agentResponse)
+        .isReady()
+        .hasNoToolCalls()
+        .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+        .satisfies(agentResponseAssertions);
+
+    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+
+    return zeebeTest;
+  }
+
+  protected Pair<List<ChatMessage>, ZeebeTest> setupInteractionWithToolsAndUserFeedbackLoops(
+      Resource process,
+      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
+      String responseText)
+      throws Exception {
+    final var initialUserPrompt = "Explore some of your tools!";
+    final var expectedConversation =
+        List.of(
+            new SystemMessage(
+                "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
+            new UserMessage(initialUserPrompt),
+            new AiMessage(
+                "The user asked me to call some of my tools. I will call the superflux calculation and the task with a text input schema as they look interesting to me.",
+                List.of(
+                    ToolExecutionRequest.builder()
+                        .id("aaa111")
+                        .name("SuperfluxProduct")
+                        .arguments("{\"a\": 5, \"b\": 3}")
+                        .build(),
+                    ToolExecutionRequest.builder()
+                        .id("bbb222")
+                        .name("Search_The_Web")
+                        .arguments("{\"searchQuery\": \"Where does this data come from?\"}")
+                        .build())),
+            new ToolExecutionResultMessage("aaa111", "SuperfluxProduct", "24"),
+            new ToolExecutionResultMessage(
+                "bbb222", "Search_The_Web", "No results for 'Where does this data come from?'"),
+            new AiMessage(
+                "I played with the tools and learned that the data comes from the follow-up task and that a superflux calculation of 5 and 3 results in 24."),
+            new UserMessage("So what is a superflux calculation anyway?"),
+            new AiMessage(responseText));
+
+    mockChatInteractions(
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.TOOL_EXECUTION)
+                        .tokenUsage(new TokenUsage(10, 20))
+                        .build())
+                .aiMessage((AiMessage) expectedConversation.get(2))
+                .build()),
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.STOP)
+                        .tokenUsage(new TokenUsage(100, 200))
+                        .build())
+                .aiMessage((AiMessage) expectedConversation.get(5))
+                .build(),
+            userFollowUpFeedback("So what is a superflux calculation anyway?")),
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.STOP)
+                        .tokenUsage(new TokenUsage(11, 22))
                         .build())
                 .aiMessage(new AiMessage(responseText))
                 .build(),
