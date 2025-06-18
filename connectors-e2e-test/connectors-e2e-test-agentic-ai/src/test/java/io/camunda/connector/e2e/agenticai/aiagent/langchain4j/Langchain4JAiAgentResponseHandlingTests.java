@@ -233,6 +233,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
     void raisesIncidentWhenJsonCouldNotBeParsed() throws Exception {
       final var setup =
           setupBasicTestWithoutFeedbackLoop(
+              testProcess,
               elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
               HAIKU_TEXT);
       setup.getRight().waitForActiveIncidents();

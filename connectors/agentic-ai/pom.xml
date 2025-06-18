@@ -57,6 +57,10 @@
     </dependency>
     <dependency>
       <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-mcp</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-anthropic</artifactId>
     </dependency>
     <dependency>
@@ -130,6 +134,28 @@
                   <templateFileName>agenticai-aiagent-outbound-connector.json</templateFileName>
                   <docTemplatePath>AI_AGENT.peb</docTemplatePath>
                   <docOutputPath>AI_AGENT.md</docOutputPath>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.agenticai.mcp.client.McpClientFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.mcp.client.v0</templateId>
+                  <templateFileName>agenticai-mcp-client-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.mcp.remoteclient.v0</templateId>
+                  <templateFileName>agenticai-mcp-remote-client-outbound-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
