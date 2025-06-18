@@ -18,10 +18,10 @@ import com.azure.storage.blob.models.BlockBlobItem;
 import com.azure.storage.blob.models.DownloadRetryOptions;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import io.camunda.connector.azure.blobstorage.model.request.Authentication;
-import io.camunda.connector.azure.blobstorage.model.request.BlobStorageAction;
+import io.camunda.connector.azure.blobstorage.model.request.BlobStorageOperation;
 import io.camunda.connector.azure.blobstorage.model.request.BlobStorageRequest;
-import io.camunda.connector.azure.blobstorage.model.request.DownloadObject;
-import io.camunda.connector.azure.blobstorage.model.request.UploadObject;
+import io.camunda.connector.azure.blobstorage.model.request.DownloadBlob;
+import io.camunda.connector.azure.blobstorage.model.request.UploadBlob;
 import io.camunda.connector.azure.blobstorage.model.response.DownloadResponse;
 import io.camunda.connector.azure.blobstorage.model.response.Element;
 import io.camunda.connector.azure.blobstorage.model.response.UploadResponse;
@@ -33,8 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BlobStorageExecutor {
-  private final long UPLOAD_TIMEOUT_IN_SECONDS = 30;
-
   private static final Logger log = LoggerFactory.getLogger(BlobStorageExecutor.class);
 
   private final Function<DocumentCreationRequest, Document> createDocument;
@@ -52,36 +50,36 @@ public class BlobStorageExecutor {
     return new BlobStorageExecutor(blobStorageRequest.getAuthentication(), createDocument);
   }
 
-  public Object execute(BlobStorageAction blobStorageAction) {
-    return switch (blobStorageAction) {
-      case DownloadObject downloadObject -> download(downloadObject);
-      case UploadObject uploadObject -> upload(uploadObject);
+  public Object execute(BlobStorageOperation blobStorageOperation) {
+    return switch (blobStorageOperation) {
+      case DownloadBlob downloadBlob -> download(downloadBlob);
+      case UploadBlob uploadBlob -> upload(uploadBlob);
     };
   }
 
-  private UploadResponse upload(UploadObject uploadObject) {
+  private UploadResponse upload(UploadBlob uploadBlob) {
     BlobContainerClient blobContainerClient =
         new BlobContainerClientBuilder()
             .endpoint(this.authentication.getSASUrl())
-            .sasToken(this.authentication.getSAStoken())
-            .containerName(uploadObject.container())
+            .sasToken(this.authentication.getSASToken())
+            .containerName(uploadBlob.container())
             .buildClient();
 
     String fileName =
-        uploadObject.fileName() != null && !uploadObject.fileName().isEmpty()
-            ? uploadObject.fileName()
-            : uploadObject.document().metadata().getFileName();
+        uploadBlob.fileName() != null && !uploadBlob.fileName().isEmpty()
+            ? uploadBlob.fileName()
+            : uploadBlob.document().metadata().getFileName();
 
     BlobClient blobClient = blobContainerClient.getBlobClient(fileName);
 
     BlobHttpHeaders headers =
-        new BlobHttpHeaders().setContentType(uploadObject.document().metadata().getContentType());
+        new BlobHttpHeaders().setContentType(uploadBlob.document().metadata().getContentType());
     BlobParallelUploadOptions options =
-        new BlobParallelUploadOptions(uploadObject.document().asInputStream()).setHeaders(headers);
+        new BlobParallelUploadOptions(uploadBlob.document().asInputStream()).setHeaders(headers);
 
     Response<BlockBlobItem> response =
         blobClient.uploadWithResponse(
-            options, Duration.ofSeconds(UPLOAD_TIMEOUT_IN_SECONDS), Context.NONE);
+            options, Duration.ofSeconds(uploadBlob.timeout()), Context.NONE);
 
     log.debug(
         "Upload of file {} to container {} finished with status code: {}",
@@ -92,34 +90,34 @@ public class BlobStorageExecutor {
         blobClient.getContainerName(), blobClient.getBlobName(), blobClient.getBlobUrl());
   }
 
-  private DownloadResponse download(DownloadObject downloadObject) {
+  private DownloadResponse download(DownloadBlob downloadBlob) {
     BlobContainerClient blobContainerClient =
         new BlobContainerClientBuilder()
             .endpoint(this.authentication.getSASUrl())
-            .sasToken(this.authentication.getSAStoken())
-            .containerName(downloadObject.container())
+            .sasToken(this.authentication.getSASToken())
+            .containerName(downloadBlob.container())
             .buildClient();
     DownloadRetryOptions options = new DownloadRetryOptions().setMaxRetryRequests(3);
 
-    BlobClient blobClient = blobContainerClient.getBlobClient(downloadObject.fileName());
+    BlobClient blobClient = blobContainerClient.getBlobClient(downloadBlob.fileName());
     BlobDownloadContentResponse contentResponse =
         blobClient.downloadContentWithResponse(options, null, null, null);
 
     BinaryData content = contentResponse.getValue();
 
     log.debug(
-        "Download of file {} to container {} finished with status code: {}",
+        "Download of file {} from container {} finished with status code: {}",
         blobClient.getBlobName(),
         blobClient.getContainerName(),
         contentResponse.getStatusCode());
 
-    if (downloadObject.asFile()) {
+    if (downloadBlob.asFile()) {
       return this.createDocument
           .andThen(document -> new DownloadResponse(new Element.DocumentContent(document)))
           .apply(
               DocumentCreationRequest.from(content.toBytes())
                   .contentType(contentResponse.getDeserializedHeaders().getContentType())
-                  .fileName(downloadObject.fileName())
+                  .fileName(downloadBlob.fileName())
                   .build());
     } else {
       return new DownloadResponse(new Element.StringContent(content.toString()));

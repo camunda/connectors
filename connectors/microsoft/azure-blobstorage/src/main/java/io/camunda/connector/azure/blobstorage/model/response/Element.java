@@ -8,10 +8,8 @@ package io.camunda.connector.azure.blobstorage.model.response;
 
 import io.camunda.document.Document;
 
-public interface Element {
+public sealed interface Element permits Element.DocumentContent, Element.StringContent {
   record DocumentContent(Document document) implements Element {}
 
   record StringContent(String content) implements Element {}
-
-  record JsonContent(Object content) implements Element {}
 }
