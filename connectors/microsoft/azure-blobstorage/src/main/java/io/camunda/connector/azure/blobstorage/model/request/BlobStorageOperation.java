@@ -10,9 +10,9 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateDiscriminatorProperty(
-    label = "Action",
-    group = "action",
-    name = "actionDiscriminator",
-    defaultValue = "uploadObject")
-@TemplateSubType(id = "action", label = "Action")
-public sealed interface BlobStorageAction permits DownloadObject, UploadObject {}
+    label = "Operation",
+    group = "operation",
+    name = "operationDiscriminator",
+    defaultValue = "uploadBlob")
+@TemplateSubType(id = "operation", label = "Operation")
+public sealed interface BlobStorageOperation permits DownloadBlob, UploadBlob {}

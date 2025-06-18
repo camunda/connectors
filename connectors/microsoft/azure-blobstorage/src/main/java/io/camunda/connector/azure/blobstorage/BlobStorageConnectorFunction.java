@@ -18,21 +18,33 @@ import java.util.function.Function;
 
 @OutboundConnector(
     name = "Azure Blob Storage",
-    inputVariables = {"authentication", "actionDiscriminator", "action"},
+    inputVariables = {
+      "authentication",
+      "operationDiscriminator",
+      "operation",
+      "additionalProperties"
+    },
     type = "io.camunda:azure-blobstorage:1")
 @ElementTemplate(
     engineVersion = "^8.8",
     id = "io.camunda.connectors.azure.blobstorage.v1",
     name = "Azure Blob Storage Outbound Connector",
-    description = "Execute azure blob storage requests",
+    description = "Upload and download files from Azure Blob Storage.",
     inputDataClass = BlobStorageRequest.class,
     version = 1,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
-      @ElementTemplate.PropertyGroup(id = "action", label = "Action"),
-      @ElementTemplate.PropertyGroup(id = "uploadObject", label = "Upload an object"),
-      @ElementTemplate.PropertyGroup(id = "downloadObject", label = "Download an object"),
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
+      @ElementTemplate.PropertyGroup(id = "uploadBlob", label = "Upload a blob"),
+      @ElementTemplate.PropertyGroup(id = "downloadBlob", label = "Download a blob"),
+      @ElementTemplate.PropertyGroup(id = "additionalProperties", label = "Additional properties")
     },
+    metadata =
+        @ElementTemplate.Metadata(
+            keywords = {
+              "download file from azure blob storage",
+              "upload file to azure blob storage"
+            }),
     documentationRef =
         "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blobstorage/",
     icon = "icon.svg")
@@ -43,6 +55,6 @@ public class BlobStorageConnectorFunction implements OutboundConnectorFunction {
     Function<DocumentCreationRequest, Document> createDocument = context::create;
     BlobStorageRequest blobStorageRequest = context.bindVariables(BlobStorageRequest.class);
     return BlobStorageExecutor.create(blobStorageRequest, createDocument)
-        .execute(blobStorageRequest.getAction());
+        .execute(blobStorageRequest.getOperation());
   }
 }

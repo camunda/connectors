@@ -2,9 +2,9 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Azure Blob Storage Outbound Connector",
   "id" : "io.camunda.connectors.azure.blobstorage.v1",
-  "description" : "Execute azure blob storage requests",
+  "description" : "Upload and download files from Azure Blob Storage.",
   "metadata" : {
-    "keywords" : [ ]
+    "keywords" : [ "download file from azure blob storage", "upload file to azure blob storage" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blobstorage/",
   "version" : 1,
@@ -20,14 +20,17 @@
     "id" : "authentication",
     "label" : "Authentication"
   }, {
-    "id" : "action",
-    "label" : "Action"
+    "id" : "operation",
+    "label" : "Operation"
   }, {
-    "id" : "uploadObject",
-    "label" : "Upload an object"
+    "id" : "uploadBlob",
+    "label" : "Upload a blob"
   }, {
-    "id" : "downloadObject",
-    "label" : "Download an object"
+    "id" : "downloadBlob",
+    "label" : "Download a blob"
+  }, {
+    "id" : "additionalProperties",
+    "label" : "Additional properties"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -77,21 +80,21 @@
     },
     "type" : "String"
   }, {
-    "id" : "actionDiscriminator",
-    "label" : "Action",
-    "value" : "uploadObject",
-    "group" : "action",
+    "id" : "operationDiscriminator",
+    "label" : "Operation",
+    "value" : "uploadBlob",
+    "group" : "operation",
     "binding" : {
-      "name" : "actionDiscriminator",
+      "name" : "operationDiscriminator",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Download object",
-      "value" : "downloadObject"
+      "name" : "Download blob",
+      "value" : "downloadBlob"
     }, {
-      "name" : "Upload object",
-      "value" : "uploadObject"
+      "name" : "Upload blob",
+      "value" : "uploadBlob"
     } ]
   }, {
     "id" : "container",
@@ -101,113 +104,134 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "uploadObject",
+    "group" : "uploadBlob",
     "binding" : {
-      "name" : "action.container",
+      "name" : "operation.container",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "actionDiscriminator",
-      "equals" : "uploadObject",
+      "property" : "operationDiscriminator",
+      "equals" : "uploadBlob",
       "type" : "simple"
     },
-    "tooltip" : "container where an object should be uploaded to",
+    "tooltip" : "Container where an blob should be uploaded to",
     "type" : "String"
   }, {
-    "id" : "uploadActionFileName",
+    "id" : "uploadOperationFileName",
     "label" : "Document file name",
     "optional" : true,
     "feel" : "optional",
-    "group" : "uploadObject",
+    "group" : "uploadBlob",
     "binding" : {
-      "name" : "action.fileName",
+      "name" : "operation.fileName",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "actionDiscriminator",
-      "equals" : "uploadObject",
+      "property" : "operationDiscriminator",
+      "equals" : "uploadBlob",
       "type" : "simple"
     },
-    "tooltip" : "File name of the uploaded object, if not given. The file name from the document metadata will be used",
+    "tooltip" : "File name of the uploaded blob, if not given. The file name from the document metadata will be used",
     "type" : "String"
   }, {
-    "id" : "uploadActionDocument",
+    "id" : "uploadOperationDocument",
     "label" : "Document",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "required",
-    "group" : "uploadObject",
+    "group" : "uploadBlob",
     "binding" : {
-      "name" : "action.document",
+      "name" : "operation.document",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "actionDiscriminator",
-      "equals" : "uploadObject",
+      "property" : "operationDiscriminator",
+      "equals" : "uploadBlob",
       "type" : "simple"
     },
     "tooltip" : "Document to be uploaded to Azure Blob Storage",
     "type" : "String"
   }, {
-    "id" : "downloadActionContainer",
+    "id" : "downloadOperationContainer",
     "label" : "Blob Storage container",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "downloadObject",
+    "group" : "downloadBlob",
     "binding" : {
-      "name" : "action.container",
+      "name" : "operation.container",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "actionDiscriminator",
-      "equals" : "downloadObject",
+      "property" : "operationDiscriminator",
+      "equals" : "downloadBlob",
       "type" : "simple"
     },
-    "tooltip" : "Container from where an object should be downloaded",
+    "tooltip" : "Container from where an blob should be downloaded",
     "type" : "String"
   }, {
-    "id" : "downloadActionFileName",
+    "id" : "downloadOperationFileName",
     "label" : "File name",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "downloadObject",
+    "group" : "downloadBlob",
     "binding" : {
-      "name" : "action.fileName",
+      "name" : "operation.fileName",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "actionDiscriminator",
-      "equals" : "downloadObject",
+      "property" : "operationDiscriminator",
+      "equals" : "downloadBlob",
       "type" : "simple"
     },
-    "tooltip" : "Filename of the object which should be downloaded",
+    "tooltip" : "Filename of the blob which should be downloaded",
     "type" : "String"
   }, {
-    "id" : "downloadActionAsFile",
+    "id" : "downloadOperationAsFile",
     "label" : "Create document",
     "optional" : false,
     "value" : true,
     "feel" : "static",
-    "group" : "downloadObject",
+    "group" : "downloadBlob",
     "binding" : {
-      "name" : "action.asFile",
+      "name" : "operation.asFile",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "actionDiscriminator",
-      "equals" : "downloadObject",
+      "property" : "operationDiscriminator",
+      "equals" : "downloadBlob",
       "type" : "simple"
     },
     "tooltip" : "If set to true, a document reference will be created. If set to false, the content will be extracted and provided inside the response.",
     "type" : "Boolean"
+  }, {
+    "id" : "timeout",
+    "label" : "Timeout",
+    "optional" : false,
+    "value" : 30,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "static",
+    "group" : "additionalProperties",
+    "binding" : {
+      "name" : "additionalProperties.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "uploadBlob",
+      "type" : "simple"
+    },
+    "tooltip" : "Timeout for the upload in seconds.",
+    "type" : "Number"
   }, {
     "id" : "version",
     "label" : "Version",

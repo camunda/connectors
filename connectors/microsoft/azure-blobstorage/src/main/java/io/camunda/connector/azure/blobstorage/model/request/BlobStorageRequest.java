@@ -16,27 +16,27 @@ public class BlobStorageRequest {
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
-      property = "actionDiscriminator")
+      property = "operationDiscriminator")
   @JsonSubTypes(
       value = {
-        @JsonSubTypes.Type(value = UploadObject.class, name = "uploadObject"),
-        @JsonSubTypes.Type(value = DownloadObject.class, name = "downloadObject"),
+        @JsonSubTypes.Type(value = UploadBlob.class, name = "uploadBlob"),
+        @JsonSubTypes.Type(value = DownloadBlob.class, name = "downloadBlob"),
       })
   @Valid
   @NotNull
   @NestedProperties(addNestedPath = false)
-  private BlobStorageAction action;
+  private BlobStorageOperation operation;
 
   private Authentication authentication;
 
   public BlobStorageRequest() {}
 
-  public BlobStorageAction getAction() {
-    return action;
+  public BlobStorageOperation getOperation() {
+    return operation;
   }
 
-  public void setAction(BlobStorageAction action) {
-    this.action = action;
+  public void setOperation(BlobStorageOperation operation) {
+    this.operation = operation;
   }
 
   public Authentication getAuthentication() {

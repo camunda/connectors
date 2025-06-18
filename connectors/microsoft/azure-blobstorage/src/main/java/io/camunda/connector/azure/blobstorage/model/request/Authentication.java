@@ -6,34 +6,30 @@
  */
 package io.camunda.connector.azure.blobstorage.model.request;
 
+import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 
 public class Authentication {
+  @FEEL
   @TemplateProperty(
       group = "authentication",
-      id = "SASToken",
       label = "SAS token",
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "SASToken"))
+      feel = Property.FeelMode.optional)
   @NotBlank
   private String SASToken;
 
-  @TemplateProperty(
-      group = "authentication",
-      id = "SASUrl",
-      label = "SAS URL",
-      feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "SASUrl"))
+  @FEEL
+  @TemplateProperty(group = "authentication", label = "SAS URL", feel = Property.FeelMode.optional)
   @NotBlank
   private String SASUrl;
 
-  public String getSAStoken() {
+  public String getSASToken() {
     return SASToken;
   }
 
-  public void setSAStoken(String SASToken) {
+  public void setSASToken(String SASToken) {
     this.SASToken = SASToken;
   }
 
