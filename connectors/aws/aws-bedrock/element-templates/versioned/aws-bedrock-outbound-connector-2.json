@@ -23,6 +23,9 @@
   "elementType": {
     "value": "bpmn:ServiceTask"
   },
+  "engines": {
+    "camunda": "^8.6"
+  },
   "groups": [
     {
       "id": "authentication",
