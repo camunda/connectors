@@ -74,17 +74,46 @@ class AgenticAiConnectorsAutoConfigurationTest {
           .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class);
 
   @Test
-  void whenAgenticAiConnectorsEnabled_thenAgenticConnectorBeansAreCreated() {
+  void whenAgenticAiConfigurationEnabled_thenAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=true")
         .run(context -> assertHasAllBeansOf(context, ALL_BEANS));
   }
 
   @Test
-  void whenAgenticAiConnectorsDisabled_thenNoAgenticConnectorBeansAreCreated() {
+  void whenAgenticAiConfigurationDisabled_thenNoAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=false")
         .run(context -> assertDoesNotHaveAnyBeansOf(context, ALL_BEANS));
+  }
+
+  @Test
+  void whenAiAgentConnectorDisabled_thenNoAiAgentFunctionIsCreated() {
+    contextRunner
+        .withPropertyValues("camunda.connector.agenticai.aiagent.enabled=false")
+        .run(
+            context -> {
+              assertHasAllBeansOf(
+                  context,
+                  ALL_BEANS.stream().filter(c -> !c.equals(AiAgentFunction.class)).toList());
+              assertThat(context).doesNotHaveBean(AiAgentFunction.class);
+            });
+  }
+
+  @Test
+  void whenAdHocToolsSchemaConnectorDisabled_thenNoAdHocToolsSchemaFunctionIsCreated() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled=false")
+        .run(
+            context -> {
+              assertHasAllBeansOf(
+                  context,
+                  ALL_BEANS.stream()
+                      .filter(c -> !c.equals(AdHocToolsSchemaFunction.class))
+                      .toList());
+              assertThat(context).doesNotHaveBean(AdHocToolsSchemaFunction.class);
+            });
   }
 
   @Test

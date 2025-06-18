@@ -96,6 +96,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled",
+      matchIfMissing = true)
   public AdHocToolsSchemaFunction adHocToolsSchemaFunction(
       AdHocToolsSchemaResolver schemaResolver) {
     return new AdHocToolsSchemaFunction(schemaResolver);
@@ -154,6 +157,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.enabled",
+      matchIfMissing = true)
   public AiAgentFunction aiAgentFunction(AiAgentRequestHandler aiAgentRequestHandler) {
     return new AiAgentFunction(aiAgentRequestHandler);
   }
