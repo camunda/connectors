@@ -12,7 +12,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;

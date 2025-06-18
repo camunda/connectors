@@ -4,10 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import java.util.Map;
 
 /**
@@ -15,7 +17,10 @@ import java.util.Map;
  * conversation again.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = InProcessConversationContext.class, name = "in-process")})
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = InProcessConversationContext.class, name = "in-process"),
+  @JsonSubTypes.Type(value = CamundaDocumentConversationContext.class, name = "camunda-document")
+})
 public interface ConversationContext {
   String id();
 

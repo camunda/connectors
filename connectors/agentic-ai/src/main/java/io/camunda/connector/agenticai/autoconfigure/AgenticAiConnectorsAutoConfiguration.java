@@ -30,12 +30,15 @@ import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactoryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
+import io.camunda.document.store.CamundaDocumentStore;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -120,6 +123,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ConversationStoreFactory aiAgentConversationStoreFactory(
+      ObjectMapper objectMapper, CamundaDocumentStore camundaDocumentStore) {
+    return new ConversationStoreFactoryImpl(objectMapper, camundaDocumentStore);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentLimitsValidator aiAgentLimitsValidator() {
     return new AgentLimitsValidatorImpl();
   }
@@ -141,6 +151,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AiAgentRequestHandler aiAgentRequestHandler(
       AgentInitializer agentInitializer,
+      ConversationStoreFactory conversationStoreFactory,
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
@@ -148,6 +159,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentResponseHandler responseHandler) {
     return new AiAgentRequestHandlerImpl(
         agentInitializer,
+        conversationStoreFactory,
         limitsValidator,
         messagesHandler,
         gatewayToolHandlers,

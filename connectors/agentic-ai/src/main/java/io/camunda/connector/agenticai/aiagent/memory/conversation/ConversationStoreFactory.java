@@ -4,13 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
-import java.util.Map;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 
-public record TestConversationContext(String id) implements ConversationContext {
-  @Override
-  public Map<String, Object> properties() {
-    return Map.of();
-  }
+public interface ConversationStoreFactory {
+  ConversationStore createConversationStore(AgentRequest request);
 }

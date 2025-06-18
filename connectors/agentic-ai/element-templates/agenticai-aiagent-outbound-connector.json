@@ -2,7 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "AI Agent",
   "id" : "io.camunda.connectors.agenticai.aiagent.v1",
-  "description" : "Provides a generic AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha5 or later.",
+  "description" : "Provides a generic AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha6 or later.",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -672,18 +672,71 @@
     "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Text"
   }, {
-    "id" : "data.memory.maxMessages",
-    "label" : "Maximum messages",
-    "description" : "Maximum number of recent messages the AI agent retains in short-term memory during a conversation.",
+    "id" : "data.memory.storage.type",
+    "label" : "Memory storage type",
+    "description" : "Specify how to store the conversation memory.",
+    "value" : "in-process",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "In Process (part of agent context)",
+      "value" : "in-process"
+    }, {
+      "name" : "Camunda Document Storage",
+      "value" : "camunda-document"
+    } ]
+  }, {
+    "id" : "data.memory.storage.timeToLive",
+    "label" : "Document TTL",
+    "description" : "How long to retain the conversation document as ISO-8601 duration (example: <code>P14D</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.timeToLive",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "camunda-document",
+      "type" : "simple"
+    },
+    "tooltip" : "Will use the cluster default TTL (time-to-live) if not specified. Make sure to set this value to a reasonable duration matching your process lifecycle.",
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.customProperties",
+    "label" : "Custom document properties",
+    "description" : "An optional map of custom properties to be stored with the conversation document.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.customProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "camunda-document",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.contextWindowSize",
+    "label" : "Context window size",
+    "description" : "Maximum number of recent conversation messages which are passed to the model.",
     "optional" : false,
     "value" : 20,
     "feel" : "static",
     "group" : "memory",
     "binding" : {
-      "name" : "data.memory.maxMessages",
+      "name" : "data.memory.contextWindowSize",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM and evict older messages. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Number"
   }, {
     "id" : "data.limits.maxModelCalls",
