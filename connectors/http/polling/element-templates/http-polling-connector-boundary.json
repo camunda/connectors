@@ -468,5 +468,8 @@
       },
       "description": "Expression to map the inbound payload to process variables"
     }
-  ]
+  ],
+  "engines": {
+    "camunda": "^8.3"
+  }
 }
