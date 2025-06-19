@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
@@ -26,7 +28,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 /**
  * Stateful component that issues a process connectorDetails search based on the previous pagination
@@ -51,16 +52,16 @@ public class ProcessDefinitionSearch {
     SearchResponse<ProcessDefinition> processDefinitionResult;
     LOG.trace("Running paginated query");
 
-    List<Object> paginationIndex = null;
+    String paginationIndex = null;
     final Set<String> encounteredBpmnProcessIds = new HashSet<>();
 
     do {
       processDefinitionResult = searchQueryClient.queryProcessDefinitions(paginationIndex);
-      List<Object> newPaginationIdx = processDefinitionResult.page().lastSortValues();
+      String newPaginationIdx = processDefinitionResult.page().endCursor();
 
       LOG.debug("A page of process definitions has been fetched, continuing...");
 
-      if (!CollectionUtils.isEmpty(newPaginationIdx)) {
+      if (isNotBlank(newPaginationIdx)) {
         paginationIndex = newPaginationIdx;
       }
 

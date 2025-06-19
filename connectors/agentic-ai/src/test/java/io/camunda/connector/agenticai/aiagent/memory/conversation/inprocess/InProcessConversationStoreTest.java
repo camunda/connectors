@@ -4,12 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory;
+package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -67,10 +69,9 @@ class InProcessConversationStoreTest {
     final var agentContext =
         AgentContext.empty().withConversation(new TestConversationContext("dummy"));
 
-    assertThrows(
-        IllegalStateException.class,
-        () -> store.loadIntoRuntimeMemory(context, agentContext, memory),
-        "Unsupported conversation context: Object");
+    assertThatThrownBy(() -> store.loadIntoRuntimeMemory(context, agentContext, memory))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Unsupported conversation context: TestConversationContext");
   }
 
   @Test
@@ -95,9 +96,9 @@ class InProcessConversationStoreTest {
         InProcessConversationContext.builder("test-conversation").messages(TEST_MESSAGES).build();
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
+    store.loadIntoRuntimeMemory(context, agentContext, memory);
 
     final var userMessage = UserMessage.userMessage("User message");
-    memory.addMessages(TEST_MESSAGES);
     memory.addMessage(userMessage);
 
     final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);

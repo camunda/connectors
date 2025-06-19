@@ -47,8 +47,11 @@ public interface AiAgentTestFixtures {
               "=if (is defined(followUpUserPrompt)) then [] else downloadedFiles"),
           Map.entry("data.tools.containerElementId", "Agent_Tools"),
           Map.entry("data.tools.toolCallResults", "=toolCallResults"),
-          Map.entry("data.memory.maxMessages", "=50"),
-          Map.entry("data.response.includeAssistantMessage", "=true"));
+          Map.entry("data.memory.storage.type", "in-process"),
+          Map.entry("data.memory.contextWindowSize", "=50"),
+          Map.entry("data.response.includeAssistantMessage", "=true"),
+          Map.entry("retryCount", "3"),
+          Map.entry("retryBackoff", "PT2S"));
 
   String HAIKU_TEXT = "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
   String HAIKU_JSON =
@@ -58,4 +61,7 @@ public interface AiAgentTestFixtures {
           assertThat(json)
               .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
               .containsExactly(entry("text", HAIKU_TEXT), entry("length", HAIKU_TEXT.length()));
+
+  String FEEDBACK_LOOP_RESPONSE_TEXT =
+      "A very complex calculation only the superflux calculation tool can do.";
 }

@@ -13,18 +13,19 @@
         <zeebe:taskDefinition type="io.camunda.agenticai:aiagent:1" retries="3" />
         <zeebe:ioMapping>
           <zeebe:input source="bedrock" target="provider.type" />
-          <zeebe:input source="eu-central-1" target="provider.bedrock.region" />
+          <zeebe:input source="us-east-1" target="provider.bedrock.region" />
           <zeebe:input source="credentials" target="provider.bedrock.authentication.type" />
           <zeebe:input source="{{secrets.AWS_BEDROCK_ACCESS_KEY}}" target="provider.bedrock.authentication.accessKey" />
           <zeebe:input source="{{secrets.AWS_BEDROCK_SECRET_KEY}}" target="provider.bedrock.authentication.secretKey" />
-          <zeebe:input source="anthropic.claude-3-5-sonnet-20240620-v1:0" target="provider.bedrock.model.model" />
+          <zeebe:input source="us.anthropic.claude-sonnet-4-20250514-v1:0" target="provider.bedrock.model.model" />
           <zeebe:input source="You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you&#39;re not able to look up appropriate data.&#10;&#10;Thinking, step by step, before you execute your tools, you think using the template `&#60;thinking&#62;&#60;context&#62;&#60;/context&#62;&#60;reflection&#62;&#60;/reflection&#62;&#60;/thinking&#62;`" target="data.systemPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput)) then followUpInput else inputText" target="data.userPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput) or is defined(followUpDocuments)) then followUpDocuments else inputDocuments" target="data.userPrompt.documents" />
           <zeebe:input source="Agent_Tools" target="data.tools.containerElementId" />
           <zeebe:input source="=toolCallResults" target="data.tools.toolCallResults" />
           <zeebe:input source="=agent.context" target="data.context" />
-          <zeebe:input source="=20" target="data.memory.maxMessages" />
+          <zeebe:input source="in-process" target="data.memory.storage.type" />
+          <zeebe:input source="=20" target="data.memory.contextWindowSize" />
           <zeebe:input source="=20" target="data.limits.maxModelCalls" />
           <zeebe:input source="text" target="data.response.format.type" />
         </zeebe:ioMapping>
@@ -40,20 +41,10 @@
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="Gateway_0z6ctwk">
       <bpmn:incoming>Flow_0pbzrme</bpmn:incoming>
-      <bpmn:incoming>Flow_10x2etf</bpmn:incoming>
-      <bpmn:incoming>Flow_0ojrvh4</bpmn:incoming>
+      <bpmn:incoming>Flow_01k9dy1</bpmn:incoming>
+      <bpmn:incoming>Flow_19gp461</bpmn:incoming>
       <bpmn:outgoing>Flow_050377t</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:intermediateCatchEvent id="Event_1ynf9aq" name="Handle user follow up">
-      <bpmn:outgoing>Flow_0ojrvh4</bpmn:outgoing>
-      <bpmn:linkEventDefinition id="LinkEventDefinition_1xhmsl2" name="user_follow_up" />
-    </bpmn:intermediateCatchEvent>
-    <bpmn:intermediateCatchEvent id="Event_11zcrdo" name="Handle tools follow up">
-      <bpmn:outgoing>Flow_10x2etf</bpmn:outgoing>
-      <bpmn:linkEventDefinition id="LinkEventDefinition_0iu6pw3" name="tools_follow_up" />
-    </bpmn:intermediateCatchEvent>
-    <bpmn:sequenceFlow id="Flow_10x2etf" sourceRef="Event_11zcrdo" targetRef="Gateway_0z6ctwk" />
-    <bpmn:sequenceFlow id="Flow_0ojrvh4" sourceRef="Event_1ynf9aq" targetRef="Gateway_0z6ctwk" />
     <bpmn:userTask id="User_Feedback" name="User Feedback">
       <bpmn:extensionElements>
         <zeebe:userTask />
@@ -67,12 +58,8 @@
       <bpmn:outgoing>Flow_19gp461</bpmn:outgoing>
       <bpmn:outgoing>Flow_16c9bwj</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:intermediateThrowEvent id="Event_User_Follow_Up" name="User follow up">
-      <bpmn:incoming>Flow_19gp461</bpmn:incoming>
-      <bpmn:linkEventDefinition id="LinkEventDefinition_1j5h3eh" name="user_follow_up" />
-    </bpmn:intermediateThrowEvent>
     <bpmn:sequenceFlow id="Flow_09y08ef" sourceRef="User_Feedback" targetRef="Gateway_1dcg4ha" />
-    <bpmn:sequenceFlow id="Flow_19gp461" name="no" sourceRef="Gateway_1dcg4ha" targetRef="Event_User_Follow_Up">
+    <bpmn:sequenceFlow id="Flow_19gp461" name="no - we follow up" sourceRef="Gateway_1dcg4ha" targetRef="Gateway_0z6ctwk">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied = null or userSatisfied = false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:endEvent id="Event_0i39jej">
@@ -253,31 +240,47 @@
         </bpmn:extensionElements>
       </bpmn:serviceTask>
     </bpmn:adHocSubProcess>
-    <bpmn:intermediateThrowEvent id="Event_1hi12xn" name="Tools follow up">
-      <bpmn:incoming>Flow_01k9dy1</bpmn:incoming>
-      <bpmn:linkEventDefinition id="LinkEventDefinition_05e1y25" name="tools_follow_up" />
-    </bpmn:intermediateThrowEvent>
     <bpmn:sequenceFlow id="Flow_00lg7l2" name="yes" sourceRef="Gateway_0bukj01" targetRef="Agent_Tools">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=not(is empty(agent.toolCalls))</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_01k9dy1" sourceRef="Agent_Tools" targetRef="Event_1hi12xn" />
     <bpmn:sequenceFlow id="Flow_11y3kim" name="no" sourceRef="Gateway_0bukj01" targetRef="User_Feedback">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=is empty(agent.toolCalls)</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_050377t" sourceRef="Gateway_0z6ctwk" targetRef="AI_Agent" />
+    <bpmn:sequenceFlow id="Flow_01k9dy1" sourceRef="Agent_Tools" targetRef="Gateway_0z6ctwk" />
     <bpmn:textAnnotation id="TextAnnotation_0rg9ar3">
       <bpmn:text>Rough outline of the functionality
 
-- Loads previous memory from provided variables
-- Checks limits (e.g. maximum LLM model calls)
+- Loads previous agent context (conversation, metrics, ...)
 - Loads available tool information from ad-hoc sub-process definition
+- Resolves tool information from gateway tool definitions such as MCP
+- Checks limits (e.g. maximum LLM model calls)
 - Merges the current request (either a user message or a tool call response) into the memory
-- Calls the LLM, including previous/edited memory + available tools schema
-- Returns memory trimmed to amount of latest messages
-- Returns last response
+- Calls the LLM, including previous/edited memory (limited to max amount of messages) + available tools schema
+- Returns last response as text or JSON format, depending on the configuration
 - Returns tools to call, including their parameters</bpmn:text>
     </bpmn:textAnnotation>
     <bpmn:association id="Association_0ic98nl" associationDirection="None" sourceRef="AI_Agent" targetRef="TextAnnotation_0rg9ar3" />
+    <bpmn:textAnnotation id="TextAnnotation_1keavvi">
+      <bpmn:text>For every tool call in &lt;agent.toolCalls&gt;</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_0q5n90x" associationDirection="None" sourceRef="Agent_Tools" targetRef="TextAnnotation_1keavvi" />
+    <bpmn:textAnnotation id="TextAnnotation_1cvjkfu">
+      <bpmn:text>Every execution (flow node or sequence of flow nodes) MUST write &lt;toolCallResult&gt; variable</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="TextAnnotation_1tvejhg">
+      <bpmn:text>Every task inside of an execution MAY query for external inputs provided by the model through the fromAI helper:
+
+fromAi(toolCall.id, "The user ID", "number")
+
+The outside brain &lt;AI Agent&gt; will take that information to instruct the model which data to provide in which format.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="TextAnnotation_0xt28ql">
+      <bpmn:text>Must produce output as &lt;toolCallResults=[ { id, name, content } ]&gt;</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_14t02ll" associationDirection="None" sourceRef="Agent_Tools" targetRef="TextAnnotation_0xt28ql" />
+    <bpmn:association id="Association_06g2vrm" associationDirection="None" sourceRef="LoadUserByID" targetRef="TextAnnotation_1tvejhg" />
+    <bpmn:association id="Association_0fjdrev" associationDirection="None" sourceRef="LoadUserByID" targetRef="TextAnnotation_1cvjkfu" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ai-agent-chat-with-tools">
@@ -291,18 +294,6 @@
       <bpmndi:BPMNShape id="Gateway_0z6ctwk_di" bpmnElement="Gateway_0z6ctwk" isMarkerVisible="true">
         <dc:Bounds x="245" y="435" width="50" height="50" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_1vly22n" bpmnElement="Event_1ynf9aq" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
-        <dc:Bounds x="252" y="352" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="240" y="316" width="60" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_1m69yzg" bpmnElement="Event_11zcrdo" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
-        <dc:Bounds x="252" y="532" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="239" y="575" width="62" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1fam9db_di" bpmnElement="User_Feedback">
         <dc:Bounds x="640" y="420" width="100" height="80" />
         <bpmndi:BPMNLabel />
@@ -311,12 +302,6 @@
         <dc:Bounds x="805" y="435" width="50" height="50" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="794" y="492" width="73" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_07erbg0_di" bpmnElement="Event_User_Follow_Up" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
-        <dc:Bounds x="812" y="352" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="795" y="333" width="70" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_0i39jej_di" bpmnElement="Event_0i39jej">
@@ -328,92 +313,113 @@
           <dc:Bounds x="499" y="406" width="62" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="Agent_Tools" isExpanded="true">
-        <dc:Bounds x="480" y="560" width="400" height="580" />
+      <bpmndi:BPMNEdge id="Association_0ic98nl_di" bpmnElement="Association_0ic98nl">
+        <di:waypoint x="410" y="420" />
+        <di:waypoint x="495" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="Agent_Tools" isExpanded="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="640" y="560" width="400" height="580" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1sbkoqq_di" bpmnElement="GetDateAndTime">
-        <dc:Bounds x="510" y="600" width="100" height="80" />
+        <dc:Bounds x="670" y="600" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_1fihe00" bpmnElement="LoadUserByID">
-        <dc:Bounds x="630" y="700" width="100" height="80" />
+        <dc:Bounds x="790" y="700" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0kkpyxf_di" bpmnElement="ListUsers">
-        <dc:Bounds x="510" y="700" width="100" height="80" />
+        <dc:Bounds x="670" y="700" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0d8luif_di" bpmnElement="Search_Recipe">
-        <dc:Bounds x="510" y="800" width="100" height="80" />
+        <dc:Bounds x="670" y="800" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_0x0a1hy" bpmnElement="SuperfluxProduct">
-        <dc:Bounds x="630" y="600" width="100" height="80" />
+        <dc:Bounds x="790" y="600" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_16uhg8o_di" bpmnElement="AskHumanToSendEmail">
-        <dc:Bounds x="510" y="930" width="100" height="80" />
+        <dc:Bounds x="670" y="930" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_1lux75t_di" bpmnElement="Gateway_1lux75t" isMarkerVisible="true">
-        <dc:Bounds x="655" y="945" width="50" height="50" />
+        <dc:Bounds x="815" y="945" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="652" y="916" width="56" height="27" />
+          <dc:Bounds x="812" y="916" width="56" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1ny5xkz_di" bpmnElement="Event_1wxfv4u">
-        <dc:Bounds x="662" y="1032" width="36" height="36" />
+        <dc:Bounds x="822" y="1032" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="645" y="1075" width="70" height="27" />
+          <dc:Bounds x="805" y="1075" width="70" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1sddc2g_di" bpmnElement="SendEmail">
-        <dc:Bounds x="750" y="930" width="100" height="80" />
+        <dc:Bounds x="910" y="930" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1l8tp85_di" bpmnElement="Jokes_API">
-        <dc:Bounds x="630" y="800" width="100" height="80" />
+        <dc:Bounds x="790" y="800" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1knqabi_di" bpmnElement="Fetch_URL">
-        <dc:Bounds x="750" y="600" width="100" height="80" />
+        <dc:Bounds x="910" y="600" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0demz1g_di" bpmnElement="Flow_0demz1g">
-        <di:waypoint x="610" y="970" />
-        <di:waypoint x="655" y="970" />
+        <di:waypoint x="770" y="970" />
+        <di:waypoint x="815" y="970" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0uqjclh_di" bpmnElement="Flow_0uqjclh">
-        <di:waypoint x="705" y="970" />
-        <di:waypoint x="750" y="970" />
+        <di:waypoint x="865" y="970" />
+        <di:waypoint x="910" y="970" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="719" y="952" width="18" height="14" />
+          <dc:Bounds x="879" y="952" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1l2ws6w_di" bpmnElement="Flow_1l2ws6w">
-        <di:waypoint x="680" y="995" />
-        <di:waypoint x="680" y="1032" />
+        <di:waypoint x="840" y="995" />
+        <di:waypoint x="840" y="1032" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="689" y="1003" width="13" height="14" />
+          <dc:Bounds x="849" y="1003" width="13" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="Event_0gbt4n4_di" bpmnElement="Event_1hi12xn" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
-        <dc:Bounds x="665" y="1202" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="647" y="1245" width="73" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Association_0q5n90x_di" bpmnElement="Association_0q5n90x">
+        <di:waypoint x="1040" y="620" />
+        <di:waypoint x="1120" y="536" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_06g2vrm_di" bpmnElement="Association_06g2vrm">
+        <di:waypoint x="890" y="742" />
+        <di:waypoint x="1210" y="753" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0fjdrev_di" bpmnElement="Association_0fjdrev">
+        <di:waypoint x="890" y="740" />
+        <di:waypoint x="1210" y="692" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_14t02ll_di" bpmnElement="Association_14t02ll">
+        <di:waypoint x="1040" y="978" />
+        <di:waypoint x="1216" y="1090" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="TextAnnotation_0rg9ar3_di" bpmnElement="TextAnnotation_0rg9ar3">
-        <dc:Bounds x="401" y="80" width="578" height="156" />
+        <dc:Bounds x="401" y="80" width="578" height="170" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0pbzrme_di" bpmnElement="Flow_0pbzrme">
         <di:waypoint x="188" y="460" />
         <di:waypoint x="245" y="460" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_10x2etf_di" bpmnElement="Flow_10x2etf">
-        <di:waypoint x="270" y="532" />
-        <di:waypoint x="270" y="485" />
+      <bpmndi:BPMNEdge id="Flow_050377t_di" bpmnElement="Flow_050377t">
+        <di:waypoint x="295" y="460" />
+        <di:waypoint x="340" y="460" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0ojrvh4_di" bpmnElement="Flow_0ojrvh4">
-        <di:waypoint x="270" y="388" />
-        <di:waypoint x="270" y="435" />
+      <bpmndi:BPMNEdge id="Flow_041ffce_di" bpmnElement="Flow_041ffce">
+        <di:waypoint x="440" y="460" />
+        <di:waypoint x="505" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11y3kim_di" bpmnElement="Flow_11y3kim">
+        <di:waypoint x="555" y="460" />
+        <di:waypoint x="640" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="591" y="442" width="13" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_09y08ef_di" bpmnElement="Flow_09y08ef">
         <di:waypoint x="740" y="460" />
@@ -421,9 +427,11 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_19gp461_di" bpmnElement="Flow_19gp461">
         <di:waypoint x="830" y="435" />
-        <di:waypoint x="830" y="388" />
+        <di:waypoint x="830" y="350" />
+        <di:waypoint x="270" y="350" />
+        <di:waypoint x="270" y="435" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="839" y="408" width="13" height="14" />
+          <dc:Bounds x="748" y="333" width="83" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_16c9bwj_di" bpmnElement="Flow_16c9bwj">
@@ -433,36 +441,37 @@
           <dc:Bounds x="875" y="442" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_041ffce_di" bpmnElement="Flow_041ffce">
-        <di:waypoint x="440" y="460" />
-        <di:waypoint x="505" y="460" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_00lg7l2_di" bpmnElement="Flow_00lg7l2">
         <di:waypoint x="530" y="485" />
-        <di:waypoint x="530" y="560" />
+        <di:waypoint x="530" y="850" />
+        <di:waypoint x="640" y="850" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="507" y="509" width="18" height="14" />
+          <dc:Bounds x="541" y="492" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_01k9dy1_di" bpmnElement="Flow_01k9dy1">
-        <di:waypoint x="683" y="1140" />
-        <di:waypoint x="683" y="1202" />
+        <di:waypoint x="1040" y="850" />
+        <di:waypoint x="1150" y="850" />
+        <di:waypoint x="1150" y="1210" />
+        <di:waypoint x="270" y="1210" />
+        <di:waypoint x="270" y="485" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_11y3kim_di" bpmnElement="Flow_11y3kim">
-        <di:waypoint x="555" y="460" />
-        <di:waypoint x="640" y="460" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="591" y="442" width="13" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_050377t_di" bpmnElement="Flow_050377t">
-        <di:waypoint x="295" y="460" />
-        <di:waypoint x="340" y="460" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_0ic98nl_di" bpmnElement="Association_0ic98nl">
-        <di:waypoint x="410" y="420" />
-        <di:waypoint x="502" y="236" />
-      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="TextAnnotation_1keavvi_di" bpmnElement="TextAnnotation_1keavvi">
+        <dc:Bounds x="1080" y="510" width="240" height="26" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1tvejhg_di" bpmnElement="TextAnnotation_1tvejhg">
+        <dc:Bounds x="1210" y="740" width="286" height="142" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1cvjkfu_di" bpmnElement="TextAnnotation_1cvjkfu">
+        <dc:Bounds x="1210" y="660" width="260" height="60" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_0xt28ql_di" bpmnElement="TextAnnotation_0xt28ql">
+        <dc:Bounds x="1190" y="1090" width="370" height="26" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>

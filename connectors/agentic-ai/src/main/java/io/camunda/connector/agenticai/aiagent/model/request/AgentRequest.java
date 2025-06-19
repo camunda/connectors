@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.document.Document;
@@ -159,22 +160,24 @@ Reveal **no** additional private reasoning outside these tags.
             List<ToolCallResult> toolCallResults) {}
 
     public record MemoryConfiguration(
+        @Valid @NestedProperties(group = "memory") MemoryStorageConfiguration storage,
         // TODO support more advanced eviction policies (token window)
         @TemplateProperty(
                 group = "memory",
-                label = "Maximum messages",
+                label = "Context window size",
                 description =
-                    "Maximum number of recent messages the AI agent retains in short-term memory during a conversation.",
+                    "Maximum number of recent conversation messages which are passed to the model.",
                 tooltip =
                     "Use this to limit the number of messages which are sent to the model. The agent will only send "
-                        + "the most recent messages up to the configured limit to the LLM and evict older messages. "
+                        + "the most recent messages up to the configured limit to the LLM. Older messages will be kept "
+                        + "in the conversation store, but not sent to the model. "
                         + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
                         + "for details.",
                 type = TemplateProperty.PropertyType.Number,
                 defaultValue = "20",
                 defaultValueType = TemplateProperty.DefaultValueType.Number)
             @Min(3)
-            Integer maxMessages) {}
+            Integer contextWindowSize) {}
 
     public record LimitsConfiguration(
         // TODO think of other limits (max tool calls, max tokens, ...)

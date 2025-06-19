@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -23,7 +24,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -34,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -48,6 +52,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -73,6 +78,7 @@ class AiAgentRequestHandlerTest {
       new UserPromptConfiguration("What is the weather in Munich?", Map.of(), List.of());
 
   @Mock private AgentInitializer agentInitializer;
+  @Mock private ConversationStoreFactory conversationStoreFactory;
   @Mock private AgentLimitsValidator limitsValidator;
   @Mock private AgentMessagesHandler messagesHandler;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -88,8 +94,16 @@ class AiAgentRequestHandlerTest {
 
   @InjectMocks private AiAgentRequestHandlerImpl requestHandler;
 
+  @BeforeEach
+  void setUp() {
+    when(conversationStoreFactory.createConversationStore(agentRequest))
+        .thenReturn(new InProcessConversationStore());
+  }
+
   @Test
   void directlyReturnsAgentResponseWhenInitializationReturnsResponse() {
+    reset(conversationStoreFactory);
+
     final var agentResponse =
         AgentResponse.builder()
             .context(AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build())
@@ -231,7 +245,9 @@ class AiAgentRequestHandlerTest {
 
   @Test
   void usesConfiguredMaxMessagesWhenMessagesExceedContextWindow() {
-    final var runtimeMemory = setupRuntimeMemorySizeTest(new MemoryConfiguration(11));
+    final var runtimeMemory =
+        setupRuntimeMemorySizeTest(
+            new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 11));
 
     assertThat(runtimeMemory.allMessages()).hasSize(31);
     assertThat(runtimeMemory.filteredMessages()).hasSize(11);
@@ -259,7 +275,9 @@ class AiAgentRequestHandlerTest {
 
   @Test
   void usesAllMessagesWhenMessagesWithinContextWindow() {
-    final var runtimeMemory = setupRuntimeMemorySizeTest(new MemoryConfiguration(35));
+    final var runtimeMemory =
+        setupRuntimeMemorySizeTest(
+            new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 35));
 
     assertThat(runtimeMemory.allMessages()).hasSize(31);
     assertThat(runtimeMemory.filteredMessages()).hasSize(31);
@@ -300,7 +318,8 @@ class AiAgentRequestHandlerTest {
   }
 
   static Stream<MemoryConfiguration> memoryConfigurationsWithoutMaxMessages() {
-    return Stream.of(null, new MemoryConfiguration(null));
+    return Stream.of(
+        null, new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), null));
   }
 
   private void mockSystemPrompt(SystemPromptConfiguration systemPromptConfiguration) {

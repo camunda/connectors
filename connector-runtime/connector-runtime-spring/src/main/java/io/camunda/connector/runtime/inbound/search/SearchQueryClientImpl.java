@@ -22,7 +22,6 @@ import io.camunda.client.api.search.response.*;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayInputStream;
-import java.util.List;
 
 public class SearchQueryClientImpl implements SearchQueryClient {
 
@@ -35,13 +34,13 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   }
 
   @Override
-  public SearchResponse<ProcessDefinition> queryProcessDefinitions(List<Object> paginationIndex) {
+  public SearchResponse<ProcessDefinition> queryProcessDefinitions(String paginationIndex) {
     final var query =
         camundaClient
             .newProcessDefinitionSearchRequest()
             .sort(s -> s.processDefinitionKey().desc());
     if (paginationIndex != null) {
-      query.page(p -> p.limit(PAGE_SIZE).searchAfter(paginationIndex));
+      query.page(p -> p.limit(PAGE_SIZE).after(paginationIndex));
     } else {
       query.page(p -> p.limit(PAGE_SIZE));
     }
@@ -50,7 +49,7 @@ public class SearchQueryClientImpl implements SearchQueryClient {
 
   @Override
   public SearchResponse<ElementInstance> queryActiveFlowNodes(
-      long processDefinitionKey, String elementId, List<Object> paginationIndex) {
+      long processDefinitionKey, String elementId, String paginationIndex) {
     final var query =
         camundaClient
             .newElementInstanceSearchRequest()
@@ -60,7 +59,7 @@ public class SearchQueryClientImpl implements SearchQueryClient {
                         .elementId(elementId)
                         .state(ElementInstanceState.ACTIVE));
     if (paginationIndex != null) {
-      query.page(p -> p.limit(PAGE_SIZE).searchAfter(paginationIndex));
+      query.page(p -> p.limit(PAGE_SIZE).after(paginationIndex));
     } else {
       query.page(p -> p.limit(PAGE_SIZE));
     }
@@ -69,13 +68,13 @@ public class SearchQueryClientImpl implements SearchQueryClient {
 
   @Override
   public SearchResponse<Variable> queryVariables(
-      long processInstanceKey, List<Object> variablePaginationIndex) {
+      long processInstanceKey, String variablePaginationIndex) {
     final var query =
         camundaClient
             .newVariableSearchRequest()
             .filter(v -> v.processInstanceKey(processInstanceKey).scopeKey(processInstanceKey));
     if (variablePaginationIndex != null) {
-      query.page(p -> p.limit(PAGE_SIZE).searchAfter(variablePaginationIndex));
+      query.page(p -> p.limit(PAGE_SIZE).after(variablePaginationIndex));
     } else {
       query.page(p -> p.limit(PAGE_SIZE));
     }

@@ -470,6 +470,6 @@
     }
   ],
   "engines": {
-    "camunda": "^8.6"
+    "camunda": "^8.3"
   }
 }

@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -26,9 +26,10 @@ import java.util.Optional;
 
 public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
-  private static final int DEFAULT_MAX_MEMORY_MESSAGES = 20;
+  private static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
 
   private final AgentInitializer agentInitializer;
+  private final ConversationStoreFactory conversationStoreFactory;
   private final AgentLimitsValidator limitsValidator;
   private final AgentMessagesHandler messagesHandler;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -37,12 +38,14 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
   public AiAgentRequestHandlerImpl(
       AgentInitializer agentInitializer,
+      ConversationStoreFactory conversationStoreFactory,
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
       AgentResponseHandler responseHandler) {
     this.agentInitializer = agentInitializer;
+    this.conversationStoreFactory = conversationStoreFactory;
     this.limitsValidator = limitsValidator;
     this.messagesHandler = messagesHandler;
     this.gatewayToolHandlers = gatewayToolHandlers;
@@ -74,10 +77,10 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
     final var runtimeMemory =
         new MessageWindowRuntimeMemory(
             Optional.ofNullable(request.data().memory())
-                .map(MemoryConfiguration::maxMessages)
-                .orElse(DEFAULT_MAX_MEMORY_MESSAGES));
+                .map(MemoryConfiguration::contextWindowSize)
+                .orElse(DEFAULT_CONTEXT_WINDOW_SIZE));
 
-    final var conversationStore = new InProcessConversationStore();
+    final var conversationStore = conversationStoreFactory.createConversationStore(request);
     conversationStore.loadIntoRuntimeMemory(context, agentContext, runtimeMemory);
 
     // validate configured limits

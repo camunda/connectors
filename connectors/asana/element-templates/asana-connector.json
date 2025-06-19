@@ -3,9 +3,6 @@
   "name": "Asana Outbound Connector",
   "id": "io.camunda.connectors.Asana.v1",
   "version": 3,
-  "engines": {
-    "camunda": "^8.3"
-  },
   "description": "Create, update, and manage tasks and projects in Asana.",
   "metadata": {
     "keywords": [
@@ -27,6 +24,9 @@
   ],
   "elementType": {
     "value": "bpmn:ServiceTask"
+  },
+  "engines": {
+    "camunda": "^8.3"
   },
   "groups": [
     {
