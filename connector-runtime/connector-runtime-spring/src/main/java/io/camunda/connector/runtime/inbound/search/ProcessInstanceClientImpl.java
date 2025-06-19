@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound.search;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.search.response.ElementInstance;
@@ -61,14 +63,14 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
       final Long processDefinitionKey, final String elementId) {
     fetchActiveProcessLock.lock();
     try {
-      List<Object> processPaginationIndex = null;
+      String processPaginationIndex = null;
       SearchResponse<ElementInstance> searchResult;
       List<ElementInstance> result = new ArrayList<>();
       do {
         searchResult =
             searchQueryClient.queryActiveFlowNodes(
                 processDefinitionKey, elementId, processPaginationIndex);
-        processPaginationIndex = searchResult.page().lastSortValues();
+        processPaginationIndex = searchResult.page().endCursor();
         if (searchResult.items() != null) {
           result.addAll(searchResult.items());
         }
@@ -92,13 +94,13 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
   public Map<String, Object> fetchVariablesByProcessInstanceKey(final Long processInstanceKey) {
     fetchVariablesLock.lock();
     try {
-      List<Object> variablePaginationIndex = null;
+      String variablePaginationIndex = null;
       SearchResponse<Variable> searchResult;
       Map<String, Object> processVariables = new HashMap<>();
       do {
         searchResult =
             searchQueryClient.queryVariables(processInstanceKey, variablePaginationIndex);
-        List<Object> newPaginationIdx = searchResult.page().lastSortValues();
+        String newPaginationIdx = searchResult.page().endCursor();
         if (searchResult.items() != null) {
           processVariables.putAll(
               searchResult.items().stream()
@@ -106,7 +108,7 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
                       Collectors.toMap(
                           Variable::getName, variable -> unwrapValue(variable.getValue()))));
         }
-        if (!CollectionUtils.isEmpty(newPaginationIdx)) {
+        if (isNotBlank(newPaginationIdx)) {
           variablePaginationIndex = newPaginationIdx;
         }
 
