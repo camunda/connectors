@@ -91,8 +91,6 @@ camunda-platform:
         value: ${ZEEBE_CLIENT_SECRET}
       - name: CAMUNDA_CLIENT_AUTH_AUDIENCE
         value: ${ZEEBE_TOKEN_AUDIENCE}
-      - name: CAMUNDA_CONNECTOR_POLLING_ENABLED
-        value: "false"
       - name: CAMUNDA_CLIENT_REST-ADDRESS
         value: http://zeebe-cluster-gateway:9600
       - name: CAMUNDA_CLIENT_GRPC-ADDRESS
