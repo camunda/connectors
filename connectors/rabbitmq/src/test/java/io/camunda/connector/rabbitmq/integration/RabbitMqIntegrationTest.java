@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.rabbitmq.BaseTest;
@@ -28,15 +29,16 @@ import io.camunda.connector.rabbitmq.outbound.model.RabbitMqMessage;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqOutboundRouting;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -44,13 +46,13 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 
-@Disabled // to be run manually
+@SlowTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RabbitMqIntegrationTest extends BaseTest {
 
   @Container
   private static final RabbitMQContainer rabbitMq =
-      new RabbitMQContainer("rabbitmq:3.7.25-management-alpine")
+      new RabbitMQContainer(BaseTest.RABBITMQ_TEST_IMAGE)
           .withUser(Authentication.USERNAME, Authentication.PASSWORD, Set.of("administrator"))
           .withVhost(Routing.VIRTUAL_HOST)
           .withPermission(Routing.VIRTUAL_HOST, Authentication.USERNAME, ".*", ".*", ".*")
@@ -119,7 +121,10 @@ public class RabbitMqIntegrationTest extends BaseTest {
     properties.setRouting(routingData);
 
     TestInboundConnectorContext context =
-        InboundConnectorContextBuilder.create().properties(properties).build();
+        InboundConnectorContextBuilder.create()
+            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
+            .properties(properties)
+            .build();
 
     // When
     executable.activate(context);
@@ -184,7 +189,10 @@ public class RabbitMqIntegrationTest extends BaseTest {
     properties.setRouting(routingData);
 
     TestInboundConnectorContext contextInbound =
-        InboundConnectorContextBuilder.create().properties(properties).build();
+        InboundConnectorContextBuilder.create()
+            .definition(new InboundConnectorDefinition(null, null, null, List.of()))
+            .properties(properties)
+            .build();
 
     // When
     executable.activate(contextInbound);
