@@ -70,7 +70,7 @@ public sealed interface ProviderConfiguration
         @NotBlank
             @TemplateProperty(
                 group = "provider",
-                label = "Anthropic API Key",
+                label = "Anthropic API key",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
@@ -95,7 +95,7 @@ public sealed interface ProviderConfiguration
           @Min(0)
               @TemplateProperty(
                   group = "model",
-                  label = "Maximum Tokens",
+                  label = "Maximum tokens",
                   tooltip =
                       "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
@@ -234,7 +234,7 @@ public sealed interface ProviderConfiguration
           @Min(0)
               @TemplateProperty(
                   group = "model",
-                  label = "Maximum Tokens",
+                  label = "Maximum tokens",
                   tooltip =
                       "The maximum number of tokens per request to allow in the generated response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
@@ -298,7 +298,7 @@ public sealed interface ProviderConfiguration
         @NotBlank
             @TemplateProperty(
                 group = "provider",
-                label = "OpenAI API Key",
+                label = "OpenAI API key",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
@@ -341,7 +341,7 @@ public sealed interface ProviderConfiguration
           @Min(0)
               @TemplateProperty(
                   group = "model",
-                  label = "Maximum Completion Tokens",
+                  label = "Maximum completion tokens",
                   tooltip =
                       "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,

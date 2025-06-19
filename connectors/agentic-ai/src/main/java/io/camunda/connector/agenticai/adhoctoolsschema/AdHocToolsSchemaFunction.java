@@ -29,7 +29,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     engineVersion = "^8.8",
     version = 1,
     inputDataClass = AdHocToolsSchemaRequest.class,
-    propertyGroups = {@PropertyGroup(id = "tools", label = "Available Tools")},
+    propertyGroups = {@PropertyGroup(id = "tools", label = "Available tools")},
     icon = "adhoctoolsschema.svg")
 public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
 

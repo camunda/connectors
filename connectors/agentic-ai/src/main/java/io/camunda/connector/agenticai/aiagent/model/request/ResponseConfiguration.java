@@ -45,7 +45,7 @@ public record ResponseConfiguration(
   })
   @TemplateDiscriminatorProperty(
       group = "response",
-      label = "Response Format",
+      label = "Response format",
       name = "type",
       description = "Specify the response format. Support for JSON mode varies by provider.",
       defaultValue = "text")
@@ -72,7 +72,7 @@ public record ResponseConfiguration(
         @FEEL
             @TemplateProperty(
                 group = "response",
-                label = "Response JSON Schema",
+                label = "Response JSON schema",
                 description =
                     "An optional response <a href=\"https://json-schema.org/\" target=\"_blank\">JSON Schema</a> to instruct the "
                         + "model how to structure the JSON output.",
@@ -85,7 +85,7 @@ public record ResponseConfiguration(
         @FEEL
             @TemplateProperty(
                 group = "response",
-                label = "Response JSON Schema name",
+                label = "Response JSON schema name",
                 description =
                     "An optional name for the response JSON Schema to make the model aware of the expected output.",
                 feel = Property.FeelMode.optional,

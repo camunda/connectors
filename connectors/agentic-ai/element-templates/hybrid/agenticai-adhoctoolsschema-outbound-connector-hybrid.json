@@ -24,7 +24,7 @@
     "label" : "Task definition type"
   }, {
     "id" : "tools",
-    "label" : "Available Tools"
+    "label" : "Available tools"
   }, {
     "id" : "connector",
     "label" : "Connector"
