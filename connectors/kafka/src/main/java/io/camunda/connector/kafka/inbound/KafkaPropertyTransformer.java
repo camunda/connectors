@@ -112,7 +112,9 @@ public class KafkaPropertyTransformer {
     if (consumerRecord.headers() != null) {
       var headerMap = new HashMap<String, Object>();
       for (Header header : consumerRecord.headers()) {
-        headerMap.put(header.key(), new String(header.value(), StandardCharsets.UTF_8));
+        headerMap.put(
+            header.key(),
+            header.value() != null ? new String(header.value(), StandardCharsets.UTF_8) : null);
       }
       if (!headerMap.isEmpty()) {
         kafkaInboundMessage.setHeaders(headerMap);

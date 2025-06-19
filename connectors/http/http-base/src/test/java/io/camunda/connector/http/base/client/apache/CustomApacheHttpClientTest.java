@@ -262,8 +262,8 @@ public class CustomApacheHttpClientTest {
     @AfterAll
     public static void tearDown() {
       unsetAllSystemProperties();
-      proxyContainer.stop();
       proxy.stop();
+      proxyContainer.stop();
     }
 
     @BeforeEach

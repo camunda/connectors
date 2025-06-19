@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -22,12 +23,13 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     id = "io.camunda.connectors.agenticai.aiagent.v1",
     name = "AI Agent",
     description =
-        "Provides a generic AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
+        "Provides a generic AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha6 or later.",
     documentationRef =
         "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
     engineVersion = "^8.8",
     version = 1,
     inputDataClass = AgentRequest.class,
+    outputDataClass = AgentResponse.class,
     defaultResultVariable = "agent",
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model Provider", openByDefault = false),
@@ -64,7 +66,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
       @PropertyGroup(
           id = "response",
           label = "Response",
-          tooltip = "Defines which elements of the Agent result should be added to the response.",
+          tooltip =
+              "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/#response\">documentation</a> for details.",
           openByDefault = false)
     },
     icon = "aiagent.svg")
@@ -76,7 +79,7 @@ public class AiAgentFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) {
+  public AgentResponse execute(OutboundConnectorContext context) {
     final AgentRequest request = context.bindVariables(AgentRequest.class);
     return aiAgentRequestHandler.handleRequest(context, request);
   }

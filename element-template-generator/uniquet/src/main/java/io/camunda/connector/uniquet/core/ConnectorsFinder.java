@@ -73,7 +73,7 @@ public class ConnectorsFinder {
         .orElse(
             Arrays.stream(files)
                 .filter(File::isFile)
-                .map(currentFile -> new Connector(currentFile, null)));
+                .map(currentFile -> new Connector(currentFile, List.of())));
   }
 
   private Connector mapToConnector(File current, File versionedDirectory) {

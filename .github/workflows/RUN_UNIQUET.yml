@@ -1,11 +1,6 @@
 name: Run uniquet and push
 on:
   workflow_dispatch:
-    inputs:
-      branch_name:
-        description: 'The branch name to run the workflow on'
-        required: true
-        default: 'main'
 
 jobs:
   run-uniquet-and-push:
@@ -29,8 +24,7 @@ jobs:
 
       - name: run-uniquet
         run: |
-          BRANCH_NAME=${{ github.event.inputs.branch_name }}
-          ./element-template-generator/uniquet/target/appassembler/bin/uniquet --destination ./connector-templates.json --branch $BRANCH_NAME
+          ./element-template-generator/uniquet/target/appassembler/bin/uniquet --output-file ./connector-templates.json
 
       - name: Create pull request to main branch
         uses: peter-evans/create-pull-request@v7

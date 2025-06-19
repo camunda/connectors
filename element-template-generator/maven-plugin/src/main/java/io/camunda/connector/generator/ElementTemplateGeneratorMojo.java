@@ -38,6 +38,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -179,8 +180,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       if (filteredConnectors.isEmpty()) {
         return;
       }
-      String uriString = getResourcesDirectory().toString().replaceFirst("^file:", "");
-      Path path = Paths.get(uriString + File.separator + "META-INF" + File.separator + "services");
+      Path path = Paths.get(getResourcesDirectory().toURI()).resolve("META-INF/services");
       Files.createDirectories(path);
 
       Map<Class<?>, String> connectorFileMap =
@@ -214,7 +214,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
               StandardOpenOption.TRUNCATE_EXISTING);
         }
       }
-    } catch (IOException | ClassNotFoundException e) {
+    } catch (IOException | ClassNotFoundException | URISyntaxException e) {
       throw new MojoFailureException(
           "Failed to create META-INF.service files: " + e.getMessage(), e);
     }

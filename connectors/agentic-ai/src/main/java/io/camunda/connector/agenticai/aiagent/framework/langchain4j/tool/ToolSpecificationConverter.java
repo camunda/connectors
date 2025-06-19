@@ -11,9 +11,15 @@ import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 
 public interface ToolSpecificationConverter {
-  default List<ToolSpecification> map(List<ToolDefinition> toolDefinitions) {
+  default List<ToolSpecification> asToolSpecifications(List<ToolDefinition> toolDefinitions) {
     return toolDefinitions.stream().map(this::asToolSpecification).toList();
   }
 
   ToolSpecification asToolSpecification(ToolDefinition toolDefinition);
+
+  default List<ToolDefinition> asToolDefinitions(List<ToolSpecification> toolSpecifications) {
+    return toolSpecifications.stream().map(this::asToolDefinition).toList();
+  }
+
+  ToolDefinition asToolDefinition(ToolSpecification toolSpecification);
 }

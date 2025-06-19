@@ -26,12 +26,16 @@ import org.apache.commons.io.IOUtils;
 
 public class BpmnFile {
 
-  private BpmnModelInstance bpmnModelInstance;
-
+  private final BpmnModelInstance bpmnModelInstance;
   private File bpmnFile;
 
   public BpmnFile(BpmnModelInstance bpmnModelInstance) {
     this.bpmnModelInstance = bpmnModelInstance;
+  }
+
+  public BpmnFile(File bpmnFile) {
+    this.bpmnModelInstance = Bpmn.readModelFromFile(bpmnFile);
+    this.bpmnFile = bpmnFile;
   }
 
   public static BpmnModelInstance replace(String resourceName, Replace... replaces) {

@@ -7,6 +7,10 @@ on:
     - release/*
     tags:
     - '*'
+  pull_request:
+    types:
+    - opened
+    - synchronize
 
 jobs:
   analyze:
@@ -52,7 +56,10 @@ jobs:
           }]
         mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
     - name: Setup fossa-cli
-      uses: camunda/infra-global-github-actions/fossa/setup@main
+      uses: camunda/infra-global-github-actions/fossa/setup@96d2582c14dc5c3c4c680435f48bdb952234b910
+    - name: Get context info
+      id: info
+      uses: camunda/infra-global-github-actions/fossa/info@96d2582c14dc5c3c4c680435f48bdb952234b910
     - name: Adjust pom.xml files for FOSSA
       run: |
         # The parent/pom.xml must be the actual root, otherwise, FOSSA won't detect the hierarchy correctly
@@ -64,8 +71,25 @@ jobs:
           'del(.project.modules.module[] | select(. == "parent"))' \
           pom.xml
     - name: Analyze project
-      uses: camunda/infra-global-github-actions/fossa/analyze@main
+      uses: camunda/infra-global-github-actions/fossa/analyze@96d2582c14dc5c3c4c680435f48bdb952234b910
       with:
         api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
-        branch: ${{ github.ref_name }}
-        revision-id: ${{ github.sha }}
+        branch: ${{  steps.info.outputs.head-ref }}
+        revision-id: ${{ steps.info.outputs.head-revision }}
+    # PR-only: Check for newly introduced license issues
+    # This step only fails if the PR introduces new license violations.
+    # It does not fail for pre-existing issues already present in the base branch.
+    - name: Check Pull Request for new License Issues
+      if: steps.info.outputs.is-pull-request == 'true'
+      uses: camunda/infra-global-github-actions/fossa/pr-check@96d2582c14dc5c3c4c680435f48bdb952234b910
+      with:
+        api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+        base-ref: ${{ steps.info.outputs.base-ref }}
+        # Use the most recent base commit with a FOSSA scan for comparison.
+        # If none is found, fall back to the original base commit — this will cause the check to fail.
+        base-revision: >-
+          ${{
+            steps.info.outputs.base-revision-most-recent-with-scanning-results || 
+            steps.info.outputs.base-revision
+          }}
+        revision: ${{ steps.info.outputs.head-revision }}

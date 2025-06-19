@@ -94,14 +94,16 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       AssistantMessage assistantMessage) {
     final var builder = AiMessage.builder();
 
-    if (assistantMessage.content().size() != 1
-        || !(assistantMessage.content().getFirst() instanceof TextContent(String text))) {
-      throw new IllegalArgumentException(
-          "AiMessage currently only supports a single TextContent block, %d content blocks found instead."
-              .formatted(assistantMessage.content().size()));
-    }
+    if (!CollectionUtils.isEmpty(assistantMessage.content())) {
+      if (assistantMessage.content().size() != 1
+          || !(assistantMessage.content().getFirst() instanceof TextContent(String text))) {
+        throw new IllegalArgumentException(
+            "AiMessage currently only supports a single TextContent block, %d content blocks found instead."
+                .formatted(assistantMessage.content().size()));
+      }
 
-    builder.text(text);
+      builder.text(text);
+    }
 
     final var toolExecutionRequests =
         assistantMessage.toolCalls().stream()
@@ -129,7 +131,9 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     }
 
     final var aiMessage = chatResponse.aiMessage();
-    builder.content(List.of(TextContent.textContent(aiMessage.text())));
+    if (aiMessage.text() != null) {
+      builder.content(List.of(TextContent.textContent(aiMessage.text())));
+    }
 
     final var toolCalls =
         aiMessage.toolExecutionRequests().stream().map(toolCallConverter::asToolCall).toList();

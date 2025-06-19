@@ -1,0 +1,91 @@
+{% extends "../CONNECTOR_README_LAYOUT.peb" %}
+
+{% block content %}
+Find the user documentation in our [Camunda Documentation](https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
+
+## Build
+
+```bash
+mvn clean package
+```
+
+## API
+
+### Result
+
+The following json structure will be returned by the Connector and can be used in the result expression. Depending on the
+configuration, the result will contain the following fields:
+
+#### Text response
+
+```json
+{{ exampleData["text"].json }}
+
+```
+
+The response text can be accessed via FEEL:
+```json
+{{ exampleData["text"].feel }}
+
+```
+leading to the following result
+```json
+{{ exampleData["text"].feelResultJson }}
+
+```
+
+#### JSON response
+
+```json
+{{ exampleData["json"].json }}
+
+```
+
+The JSON body can be accessed via FEEL:
+```json
+{{ exampleData["json"].feel }}
+
+```
+leading to the following result
+```json
+{{ exampleData["json"].feelResultJson }}
+
+```
+
+#### Response containing the full assistant message
+
+```json
+{{ exampleData["assistantMessage"].json }}
+
+```
+
+The response message can be accessed via FEEL:
+```json
+{{ exampleData["assistantMessage"].feel }}
+
+```
+leading to the following result
+```json
+{{ exampleData["assistantMessage"].feelResultJson }}
+
+```
+
+#### Response containing tool call requests
+
+```json
+{{ exampleData["withToolCalls"].json }}
+
+```
+
+The list of tool calls can be accessed via FEEL:
+```json
+{{ exampleData["withToolCalls"].feel }}
+
+```
+leading to the following result
+```json
+{{ exampleData["withToolCalls"].feelResultJson }}
+
+```
+
+{% endblock %}

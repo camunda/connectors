@@ -21,5 +21,5 @@ RUN chmod +x start.sh
 RUN groupadd --gid 1001 camunda && useradd --no-create-home --gid 1001 --uid 1001 camunda
 USER 1001:1001
 
-ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
+ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
 ENTRYPOINT ["/start.sh"]
