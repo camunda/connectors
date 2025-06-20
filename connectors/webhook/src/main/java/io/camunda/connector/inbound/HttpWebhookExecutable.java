@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 12,
+    version = 13,
     inputDataClass = WebhookConnectorPropertiesWrapper.class,
     description = "Configure webhook to receive callbacks",
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",

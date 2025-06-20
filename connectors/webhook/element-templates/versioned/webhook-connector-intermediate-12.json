@@ -1,23 +1,21 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Webhook Start Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnector.v1",
+  "name" : "Webhook Intermediate Event Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1",
   "description" : "Configure webhook to receive callbacks",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 13,
+  "version" : 12,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:StartEvent" ],
+  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
   "elementType" : {
-    "value" : "bpmn:StartEvent"
-  },
-  "engines" : {
-    "camunda" : "^8.3"
+    "value" : "bpmn:IntermediateCatchEvent",
+    "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "groups" : [ {
     "id" : "endpoint",
@@ -35,9 +33,9 @@
     "id" : "activation",
     "label" : "Activation"
   }, {
-    "id" : "deduplication",
-    "label" : "Deduplication",
-    "tooltip" : "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID."
+    "id" : "correlation",
+    "label" : "Correlation",
+    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -387,63 +385,73 @@
     "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
     "type" : "Boolean"
   }, {
-    "id" : "deduplicationModeManualFlag",
-    "label" : "Manual mode",
-    "description" : "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode",
-    "value" : false,
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationModeManualFlag",
-      "type" : "zeebe:property"
-    },
-    "type" : "Boolean"
-  }, {
-    "id" : "deduplicationId",
-    "label" : "Deduplication ID",
+    "id" : "correlationKeyProcess",
+    "label" : "Correlation key (process)",
+    "description" : "Sets up the correlation key from process variables",
     "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^[a-zA-Z0-9_-]+$",
-        "message" : "can only contain alphanumeric characters, dashes, and underscores"
-      }
+      "notEmpty" : true
     },
-    "group" : "deduplication",
+    "feel" : "required",
+    "group" : "correlation",
     "binding" : {
-      "name" : "deduplicationId",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "deduplicationModeManualFlag",
-      "equals" : true,
-      "type" : "simple"
+      "name" : "correlationKey",
+      "type" : "bpmn:Message#zeebe:subscription#property"
     },
     "type" : "String"
   }, {
-    "id" : "deduplicationModeManual",
-    "value" : "MANUAL",
-    "group" : "deduplication",
+    "id" : "correlationKeyPayload",
+    "label" : "Correlation key (payload)",
+    "description" : "Extracts the correlation key from the incoming message payload",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
     "binding" : {
-      "name" : "deduplicationMode",
+      "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
     },
-    "condition" : {
-      "property" : "deduplicationId",
-      "isActive" : true,
-      "type" : "simple"
-    },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
-    "id" : "deduplicationModeAuto",
-    "value" : "AUTO",
-    "group" : "deduplication",
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
     "binding" : {
-      "name" : "deduplicationMode",
+      "name" : "messageIdExpression",
       "type" : "zeebe:property"
     },
-    "condition" : {
-      "property" : "deduplicationId",
-      "isActive" : false,
-      "type" : "simple"
+    "type" : "String"
+  }, {
+    "id" : "messageTtl",
+    "label" : "Message TTL",
+    "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
+    "optional" : true,
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^(PT.*|)$",
+        "message" : "must be an ISO-8601 duration"
+      }
+    },
+    "feel" : "optional",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageTtl",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageNameUuid",
+    "generatedValue" : {
+      "type" : "uuid"
+    },
+    "group" : "correlation",
+    "binding" : {
+      "name" : "name",
+      "type" : "bpmn:Message#property"
     },
     "type" : "Hidden"
   }, {
@@ -468,6 +476,9 @@
     },
     "type" : "Text"
   } ],
+  "engines" : {
+    "camunda" : "^8.3"
+  },
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyBpZD0naWNvbicgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAzMiAzMic+CiAgPGRlZnM+CiAgICA8c3R5bGU+LmNscy0xIHsgZmlsbDogbm9uZTsgfTwvc3R5bGU+CiAgPC9kZWZzPgogIDxwYXRoCiAgICBkPSdNMjQsMjZhMywzLDAsMSwwLTIuODE2NC00SDEzdjFhNSw1LDAsMSwxLTUtNVYxNmE3LDcsMCwxLDAsNi45Mjg3LDhoNi4yNTQ5QTIuOTkxNCwyLjk5MTQsMCwwLDAsMjQsMjZaJy8+CiAgPHBhdGgKICAgIGQ9J00yNCwxNmE3LjAyNCw3LjAyNCwwLDAsMC0yLjU3LjQ4NzNsLTMuMTY1Ni01LjUzOTVhMy4wNDY5LDMuMDQ2OSwwLDEsMC0xLjczMjYuOTk4NWw0LjExODksNy4yMDg1Ljg2ODYtLjQ5NzZhNS4wMDA2LDUuMDAwNiwwLDEsMS0xLjg1MSw2Ljg0MThMMTcuOTM3LDI2LjUwMUE3LjAwMDUsNy4wMDA1LDAsMSwwLDI0LDE2WicvPgogIDxwYXRoCiAgICBkPSdNOC41MzIsMjAuMDUzN2EzLjAzLDMuMDMsMCwxLDAsMS43MzI2Ljk5ODVDMTEuNzQsMTguNDcsMTMuODYsMTQuNzYwNywxMy44OSwxNC43MDhsLjQ5NzYtLjg2ODItLjg2NzctLjQ5N2E1LDUsMCwxLDEsNi44MTItMS44NDM4bDEuNzMxNSwxLjAwMmE3LjAwMDgsNy4wMDA4LDAsMSwwLTEwLjM0NjIsMi4wMzU2Yy0uNDU3Ljc0MjctMS4xMDIxLDEuODcxNi0yLjA3MzcsMy41NzI4WicvPgogIDxyZWN0IGlkPSdfVHJhbnNwYXJlbnRfUmVjdGFuZ2xlXycgZGF0YS1uYW1lPScmbHQ7VHJhbnNwYXJlbnQgUmVjdGFuZ2xlJmd0OycgY2xhc3M9J2Nscy0xJwogICAgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJy8+Cjwvc3ZnPg=="
   }
