@@ -16,8 +16,8 @@ public record DownloadBlob(
     @TemplateProperty(
             label = "Blob Storage container",
             id = "downloadOperationContainer",
-            group = "downloadBlob",
-            tooltip = "Container from where an blob should be downloaded",
+            group = "operation",
+            tooltip = "A container acts as a directory that organizes a set of blobs.",
             feel = Property.FeelMode.optional,
             binding =
                 @TemplateProperty.PropertyBinding(
@@ -27,18 +27,18 @@ public record DownloadBlob(
     @TemplateProperty(
             label = "File name",
             id = "downloadOperationFileName",
-            group = "downloadBlob",
-            tooltip = "Filename of the blob which should be downloaded",
+            group = "operation",
+            tooltip = "Specify the name of the document to be downloaded.",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
         @NotBlank
         String fileName,
     @TemplateProperty(
-            label = "Create document",
+            label = "Return document as reference",
             id = "downloadOperationAsFile",
-            group = "downloadBlob",
+            group = "operation",
             tooltip =
-                "If set to true, a document reference will be created. If set to false, the content will be extracted and provided inside the response.",
+                "By default, only a reference to the document is returned. If this option is unchecked, the full content of the document is extracted and included in the response.",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
             defaultValue = "true",
