@@ -348,7 +348,7 @@ public class StructuredServiceTest {
   }
 
   private static @NotNull StructuredExtractionResponse getStructuredExtractionResponse() {
-    Map<String, String> extractedFields = new HashMap<>();
+    Map<String, Object> extractedFields = new HashMap<>();
     extractedFields.put("Invoice Number", "INV-12345");
     extractedFields.put("Total Amount", "$12.25");
     extractedFields.put("Supplier Name", "Camunda Inc.");
@@ -358,7 +358,9 @@ public class StructuredServiceTest {
     confidenceScores.put("Total Amount", 0.98f);
     confidenceScores.put("Supplier Name", 0.92f);
 
-    return new StructuredExtractionResponse(extractedFields, confidenceScores);
+    Map<String, Polygon> geometry = new HashMap<>();
+
+    return new StructuredExtractionResponse(extractedFields, confidenceScores, geometry);
   }
 
   private ExtractionRequest prepareExtractionRequest() {
