@@ -19,41 +19,40 @@ public record UploadBlob(
     @TemplateProperty(
             label = "Blob Storage container",
             id = "container",
-            group = "uploadBlob",
-            tooltip = "Container where an blob should be uploaded to",
+            group = "operation",
+            tooltip = "A container acts as a directory that organizes a set of blobs.",
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.container"))
         @NotBlank
         String container,
     @TemplateProperty(
-            label = "Document file name",
-            id = "uploadOperationFileName",
-            group = "uploadBlob",
-            tooltip =
-                "File name of the uploaded blob, if not given. The file name from the document metadata will be used",
-            optional = true,
-            feel = Property.FeelMode.optional,
-            binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
-        String fileName,
-    @TemplateProperty(
             label = "Document",
-            group = "uploadBlob",
+            group = "operation",
             id = "uploadOperationDocument",
-            tooltip = "Document to be uploaded to Azure Blob Storage",
+            tooltip = "Document to be uploaded to Azure Blob Storage.",
             type = TemplateProperty.PropertyType.String,
             feel = Property.FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "operation.document"))
         @NotNull
         Document document,
     @TemplateProperty(
-            label = "Timeout",
+            label = "Document file name",
+            id = "uploadOperationFileName",
+            group = "additionalProperties",
+            tooltip =
+                "By default, the file's metadata name is used unless a custom name is specified.",
+            optional = true,
+            feel = Property.FeelMode.optional,
+            binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
+        String fileName,
+    @TemplateProperty(
+            label = "Timeout (in seconds)",
             group = "additionalProperties",
             id = "timeout",
-            tooltip = "Timeout for the upload in seconds.",
             type = TemplateProperty.PropertyType.Number,
             defaultValue = "30",
             defaultValueType = TemplateProperty.DefaultValueType.Number,
-            binding = @TemplateProperty.PropertyBinding(name = "additionalProperties.timeout"))
+            binding = @TemplateProperty.PropertyBinding(name = "operation.timeout"))
         @Min(1)
         @NotNull
         Integer timeout)
