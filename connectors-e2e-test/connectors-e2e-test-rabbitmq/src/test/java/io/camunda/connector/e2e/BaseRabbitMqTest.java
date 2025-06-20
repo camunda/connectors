@@ -34,6 +34,8 @@ public abstract class BaseRabbitMqTest {
   protected static final String OUTBOUND_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-outbound-connector.json";
   protected static final String INTERMEDIATE_CATCH_EVENT_BPMN = "intermediate-catch-event.bpmn";
+  public static final String RABBITMQ_TEST_IMAGE = "rabbitmq:4.1.1-management-alpine";
+
   @TempDir File tempDir;
 
   @Autowired CamundaClient camundaClient;

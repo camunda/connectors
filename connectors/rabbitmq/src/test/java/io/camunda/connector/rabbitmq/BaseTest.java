@@ -20,6 +20,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
+  public static final String RABBITMQ_TEST_IMAGE = "rabbitmq:4.1.1-management-alpine";
 
   protected ObjectMapper objectMapper = ObjectMapperSupplier.instance();
 
