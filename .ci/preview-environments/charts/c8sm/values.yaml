@@ -85,6 +85,10 @@ camunda-platform:
     env:
       - name: JAVA_OPTS
         value: "-Xms512m -Xmx512m"
+      - name: CAMUNDA_CLIENT_REST-ADDRESS
+        value: http://zeebe-cluster-gateway:8080
+      - name: CAMUNDA_CLIENT_GRPC-ADDRESS
+        value: http://zeebe-cluster-gateway:26500
     resources:
       limits:
         cpu: 1
