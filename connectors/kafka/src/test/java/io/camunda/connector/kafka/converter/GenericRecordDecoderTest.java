@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 public class GenericRecordDecoderTest {
 
-  private final GenericRecordDecoder genericRecordDecoder = new GenericRecordDecoder();
+  private final GenericRecordConverter genericRecordConverter = new GenericRecordConverter();
   private final Schema schema;
 
   public GenericRecordDecoderTest() throws IOException, URISyntaxException {
@@ -52,7 +52,7 @@ public class GenericRecordDecoderTest {
     value.put("colleagues", List.of(colleague));
 
     // when
-    GenericRecord record = genericRecordDecoder.envelope(schema, value);
+    GenericRecord record = genericRecordConverter.toGenericRecord(schema, value);
 
     // then
     assertThat(record.get("name")).isEqualTo("John Doe");

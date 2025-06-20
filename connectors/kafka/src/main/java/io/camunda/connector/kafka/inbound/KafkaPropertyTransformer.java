@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.kafka.converter.GenericRecordEncoder;
+import io.camunda.connector.kafka.converter.GenericRecordConverter;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import io.camunda.connector.kafka.model.schema.InboundSchemaRegistryStrategy;
@@ -39,7 +39,8 @@ public class KafkaPropertyTransformer {
   static final String DEFAULT_GROUP_ID_PREFIX = "kafka-inbound-connector";
   private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
 
-  private static final GenericRecordEncoder GENERIC_RECORD_ENCODER = new GenericRecordEncoder();
+  private static final GenericRecordConverter GENERIC_RECORD_CONVERTER =
+      new GenericRecordConverter();
 
   public static Properties getKafkaProperties(
       KafkaConnectorProperties props, InboundConnectorContext context) {
@@ -140,7 +141,7 @@ public class KafkaPropertyTransformer {
       var value =
           switch (consumerRecord.value()) {
             case byte[] bytes -> objectReader.readTree(bytes);
-            case GenericRecord record -> GENERIC_RECORD_ENCODER.encode(record);
+            case GenericRecord record -> GENERIC_RECORD_CONVERTER.toObjectNode(record);
             case JsonNode jsonNode -> {
               kafkaInboundMessage.setRawValue(
                   ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(jsonNode));

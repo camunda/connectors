@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 public class GenericRecordEncoderTest {
 
   private final Schema schema;
-  private final GenericRecordEncoder genericRecordEncoder = new GenericRecordEncoder();
+  private final GenericRecordConverter genericRecordConverter = new GenericRecordConverter();
 
   public GenericRecordEncoderTest() throws IOException, URISyntaxException {
     this.schema =
@@ -55,7 +55,7 @@ public class GenericRecordEncoderTest {
     record.put("colleagues", List.of(colleague));
 
     // when
-    ObjectNode jsonNode = genericRecordEncoder.encode(record);
+    ObjectNode jsonNode = genericRecordConverter.toObjectNode(record);
 
     // then
     assertThat(jsonNode.get("name").asText()).isEqualTo("John Doe");

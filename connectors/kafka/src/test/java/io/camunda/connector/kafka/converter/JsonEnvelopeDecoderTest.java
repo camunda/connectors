@@ -35,7 +35,7 @@ public class JsonEnvelopeDecoderTest {
   @Test
   public void testDecode() throws IOException {
     // given
-    JsonEnvelopeDecoder decoder = new JsonEnvelopeDecoder();
+    GenericRecordConverter decoder = new GenericRecordConverter();
     Map<String, Object> message =
         Map.of(
             "colleagues",
@@ -53,7 +53,7 @@ public class JsonEnvelopeDecoderTest {
             Map.of("name", "Boss", "position", "CEO"));
 
     // when
-    ObjectNode result = decoder.decode(schema, message);
+    ObjectNode result = decoder.toObjectNode(schema, message);
 
     // then
     assertNotNull(result);
