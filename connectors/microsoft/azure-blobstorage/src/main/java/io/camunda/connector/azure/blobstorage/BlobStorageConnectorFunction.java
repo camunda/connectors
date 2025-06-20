@@ -35,8 +35,6 @@ import java.util.function.Function;
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
-      @ElementTemplate.PropertyGroup(id = "uploadBlob", label = "Upload a blob"),
-      @ElementTemplate.PropertyGroup(id = "downloadBlob", label = "Download a blob"),
       @ElementTemplate.PropertyGroup(id = "additionalProperties", label = "Additional properties")
     },
     metadata =
