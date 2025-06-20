@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Webhook", type = "io.camunda:webhook:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
