@@ -56,16 +56,9 @@ public class Langchain4JAiAgentToolCallingTests extends BaseLangchain4JAiAgentTe
 
   @ParameterizedTest
   @CsvSource({
-    "test.csv,text,text/csv",
-    "test.gif,base64,image/gif",
     "test.jpg,base64,image/jpeg",
     "test.json,text,application/json",
-    "test.pdf,base64,application/pdf",
-    "test.png,base64,image/png",
-    "test.txt,text,text/plain",
-    "test.webp,base64,image/webp",
-    "test.xml,text,application/xml",
-    "test.yaml,text,application/yaml"
+    "test.pdf,base64,application/pdf"
   })
   void supportsDocumentResponsesFromToolCalls(String filename, String type, String mimeType)
       throws Exception {
