@@ -158,7 +158,7 @@ camunda-platform:
         value: "write:*"
     resources:
       limits:
-        cpu: "1"
+        cpu: 1
         memory: 1Gi
       requests:
         cpu: 500m
@@ -183,7 +183,7 @@ camunda-platform:
         value: "true"
     resources:
       limits:
-        cpu: "1"
+        cpu: 1
         memory: 1Gi
       requests:
         cpu: 500m
@@ -229,7 +229,7 @@ camunda-platform:
         value: "-Xms512m -Xmx512m"
     resources:
       limits:
-        cpu: "1"
+        cpu: 1
         memory: 1Gi
       requests:
         cpu: 500m
@@ -268,7 +268,7 @@ camunda-platform:
         fromAddress: noreply@example.com
       resources:
         limits:
-          cpu: "1"
+          cpu: 1
           memory: 1Gi
         requests:
           cpu: 500m
@@ -361,7 +361,7 @@ camunda-platform:
       -XX:+ExitOnOutOfMemoryError
     resources:
       limits:
-        cpu: "1"
+        cpu: 1
         memory: 1Gi
       requests:
         cpu: 500m
@@ -384,7 +384,7 @@ camunda-platform:
       -XX:+ExitOnOutOfMemoryError
     resources:
       limits:
-        cpu: "1"
+        cpu: 1
         memory: 1Gi
       requests:
         cpu: 500m
