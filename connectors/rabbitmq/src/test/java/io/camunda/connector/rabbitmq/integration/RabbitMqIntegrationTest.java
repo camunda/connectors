@@ -28,6 +28,7 @@ import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqMessage;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqOutboundRouting;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
+import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
@@ -109,7 +110,7 @@ public class RabbitMqIntegrationTest extends BaseTest {
   @Order(2)
   void consumeMessageWithInboundConnector() throws Exception {
     // Given
-    RabbitMqExecutable executable = new RabbitMqExecutable();
+    RabbitMqExecutable executable = new RabbitMqExecutable(new ConnectionFactorySupplier());
 
     RabbitMqInboundProperties properties = new RabbitMqInboundProperties();
     properties.setAuthentication(getAuth());

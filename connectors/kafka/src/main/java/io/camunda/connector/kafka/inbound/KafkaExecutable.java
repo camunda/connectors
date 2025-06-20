@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
-      @ElementTemplate.PropertyGroup(id = "message", label = "Message deserialization"),
+      @ElementTemplate.PropertyGroup(id = "schema", label = "Schema")
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(

@@ -21,10 +21,10 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-public class JsonEnvelopeDecoderTest {
+public class ObjectNodeConverterTest {
   private final String schema;
 
-  public JsonEnvelopeDecoderTest() throws IOException, URISyntaxException {
+  public ObjectNodeConverterTest() throws IOException, URISyntaxException {
     this.schema =
         Files.readString(
                 Paths.get(ClassLoader.getSystemResource("nested-json-schema.json").toURI()))
@@ -33,9 +33,9 @@ public class JsonEnvelopeDecoderTest {
   }
 
   @Test
-  public void testDecode() throws IOException {
+  public void testToObjectNode() throws IOException {
     // given
-    JsonEnvelopeDecoder decoder = new JsonEnvelopeDecoder();
+    ObjectNodeConverter objectNodeConverter = new ObjectNodeConverter();
     Map<String, Object> message =
         Map.of(
             "colleagues",
@@ -53,7 +53,7 @@ public class JsonEnvelopeDecoderTest {
             Map.of("name", "Boss", "position", "CEO"));
 
     // when
-    ObjectNode result = decoder.decode(schema, message);
+    ObjectNode result = objectNodeConverter.toObjectNode(schema, message);
 
     // then
     assertNotNull(result);
