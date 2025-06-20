@@ -3,7 +3,9 @@
 
 # Global values accessible from any chart or subchart
 global:
-
+  security:
+    authentication:
+      method: basic
   # Common labels
   labels:
     # app label will be dynamically set according to preview envrionment name
@@ -42,6 +44,8 @@ global:
       enabled: true
       # Token issuer (Keycloak) URL
       publicIssuerUrl: https://{{ include "ingress.domain" . }}/auth/realms/camunda-platform
+      core:
+        existingSecret: core
       connectors:
         # fixed secret, to avoid generating a random one each time
         existingSecret: connectors
@@ -68,6 +72,15 @@ camunda-platform:
 
   fullnameOverride: connectors
 
+  core:
+    env:
+      ## Adjustement required due to PVC size
+      - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_REPLICATION
+        value: "100MB"
+      - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_PROCESSING
+        value: "150MB"
+    nodeSelector:
+      cloud.google.com/gke-nodepool: previews
   # Out-of-the-box Connectors
   connectors:
     enabled: true
@@ -94,7 +107,7 @@ camunda-platform:
         cpu: 1
         memory: 1Gi
       requests:
-        cpu: 500m
+        cpu: 0.5
         memory: 512Mi
     nodeSelector:
       cloud.google.com/gke-nodepool: previews
@@ -121,7 +134,7 @@ camunda-platform:
           cpu: 1
           memory: 1Gi
         requests:
-          cpu: 500m
+          cpu: 0.5
           memory: 512Mi
       nodeSelector:
         cloud.google.com/gke-nodepool: previews
@@ -158,7 +171,7 @@ camunda-platform:
         value: "write:*"
     resources:
       limits:
-        cpu: 1
+        cpu: "1"
         memory: 1Gi
       requests:
         cpu: 500m
@@ -183,7 +196,7 @@ camunda-platform:
         value: "true"
     resources:
       limits:
-        cpu: 1
+        cpu: "1"
         memory: 1Gi
       requests:
         cpu: 500m
@@ -217,34 +230,6 @@ camunda-platform:
             operator: "Exists"
             effect: "NoSchedule"
 
-  operate:
-    enabled: true
-    fullnameOverride: operate
-    contextPath: /operate
-    # image:
-    #   repository: camunda/operate
-    #   tag: 8.3.4
-    env:
-      - name: JAVA_OPTS
-        value: "-Xms512m -Xmx512m"
-    resources:
-      limits:
-        cpu: 1
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
-    livenessProbe:
-      enabled: true
-      # Force restart if not ready
-      probePath: /actuator/health/readiness
-    nodeSelector:
-      cloud.google.com/gke-nodepool: previews
-    tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
-
   optimize:
     enabled: false
 
@@ -268,7 +253,7 @@ camunda-platform:
         fromAddress: noreply@example.com
       resources:
         limits:
-          cpu: 1
+          cpu: "1"
           memory: 1Gi
         requests:
           cpu: 500m
@@ -313,11 +298,11 @@ camunda-platform:
           effect: "NoSchedule"
 
   # WebModeler PostgreSQL
-  postgresql:
+  webModelerPostgresql:
     enabled: true
     fullnameOverride: web-modeler-postgresql
     auth:
-      password: postgresql
+      existingSecret: postgresql
     primary:
       persistence:
         enabled: true
@@ -336,43 +321,6 @@ camunda-platform:
           operator: "Exists"
           effect: "NoSchedule"
 
-  zeebe:
-    enabled: true
-    fullnameOverride: zeebe-cluster
-    # image:
-    #   repository: camunda/zeebe
-    #   tag: latest
-    clusterSize: 1
-    partitionCount: 1
-    replicationFactor: 1
-    persistenceType: disk
-    pvcSize: 1Gi
-    env:
-      ## Adjustement required due to PVC size
-      - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_REPLICATION
-        value: "100MB"
-      - name: ZEEBE_BROKER_DATA_DISK_FREESPACE_PROCESSING
-        value: "150MB"
-    javaOpts: >-
-      -Xms512m -Xmx512m
-      -XX:+HeapDumpOnOutOfMemoryError
-      -XX:HeapDumpPath=/usr/local/zeebe/data
-      -XX:ErrorFile=/usr/local/zeebe/data/zeebe_error%p.log
-      -XX:+ExitOnOutOfMemoryError
-    resources:
-      limits:
-        cpu: 1
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
-    nodeSelector:
-      cloud.google.com/gke-nodepool: previews
-    tolerations:
-      - key: "previews"
-        operator: "Exists"
-        effect: "NoSchedule"
-
   zeebeGateway:
     fullnameOverride: zeebe-cluster-gateway
     replicas: 1
@@ -384,7 +332,7 @@ camunda-platform:
       -XX:+ExitOnOutOfMemoryError
     resources:
       limits:
-        cpu: 1
+        cpu: "1"
         memory: 1Gi
       requests:
         cpu: 500m
