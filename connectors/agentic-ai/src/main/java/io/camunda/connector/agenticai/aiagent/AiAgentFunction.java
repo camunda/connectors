@@ -23,7 +23,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     id = "io.camunda.connectors.agenticai.aiagent.v1",
     name = "AI Agent",
     description =
-        "Provides a generic AI Agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha6 or later.",
+        "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha6 or later.",
     documentationRef =
         "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
     engineVersion = "^8.8",
@@ -32,11 +32,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     outputDataClass = AgentResponse.class,
     defaultResultVariable = "agent",
     propertyGroups = {
-      @PropertyGroup(id = "provider", label = "Model Provider", openByDefault = false),
+      @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
       @PropertyGroup(id = "model", label = "Model", openByDefault = false),
       @PropertyGroup(
           id = "systemPrompt",
-          label = "System Prompt",
+          label = "System prompt",
           tooltip =
               "A system prompt is a set of foundational instructions given to a model before any user interaction begins. "
                   + "It defines the AI agent’s role, behavior, tone, and communication style, ensuring that responses remain consistent "
@@ -45,7 +45,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
           openByDefault = false),
       @PropertyGroup(
           id = "userPrompt",
-          label = "User Prompt",
+          label = "User prompt",
           tooltip =
               "A user prompt is the message or question you give to the AI to start or continue a conversation. It tells "
                   + "the AI what you need, whether it's information, help with a task, or just a chat. The AI uses your prompt "
