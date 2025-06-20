@@ -36,7 +36,7 @@ public class GenericRecordConverterTest {
   }
 
   @Test
-  public void shouldEnvelopeMap_whenAllFieldAreSet() {
+  public void shouldConvertToGenericRecord_whenAllFieldAreSet() {
     // when
     Map<String, Object> value = new HashMap<>();
     value.put("name", "John Doe");
@@ -73,7 +73,7 @@ public class GenericRecordConverterTest {
   }
 
   @Test
-  public void shouldEncoreRecord_whenAllFieldsAreSet() {
+  public void shouldConvertToObjectNode_whenAllFieldsAreSet() {
     // given
     GenericRecord record = new GenericData.Record(schema);
     record.put("name", "John Doe");

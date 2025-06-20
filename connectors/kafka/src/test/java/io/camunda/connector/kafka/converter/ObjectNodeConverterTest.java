@@ -33,7 +33,7 @@ public class ObjectNodeConverterTest {
   }
 
   @Test
-  public void testDecode() throws IOException {
+  public void testToObjectNode() throws IOException {
     // given
     ObjectNodeConverter objectNodeConverter = new ObjectNodeConverter();
     Map<String, Object> message =
