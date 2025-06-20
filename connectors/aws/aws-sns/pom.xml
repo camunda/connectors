@@ -88,6 +88,10 @@ except in compliance with the proprietary license.</license.inlineheader>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
+              <features>
+                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
+              </features>
             </connector>
           </connectors>
           <includeDependencies>
