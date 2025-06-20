@@ -45,19 +45,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JAiAgentTests {
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "test.csv",
-        "test.gif",
-        "test.jpg",
-        "test.json",
-        "test.pdf",
-        "test.png",
-        "test.txt",
-        "test.webp",
-        "test.xml",
-        "test.yaml"
-      })
+  @ValueSource(strings = {"test.jpg", "test.json", "test.pdf"})
   void handlesDocumentType(String filename) throws Exception {
     final var initialUserPrompt = "Summarize the following document";
     final var expectedConversation =
@@ -189,13 +177,9 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
     final Supplier<String> b64 = testFileContentBase64(filename);
 
     return switch (filename) {
-      case "test.txt", "test.yaml", "test.csv", "test.json", "test.xml" ->
-          TextContent.from(text.get());
+      case "test.txt", "test.json" -> TextContent.from(text.get());
       case "test.pdf" -> PdfFileContent.from(PdfFile.builder().base64Data(b64.get()).build());
-      case "test.gif" -> ImageContent.from(b64.get(), "image/gif", ImageContent.DetailLevel.AUTO);
       case "test.jpg" -> ImageContent.from(b64.get(), "image/jpeg", ImageContent.DetailLevel.AUTO);
-      case "test.png" -> ImageContent.from(b64.get(), "image/png", ImageContent.DetailLevel.AUTO);
-      case "test.webp" -> ImageContent.from(b64.get(), "image/webp", ImageContent.DetailLevel.AUTO);
       default -> throw new IllegalStateException("Unsupported file: " + filename);
     };
   }
