@@ -6,13 +6,10 @@
  */
 package io.camunda.connector.kafka.converter;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.avro.AvroFactory;
 import com.fasterxml.jackson.dataformat.avro.AvroSchema;
-import io.confluent.kafka.schemaregistry.json.JsonSchema;
-import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,7 +26,6 @@ import org.apache.avro.io.EncoderFactory;
 public class GenericRecordConverter {
 
   private static final ObjectMapper JACKSON_AVRO_MAPPER = new ObjectMapper(new AvroFactory());
-  private final ObjectMapper objectMapper = new ObjectMapper();
 
   public GenericRecord toGenericRecord(Schema schema, Map<String, Object> data) {
     GenericRecord record = new GenericData.Record(schema);
@@ -75,13 +71,6 @@ public class GenericRecordConverter {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  public ObjectNode toObjectNode(String schema, Map<String, Object> payload) {
-    JsonSchema jsonSchema = new JsonSchema(schema);
-    JsonNode jsonPayload = objectMapper.convertValue(payload, ObjectNode.class);
-
-    return JsonSchemaUtils.envelope(jsonSchema, jsonPayload);
   }
 
   private Object handleUnionType(Schema unionSchema, Object value) {

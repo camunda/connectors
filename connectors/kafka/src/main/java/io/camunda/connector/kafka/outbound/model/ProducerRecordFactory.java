@@ -15,6 +15,7 @@ import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.kafka.converter.GenericRecordConverter;
+import io.camunda.connector.kafka.converter.ObjectNodeConverter;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import io.camunda.connector.kafka.model.schema.OutboundSchemaRegistryStrategy;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 
 public class ProducerRecordFactory {
 
+  private static final ObjectNodeConverter OBJECT_NODE_CONVERTER = new ObjectNodeConverter();
   private static final GenericRecordConverter GENERIC_RECORD_CONVERTER =
       new GenericRecordConverter();
   private static final ObjectMapper OBJECT_MAPPER =
@@ -84,7 +86,7 @@ public class ProducerRecordFactory {
       case AVRO ->
           GENERIC_RECORD_CONVERTER.toGenericRecord(
               new Schema.Parser().parse(schemaString), (Map) messageValue);
-      case JSON -> GENERIC_RECORD_CONVERTER.toObjectNode(schemaString, (Map) messageValue);
+      case JSON -> OBJECT_NODE_CONVERTER.toObjectNode(schemaString, (Map) messageValue);
     };
   }
 
