@@ -91,15 +91,6 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
-    LOGGER.trace(
-        "Triggered webhook with context {} and payload {}",
-        props.context(),
-        webhookProcessingPayload);
-
-    context.log(
-        Activity.level(Severity.INFO)
-            .tag(webhookProcessingPayload.method())
-            .message("Url: " + webhookProcessingPayload.requestURL()));
 
     checkMessageAllowListed(webhookProcessingPayload);
     Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
@@ -113,11 +104,6 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
       return handleNotification(webhookProcessingPayload, bodyAsMap);
     } else {
       String errorMessage = "Operation not supported: " + msg.getClass().getName();
-      LOGGER.warn(errorMessage);
-      context.log(
-          Activity.level(Severity.ERROR)
-              .tag(webhookProcessingPayload.method())
-              .message("Url: " + webhookProcessingPayload.requestURL() + ". " + errorMessage));
       throw new IOException(errorMessage);
     }
   }
