@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Created-By: Maven JAR Plugin 3.4.2
+Build-Jdk-Spec: 21
+Implementation-Title: spring-boot-starter-camunda-connectors
+Implementation-Version: 8.7.4
+Implementation-Vendor: Camunda Services GmbH
+Main-Class: io.camunda.connector.bundle.ConnectorRuntimeApplication
+
