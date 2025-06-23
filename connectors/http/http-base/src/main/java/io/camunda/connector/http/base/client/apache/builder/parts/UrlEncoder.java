@@ -17,23 +17,20 @@
 package io.camunda.connector.http.base.client.apache.builder.parts;
 
 import com.google.api.client.http.GenericUrl;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UrlEncoder {
-  private static final Logger LOG = LoggerFactory.getLogger(ApacheRequestUriBuilder.class);
+  private static final Logger LOG = LoggerFactory.getLogger(UrlEncoder.class);
 
   public static URI toEncodedUri(String requestUrl, Boolean skipEncoding) {
     try {
       if (skipEncoding) {
         return URI.create(requestUrl);
       }
-      URL url = new URL(requestUrl);
-      return new GenericUrl(url).toURI();
-    } catch (MalformedURLException e) {
+      return new GenericUrl(requestUrl).toURI();
+    } catch (Exception e) {
       LOG.error("Failed to parse URL {}, defaulting to requestUrl", requestUrl, e);
       return URI.create(requestUrl);
     }

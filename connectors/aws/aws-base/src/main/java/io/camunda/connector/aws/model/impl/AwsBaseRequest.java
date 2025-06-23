@@ -8,6 +8,7 @@ package io.camunda.connector.aws.model.impl;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
@@ -35,6 +36,12 @@ public class AwsBaseRequest {
 
   public void setConfiguration(final AwsBaseConfiguration configuration) {
     this.configuration = configuration;
+  }
+
+  @AssertFalse
+  public boolean isDefaultCredentialsChainUsedInSaaS() {
+    return System.getenv().containsKey("CAMUNDA_CONNECTOR_RUNTIME_SAAS")
+        && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
   }
 
   @Override

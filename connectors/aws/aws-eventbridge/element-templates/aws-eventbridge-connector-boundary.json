@@ -16,6 +16,9 @@
     "value": "bpmn:BoundaryEvent",
     "eventDefinition": "bpmn:MessageEventDefinition"
   },
+  "engines": {
+    "camunda": "^8.4"
+  },
   "groups": [
     {
       "id": "endpoint",

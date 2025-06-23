@@ -14,6 +14,9 @@
   "elementType" : {
     "value" : "bpmn:SendTask"
   },
+  "engines" : {
+    "camunda" : "^8.3"
+  },
   "groups" : [ {
     "id" : "taskDefinitionType",
     "label" : "Task definition type"

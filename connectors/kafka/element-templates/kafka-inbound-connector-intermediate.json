@@ -17,6 +17,9 @@
     "value" : "bpmn:IntermediateCatchEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
+  "engines" : {
+    "camunda" : "^8.3"
+  },
   "groups" : [ {
     "id" : "authentication",
     "label" : "Authentication"
@@ -24,8 +27,8 @@
     "id" : "kafka",
     "label" : "Kafka"
   }, {
-    "id" : "message",
-    "label" : "Message deserialization"
+    "id" : "schema",
+    "label" : "Schema"
   }, {
     "id" : "activation",
     "label" : "Activation"
@@ -184,7 +187,7 @@
     "id" : "schemaStrategy.type",
     "label" : "Schema strategy",
     "value" : "noSchema",
-    "group" : "kafka",
+    "group" : "schema",
     "binding" : {
       "name" : "schemaStrategy.type",
       "type" : "zeebe:property"
@@ -194,19 +197,39 @@
       "name" : "No schema",
       "value" : "noSchema"
     }, {
-      "name" : "Inline schema",
+      "name" : "Avro Inline schema",
       "value" : "inlineSchema"
     }, {
-      "name" : "Schema registry",
+      "name" : "Confluent Schema registry",
       "value" : "schemaRegistry"
     } ]
+  }, {
+    "id" : "schemaStrategy.avro.schema",
+    "label" : "Schema",
+    "description" : "Avro inline schema for the message value",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "schema",
+    "binding" : {
+      "name" : "schemaStrategy.schema",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "schemaStrategy.type",
+      "equals" : "inlineSchema",
+      "type" : "simple"
+    },
+    "type" : "Text"
   }, {
     "id" : "schemaStrategy.schemaType",
     "label" : "Schema type",
     "description" : "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "value" : "avro",
-    "group" : "kafka",
+    "group" : "schema",
     "binding" : {
       "name" : "schemaStrategy.schemaType",
       "type" : "zeebe:property"
@@ -221,7 +244,7 @@
       "name" : "JSON",
       "value" : "json"
     }, {
-      "name" : "Avro (alpha)",
+      "name" : "Avro",
       "value" : "avro"
     } ]
   }, {
@@ -232,7 +255,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "group" : "kafka",
+    "group" : "schema",
     "binding" : {
       "name" : "schemaStrategy.schemaRegistryUrl",
       "type" : "zeebe:property"
@@ -243,26 +266,6 @@
       "type" : "simple"
     },
     "type" : "String"
-  }, {
-    "id" : "schemaStrategy.avro.schema",
-    "label" : "Schema",
-    "description" : "Inline schema (Avro) for the message value",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "message",
-    "binding" : {
-      "name" : "schemaStrategy.schema",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "schemaStrategy.type",
-      "equals" : "inlineSchema",
-      "type" : "simple"
-    },
-    "type" : "Text"
   }, {
     "id" : "activationCondition",
     "label" : "Activation condition",
@@ -438,9 +441,6 @@
     },
     "type" : "Text"
   } ],
-  "engines" : {
-    "camunda" : "^8.3"
-  },
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAyNTYgNDE2JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yMDEuODE2IDIzMC4yMTZjLTE2LjE4NiAwLTMwLjY5NyA3LjE3MS00MC42MzQgMTguNDYxbC0yNS40NjMtMTguMDI2YzIuNzAzLTcuNDQyIDQuMjU1LTE1LjQzMyA0LjI1NS0yMy43OTcgMC04LjIxOS0xLjQ5OC0xNi4wNzYtNC4xMTItMjMuNDA4bDI1LjQwNi0xNy44MzVjOS45MzYgMTEuMjMzIDI0LjQwOSAxOC4zNjUgNDAuNTQ4IDE4LjM2NSAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yOS44NzktMjQuMzA5LTU0LjE4NC01NC4xODQtNTQuMTg0LTI5Ljg3NSAwLTU0LjE4NCAyNC4zMDUtNTQuMTg0IDU0LjE4NCAwIDUuMzQ4LjgwOCAxMC41MDUgMi4yNTggMTUuMzg5bC0yNS40MjMgMTcuODQ0Yy0xMC42Mi0xMy4xNzUtMjUuOTExLTIyLjM3NC00My4zMzMtMjUuMTgydi0zMC42NGMyNC41NDQtNS4xNTUgNDMuMDM3LTI2Ljk2MiA0My4wMzctNTMuMDE5QzEyNC4xNzEgMjQuMzA1IDk5Ljg2MiAwIDY5Ljk4NyAwIDQwLjExMiAwIDE1LjgwMyAyNC4zMDUgMTUuODAzIDU0LjE4NGMwIDI1LjcwOCAxOC4wMTQgNDcuMjQ2IDQyLjA2NyA1Mi43Njl2MzEuMDM4QzI1LjA0NCAxNDMuNzUzIDAgMTcyLjQwMSAwIDIwNi44NTRjMCAzNC42MjEgMjUuMjkyIDYzLjM3NCA1OC4zNTUgNjguOTR2MzIuNzc0Yy0yNC4yOTkgNS4zNDEtNDIuNTUyIDI3LjAxMS00Mi41NTIgNTIuODk0IDAgMjkuODc5IDI0LjMwOSA1NC4xODQgNTQuMTg0IDU0LjE4NCAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yNS44ODMtMTguMjUzLTQ3LjU1My00Mi41NTItNTIuODk0di0zMi43NzVhNjkuOTY1IDY5Ljk2NSAwIDAgMCA0Mi42LTI0Ljc3NmwyNS42MzMgMTguMTQzYy0xLjQyMyA0Ljg0LTIuMjIgOS45NDYtMi4yMiAxNS4yNCAwIDI5Ljg3OSAyNC4zMDkgNTQuMTg0IDU0LjE4NCA1NC4xODQgMjkuODc1IDAgNTQuMTg0LTI0LjMwNSA1NC4xODQtNTQuMTg0IDAtMjkuODc5LTI0LjMwOS01NC4xODQtNTQuMTg0LTU0LjE4NHptMC0xMjYuNjk1YzE0LjQ4NyAwIDI2LjI3IDExLjc4OCAyNi4yNyAyNi4yNzFzLTExLjc4MyAyNi4yNy0yNi4yNyAyNi4yNy0yNi4yNy0xMS43ODctMjYuMjctMjYuMjdjMC0xNC40ODMgMTEuNzgzLTI2LjI3MSAyNi4yNy0yNi4yNzF6bS0xNTguMS00OS4zMzdjMC0xNC40ODMgMTEuNzg0LTI2LjI3IDI2LjI3MS0yNi4yN3MyNi4yNyAxMS43ODcgMjYuMjcgMjYuMjdjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN3ptNTIuNTQxIDMwNy4yNzhjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN2MwLTE0LjQ4MyAxMS43ODQtMjYuMjcgMjYuMjcxLTI2LjI3czI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN3ptLTI2LjI3Mi0xMTcuOTdjLTIwLjIwNSAwLTM2LjY0Mi0xNi40MzQtMzYuNjQyLTM2LjYzOCAwLTIwLjIwNSAxNi40MzctMzYuNjQyIDM2LjY0Mi0zNi42NDIgMjAuMjA0IDAgMzYuNjQxIDE2LjQzNyAzNi42NDEgMzYuNjQyIDAgMjAuMjA0LTE2LjQzNyAzNi42MzgtMzYuNjQxIDM2LjYzOHptMTMxLjgzMSA2Ny4xNzljLTE0LjQ4NyAwLTI2LjI3LTExLjc4OC0yNi4yNy0yNi4yNzFzMTEuNzgzLTI2LjI3IDI2LjI3LTI2LjI3IDI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN2MwIDE0LjQ4My0xMS43ODMgMjYuMjcxLTI2LjI3IDI2LjI3MXonCiAgICAgICAgICBzdHlsZT0nZmlsbDojMjMxZjIwJy8+Cjwvc3ZnPg=="
   }

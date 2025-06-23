@@ -19,6 +19,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -69,7 +70,7 @@ public sealed interface ProviderConfiguration
         @NotBlank
             @TemplateProperty(
                 group = "provider",
-                label = "Anthropic API Key",
+                label = "Anthropic API key",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
@@ -94,7 +95,7 @@ public sealed interface ProviderConfiguration
           @Min(0)
               @TemplateProperty(
                   group = "model",
-                  label = "Maximum Tokens",
+                  label = "Maximum tokens",
                   tooltip =
                       "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
@@ -157,7 +158,14 @@ public sealed interface ProviderConfiguration
                 optional = true)
             String endpoint,
         @Valid @NotNull AwsAuthentication authentication,
-        @Valid @NotNull BedrockModel model) {}
+        @Valid @NotNull BedrockModel model) {
+
+      @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
+      public boolean isDefaultCredentialsChainUsedInSaaS() {
+        return System.getenv().containsKey("CAMUNDA_CONNECTOR_RUNTIME_SAAS")
+            && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+      }
+    }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({
@@ -226,7 +234,7 @@ public sealed interface ProviderConfiguration
           @Min(0)
               @TemplateProperty(
                   group = "model",
-                  label = "Maximum Tokens",
+                  label = "Maximum tokens",
                   tooltip =
                       "The maximum number of tokens per request to allow in the generated response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,
@@ -290,7 +298,7 @@ public sealed interface ProviderConfiguration
         @NotBlank
             @TemplateProperty(
                 group = "provider",
-                label = "OpenAI API Key",
+                label = "OpenAI API key",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
@@ -333,7 +341,7 @@ public sealed interface ProviderConfiguration
           @Min(0)
               @TemplateProperty(
                   group = "model",
-                  label = "Maximum Completion Tokens",
+                  label = "Maximum completion tokens",
                   tooltip =
                       "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.Number,

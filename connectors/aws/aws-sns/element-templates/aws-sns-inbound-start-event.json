@@ -19,6 +19,9 @@
   "elementType": {
     "value": "bpmn:StartEvent"
   },
+  "engines": {
+    "camunda": "^8.5"
+  },
   "groups": [
     {
       "id": "subscription",

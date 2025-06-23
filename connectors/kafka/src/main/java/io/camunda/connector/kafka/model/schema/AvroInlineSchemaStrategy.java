@@ -14,17 +14,17 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
-@TemplateSubType(id = TYPE, label = "Inline schema")
+@TemplateSubType(id = TYPE, label = "Avro Inline schema")
 public record AvroInlineSchemaStrategy(
     @FEEL
         @TemplateProperty(
             id = "avro.schema",
-            group = "message",
+            group = "schema",
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Text,
             label = "Schema",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-            description = "Inline schema (Avro) for the message value")
+            description = "Avro inline schema for the message value")
         String schema)
     implements InboundSchemaStrategy, OutboundSchemaStrategy {
 

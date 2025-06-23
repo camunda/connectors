@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -16,6 +16,9 @@
   "elementType" : {
     "value" : "bpmn:StartEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
+  },
+  "engines" : {
+    "camunda" : "^8.3"
   },
   "groups" : [ {
     "id" : "endpoint",
@@ -27,6 +30,10 @@
     "id" : "correlation",
     "label" : "Correlation",
     "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
+  }, {
+    "id" : "deduplication",
+    "label" : "Deduplication",
+    "tooltip" : "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID."
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -89,6 +96,17 @@
       "type" : "zeebe:property"
     },
     "type" : "String"
+  }, {
+    "id" : "consumeUnmatchedEvents",
+    "label" : "Consume unmatched events",
+    "value" : true,
+    "group" : "activation",
+    "binding" : {
+      "name" : "consumeUnmatchedEvents",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
+    "type" : "Boolean"
   }, {
     "id" : "correlationRequired",
     "label" : "Subprocess correlation required",
@@ -188,6 +206,66 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "deduplicationModeManualFlag",
+    "label" : "Manual mode",
+    "description" : "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode",
+    "value" : false,
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationModeManualFlag",
+      "type" : "zeebe:property"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "deduplicationId",
+    "label" : "Deduplication ID",
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^[a-zA-Z0-9_-]+$",
+        "message" : "can only contain alphanumeric characters, dashes, and underscores"
+      }
+    },
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationId",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "deduplicationModeManualFlag",
+      "equals" : true,
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "deduplicationModeManual",
+    "value" : "MANUAL",
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationMode",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "deduplicationId",
+      "isActive" : true,
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "deduplicationModeAuto",
+    "value" : "AUTO",
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationMode",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "deduplicationId",
+      "isActive" : false,
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "resultVariable",
     "label" : "Result variable",
     "description" : "Name of variable to store the response in",
@@ -209,9 +287,6 @@
     },
     "type" : "Text"
   } ],
-  "engines" : {
-    "camunda" : "^8.3"
-  },
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI3IiBoZWlnaHQ9IjEyNyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMjcuMiA4MGMwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjJDNi43IDkzLjIuOCA4Ny4zLjggODBjMC03LjMgNS45LTEzLjIgMTMuMi0xMy4yaDEzLjJWODB6bTYuNiAwYzAtNy4zIDUuOS0xMy4yIDEzLjItMTMuMiA3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjJ2MzNjMCA3LjMtNS45IDEzLjItMTMuMiAxMy4yLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMlY4MHoiIGZpbGw9IiNFMDFFNUEiLz4KICA8cGF0aCBkPSJNNDcgMjdjLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMkMzMy44IDYuNSAzOS43LjYgNDcgLjZjNy4zIDAgMTMuMiA1LjkgMTMuMiAxMy4yVjI3SDQ3em0wIDYuN2M3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjIgMCA3LjMtNS45IDEzLjItMTMuMiAxMy4ySDEzLjlDNi42IDYwLjEuNyA1NC4yLjcgNDYuOWMwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjJINDd6IiBmaWxsPSIjMzZDNUYwIi8+CiAgPHBhdGggZD0iTTk5LjkgNDYuOWMwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjIgNy4zIDAgMTMuMiA1LjkgMTMuMiAxMy4yIDAgNy4zLTUuOSAxMy4yLTEzLjIgMTMuMkg5OS45VjQ2Ljl6bS02LjYgMGMwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjItNy4zIDAtMTMuMi01LjktMTMuMi0xMy4yVjEzLjhDNjYuOSA2LjUgNzIuOC42IDgwLjEuNmM3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjJ2MzMuMXoiIGZpbGw9IiMyRUI2N0QiLz4KICA8cGF0aCBkPSJNODAuMSA5OS44YzcuMyAwIDEzLjIgNS45IDEzLjIgMTMuMiAwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjItNy4zIDAtMTMuMi01LjktMTMuMi0xMy4yVjk5LjhoMTMuMnptMC02LjZjLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMiAwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjJoMzMuMWM3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjIgMCA3LjMtNS45IDEzLjItMTMuMiAxMy4ySDgwLjF6IiBmaWxsPSIjRUNCMjJFIi8+Cjwvc3ZnPgo="
   }

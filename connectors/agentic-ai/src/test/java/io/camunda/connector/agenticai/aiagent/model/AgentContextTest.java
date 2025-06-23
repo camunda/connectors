@@ -12,7 +12,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.memory.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
@@ -31,7 +31,7 @@ class AgentContextTest {
   @Test
   void emptyContext() {
     final var context = AgentContext.empty();
-    assertThat(context.state()).isEqualTo(AgentState.READY);
+    assertThat(context.state()).isEqualTo(AgentState.INITIALIZING);
     assertThat(context.metrics()).isEqualTo(AgentMetrics.empty());
     assertThat(context.toolDefinitions()).isEmpty();
     assertThat(context.conversation()).isNull();
@@ -103,6 +103,16 @@ class AgentContextTest {
         .containsExactly(newMessage);
   }
 
+  @Test
+  void withPropertyAddsToExistingProperties() {
+    final var initialContext = AgentContext.builder().properties(Map.of("foo", "bar")).build();
+    final var updatedContext = initialContext.withProperty("baz", "qux");
+
+    assertThat(updatedContext).isNotEqualTo(initialContext);
+    assertThat(updatedContext.properties())
+        .containsExactlyInAnyOrderEntriesOf(Map.of("foo", "bar", "baz", "qux"));
+  }
+
   @ParameterizedTest
   @MethodSource("invalidConstructorParameters")
   void throwsExceptionOnInvalidConstructorParameters(
@@ -116,7 +126,8 @@ class AgentContextTest {
                     state,
                     metrics,
                     toolDefinitions,
-                    InProcessConversationContext.builder("test-conversation").build()))
+                    InProcessConversationContext.builder("test-conversation").build(),
+                    Map.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }

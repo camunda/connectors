@@ -13,7 +13,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 
 @TemplateDiscriminatorProperty(
     label = "Schema strategy",
-    group = "kafka",
+    group = "schema",
     name = "type",
     defaultValue = NoSchemaStrategy.TYPE)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

@@ -15,6 +15,9 @@
     "value" : "bpmn:IntermediateThrowEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
+  "engines" : {
+    "camunda" : "^8.3"
+  },
   "groups" : [ {
     "id" : "taskDefinitionType",
     "label" : "Task definition type"

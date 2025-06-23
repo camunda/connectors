@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.integration;
 
+import static io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS;
 import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,7 +41,6 @@ import io.camunda.connector.test.SlowTest;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -571,7 +571,7 @@ public class KafkaIntegrationTest {
                 "http://" + SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort(),
                 SchemaType.AVRO),
             null,
-            Map.of(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, false));
+            Map.of(AUTO_REGISTER_SCHEMAS, false));
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
@@ -677,7 +677,7 @@ public class KafkaIntegrationTest {
                 "http://" + SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort(),
                 SchemaType.JSON),
             null,
-            Map.of(AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS, false));
+            Map.of(AUTO_REGISTER_SCHEMAS, false));
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 

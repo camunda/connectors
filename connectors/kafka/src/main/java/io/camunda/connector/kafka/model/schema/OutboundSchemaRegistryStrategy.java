@@ -15,7 +15,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.kafka.model.SchemaType;
 
-@TemplateSubType(id = TYPE, label = "Schema registry")
+@TemplateSubType(id = TYPE, label = "Confluent Schema registry")
 public final class OutboundSchemaRegistryStrategy extends AbstractSchemaRegistryStrategy
     implements OutboundSchemaStrategy {
 
@@ -25,7 +25,7 @@ public final class OutboundSchemaRegistryStrategy extends AbstractSchemaRegistry
   @FEEL
   @TemplateProperty(
       id = "schema",
-      group = "message",
+      group = "schema",
       feel = Property.FeelMode.required,
       type = TemplateProperty.PropertyType.Text,
       label = "Schema",

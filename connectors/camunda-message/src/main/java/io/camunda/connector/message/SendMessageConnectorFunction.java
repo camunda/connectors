@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
     name = "message",
     type = "io.camunda:sendMessage:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.message.v1",
     inputDataClass = SendMessageRequest.class,
     name = "Send Message Connector",

@@ -10,6 +10,10 @@ import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Generates a JSON schema from a list of input parameter definitions resolved from tagging
+ * functions such as fromAi().
+ */
 public interface AdHocToolSchemaGenerator {
   Map<String, Object> generateToolSchema(List<FeelInputParam> inputParams);
 }
