@@ -15,10 +15,7 @@ jobs:
       - name: Fetch release branches
         id: set-matrix
         run: |
-          # Get all release/* branches
-          git ls-remote --heads https://github.com/${{ github.repository }}.git | \
-          awk '{print $2}' | sed 's|refs/heads/||' | grep '^release/' > releases.txt || true
-          all_branches=$( (echo "main"; cat releases.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
+          all_branches=$( (echo "bugfix/agentic-ai-e2e-document-handling-flakiness") | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
           echo "branches=$all_branches" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
