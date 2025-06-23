@@ -52,7 +52,7 @@ import org.springframework.test.web.servlet.MockMvc;
     classes = {SaaSConnectorRuntimeApplication.class},
     properties = {
       "camunda.saas.secrets.projectId=42",
-      "camunda.client.zeebe.enabled=true",
+      "camunda.client.enabled=true",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
       "camunda.connector.secretprovider.discovery.enabled=false",
