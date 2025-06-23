@@ -123,7 +123,9 @@ public class OutboundConnectorsAutoConfiguration {
               zeebeJwtCredential.getClientId(),
               zeebeJwtCredential.getClientSecret(),
               consoleSecretsApiAudience,
-              zeebeJwtCredential.getAuthUrl());
+              zeebeJwtCredential.getAuthUrl(),
+              null,
+              null);
       return new ConsoleSecretApiClient(consoleSecretsApiEndpoint, jwtCredential);
     } else {
       throw new RuntimeException(
