@@ -18,7 +18,9 @@ import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequest
 import io.camunda.connector.idp.extraction.supplier.DocumentAiClientSupplier;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,17 +89,20 @@ public class DocumentAiCaller {
   }
 
   private StructuredExtractionResponse extractFormFieldsWithConfidence(Document document) {
-    Map<String, String> keyValuePairs = new HashMap<>();
-    Map<String, Float> confidenceScores = new HashMap<>();
+    Map<String, Object> keyValuePairs = new HashMap<>();
+    Map<String, Object> confidenceScores = new HashMap<>();
     Map<String, Integer> keyOccurrences = new HashMap<>();
+    var nextTableIndex = 1;
 
     // Process form fields from Document AI response
     for (Document.Page page : document.getPagesList()) {
+      // get form fields
       for (Document.Page.FormField formField : page.getFormFieldsList()) {
         if (formField.hasFieldName() && formField.hasFieldValue()) {
-          String originalKey = getTextFromLayout(formField.getFieldName().getTextAnchor());
+          String originalKey =
+              getTextFromLayout(document, formField.getFieldName().getTextAnchor());
           String key = originalKey;
-          String value = getValueFromFormField(formField);
+          String value = getValueFromFormField(document, formField);
 
           if (!key.isEmpty()) {
             // Handle duplicate keys by adding a suffix
@@ -120,26 +125,75 @@ public class DocumentAiCaller {
           }
         }
       }
+
+      // get tables
+      for (Document.Page.Table table : page.getTablesList()) {
+        List<List<String>> data = new ArrayList<>();
+        List<List<Float>> tableConfidence = new ArrayList<>();
+
+        List<Document.Page.Table.TableRow> rows = new ArrayList<>();
+        rows.addAll(table.getHeaderRowsList());
+        rows.addAll(table.getBodyRowsList());
+
+        for (Document.Page.Table.TableRow row : rows) {
+          List<String> rowData = new ArrayList<>();
+          List<Float> rowConfidence = new ArrayList<>();
+          processTableRowWithConfidence(document, row, rowData, rowConfidence);
+          if (!rowData.isEmpty()) {
+            data.add(rowData);
+            tableConfidence.add(rowConfidence);
+          }
+        }
+
+        String tableKey = "table " + nextTableIndex++;
+        keyValuePairs.put(tableKey, data);
+        confidenceScores.put(tableKey, tableConfidence);
+      }
     }
 
     return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
   }
 
-  private String getValueFromFormField(Document.Page.FormField formField) {
+  private String getValueFromFormField(Document document, Document.Page.FormField formField) {
     String valueType = formField.getValueType();
     if (valueType != null && valueType.equals("unfilled_checkbox")) {
       return "false";
     } else if (valueType != null && valueType.equals("filled_checkbox")) {
       return "true";
     } else {
-      return getTextFromLayout(formField.getFieldValue().getTextAnchor());
+      return getTextFromLayout(document, formField.getFieldValue().getTextAnchor());
     }
   }
 
-  private String getTextFromLayout(Document.TextAnchor textAnchor) {
+  private String getTextFromLayout(Document document, Document.TextAnchor textAnchor) {
     if (textAnchor == null) {
       return "";
     }
-    return textAnchor.getContent().trim();
+    StringBuilder result = new StringBuilder();
+    for (Document.TextAnchor.TextSegment segment : textAnchor.getTextSegmentsList()) {
+      int startIndex = (int) segment.getStartIndex();
+      int endIndex = (int) segment.getEndIndex();
+
+      if (startIndex >= 0 && endIndex > startIndex && endIndex <= document.getText().length()) {
+        result.append(document.getText(), startIndex, endIndex);
+      }
+    }
+
+    return result.toString().trim();
+  }
+
+  private void processTableRowWithConfidence(
+      Document document,
+      Document.Page.Table.TableRow row,
+      List<String> rowData,
+      List<Float> rowConfidence) {
+    for (Document.Page.Table.TableCell cell : row.getCellsList()) {
+      String cellText = "";
+      if (cell.hasLayout()) {
+        cellText = getTextFromLayout(document, cell.getLayout().getTextAnchor());
+      }
+      rowData.add(cellText);
+      rowConfidence.add(cell.getLayout().getConfidence());
+    }
   }
 }

@@ -348,12 +348,12 @@ public class StructuredServiceTest {
   }
 
   private static @NotNull StructuredExtractionResponse getStructuredExtractionResponse() {
-    Map<String, String> extractedFields = new HashMap<>();
+    Map<String, Object> extractedFields = new HashMap<>();
     extractedFields.put("Invoice Number", "INV-12345");
     extractedFields.put("Total Amount", "$12.25");
     extractedFields.put("Supplier Name", "Camunda Inc.");
 
-    Map<String, Float> confidenceScores = new HashMap<>();
+    Map<String, Object> confidenceScores = new HashMap<>();
     confidenceScores.put("Invoice Number", 0.95f);
     confidenceScores.put("Total Amount", 0.98f);
     confidenceScores.put("Supplier Name", 0.92f);
