@@ -285,11 +285,30 @@ class DocumentAiCallerTest {
     assertEquals(List.of("John Doe", "32", "New York"), tableData.get(1));
     assertEquals(List.of("Jane Smith", "28", "London"), tableData.get(2));
 
-    // Check confidence score (average of all cells:
-    // (0.95+0.94+0.93+0.92+0.91+0.90+0.89+0.88+0.87)/9 = 0.91)
+    // Check confidence score - now it's a List<List<Float>> for per-cell confidence scores
     assertTrue(response.confidenceScore().containsKey("table 1"));
-    assertEquals(
-        0.91f, response.confidenceScore().get("table 1"), 0.01f); // Allow small rounding difference
+    List<List<Float>> tableConfidenceData =
+        (List<List<Float>>) response.confidenceScore().get("table 1");
+
+    assertEquals(3, tableConfidenceData.size()); // 3 rows of confidence scores
+
+    // Check confidence scores for header row
+    assertEquals(3, tableConfidenceData.get(0).size()); // 3 columns
+    assertEquals(0.95f, tableConfidenceData.get(0).get(0), 0.01f); // "Name" cell confidence
+    assertEquals(0.94f, tableConfidenceData.get(0).get(1), 0.01f); // "Age" cell confidence
+    assertEquals(0.93f, tableConfidenceData.get(0).get(2), 0.01f); // "Location" cell confidence
+
+    // Check confidence scores for first data row
+    assertEquals(3, tableConfidenceData.get(1).size()); // 3 columns
+    assertEquals(0.92f, tableConfidenceData.get(1).get(0), 0.01f); // "John Doe" cell confidence
+    assertEquals(0.91f, tableConfidenceData.get(1).get(1), 0.01f); // "32" cell confidence
+    assertEquals(0.90f, tableConfidenceData.get(1).get(2), 0.01f); // "New York" cell confidence
+
+    // Check confidence scores for second data row
+    assertEquals(3, tableConfidenceData.get(2).size()); // 3 columns
+    assertEquals(0.89f, tableConfidenceData.get(2).get(0), 0.01f); // "Jane Smith" cell confidence
+    assertEquals(0.88f, tableConfidenceData.get(2).get(1), 0.01f); // "28" cell confidence
+    assertEquals(0.87f, tableConfidenceData.get(2).get(2), 0.01f); // "London" cell confidence
   }
 
   // Add new helper methods to create text anchors with segments

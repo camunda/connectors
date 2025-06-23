@@ -427,7 +427,7 @@ class PollingTextractCallerTest {
     // Assert
     // Check key-value pairs
     assertEquals("INV-12345", response.extractedFields().get("Invoice"));
-    assertEquals(0.0097f, response.confidenceScore().get("Invoice"), 0.0001f);
+    assertEquals(0.0097f, (Float) response.confidenceScore().get("Invoice"), 0.0001f);
 
     // Check table data
     assertTrue(response.extractedFields().containsKey("table 1"));
@@ -441,7 +441,30 @@ class PollingTextractCallerTest {
     assertEquals(List.of("John Doe", "32", "New York"), tableData.get(1));
     assertEquals(List.of("Jane Smith", "28", "London"), tableData.get(2));
 
-    // Check table confidence - the value is not divided by 100 for tables
-    assertEquals(0.96f, response.confidenceScore().get("table 1"), 0.01f);
+    // Check table confidence - now it's a List<List<Float>> for per-cell confidence scores
+    assertTrue(response.confidenceScore().containsKey("table 1"));
+    List<List<Float>> tableConfidenceData =
+        (List<List<Float>>) response.confidenceScore().get("table 1");
+
+    assertEquals(3, tableConfidenceData.size()); // 3 rows of confidence scores
+
+    // Check confidence scores for header row (divided by 100 to convert to percentage)
+    assertEquals(3, tableConfidenceData.get(0).size()); // 3 columns
+    assertEquals(0.0095f, tableConfidenceData.get(0).get(0), 0.0001f); // "Name" cell confidence
+    assertEquals(0.0094f, tableConfidenceData.get(0).get(1), 0.0001f); // "Age" cell confidence
+    assertEquals(0.0093f, tableConfidenceData.get(0).get(2), 0.0001f); // "Location" cell confidence
+
+    // Check confidence scores for first data row
+    assertEquals(3, tableConfidenceData.get(1).size()); // 3 columns
+    assertEquals(0.0092f, tableConfidenceData.get(1).get(0), 0.0001f); // "John Doe" cell confidence
+    assertEquals(0.0091f, tableConfidenceData.get(1).get(1), 0.0001f); // "32" cell confidence
+    assertEquals(0.0090f, tableConfidenceData.get(1).get(2), 0.0001f); // "New York" cell confidence
+
+    // Check confidence scores for second data row
+    assertEquals(3, tableConfidenceData.get(2).size()); // 3 columns
+    assertEquals(
+        0.0089f, tableConfidenceData.get(2).get(0), 0.0001f); // "Jane Smith" cell confidence
+    assertEquals(0.0088f, tableConfidenceData.get(2).get(1), 0.0001f); // "28" cell confidence
+    assertEquals(0.0087f, tableConfidenceData.get(2).get(2), 0.0001f); // "London" cell confidence
   }
 }

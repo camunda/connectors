@@ -215,7 +215,7 @@ public class PollingTextractCaller {
 
   private StructuredExtractionResponse extractDataFromDocument(List<Block> blocks) {
     Map<String, Object> keyValuePairs = new HashMap<>();
-    Map<String, Float> confidenceScores = new HashMap<>();
+    Map<String, Object> confidenceScores = new HashMap<>();
     Map<String, Block> blockMap =
         blocks.stream().collect(Collectors.toMap(Block::id, block -> block));
     Map<String, Integer> keyOccurrences = new HashMap<>();
@@ -265,7 +265,8 @@ public class PollingTextractCaller {
         blocks.stream().filter(block -> block.blockType().equals(BlockType.TABLE)).toList();
 
     for (Block table : tables) {
-      List<List<String>> data = new ArrayList<>();
+      List<List<String>> tableData = new ArrayList<>();
+      List<List<Float>> tableConfidence = new ArrayList<>();
       table.relationships().stream()
           .filter(relation -> relation.type().equals(RelationshipType.CHILD))
           .flatMap(relation -> relation.ids().stream())
@@ -278,22 +279,29 @@ public class PollingTextractCaller {
                 int rowIndex = block.rowIndex() - 1;
 
                 // ensure the outer list has enough rows
-                while (data.size() <= rowIndex) {
-                  data.add(new ArrayList<>());
+                while (tableData.size() <= rowIndex) {
+                  tableData.add(new ArrayList<>());
+                  tableConfidence.add(new ArrayList<>());
                 }
 
-                List<String> row = data.get(rowIndex);
+                List<String> row = tableData.get(rowIndex);
+                List<Float> confidenceRow = tableConfidence.get(rowIndex);
 
                 // ensure the row list has enough columns
                 while (row.size() <= colIndex) {
                   row.add("");
                 }
+                while (confidenceRow.size() <= colIndex) {
+                  confidenceRow.add(0.0f);
+                }
 
                 row.set(colIndex, cellText);
+                confidenceRow.set(
+                    colIndex, block.confidence() / 100); // Convert to percentage as Float
               });
       String tableKey = "table " + (tables.indexOf(table) + 1);
-      keyValuePairs.put(tableKey, data);
-      confidenceScores.put(tableKey, table.confidence());
+      keyValuePairs.put(tableKey, tableData);
+      confidenceScores.put(tableKey, tableConfidence);
     }
 
     return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
