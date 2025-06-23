@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -28,6 +28,10 @@
   }, {
     "id" : "activation",
     "label" : "Activation"
+  }, {
+    "id" : "deduplication",
+    "label" : "Deduplication",
+    "tooltip" : "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID."
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -92,6 +96,77 @@
       "type" : "zeebe:property"
     },
     "type" : "String"
+  }, {
+    "id" : "consumeUnmatchedEvents",
+    "label" : "Consume unmatched events",
+    "value" : true,
+    "group" : "activation",
+    "binding" : {
+      "name" : "consumeUnmatchedEvents",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
+    "type" : "Boolean"
+  }, {
+    "id" : "deduplicationModeManualFlag",
+    "label" : "Manual mode",
+    "description" : "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode",
+    "value" : false,
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationModeManualFlag",
+      "type" : "zeebe:property"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "deduplicationId",
+    "label" : "Deduplication ID",
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^[a-zA-Z0-9_-]+$",
+        "message" : "can only contain alphanumeric characters, dashes, and underscores"
+      }
+    },
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationId",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "deduplicationModeManualFlag",
+      "equals" : true,
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "deduplicationModeManual",
+    "value" : "MANUAL",
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationMode",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "deduplicationId",
+      "isActive" : true,
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "deduplicationModeAuto",
+    "value" : "AUTO",
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationMode",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "deduplicationId",
+      "isActive" : false,
+      "type" : "simple"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

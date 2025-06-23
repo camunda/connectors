@@ -45,6 +45,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
+      @ElementTemplate.PropertyGroup(id = "schema", label = "Schema"),
       @ElementTemplate.PropertyGroup(id = "message", label = "Message")
     },
     documentationRef =

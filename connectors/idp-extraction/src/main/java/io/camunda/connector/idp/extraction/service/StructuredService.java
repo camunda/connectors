@@ -110,7 +110,7 @@ public class StructuredService implements ExtractionService {
   private StructuredExtractionResult processExtractedData(
       StructuredExtractionResponse response, ExtractionRequestData input) {
     Map<String, Object> parsedResults = new HashMap<>();
-    Map<String, Float> processedConfidenceScores = new HashMap<>();
+    Map<String, Object> processedConfidenceScores = new HashMap<>();
     Map<String, Polygon> processedGeometry = new HashMap<>();
     Map<String, String> originalKeys = new HashMap<>();
 
@@ -125,13 +125,13 @@ public class StructuredService implements ExtractionService {
               } else {
                 variableName = formatZeebeVariableName(key, input.delimiter());
               }
-              Float confidenceScore = response.confidenceScore().get(key);
+              Object confidenceScore = response.confidenceScore().get(key);
 
               // if the list is empty will not filter any fields.
               if ((input.includedFields() == null
                       || input.includedFields().isEmpty()
                       || input.includedFields().contains(key))
-                  && (value != null)) {
+                  && value != null) {
                 parsedResults.put(variableName, value);
                 originalKeys.put(variableName, key);
                 processedGeometry.put(variableName, response.geometry().get(key));

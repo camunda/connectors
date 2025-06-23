@@ -4,7 +4,6 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-
 package io.camunda.connector.kafka.converter;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,10 +13,11 @@ import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils;
 import java.util.Map;
 
-public class JsonEnvelopeDecoder {
+public class ObjectNodeConverter {
+
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public ObjectNode decode(String schema, Map<String, Object> payload) {
+  public ObjectNode toObjectNode(String schema, Map<String, Object> payload) {
     JsonSchema jsonSchema = new JsonSchema(schema);
     JsonNode jsonPayload = objectMapper.convertValue(payload, ObjectNode.class);
 

@@ -10,5 +10,5 @@ import java.util.Map;
 
 public record StructuredExtractionResponse(
     Map<String, Object> extractedFields,
-    Map<String, Float> confidenceScore,
+    Map<String, Object> confidenceScore,
     Map<String, Polygon> geometry) {}

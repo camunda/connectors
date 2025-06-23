@@ -26,7 +26,7 @@ public record AgentRequest(
   public record AgentRequestData(
       @FEEL
           @TemplateProperty(
-              label = "Agent Context",
+              label = "Agent context",
               group = "memory",
               id = "agentContext",
               tooltip =
@@ -63,7 +63,7 @@ public record AgentRequest(
         @FEEL
             @TemplateProperty(
                 group = "systemPrompt",
-                label = "System Prompt",
+                label = "System prompt",
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true),
@@ -73,7 +73,7 @@ public record AgentRequest(
         @FEEL
             @TemplateProperty(
                 group = "systemPrompt",
-                label = "System Prompt Parameters",
+                label = "System prompt parameters",
                 description = PROMPT_PARAMETERS_DESCRIPTION,
                 tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
@@ -103,7 +103,7 @@ Reveal **no** additional private reasoning outside these tags.
         @FEEL
             @TemplateProperty(
                 group = "userPrompt",
-                label = "User Prompt",
+                label = "User prompt",
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
@@ -112,7 +112,7 @@ Reveal **no** additional private reasoning outside these tags.
         @FEEL
             @TemplateProperty(
                 group = "userPrompt",
-                label = "User Prompt Parameters",
+                label = "User prompt parameters",
                 description = PROMPT_PARAMETERS_DESCRIPTION,
                 tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
@@ -147,7 +147,7 @@ Reveal **no** additional private reasoning outside these tags.
         @FEEL
             @TemplateProperty(
                 group = "tools",
-                label = "Tool Call Results",
+                label = "Tool call results",
                 description = "Tool call results as returned by the sub-process.",
                 tooltip =
                     "This defines where to handle tool call results returned by the ad-hoc sub-process. Model this "

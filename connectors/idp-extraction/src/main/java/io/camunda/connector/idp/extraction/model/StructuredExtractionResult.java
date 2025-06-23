@@ -10,6 +10,6 @@ import java.util.Map;
 
 public record StructuredExtractionResult(
     Map<String, Object> extractedFields,
-    Map<String, Float> confidenceScore,
+    Map<String, Object> confidenceScore,
     Map<String, String> originalKeys,
     Map<String, Polygon> geometry) {}

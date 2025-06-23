@@ -73,8 +73,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
 
   @BeforeAll
   public static void setup() throws IOException, TimeoutException {
-    rabbitMQContainer =
-        new RabbitMQContainer(DockerImageName.parse("rabbitmq:3.7.25-management-alpine"));
+    rabbitMQContainer = new RabbitMQContainer(DockerImageName.parse(RABBITMQ_TEST_IMAGE));
     rabbitMQContainer.start();
     PORT = String.valueOf(rabbitMQContainer.getAmqpPort());
     factory = new ConnectionFactory();

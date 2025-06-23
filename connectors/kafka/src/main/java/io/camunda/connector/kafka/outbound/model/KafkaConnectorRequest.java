@@ -23,7 +23,7 @@ public record KafkaConnectorRequest(
     @Valid @NotNull KafkaMessage message,
     @Valid OutboundSchemaStrategy schemaStrategy,
     @TemplateProperty(
-            group = "kafka",
+            group = "message",
             label = "Headers",
             optional = true,
             feel = Property.FeelMode.required,

@@ -93,7 +93,7 @@ public class DocumentAiCaller {
 
   private StructuredExtractionResponse extractFormFieldsWithConfidence(Document document) {
     Map<String, Object> keyValuePairs = new HashMap<>();
-    Map<String, Float> confidenceScores = new HashMap<>();
+    Map<String, Object> confidenceScores = new HashMap<>();
     Map<String, Polygon> geometry = new HashMap<>();
     Map<String, Integer> keyOccurrences = new HashMap<>();
     var nextTableIndex = 1;
@@ -142,42 +142,32 @@ public class DocumentAiCaller {
       // get tables
       for (Document.Page.Table table : page.getTablesList()) {
         List<List<String>> data = new ArrayList<>();
+        List<List<Float>> tableConfidence = new ArrayList<>();
 
         List<Document.Page.Table.TableRow> rows = new ArrayList<>();
         rows.addAll(table.getHeaderRowsList());
         rows.addAll(table.getBodyRowsList());
 
         for (Document.Page.Table.TableRow row : rows) {
-          processTableRow(document, row, data);
+          List<String> rowData = new ArrayList<>();
+          List<Float> rowConfidence = new ArrayList<>();
+          processTableRowWithConfidence(document, row, rowData, rowConfidence);
+          if (!rowData.isEmpty()) {
+            data.add(rowData);
+            tableConfidence.add(rowConfidence);
+          }
         }
 
         String tableKey = "table " + nextTableIndex++;
         keyValuePairs.put(tableKey, data);
-
-        // Calculate table confidence as average of all cell confidences
-        float tableConfidence = 0.0f;
-        int cellCount = 0;
-
-        for (Document.Page.Table.TableRow row : rows) {
-          for (Document.Page.Table.TableCell cell : row.getCellsList()) {
-            if (cell.hasLayout()) {
-              tableConfidence += cell.getLayout().getConfidence();
-              cellCount++;
-            }
-          }
-        }
-
-        if (cellCount > 0) {
-          tableConfidence /= cellCount;
-        }
-
         confidenceScores.put(tableKey, tableConfidence);
 
         List<PolygonPoint> tablePolygon =
-            table.getLayout().getBoundingPoly().getNormalizedVerticesList().stream()
-                .map(vertex -> new PolygonPoint(vertex.getX(), vertex.getY()))
-                .toList();
+                  table.getLayout().getBoundingPoly().getNormalizedVerticesList().stream()
+                          .map(vertex -> new PolygonPoint(vertex.getX(), vertex.getY()))
+                          .toList();
         geometry.put(tableKey, new Polygon(page.getPageNumber(), tablePolygon));
+
       }
     }
 
@@ -212,51 +202,49 @@ public class DocumentAiCaller {
     return result.toString().trim();
   }
 
-  private void processTableRow(
-      Document document, Document.Page.Table.TableRow row, List<List<String>> data) {
-    List<String> rowData = new ArrayList<>();
-
+  private void processTableRowWithConfidence(
+      Document document,
+      Document.Page.Table.TableRow row,
+      List<String> rowData,
+      List<Float> rowConfidence) {
     for (Document.Page.Table.TableCell cell : row.getCellsList()) {
       String cellText = "";
       if (cell.hasLayout()) {
         cellText = getTextFromLayout(document, cell.getLayout().getTextAnchor());
       }
       rowData.add(cellText);
-    }
-
-    if (!rowData.isEmpty()) {
-      data.add(rowData);
+      rowConfidence.add(cell.getLayout().getConfidence());
     }
   }
 
-  private List<PolygonPoint> getBoundingPolygon(
-      List<NormalizedVertex> polygon1, List<NormalizedVertex> polygon2) {
-    float minX = Float.MAX_VALUE;
-    float minY = Float.MAX_VALUE;
-    float maxX = Float.MIN_VALUE;
-    float maxY = Float.MIN_VALUE;
+    private List<PolygonPoint> getBoundingPolygon(
+            List<NormalizedVertex> polygon1, List<NormalizedVertex> polygon2) {
+        float minX = Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float maxX = Float.MIN_VALUE;
+        float maxY = Float.MIN_VALUE;
 
-    // Process all points from first polygon
-    for (NormalizedVertex point : polygon1) {
-      minX = Math.min(minX, point.getX());
-      minY = Math.min(minY, point.getY());
-      maxX = Math.max(maxX, point.getX());
-      maxY = Math.max(maxY, point.getY());
+        // Process all points from first polygon
+        for (NormalizedVertex point : polygon1) {
+            minX = Math.min(minX, point.getX());
+            minY = Math.min(minY, point.getY());
+            maxX = Math.max(maxX, point.getX());
+            maxY = Math.max(maxY, point.getY());
+        }
+
+        // Process all points from second polygon
+        for (NormalizedVertex point : polygon2) {
+            minX = Math.min(minX, point.getX());
+            minY = Math.min(minY, point.getY());
+            maxX = Math.max(maxX, point.getX());
+            maxY = Math.max(maxY, point.getY());
+        }
+
+        // Create the 4 corners of the bounding rectangle
+        return List.of(
+                new PolygonPoint(minX, minY),
+                new PolygonPoint(maxX, minY),
+                new PolygonPoint(maxX, maxY),
+                new PolygonPoint(minX, maxY));
     }
-
-    // Process all points from second polygon
-    for (NormalizedVertex point : polygon2) {
-      minX = Math.min(minX, point.getX());
-      minY = Math.min(minY, point.getY());
-      maxX = Math.max(maxX, point.getX());
-      maxY = Math.max(maxY, point.getY());
-    }
-
-    // Create the 4 corners of the bounding rectangle
-    return List.of(
-        new PolygonPoint(minX, minY),
-        new PolygonPoint(maxX, minY),
-        new PolygonPoint(maxX, maxY),
-        new PolygonPoint(minX, maxY));
-  }
 }

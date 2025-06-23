@@ -11,7 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.kafka.model.SchemaType;
 
-@TemplateSubType(id = "schemaRegistry", label = "Schema registry")
+@TemplateSubType(id = "schemaRegistry", label = "Confluent Schema registry")
 public final class InboundSchemaRegistryStrategy extends AbstractSchemaRegistryStrategy
     implements InboundSchemaStrategy {
   @TemplateProperty(ignore = true)

@@ -27,8 +27,8 @@
     "id" : "kafka",
     "label" : "Kafka"
   }, {
-    "id" : "message",
-    "label" : "Message deserialization"
+    "id" : "schema",
+    "label" : "Schema"
   }, {
     "id" : "activation",
     "label" : "Activation"
@@ -187,7 +187,7 @@
     "id" : "schemaStrategy.type",
     "label" : "Schema strategy",
     "value" : "noSchema",
-    "group" : "kafka",
+    "group" : "schema",
     "binding" : {
       "name" : "schemaStrategy.type",
       "type" : "zeebe:property"
@@ -197,19 +197,39 @@
       "name" : "No schema",
       "value" : "noSchema"
     }, {
-      "name" : "Inline schema",
+      "name" : "Avro Inline schema",
       "value" : "inlineSchema"
     }, {
-      "name" : "Schema registry",
+      "name" : "Confluent Schema registry",
       "value" : "schemaRegistry"
     } ]
+  }, {
+    "id" : "schemaStrategy.avro.schema",
+    "label" : "Schema",
+    "description" : "Avro inline schema for the message value",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "schema",
+    "binding" : {
+      "name" : "schemaStrategy.schema",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "schemaStrategy.type",
+      "equals" : "inlineSchema",
+      "type" : "simple"
+    },
+    "type" : "Text"
   }, {
     "id" : "schemaStrategy.schemaType",
     "label" : "Schema type",
     "description" : "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "value" : "avro",
-    "group" : "kafka",
+    "group" : "schema",
     "binding" : {
       "name" : "schemaStrategy.schemaType",
       "type" : "zeebe:property"
@@ -224,7 +244,7 @@
       "name" : "JSON",
       "value" : "json"
     }, {
-      "name" : "Avro (alpha)",
+      "name" : "Avro",
       "value" : "avro"
     } ]
   }, {
@@ -235,7 +255,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "group" : "kafka",
+    "group" : "schema",
     "binding" : {
       "name" : "schemaStrategy.schemaRegistryUrl",
       "type" : "zeebe:property"
@@ -246,26 +266,6 @@
       "type" : "simple"
     },
     "type" : "String"
-  }, {
-    "id" : "schemaStrategy.avro.schema",
-    "label" : "Schema",
-    "description" : "Inline schema (Avro) for the message value",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "message",
-    "binding" : {
-      "name" : "schemaStrategy.schema",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "schemaStrategy.type",
-      "equals" : "inlineSchema",
-      "type" : "simple"
-    },
-    "type" : "Text"
   }, {
     "id" : "activationCondition",
     "label" : "Activation condition",
