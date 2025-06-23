@@ -239,6 +239,21 @@ public class OperateJwtClientAssertionAuth {
     }
   }
 
+  /**
+   * Reset/invalidate the cached token. This will force a new token to be fetched on the next
+   * getAccessToken() call.
+   */
+  public void resetToken() {
+    tokenLock.writeLock().lock();
+    try {
+      LOG.info("Resetting cached JWT client assertion token");
+      cachedToken = null;
+      tokenExpiry = null;
+    } finally {
+      tokenLock.writeLock().unlock();
+    }
+  }
+
   /** Create JWT client assertion for OAuth2 authentication */
   private String createClientAssertion() {
     Instant now = Instant.now();

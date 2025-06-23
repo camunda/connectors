@@ -85,8 +85,8 @@ public class OperateJwtClientAssertionConfiguration {
           new Authentication() {
             @Override
             public void resetToken() {
-              // Reset/invalidate cached tokens - we'll trigger a new token fetch on next request
-              // Our OperateJwtClientAssertionAuth handles caching internally
+              // Reset/invalidate cached tokens by calling resetToken on the JWT auth provider
+              jwtAuth.resetToken();
             }
 
             @Override
