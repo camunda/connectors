@@ -11,7 +11,8 @@ To add more connectors to the image, follow the examples in the [Connector Runti
 
 # Docker Compose
 
-The Connectors Bundle is also part of the Camunda [docker-compose resources](https://github.com/camunda/camunda-platform) Docker Compose release.
+The Connectors Bundle is also part of the Camunda
+[docker-compose resources](https://github.com/camunda/camunda-distributions/tree/main/docker-compose) Docker Compose release.
 
 # Secrets
 
