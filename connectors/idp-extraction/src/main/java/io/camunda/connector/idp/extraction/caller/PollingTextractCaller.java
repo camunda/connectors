@@ -312,9 +312,9 @@ public class PollingTextractCaller {
       keyValuePairs.put(tableKey, tableData);
       confidenceScores.put(tableKey, tableConfidence);
       List<PolygonPoint> tablePolygons =
-                table.geometry().polygon().stream()
-                        .map(point -> new PolygonPoint(point.x(), point.y()))
-                        .toList();
+          table.geometry().polygon().stream()
+              .map(point -> new PolygonPoint(point.x(), point.y()))
+              .toList();
       geometry.put(tableKey, new Polygon(table.page(), tablePolygons));
     }
 

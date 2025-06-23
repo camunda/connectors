@@ -163,11 +163,10 @@ public class DocumentAiCaller {
         confidenceScores.put(tableKey, tableConfidence);
 
         List<PolygonPoint> tablePolygon =
-                  table.getLayout().getBoundingPoly().getNormalizedVerticesList().stream()
-                          .map(vertex -> new PolygonPoint(vertex.getX(), vertex.getY()))
-                          .toList();
+            table.getLayout().getBoundingPoly().getNormalizedVerticesList().stream()
+                .map(vertex -> new PolygonPoint(vertex.getX(), vertex.getY()))
+                .toList();
         geometry.put(tableKey, new Polygon(page.getPageNumber(), tablePolygon));
-
       }
     }
 
@@ -217,34 +216,34 @@ public class DocumentAiCaller {
     }
   }
 
-    private List<PolygonPoint> getBoundingPolygon(
-            List<NormalizedVertex> polygon1, List<NormalizedVertex> polygon2) {
-        float minX = Float.MAX_VALUE;
-        float minY = Float.MAX_VALUE;
-        float maxX = Float.MIN_VALUE;
-        float maxY = Float.MIN_VALUE;
+  private List<PolygonPoint> getBoundingPolygon(
+      List<NormalizedVertex> polygon1, List<NormalizedVertex> polygon2) {
+    float minX = Float.MAX_VALUE;
+    float minY = Float.MAX_VALUE;
+    float maxX = Float.MIN_VALUE;
+    float maxY = Float.MIN_VALUE;
 
-        // Process all points from first polygon
-        for (NormalizedVertex point : polygon1) {
-            minX = Math.min(minX, point.getX());
-            minY = Math.min(minY, point.getY());
-            maxX = Math.max(maxX, point.getX());
-            maxY = Math.max(maxY, point.getY());
-        }
-
-        // Process all points from second polygon
-        for (NormalizedVertex point : polygon2) {
-            minX = Math.min(minX, point.getX());
-            minY = Math.min(minY, point.getY());
-            maxX = Math.max(maxX, point.getX());
-            maxY = Math.max(maxY, point.getY());
-        }
-
-        // Create the 4 corners of the bounding rectangle
-        return List.of(
-                new PolygonPoint(minX, minY),
-                new PolygonPoint(maxX, minY),
-                new PolygonPoint(maxX, maxY),
-                new PolygonPoint(minX, maxY));
+    // Process all points from first polygon
+    for (NormalizedVertex point : polygon1) {
+      minX = Math.min(minX, point.getX());
+      minY = Math.min(minY, point.getY());
+      maxX = Math.max(maxX, point.getX());
+      maxY = Math.max(maxY, point.getY());
     }
+
+    // Process all points from second polygon
+    for (NormalizedVertex point : polygon2) {
+      minX = Math.min(minX, point.getX());
+      minY = Math.min(minY, point.getY());
+      maxX = Math.max(maxX, point.getX());
+      maxY = Math.max(maxY, point.getY());
+    }
+
+    // Create the 4 corners of the bounding rectangle
+    return List.of(
+        new PolygonPoint(minX, minY),
+        new PolygonPoint(maxX, minY),
+        new PolygonPoint(maxX, maxY),
+        new PolygonPoint(minX, maxY));
+  }
 }
