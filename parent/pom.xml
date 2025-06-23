@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.camunda</groupId>
     <artifactId>camunda-release-parent</artifactId>
-    <version>3.10.0</version>
+    <version>4.0.0</version>
     <!-- do not remove empty tag - http://jira.codehaus.org/browse/MNG-4687 -->
     <relativePath/>
   </parent>
@@ -68,7 +68,6 @@ limitations under the License.</license.inlineheader>
     <!-- release parent settings -->
     <nexus.snapshot.repository>https://artifacts.camunda.com/artifactory/connectors-snapshots/</nexus.snapshot.repository>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
-    <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
     <version.camunda>8.8.0-SNAPSHOT</version.camunda>
@@ -969,7 +968,7 @@ limitations under the License.</license.inlineheader>
     </profile>
 
     <profile>
-      <id>sonatype-oss-release</id>
+      <id>central-sonatype-publish</id>
       <build>
         <pluginManagement>
           <plugins>
