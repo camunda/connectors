@@ -6,7 +6,7 @@
   "metadata" : {
     "keywords" : [ ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
   "version" : 1,
   "category" : {
     "id" : "connectors",

@@ -89,22 +89,21 @@ public class StructuredServiceTest {
   }
 
   @Test
-  void extractUsingTextract_WithExcludedFields_ReturnsCorrectResultWithoutExcludedFields()
-      throws Exception {
+  void extractUsingTextract_WithIncludedFields_ReturnsOnlyIncludedFields() throws Exception {
     // given
     AwsProvider baseRequest = ExtractionTestUtils.createDefaultAwsProvider();
 
-    ExtractionRequestData requestDataWithExclusions =
+    ExtractionRequestData requestDataWithInclusions =
         new ExtractionRequestData(
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.document(),
             ExtractionType.STRUCTURED,
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.taxonomyItems(),
-            List.of("Total Amount"), // Use original field name instead of formatted name
+            List.of("Invoice Number", "Supplier Name"), // Only include these fields
             null, // No rename mappings
             "_", // Set a delimiter
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.converseData());
 
-    ExtractionRequest request = new ExtractionRequest(requestDataWithExclusions, baseRequest);
+    ExtractionRequest request = new ExtractionRequest(requestDataWithInclusions, baseRequest);
 
     StructuredExtractionResponse extractionResponse = getStructuredExtractionResponse();
 
@@ -129,7 +128,7 @@ public class StructuredServiceTest {
         .containsEntry("supplier_name", 0.92f)
         .doesNotContainKey("total_amount");
 
-    // Verify original keys were properly mapped (excluding the excluded field)
+    // Verify original keys were properly mapped (excluding non-included fields)
     assertThat(structuredResult.originalKeys())
         .containsEntry("invoice_number", "Invoice Number")
         .containsEntry("supplier_name", "Supplier Name")
@@ -218,7 +217,7 @@ public class StructuredServiceTest {
   }
 
   @Test
-  void extractUsingGcp_WithExcludedFields_ReturnsCorrectResultWithoutExcludedFields() {
+  void extractUsingGcp_WithIncludedFields_ReturnsOnlyIncludedFields() {
     GcpProvider gcpProvider = new GcpProvider();
     DocumentAiRequestConfiguration configuration =
         new DocumentAiRequestConfiguration("us-central1", "test-project", "test-processor-id");
@@ -228,20 +227,20 @@ public class StructuredServiceTest {
         new GcpAuthentication(GcpAuthenticationType.BEARER, "test-token", null, null, null, null);
     gcpProvider.setAuthentication(authentication);
 
-    // Create a custom extraction request with excluded fields
-    ExtractionRequestData requestDataWithExclusions =
+    // Create a custom extraction request with included fields
+    ExtractionRequestData requestDataWithInclusions =
         new ExtractionRequestData(
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.document(),
             ExtractionType.STRUCTURED,
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.taxonomyItems(),
-            List.of("Total Amount"), // Use original field name instead of formatted name
+            List.of("Invoice Number", "Supplier Name"), // Only include these fields
             null, // No rename mappings
             "_", // Set a delimiter
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.converseData());
 
-    ExtractionRequest request = new ExtractionRequest(requestDataWithExclusions, gcpProvider);
+    ExtractionRequest request = new ExtractionRequest(requestDataWithInclusions, gcpProvider);
 
-    // Create the extraction response with all fields (including the one to be excluded)
+    // Create the extraction response with all fields (but only included ones will be processed)
     StructuredExtractionResponse extractionResponse = getStructuredExtractionResponse();
 
     // Mock the Document AI caller to return our sample response
@@ -268,7 +267,7 @@ public class StructuredServiceTest {
         .containsEntry("supplier_name", 0.92f)
         .doesNotContainKey("total_amount");
 
-    // Verify original keys were properly mapped (excluding the excluded field)
+    // Verify original keys were properly mapped (excluding non-included fields)
     assertThat(structuredResult.originalKeys())
         .containsEntry("invoice_number", "Invoice Number")
         .containsEntry("supplier_name", "Supplier Name")
@@ -315,7 +314,7 @@ public class StructuredServiceTest {
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.document(),
             ExtractionType.STRUCTURED,
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.taxonomyItems(),
-            null, // No excluded fields
+            null,
             renameMappings, // Apply our custom rename mappings
             "_", // Set a delimiter
             ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA.converseData());

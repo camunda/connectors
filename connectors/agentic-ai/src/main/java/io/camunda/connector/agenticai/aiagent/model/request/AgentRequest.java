@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -27,8 +28,12 @@ public record AgentRequest(
               label = "Agent Context",
               group = "memory",
               id = "agentContext",
-              description =
-                  "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response.",
+              tooltip =
+                  "The agent context variable containing all relevant data for the agent to support the feedback loop between "
+                      + "user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> "
+                      + "variable which is returned from the agent response. "
+                      + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                      + "for details.",
               constraints = @PropertyConstraints(notEmpty = true),
               type = TemplateProperty.PropertyType.Text,
               feel = Property.FeelMode.required,
@@ -39,13 +44,14 @@ public record AgentRequest(
       @Valid @NotNull UserPromptConfiguration userPrompt,
       @Valid ToolsConfiguration tools,
       @Valid MemoryConfiguration memory,
-      @Valid LimitsConfiguration limits) {
+      @Valid LimitsConfiguration limits,
+      @Valid ResponseConfiguration response) {
 
     public interface PromptConfiguration {
       String PROMPT_PARAMETERS_DESCRIPTION =
-          "Map of parameters which can be used in <code>{{parameter}}</code> format in the prompt text.";
+          "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.";
       String PROMPT_PARAMETERS_TOOLTIP =
-          "Default parameters provided by the integration: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>";
+          "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>";
 
       String prompt();
 
@@ -115,8 +121,11 @@ Reveal **no** additional private reasoning outside these tags.
             @TemplateProperty(
                 group = "userPrompt",
                 label = "Documents",
-                description = "Documents to be included in the user prompt",
-                tooltip = "Referenced documents will be transparently added to the user prompt.",
+                description = "Documents to be included in the user prompt.",
+                tooltip =
+                    "Referenced documents will be automatically added to the user prompt. "
+                        + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                        + "for details and supported file types.",
                 feel = Property.FeelMode.required,
                 optional = true)
             List<Document> documents)
@@ -126,26 +135,28 @@ Reveal **no** additional private reasoning outside these tags.
         @TemplateProperty(
                 group = "tools",
                 label = "Ad-hoc sub-process ID",
-                description = "The ID of the sub-process containing the tools to be called.",
+                description = "ID of the sub-process that contains the tools the AI agent can use.",
                 tooltip =
-                    "When configured, the AI agent connector will resolve available tools from the sub-process. To actually "
-                        + "use the tools, you need to model your process to include a tools feedback loop, routing into the "
-                        + "ad-hoc sub-process and back to the AI agent connector. Details see in the documentation.",
+                    "Add an ad-hoc sub-process ID to attach the AI agent to the tools. Ensure your process includes a tools "
+                        + "feedback loop routing into the ad-hoc sub-process and back to the AI agent connector. "
+                        + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                        + "for details.",
                 optional = true)
             String containerElementId,
         @FEEL
             @TemplateProperty(
                 group = "tools",
                 label = "Tool Call Results",
-                description = "Tool call results as returned by the sub-process",
+                description = "Tool call results as returned by the sub-process.",
                 tooltip =
-                    "Like the ad-hoc sub-process this needs to be modeled in your process and configured to the tool call "
-                        + "results provided by the ad-hoc sub-process execution as part of the tools feedback loop. Details see "
-                        + "in the documentation.",
+                    "This defines where to handle tool call results returned by the ad-hoc sub-process. Model this "
+                        + "as part of your process and route it into the tools feedback loop. "
+                        + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                        + "for details.",
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.required,
                 optional = true)
-            List<Map<String, Object>> toolCallResults) {}
+            List<ToolCallResult> toolCallResults) {}
 
     public record MemoryConfiguration(
         // TODO support more advanced eviction policies (token window)
@@ -153,7 +164,12 @@ Reveal **no** additional private reasoning outside these tags.
                 group = "memory",
                 label = "Maximum messages",
                 description =
-                    "Maximum amount of messages to keep in short-term/conversation memory.",
+                    "Maximum number of recent messages the AI agent retains in short-term memory during a conversation.",
+                tooltip =
+                    "Use this to limit the number of messages which are sent to the model. The agent will only send "
+                        + "the most recent messages up to the configured limit to the LLM and evict older messages. "
+                        + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                        + "for details.",
                 type = TemplateProperty.PropertyType.Number,
                 defaultValue = "20",
                 defaultValueType = TemplateProperty.DefaultValueType.Number,
@@ -175,5 +191,29 @@ Reveal **no** additional private reasoning outside these tags.
             @NotNull
             @Min(1)
             Integer maxModelCalls) {}
+
+    public record ResponseConfiguration(
+        @TemplateProperty(
+                group = "response",
+                label = "Include text output",
+                description =
+                    "Adds the first text output of the assistant message to the response.",
+                tooltip =
+                    "The text output will be available as <code>response.responseText</code>.",
+                type = TemplateProperty.PropertyType.Boolean,
+                defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+                defaultValue = "true")
+            boolean includeText,
+        @TemplateProperty(
+                group = "response",
+                label = "Include assistant message",
+                description = "Adds the full assistant message to the response.",
+                tooltip =
+                    "In addition to the text content, the assistant message may include multiple additional content blocks "
+                        + "and metadata (such as token usage). The message output will be available as <code>response.responseMessage</code>.",
+                type = TemplateProperty.PropertyType.Boolean,
+                defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+                defaultValue = "false")
+            boolean includeAssistantMessage) {}
   }
 }

@@ -51,15 +51,15 @@ public record ExtractionRequestData(
             feel = Property.FeelMode.disabled)
         List<TaxonomyItem> taxonomyItems,
     @TemplateProperty(
-            id = "excludedFields",
-            label = "Excluded Fields",
+            id = "includedFields",
+            label = "Included Fields",
             group = "input",
             type = TemplateProperty.PropertyType.Hidden,
-            description = "List of fields that should not be returned from the extraction",
-            defaultValue = "= input.excludedFields",
-            binding = @PropertyBinding(name = "excludedFields"),
+            description = "List of fields that should be returned from the extraction",
+            defaultValue = "= input.includedFields",
+            binding = @PropertyBinding(name = "includedFields"),
             feel = Property.FeelMode.disabled)
-        List<String> excludedFields,
+        List<String> includedFields,
     @TemplateProperty(
             id = "renameMappings",
             label = "Rename mappings",

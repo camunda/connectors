@@ -91,6 +91,8 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);
 
+  private static final String ERROR_ACTIVITY_LOG_TAG = "Error";
+
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
   private InboundConnectorContext context;
@@ -120,6 +122,10 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
     var authResult = authChecker.checkAuthorization(payload);
     if (authResult instanceof Failure failureResult) {
+      context.log(
+          Activity.level(Severity.ERROR)
+              .tag(ERROR_ACTIVITY_LOG_TAG)
+              .message("Authorization check failed: " + failureResult.getMessage()));
       throw failureResult.toException();
     }
 
@@ -130,6 +136,10 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private void validateHttpMethod(WebhookProcessingPayload payload) {
     if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
         && !payload.method().equalsIgnoreCase(props.method())) {
+      context.log(
+          Activity.level(Severity.ERROR)
+              .tag(ERROR_ACTIVITY_LOG_TAG)
+              .message("HTTP method '" + props.method() + "' is not supported"));
       throw new WebhookConnectorException(
           HttpResponseStatus.METHOD_NOT_ALLOWED.code(),
           "Method " + payload.method() + " not supported");
@@ -164,6 +174,10 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private void verifySignature(WebhookProcessingPayload payload) {
     if (!webhookSignatureIsValid(payload)) {
+      context.log(
+          Activity.level(Severity.ERROR)
+              .tag(ERROR_ACTIVITY_LOG_TAG)
+              .message("HMAC signature is invalid"));
       throw new WebhookSecurityException(
           HttpResponseStatus.UNAUTHORIZED.code(),
           Reason.INVALID_SIGNATURE,

@@ -126,7 +126,10 @@ public class StructuredService implements ExtractionService {
               }
               Float confidenceScore = response.confidenceScore().get(key);
 
-              if ((input.excludedFields() == null || !input.excludedFields().contains(key))
+              // if the list is empty will not filter any fields.
+              if ((input.includedFields() == null
+                      || input.includedFields().isEmpty()
+                      || input.includedFields().contains(key))
                   && value != null) {
                 parsedResults.put(variableName, value);
                 originalKeys.put(variableName, key);

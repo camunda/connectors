@@ -18,7 +18,8 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.json-schema-validator>1.5.6</version.json-schema-validator>
+    <version.json-schema-validator>1.5.7</version.json-schema-validator>
+    <version.record-builder>47</version.record-builder>
   </properties>
 
   <licenses>
@@ -42,6 +43,13 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.soabase.record-builder</groupId>
+      <artifactId>record-builder-core</artifactId>
+      <version>${version.record-builder}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -97,6 +105,19 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>io.soabase.record-builder</groupId>
+              <artifactId>record-builder-processor</artifactId>
+              <version>${version.record-builder}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
@@ -106,7 +127,7 @@
               <connectorClass>io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.adhoctoolsschema.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.adhoctoolsschema.v1</templateId>
                   <templateFileName>agenticai-adhoctoolsschema-outbound-connector.json</templateFileName>
                 </file>
               </files>
@@ -117,7 +138,7 @@
               <connectorClass>io.camunda.connector.agenticai.aiagent.AiAgentFunction</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.aiagent.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.aiagent.v1</templateId>
                   <templateFileName>agenticai-aiagent-outbound-connector.json</templateFileName>
                 </file>
               </files>

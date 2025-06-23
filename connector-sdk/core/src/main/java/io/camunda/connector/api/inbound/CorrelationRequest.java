@@ -20,7 +20,10 @@ import java.util.Objects;
 
 /**
  * Represents a request to correlate an inbound event with a process definition. This request
- * includes the variables necessary for correlation and a message ID
+ * includes the variables necessary for correlation and a message ID.
+ *
+ * <p>The specified message ID will only be used as a fallback value if a custom message ID
+ * expression is not configured in the connector's element template.
  *
  * @see <a
  *     href="https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview">Message
@@ -38,7 +41,8 @@ public class CorrelationRequest {
    * Constructs a new {@code CorrelationRequest} with the specified variables and message ID.
    *
    * @param variables the inbound connector variables required for correlation
-   * @param messageId the unique identifier of the message
+   * @param messageId the unique identifier of the message. It will only be used as a fallback value
+   *     if a custom message ID expression is not configured in the connector's element template.
    */
   public CorrelationRequest(Object variables, String messageId) {
     this.variables = variables;

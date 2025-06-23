@@ -31,7 +31,7 @@ import io.camunda.connector.model.EmbeddingsVectorDBRequest;
       @ElementTemplate.PropertyGroup(id = "document", label = "Document")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
+        "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
     icon = "icon.svg")
 public class EmbeddingsVectorDBFunction implements OutboundConnectorFunction {
 
