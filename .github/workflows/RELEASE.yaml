@@ -133,7 +133,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
-        run: mvn -B deploy -DskipTests -Psonatype-oss-release
+        run: mvn -B deploy -DskipTests -Pcentral-sonatype-publish
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
