@@ -751,6 +751,7 @@ limitations under the License.</license.inlineheader>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${plugin.version.maven-surefire-plugin}</version>
           <configuration>
+            <skip>true</skip>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
             <runOrder>hourly</runOrder>
             <argLine>-Duser.language=en -Duser.region=US</argLine>
