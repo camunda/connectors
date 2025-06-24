@@ -127,11 +127,16 @@ public class StructuredService implements ExtractionService {
               }
               Object confidenceScore = response.confidenceScore().get(key);
 
-              // if the list is empty will not filter any fields.
-              if ((input.includedFields() == null
-                      || input.includedFields().isEmpty()
-                      || input.includedFields().contains(key))
-                  && value != null) {
+              // Check if field should be included based on includedFields filter
+              boolean shouldInclude;
+              if (input.includedFields() == null || input.includedFields().isEmpty()) {
+                shouldInclude = true;
+              } else {
+                shouldInclude = input.includedFields().contains(key);
+              }
+
+              // Include the field if it should be included and value is not null
+              if (shouldInclude && value != null) {
                 parsedResults.put(variableName, value);
                 originalKeys.put(variableName, key);
                 processedGeometry.put(variableName, response.geometry().get(key));
