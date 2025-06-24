@@ -34,6 +34,7 @@ import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.SlowTest;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -54,6 +55,7 @@ public class Langchain4JAiAgentToolCallingTests extends BaseLangchain4JAiAgentTe
                 .hasNoResponseJson());
   }
 
+  @Disabled("https://github.com/camunda/connectors/issues/4950")
   @ParameterizedTest
   @CsvSource({
     "test.jpg,base64,image/jpeg",
