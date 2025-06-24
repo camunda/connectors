@@ -31,8 +31,7 @@ Example adding a Connector JAR by using volumes
 docker run --rm --name=connectors -d \
             -v $PWD/connector.jar:/opt/app/connector.jar \                      # Add a connector jar to the classpath
             --network=your-zeebe-network \                                      # Optional: attach to network if Zeebe is isolated with Docker network
-            -e ZEEBE_CLIENT_BROKER_GATEWAY-ADDRESS=ip.address.of.zeebe:26500 \  # Specify Zeebe address
-            -e ZEEBE_CLIENT_SECURITY_PLAINTEXT=true \                           # Optional: provide security configs to connect to Zeebe
+            -e CAMUNDA_CLIENT_GRPCADDRESS=http://ip.address.of.zeebe:26500 \  # Specify Zeebe address
             camunda/connectors:0.20.0
 ```
 
@@ -46,8 +45,7 @@ For example, you can inject secrets when running a container:
 docker run --rm --name=connectors -d \
            -v $PWD/connector.jar:/opt/app/connector.jar \                      # Add a connector jar to the classpath
            --network=your-zeebe-network \                                      # Optional: attach to network if Zeebe is isolated with Docker network
-           -e ZEEBE_CLIENT_BROKER_GATEWAY-ADDRESS=ip.address.of.zeebe:26500 \  # Specify Zeebe address
-           -e ZEEBE_CLIENT_SECURITY_PLAINTEXT=true \                           # Optional: provide security configs to connect to Zeebe
+           -e CAMUNDA_CLIENT_GRPCADDRESS=http://ip.address.of.zeebe:26500 \  # Specify Zeebe address
            -e MY_SECRET=secret \                                               # Optional: set a secret with value
            -e SECRET_FROM_SHELL \                                              # Optional: set a secret from the environment
            --env-file secrets.txt \                                            # Optional: set secrets from a file
@@ -81,8 +79,7 @@ docker run --rm --name=connectors -d \
            -v $PWD/connector.jar:/opt/app/connector.jar \
            -v $PWD/your_truststore_file:/opt/security/truststore/your_truststore_file \  # Mount your trust store with self-signed certificates
            --network=your-zeebe-network \                                                # Optional: attach to network if Zeebe is isolated with Docker network
-           -e ZEEBE_CLIENT_BROKER_GATEWAY-ADDRESS=ip.address.of.zeebe:26500 \            # Specify Zeebe address
-           -e ZEEBE_CLIENT_SECURITY_PLAINTEXT=true \                                     # Optional: provide security configs to connect to Zeebe
+           -e CAMUNDA_CLIENT_GRPCADDRESS=http://ip.address.of.zeebe:26500 \            # Specify Zeebe address
            -e JAVAX_NET_SSL_TRUSTSTORE=/opt/security/truststore/your_truststore_file \   # Change your trust store file name
            -e JAVAX_NET_SSL_TRUSTSTOREPASSWORD=your_truststore_password \                # Provide your trust store password
            camunda/connectors:0.20.0
