@@ -9,4 +9,6 @@ package io.camunda.connector.idp.extraction.model;
 import java.util.Map;
 
 public record StructuredExtractionResponse(
-    Map<String, Object> extractedFields, Map<String, Object> confidenceScore) {}
+    Map<String, Object> extractedFields,
+    Map<String, Object> confidenceScore,
+    Map<String, Polygon> geometry) {}

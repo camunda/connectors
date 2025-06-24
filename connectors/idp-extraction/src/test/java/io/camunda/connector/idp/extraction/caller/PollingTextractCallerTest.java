@@ -326,6 +326,16 @@ class PollingTextractCallerTest {
             .id("table1")
             .blockType(BlockType.TABLE)
             .confidence(0.96f)
+            .page(1)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.1f).y(0.1f).build(),
+                            Point.builder().x(0.9f).y(0.1f).build(),
+                            Point.builder().x(0.9f).y(0.5f).build(),
+                            Point.builder().x(0.1f).y(0.5f).build()))
+                    .build())
             .relationships(
                 List.of(
                     Relationship.builder()
@@ -342,6 +352,16 @@ class PollingTextractCallerTest {
             .blockType(BlockType.KEY_VALUE_SET)
             .entityTypes(List.of(EntityType.KEY))
             .confidence(0.98f)
+            .page(1)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.1f).y(0.1f).build(),
+                            Point.builder().x(0.3f).y(0.1f).build(),
+                            Point.builder().x(0.3f).y(0.2f).build(),
+                            Point.builder().x(0.1f).y(0.2f).build()))
+                    .build())
             .relationships(
                 List.of(
                     Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t10")).build(),
@@ -354,6 +374,16 @@ class PollingTextractCallerTest {
             .blockType(BlockType.KEY_VALUE_SET)
             .entityTypes(List.of(EntityType.VALUE))
             .confidence(0.97f)
+            .page(1)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.4f).y(0.1f).build(),
+                            Point.builder().x(0.7f).y(0.1f).build(),
+                            Point.builder().x(0.7f).y(0.2f).build(),
+                            Point.builder().x(0.4f).y(0.2f).build()))
+                    .build())
             .relationships(
                 List.of(
                     Relationship.builder()
@@ -466,5 +496,250 @@ class PollingTextractCallerTest {
         0.0089f, tableConfidenceData.get(2).get(0), 0.0001f); // "Jane Smith" cell confidence
     assertEquals(0.0088f, tableConfidenceData.get(2).get(1), 0.0001f); // "28" cell confidence
     assertEquals(0.0087f, tableConfidenceData.get(2).get(2), 0.0001f); // "London" cell confidence
+
+    // Test geometry/position extraction for key-value pairs
+    assertTrue(response.geometry().containsKey("Invoice"));
+    io.camunda.connector.idp.extraction.model.Polygon invoicePolygon =
+        response.geometry().get("Invoice");
+    assertEquals(1, invoicePolygon.getPage()); // Should be page 1
+
+    // The polygon should combine both key and value bounding boxes
+    // Expected combined bounding box: min(0.1, 0.4) = 0.1, max(0.3, 0.7) = 0.7 for X
+    // Y coordinates: min(0.1, 0.1) = 0.1, max(0.2, 0.2) = 0.2
+    List<io.camunda.connector.idp.extraction.model.PolygonPoint> invoicePoints =
+        invoicePolygon.getPoints();
+    assertEquals(4, invoicePoints.size()); // Should have 4 corner points
+
+    // Check that the bounding rectangle encompasses both key and value regions
+    boolean foundTopLeft =
+        invoicePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.1f);
+    boolean foundTopRight =
+        invoicePoints.stream().anyMatch(p -> p.getX() == 0.7f && p.getY() == 0.1f);
+    boolean foundBottomRight =
+        invoicePoints.stream().anyMatch(p -> p.getX() == 0.7f && p.getY() == 0.2f);
+    boolean foundBottomLeft =
+        invoicePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.2f);
+
+    assertTrue(foundTopLeft, "Should contain top-left corner (0.1, 0.1)");
+    assertTrue(foundTopRight, "Should contain top-right corner (0.7, 0.1)");
+    assertTrue(foundBottomRight, "Should contain bottom-right corner (0.7, 0.2)");
+    assertTrue(foundBottomLeft, "Should contain bottom-left corner (0.1, 0.2)");
+
+    // Test geometry/position extraction for tables
+    assertTrue(response.geometry().containsKey("table 1"));
+    io.camunda.connector.idp.extraction.model.Polygon tablePolygon =
+        response.geometry().get("table 1");
+    assertEquals(1, tablePolygon.getPage()); // Should be page 1
+
+    // Verify the table polygon points are correctly extracted
+    List<io.camunda.connector.idp.extraction.model.PolygonPoint> tablePoints =
+        tablePolygon.getPoints();
+    assertEquals(4, tablePoints.size()); // Should have 4 corner points
+
+    // Check that the table polygon contains the expected vertices from our mock
+    boolean foundTableTopLeft =
+        tablePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.1f);
+    boolean foundTableTopRight =
+        tablePoints.stream().anyMatch(p -> p.getX() == 0.9f && p.getY() == 0.1f);
+    boolean foundTableBottomRight =
+        tablePoints.stream().anyMatch(p -> p.getX() == 0.9f && p.getY() == 0.5f);
+    boolean foundTableBottomLeft =
+        tablePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.5f);
+
+    assertTrue(foundTableTopLeft, "Should contain table top-left corner (0.1, 0.1)");
+    assertTrue(foundTableTopRight, "Should contain table top-right corner (0.9, 0.1)");
+    assertTrue(foundTableBottomRight, "Should contain table bottom-right corner (0.9, 0.5)");
+    assertTrue(foundTableBottomLeft, "Should contain table bottom-left corner (0.1, 0.5)");
+  }
+
+  @Test
+  void extractKeyValuePairsWithConfidence_VerifiesPolygonCalculationForMultipleFields()
+      throws Exception {
+    // Arrange
+    String jobId = "1";
+
+    // Create key-value blocks with different positions to test polygon calculation
+    Block nameKeyBlock =
+        Block.builder()
+            .id("k1")
+            .text("Name")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.KEY))
+            .confidence(0.95f)
+            .page(2) // Use page 2 to test page number extraction
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.1f).y(0.1f).build(), // Top-left area
+                            Point.builder().x(0.2f).y(0.1f).build(),
+                            Point.builder().x(0.2f).y(0.2f).build(),
+                            Point.builder().x(0.1f).y(0.2f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t1")).build(),
+                    Relationship.builder().type(RelationshipType.VALUE).ids(List.of("v1")).build()))
+            .build();
+
+    Block nameValueBlock =
+        Block.builder()
+            .id("v1")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.VALUE))
+            .confidence(0.90f)
+            .page(2)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.3f).y(0.1f).build(), // Top-right area
+                            Point.builder().x(0.4f).y(0.1f).build(),
+                            Point.builder().x(0.4f).y(0.2f).build(),
+                            Point.builder().x(0.3f).y(0.2f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t2")).build()))
+            .build();
+
+    Block dateKeyBlock =
+        Block.builder()
+            .id("k2")
+            .text("Date")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.KEY))
+            .confidence(0.85f)
+            .page(2)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.1f).y(0.8f).build(), // Bottom-left area
+                            Point.builder().x(0.2f).y(0.8f).build(),
+                            Point.builder().x(0.2f).y(0.9f).build(),
+                            Point.builder().x(0.1f).y(0.9f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t3")).build(),
+                    Relationship.builder().type(RelationshipType.VALUE).ids(List.of("v2")).build()))
+            .build();
+
+    Block dateValueBlock =
+        Block.builder()
+            .id("v2")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.VALUE))
+            .confidence(0.80f)
+            .page(2)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.6f).y(0.8f).build(), // Bottom-right area
+                            Point.builder().x(0.9f).y(0.8f).build(),
+                            Point.builder().x(0.9f).y(0.9f).build(),
+                            Point.builder().x(0.6f).y(0.9f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t4")).build()))
+            .build();
+
+    Block nameKeyText = Block.builder().id("t1").text("Name").blockType(BlockType.WORD).build();
+    Block nameValueText = Block.builder().id("t2").text("John").blockType(BlockType.WORD).build();
+    Block dateKeyText = Block.builder().id("t3").text("Date").blockType(BlockType.WORD).build();
+    Block dateValueText =
+        Block.builder().id("t4").text("01/01/2024").blockType(BlockType.WORD).build();
+
+    List<Block> blocks =
+        List.of(
+            nameKeyBlock,
+            nameValueBlock,
+            dateKeyBlock,
+            dateValueBlock,
+            nameKeyText,
+            nameValueText,
+            dateKeyText,
+            dateValueText);
+
+    GetDocumentAnalysisResponse getDocumentAnalysisResponse =
+        GetDocumentAnalysisResponse.builder().jobStatus(JobStatus.SUCCEEDED).blocks(blocks).build();
+
+    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
+        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(startDocumentAnalysisResponse);
+
+    when(textractClient.getDocumentAnalysis(any(GetDocumentAnalysisRequest.class)))
+        .thenReturn(getDocumentAnalysisResponse);
+
+    // Act
+    StructuredExtractionResponse response =
+        new PollingTextractCaller()
+            .extractKeyValuePairsWithConfidence(
+                mockedDocument, "test-bucket", textractClient, s3AsyncClient);
+
+    // Assert
+    // Verify extracted fields
+    assertEquals("John", response.extractedFields().get("Name"));
+    assertEquals("01/01/2024", response.extractedFields().get("Date"));
+
+    // Test geometry extraction for Name field
+    assertTrue(response.geometry().containsKey("Name"));
+    io.camunda.connector.idp.extraction.model.Polygon namePolygon = response.geometry().get("Name");
+    assertEquals(2, namePolygon.getPage()); // Should be page 2
+
+    // Name field should have bounding box that encompasses both key (0.1,0.1 to 0.2,0.2)
+    // and value (0.3,0.1 to 0.4,0.2) polygons, resulting in (0.1,0.1 to 0.4,0.2)
+    List<io.camunda.connector.idp.extraction.model.PolygonPoint> namePoints =
+        namePolygon.getPoints();
+    assertEquals(4, namePoints.size());
+
+    boolean nameTopLeft = namePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.1f);
+    boolean nameTopRight = namePoints.stream().anyMatch(p -> p.getX() == 0.4f && p.getY() == 0.1f);
+    boolean nameBottomRight =
+        namePoints.stream().anyMatch(p -> p.getX() == 0.4f && p.getY() == 0.2f);
+    boolean nameBottomLeft =
+        namePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.2f);
+
+    assertTrue(
+        nameTopLeft && nameTopRight && nameBottomRight && nameBottomLeft,
+        "Name polygon should span from (0.1,0.1) to (0.4,0.2)");
+
+    // Test geometry extraction for Date field
+    assertTrue(response.geometry().containsKey("Date"));
+    io.camunda.connector.idp.extraction.model.Polygon datePolygon = response.geometry().get("Date");
+    assertEquals(2, datePolygon.getPage()); // Should be page 2
+
+    // Date field should have bounding box that encompasses both key (0.1,0.8 to 0.2,0.9)
+    // and value (0.6,0.8 to 0.9,0.9) polygons, resulting in (0.1,0.8 to 0.9,0.9)
+    List<io.camunda.connector.idp.extraction.model.PolygonPoint> datePoints =
+        datePolygon.getPoints();
+    assertEquals(4, datePoints.size());
+
+    boolean dateTopLeft = datePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.8f);
+    boolean dateTopRight = datePoints.stream().anyMatch(p -> p.getX() == 0.9f && p.getY() == 0.8f);
+    boolean dateBottomRight =
+        datePoints.stream().anyMatch(p -> p.getX() == 0.9f && p.getY() == 0.9f);
+    boolean dateBottomLeft =
+        datePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.9f);
+
+    assertTrue(
+        dateTopLeft && dateTopRight && dateBottomRight && dateBottomLeft,
+        "Date polygon should span from (0.1,0.8) to (0.9,0.9)");
+
+    // Verify confidence scores are correctly calculated (min of key and value, converted to
+    // percentage)
+    assertEquals(
+        0.009f,
+        (Float) response.confidenceScore().get("Name"),
+        0.0001f); // Min of 0.95 and 0.90, divided by 100
+    assertEquals(
+        0.008f,
+        (Float) response.confidenceScore().get("Date"),
+        0.0001f); // Min of 0.85 and 0.80, divided by 100
   }
 }

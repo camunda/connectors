@@ -9,6 +9,8 @@ package io.camunda.connector.idp.extraction.caller;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.idp.extraction.model.Polygon;
+import io.camunda.connector.idp.extraction.model.PolygonPoint;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.TextractAnalysisTask;
 import io.camunda.connector.idp.extraction.model.TextractTextDetectionTask;
@@ -216,6 +218,7 @@ public class PollingTextractCaller {
   private StructuredExtractionResponse extractDataFromDocument(List<Block> blocks) {
     Map<String, Object> keyValuePairs = new HashMap<>();
     Map<String, Object> confidenceScores = new HashMap<>();
+    Map<String, Polygon> geometry = new HashMap<>();
     Map<String, Block> blockMap =
         blocks.stream().collect(Collectors.toMap(Block::id, block -> block));
     Map<String, Integer> keyOccurrences = new HashMap<>();
@@ -258,6 +261,12 @@ public class PollingTextractCaller {
 
               keyValuePairs.put(key, value);
               confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
+
+              var keyPolygonMap = keyBlock.geometry().polygon();
+              var valuePolygonMap = valueBlock.geometry().polygon();
+              geometry.put(
+                  key,
+                  new Polygon(keyBlock.page(), getBoundingPolygon(keyPolygonMap, valuePolygonMap)));
             });
 
     // extract table data
@@ -302,9 +311,14 @@ public class PollingTextractCaller {
       String tableKey = "table " + (tables.indexOf(table) + 1);
       keyValuePairs.put(tableKey, tableData);
       confidenceScores.put(tableKey, tableConfidence);
+      List<PolygonPoint> tablePolygons =
+          table.geometry().polygon().stream()
+              .map(point -> new PolygonPoint(point.x(), point.y()))
+              .toList();
+      geometry.put(tableKey, new Polygon(table.page(), tablePolygons));
     }
 
-    return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
+    return new StructuredExtractionResponse(keyValuePairs, confidenceScores, geometry);
   }
 
   private String getTextFromRelationships(Block block, Map<String, Block> blockMap) {
@@ -327,5 +341,36 @@ public class PollingTextractCaller {
               }
             })
         .collect(Collectors.joining(" "));
+  }
+
+  private List<PolygonPoint> getBoundingPolygon(List<Point> polygon1, List<Point> polygon2) {
+    float minX = Float.MAX_VALUE;
+    float minY = Float.MAX_VALUE;
+    float maxX = Float.MIN_VALUE;
+    float maxY = Float.MIN_VALUE;
+
+    // Process all points from first polygon
+    for (Point point : polygon1) {
+      minX = Math.min(minX, point.x());
+      minY = Math.min(minY, point.y());
+      maxX = Math.max(maxX, point.x());
+      maxY = Math.max(maxY, point.y());
+    }
+
+    // Process all points from second polygon
+    for (Point point : polygon2) {
+      minX = Math.min(minX, point.x());
+      minY = Math.min(minY, point.y());
+      maxX = Math.max(maxX, point.x());
+      maxY = Math.max(maxY, point.y());
+    }
+
+    // Create the 4 corners of the bounding rectangle (top-left, top-right, bottom-right,
+    // bottom-left)
+    return List.of(
+        new PolygonPoint(minX, minY),
+        new PolygonPoint(maxX, minY),
+        new PolygonPoint(maxX, maxY),
+        new PolygonPoint(minX, maxY));
   }
 }

@@ -12,12 +12,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.cloud.documentai.v1.BoundingPoly;
 import com.google.cloud.documentai.v1.Document;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceClient;
+import com.google.cloud.documentai.v1.NormalizedVertex;
 import com.google.cloud.documentai.v1.ProcessRequest;
 import com.google.cloud.documentai.v1.ProcessResponse;
 import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
+import io.camunda.connector.idp.extraction.model.Polygon;
+import io.camunda.connector.idp.extraction.model.PolygonPoint;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
@@ -56,6 +60,7 @@ class DocumentAiCallerTest {
 
     // Mock the document pages with form fields
     Document.Page mockPage = mock(Document.Page.class);
+    when(mockPage.getPageNumber()).thenReturn(1);
     Document.Page.FormField mockFormField = mock(Document.Page.FormField.class);
 
     // Create mock Layout objects
@@ -82,6 +87,47 @@ class DocumentAiCallerTest {
     // Set up confidence values on the layouts
     when(mockNameLayout.getConfidence()).thenReturn(0.95f);
     when(mockValueLayout.getConfidence()).thenReturn(0.85f);
+
+    // Add bounding polygon mocks to fix NullPointerException
+    BoundingPoly mockNameBoundingPoly = mock(BoundingPoly.class);
+    BoundingPoly mockValueBoundingPoly = mock(BoundingPoly.class);
+    NormalizedVertex mockNameVertex1 = mock(NormalizedVertex.class);
+    NormalizedVertex mockNameVertex2 = mock(NormalizedVertex.class);
+    NormalizedVertex mockNameVertex3 = mock(NormalizedVertex.class);
+    NormalizedVertex mockNameVertex4 = mock(NormalizedVertex.class);
+
+    NormalizedVertex mockValueVertex1 = mock(NormalizedVertex.class);
+    NormalizedVertex mockValueVertex2 = mock(NormalizedVertex.class);
+    NormalizedVertex mockValueVertex3 = mock(NormalizedVertex.class);
+    NormalizedVertex mockValueVertex4 = mock(NormalizedVertex.class);
+
+    // Set up name polygon vertices (left side)
+    when(mockNameVertex1.getX()).thenReturn(0.1f);
+    when(mockNameVertex1.getY()).thenReturn(0.1f);
+    when(mockNameVertex2.getX()).thenReturn(0.3f);
+    when(mockNameVertex2.getY()).thenReturn(0.1f);
+    when(mockNameVertex3.getX()).thenReturn(0.3f);
+    when(mockNameVertex3.getY()).thenReturn(0.2f);
+    when(mockNameVertex4.getX()).thenReturn(0.1f);
+    when(mockNameVertex4.getY()).thenReturn(0.2f);
+
+    // Set up value polygon vertices (right side)
+    when(mockValueVertex1.getX()).thenReturn(0.4f);
+    when(mockValueVertex1.getY()).thenReturn(0.1f);
+    when(mockValueVertex2.getX()).thenReturn(0.6f);
+    when(mockValueVertex2.getY()).thenReturn(0.1f);
+    when(mockValueVertex3.getX()).thenReturn(0.6f);
+    when(mockValueVertex3.getY()).thenReturn(0.2f);
+    when(mockValueVertex4.getX()).thenReturn(0.4f);
+    when(mockValueVertex4.getY()).thenReturn(0.2f);
+
+    when(mockNameBoundingPoly.getNormalizedVerticesList())
+        .thenReturn(List.of(mockNameVertex1, mockNameVertex2, mockNameVertex3, mockNameVertex4));
+    when(mockValueBoundingPoly.getNormalizedVerticesList())
+        .thenReturn(
+            List.of(mockValueVertex1, mockValueVertex2, mockValueVertex3, mockValueVertex4));
+    when(mockNameLayout.getBoundingPoly()).thenReturn(mockNameBoundingPoly);
+    when(mockValueLayout.getBoundingPoly()).thenReturn(mockValueBoundingPoly);
 
     when(mockPage.getFormFieldsList()).thenReturn(List.of(mockFormField));
     when(mockPage.getTablesList()).thenReturn(List.of());
@@ -122,6 +168,28 @@ class DocumentAiCallerTest {
 
     assertEquals(expectedKeyValuePairs, response.extractedFields());
     assertEquals(expectedConfidenceScores, response.confidenceScore());
+
+    // Test geometry/position extraction
+    assertTrue(response.geometry().containsKey("Invoice"));
+    Polygon polygon = response.geometry().get("Invoice");
+    assertEquals(1, polygon.getPage()); // Should be page 1
+
+    // The polygon should combine both name and value bounding boxes
+    // Expected combined bounding box: min(0.1, 0.4) = 0.1, max(0.3, 0.6) = 0.6 for X
+    // Y coordinates: min(0.1, 0.1) = 0.1, max(0.2, 0.2) = 0.2
+    List<PolygonPoint> points = polygon.getPoints();
+    assertEquals(4, points.size()); // Should have 4 corner points
+
+    // Check that the bounding rectangle encompasses both name and value regions
+    boolean foundTopLeft = points.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.1f);
+    boolean foundTopRight = points.stream().anyMatch(p -> p.getX() == 0.6f && p.getY() == 0.1f);
+    boolean foundBottomRight = points.stream().anyMatch(p -> p.getX() == 0.6f && p.getY() == 0.2f);
+    boolean foundBottomLeft = points.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.2f);
+
+    assertTrue(foundTopLeft, "Should contain top-left corner (0.1, 0.1)");
+    assertTrue(foundTopRight, "Should contain top-right corner (0.6, 0.1)");
+    assertTrue(foundBottomRight, "Should contain bottom-right corner (0.6, 0.2)");
+    assertTrue(foundBottomLeft, "Should contain bottom-left corner (0.1, 0.2)");
   }
 
   @Test
@@ -144,6 +212,7 @@ class DocumentAiCallerTest {
 
     // Mock document page
     Document.Page mockPage = mock(Document.Page.class);
+    when(mockPage.getPageNumber()).thenReturn(1);
     when(mockPage.getTablesList()).thenReturn(List.of());
 
     // Create multiple form fields with the same key but using text segments
@@ -217,6 +286,7 @@ class DocumentAiCallerTest {
     // Mock document page
     Document.Page mockPage = mock(Document.Page.class);
     when(mockPage.getFormFieldsList()).thenReturn(List.of());
+    when(mockPage.getPageNumber()).thenReturn(1);
 
     // Set the full document text
     String fullText = "Name Age Location John Doe 32 New York Jane Smith 28 London";
@@ -224,6 +294,28 @@ class DocumentAiCallerTest {
 
     // Create mock table
     Document.Page.Table mockTable = mock(Document.Page.Table.class);
+
+    // Create table layout with bounding polygon to fix NullPointerException
+    Document.Page.Layout mockTableLayout = mock(Document.Page.Layout.class);
+    BoundingPoly mockBoundingPoly = mock(BoundingPoly.class);
+    NormalizedVertex mockVertex1 = mock(NormalizedVertex.class);
+    NormalizedVertex mockVertex2 = mock(NormalizedVertex.class);
+    NormalizedVertex mockVertex3 = mock(NormalizedVertex.class);
+    NormalizedVertex mockVertex4 = mock(NormalizedVertex.class);
+
+    when(mockVertex1.getX()).thenReturn(0.1f);
+    when(mockVertex1.getY()).thenReturn(0.1f);
+    when(mockVertex2.getX()).thenReturn(0.9f);
+    when(mockVertex2.getY()).thenReturn(0.1f);
+    when(mockVertex3.getX()).thenReturn(0.9f);
+    when(mockVertex3.getY()).thenReturn(0.5f);
+    when(mockVertex4.getX()).thenReturn(0.1f);
+    when(mockVertex4.getY()).thenReturn(0.5f);
+
+    when(mockBoundingPoly.getNormalizedVerticesList())
+        .thenReturn(List.of(mockVertex1, mockVertex2, mockVertex3, mockVertex4));
+    when(mockTableLayout.getBoundingPoly()).thenReturn(mockBoundingPoly);
+    when(mockTable.getLayout()).thenReturn(mockTableLayout);
 
     // Create header row with proper text segments
     Document.Page.Table.TableRow headerRow =
@@ -309,6 +401,167 @@ class DocumentAiCallerTest {
     assertEquals(0.89f, tableConfidenceData.get(2).get(0), 0.01f); // "Jane Smith" cell confidence
     assertEquals(0.88f, tableConfidenceData.get(2).get(1), 0.01f); // "28" cell confidence
     assertEquals(0.87f, tableConfidenceData.get(2).get(2), 0.01f); // "London" cell confidence
+
+    // Test table geometry/position extraction
+    assertTrue(response.geometry().containsKey("table 1"));
+    Polygon tablePolygon = response.geometry().get("table 1");
+    assertEquals(1, tablePolygon.getPage()); // Should be page 1
+
+    // Verify the table polygon points are correctly extracted
+    List<PolygonPoint> tablePoints = tablePolygon.getPoints();
+    assertEquals(4, tablePoints.size()); // Should have 4 corner points
+
+    // Check that the table polygon contains the expected vertices from our mock
+    boolean foundTableTopLeft =
+        tablePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.1f);
+    boolean foundTableTopRight =
+        tablePoints.stream().anyMatch(p -> p.getX() == 0.9f && p.getY() == 0.1f);
+    boolean foundTableBottomRight =
+        tablePoints.stream().anyMatch(p -> p.getX() == 0.9f && p.getY() == 0.5f);
+    boolean foundTableBottomLeft =
+        tablePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.5f);
+
+    assertTrue(foundTableTopLeft, "Should contain table top-left corner (0.1, 0.1)");
+    assertTrue(foundTableTopRight, "Should contain table top-right corner (0.9, 0.1)");
+    assertTrue(foundTableBottomRight, "Should contain table bottom-right corner (0.9, 0.5)");
+    assertTrue(foundTableBottomLeft, "Should contain table bottom-left corner (0.1, 0.5)");
+  }
+
+  @Test
+  void extractKeyValuePairs_VerifiesPolygonCalculationForMultipleFields() throws Exception {
+    // Arrange
+    DocumentAiClientSupplier mockSupplier = mock(DocumentAiClientSupplier.class);
+    DocumentProcessorServiceClient mockClient = mock(DocumentProcessorServiceClient.class);
+    ProcessResponse mockResponse = mock(ProcessResponse.class);
+    Document mockDocument = mock(Document.class);
+
+    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class))).thenReturn(mockClient);
+    when(mockClient.processDocument((ProcessRequest) any())).thenReturn(mockResponse);
+    when(mockResponse.getDocument()).thenReturn(mockDocument);
+
+    DocumentAiCaller caller = new DocumentAiCaller(mockSupplier);
+
+    // Set document text
+    String fullText = "Name John Date 01/01/2024";
+    when(mockDocument.getText()).thenReturn(fullText);
+
+    // Mock document page
+    Document.Page mockPage = mock(Document.Page.class);
+    when(mockPage.getPageNumber()).thenReturn(2); // Use page 2 to test page number extraction
+    when(mockPage.getTablesList()).thenReturn(List.of());
+
+    // Create form fields with different polygon positions to test the bounding calculation
+    Document.Page.FormField nameField =
+        createMockFormFieldWithDifferentPolygons(
+            0,
+            4,
+            5,
+            9,
+            0.95f,
+            0.90f,
+            // Name polygon (top-left area)
+            0.1f,
+            0.1f,
+            0.2f,
+            0.2f,
+            // Value polygon (top-right area)
+            0.3f,
+            0.1f,
+            0.4f,
+            0.2f);
+
+    Document.Page.FormField dateField =
+        createMockFormFieldWithDifferentPolygons(
+            10,
+            14,
+            15,
+            25,
+            0.85f,
+            0.80f,
+            // Date polygon (bottom-left area)
+            0.1f,
+            0.8f,
+            0.2f,
+            0.9f,
+            // Value polygon (bottom-right area)
+            0.6f,
+            0.8f,
+            0.9f,
+            0.9f);
+
+    when(mockPage.getFormFieldsList()).thenReturn(List.of(nameField, dateField));
+    when(mockDocument.getPagesList()).thenReturn(List.of(mockPage));
+
+    // Setup GCP provider and request data
+    GcpProvider baseRequest = new GcpProvider();
+    DocumentAiRequestConfiguration configuration =
+        new DocumentAiRequestConfiguration("us", "test-project", "test-processor");
+    baseRequest.setConfiguration(configuration);
+
+    GcpAuthentication authentication =
+        new GcpAuthentication(GcpAuthenticationType.BEARER, "test-token", null, null, null, null);
+    baseRequest.setAuthentication(authentication);
+
+    ExtractionRequestData requestData = mock(ExtractionRequestData.class);
+    io.camunda.document.Document mockInputDocument = mock(io.camunda.document.Document.class);
+    DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
+    InputStream mockInputStream = new ByteArrayInputStream("test document content".getBytes());
+
+    when(requestData.document()).thenReturn(mockInputDocument);
+    when(mockInputDocument.asInputStream()).thenReturn(mockInputStream);
+    when(mockInputDocument.metadata()).thenReturn(mockMetadata);
+    when(mockMetadata.getContentType()).thenReturn("application/pdf");
+
+    // Act
+    StructuredExtractionResponse response =
+        caller.extractKeyValuePairsWithConfidence(requestData, baseRequest);
+
+    // Assert
+    // Verify extracted fields
+    assertEquals("John", response.extractedFields().get("Name"));
+    assertEquals("01/01/2024", response.extractedFields().get("Date"));
+
+    // Test geometry extraction for Name field
+    assertTrue(response.geometry().containsKey("Name"));
+    Polygon namePolygon = response.geometry().get("Name");
+    assertEquals(2, namePolygon.getPage()); // Should be page 2
+
+    // Name field should have bounding box that encompasses both key (0.1,0.1 to 0.2,0.2)
+    // and value (0.3,0.1 to 0.4,0.2) polygons, resulting in (0.1,0.1 to 0.4,0.2)
+    List<PolygonPoint> namePoints = namePolygon.getPoints();
+    assertEquals(4, namePoints.size());
+
+    boolean nameTopLeft = namePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.1f);
+    boolean nameTopRight = namePoints.stream().anyMatch(p -> p.getX() == 0.4f && p.getY() == 0.1f);
+    boolean nameBottomRight =
+        namePoints.stream().anyMatch(p -> p.getX() == 0.4f && p.getY() == 0.2f);
+    boolean nameBottomLeft =
+        namePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.2f);
+
+    assertTrue(
+        nameTopLeft && nameTopRight && nameBottomRight && nameBottomLeft,
+        "Name polygon should span from (0.1,0.1) to (0.4,0.2)");
+
+    // Test geometry extraction for Date field
+    assertTrue(response.geometry().containsKey("Date"));
+    Polygon datePolygon = response.geometry().get("Date");
+    assertEquals(2, datePolygon.getPage()); // Should be page 2
+
+    // Date field should have bounding box that encompasses both key (0.1,0.8 to 0.2,0.9)
+    // and value (0.6,0.8 to 0.9,0.9) polygons, resulting in (0.1,0.8 to 0.9,0.9)
+    List<PolygonPoint> datePoints = datePolygon.getPoints();
+    assertEquals(4, datePoints.size());
+
+    boolean dateTopLeft = datePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.8f);
+    boolean dateTopRight = datePoints.stream().anyMatch(p -> p.getX() == 0.9f && p.getY() == 0.8f);
+    boolean dateBottomRight =
+        datePoints.stream().anyMatch(p -> p.getX() == 0.9f && p.getY() == 0.9f);
+    boolean dateBottomLeft =
+        datePoints.stream().anyMatch(p -> p.getX() == 0.1f && p.getY() == 0.9f);
+
+    assertTrue(
+        dateTopLeft && dateTopRight && dateBottomRight && dateBottomLeft,
+        "Date polygon should span from (0.1,0.8) to (0.9,0.9)");
   }
 
   // Add new helper methods to create text anchors with segments
@@ -350,6 +603,30 @@ class DocumentAiCallerTest {
     when(mockNameLayout.getConfidence()).thenReturn(keyConfidence);
     when(mockValueLayout.getConfidence()).thenReturn(valueConfidence);
 
+    // Add bounding polygon mocks to fix NullPointerException
+    BoundingPoly mockNameBoundingPoly = mock(BoundingPoly.class);
+    BoundingPoly mockValueBoundingPoly = mock(BoundingPoly.class);
+    NormalizedVertex mockVertex1 = mock(NormalizedVertex.class);
+    NormalizedVertex mockVertex2 = mock(NormalizedVertex.class);
+    NormalizedVertex mockVertex3 = mock(NormalizedVertex.class);
+    NormalizedVertex mockVertex4 = mock(NormalizedVertex.class);
+
+    when(mockVertex1.getX()).thenReturn(0.1f);
+    when(mockVertex1.getY()).thenReturn(0.1f);
+    when(mockVertex2.getX()).thenReturn(0.5f);
+    when(mockVertex2.getY()).thenReturn(0.1f);
+    when(mockVertex3.getX()).thenReturn(0.5f);
+    when(mockVertex3.getY()).thenReturn(0.2f);
+    when(mockVertex4.getX()).thenReturn(0.1f);
+    when(mockVertex4.getY()).thenReturn(0.2f);
+
+    when(mockNameBoundingPoly.getNormalizedVerticesList())
+        .thenReturn(List.of(mockVertex1, mockVertex2, mockVertex3, mockVertex4));
+    when(mockValueBoundingPoly.getNormalizedVerticesList())
+        .thenReturn(List.of(mockVertex1, mockVertex2, mockVertex3, mockVertex4));
+    when(mockNameLayout.getBoundingPoly()).thenReturn(mockNameBoundingPoly);
+    when(mockValueLayout.getBoundingPoly()).thenReturn(mockValueBoundingPoly);
+
     return mockFormField;
   }
 
@@ -377,5 +654,85 @@ class DocumentAiCallerTest {
 
     when(mockRow.getCellsList()).thenReturn(cells);
     return mockRow;
+  }
+
+  private Document.Page.FormField createMockFormFieldWithDifferentPolygons(
+      int keyStartIndex,
+      int keyEndIndex,
+      int valueStartIndex,
+      int valueEndIndex,
+      float keyConfidence,
+      float valueConfidence,
+      float x1,
+      float y1,
+      float x2,
+      float y2,
+      float x3,
+      float y3,
+      float x4,
+      float y4) {
+
+    Document.Page.FormField mockFormField = mock(Document.Page.FormField.class);
+    Document.Page.Layout mockNameLayout = mock(Document.Page.Layout.class);
+    Document.Page.Layout mockValueLayout = mock(Document.Page.Layout.class);
+
+    Document.TextAnchor mockNameAnchor = createTextAnchor(keyStartIndex, keyEndIndex);
+    Document.TextAnchor mockValueAnchor = createTextAnchor(valueStartIndex, valueEndIndex);
+
+    when(mockFormField.getFieldName()).thenReturn(mockNameLayout);
+    when(mockFormField.getFieldValue()).thenReturn(mockValueLayout);
+    when(mockFormField.hasFieldName()).thenReturn(true);
+    when(mockFormField.hasFieldValue()).thenReturn(true);
+    when(mockFormField.getValueType()).thenReturn(null);
+
+    when(mockNameLayout.getTextAnchor()).thenReturn(mockNameAnchor);
+    when(mockValueLayout.getTextAnchor()).thenReturn(mockValueAnchor);
+
+    when(mockNameLayout.getConfidence()).thenReturn(keyConfidence);
+    when(mockValueLayout.getConfidence()).thenReturn(valueConfidence);
+
+    // Create separate vertices for name and value polygons
+    BoundingPoly mockNameBoundingPoly = mock(BoundingPoly.class);
+    BoundingPoly mockValueBoundingPoly = mock(BoundingPoly.class);
+
+    // Name polygon vertices
+    NormalizedVertex mockNameVertex1 = mock(NormalizedVertex.class);
+    NormalizedVertex mockNameVertex2 = mock(NormalizedVertex.class);
+    NormalizedVertex mockNameVertex3 = mock(NormalizedVertex.class);
+    NormalizedVertex mockNameVertex4 = mock(NormalizedVertex.class);
+
+    when(mockNameVertex1.getX()).thenReturn(x1);
+    when(mockNameVertex1.getY()).thenReturn(y1);
+    when(mockNameVertex2.getX()).thenReturn(x2);
+    when(mockNameVertex2.getY()).thenReturn(y1);
+    when(mockNameVertex3.getX()).thenReturn(x2);
+    when(mockNameVertex3.getY()).thenReturn(y2);
+    when(mockNameVertex4.getX()).thenReturn(x1);
+    when(mockNameVertex4.getY()).thenReturn(y2);
+
+    // Value polygon vertices
+    NormalizedVertex mockValueVertex1 = mock(NormalizedVertex.class);
+    NormalizedVertex mockValueVertex2 = mock(NormalizedVertex.class);
+    NormalizedVertex mockValueVertex3 = mock(NormalizedVertex.class);
+    NormalizedVertex mockValueVertex4 = mock(NormalizedVertex.class);
+
+    when(mockValueVertex1.getX()).thenReturn(x3);
+    when(mockValueVertex1.getY()).thenReturn(y3);
+    when(mockValueVertex2.getX()).thenReturn(x4);
+    when(mockValueVertex2.getY()).thenReturn(y3);
+    when(mockValueVertex3.getX()).thenReturn(x4);
+    when(mockValueVertex3.getY()).thenReturn(y4);
+    when(mockValueVertex4.getX()).thenReturn(x3);
+    when(mockValueVertex4.getY()).thenReturn(y4);
+
+    when(mockNameBoundingPoly.getNormalizedVerticesList())
+        .thenReturn(List.of(mockNameVertex1, mockNameVertex2, mockNameVertex3, mockNameVertex4));
+    when(mockValueBoundingPoly.getNormalizedVerticesList())
+        .thenReturn(
+            List.of(mockValueVertex1, mockValueVertex2, mockValueVertex3, mockValueVertex4));
+    when(mockNameLayout.getBoundingPoly()).thenReturn(mockNameBoundingPoly);
+    when(mockValueLayout.getBoundingPoly()).thenReturn(mockValueBoundingPoly);
+
+    return mockFormField;
   }
 }

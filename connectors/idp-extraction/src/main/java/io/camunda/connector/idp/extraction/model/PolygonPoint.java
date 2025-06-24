@@ -6,10 +6,29 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-import java.util.Map;
+public class PolygonPoint {
 
-public record StructuredExtractionResult(
-    Map<String, Object> extractedFields,
-    Map<String, Object> confidenceScore,
-    Map<String, String> originalKeys,
-    Map<String, Polygon> geometry) {}
+  private float x;
+  private float y;
+
+  public PolygonPoint(float x, float y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  public float getX() {
+    return x;
+  }
+
+  public float getY() {
+    return y;
+  }
+
+  public void setX(float x) {
+    this.x = x;
+  }
+
+  public void setY(float y) {
+    this.y = y;
+  }
+}

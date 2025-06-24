@@ -358,7 +358,9 @@ public class StructuredServiceTest {
     confidenceScores.put("Total Amount", 0.98f);
     confidenceScores.put("Supplier Name", 0.92f);
 
-    return new StructuredExtractionResponse(extractedFields, confidenceScores);
+    Map<String, Polygon> geometry = new HashMap<>();
+
+    return new StructuredExtractionResponse(extractedFields, confidenceScores, geometry);
   }
 
   private ExtractionRequest prepareExtractionRequest() {

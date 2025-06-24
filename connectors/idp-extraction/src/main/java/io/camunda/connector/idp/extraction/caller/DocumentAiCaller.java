@@ -8,10 +8,13 @@ package io.camunda.connector.idp.extraction.caller;
 
 import com.google.cloud.documentai.v1.Document;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceClient;
+import com.google.cloud.documentai.v1.NormalizedVertex;
 import com.google.cloud.documentai.v1.ProcessRequest;
 import com.google.cloud.documentai.v1.ProcessResponse;
 import com.google.cloud.documentai.v1.RawDocument;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
+import io.camunda.connector.idp.extraction.model.Polygon;
+import io.camunda.connector.idp.extraction.model.PolygonPoint;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
@@ -91,6 +94,7 @@ public class DocumentAiCaller {
   private StructuredExtractionResponse extractFormFieldsWithConfidence(Document document) {
     Map<String, Object> keyValuePairs = new HashMap<>();
     Map<String, Object> confidenceScores = new HashMap<>();
+    Map<String, Polygon> geometry = new HashMap<>();
     Map<String, Integer> keyOccurrences = new HashMap<>();
     var nextTableIndex = 1;
 
@@ -122,6 +126,15 @@ public class DocumentAiCaller {
 
             keyValuePairs.put(key, value);
             confidenceScores.put(key, combinedConfidence);
+
+            // Extract polygon information
+            List<NormalizedVertex> keyPolygon =
+                formField.getFieldName().getBoundingPoly().getNormalizedVerticesList();
+            List<NormalizedVertex> valuePolygon =
+                formField.getFieldValue().getBoundingPoly().getNormalizedVerticesList();
+            Polygon polygon =
+                new Polygon(page.getPageNumber(), getBoundingPolygon(keyPolygon, valuePolygon));
+            geometry.put(key, polygon);
           }
         }
       }
@@ -148,10 +161,16 @@ public class DocumentAiCaller {
         String tableKey = "table " + nextTableIndex++;
         keyValuePairs.put(tableKey, data);
         confidenceScores.put(tableKey, tableConfidence);
+
+        List<PolygonPoint> tablePolygon =
+            table.getLayout().getBoundingPoly().getNormalizedVerticesList().stream()
+                .map(vertex -> new PolygonPoint(vertex.getX(), vertex.getY()))
+                .toList();
+        geometry.put(tableKey, new Polygon(page.getPageNumber(), tablePolygon));
       }
     }
 
-    return new StructuredExtractionResponse(keyValuePairs, confidenceScores);
+    return new StructuredExtractionResponse(keyValuePairs, confidenceScores, geometry);
   }
 
   private String getValueFromFormField(Document document, Document.Page.FormField formField) {
@@ -195,5 +214,36 @@ public class DocumentAiCaller {
       rowData.add(cellText);
       rowConfidence.add(cell.getLayout().getConfidence());
     }
+  }
+
+  private List<PolygonPoint> getBoundingPolygon(
+      List<NormalizedVertex> polygon1, List<NormalizedVertex> polygon2) {
+    float minX = Float.MAX_VALUE;
+    float minY = Float.MAX_VALUE;
+    float maxX = Float.MIN_VALUE;
+    float maxY = Float.MIN_VALUE;
+
+    // Process all points from first polygon
+    for (NormalizedVertex point : polygon1) {
+      minX = Math.min(minX, point.getX());
+      minY = Math.min(minY, point.getY());
+      maxX = Math.max(maxX, point.getX());
+      maxY = Math.max(maxY, point.getY());
+    }
+
+    // Process all points from second polygon
+    for (NormalizedVertex point : polygon2) {
+      minX = Math.min(minX, point.getX());
+      minY = Math.min(minY, point.getY());
+      maxX = Math.max(maxX, point.getX());
+      maxY = Math.max(maxY, point.getY());
+    }
+
+    // Create the 4 corners of the bounding rectangle
+    return List.of(
+        new PolygonPoint(minX, minY),
+        new PolygonPoint(maxX, minY),
+        new PolygonPoint(maxX, maxY),
+        new PolygonPoint(minX, maxY));
   }
 }
