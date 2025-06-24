@@ -10,6 +10,7 @@
   </parent>
 
   <description>Tests</description>
+  <name>Connectors E2e Test Easy Post</name>
   <artifactId>connectors-e2e-test-easy-post</artifactId>
   <packaging>jar</packaging>
 

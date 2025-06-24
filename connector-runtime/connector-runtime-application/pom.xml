@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>connector-runtime-application</artifactId>
+  <name>Connector Runtime Application</name>
 
   <dependencies>
     <dependency>
