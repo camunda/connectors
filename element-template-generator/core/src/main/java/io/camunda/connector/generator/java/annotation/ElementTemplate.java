@@ -42,6 +42,12 @@ public @interface ElementTemplate {
   Class<?> outputDataClass() default Void.class;
 
   /**
+   * List of classes defining element template properties through @{@link PropertySource} annotated
+   * methods.
+   */
+  Class<?>[] propertySources() default {};
+
+  /**
    * Element template version. The version should be incremented every time the template is changed
    * to make use of the version upgrade mechanism in Camunda Modeler.
    *
