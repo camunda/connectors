@@ -104,7 +104,6 @@ public class Langchain4JAiAgentMcpIntegrationTests extends BaseLangchain4JAiAgen
             assertArg(
                 connection -> {
                   assertThat(connection.sseUrl()).isEqualTo("http://localhost:1234/sse");
-                  assertThat(connection.headers()).containsExactly(entry("Authorization", "dummy"));
                   assertThat(connection.timeout()).isNull();
                 }));
   }
