@@ -9,6 +9,7 @@
   </parent>
 
   <artifactId>jackson-datatype-feel</artifactId>
+  <name>Jackson Datatype Feel</name>
   <description>Jackson module to evaluate FEEL expressions on deserialization</description>
 
   <dependencies>

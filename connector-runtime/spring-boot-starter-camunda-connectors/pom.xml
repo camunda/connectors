@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>spring-boot-starter-camunda-connectors</artifactId>
+  <name>Spring Boot Starter Camunda Connectors</name>
 
   <description>
     An implementation of the Camunda Connector Runtime based on Spring Zeebe.

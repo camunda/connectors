@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>connector-runtime-spring</artifactId>
+  <name>Connector Runtime Spring</name>
 
   <dependencies>
     <!-- Spring dependencies (scope: provided) -->
