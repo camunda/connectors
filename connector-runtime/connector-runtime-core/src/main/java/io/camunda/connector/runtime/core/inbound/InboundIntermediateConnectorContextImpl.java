@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 /**
  * Implementation of {@link InboundIntermediateConnectorContext} that extends {@link
- * InboundConnectorContext} and enables runtime updates of context properties from Operate.
+ * InboundConnectorContext} and enables runtime updates of context properties from Camunda.
  */
 public class InboundIntermediateConnectorContextImpl
     implements InboundIntermediateConnectorContext, InboundConnectorReportingContext {

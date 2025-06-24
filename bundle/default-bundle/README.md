@@ -11,10 +11,10 @@
 
 ```bash
 # java \
-  -Dzeebe.client.cloud.region=bru-2 \
-  -Dzeebe.client.cloud.clusterId=xxx \
-  -Dzeebe.client.cloud.clientId=yyy \
-  -Dzeebe.client.cloud.clientSecret=zzz \
+  -Dcamunda.client.cloud.region=bru-2 \
+  -Dcamunda.client.cloud.cluster-id=xxx \
+  -Dcamunda.client.auth.client-id=yyy \
+  -Dcamunda.client.auth.client-secret=zzz \
   -jar target/connector-runtime-bundle-{VERSION}-with-dependencies.jar
 ```
 
