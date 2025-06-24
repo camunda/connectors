@@ -10,6 +10,7 @@
     </parent>
 
     <description>Connectors Test Base project</description>
+    <name>Connectors E2e Test Base</name>
     <artifactId>connectors-e2e-test-base</artifactId>
     <packaging>jar</packaging>
 

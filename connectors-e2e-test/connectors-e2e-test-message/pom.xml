@@ -7,6 +7,7 @@
   </parent>
   
   <description>Tests</description>
+  <name>Connectors E2e Test Message</name>
   <artifactId>connectors-e2e-test-message</artifactId>
   <packaging>jar</packaging>
   

@@ -10,6 +10,7 @@
   </parent>
 
   <description>Tests</description>
+  <name>Connectors E2e Test Rabbitmq</name>
   <artifactId>connectors-e2e-test-rabbitmq</artifactId>
   <packaging>jar</packaging>
 
