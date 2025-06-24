@@ -9,6 +9,7 @@
   </parent>
   <artifactId>connector-runtime-bundle</artifactId>
   <packaging>jar</packaging>
+  <name>Connector Runtime Bundle</name>
   <description>Connectors Runtime Bundle including out-of-the-box connectors</description>
 
   <dependencies>
