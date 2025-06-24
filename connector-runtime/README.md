@@ -108,7 +108,7 @@ See also [Docker: Custom set of connectors](https://docs.camunda.io/docs/self-ma
 
 The following configuration properties can be set via `src/main/application.properties` if you run Java directly.
 
-You can also set those configuration options via environment variables (then named `ZEEBE_CLIENT_CLOUD_CLUSTERID` instead of `zeebe.client.cloud.cluster-id`), especially useful if you run via DOCKER.
+You can also set those configuration options via environment variables (then named `CAMUNDA_CLIENT_CLOUD_CLUSTERID` instead of `camunda.client.cloud.cluster-id`), especially useful if you run via DOCKER.
 
 In general, the Connector Runtime will respect all properties known to [Spring Zeebe](https://github.com/camunda-community-hub/spring-zeebe), which allows to specify some more options.
 
@@ -119,18 +119,10 @@ In general, the Connector Runtime will respect all properties known to [Spring Z
 To use Camunda SaaS specify the connection properties:
 
 ```properties
-zeebe.client.cloud.cluster-id=xxx
-zeebe.client.cloud.client-id=xxx
-zeebe.client.cloud.client-secret=xxx
-zeebe.client.cloud.region=bru-2
-```
-
-You can further configure separate connection properties for Camunda Operate (othewise it will use the properties configured for Zeebe above).
-For this you need to create client credentials in Console to access Operate:
-
-```properties
-camunda.operate.client.client-id=xxx
-camunda.operate.client.client-secret=xxx
+camunda.client.cloud.cluster-id=xxx
+camunda.client.auth.client-id=xxx
+camunda.client.auth.client-secret=xxx
+camunda.client.cloud.region=bru-2
 ```
 
 #### Local installation
@@ -138,30 +130,7 @@ camunda.operate.client.client-secret=xxx
 Zeebe:
 
 ```properties
-zeebe.client.broker.gateway-address=127.0.0.1:26500
-zeebe.client.security.plaintext=true
-```
-
-Connect to Operate locally using username and password:
-
-```properties
-camunda.operate.client.url=http://localhost:8081
-camunda.operate.client.username=demo
-camunda.operate.client.password=demo
-```
-
-When running against a self-managed environment you might also need to configure the keycloak endpoint to not use Operate username/password authentication.
-For this you either need to use the existing connectors client-id and client-secret (see in Identity) or create a new client in Identity that has permission to access the operate-api (read:*).
-When you have the client-id and client-secret you can configure the following Identity properties:
-
-```properties
-camunda.identity.type=keycloak
-camunda.identity.base-url=http://localhost:8084
-camunda.identity.issuer=http://localhost:18080/auth/realms/camunda-platform
-camunda.identity.client-id=connectors
-camunda.identity.client-secret=xxx
-camunda.identity.issuer-backend-url=http://localhost:18080/auth/realms/camunda-platform
-camunda.identity.audience=connectors
+camunda.client.grpc-address=http://127.0.0.1:26500
 ```
 
 ### Adding Connectors

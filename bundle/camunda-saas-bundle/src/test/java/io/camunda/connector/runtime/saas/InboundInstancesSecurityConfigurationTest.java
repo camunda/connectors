@@ -40,7 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
     },
     properties = {
       "camunda.saas.secrets.projectId=42",
-      "camunda.client.zeebe.enabled=true",
+      "camunda.client.enabled=true",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.cloud.organizationId=orgId",
       "camunda.connector.auth.console.audience=cloud.dev.ultrawombat.com",
