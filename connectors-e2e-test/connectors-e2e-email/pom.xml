@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>connectors-e2e-email</artifactId>
+    <name>Connectors E2e Email</name>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

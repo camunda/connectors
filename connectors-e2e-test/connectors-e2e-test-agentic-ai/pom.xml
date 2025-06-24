@@ -10,6 +10,7 @@
   </parent>
 
   <description>Agentic AI E2E Tests</description>
+  <name>Connectors E2e Test Agentic Ai</name>
   <artifactId>connectors-e2e-test-agentic-ai</artifactId>
   <packaging>jar</packaging>
 
