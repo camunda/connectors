@@ -51,4 +51,40 @@
       </build>
     </profile>
   </profiles>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.http.polling.HttpPollingConnector</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.http.Polling</templateId>
+                  <templateFileName>http-polling-connector.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.http.Polling.Boundary.v1</templateId>
+                  <templateFileName>http-polling-connector-boundary.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>false</generateHybridTemplates>
+              <features>
+                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
+                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+              </features>
+            </connector>
+          </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
+          <includeDependencies>
+            <includeDependency>io.camunda.connector:connector-http-base</includeDependency>
+          </includeDependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
