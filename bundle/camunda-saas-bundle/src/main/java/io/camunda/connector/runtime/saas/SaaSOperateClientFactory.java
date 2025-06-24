@@ -71,7 +71,6 @@ public class SaaSOperateClientFactory {
         internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID),
         internalSecretProvider.getSecret(SECRET_NAME_SECRET),
         operateProperties.getBaseUrl(),
-        operateProperties.getAuthUrl(),
-        null, null);
+        operateProperties.getAuthUrl());
   }
 }
