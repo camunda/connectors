@@ -37,11 +37,13 @@ import io.camunda.connector.test.SlowTest;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @SlowTest
+@Disabled("https://github.com/camunda/connectors/issues/4950")
 public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JAiAgentTests {
 
   @ParameterizedTest
