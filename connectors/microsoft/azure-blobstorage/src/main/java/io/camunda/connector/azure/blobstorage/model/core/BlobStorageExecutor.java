@@ -23,7 +23,7 @@ import io.camunda.connector.azure.blobstorage.model.request.BlobStorageRequest;
 import io.camunda.connector.azure.blobstorage.model.request.DownloadBlob;
 import io.camunda.connector.azure.blobstorage.model.request.UploadBlob;
 import io.camunda.connector.azure.blobstorage.model.response.DownloadResponse;
-import io.camunda.connector.azure.blobstorage.model.response.Element;
+import io.camunda.connector.azure.blobstorage.model.response.DownloadResponse.DocumentContent;
 import io.camunda.connector.azure.blobstorage.model.response.UploadResponse;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
@@ -113,14 +113,14 @@ public class BlobStorageExecutor {
 
     if (downloadBlob.asFile()) {
       return this.createDocument
-          .andThen(document -> new DownloadResponse(new Element.DocumentContent(document)))
+          .andThen(DocumentContent::new)
           .apply(
               DocumentCreationRequest.from(content.toBytes())
                   .contentType(contentResponse.getDeserializedHeaders().getContentType())
                   .fileName(downloadBlob.fileName())
                   .build());
     } else {
-      return new DownloadResponse(new Element.StringContent(content.toString()));
+      return new DownloadResponse.StringContent(content.toString());
     }
   }
 }
