@@ -43,8 +43,8 @@ public class ProcessDefinitionSearch {
   }
 
   /**
-   * Query process elements from Camunda. Guaranteed to return only the latest deployed
-   * version of each process connectorDetails.
+   * Query process elements from Camunda. Guaranteed to return only the latest deployed version of
+   * each process connectorDetails.
    */
   public List<ProcessDefinition> query() {
     LOG.trace("Query process deployments...");
