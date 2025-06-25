@@ -28,6 +28,7 @@ import io.camunda.connector.test.SlowTest;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
@@ -56,6 +57,7 @@ public class Langchain4JAiAgentMemoryStorageTests extends BaseLangchain4JAiAgent
   }
 
   @Test
+  @Disabled("https://github.com/camunda/connectors/issues/4950")
   void camundaDocumentStorage() throws Exception {
     testInteractionWithToolsAndUserFeedbackLoops(
         elementTemplate ->
