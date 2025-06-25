@@ -16,6 +16,7 @@ import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.ElasticSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.EmbeddingsVectorStore;
+import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -34,8 +35,10 @@ public class DefaultEmbeddingStoreFactory {
     return switch (embeddingsVectorStore) {
       case ElasticSearchVectorStore elasticSearchVectorStore ->
           initializeElasticSearchVectorStore(elasticSearchVectorStore);
+      case OpenSearchVectorStore openSearchVectorStore ->
+          initializeOpenSearchVectorStore(openSearchVectorStore);
       case AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore ->
-          initializeAmazonManagedOpenSearch(amazonManagedOpenSearchVectorStore);
+          initializeAmazonManagedOpenSearchVectorStore(amazonManagedOpenSearchVectorStore);
     };
   }
 
@@ -60,7 +63,17 @@ public class DefaultEmbeddingStoreFactory {
         .build();
   }
 
-  private EmbeddingStore<TextSegment> initializeAmazonManagedOpenSearch(
+  private EmbeddingStore<TextSegment> initializeOpenSearchVectorStore(
+      OpenSearchVectorStore openSearchVectorStore) {
+    return OpenSearchEmbeddingStore.builder()
+        .serverUrl(openSearchVectorStore.baseUrl())
+        .userName(openSearchVectorStore.userName())
+        .password(openSearchVectorStore.password())
+        .indexName(openSearchVectorStore.indexName())
+        .build();
+  }
+
+  private EmbeddingStore<TextSegment> initializeAmazonManagedOpenSearchVectorStore(
       AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore) {
     return OpenSearchEmbeddingStore.builder()
         .serviceName("es") // for managed AWS OS
