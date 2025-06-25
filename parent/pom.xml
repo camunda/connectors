@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.6.19</version.zeebe>
+    <version.zeebe>8.6.20</version.zeebe>
     <version.feel-engine>1.19.3</version.feel-engine>
     <version.spring-zeebe>8.5.18</version.spring-zeebe>
     <version.identity-sdk>8.6.9</version.identity-sdk>
