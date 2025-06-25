@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.TreeMap;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
@@ -66,8 +67,9 @@ public class FileHelper {
     }
   }
 
-  public static void writeToFile(File file, Map<?, ?> map) {
-    JsonNode jsonNode = mapper.valueToTree(map);
+  public static void writeToFile(File file, Map<String, ?> map) {
+    TreeMap<String, ?> treeMap = new TreeMap<>(map);
+    JsonNode jsonNode = mapper.valueToTree(treeMap);
     writeToFile(file, jsonNode);
   }
 

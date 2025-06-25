@@ -30,14 +30,13 @@ import java.util.stream.Stream;
 
 public class IndexWriter {
 
-  private final String githubLinkFormat;
-  private final File finalFile;
-  private final List<File> allElementTemplates;
-
   private static final String VERSION = "version";
   private static final String ID = "id";
   private static final String ENGINES = "engines";
   private static final String CAMUNDA = "camunda";
+  private final String githubLinkFormat;
+  private final File finalFile;
+  private final List<File> allElementTemplates;
   private final Path localRepo;
 
   private IndexWriter(String gitDirectory, Path finalFile, String connectorDirectory) {
