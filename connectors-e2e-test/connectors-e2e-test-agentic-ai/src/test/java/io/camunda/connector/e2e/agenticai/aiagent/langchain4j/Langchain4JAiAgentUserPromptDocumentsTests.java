@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
@@ -58,7 +59,7 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
         "test.xml",
         "test.yaml"
       })
-  void handlesDocumentType(String filename) throws Exception {
+  void handlesDocumentType(String filename, WireMockRuntimeInfo wireMock) throws Exception {
     final var initialUserPrompt = "Summarize the following document";
     final var expectedConversation =
         List.of(
@@ -92,7 +93,7 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
                     "userPrompt",
                     initialUserPrompt,
                     "downloadUrls",
-                    List.of(wm.baseUrl() + "/" + filename)))
+                    List.of(wireMock.getHttpBaseUrl() + "/" + filename)))
             .waitForProcessCompletion();
 
     assertLastChatRequest(1, expectedConversation);
@@ -110,7 +111,7 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
   }
 
   @Test
-  void handlesMultipleDocuments() throws Exception {
+  void handlesMultipleDocuments(WireMockRuntimeInfo wireMock) throws Exception {
     final var initialUserPrompt = "Summarize the following documents";
     final var expectedConversation =
         List.of(
@@ -145,7 +146,9 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
                     "userPrompt",
                     initialUserPrompt,
                     "downloadUrls",
-                    List.of(wm.baseUrl() + "/test.txt", wm.baseUrl() + "/test.jpg")))
+                    List.of(
+                        wireMock.getHttpBaseUrl() + "/test.txt",
+                        wireMock.getHttpBaseUrl() + "/test.jpg")))
             .waitForProcessCompletion();
 
     assertLastChatRequest(1, expectedConversation);
@@ -163,7 +166,7 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
   }
 
   @Test
-  void raisesIncidentWhenDocumentTypeIsNotSupported() throws Exception {
+  void raisesIncidentWhenDocumentTypeIsNotSupported(WireMockRuntimeInfo wireMock) throws Exception {
     final var zeebeTest =
         createProcessInstance(
                 Map.of(
@@ -172,7 +175,7 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
                     "userPrompt",
                     "Summarize the following document",
                     "downloadUrls",
-                    List.of(wm.baseUrl() + "/unsupported.zip")))
+                    List.of(wireMock.getHttpBaseUrl() + "/unsupported.zip")))
             .waitForActiveIncidents();
 
     assertIncident(
