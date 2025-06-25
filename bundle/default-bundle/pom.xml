@@ -185,6 +185,27 @@
           <outputName>connectors-bundle-sbom</outputName>
         </configuration>
       </plugin>
+      <!--
+        This plugin execution creates a javadoc JAR to meet Sonatype requirements, even though there is no source code.
+        It includes any files in the /main/resources/javadoc directory if present.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>javadoc-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <classifier>javadoc</classifier>
+              <classesDirectory>${basedir}/main/resources/javadoc</classesDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
