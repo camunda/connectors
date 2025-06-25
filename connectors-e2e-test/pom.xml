@@ -6,7 +6,7 @@
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-parent</artifactId>
         <relativePath>../parent/pom.xml</relativePath>
-        <version>8.8.0-alpha6-rc2</version>
+        <version>8.8.0-alpha6-rc4</version>
     </parent>
 
     <description>Parent POM for Connectors e2e tests</description>
