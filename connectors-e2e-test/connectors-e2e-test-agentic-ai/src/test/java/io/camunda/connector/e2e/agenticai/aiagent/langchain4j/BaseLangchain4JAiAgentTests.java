@@ -51,6 +51,8 @@ import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
 import io.camunda.connector.test.SlowTest;
+import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,12 +69,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
 @WireMockTest
+@Import(BaseLangchain4JAiAgentTests.CamundaDocumentTestConfiguration.class)
 abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
   @MockitoBean private ChatModelFactory chatModelFactory;
   @Mock protected ChatModel chatModel;
@@ -84,8 +91,20 @@ abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
   protected final AtomicReference<Map<String, Object>> userFeedbackVariables =
       new AtomicReference<>(Collections.emptyMap());
 
+  @TestConfiguration
+  static class CamundaDocumentTestConfiguration {
+
+    @Bean
+    @Primary
+    public CamundaDocumentStore camundaDocumentStore() {
+      return InMemoryDocumentStore.INSTANCE;
+    }
+  }
+
   @BeforeEach
   void setUp() {
+    InMemoryDocumentStore.INSTANCE.clear();
+
     when(chatModelFactory.createChatModel(any())).thenReturn(chatModel);
     openUserFeedbackJobWorker();
 

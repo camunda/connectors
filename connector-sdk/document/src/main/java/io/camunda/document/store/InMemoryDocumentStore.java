@@ -55,6 +55,10 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
 
           @Override
           public OffsetDateTime getExpiresAt() {
+            if (request.timeToLive() != null) {
+              return OffsetDateTime.now().plus(request.timeToLive());
+            }
+
             return null;
           }
 
