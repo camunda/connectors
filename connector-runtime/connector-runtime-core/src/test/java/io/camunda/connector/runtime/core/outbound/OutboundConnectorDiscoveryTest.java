@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import static io.camunda.connector.runtime.core.testutil.TestUtil.withEnvVars;
 
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -29,7 +30,8 @@ public class OutboundConnectorDiscoveryTest {
 
   private static DefaultOutboundConnectorFactory getFactory() {
     return new DefaultOutboundConnectorFactory(
-        OutboundConnectorDiscovery.loadConnectorConfigurations());
+        OutboundConnectorDiscovery.loadConnectorConfigurations(),
+        ValidationUtil.discoverDefaultValidationProviderImplementation());
   }
 
   @Test

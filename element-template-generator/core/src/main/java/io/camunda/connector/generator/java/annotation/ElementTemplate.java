@@ -37,7 +37,7 @@ public @interface ElementTemplate {
    * Reference to the connector input data class. Element template is generated based on the
    * properties of this class.
    */
-  Class<?> inputDataClass();
+  Class<?> inputDataClass() default Void.class;
 
   Class<?> outputDataClass() default Void.class;
 
