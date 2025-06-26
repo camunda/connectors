@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "MCP Client (alpha)",
+  "name" : "MCP Client (experimental)",
   "id" : "io.camunda.connectors.agenticai.mcp.client.v0",
   "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations. Compatible with 8.8.0-alpha6 or later.",
   "metadata" : {
