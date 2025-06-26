@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.generator.ConnectorConfig.FileNameById;
 import io.camunda.connector.generator.api.DocsGenerator;
 import io.camunda.connector.generator.api.DocsGeneratorConfiguration;
@@ -186,9 +187,11 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       Map<Class<?>, String> connectorFileMap =
           Map.of(
               InboundConnectorExecutable.class,
-                  "io.camunda.connector.api.inbound.InboundConnectorExecutable",
+              "io.camunda.connector.api.inbound.InboundConnectorExecutable",
               OutboundConnectorFunction.class,
-                  "io.camunda.connector.api.outbound.OutboundConnectorFunction");
+              "io.camunda.connector.api.outbound.OutboundConnectorFunction",
+              OutboundConnectorProvider.class,
+              "io.camunda.connector.api.outbound.OutboundConnectorProvider");
 
       ClassLoader projectClassLoader = getProjectClassLoader();
       for (ConnectorConfig connector : filteredConnectors) {
