@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -56,11 +57,19 @@ public class Langchain4JAiAgentToolCallingTests extends BaseLangchain4JAiAgentTe
 
   @ParameterizedTest
   @CsvSource({
+    "test.csv,text,text/csv",
+    "test.gif,base64,image/gif",
     "test.jpg,base64,image/jpeg",
     "test.json,text,application/json",
-    "test.pdf,base64,application/pdf"
+    "test.pdf,base64,application/pdf",
+    "test.png,base64,image/png",
+    "test.txt,text,text/plain",
+    "test.webp,base64,image/webp",
+    "test.xml,text,application/xml",
+    "test.yaml,text,application/yaml"
   })
-  void supportsDocumentResponsesFromToolCalls(String filename, String type, String mimeType)
+  void supportsDocumentResponsesFromToolCalls(
+      String filename, String type, String mimeType, WireMockRuntimeInfo wireMock)
       throws Exception {
     DownloadFileToolResult expectedDownloadFileResult;
     if (type.equals("text")) {
@@ -88,7 +97,9 @@ public class Langchain4JAiAgentToolCallingTests extends BaseLangchain4JAiAgentTe
                     ToolExecutionRequest.builder()
                         .id("aaa111")
                         .name("Download_A_File")
-                        .arguments("{\"url\": \"%s\"}".formatted(wm.baseUrl() + "/" + filename))
+                        .arguments(
+                            "{\"url\": \"%s\"}"
+                                .formatted(wireMock.getHttpBaseUrl() + "/" + filename))
                         .build())),
             new ToolExecutionResultMessage(
                 "aaa111",

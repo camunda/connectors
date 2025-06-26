@@ -18,7 +18,6 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.within;
 
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
@@ -28,6 +27,7 @@ import io.camunda.connector.test.SlowTest;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
@@ -92,9 +92,10 @@ public class Langchain4JAiAgentMemoryStorageTests extends BaseLangchain4JAiAgent
                                       OffsetDateTime.now().plusHours(1),
                                       within(Duration.ofSeconds(20)));
                               assertThat(doc.getMetadata().getCustomProperties())
-                                  .containsExactly(
-                                      entry("conversationId", conversation.id()),
-                                      entry("customProperty", "customValue"));
+                                  .containsExactlyInAnyOrderEntriesOf(
+                                      Map.ofEntries(
+                                          Map.entry("conversationId", conversation.id()),
+                                          Map.entry("customProperty", "customValue")));
                             });
                   });
         });

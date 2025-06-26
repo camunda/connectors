@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
@@ -45,8 +46,20 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JAiAgentTests {
 
   @ParameterizedTest
-  @ValueSource(strings = {"test.jpg", "test.json", "test.pdf"})
-  void handlesDocumentType(String filename) throws Exception {
+  @ValueSource(
+      strings = {
+        "test.csv",
+        "test.gif",
+        "test.jpg",
+        "test.json",
+        "test.pdf",
+        "test.png",
+        "test.txt",
+        "test.webp",
+        "test.xml",
+        "test.yaml"
+      })
+  void handlesDocumentType(String filename, WireMockRuntimeInfo wireMock) throws Exception {
     final var initialUserPrompt = "Summarize the following document";
     final var expectedConversation =
         List.of(
@@ -80,7 +93,7 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
                     "userPrompt",
                     initialUserPrompt,
                     "downloadUrls",
-                    List.of(wm.baseUrl() + "/" + filename)))
+                    List.of(wireMock.getHttpBaseUrl() + "/" + filename)))
             .waitForProcessCompletion();
 
     assertLastChatRequest(1, expectedConversation);
@@ -98,7 +111,7 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
   }
 
   @Test
-  void handlesMultipleDocuments() throws Exception {
+  void handlesMultipleDocuments(WireMockRuntimeInfo wireMock) throws Exception {
     final var initialUserPrompt = "Summarize the following documents";
     final var expectedConversation =
         List.of(
@@ -133,7 +146,9 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
                     "userPrompt",
                     initialUserPrompt,
                     "downloadUrls",
-                    List.of(wm.baseUrl() + "/test.txt", wm.baseUrl() + "/test.jpg")))
+                    List.of(
+                        wireMock.getHttpBaseUrl() + "/test.txt",
+                        wireMock.getHttpBaseUrl() + "/test.jpg")))
             .waitForProcessCompletion();
 
     assertLastChatRequest(1, expectedConversation);
@@ -151,7 +166,7 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
   }
 
   @Test
-  void raisesIncidentWhenDocumentTypeIsNotSupported() throws Exception {
+  void raisesIncidentWhenDocumentTypeIsNotSupported(WireMockRuntimeInfo wireMock) throws Exception {
     final var zeebeTest =
         createProcessInstance(
                 Map.of(
@@ -160,7 +175,7 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
                     "userPrompt",
                     "Summarize the following document",
                     "downloadUrls",
-                    List.of(wm.baseUrl() + "/unsupported.zip")))
+                    List.of(wireMock.getHttpBaseUrl() + "/unsupported.zip")))
             .waitForActiveIncidents();
 
     assertIncident(
@@ -177,9 +192,13 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
     final Supplier<String> b64 = testFileContentBase64(filename);
 
     return switch (filename) {
-      case "test.txt", "test.json" -> TextContent.from(text.get());
+      case "test.txt", "test.yaml", "test.csv", "test.json", "test.xml" ->
+          TextContent.from(text.get());
       case "test.pdf" -> PdfFileContent.from(PdfFile.builder().base64Data(b64.get()).build());
+      case "test.gif" -> ImageContent.from(b64.get(), "image/gif", ImageContent.DetailLevel.AUTO);
       case "test.jpg" -> ImageContent.from(b64.get(), "image/jpeg", ImageContent.DetailLevel.AUTO);
+      case "test.png" -> ImageContent.from(b64.get(), "image/png", ImageContent.DetailLevel.AUTO);
+      case "test.webp" -> ImageContent.from(b64.get(), "image/webp", ImageContent.DetailLevel.AUTO);
       default -> throw new IllegalStateException("Unsupported file: " + filename);
     };
   }
