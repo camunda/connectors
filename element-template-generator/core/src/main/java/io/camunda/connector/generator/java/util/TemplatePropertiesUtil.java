@@ -70,6 +70,12 @@ public class TemplatePropertiesUtil {
    */
   public static List<PropertyBuilder> extractTemplatePropertiesFromType(
       Class<?> type, TemplateGenerationContext context) {
+
+    if (type == Void.class) {
+      // If the type is Void, return an empty list
+      return Collections.emptyList();
+    }
+
     if (type.isSealed()) {
       return handleSealedType(type, context);
     }

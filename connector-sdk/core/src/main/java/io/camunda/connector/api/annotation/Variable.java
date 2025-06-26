@@ -21,17 +21,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Marks an outbound connector and configures meta-data. */
-@Target(value = {ElementType.TYPE})
+@Target(value = {ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface OutboundConnector {
+public @interface Variable {
+  // TODO add a name property as an alias for the value
 
-  /** Name of the connector */
-  String name();
+  String value() default "";
 
-  /** Input variables the connector reads */
-  String[] inputVariables() default "";
-
-  /** Job / task type the connector registers for */
-  String type();
+  boolean required() default true;
 }

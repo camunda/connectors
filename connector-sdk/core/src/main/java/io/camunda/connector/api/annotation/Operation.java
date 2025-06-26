@@ -21,17 +21,34 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Marks an outbound connector and configures meta-data. */
-@Target(value = {ElementType.TYPE})
+@Target(value = {ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface OutboundConnector {
+public @interface Operation {
+  /**
+   * Alias for the ID of the operation.
+   *
+   * @return Alias for the ID of the operation
+   */
+  String value() default "";
 
-  /** Name of the connector */
-  String name();
+  /**
+   * ID of the operation.
+   *
+   * @return ID of the operation
+   */
+  String id() default "";
 
-  /** Input variables the connector reads */
-  String[] inputVariables() default "";
+  /**
+   * Name of the operation.
+   *
+   * @return name of the operation
+   */
+  String name() default "";
 
-  /** Job / task type the connector registers for */
-  String type();
+  /**
+   * Description of the operation.
+   *
+   * @return description of the operation
+   */
+  String description() default "";
 }

@@ -23,6 +23,7 @@ import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactor
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
@@ -33,7 +34,6 @@ import io.camunda.document.store.CamundaDocumentStoreImpl;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -42,9 +42,9 @@ import org.springframework.core.env.Environment;
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
-  public OutboundConnectorFactory outboundConnectorFactory() {
-    return new DefaultOutboundConnectorFactory(
-        OutboundConnectorDiscovery.loadConnectorConfigurations());
+  public OutboundConnectorFactory outboundConnectorFactory(ValidationProvider validationProvider) {
+    var configs = OutboundConnectorDiscovery.loadConnectorConfigurations();
+    return new DefaultOutboundConnectorFactory(configs, validationProvider);
   }
 
   @Bean
@@ -58,12 +58,17 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  ValidationProvider validationProvider() {
+    return ValidationUtil.discoverDefaultValidationProviderImplementation();
+  }
+
+  @Bean
   public OutboundConnectorManager outboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
-      @Autowired(required = false) ValidationProvider validationProvider,
+      ValidationProvider validationProvider,
       ConnectorsOutboundMetrics outboundMetrics,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper) {

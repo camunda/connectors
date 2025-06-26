@@ -14,24 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.annotation;
+package io.camunda.connector.runtime.core.validation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import static org.assertj.core.api.Assertions.assertThat;
 
-/** Marks an outbound connector and configures meta-data. */
-@Target(value = {ElementType.TYPE})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface OutboundConnector {
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import org.junit.jupiter.api.Test;
 
-  /** Name of the connector */
-  String name();
+class ValidatorServiceLoaderTest {
 
-  /** Input variables the connector reads */
-  String[] inputVariables() default "";
-
-  /** Job / task type the connector registers for */
-  String type();
+  @Test
+  public void shouldDiscoverValidator() {
+    assertThat(ValidationUtil.discoverDefaultValidationProviderImplementation())
+        .isOfAnyClassIn(DefaultValidationProvider.class);
+  }
 }

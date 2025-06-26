@@ -16,8 +16,11 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
+import io.camunda.connector.runtime.core.ReflectionUtil;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,12 +41,16 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache;
 
-  public DefaultOutboundConnectorFactory(List<OutboundConnectorConfiguration> configurations) {
+  private final ValidationProvider validationProvider;
+
+  public DefaultOutboundConnectorFactory(
+      List<OutboundConnectorConfiguration> configurations, ValidationProvider validationProvider) {
     connectorConfigs =
         configurations.stream()
             .collect(
                 Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
     connectorInstanceCache = new ConcurrentHashMap<>();
+    this.validationProvider = validationProvider;
   }
 
   @Override
@@ -68,7 +75,25 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
           if (c.customInstanceSupplier() != null) {
             return c.customInstanceSupplier().get();
           } else {
-            return ConnectorHelper.instantiateConnector(c.connectorClass());
+            if (OutboundConnectorFunction.class.isAssignableFrom(c.connectorClass())) {
+              // If the connector class is already an instance of OutboundConnectorFunction,
+              // we can directly cast it.
+              return (OutboundConnectorFunction)
+                  ConnectorHelper.instantiateConnector(c.connectorClass());
+            } else {
+              // TODO This data should be resolved before the connector is registered
+              var operations =
+                  ReflectionUtil.getMethodsAnnotatedWith(c.connectorClass(), Operation.class);
+              if (operations.isEmpty()) {
+                throw new IllegalStateException(
+                    "Outbound connector "
+                        + c.connectorClass().getName()
+                        + " does not have any methods annotated with @Operation.");
+              } else {
+                var instance = ConnectorHelper.instantiateConnector(c.connectorClass());
+                return new OutboundConnectorOperationFunction(instance, validationProvider);
+              }
+            }
           }
         });
   }
