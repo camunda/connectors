@@ -178,9 +178,10 @@ public class JakartaUtils {
         Optional.of(folderPath)
             .map(string -> string.split(REGEX_PATH_SPLITTER))
             .map(strings -> String.join(String.valueOf(separator), strings))
-            .orElseThrow(() -> new RuntimeException("No folder has been set"));
+            .orElseThrow(() -> new MessagingException("No folder has been set"));
     Folder folder = store.getFolder(formattedPath);
-    if (!folder.exists()) throw new RuntimeException("Folder " + formattedPath + " does not exist");
+    if (!folder.exists())
+      throw new MessagingException("Folder " + formattedPath + " does not exist");
     return folder;
   }
 
@@ -284,8 +285,8 @@ public class JakartaUtils {
       throws MessagingException, IOException {
     BodyPart bodyPart = multipart.getBodyPart(i);
     switch (bodyPart.getContent()) {
-      case InputStream attachment when Part.ATTACHMENT.equalsIgnoreCase(
-              bodyPart.getDisposition()) ->
+      case InputStream attachment
+          when Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) ->
           emailBodyBuilder.addAttachment(
               new EmailAttachment(
                   attachment,
