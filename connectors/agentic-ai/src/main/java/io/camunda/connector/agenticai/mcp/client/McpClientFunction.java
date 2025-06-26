@@ -14,12 +14,12 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
-    name = "MCP Client (alpha)",
+    name = "MCP Client (experimental)",
     inputVariables = {"data"},
     type = McpClientFunction.MCP_CLIENT_TYPE)
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.mcp.client.v0",
-    name = "MCP Client (alpha)",
+    name = "MCP Client (experimental)",
     description =
         "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations. Compatible with 8.8.0-alpha6 or later.",
     engineVersion = "^8.8",
