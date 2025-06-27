@@ -26,16 +26,22 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeatu
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.PropertySource;
 import io.camunda.connector.generator.java.util.ReflectionUtil;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
 import io.camunda.connector.generator.java.util.TemplateGenerationContextUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
@@ -100,7 +106,12 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     var context = TemplateGenerationContextUtil.createContext(connectorDefinition, configuration);
 
     List<PropertyBuilder> properties =
-        TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context);
+        new ArrayList<>(
+            TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context));
+    Arrays.stream(template.propertySources())
+        .forEach(
+            propertySourceClass ->
+                properties.addAll(extractPropertiesFromPropertySources(propertySourceClass)));
 
     var groupsDefinedInProperties =
         new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
@@ -232,5 +243,65 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
               template.defaultResultVariable(), template.defaultResultExpression()));
     }
     return newGroups;
+  }
+
+  private static List<PropertyBuilder> extractPropertiesFromPropertySources(Class<?> type) {
+    return findAllPropertySources(type).stream()
+        .map(
+            pair -> {
+              final var method = pair.getLeft();
+              try {
+                final var result = method.invoke(new Arrays[0]);
+                if (result == null) {
+                  return new ArrayList<PropertyBuilder>();
+                }
+
+                //noinspection unchecked
+                return (Collection<PropertyBuilder>) result;
+              } catch (Exception e) {
+                throw new RuntimeException(
+                    "Failed to resolve template properties from method %s#%s annotated with @PropertySource"
+                        .formatted(method.getDeclaringClass().getTypeName(), method.getName()),
+                    e);
+              }
+            })
+        .flatMap(Collection::stream)
+        .toList();
+  }
+
+  private static List<Pair<Method, PropertySource>> findAllPropertySources(Class<?> type) {
+    return Arrays.stream(type.getDeclaredMethods())
+        .filter(m -> Modifier.isPublic(m.getModifiers()) && Modifier.isStatic(m.getModifiers()))
+        .filter(
+            m ->
+                Arrays.stream(m.getAnnotations())
+                    .anyMatch(a -> PropertySource.class.equals(a.annotationType())))
+        .map(
+            m -> {
+              if (!hasExpectedPropertySourceReturnType(m)) {
+                throw new IllegalArgumentException(
+                    "Method %s#%s annotated with @PropertySource must return a collection of PropertyBuilder. Actual return type: %s"
+                        .formatted(
+                            m.getDeclaringClass().getTypeName(),
+                            m.getName(),
+                            m.getGenericReturnType().getTypeName()));
+              }
+
+              return Pair.of(m, m.getDeclaredAnnotation(PropertySource.class));
+            })
+        .toList();
+  }
+
+  private static boolean hasExpectedPropertySourceReturnType(Method method) {
+    if (!(method.getGenericReturnType() instanceof ParameterizedType parametrizedReturnType)) {
+      return false;
+    }
+
+    if (!Collection.class.isAssignableFrom((Class<?>) parametrizedReturnType.getRawType())
+        || parametrizedReturnType.getActualTypeArguments().length != 1) {
+      return false;
+    }
+
+    return parametrizedReturnType.getActualTypeArguments()[0] == PropertyBuilder.class;
   }
 }
