@@ -51,7 +51,7 @@
   }, {
     "id" : "authentication.SASToken",
     "label" : "SAS token",
-    "description" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
+    "description" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -66,7 +66,7 @@
   }, {
     "id" : "authentication.SASUrl",
     "label" : "SAS URL",
-    "description" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
+    "description" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
