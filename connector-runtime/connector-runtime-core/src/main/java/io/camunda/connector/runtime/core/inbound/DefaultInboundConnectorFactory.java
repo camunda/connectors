@@ -45,8 +45,8 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
 
   public DefaultInboundConnectorFactory() {
     loadConnectorConfigurations();
-    if (configurations.size() > 0) {
-      LOG.debug("Registered inbound connectors: " + configurations);
+    if (!configurations.isEmpty()) {
+      LOG.debug("Registered inbound connectors: {}", configurations);
     } else {
       LOG.warn("No inbound connectors discovered");
     }
