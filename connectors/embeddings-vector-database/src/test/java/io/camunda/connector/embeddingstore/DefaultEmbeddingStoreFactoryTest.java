@@ -17,17 +17,6 @@ import org.mockito.Mockito;
 class DefaultEmbeddingStoreFactoryTest {
 
   @Test
-  void createsAmazonManagedOpenSearchVectorStore() {
-    final var mockModel = Mockito.mock(EmbeddingModel.class);
-    final var factory = new DefaultEmbeddingStoreFactory();
-
-    final var store =
-        factory.initializeVectorStore(
-            EmbeddingsVectorStoreFixture.createAmazonManagedOpenVectorStore(), mockModel);
-    Assertions.assertThat(store).isInstanceOf(OpenSearchEmbeddingStore.class);
-  }
-
-  @Test
   void createsElasticSearchVectorStore() {
     final var mockModel = Mockito.mock(EmbeddingModel.class);
     final var factory = new DefaultEmbeddingStoreFactory();
@@ -36,5 +25,27 @@ class DefaultEmbeddingStoreFactoryTest {
         factory.initializeVectorStore(
             EmbeddingsVectorStoreFixture.createElasticSearchVectorStore(), mockModel);
     Assertions.assertThat(store).isInstanceOf(ElasticsearchEmbeddingStore.class);
+  }
+
+  @Test
+  void createsOpenSearchVectorStore() {
+    final var mockModel = Mockito.mock(EmbeddingModel.class);
+    final var factory = new DefaultEmbeddingStoreFactory();
+
+    final var store =
+        factory.initializeVectorStore(
+            EmbeddingsVectorStoreFixture.createOpenSearchVectorStore(), mockModel);
+    Assertions.assertThat(store).isInstanceOf(OpenSearchEmbeddingStore.class);
+  }
+
+  @Test
+  void createsAmazonManagedOpenSearchVectorStore() {
+    final var mockModel = Mockito.mock(EmbeddingModel.class);
+    final var factory = new DefaultEmbeddingStoreFactory();
+
+    final var store =
+        factory.initializeVectorStore(
+            EmbeddingsVectorStoreFixture.createAmazonManagedOpenVectorStore(), mockModel);
+    Assertions.assertThat(store).isInstanceOf(OpenSearchEmbeddingStore.class);
   }
 }
