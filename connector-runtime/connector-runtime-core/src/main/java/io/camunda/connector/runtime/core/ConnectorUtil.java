@@ -20,10 +20,10 @@ import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Optional;
 
 public final class ConnectorUtil {
@@ -32,19 +32,15 @@ public final class ConnectorUtil {
 
   public static Optional<OutboundConnectorConfiguration> getOutboundConnectorConfiguration(
       Class<? extends OutboundConnectorFunction> cls) {
-    Map<String, String> env = System.getenv();
     var annotation = Optional.ofNullable(cls.getAnnotation(OutboundConnector.class));
     if (annotation.isPresent()) {
-      final var normalizedConnectorName =
-          toConnectorTypeEnvVariable(toNormalizedConnectorName(annotation.get().name()));
-      final var normalizedConnectorTimeout =
-          toConnectorTimeoutEnvVariable(toNormalizedConnectorName(annotation.get().name()));
+      final var configurationOverrides =
+          new ConnectorConfigurationOverrides(annotation.get().name(), System::getenv);
       final var type =
-          Optional.ofNullable(env.get(normalizedConnectorName)).orElse(annotation.get().type());
-      final var timeout =
-          Optional.ofNullable(env.get(normalizedConnectorTimeout))
-              .map(Long::parseLong)
-              .orElse(null);
+          Optional.ofNullable(configurationOverrides.typeOverride())
+              .orElse(annotation.get().type());
+      final var timeout = configurationOverrides.timeoutOverride();
+
       return Optional.of(
           new OutboundConnectorConfiguration(
               annotation.get().name(), annotation.get().inputVariables(), type, cls, timeout));
@@ -65,13 +61,14 @@ public final class ConnectorUtil {
 
   public static Optional<InboundConnectorConfiguration> getInboundConnectorConfiguration(
       Class<? extends InboundConnectorExecutable> cls) {
-    Map<String, String> env = System.getenv();
     var annotation = Optional.ofNullable(cls.getAnnotation(InboundConnector.class));
     if (annotation.isPresent()) {
-      final var normalizedConnectorName =
-          toConnectorTypeEnvVariable(toNormalizedConnectorName(annotation.get().name()));
+      final var configurationOverrides =
+          new ConnectorConfigurationOverrides(annotation.get().name(), System::getenv);
       final var type =
-          Optional.ofNullable(env.get(normalizedConnectorName)).orElse(annotation.get().type());
+          Optional.ofNullable(configurationOverrides.typeOverride())
+              .orElse(annotation.get().type());
+
       final var deduplicationProperties = Arrays.asList(annotation.get().deduplicationProperties());
       return Optional.of(
           new InboundConnectorConfiguration(
@@ -89,17 +86,5 @@ public final class ConnectorUtil {
                     String.format(
                         "InboundConnectorExecutable %s is missing @InboundConnector annotation",
                         cls)));
-  }
-
-  private static String toNormalizedConnectorName(final String connectorName) {
-    return connectorName.trim().replaceAll("[^a-zA-Z0-9_ ]", "").replaceAll(" ", "_").toUpperCase();
-  }
-
-  private static String toConnectorTypeEnvVariable(final String normalizedConnectorName) {
-    return "CONNECTOR_" + normalizedConnectorName + "_TYPE";
-  }
-
-  private static String toConnectorTimeoutEnvVariable(final String normalizedConnectorName) {
-    return "CONNECTOR_" + normalizedConnectorName + "_TIMEOUT";
   }
 }
