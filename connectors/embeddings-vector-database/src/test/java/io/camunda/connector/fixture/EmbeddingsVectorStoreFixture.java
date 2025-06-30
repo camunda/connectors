@@ -8,12 +8,18 @@ package io.camunda.connector.fixture;
 
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.ElasticSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
 
 public class EmbeddingsVectorStoreFixture {
 
   public static ElasticSearchVectorStore createElasticSearchVectorStore() {
     return new ElasticSearchVectorStore(
         "https://elastic.local:9200", "elastic", "changeme", "embeddings_idx");
+  }
+
+  public static OpenSearchVectorStore createOpenSearchVectorStore() {
+    return new OpenSearchVectorStore(
+        "https://opensearch.local:9200", "opensearch", "changeme", "embeddings_idx");
   }
 
   public static AmazonManagedOpenSearchVectorStore createAmazonManagedOpenVectorStore() {
