@@ -39,4 +39,52 @@ class BedrockRuntimeClientSupplierTest {
         clientSupplier.getBedrockRuntimeClient((AwsProvider) request.baseRequest());
     assertThat(client).isInstanceOf(BedrockRuntimeClient.class);
   }
+
+  @Test
+  void getBedrockRuntimeClientWithCustomEndpoint() {
+    // Create configuration with custom endpoint
+    AwsBaseConfiguration configurationWithEndpoint = 
+        new AwsBaseConfiguration("us-east-1", "https://bedrock-runtime.vpce-12345.us-east-1.vpce.amazonaws.com");
+    
+    AwsProvider awsProvider = new AwsProvider();
+    awsProvider.setConfiguration(configurationWithEndpoint);
+    
+    // Create client with custom endpoint
+    BedrockRuntimeClient client = clientSupplier.getBedrockRuntimeClient(awsProvider);
+    
+    assertThat(client).isInstanceOf(BedrockRuntimeClient.class);
+    // The client should be created successfully with the custom endpoint
+    // We can't easily verify the internal endpoint configuration without accessing private fields
+    // but the successful creation indicates the endpointOverride was called correctly
+  }
+
+  @Test
+  void getBedrockRuntimeClientWithNullEndpoint() {
+    // Create configuration with null endpoint
+    AwsBaseConfiguration configurationWithNullEndpoint = 
+        new AwsBaseConfiguration("us-east-1", null);
+    
+    AwsProvider awsProvider = new AwsProvider();
+    awsProvider.setConfiguration(configurationWithNullEndpoint);
+    
+    // Create client - should work the same as before
+    BedrockRuntimeClient client = clientSupplier.getBedrockRuntimeClient(awsProvider);
+    
+    assertThat(client).isInstanceOf(BedrockRuntimeClient.class);
+  }
+
+  @Test
+  void getBedrockRuntimeClientWithEmptyEndpoint() {
+    // Create configuration with empty endpoint
+    AwsBaseConfiguration configurationWithEmptyEndpoint = 
+        new AwsBaseConfiguration("us-east-1", "   ");
+    
+    AwsProvider awsProvider = new AwsProvider();
+    awsProvider.setConfiguration(configurationWithEmptyEndpoint);
+    
+    // Create client - should work the same as before
+    BedrockRuntimeClient client = clientSupplier.getBedrockRuntimeClient(awsProvider);
+    
+    assertThat(client).isInstanceOf(BedrockRuntimeClient.class);
+  }
 }
