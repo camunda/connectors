@@ -17,21 +17,20 @@
 package io.camunda.connector.runtime.core;
 
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
+import java.lang.reflect.Field;
+import java.util.*;
 
 public final class ConnectorUtil {
 
   private ConnectorUtil() {}
 
   public static Optional<OutboundConnectorConfiguration> getOutboundConnectorConfiguration(
-      Class<? extends OutboundConnectorFunction> cls) {
+      Class<?> cls) {
     Map<String, String> env = System.getenv();
     var annotation = Optional.ofNullable(cls.getAnnotation(OutboundConnector.class));
     if (annotation.isPresent()) {
@@ -45,15 +44,16 @@ public final class ConnectorUtil {
           Optional.ofNullable(env.get(normalizedConnectorTimeout))
               .map(Long::parseLong)
               .orElse(null);
+      final var inputVariables = getInputVariables(cls, annotation.get());
       return Optional.of(
           new OutboundConnectorConfiguration(
-              annotation.get().name(), annotation.get().inputVariables(), type, cls, timeout));
+              annotation.get().name(), inputVariables, type, cls, timeout));
     }
     return Optional.empty();
   }
 
   public static OutboundConnectorConfiguration getRequiredOutboundConnectorConfiguration(
-      Class<? extends OutboundConnectorFunction> cls) {
+      Class cls) {
     return getOutboundConnectorConfiguration(cls)
         .orElseThrow(
             () ->
@@ -101,5 +101,54 @@ public final class ConnectorUtil {
 
   private static String toConnectorTimeoutEnvVariable(final String normalizedConnectorName) {
     return "CONNECTOR_" + normalizedConnectorName + "_TIMEOUT";
+  }
+
+  public static String[] getInputVariables(Class<?> cls, OutboundConnector annotation) {
+    List<ReflectionUtil.MethodWithAnnotation<Operation>> operations =
+        ReflectionUtil.getMethodsAnnotatedWith(cls, Operation.class);
+    if (operations.isEmpty()) {
+      return annotation.inputVariables();
+    } else {
+      return getInputVariables(operations).toArray(new String[0]);
+    }
+  }
+
+  public static Set<String> getInputVariables(
+      List<ReflectionUtil.MethodWithAnnotation<Operation>> operations) {
+    Set<String> variables = new HashSet<String>();
+    operations.forEach(
+        method -> {
+          method
+              .parameters()
+              .forEach(
+                  parameter -> {
+                    if (parameter.getAnnotation(io.camunda.connector.api.annotation.Variable.class)
+                        != null) {
+                      String variableName =
+                          parameter
+                              .getAnnotation(io.camunda.connector.api.annotation.Variable.class)
+                              .value();
+                      if (variableName.isEmpty()) {
+                        // When the variable name is empty, we assume that the variables are mapped
+                        // from the root
+                        for (Field declaredField : parameter.getType().getDeclaredFields()) {
+                          declaredField.setAccessible(true);
+                          String fieldName = declaredField.getName();
+                          variables.add(fieldName);
+                        }
+                      } else {
+                        // If the variable name contains a dot, we take the part before the dot as
+                        // the variable name
+                        if (variableName.contains(".")) {
+                          String[] parts = variableName.split("\\.");
+                          variables.add(parts[0]);
+                        } else {
+                          variables.add(variableName);
+                        }
+                      }
+                    }
+                  });
+        });
+    return variables;
   }
 }

@@ -14,19 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.validation;
+package io.camunda.connector.api.outbound;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import org.junit.jupiter.api.Test;
-
-class ValidatorServiceLoaderTest {
-
-  @Test
-  public void shouldDiscoverValidator() {
-    assertThat(ValidationUtil.discoverDefaultValidationProviderImplementation())
-        .isOfAnyClassIn(DefaultValidationProvider.class);
-  }
-}
+/** Marker interface for outbound connectors based on methods annotated with {@link @Operation}. */
+public interface OutboundConnectorProvider {}

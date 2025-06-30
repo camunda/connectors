@@ -14,47 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.java.util;
+package io.camunda.connector.runtime.core;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Utility class for reflection operations, specifically for retrieving methods annotated with a
+ * specific annotation. TODO Move to a reusable package so it can be shared with the element
+ * template generator
+ */
 public class ReflectionUtil {
-
-  public static <T extends Annotation> T getRequiredAnnotation(
-      Class<?> clazz, Class<T> annotationClass) {
-    return getRequiredAnnotation(
-        clazz,
-        annotationClass,
-        "Annotation " + annotationClass.getName() + " is required on " + clazz);
-  }
-
-  public static <T extends Annotation> T getRequiredAnnotation(
-      Class<?> clazz, Class<T> annotationClass, String errorMessage) {
-    var annotation = clazz.getAnnotation(annotationClass);
-    if (annotation == null) {
-      throw new IllegalStateException(errorMessage);
-    }
-    return annotation;
-  }
-
-  public static List<Field> getAllFields(Class<?> type) {
-    return getAllFields(new ArrayList<>(), type);
-  }
-
-  public static List<Field> getAllFields(List<Field> fields, Class<?> type) {
-    fields.addAll(Arrays.asList(type.getDeclaredFields()));
-
-    if (type.getSuperclass() != null) {
-      getAllFields(fields, type.getSuperclass());
-    }
-    return fields;
-  }
 
   public record MethodWithAnnotation<A extends Annotation>(
       Method method, List<Parameter> parameters, A annotation) {}
