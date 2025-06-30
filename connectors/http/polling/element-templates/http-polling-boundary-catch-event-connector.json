@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "HTTP Polling Intermediate Catch Event Connector",
-  "id" : "io.camunda.connectors.http.Polling",
+  "name" : "HTTP Polling Boundary Catch Event Connector",
+  "id" : "io.camunda.connectors.http.Polling.Boundary",
   "description" : "Polls endpoint at regular intervals",
   "metadata" : {
     "keywords" : [ ]
@@ -12,9 +12,9 @@
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:IntermediateCatchEvent" ],
+  "appliesTo" : [ "bpmn:BoundaryEvent" ],
   "elementType" : {
-    "value" : "bpmn:IntermediateCatchEvent",
+    "value" : "bpmn:BoundaryEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
