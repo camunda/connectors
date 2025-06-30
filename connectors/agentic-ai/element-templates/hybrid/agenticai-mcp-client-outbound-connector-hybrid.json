@@ -54,6 +54,13 @@
     },
     "type" : "String"
   }, {
+    "value" : "mcpClient",
+    "binding" : {
+      "name" : "io.camunda.agenticai.gateway.type",
+      "type" : "zeebe:property"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "data.client.clientId",
     "label" : "Client ID",
     "description" : "The MCP client ID. This needs to be configured on your connector runtime.",
