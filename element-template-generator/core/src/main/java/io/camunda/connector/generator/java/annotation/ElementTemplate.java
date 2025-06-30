@@ -42,10 +42,9 @@ public @interface ElementTemplate {
   Class<?> outputDataClass() default Void.class;
 
   /**
-   * List of classes defining element template properties through @{@link PropertySource} annotated
-   * methods.
+   * List of optional extension properties to be added to the element template as hidden properties.
    */
-  Class<?>[] propertySources() default {};
+  ExtensionProperty[] extensionProperties() default {};
 
   /**
    * Element template version. The version should be incremented every time the template is changed
@@ -133,6 +132,12 @@ public @interface ElementTemplate {
     String tooltip() default "";
 
     boolean openByDefault() default true;
+  }
+
+  @interface ExtensionProperty {
+    String name();
+
+    String value();
   }
 
   @interface ConnectorElementType {

@@ -109,8 +109,11 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
-      propertySources = MyPropertySource.class)
-  public static class MinimallyAnnotatedWithPropertySources extends MyConnectorFunction {}
+      extensionProperties = {
+        @ElementTemplate.ExtensionProperty(name = "myExtensionProperty1", value = "value1"),
+        @ElementTemplate.ExtensionProperty(name = "myExtensionProperty2", value = "value2"),
+      })
+  public static class MinimallyAnnotatedWithExtensionProperties extends MyConnectorFunction {}
 
   @OutboundConnector(
       name = "my-connector",

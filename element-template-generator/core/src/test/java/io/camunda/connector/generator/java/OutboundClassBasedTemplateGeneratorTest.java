@@ -19,7 +19,6 @@ package io.camunda.connector.generator.java;
 import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
 import static java.nio.file.Files.readAllBytes;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,7 +28,6 @@ import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.dsl.BooleanProperty;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
@@ -44,7 +42,6 @@ import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
-import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
@@ -592,6 +589,36 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var dependsOnFalse = getPropertyById("dependsOnBooleanPropertyFalse", template);
       assertThat(dependsOnFalse.getCondition()).isEqualTo(new Equals("booleanProperty", false));
     }
+
+    @Test
+    void supportsExtensionProperties() {
+      var template =
+          generator
+              .generate(MyConnectorFunction.MinimallyAnnotatedWithExtensionProperties.class)
+              .getFirst();
+
+      assertThat(template.properties())
+          .filteredOn(
+              p ->
+                  p.getBinding().type().equals("zeebe:property")
+                      && ((PropertyBinding.ZeebeProperty) p.getBinding())
+                          .name()
+                          .startsWith("myExtensionProperty"))
+          .hasSize(2)
+          .satisfiesExactlyInAnyOrder(
+              p -> {
+                assertThat(p).isInstanceOf(HiddenProperty.class);
+                assertThat(p.getBinding())
+                    .isEqualTo(new PropertyBinding.ZeebeProperty("myExtensionProperty1"));
+                assertThat(p.getValue()).isEqualTo("value1");
+              },
+              p -> {
+                assertThat(p).isInstanceOf(HiddenProperty.class);
+                assertThat(p.getBinding())
+                    .isEqualTo(new PropertyBinding.ZeebeProperty("myExtensionProperty2"));
+                assertThat(p.getValue()).isEqualTo("value2");
+              });
+    }
   }
 
   @Nested
@@ -827,51 +854,6 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var group2 =
           template.groups().stream().filter(g -> "group2".equals(g.id())).findFirst().orElseThrow();
       assertThat(group2.openByDefault()).isNull();
-    }
-  }
-
-  @Nested
-  class PropertySources {
-
-    @Test
-    void addsPropertyGroupsDefinedByPropertySource() {
-      var template =
-          generator
-              .generate(MyConnectorFunction.MinimallyAnnotatedWithPropertySources.class)
-              .getFirst();
-
-      assertThat(template.groups())
-          .hasSizeGreaterThan(1)
-          .extracting(PropertyGroup::id, PropertyGroup::label)
-          .contains(tuple("propertySourceCustomGroup", "Property source custom group"));
-    }
-
-    @Test
-    void generatesPropertiesFromPropertySource() {
-      var template =
-          generator
-              .generate(MyConnectorFunction.MinimallyAnnotatedWithPropertySources.class)
-              .getFirst();
-
-      var hiddenProperty = getPropertyById("myPropertySourceZeebeProperty", template);
-      assertThat(hiddenProperty).isInstanceOf(HiddenProperty.class);
-      assertThat(hiddenProperty.getBinding())
-          .isEqualTo(new PropertyBinding.ZeebeProperty("myPropertySourceZeebeProperty"));
-      assertThat(hiddenProperty.getValue()).isEqualTo("myZeebePropertyValue");
-
-      var stringProperty = getPropertyById("myPropertySourceStringProperty", template);
-      assertThat(stringProperty).isInstanceOf(StringProperty.class);
-      assertThat(stringProperty.getGroup()).isEqualTo("group1");
-      assertThat(stringProperty.getLabel()).isEqualTo("PropertySource String Property");
-      assertThat(stringProperty.getBinding())
-          .isEqualTo(new ZeebeInput("myPropertySourceStringProperty"));
-
-      var booleanProperty = getPropertyById("myPropertySourceBooleanProperty", template);
-      assertThat(booleanProperty).isInstanceOf(BooleanProperty.class);
-      assertThat(booleanProperty.getGroup()).isEqualTo("propertySourceCustomGroup");
-      assertThat(booleanProperty.getLabel()).isEqualTo("PropertySource Boolean Property");
-      assertThat(booleanProperty.getBinding())
-          .isEqualTo(new PropertyBinding.ZeebeProperty("myPropertySourceBooleanProperty"));
     }
   }
 
