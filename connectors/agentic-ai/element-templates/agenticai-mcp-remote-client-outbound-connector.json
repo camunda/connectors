@@ -49,13 +49,6 @@
     },
     "type" : "Hidden"
   }, {
-    "value" : "mcpClient",
-    "binding" : {
-      "name" : "io.camunda.agenticai.gateway.type",
-      "type" : "zeebe:property"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "data.connection.sseUrl",
     "label" : "SSE URL",
     "optional" : false,

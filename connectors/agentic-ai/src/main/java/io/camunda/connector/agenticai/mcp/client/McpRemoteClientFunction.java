@@ -25,7 +25,6 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     engineVersion = "^8.8",
     version = 0,
     inputDataClass = McpRemoteClientRequest.class,
-    propertySources = McpClientPropertySource.class,
     defaultResultVariable = "toolCallResult",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(
