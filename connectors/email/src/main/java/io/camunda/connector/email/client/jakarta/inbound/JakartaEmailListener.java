@@ -17,14 +17,16 @@ import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.exception.EmailConnectorException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Objects;
 import java.util.concurrent.*;
 
 public class JakartaEmailListener implements EmailListener {
 
   private static final int INFINITE_RETRIES = -1;
-  private ScheduledExecutorService scheduledExecutorService;
+  private final ScheduledExecutorService scheduledExecutorService =
+      Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Jakarta Email Listener"));
+  ;
   private CompletableFuture<PollingManager> pollingManagerFuture;
+  private CompletableFuture<ScheduledFuture<?>> scheduledPollingManagerFuture;
 
   public JakartaEmailListener() {}
 
@@ -34,8 +36,6 @@ public class JakartaEmailListener implements EmailListener {
 
   @Override
   public void startListener(InboundConnectorContext context) {
-    scheduledExecutorService =
-        Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Jakarta Email Listener"));
     RetryPolicy<Object> retryPolicy =
         RetryPolicy.builder()
             .handle(EmailConnectorException.class)
@@ -53,37 +53,34 @@ public class JakartaEmailListener implements EmailListener {
     this.pollingManagerFuture =
         Failsafe.with(retryPolicy)
             .with(scheduledExecutorService)
-            .getAsync(() -> PollingManager.create(context, new JakartaUtils()))
-            .whenComplete(
-                (pollingManager, throwable) -> {
-                  if (throwable != null) {
-                    context.reportHealth(Health.down(throwable));
-                    context.log(
-                        Activity.level(Severity.ERROR)
-                            .tag("Context creation")
-                            .message(throwable.getMessage()));
-                    this.stopListener();
-                  } else context.reportHealth(Health.up());
-                });
-    this.pollingManagerFuture.thenAccept(
-        pollingManager ->
-            scheduledExecutorService.scheduleWithFixedDelay(
-                pollingManager::poll, 0, pollingManager.delay(), TimeUnit.SECONDS));
+            .getAsync(() -> PollingManager.create(context, new JakartaUtils()));
+    this.scheduledPollingManagerFuture =
+        this.pollingManagerFuture.thenApply(
+            pollingManager ->
+                scheduledExecutorService.scheduleWithFixedDelay(
+                    pollingManager::poll, 0, pollingManager.delay(), TimeUnit.SECONDS));
+    this.scheduledPollingManagerFuture.whenComplete(
+        (pollingManager, throwable) -> {
+          if (throwable != null) {
+            context.reportHealth(Health.down(Health.Error.from(throwable)));
+            context.log(
+                Activity.level(Severity.ERROR)
+                    .tag("Context creation")
+                    .messageWithException(throwable.getMessage(), throwable));
+          } else context.reportHealth(Health.up());
+        });
   }
 
   @Override
   public void stopListener() {
-    try {
-      if (!Objects.isNull(this.scheduledExecutorService)) {
-        this.scheduledExecutorService.shutdown();
-        if (!this.scheduledExecutorService.awaitTermination(10, TimeUnit.SECONDS))
-          this.scheduledExecutorService.shutdownNow();
-      }
-      if (this.pollingManagerFuture.isDone() && !pollingManagerFuture.isCompletedExceptionally()) {
-        this.pollingManagerFuture.join().stop();
-      }
-    } catch (InterruptedException e) {
-      this.scheduledExecutorService.shutdownNow();
+    if (this.scheduledPollingManagerFuture.isDone()) {
+      this.scheduledPollingManagerFuture.join().cancel(true);
+    }
+    this.scheduledPollingManagerFuture.join().cancel(true);
+    if (this.pollingManagerFuture.isDone() && !pollingManagerFuture.isCompletedExceptionally()) {
+      this.pollingManagerFuture.join().stop();
+    } else {
+      this.pollingManagerFuture.cancel(true);
     }
   }
 }

@@ -96,7 +96,7 @@ public class PollingManager {
       throw new RuntimeException(exception);
     } catch (MailConnectException exception) {
       connectorContext.log(
-          Activity.level(Severity.ERROR).tag("Connection error").message("Connection failed"));
+          Activity.level(Severity.ERROR).tag("Connection error").message(exception.getMessage()));
       throw new EmailConnectorException(exception);
     } catch (MessagingException e) {
       try {
