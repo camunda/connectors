@@ -67,3 +67,5 @@ THIRD-PARTY.properties
 
 # MacOS indexes
 .DS_Store
+
+element-template-generator/npm/node_modules
