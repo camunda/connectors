@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 @InboundConnector(name = "Kafka Consumer", type = "io.camunda:connector-kafka-inbound:1")
 @ElementTemplate(
     engineVersion = "^8.3",
-    id = "io.camunda.connectors.webhook",
+    id = "io.camunda.connectors.kafka",
     name = "Kafka Event Connector",
     icon = "icon.svg",
     version = 7,

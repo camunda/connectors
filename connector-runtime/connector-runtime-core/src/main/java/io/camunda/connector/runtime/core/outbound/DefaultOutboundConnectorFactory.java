@@ -97,19 +97,27 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
     // 5. Env vars discovered configurations
     allConfigs.addAll(envVarConfigurations);
 
+    // filter out connectors that are disabled via additional env variable
+    var disabledConnector =
+        EnvVarsConnectorDiscovery.getDisabledOutboundConnectors().stream()
+            .map(String::toLowerCase)
+            .collect(Collectors.toUnmodifiableSet());
+
+    // Filter out disabled connectors
+    Stream<OutboundConnectorConfiguration> filteredConfigs =
+        allConfigs.stream()
+            .filter(config -> !disabledConnector.contains(config.type().toLowerCase()));
     // Store configurations in map, with type as key (later entries override earlier ones)
     this.configurations =
-        allConfigs.stream()
-            .collect(
-                Collectors.toMap(
-                    OutboundConnectorConfiguration::type,
-                    config -> config,
-                    (existing, replacement) -> {
-                      LOG.warn(
-                          "Overriding connector configuration {} with {}", existing, replacement);
-                      return replacement;
-                    },
-                    HashMap::new));
+        filteredConfigs.collect(
+            Collectors.toMap(
+                OutboundConnectorConfiguration::type,
+                config -> config,
+                (existing, replacement) -> {
+                  LOG.warn("Overriding connector configuration {} with {}", existing, replacement);
+                  return replacement;
+                },
+                HashMap::new));
   }
 
   private <T> List<OutboundConnectorConfiguration> toConfigurations(

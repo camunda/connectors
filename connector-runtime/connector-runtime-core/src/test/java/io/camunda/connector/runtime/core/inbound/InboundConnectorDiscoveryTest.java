@@ -147,6 +147,19 @@ public class InboundConnectorDiscoveryTest {
         registrations, "ANNOTATED", "io.camunda:annotated", NotAnnotatedExecutable.class.getName());
   }
 
+  @Test
+  public void shouldDisableThroughEnv() throws Exception {
+    // given
+    var env = new Object[] {"CONNECTOR_INBOUND_DISABLED", "io.camunda:annotated"};
+
+    // when
+    List<InboundConnectorConfiguration> registrations =
+        withEnvVars(env, () -> getFactory().getConfigurations());
+
+    // then
+    Assertions.assertThat(registrations).isEmpty();
+  }
+
   private static void assertRegistration(
       List<InboundConnectorConfiguration> registrations,
       String name,
