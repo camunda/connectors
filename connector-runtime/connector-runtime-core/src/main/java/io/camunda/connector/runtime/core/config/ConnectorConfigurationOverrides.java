@@ -20,6 +20,9 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public class ConnectorConfigurationOverrides {
+  private static final String TYPE_PROPERTY_TPL = "CONNECTOR_%s_TYPE";
+  private static final String TIMEOUT_PROPERTY_TPL = "CONNECTOR_%s_TIMEOUT";
+
   private final String normalizedConnectorName;
   private final Function<String, String> propertySource;
 
@@ -30,11 +33,11 @@ public class ConnectorConfigurationOverrides {
   }
 
   public Optional<String> typeOverride() {
-    return Optional.ofNullable(getProperty("CONNECTOR_" + normalizedConnectorName + "_TYPE"));
+    return Optional.ofNullable(getProperty(TYPE_PROPERTY_TPL.formatted(normalizedConnectorName)));
   }
 
   public Optional<Long> timeoutOverride() {
-    return Optional.ofNullable(getProperty("CONNECTOR_" + normalizedConnectorName + "_TIMEOUT"))
+    return Optional.ofNullable(getProperty(TIMEOUT_PROPERTY_TPL.formatted(normalizedConnectorName)))
         .map(Long::parseLong);
   }
 
