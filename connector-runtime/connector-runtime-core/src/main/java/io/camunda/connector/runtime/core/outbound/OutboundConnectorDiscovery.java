@@ -20,6 +20,7 @@ import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class OutboundConnectorDiscovery {
   public static List<OutboundConnectorConfiguration> loadConnectorConfigurations() {
@@ -29,6 +30,15 @@ public class OutboundConnectorDiscovery {
     } else {
       configurations = SPIConnectorDiscovery.discoverOutbound();
     }
+    // filter out connectors that are disabled via additional env variable
+    var disabledConnector =
+        EnvVarsConnectorDiscovery.getDisabledOutputConnectors().stream()
+            .map(String::toLowerCase)
+            .collect(Collectors.toUnmodifiableSet());
+    configurations =
+        configurations.stream()
+            .filter(e -> !disabledConnector.contains(e.type().toLowerCase()))
+            .toList();
     return configurations;
   }
 }

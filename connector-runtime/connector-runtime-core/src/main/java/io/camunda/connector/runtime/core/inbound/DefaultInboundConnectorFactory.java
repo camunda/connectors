@@ -26,6 +26,7 @@ import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,7 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
             .findAny();
 
     if (oldConfig.isPresent()) {
-      LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
+      LOG.info("Connector {} is overridden, new configuration{}", oldConfig, configuration);
       configurations.remove(oldConfig.get());
     }
     configurations.add(configuration);
@@ -104,5 +105,13 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
     } else {
       configurations = SPIConnectorDiscovery.discoverInbound();
     }
+    var disabledConnectors =
+        EnvVarsConnectorDiscovery.getDisabledInboundConnectors().stream()
+            .map(String::toLowerCase)
+            .collect(Collectors.toUnmodifiableSet());
+    configurations =
+        configurations.stream()
+            .filter(e -> !disabledConnectors.contains(e.type().toLowerCase()))
+            .toList();
   }
 }

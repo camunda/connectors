@@ -41,7 +41,6 @@ public class EnvVarsConnectorDiscovery {
 
   public static final Pattern INBOUND_CONNECTOR_EXECUTABLE_PATTERN =
       Pattern.compile("^CONNECTOR_(.*)_EXECUTABLE$");
-
   private static Map<String, String> hardwiredEnvironmentVariables;
 
   public static void addHardwiredEnvironmentVariable(String key, String value) {
@@ -66,13 +65,11 @@ public class EnvVarsConnectorDiscovery {
   }
 
   public static boolean isInboundConfigured() {
-    return getEnvironmentVariables().entrySet().stream()
-        .anyMatch(entry -> INBOUND_CONNECTOR_EXECUTABLE_PATTERN.matcher(entry.getKey()).matches());
+    return !discoverInbound().isEmpty();
   }
 
   public static boolean isOutboundConfigured() {
-    return getEnvironmentVariables().entrySet().stream()
-        .anyMatch(entry -> OUTBOUND_CONNECTOR_FUNCTION_PATTERN.matcher(entry.getKey()).matches());
+    return !discoverOutbound().isEmpty();
   }
 
   public static List<OutboundConnectorConfiguration> discoverOutbound() {
@@ -159,6 +156,18 @@ public class EnvVarsConnectorDiscovery {
     } catch (ClassNotFoundException | ClassCastException e) {
       throw loadFailed("Failed to load " + executableFqdn, e);
     }
+  }
+
+  public static List<String> getDisabledInboundConnectors() {
+    return getEnv("INBOUND", "DISABLED")
+        .map(value -> Arrays.asList(value.split(",")))
+        .orElse(List.of());
+  }
+
+  public static List<String> getDisabledOutputConnectors() {
+    return getEnv("OUTBOUND", "DISABLED")
+        .map(value -> Arrays.asList(value.split(",")))
+        .orElse(List.of());
   }
 
   private static Optional<String> getEnv(final String name, final String detail) {

@@ -168,6 +168,19 @@ public class OutboundConnectorDiscoveryTest {
         null);
   }
 
+  @Test
+  public void shouldDisableThroughEnv() throws Exception {
+    // given
+    var env = new Object[] {"CONNECTOR_OUTBOUND_DISABLED", "io.camunda:annotated"};
+
+    // when
+    List<OutboundConnectorConfiguration> registrations =
+        withEnvVars(env, () -> getFactory().getConfigurations());
+
+    // then
+    Assertions.assertThat(registrations).isEmpty();
+  }
+
   private static void assertRegistration(
       List<OutboundConnectorConfiguration> registrations,
       String name,
