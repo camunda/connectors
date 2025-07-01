@@ -36,6 +36,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 @Configuration
 public class OutboundConnectorRuntimeConfiguration {
@@ -79,8 +80,8 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public OutboundConnectorAnnotationProcessor annotationProcessor(
-      OutboundConnectorManager manager, OutboundConnectorFactory factory) {
-    return new OutboundConnectorAnnotationProcessor(manager, factory);
+      Environment environment, OutboundConnectorManager manager, OutboundConnectorFactory factory) {
+    return new OutboundConnectorAnnotationProcessor(environment, manager, factory);
   }
 
   @Bean

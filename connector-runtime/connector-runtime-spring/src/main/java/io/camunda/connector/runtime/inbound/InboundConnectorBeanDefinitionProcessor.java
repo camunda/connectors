@@ -20,6 +20,7 @@ import static org.springframework.beans.factory.config.BeanDefinition.*;
 
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import java.util.ArrayList;
@@ -34,12 +35,19 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
+import org.springframework.core.env.Environment;
 
 public class InboundConnectorBeanDefinitionProcessor
     implements BeanDefinitionRegistryPostProcessor, BeanPostProcessor {
   private static final Logger LOG =
       LoggerFactory.getLogger(InboundConnectorBeanDefinitionProcessor.class);
   private final List<InboundConnectorConfiguration> preparedConfigurations = new ArrayList<>();
+
+  private final Environment environment;
+
+  public InboundConnectorBeanDefinitionProcessor(Environment environment) {
+    this.environment = environment;
+  }
 
   @Override
   public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry)
@@ -82,11 +90,14 @@ public class InboundConnectorBeanDefinitionProcessor
 
   private InboundConnectorConfiguration getInboundConnectorConfiguration(
       InboundConnector inboundConnector, String beanName, BeanFactory beanFactory) {
+    final var configurationOverrides =
+        new ConnectorConfigurationOverrides(inboundConnector.name(), environment::getProperty);
     var deduplicationProperties = Arrays.asList(inboundConnector.deduplicationProperties());
+
     var configuration =
         new InboundConnectorConfiguration(
             inboundConnector.name(),
-            inboundConnector.type(),
+            configurationOverrides.typeOverride().orElse(inboundConnector.type()),
             null,
             () -> beanFactory.getBean(beanName, InboundConnectorExecutable.class),
             deduplicationProperties);
