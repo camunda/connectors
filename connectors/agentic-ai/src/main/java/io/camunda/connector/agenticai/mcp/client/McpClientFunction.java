@@ -6,8 +6,10 @@
  */
 package io.camunda.connector.agenticai.mcp.client;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
+import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -30,6 +32,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "client", label = "MCP Client"),
       @ElementTemplate.PropertyGroup(id = "tools", label = "Tools"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation", openByDefault = false)
+    },
+    extensionProperties = {
+      @ElementTemplate.ExtensionProperty(
+          name = GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION,
+          value = McpClientGatewayToolHandler.GATEWAY_TYPE),
     },
     icon = "mcp-client.svg")
 public class McpClientFunction implements OutboundConnectorFunction {

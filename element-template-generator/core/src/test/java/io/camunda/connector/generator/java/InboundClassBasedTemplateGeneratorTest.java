@@ -28,6 +28,7 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate;
+import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
@@ -425,5 +426,31 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(deduplicationKeyProperty.getCondition())
           .isEqualTo(new Equals("deduplicationModeManualFlag", true));
     }
+  }
+
+  @Test
+  void supportsExtensionProperties() {
+    var template =
+        generator
+            .generate(MyConnectorExecutable.MinimallyAnnotatedWithExtensionProperties.class)
+            .getFirst();
+
+    assertThat(template.properties())
+        .filteredOn(
+            p ->
+                p.getBinding().type().equals("zeebe:property")
+                    && ((ZeebeProperty) p.getBinding()).name().startsWith("myExtensionProperty"))
+        .hasSize(2)
+        .satisfiesExactlyInAnyOrder(
+            p -> {
+              assertThat(p).isInstanceOf(HiddenProperty.class);
+              assertThat(p.getBinding()).isEqualTo(new ZeebeProperty("myExtensionProperty1"));
+              assertThat(p.getValue()).isEqualTo("value1");
+            },
+            p -> {
+              assertThat(p).isInstanceOf(HiddenProperty.class);
+              assertThat(p.getBinding()).isEqualTo(new ZeebeProperty("myExtensionProperty2"));
+              assertThat(p.getValue()).isEqualTo("value2");
+            });
   }
 }
