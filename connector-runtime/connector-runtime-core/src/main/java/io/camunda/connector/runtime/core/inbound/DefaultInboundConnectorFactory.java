@@ -112,6 +112,6 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
     configurations =
         configurations.stream()
             .filter(e -> !disabledConnectors.contains(e.type().toLowerCase()))
-            .toList();
+            .collect(Collectors.toList());
   }
 }
