@@ -38,7 +38,7 @@ public class OutboundConnectorDiscovery {
     configurations =
         configurations.stream()
             .filter(e -> !disabledConnector.contains(e.type().toLowerCase()))
-            .toList();
+            .collect(Collectors.toList());
     return configurations;
   }
 }
