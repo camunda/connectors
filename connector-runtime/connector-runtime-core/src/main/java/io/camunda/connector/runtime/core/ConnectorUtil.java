@@ -32,20 +32,19 @@ public final class ConnectorUtil {
 
   public static Optional<OutboundConnectorConfiguration> getOutboundConnectorConfiguration(
       Class<? extends OutboundConnectorFunction> cls) {
-    var annotation = Optional.ofNullable(cls.getAnnotation(OutboundConnector.class));
-    if (annotation.isPresent()) {
-      final var configurationOverrides =
-          new ConnectorConfigurationOverrides(annotation.get().name(), System::getenv);
-      final var type =
-          Optional.ofNullable(configurationOverrides.typeOverride())
-              .orElse(annotation.get().type());
-      final var timeout = configurationOverrides.timeoutOverride();
+    return Optional.ofNullable(cls.getAnnotation(OutboundConnector.class))
+        .map(
+            annotation -> {
+              final var configurationOverrides =
+                  new ConnectorConfigurationOverrides(annotation.name(), System::getenv);
 
-      return Optional.of(
-          new OutboundConnectorConfiguration(
-              annotation.get().name(), annotation.get().inputVariables(), type, cls, timeout));
-    }
-    return Optional.empty();
+              return new OutboundConnectorConfiguration(
+                  annotation.name(),
+                  annotation.inputVariables(),
+                  configurationOverrides.typeOverride().orElse(annotation.type()),
+                  cls,
+                  configurationOverrides.timeoutOverride().orElse(null));
+            });
   }
 
   public static OutboundConnectorConfiguration getRequiredOutboundConnectorConfiguration(
@@ -61,20 +60,20 @@ public final class ConnectorUtil {
 
   public static Optional<InboundConnectorConfiguration> getInboundConnectorConfiguration(
       Class<? extends InboundConnectorExecutable> cls) {
-    var annotation = Optional.ofNullable(cls.getAnnotation(InboundConnector.class));
-    if (annotation.isPresent()) {
-      final var configurationOverrides =
-          new ConnectorConfigurationOverrides(annotation.get().name(), System::getenv);
-      final var type =
-          Optional.ofNullable(configurationOverrides.typeOverride())
-              .orElse(annotation.get().type());
+    return Optional.ofNullable(cls.getAnnotation(InboundConnector.class))
+        .map(
+            annotation -> {
+              final var configurationOverrides =
+                  new ConnectorConfigurationOverrides(annotation.name(), System::getenv);
+              final var deduplicationProperties =
+                  Arrays.asList(annotation.deduplicationProperties());
 
-      final var deduplicationProperties = Arrays.asList(annotation.get().deduplicationProperties());
-      return Optional.of(
-          new InboundConnectorConfiguration(
-              annotation.get().name(), type, cls, deduplicationProperties));
-    }
-    return Optional.empty();
+              return new InboundConnectorConfiguration(
+                  annotation.name(),
+                  configurationOverrides.typeOverride().orElse(annotation.type()),
+                  cls,
+                  deduplicationProperties);
+            });
   }
 
   public static InboundConnectorConfiguration getRequiredInboundConnectorConfiguration(

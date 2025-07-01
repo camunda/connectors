@@ -29,14 +29,13 @@ public class ConnectorConfigurationOverrides {
     this.propertySource = propertySource;
   }
 
-  public String typeOverride() {
-    return getProperty("CONNECTOR_" + normalizedConnectorName + "_TYPE");
+  public Optional<String> typeOverride() {
+    return Optional.ofNullable(getProperty("CONNECTOR_" + normalizedConnectorName + "_TYPE"));
   }
 
-  public Long timeoutOverride() {
+  public Optional<Long> timeoutOverride() {
     return Optional.ofNullable(getProperty("CONNECTOR_" + normalizedConnectorName + "_TIMEOUT"))
-        .map(Long::parseLong)
-        .orElse(null);
+        .map(Long::parseLong);
   }
 
   private String getProperty(String propertyName) {
