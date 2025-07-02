@@ -9,6 +9,10 @@ package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -18,7 +22,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class FeelInputParamExtractorTest {
 
-  private final FeelInputParamExtractor extractor = new FeelInputParamExtractorImpl();
+  private final FeelInputParamExtractor extractor =
+      new FeelInputParamExtractorImpl(
+          ConnectorsObjectMapperSupplier.getCopy(
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+              DocumentModuleSettings.create()));
 
   @ParameterizedTest
   @MethodSource("testFeelExpressionsWithExpectedInputParams")
@@ -312,7 +320,54 @@ class FeelInputParamExtractorTest {
                 "fourthValue",
                 "The fourth value to add",
                 "array",
-                Map.of("items", Map.of("type", "string", "enum", List.of("foo", "bar", "baz"))))));
+                Map.of("items", Map.of("type", "string", "enum", List.of("foo", "bar", "baz"))))),
+        new FeelInputParamTestCase(
+            "Using camunda document reference data structure",
+            """
+            fromAi(toolCall.documents, "The documents to include", "array", {
+              "items": {
+                "type": "object",
+                "properties": {
+                  "storeId": {
+                    "type": "string"
+                  },
+                  "documentId": {
+                    "type": "string"
+                  },
+                  "camunda.document.type": {
+                    "type": "string"
+                  },
+                  "contentHash": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "storeId",
+                  "documentId",
+                  "camunda.document.type",
+                  "contentHash"
+                ]
+              }
+            })
+            """,
+            new FeelInputParam(
+                "documents",
+                "The documents to include",
+                "array",
+                Map.of(
+                    "items",
+                    Map.of(
+                        "type",
+                        "object",
+                        "properties",
+                        Map.of(
+                            "storeId", Map.of("type", "string"),
+                            "documentId", Map.of("type", "string"),
+                            "camunda.document.type", Map.of("type", "string"),
+                            "contentHash", Map.of("type", "string")),
+                        "required",
+                        List.of(
+                            "storeId", "documentId", "camunda.document.type", "contentHash"))))));
   }
 
   record FeelInputParamTestCase(
