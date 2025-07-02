@@ -16,9 +16,9 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
-    name = "MCP Client (experimental)",
+    name = "MCP Client",
     inputVariables = {"data"},
-    type = McpClientFunction.MCP_CLIENT_TYPE)
+    type = "io.camunda.agenticai:mcpclient:0")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.mcp.client.v0",
     name = "MCP Client (experimental)",
@@ -40,9 +40,6 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     },
     icon = "mcp-client.svg")
 public class McpClientFunction implements OutboundConnectorFunction {
-
-  public static final String MCP_CLIENT_BASE_TYPE = "io.camunda.agenticai:mcpclient";
-  public static final String MCP_CLIENT_TYPE = MCP_CLIENT_BASE_TYPE + ":0";
 
   private final McpClientHandler handler;
 
