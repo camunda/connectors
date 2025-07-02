@@ -38,7 +38,8 @@ public class EnvVarContextInitializer implements EnvironmentPostProcessor {
       return;
     }
     EnvVarsConnectorDiscovery.addHardwiredEnvironmentVariable(
-        "CONNECTOR_TEST2_FUNCTION", "io.camunda.connector.runtime.app.TestOutboundConnector2");
+        "CONNECTOR_TEST2_FUNCTION",
+        "io.camunda.connector.runtime.app.UnregisteredOutboundConnector");
     EnvVarsConnectorDiscovery.addHardwiredEnvironmentVariable(
         "CONNECTOR_TEST2_TYPE", "non-default-TEST-task-type");
   }
