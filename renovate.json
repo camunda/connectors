@@ -68,6 +68,15 @@
         "com.google.http-client:google-http-client"
       ],
       "enabled": false
+    },
+    {
+      "matchPackageNames": [
+        "camunda/infra-global-github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "changelogUrl": "{{sourceUrl}}/compare/{{currentDigest}}..{{newDigest}}"
     }
   ],
   "baseBranches": [
