@@ -10,7 +10,7 @@ repos:
       - id: license-check
         language: system
         name: License Check
-        entry: bash -c 'mvn license:check; rc=$?; if [[ $rc -ne 0 ]]; then mvn license:apply &>/dev/null; echo "Invalid License found and fixed"; fi; exit $rc'
+        entry: bash -c 'mvn license:check; rc=$?; if [[ $rc -ne 0 ]]; then mvn license:format &>/dev/null; echo "Invalid License found and fixed"; fi; exit $rc'
         # By default, hooks will receive a list of changed files.
         # However, this doesn't integrate well with Maven plugins,
         # which operate on the entire project.
