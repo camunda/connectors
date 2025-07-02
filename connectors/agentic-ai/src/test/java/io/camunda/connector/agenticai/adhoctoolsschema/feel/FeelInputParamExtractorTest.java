@@ -312,7 +312,54 @@ class FeelInputParamExtractorTest {
                 "fourthValue",
                 "The fourth value to add",
                 "array",
-                Map.of("items", Map.of("type", "string", "enum", List.of("foo", "bar", "baz"))))));
+                Map.of("items", Map.of("type", "string", "enum", List.of("foo", "bar", "baz"))))),
+        new FeelInputParamTestCase(
+            "Using camunda document reference data structure",
+            """
+            fromAi(toolCall.documents, "The documents to include", "array", {
+              "items": {
+                "type": "object",
+                "properties": {
+                  "storeId": {
+                    "type": "string"
+                  },
+                  "documentId": {
+                    "type": "string"
+                  },
+                  "camunda.document.type": {
+                    "type": "string"
+                  },
+                  "contentHash": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "storeId",
+                  "documentId",
+                  "camunda.document.type",
+                  "contentHash"
+                ]
+              }
+            })
+            """,
+            new FeelInputParam(
+                "documents",
+                "The documents to include",
+                "array",
+                Map.of(
+                    "items",
+                    Map.of(
+                        "type",
+                        "object",
+                        "properties",
+                        Map.of(
+                            "storeId", Map.of("type", "string"),
+                            "documentId", Map.of("type", "string"),
+                            "camunda.document.type", Map.of("type", "string"),
+                            "contentHash", Map.of("type", "string")),
+                        "required",
+                        List.of(
+                            "storeId", "documentId", "camunda.document.type", "contentHash"))))));
   }
 
   record FeelInputParamTestCase(
