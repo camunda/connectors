@@ -16,9 +16,9 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
-    name = "MCP Remote Client (experimental)",
+    name = "MCP Remote Client",
     inputVariables = {"data"},
-    type = McpRemoteClientFunction.MCP_REMOTE_CLIENT_TYPE)
+    type = "io.camunda.agenticai:mcpremoteclient:0")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
     name = "MCP Remote Client (experimental)",
@@ -44,9 +44,6 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     },
     icon = "mcp-client.svg")
 public class McpRemoteClientFunction implements OutboundConnectorFunction {
-
-  public static final String MCP_REMOTE_CLIENT_BASE_TYPE = "io.camunda.agenticai:mcpremoteclient";
-  public static final String MCP_REMOTE_CLIENT_TYPE = MCP_REMOTE_CLIENT_BASE_TYPE + ":0";
 
   private final McpRemoteClientHandler handler;
 
