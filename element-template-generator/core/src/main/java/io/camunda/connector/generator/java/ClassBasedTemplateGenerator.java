@@ -100,7 +100,15 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     var context = TemplateGenerationContextUtil.createContext(connectorDefinition, configuration);
 
     List<PropertyBuilder> properties =
-        TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context);
+        new ArrayList<>(
+            TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context));
+    Arrays.stream(template.extensionProperties())
+        .map(
+            extensionProperty ->
+                HiddenProperty.builder()
+                    .binding(new PropertyBinding.ZeebeProperty(extensionProperty.name()))
+                    .value(extensionProperty.value()))
+        .forEach(properties::add);
 
     var groupsDefinedInProperties =
         new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));

@@ -32,6 +32,7 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
+import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
@@ -587,6 +588,36 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(dependsOnTrue.getCondition()).isEqualTo(new Equals("booleanProperty", true));
       var dependsOnFalse = getPropertyById("dependsOnBooleanPropertyFalse", template);
       assertThat(dependsOnFalse.getCondition()).isEqualTo(new Equals("booleanProperty", false));
+    }
+
+    @Test
+    void supportsExtensionProperties() {
+      var template =
+          generator
+              .generate(MyConnectorFunction.MinimallyAnnotatedWithExtensionProperties.class)
+              .getFirst();
+
+      assertThat(template.properties())
+          .filteredOn(
+              p ->
+                  p.getBinding().type().equals("zeebe:property")
+                      && ((PropertyBinding.ZeebeProperty) p.getBinding())
+                          .name()
+                          .startsWith("myExtensionProperty"))
+          .hasSize(2)
+          .satisfiesExactlyInAnyOrder(
+              p -> {
+                assertThat(p).isInstanceOf(HiddenProperty.class);
+                assertThat(p.getBinding())
+                    .isEqualTo(new PropertyBinding.ZeebeProperty("myExtensionProperty1"));
+                assertThat(p.getValue()).isEqualTo("value1");
+              },
+              p -> {
+                assertThat(p).isInstanceOf(HiddenProperty.class);
+                assertThat(p.getBinding())
+                    .isEqualTo(new PropertyBinding.ZeebeProperty("myExtensionProperty2"));
+                assertThat(p.getValue()).isEqualTo("value2");
+              });
     }
   }
 

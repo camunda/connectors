@@ -365,6 +365,9 @@
     }, {
       "name" : "Elasticsearch",
       "value" : "STORE_ELASTICSEARCH"
+    }, {
+      "name" : "OpenSearch",
+      "value" : "STORE_OPENSEARCH"
     } ]
   }, {
     "id" : "vectorStore.amazonManagedOpensearch.accessKey",
@@ -543,6 +546,86 @@
     "condition" : {
       "property" : "vectorStore.vectorStore",
       "equals" : "STORE_ELASTICSEARCH",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.opensearch.baseUrl",
+    "label" : "Base URL",
+    "description" : "OpenSearch base URL, i.e. http(s)://host:port",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_OPENSEARCH",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.opensearch.username",
+    "label" : "Username",
+    "description" : "OpenSearch username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.userName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_OPENSEARCH",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.opensearch.password",
+    "label" : "Password",
+    "description" : "OpenSearch password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_OPENSEARCH",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.embeddingsStore.opensearch.indexName",
+    "label" : "Index name",
+    "description" : "OpenSearch index",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.indexName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_OPENSEARCH",
       "type" : "simple"
     },
     "type" : "String"

@@ -13,7 +13,6 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.zeebe.model.bpmn.instance.Documentation;
 import io.camunda.zeebe.model.bpmn.instance.FlowNode;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
@@ -46,40 +45,6 @@ class McpClientGatewayToolDefinitionResolverTest {
     final var result = resolver.resolveGatewayToolDefinitions(elements);
 
     assertThat(result).isEmpty();
-  }
-
-  @Test
-  void resolvesGatewayToolDefinitionsFromMcpClientServiceTasks() {
-    final var elements =
-        List.<FlowNode>of(
-            createServiceTask("mcp-task-1", "io.camunda.agenticai:mcpclient:0"),
-            createServiceTask("mcp-task-2", "io.camunda.agenticai:mcpclient:1"),
-            createServiceTask("other-task", "other:type"),
-            createServiceTask("remote-mcp-task-1", "io.camunda.agenticai:mcpremoteclient:1"));
-
-    final var result = resolver.resolveGatewayToolDefinitions(elements);
-
-    assertThat(result)
-        .hasSize(3)
-        .satisfiesExactly(
-            gatewayToolDefinition -> {
-              assertThat(gatewayToolDefinition.type()).isEqualTo("mcpClient");
-              assertThat(gatewayToolDefinition.name()).isEqualTo("mcp-task-1");
-              assertThat(gatewayToolDefinition.description())
-                  .isEqualTo("Task mcp-task-1 documentation");
-            },
-            gatewayToolDefinition -> {
-              assertThat(gatewayToolDefinition.type()).isEqualTo("mcpClient");
-              assertThat(gatewayToolDefinition.name()).isEqualTo("mcp-task-2");
-              assertThat(gatewayToolDefinition.description())
-                  .isEqualTo("Task mcp-task-2 documentation");
-            },
-            gatewayToolDefinition -> {
-              assertThat(gatewayToolDefinition.type()).isEqualTo("mcpClient");
-              assertThat(gatewayToolDefinition.name()).isEqualTo("remote-mcp-task-1");
-              assertThat(gatewayToolDefinition.description())
-                  .isEqualTo("Task remote-mcp-task-1 documentation");
-            });
   }
 
   @Test
@@ -117,23 +82,6 @@ class McpClientGatewayToolDefinitionResolverTest {
   }
 
   @Test
-  void filtersMixedElementTypes() {
-    final var elements =
-        List.of(
-            createServiceTask("mcp1", "io.camunda.agenticai:mcpclient:1"),
-            createServiceTask("other", "other:type"),
-            createServiceTask("mcp2", "io.camunda.agenticai:mcpremoteclient:1"),
-            createUserTask("non-service-task"),
-            withMcpClientProperty(createUserTask("user-task-with-mcp-client-property")));
-
-    final var result = resolver.resolveGatewayToolDefinitions(elements);
-
-    assertThat(result)
-        .extracting(GatewayToolDefinition::name)
-        .containsExactly("mcp1", "mcp2", "user-task-with-mcp-client-property");
-  }
-
-  @Test
   void handlesServiceTasksWithoutTaskDefinition() {
     final var serviceTask = mock(ServiceTask.class);
 
@@ -152,40 +100,11 @@ class McpClientGatewayToolDefinitionResolverTest {
   }
 
   @Test
-  void usesCustomPrefixes_whenProvidedInConstructor() {
-    final var customResolver =
-        new McpClientGatewayToolDefinitionResolver(List.of("custom:mcp:", "another:mcp:"));
+  void returnsEmpty_whenNoTasksMatch() {
+    final var customResolver = new McpClientGatewayToolDefinitionResolver();
     final var elements =
         List.<FlowNode>of(
-            createServiceTask("custom1", "custom:mcp:client:1"),
-            createServiceTask("custom2", "another:mcp:remote:1"),
-            createServiceTask("default", "io.camunda.agenticai:mcpclient:1"));
-
-    final var result = customResolver.resolveGatewayToolDefinitions(elements);
-
-    assertThat(result)
-        .extracting(GatewayToolDefinition::name)
-        .containsExactly("custom1", "custom2");
-  }
-
-  @Test
-  void returnsEmpty_whenNoPrefixesMatch() {
-    final var customResolver = new McpClientGatewayToolDefinitionResolver(List.of("nonexistent:"));
-    final var elements =
-        List.<FlowNode>of(
-            createServiceTask("mcp1", "io.camunda.agenticai:mcpclient"),
-            createServiceTask("mcp2", "io.camunda.agenticai:mcpremoteclient"));
-
-    final var result = customResolver.resolveGatewayToolDefinitions(elements);
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
-  void handlesEmptyPrefixList() {
-    final var customResolver = new McpClientGatewayToolDefinitionResolver(List.of());
-    final var elements =
-        List.<FlowNode>of(createServiceTask("mcp1", "io.camunda.agenticai:mcpclient"));
+            createServiceTask("mcp1", "a:type"), createServiceTask("mcp2", "another:type"));
 
     final var result = customResolver.resolveGatewayToolDefinitions(elements);
 
