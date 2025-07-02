@@ -32,7 +32,7 @@ public class OutboundConnectorDiscovery {
     }
     // filter out connectors that are disabled via additional env variable
     var disabledConnector =
-        EnvVarsConnectorDiscovery.getDisabledOutputConnectors().stream()
+        EnvVarsConnectorDiscovery.getDisabledOutboundConnectors().stream()
             .map(String::toLowerCase)
             .collect(Collectors.toUnmodifiableSet());
     configurations =

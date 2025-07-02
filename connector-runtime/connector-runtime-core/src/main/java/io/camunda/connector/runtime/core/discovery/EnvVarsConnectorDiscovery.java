@@ -164,7 +164,7 @@ public class EnvVarsConnectorDiscovery {
         .orElse(List.of());
   }
 
-  public static List<String> getDisabledOutputConnectors() {
+  public static List<String> getDisabledOutboundConnectors() {
     return getEnv("OUTBOUND", "DISABLED")
         .map(value -> Arrays.asList(value.split(",")))
         .orElse(List.of());

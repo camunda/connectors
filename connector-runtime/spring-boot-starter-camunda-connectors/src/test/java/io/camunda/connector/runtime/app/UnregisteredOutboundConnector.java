@@ -20,13 +20,13 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
-// This test is not registered via SPI, so that we can test
+// This connector is not registered via SPI, so that we can test
 // the env variable behavior
 @OutboundConnector(
     name = "TEST2",
     type = "org:test:2",
     inputVariables = {})
-public class TestOutboundConnector2 implements OutboundConnectorFunction {
+public class UnregisteredOutboundConnector implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) {
