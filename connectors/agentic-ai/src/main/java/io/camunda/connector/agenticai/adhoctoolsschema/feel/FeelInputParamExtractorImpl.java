@@ -6,17 +6,13 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 
-import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.camunda.feel.api.EvaluationResult;
 import org.camunda.feel.api.FeelEngineApi;
 import org.camunda.feel.api.FeelEngineBuilder;
@@ -34,24 +30,15 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
 
   private final FeelEngineApi feelEngineApi;
 
-  private final ObjectMapper objectMapper;
-  private final ObjectMapper scalaObjectMapper;
-
   private final FeelFunctionInvocationExtractor extractor =
       FeelFunctionInvocationExtractor.forFunctionName("fromAi");
 
   public FeelInputParamExtractorImpl() {
-    this(new ObjectMapper());
+    this(FeelEngineBuilder.forJava().build());
   }
 
-  public FeelInputParamExtractorImpl(ObjectMapper objectMapper) {
-    this(FeelEngineBuilder.create().build(), objectMapper);
-  }
-
-  public FeelInputParamExtractorImpl(FeelEngineApi feelEngineApi, ObjectMapper objectMapper) {
+  public FeelInputParamExtractorImpl(FeelEngineApi feelEngineApi) {
     this.feelEngineApi = feelEngineApi;
-    this.objectMapper = objectMapper;
-    this.scalaObjectMapper = objectMapper.copy().registerModule(new DefaultScalaModule());
   }
 
   @Override
@@ -159,23 +146,19 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
     }
 
     Object result = evaluate(exp, parameterName);
-    if (!(result instanceof scala.collection.Map<?, ?> resultMap)) {
+    if (!(result instanceof Map<?, ?> resultMap)) {
       throw new FeelInputParamExtractionException(
           "Expected parameter '%s' to be a map, but received '%s'."
               .formatted(parameterName, result));
     }
 
-    try {
-      final var jsonSchemaString = scalaObjectMapper.writeValueAsString(resultMap);
-      return objectMapper.readValue(jsonSchemaString, new TypeReference<>() {});
-    } catch (JsonProcessingException jpe) {
-      throw new FeelInputParamExtractionException(
-          "Failed to evaluate parameter '%s': %s"
-              .formatted(parameterName, humanReadableJsonProcessingExceptionMessage(jpe)));
-    } catch (Throwable e) {
-      throw new FeelInputParamExtractionException(
-          "Failed to evaluate parameter '%s': %s".formatted(parameterName, e.getMessage()));
-    }
+    return resultMap.entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                entry -> entry.getKey().toString(),
+                entry -> (Object) entry.getValue(),
+                (v1, v2) -> v2,
+                LinkedHashMap::new));
   }
 
   private Object evaluate(Exp exp, String parameterName) {

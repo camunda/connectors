@@ -60,8 +60,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FeelInputParamExtractor feelInputParamExtractor(ObjectMapper objectMapper) {
-    return new FeelInputParamExtractorImpl(objectMapper);
+  public FeelInputParamExtractor feelInputParamExtractor() {
+    return new FeelInputParamExtractorImpl();
   }
 
   @Bean

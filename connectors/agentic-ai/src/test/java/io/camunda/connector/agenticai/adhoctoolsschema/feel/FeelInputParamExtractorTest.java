@@ -9,10 +9,6 @@ package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -22,11 +18,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class FeelInputParamExtractorTest {
 
-  private final FeelInputParamExtractor extractor =
-      new FeelInputParamExtractorImpl(
-          ConnectorsObjectMapperSupplier.getCopy(
-              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
-              DocumentModuleSettings.create()));
+  private final FeelInputParamExtractor extractor = new FeelInputParamExtractorImpl();
 
   @ParameterizedTest
   @MethodSource("testFeelExpressionsWithExpectedInputParams")
