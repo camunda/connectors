@@ -14,29 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.config;
+package io.camunda.connector.runtime.core.discovery;
 
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import java.util.function.Supplier;
+import java.util.Optional;
 
-public record OutboundConnectorConfiguration(
-    String name,
-    String[] inputVariables,
-    String type,
-    Supplier<OutboundConnectorFunction> instanceSupplier,
-    Long timeout)
-    implements ConnectorConfiguration {
-
-  public OutboundConnectorConfiguration(
-      String name,
-      String[] inputVariables,
-      String type,
-      Supplier<OutboundConnectorFunction> instance) {
-    this(name, inputVariables, type, instance, null);
-  }
-
-  @Override
-  public ConnectorDirection direction() {
-    return ConnectorDirection.OUTBOUND;
+public class EnvVarUtil {
+  static Optional<String> getConnectorEnvironmentVariable(final String name, final String detail) {
+    return Optional.ofNullable(System.getenv().get("CONNECTOR_" + name + "_" + detail));
   }
 }

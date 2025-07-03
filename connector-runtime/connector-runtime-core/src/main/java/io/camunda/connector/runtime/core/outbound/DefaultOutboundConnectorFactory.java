@@ -23,6 +23,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.discovery.DisabledConnectorEnvVarsConfig;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
@@ -43,6 +44,9 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   private final Map<String, OutboundConnectorConfiguration> configurations;
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache = new ConcurrentHashMap<>();
+
+  private final DisabledConnectorEnvVarsConfig disbabledConnectorEnvVarsConfig =
+      new DisabledConnectorEnvVarsConfig();
 
   private final Function<String, String> propertyProvider;
 
@@ -97,16 +101,10 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
     // 5. Env vars discovered configurations
     allConfigs.addAll(envVarConfigurations);
 
-    // filter out connectors that are disabled via additional env variable
-    var disabledConnector =
-        EnvVarsConnectorDiscovery.getDisabledOutboundConnectors().stream()
-            .map(String::toLowerCase)
-            .collect(Collectors.toUnmodifiableSet());
-
     // Filter out disabled connectors
     Stream<OutboundConnectorConfiguration> filteredConfigs =
         allConfigs.stream()
-            .filter(config -> !disabledConnector.contains(config.type().toLowerCase()));
+            .filter(config -> !disbabledConnectorEnvVarsConfig.isConnectorDisabled(config));
     // Store configurations in map, with type as key (later entries override earlier ones)
     this.configurations =
         filteredConfigs.collect(

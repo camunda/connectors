@@ -16,27 +16,7 @@
  */
 package io.camunda.connector.runtime.core.config;
 
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import java.util.function.Supplier;
-
-public record OutboundConnectorConfiguration(
-    String name,
-    String[] inputVariables,
-    String type,
-    Supplier<OutboundConnectorFunction> instanceSupplier,
-    Long timeout)
-    implements ConnectorConfiguration {
-
-  public OutboundConnectorConfiguration(
-      String name,
-      String[] inputVariables,
-      String type,
-      Supplier<OutboundConnectorFunction> instance) {
-    this(name, inputVariables, type, instance, null);
-  }
-
-  @Override
-  public ConnectorDirection direction() {
-    return ConnectorDirection.OUTBOUND;
-  }
+public enum ConnectorDirection {
+  INBOUND,
+  OUTBOUND;
 }
