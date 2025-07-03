@@ -16,17 +16,16 @@
  */
 package io.camunda.connector.runtime.core.discovery;
 
+import static io.camunda.connector.runtime.core.discovery.EnvironmentVariablesAdapter.getEnv;
+import static io.camunda.connector.runtime.core.discovery.EnvironmentVariablesAdapter.getEnvironmentVariables;
+
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorUtil;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -41,28 +40,6 @@ public class EnvVarsConnectorDiscovery {
 
   public static final Pattern INBOUND_CONNECTOR_EXECUTABLE_PATTERN =
       Pattern.compile("^CONNECTOR_(.*)_EXECUTABLE$");
-  private static Map<String, String> hardwiredEnvironmentVariables;
-
-  public static void addHardwiredEnvironmentVariable(String key, String value) {
-    if (hardwiredEnvironmentVariables == null) {
-      hardwiredEnvironmentVariables = new ConcurrentHashMap<>();
-    }
-    hardwiredEnvironmentVariables.put(key, value);
-  }
-
-  public static void clearHardwiredEnvironmentVariable() {
-    hardwiredEnvironmentVariables = null;
-  }
-
-  public static Map<String, String> getEnvironmentVariables() {
-    if (hardwiredEnvironmentVariables != null) {
-      HashMap<String, String> result = new HashMap<>();
-      result.putAll(System.getenv());
-      result.putAll(hardwiredEnvironmentVariables);
-      return result;
-    }
-    return System.getenv();
-  }
 
   public static boolean isInboundConfigured() {
     return !discoverInbound().isEmpty();
@@ -156,22 +133,6 @@ public class EnvVarsConnectorDiscovery {
     } catch (ClassNotFoundException | ClassCastException e) {
       throw loadFailed("Failed to load " + executableFqdn, e);
     }
-  }
-
-  public static List<String> getDisabledInboundConnectors() {
-    return getEnv("INBOUND", "DISABLED")
-        .map(value -> Arrays.asList(value.split(",")))
-        .orElse(List.of());
-  }
-
-  public static List<String> getDisabledOutboundConnectors() {
-    return getEnv("OUTBOUND", "DISABLED")
-        .map(value -> Arrays.asList(value.split(",")))
-        .orElse(List.of());
-  }
-
-  private static Optional<String> getEnv(final String name, final String detail) {
-    return Optional.ofNullable(getEnvironmentVariables().get("CONNECTOR_" + name + "_" + detail));
   }
 
   private static RuntimeException loadFailed(String s, Exception e) {

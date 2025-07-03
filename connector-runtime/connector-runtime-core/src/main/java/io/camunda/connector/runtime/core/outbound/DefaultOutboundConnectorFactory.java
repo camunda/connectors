@@ -19,11 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -38,9 +34,24 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache;
 
-  public DefaultOutboundConnectorFactory(List<OutboundConnectorConfiguration> configurations) {
+  public static final String DISABLED_THROUGH_ENV_VARIABLE =
+      "Connector {} has been disabled by the CONNECTORS_INBOUND_DISABLED environment variable";
+
+  private final Set<String> disabledConnectors;
+
+  public DefaultOutboundConnectorFactory(
+      List<OutboundConnectorConfiguration> configurations, Set<String> disabledOutboundConnectors) {
+    this.disabledConnectors = disabledOutboundConnectors;
     connectorConfigs =
         configurations.stream()
+            .filter(
+                e -> {
+                  boolean shouldBeDisabled = !disabledConnectors.contains(e.type().toLowerCase());
+                  if (shouldBeDisabled) {
+                    LOG.warn(DISABLED_THROUGH_ENV_VARIABLE, e);
+                  }
+                  return shouldBeDisabled;
+                })
             .collect(
                 Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
     connectorInstanceCache = new ConcurrentHashMap<>();
@@ -77,8 +88,13 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   public void registerConfiguration(OutboundConnectorConfiguration configuration) {
     var oldConfig = connectorConfigs.get(configuration.type());
     if (oldConfig != null) {
-      LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
+      LOG.info("Connector {} is overridden, new configuration {}", oldConfig, configuration);
       connectorConfigs.remove(oldConfig.type());
+    }
+    // Old Config should never be present if disabled, but just to be sure, we're only checking now
+    if (disabledConnectors.contains(configuration.type().toLowerCase())) {
+      LOG.warn(DISABLED_THROUGH_ENV_VARIABLE, configuration);
+      return;
     }
     connectorConfigs.put(configuration.type(), configuration);
   }

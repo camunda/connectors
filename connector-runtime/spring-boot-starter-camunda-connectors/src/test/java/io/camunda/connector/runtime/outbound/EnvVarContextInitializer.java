@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound;
 
-import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
+import io.camunda.connector.runtime.core.discovery.EnvironmentVariablesAdapter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -37,10 +37,10 @@ public class EnvVarContextInitializer implements EnvironmentPostProcessor {
     if (prop == null || !prop.equals("EnvTest")) {
       return;
     }
-    EnvVarsConnectorDiscovery.addHardwiredEnvironmentVariable(
+    EnvironmentVariablesAdapter.addHardwiredEnvironmentVariable(
         "CONNECTOR_TEST2_FUNCTION",
         "io.camunda.connector.runtime.app.UnregisteredOutboundConnector");
-    EnvVarsConnectorDiscovery.addHardwiredEnvironmentVariable(
+    EnvironmentVariablesAdapter.addHardwiredEnvironmentVariable(
         "CONNECTOR_TEST2_TYPE", "non-default-TEST-task-type");
   }
 }
