@@ -48,9 +48,9 @@ When in doubt, refer to the `LICENSE` file in the respective module.
 
 ## Setup
 
-Download these utilities:
-
-* [`asdf`](https://asdf-vm.com/) for managing Java and Maven versions
+Download [`asdf`](https://asdf-vm.com/), install the required plugins with `asdf plugin add <tool>` where `<tool>`
+is java, maven and pre-commit and run `asdf install` to install our tools.
+Afterwards, run `pre-commit install` to set up the pre-commit hooks.
 
 The [Connector SDK](connector-sdk) uses Java 17, unlike the rest of this repository.
 
