@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
+import io.camunda.connector.runtime.core.discovery.EnvironmentVariablesAdapter;
 import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.spring.client.annotation.value.JobWorkerValue;
@@ -51,7 +51,7 @@ class RuntimeStartupWithConnectorsFromEnvVarsTests {
 
   @AfterAll
   public static void cleanup() {
-    EnvVarsConnectorDiscovery.clearHardwiredEnvironmentVariable();
+    EnvironmentVariablesAdapter.clearHardwiredEnvironmentVariable();
   }
 
   @Test

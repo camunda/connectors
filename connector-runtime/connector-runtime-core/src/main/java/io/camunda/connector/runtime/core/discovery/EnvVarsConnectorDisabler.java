@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.outbound;
+package io.camunda.connector.runtime.core.discovery;
 
-import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
-import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
-import java.util.List;
+import static io.camunda.connector.runtime.core.discovery.EnvironmentVariablesAdapter.getEnv;
 
-public class OutboundConnectorDiscovery {
-  public static List<OutboundConnectorConfiguration> loadConnectorConfigurations() {
-    List<OutboundConnectorConfiguration> configurations;
-    if (EnvVarsConnectorDiscovery.isOutboundConfigured()) {
-      configurations = EnvVarsConnectorDiscovery.discoverOutbound();
-    } else {
-      configurations = SPIConnectorDiscovery.discoverOutbound();
-    }
-    return configurations;
+import java.util.Set;
+
+public class EnvVarsConnectorDisabler {
+
+  public static Set<String> getDisabledInboundConnectorTypes() {
+    return getEnv("INBOUND", "DISABLED").map(value -> Set.of(value.split(","))).orElse(Set.of());
+  }
+
+  public static Set<String> getDisabledOutboundConnectorTypes() {
+    return getEnv("OUTBOUND", "DISABLED").map(value -> Set.of(value.split(","))).orElse(Set.of());
   }
 }
