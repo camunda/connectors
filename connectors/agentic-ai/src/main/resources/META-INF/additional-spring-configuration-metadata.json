@@ -1,0 +1,34 @@
+{
+  "properties": [
+    {
+      "name": "camunda.connector.agenticai.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable the Agentic AI integration.",
+      "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.aiagent.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the AI Agent outbound connector.",
+      "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the Ad-hoc tools schema outbound connector.",
+      "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.mcp.client.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the MCP Client outbound connector.",
+      "defaultValue": "false"
+    },
+    {
+      "name": "camunda.connector.agenticai.mcp.remote-client.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the MCP Remote Client outbound connector.",
+      "defaultValue": "true"
+    }
+  ]
+}
