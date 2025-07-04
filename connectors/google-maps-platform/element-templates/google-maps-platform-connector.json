@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Google Maps Platform Outbound Connector",
   "id": "io.camunda.connectors.GoogleMapsPlatform.v1",
-  "version": 3,
+  "version": 5,
+  "engines": {
+    "camunda": "^8.3"
+  },
   "description": "Validate addresses, retrieve postal addresses and calculate distances with Googe Maps",
   "metadata": {
     "keywords": [
@@ -184,7 +187,7 @@
       "optional": false,
       "binding": {
         "type": "zeebe:input",
-        "name": "addressValue"
+        "name": "body.address.addressLines"
       },
       "constraints": {
         "notEmpty": true
@@ -354,25 +357,6 @@
         "property": "operationType",
         "oneOf": [
           "calculateDistance"
-        ]
-      }
-    },
-    {
-      "group": "input",
-      "type": "Hidden",
-      "optional": false,
-      "value": "=\"[\"+addressValue+\"]\"",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "body.address.addressLines"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "validateAddress"
         ]
       }
     },
