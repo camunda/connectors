@@ -2,8 +2,18 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Google Maps Platform Outbound Connector",
   "id": "io.camunda.connectors.GoogleMapsPlatform.v1",
-  "version": 3,
-  "description": "The Google Maps connector validates addresses, retrieves postal addresses and calculates distances",
+  "version": 5,
+  "engines": {
+    "camunda": "^8.3"
+  },
+  "description": "Validate addresses, retrieve postal addresses and calculate distances with Googe Maps",
+  "metadata": {
+    "keywords": [
+      "find address",
+      "check address",
+      "get distance"
+    ]
+  },
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/",
   "category": {
     "id": "connectors",
@@ -176,7 +186,7 @@
       "optional": false,
       "binding": {
         "type": "zeebe:input",
-        "name": "addressValue"
+        "name": "body.address.addressLines"
       },
       "constraints": {
         "notEmpty": true
@@ -346,25 +356,6 @@
         "property": "operationType",
         "oneOf": [
           "calculateDistance"
-        ]
-      }
-    },
-    {
-      "group": "input",
-      "type": "Hidden",
-      "optional": false,
-      "value": "=\"[\"+addressValue+\"]\"",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "body.address.addressLines"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "validateAddress"
         ]
       }
     },
