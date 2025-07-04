@@ -53,6 +53,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
 
 @Configuration
 @Import({
@@ -67,8 +68,9 @@ public class InboundConnectorRuntimeConfiguration {
   private Duration messageTtl;
 
   @Bean
-  public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor() {
-    return new InboundConnectorBeanDefinitionProcessor();
+  public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor(
+      Environment environment) {
+    return new InboundConnectorBeanDefinitionProcessor(environment);
   }
 
   @Bean

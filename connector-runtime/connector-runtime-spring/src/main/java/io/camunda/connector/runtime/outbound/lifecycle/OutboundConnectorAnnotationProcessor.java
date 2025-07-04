@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.spring.client.annotation.processor.AbstractCamundaAnnotationProcessor;
@@ -27,6 +28,7 @@ import io.camunda.spring.client.bean.ClassInfo;
 import java.lang.invoke.MethodHandles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 
 /** */
 public class OutboundConnectorAnnotationProcessor extends AbstractCamundaAnnotationProcessor {
@@ -34,12 +36,15 @@ public class OutboundConnectorAnnotationProcessor extends AbstractCamundaAnnotat
   private static final Logger LOGGER =
       LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+  private final Environment environment;
   private final OutboundConnectorManager outboundConnectorManager;
   private final OutboundConnectorFactory outboundConnectorFactory;
 
   public OutboundConnectorAnnotationProcessor(
+      Environment environment,
       final OutboundConnectorManager outboundConnectorManager,
       final OutboundConnectorFactory outboundConnectorFactory) {
+    this.environment = environment;
     this.outboundConnectorManager = outboundConnectorManager;
     this.outboundConnectorFactory = outboundConnectorFactory;
   }
@@ -59,13 +64,17 @@ public class OutboundConnectorAnnotationProcessor extends AbstractCamundaAnnotat
 
   private OutboundConnectorConfiguration registerOutboundConnector(
       OutboundConnector outboundConnector, BeanInfo beanInfo) {
+    final var configurationOverrides =
+        new ConnectorConfigurationOverrides(outboundConnector.name(), environment::getProperty);
+
     OutboundConnectorConfiguration configuration =
         new OutboundConnectorConfiguration(
             outboundConnector.name(),
             outboundConnector.inputVariables(),
-            outboundConnector.type(),
+            configurationOverrides.typeOverride().orElse(outboundConnector.type()),
             (Class<? extends OutboundConnectorFunction>) beanInfo.getTargetClass(),
-            () -> (OutboundConnectorFunction) beanInfo.getBean());
+            () -> (OutboundConnectorFunction) beanInfo.getBean(),
+            configurationOverrides.timeoutOverride().orElse(null));
     LOGGER.info(
         "Configuring outbound connector {} of bean '{}'", configuration, beanInfo.getBeanName());
     outboundConnectorFactory.registerConfiguration(configuration);
