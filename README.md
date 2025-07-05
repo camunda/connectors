@@ -1,17 +1,4 @@
-# Camunda Connectors
-
-[![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY_SNAPSHOTS.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY_SNAPSHOTS.yaml)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core)
-[![Outbound template](https://img.shields.io/badge/outbound_connector-use_template-blue)](https://github.com/camunda/connector-template-outbound)
-[![Inbound template](https://img.shields.io/badge/inbound_connector-use_template-blue)](https://github.com/camunda/connector-template-inbound)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcamunda%2Fconnectors.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcamunda%2Fconnectors?ref=badge_shield)
-
-This is the repository for Camunda Connectors. It manages all parts of the Connectors ecosystem,
-including the Connector SDK, out-of-the-box Connectors available in Camunda, the Connector Runtime, and the Docker images.
-
-For more information on Connectors, refer to the
-[Camunda documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/).
-
+# Camun
 ## Contents
 
 * [License](#license)
