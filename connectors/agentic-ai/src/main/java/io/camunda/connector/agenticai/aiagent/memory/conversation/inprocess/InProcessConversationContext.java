@@ -19,7 +19,7 @@ import java.util.Map;
 @JsonDeserialize(
     builder = InProcessConversationContext.InProcessConversationContextJacksonProxyBuilder.class)
 public record InProcessConversationContext(
-    String id,
+    String conversationId,
     List<Message> messages,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
     implements ConversationContext, InProcessConversationContextBuilder.With {
@@ -27,8 +27,8 @@ public record InProcessConversationContext(
     return InProcessConversationContextBuilder.builder();
   }
 
-  public static InProcessConversationContextBuilder builder(String id) {
-    return builder().id(id);
+  public static InProcessConversationContextBuilder builder(String conversationId) {
+    return builder().conversationId(conversationId);
   }
 
   @JsonPOJOBuilder(withPrefix = "")

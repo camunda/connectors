@@ -20,7 +20,7 @@ class InProcessConversationContextTest {
   void canBeSerializedAndDeserialized() throws Exception {
     final var conversationRecord =
         InProcessConversationContext.builder()
-            .id("test-conversation")
+            .conversationId("test-conversation")
             .messages(TestMessagesFixture.testMessages())
             .build();
 

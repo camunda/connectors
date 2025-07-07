@@ -21,15 +21,18 @@ import java.util.Map;
         CamundaDocumentConversationContext.CamundaDocumentConversationContextJacksonProxyBuilder
             .class)
 public record CamundaDocumentConversationContext(
-    String id, Document document, List<Document> previousDocuments, Map<String, Object> properties)
+    String conversationId,
+    Document document,
+    List<Document> previousDocuments,
+    Map<String, Object> properties)
     implements ConversationContext, CamundaDocumentConversationContextBuilder.With {
 
   public static CamundaDocumentConversationContextBuilder builder() {
     return CamundaDocumentConversationContextBuilder.builder();
   }
 
-  public static CamundaDocumentConversationContextBuilder builder(String id) {
-    return builder().id(id);
+  public static CamundaDocumentConversationContextBuilder builder(String conversationId) {
+    return builder().conversationId(conversationId);
   }
 
   @JsonPOJOBuilder(withPrefix = "")

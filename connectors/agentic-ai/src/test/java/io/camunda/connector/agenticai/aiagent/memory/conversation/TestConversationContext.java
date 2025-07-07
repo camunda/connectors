@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import java.util.Map;
 
-public record TestConversationContext(String id) implements ConversationContext {
+public record TestConversationContext(String conversationId) implements ConversationContext {
   @Override
   public Map<String, Object> properties() {
     return Map.of();

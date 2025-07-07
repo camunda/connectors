@@ -22,7 +22,7 @@ import java.util.Map;
   @JsonSubTypes.Type(value = CamundaDocumentConversationContext.class, name = "camunda-document")
 })
 public interface ConversationContext {
-  String id();
+  String conversationId();
 
   Map<String, Object> properties();
 }

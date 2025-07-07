@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -140,7 +139,7 @@ class CamundaDocumentConversationStoreTest {
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(document);
               assertThat(conversation.previousDocuments()).isEmpty();
             });
@@ -181,7 +180,7 @@ class CamundaDocumentConversationStoreTest {
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(newDocument);
               assertThat(conversation.previousDocuments()).containsExactly(previousDocument);
             });
@@ -237,7 +236,7 @@ class CamundaDocumentConversationStoreTest {
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(newDocument);
               assertThat(conversation.previousDocuments())
                   .containsExactlyElementsOf(expectedPreviousDocuments);
@@ -283,7 +282,7 @@ class CamundaDocumentConversationStoreTest {
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(newDocument);
               assertThat(conversation.previousDocuments())
                   .containsExactly(
@@ -302,7 +301,7 @@ class CamundaDocumentConversationStoreTest {
     assertThat(creationRequest.customProperties())
         .containsExactlyInAnyOrderEntriesOf(
             Map.ofEntries(
-                Map.entry("conversationId", updatedAgentContext.conversation().id()),
+                Map.entry("conversationId", updatedAgentContext.conversation().conversationId()),
                 Map.entry("customKey", "customValue")));
   }
 
