@@ -24,10 +24,7 @@ import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDisabler;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,10 +45,7 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
 
   private List<InboundConnectorConfiguration> configurations;
   private final Set<String> disabledConnectors =
-      EnvVarsConnectorDisabler.getDisabledInboundConnectorTypes().stream()
-          .map(String::toLowerCase)
-          .collect(Collectors.toUnmodifiableSet());
-  ;
+      EnvVarsConnectorDisabler.getDisabledInboundConnectorTypes();
 
   public DefaultInboundConnectorFactory() {
     loadConnectorConfigurations();
@@ -114,6 +108,10 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
   }
 
   protected void loadConnectorConfigurations() {
+    if (EnvVarsConnectorDisabler.isInboundDiscoveryDisabled()) {
+      configurations = new ArrayList<>();
+      return;
+    }
     if (EnvVarsConnectorDiscovery.isInboundConfigured()) {
       configurations = EnvVarsConnectorDiscovery.discoverInbound();
     } else {

@@ -18,15 +18,33 @@ package io.camunda.connector.runtime.core.discovery;
 
 import static io.camunda.connector.runtime.core.discovery.EnvironmentVariablesAdapter.getEnv;
 
+import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Set;
 
 public class EnvVarsConnectorDisabler {
+
+  public static boolean isInboundDiscoveryDisabled() {
+    return getEnv("INBOUND", "DISCOVERY_DISABLED").isPresent();
+  }
 
   public static Set<String> getDisabledInboundConnectorTypes() {
     return getEnv("INBOUND", "DISABLED").map(value -> Set.of(value.split(","))).orElse(Set.of());
   }
 
+  public boolean isInboundConnectorDisabled(InboundConnectorConfiguration config) {
+    return getDisabledInboundConnectorTypes().contains(config.type());
+  }
+
+  public static boolean isOutboundDiscoveryDisabled() {
+    return getEnv("OUTBOUND", "DISCOVERY_DISABLED").isPresent();
+  }
+
   public static Set<String> getDisabledOutboundConnectorTypes() {
     return getEnv("OUTBOUND", "DISABLED").map(value -> Set.of(value.split(","))).orElse(Set.of());
+  }
+
+  public static boolean isOutboundConnectorDisabled(OutboundConnectorConfiguration config) {
+    return getDisabledOutboundConnectorTypes().contains(config.type());
   }
 }

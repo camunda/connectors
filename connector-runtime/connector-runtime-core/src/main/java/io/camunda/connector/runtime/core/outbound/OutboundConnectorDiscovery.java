@@ -17,12 +17,17 @@
 package io.camunda.connector.runtime.core.outbound;
 
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDisabler;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
+import java.util.ArrayList;
 import java.util.List;
 
 public class OutboundConnectorDiscovery {
   public static List<OutboundConnectorConfiguration> loadConnectorConfigurations() {
+    if (EnvVarsConnectorDisabler.isOutboundDiscoveryDisabled()) {
+      return new ArrayList<>();
+    }
     List<OutboundConnectorConfiguration> configurations;
     if (EnvVarsConnectorDiscovery.isOutboundConfigured()) {
       configurations = EnvVarsConnectorDiscovery.discoverOutbound();
