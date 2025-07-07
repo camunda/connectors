@@ -6,11 +6,4 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
-import java.util.Map;
-
-public record TestConversationContext(String conversationId) implements ConversationContext {
-  @Override
-  public Map<String, Object> properties() {
-    return Map.of();
-  }
-}
+public record TestConversationContext(String conversationId) implements ConversationContext {}

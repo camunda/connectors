@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.document.Document;
 import java.util.List;
-import java.util.Map;
 
 @AgenticAiRecord
 @JsonDeserialize(
@@ -21,10 +20,7 @@ import java.util.Map;
         CamundaDocumentConversationContext.CamundaDocumentConversationContextJacksonProxyBuilder
             .class)
 public record CamundaDocumentConversationContext(
-    String conversationId,
-    Document document,
-    List<Document> previousDocuments,
-    Map<String, Object> properties)
+    String conversationId, Document document, List<Document> previousDocuments)
     implements ConversationContext, CamundaDocumentConversationContextBuilder.With {
 
   public static CamundaDocumentConversationContextBuilder builder() {

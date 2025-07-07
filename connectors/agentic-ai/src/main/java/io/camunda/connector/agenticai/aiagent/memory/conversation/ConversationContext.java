@@ -10,7 +10,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
-import java.util.Map;
 
 /**
  * A record of a conversation, stored externally. This contains all the data needed to load the
@@ -23,6 +22,4 @@ import java.util.Map;
 })
 public interface ConversationContext {
   String conversationId();
-
-  Map<String, Object> properties();
 }
