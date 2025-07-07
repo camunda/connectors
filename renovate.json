@@ -76,7 +76,7 @@
       "matchUpdateTypes": [
         "digest"
       ],
-      "changelogUrl": "{{sourceUrl}}/compare/{{currentDigest}}..{{newDigest}}"
+      "changelogUrl": "https://github.com/camunda/infra-global-github-actions/compare/{{currentDigest}}..{{newDigest}}"
     }
   ],
   "baseBranches": [
