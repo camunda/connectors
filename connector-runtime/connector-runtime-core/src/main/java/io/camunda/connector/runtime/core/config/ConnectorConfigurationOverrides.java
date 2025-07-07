@@ -19,6 +19,18 @@ package io.camunda.connector.runtime.core.config;
 import java.util.Optional;
 import java.util.function.Function;
 
+/**
+ * Handles connector overrides such as type and timeout using environment variables.
+ *
+ * <p>Lookup is done by normalizing the connector name to a set of variables to look for. For
+ * example, for a connector named "My Connector", the following environment variables will be
+ * checked:
+ *
+ * <ul>
+ *   <li>CONNECTOR_MY_CONNECTOR_TYPE
+ *   <li>CONNECTOR_MY_CONNECTOR_TIMEOUT
+ * </ul>
+ */
 public class ConnectorConfigurationOverrides {
   private static final String TYPE_PROPERTY_TPL = "CONNECTOR_%s_TYPE";
   private static final String TIMEOUT_PROPERTY_TPL = "CONNECTOR_%s_TIMEOUT";
@@ -45,6 +57,20 @@ public class ConnectorConfigurationOverrides {
     return propertySource.apply(propertyName);
   }
 
+  /**
+   * Replaces everything except alphanumeric characters, underscores, and spaces with an empty
+   * string, replaces spaces with underscores, and converts to uppercase.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   *   <li>"My connector" -> "MY_CONNECTOR"
+   *   <li>"My super-fancy connector" -> "MY_SUPERFANCY_CONNECTOR"
+   *   <li>"my_connector" -> "MY_CONNECTOR"
+   *   <li>"my-connector" -> "MYCONNECTOR"
+   *   <li>"my.connector" -> "MYCONNECTOR"
+   * </ul>
+   */
   private String toNormalizedConnectorName(final String connectorName) {
     return connectorName.trim().replaceAll("[^a-zA-Z0-9_ ]", "").replaceAll(" ", "_").toUpperCase();
   }
