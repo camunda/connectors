@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -93,7 +94,13 @@ class CamundaDocumentConversationStoreTest {
   void supportsAgentContextWithoutPreviousConversation() {
     final var agentContext = AgentContext.empty();
 
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    store.executeInSession(
+        context,
+        agentContext,
+        session -> {
+          session.loadIntoRuntimeMemory(memory);
+          return agentResponse(agentContext);
+        });
 
     assertThat(memory.allMessages()).isEmpty();
   }
@@ -109,7 +116,13 @@ class CamundaDocumentConversationStoreTest {
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
 
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    store.executeInSession(
+        context,
+        agentContext,
+        session -> {
+          session.loadIntoRuntimeMemory(memory);
+          return agentResponse(agentContext);
+        });
 
     assertThat(memory.allMessages()).containsExactlyElementsOf(TEST_MESSAGES);
   }
@@ -119,7 +132,15 @@ class CamundaDocumentConversationStoreTest {
     final var agentContext =
         AgentContext.empty().withConversation(new TestConversationContext("dummy"));
 
-    assertThatThrownBy(() -> store.loadIntoRuntimeMemory(context, agentContext, memory))
+    assertThatThrownBy(
+            () ->
+                store.executeInSession(
+                    context,
+                    agentContext,
+                    session -> {
+                      session.loadIntoRuntimeMemory(memory);
+                      return agentResponse(agentContext);
+                    }))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Unsupported conversation context: TestConversationContext");
   }
@@ -133,7 +154,13 @@ class CamundaDocumentConversationStoreTest {
     when(context.create(documentCreationRequestCaptor.capture())).thenReturn(document);
 
     final var agentContext = AgentContext.empty();
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                context,
+                agentContext,
+                session -> agentResponse(session.storeFromRuntimeMemory(agentContext, memory)))
+            .context();
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
@@ -168,13 +195,22 @@ class CamundaDocumentConversationStoreTest {
     final var newDocument = mock(Document.class);
     when(context.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
 
-    final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
-
     final var userMessage = userMessage("User message");
-    memory.addMessage(userMessage);
 
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
+    final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                context,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(memory);
+
+                  memory.addMessage(userMessage);
+
+                  return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
+                })
+            .context();
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
@@ -229,9 +265,17 @@ class CamundaDocumentConversationStoreTest {
     when(context.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                context,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(memory);
+                  return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
+                })
+            .context();
 
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
@@ -275,9 +319,17 @@ class CamundaDocumentConversationStoreTest {
     when(context.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                context,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(memory);
+                  return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
+                })
+            .context();
 
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
@@ -290,6 +342,10 @@ class CamundaDocumentConversationStoreTest {
                       previousDocuments.get(2),
                       previousDocument);
             });
+  }
+
+  private AgentResponse agentResponse(AgentContext agentContext) {
+    return AgentResponse.builder().context(agentContext).build();
   }
 
   private void assertDocumentCreationRequest(

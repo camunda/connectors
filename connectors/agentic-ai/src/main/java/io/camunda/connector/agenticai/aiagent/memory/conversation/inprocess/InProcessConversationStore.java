@@ -7,10 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
 import io.camunda.connector.agenticai.aiagent.memory.conversation.BaseConversationStore;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreSession;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import java.util.UUID;
 
 public class InProcessConversationStore
     extends BaseConversationStore<InProcessConversationContext> {
@@ -21,27 +20,10 @@ public class InProcessConversationStore
   }
 
   @Override
-  public void loadIntoRuntimeMemory(
-      OutboundConnectorContext context, AgentContext agentContext, RuntimeMemory memory) {
-    final var previousConversationContext = loadPreviousConversationContext(agentContext);
-    if (previousConversationContext == null) {
-      return;
-    }
-
-    memory.addMessages(previousConversationContext.messages());
-  }
-
-  @Override
-  public AgentContext storeFromRuntimeMemory(
-      OutboundConnectorContext context, AgentContext agentContext, RuntimeMemory memory) {
-    final var previousConversationContext = loadPreviousConversationContext(agentContext);
-    final var conversationContextBuilder =
-        previousConversationContext != null
-            ? previousConversationContext.with()
-            : InProcessConversationContext.builder().conversationId(UUID.randomUUID().toString());
-
-    final var conversationContext =
-        conversationContextBuilder.messages(memory.allMessages()).build();
-    return agentContext.withConversation(conversationContext);
+  protected ConversationStoreSession<InProcessConversationContext> createSession(
+      OutboundConnectorContext context,
+      AgentContext agentContext,
+      InProcessConversationContext previousConversationContext) {
+    return new InProcessConversationStoreSession(previousConversationContext);
   }
 }

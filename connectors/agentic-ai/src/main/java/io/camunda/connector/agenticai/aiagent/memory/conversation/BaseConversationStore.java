@@ -7,10 +7,22 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
 public abstract class BaseConversationStore<C extends ConversationContext>
-    implements ConversationStore {
+    implements ConversationStore<C> {
   public abstract Class<C> conversationContextClass();
+
+  @Override
+  public AgentResponse executeInSession(
+      OutboundConnectorContext context,
+      AgentContext agentContext,
+      ConversationStoreSessionHandler<C> handler) {
+    final var previousConversationContext = loadPreviousConversationContext(agentContext);
+    final var session = createSession(context, agentContext, previousConversationContext);
+    return handler.apply(session);
+  }
 
   protected C loadPreviousConversationContext(AgentContext agentContext) {
     final var conversationContext = agentContext.conversation();
@@ -28,4 +40,7 @@ public abstract class BaseConversationStore<C extends ConversationContext>
 
     return expectedContextClass.cast(conversationContext);
   }
+
+  protected abstract ConversationStoreSession<C> createSession(
+      OutboundConnectorContext context, AgentContext agentContext, C previousConversationContext);
 }

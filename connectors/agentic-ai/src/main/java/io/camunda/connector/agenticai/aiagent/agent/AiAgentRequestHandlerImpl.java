@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreSession;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -69,10 +70,23 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
   }
 
   private AgentResponse handleRequest(
+      final OutboundConnectorContext context,
+      final AgentRequest request,
+      final AgentContext agentContext,
+      final List<ToolCallResult> toolCallResults) {
+    final var conversationStore = conversationStoreFactory.createConversationStore(request);
+    return conversationStore.executeInSession(
+        context,
+        agentContext,
+        session -> handleRequest(context, request, agentContext, toolCallResults, session));
+  }
+
+  private AgentResponse handleRequest(
       OutboundConnectorContext context,
       AgentRequest request,
       AgentContext agentContext,
-      List<ToolCallResult> toolCallResults) {
+      List<ToolCallResult> toolCallResults,
+      ConversationStoreSession<?> session) {
     // set up memory and load from context if available
     final var runtimeMemory =
         new MessageWindowRuntimeMemory(
@@ -80,8 +94,7 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
                 .map(MemoryConfiguration::contextWindowSize)
                 .orElse(DEFAULT_CONTEXT_WINDOW_SIZE));
 
-    final var conversationStore = conversationStoreFactory.createConversationStore(request);
-    conversationStore.loadIntoRuntimeMemory(context, agentContext, runtimeMemory);
+    session.loadIntoRuntimeMemory(runtimeMemory);
 
     // validate configured limits
     limitsValidator.validateConfiguredLimits(context, request, agentContext);
@@ -99,7 +112,8 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
     final var assistantMessage = frameworkChatResponse.assistantMessage();
     runtimeMemory.addMessage(assistantMessage);
 
-    // apply potential gateway tool call transformations & map tool call to process variable format
+    // apply potential gateway tool call transformations & map tool call to process
+    // variable format
     var toolCalls =
         gatewayToolHandlers.transformToolCalls(agentContext, assistantMessage.toolCalls());
     final var processVariableToolCalls =
@@ -110,9 +124,7 @@ public class AiAgentRequestHandlerImpl implements AiAgentRequestHandler {
 
     // store memory to context and update the next agent state based on tool calls
     agentContext =
-        conversationStore
-            .storeFromRuntimeMemory(context, agentContext, runtimeMemory)
-            .withState(nextAgentState);
+        session.storeFromRuntimeMemory(agentContext, runtimeMemory).withState(nextAgentState);
 
     return responseHandler.createResponse(
         request, agentContext, assistantMessage, processVariableToolCalls);
