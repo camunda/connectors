@@ -7,25 +7,24 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import java.util.Optional;
 
-public abstract class BaseConversationStore<C extends ConversationContext>
-    implements ConversationStore {
-  public abstract Class<C> conversationContextClass();
+public class ConversationUtil {
 
-  protected C loadPreviousConversationContext(AgentContext agentContext) {
-    final var conversationContext = agentContext.conversation();
-    if (agentContext.conversation() == null) {
+  public static <C extends ConversationContext> C loadConversationContext(
+      AgentContext agentContext, Class<C> contextClass) {
+    final var conversationContext =
+        Optional.ofNullable(agentContext).map(AgentContext::conversation).orElse(null);
+    if (conversationContext == null) {
       return null;
     }
 
-    final var expectedContextClass = conversationContextClass();
     final var actualContextClass = conversationContext.getClass();
-
-    if (!expectedContextClass.isAssignableFrom(actualContextClass)) {
+    if (!contextClass.isAssignableFrom(actualContextClass)) {
       throw new IllegalStateException(
           "Unsupported conversation context: %s".formatted(actualContextClass.getSimpleName()));
     }
 
-    return expectedContextClass.cast(conversationContext);
+    return contextClass.cast(conversationContext);
   }
 }
