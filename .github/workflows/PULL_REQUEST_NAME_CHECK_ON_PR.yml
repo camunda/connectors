@@ -2,19 +2,20 @@ on:
   pull_request:
     branches:
       - main
-    types: [opened, synchronize, reopened, edited]
-
+    types: [ opened, synchronize, reopened, edited ]
+env:
+  PR_TITLE: "${{ github.event.pull_request.title }}"
 jobs:
   check-pull-request-name:
     runs-on: ubuntu-latest
     steps:
       - name: Extract pull request name
         id: extract_pr
-        run: echo "${{ github.event.pull_request.title }}"
+        run: echo "$PR_TITLE"
       - name: Check if pull request name follows conventional commit regex
         run: |
           PR_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore|build|other|ci)\(?.+\)?: .+$'
-          if [[ "${{ github.event.pull_request.title }}" =~ $PR_REGEX ]]; then
+          if [[ "$PR_TITLE" =~ $PR_REGEX ]]; then
             echo "Pull request name follows the conventional commit format."
           else
             echo "Pull request does not follow the conventional commit format."
