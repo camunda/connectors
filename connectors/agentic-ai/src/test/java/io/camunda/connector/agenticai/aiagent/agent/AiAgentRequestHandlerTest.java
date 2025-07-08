@@ -99,7 +99,7 @@ class AiAgentRequestHandlerTest {
   void setUp() {
     doReturn(new InProcessConversationStore())
         .when(conversationStoreFactory)
-        .createConversationStore(agentRequest);
+        .createConversationStore(eq(connectorContext), eq(agentRequest), any(AgentContext.class));
   }
 
   @Test

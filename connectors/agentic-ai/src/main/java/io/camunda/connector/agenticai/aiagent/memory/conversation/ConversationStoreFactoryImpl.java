@@ -9,9 +9,11 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.util.Optional;
 
@@ -27,7 +29,10 @@ public class ConversationStoreFactoryImpl implements ConversationStoreFactory {
   }
 
   @Override
-  public ConversationStore createConversationStore(AgentRequest request) {
+  public ConversationStore createConversationStore(
+      final OutboundConnectorContext context,
+      final AgentRequest request,
+      final AgentContext agentContext) {
     final var storageConfig =
         Optional.ofNullable(request.data().memory())
             .map(AgentRequest.AgentRequestData.MemoryConfiguration::storage)

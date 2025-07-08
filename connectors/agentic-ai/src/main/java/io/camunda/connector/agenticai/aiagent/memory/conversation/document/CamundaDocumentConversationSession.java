@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
+import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreSession;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
@@ -30,34 +32,48 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CamundaDocumentConversationStoreSession
-    implements ConversationStoreSession<CamundaDocumentConversationContext> {
+public class CamundaDocumentConversationSession implements ConversationSession {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(CamundaDocumentConversationStoreSession.class);
+      LoggerFactory.getLogger(CamundaDocumentConversationSession.class);
+
+  private static final int DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE = 2;
 
   private final CamundaDocumentMemoryStorageConfiguration config;
-
   private final DocumentFactory documentFactory;
   private final CamundaDocumentStore documentStore;
-
   private final ObjectMapper objectMapper;
   private final ObjectWriter objectWriter;
-
   private final JobContext jobContext;
-
   private final int previousDocumentsRetentionSize;
-  private final CamundaDocumentConversationContext previousConversationContext;
 
-  public CamundaDocumentConversationStoreSession(
+  private CamundaDocumentConversationContext previousConversationContext;
+
+  public CamundaDocumentConversationSession(
+      CamundaDocumentMemoryStorageConfiguration config,
+      DocumentFactory documentFactory,
+      CamundaDocumentStore documentStore,
+      ObjectMapper objectMapper,
+      ObjectWriter objectWriter,
+      JobContext jobContext) {
+    this(
+        config,
+        documentFactory,
+        documentStore,
+        objectMapper,
+        objectWriter,
+        jobContext,
+        DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE);
+  }
+
+  public CamundaDocumentConversationSession(
       CamundaDocumentMemoryStorageConfiguration config,
       DocumentFactory documentFactory,
       CamundaDocumentStore documentStore,
       ObjectMapper objectMapper,
       ObjectWriter objectWriter,
       JobContext jobContext,
-      int previousDocumentsRetentionSize,
-      CamundaDocumentConversationContext previousConversationContext) {
+      int previousDocumentsRetentionSize) {
     this.config = config;
     this.documentFactory = documentFactory;
     this.documentStore = documentStore;
@@ -65,11 +81,12 @@ public class CamundaDocumentConversationStoreSession
     this.objectWriter = objectWriter;
     this.jobContext = jobContext;
     this.previousDocumentsRetentionSize = previousDocumentsRetentionSize;
-    this.previousConversationContext = previousConversationContext;
   }
 
   @Override
-  public void loadIntoRuntimeMemory(RuntimeMemory memory) {
+  public void loadIntoRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+    previousConversationContext =
+        loadConversationContext(agentContext, CamundaDocumentConversationContext.class);
     if (previousConversationContext == null) {
       return;
     }

@@ -6,23 +6,21 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreSession;
+import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
+
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import java.util.UUID;
 
-public class InProcessConversationStoreSession
-    implements ConversationStoreSession<InProcessConversationContext> {
+public class InProcessConversationSession implements ConversationSession {
 
-  private final InProcessConversationContext previousConversationContext;
-
-  public InProcessConversationStoreSession(
-      InProcessConversationContext previousConversationContext) {
-    this.previousConversationContext = previousConversationContext;
-  }
+  private InProcessConversationContext previousConversationContext;
 
   @Override
-  public void loadIntoRuntimeMemory(RuntimeMemory memory) {
+  public void loadIntoRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+    previousConversationContext =
+        loadConversationContext(agentContext, InProcessConversationContext.class);
     if (previousConversationContext == null) {
       return;
     }

@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemor
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -71,6 +72,7 @@ class CamundaDocumentConversationStoreTest {
   private OutboundConnectorContext context;
 
   @Mock private CamundaDocumentStore documentStore;
+  @Mock private AgentRequest agentRequest;
 
   private CamundaDocumentConversationStore store;
   private RuntimeMemory memory;
@@ -84,8 +86,7 @@ class CamundaDocumentConversationStoreTest {
             new CamundaDocumentMemoryStorageConfiguration(
                 Duration.ofHours(1), Map.of("customKey", "customValue")),
             documentStore,
-            objectMapper,
-            PREVIOUS_DOCUMENTS_RETENTION_SIZE);
+            objectMapper);
 
     memory = new DefaultRuntimeMemory();
   }
@@ -96,9 +97,10 @@ class CamundaDocumentConversationStoreTest {
 
     store.executeInSession(
         context,
+        agentRequest,
         agentContext,
         session -> {
-          session.loadIntoRuntimeMemory(memory);
+          session.loadIntoRuntimeMemory(agentContext, memory);
           return agentResponse(agentContext);
         });
 
@@ -118,9 +120,10 @@ class CamundaDocumentConversationStoreTest {
 
     store.executeInSession(
         context,
+        agentRequest,
         agentContext,
         session -> {
-          session.loadIntoRuntimeMemory(memory);
+          session.loadIntoRuntimeMemory(agentContext, memory);
           return agentResponse(agentContext);
         });
 
@@ -136,9 +139,10 @@ class CamundaDocumentConversationStoreTest {
             () ->
                 store.executeInSession(
                     context,
+                    agentRequest,
                     agentContext,
                     session -> {
-                      session.loadIntoRuntimeMemory(memory);
+                      session.loadIntoRuntimeMemory(agentContext, memory);
                       return agentResponse(agentContext);
                     }))
         .isInstanceOf(IllegalStateException.class)
@@ -158,6 +162,7 @@ class CamundaDocumentConversationStoreTest {
         store
             .executeInSession(
                 context,
+                agentRequest,
                 agentContext,
                 session -> agentResponse(session.storeFromRuntimeMemory(agentContext, memory)))
             .context();
@@ -202,9 +207,10 @@ class CamundaDocumentConversationStoreTest {
         store
             .executeInSession(
                 context,
+                agentRequest,
                 agentContext,
                 session -> {
-                  session.loadIntoRuntimeMemory(memory);
+                  session.loadIntoRuntimeMemory(agentContext, memory);
 
                   memory.addMessage(userMessage);
 
@@ -269,9 +275,10 @@ class CamundaDocumentConversationStoreTest {
         store
             .executeInSession(
                 context,
+                agentRequest,
                 agentContext,
                 session -> {
-                  session.loadIntoRuntimeMemory(memory);
+                  session.loadIntoRuntimeMemory(agentContext, memory);
                   return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
                 })
             .context();
@@ -323,9 +330,10 @@ class CamundaDocumentConversationStoreTest {
         store
             .executeInSession(
                 context,
+                agentRequest,
                 agentContext,
                 session -> {
-                  session.loadIntoRuntimeMemory(memory);
+                  session.loadIntoRuntimeMemory(agentContext, memory);
                   return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
                 })
             .context();

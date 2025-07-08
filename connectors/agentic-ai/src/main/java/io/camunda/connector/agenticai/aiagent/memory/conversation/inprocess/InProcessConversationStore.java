@@ -6,24 +6,21 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
-import io.camunda.connector.agenticai.aiagent.memory.conversation.BaseConversationStore;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreSession;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSessionHandler;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
-public class InProcessConversationStore
-    extends BaseConversationStore<InProcessConversationContext> {
+public class InProcessConversationStore implements ConversationStore {
 
   @Override
-  public Class<InProcessConversationContext> conversationContextClass() {
-    return InProcessConversationContext.class;
-  }
-
-  @Override
-  protected ConversationStoreSession<InProcessConversationContext> createSession(
+  public AgentResponse executeInSession(
       OutboundConnectorContext context,
+      AgentRequest request,
       AgentContext agentContext,
-      InProcessConversationContext previousConversationContext) {
-    return new InProcessConversationStoreSession(previousConversationContext);
+      ConversationSessionHandler sessionHandler) {
+    return sessionHandler.handleSession(new InProcessConversationSession());
   }
 }

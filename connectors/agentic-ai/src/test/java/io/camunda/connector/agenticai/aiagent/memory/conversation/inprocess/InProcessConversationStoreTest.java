@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemor
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ class InProcessConversationStoreTest {
   private static final List<Message> TEST_MESSAGES = TestMessagesFixture.testMessages();
 
   @Mock private OutboundConnectorContext context;
+  @Mock private AgentRequest agentRequest;
 
   private final InProcessConversationStore store = new InProcessConversationStore();
 
@@ -49,9 +51,10 @@ class InProcessConversationStoreTest {
 
     store.executeInSession(
         context,
+        agentRequest,
         agentContext,
         session -> {
-          session.loadIntoRuntimeMemory(memory);
+          session.loadIntoRuntimeMemory(agentContext, memory);
           return agentResponse(agentContext);
         });
 
@@ -67,9 +70,10 @@ class InProcessConversationStoreTest {
 
     store.executeInSession(
         context,
+        agentRequest,
         agentContext,
         session -> {
-          session.loadIntoRuntimeMemory(memory);
+          session.loadIntoRuntimeMemory(agentContext, memory);
           return agentResponse(agentContext);
         });
 
@@ -85,9 +89,10 @@ class InProcessConversationStoreTest {
             () ->
                 store.executeInSession(
                     context,
+                    agentRequest,
                     agentContext,
                     session -> {
-                      session.loadIntoRuntimeMemory(memory);
+                      session.loadIntoRuntimeMemory(agentContext, memory);
                       return agentResponse(agentContext);
                     }))
         .isInstanceOf(IllegalStateException.class)
@@ -103,6 +108,7 @@ class InProcessConversationStoreTest {
         store
             .executeInSession(
                 context,
+                agentRequest,
                 agentContext,
                 session -> agentResponse(session.storeFromRuntimeMemory(agentContext, memory)))
             .context();
@@ -128,9 +134,10 @@ class InProcessConversationStoreTest {
         store
             .executeInSession(
                 context,
+                agentRequest,
                 agentContext,
                 session -> {
-                  session.loadIntoRuntimeMemory(memory);
+                  session.loadIntoRuntimeMemory(agentContext, memory);
 
                   memory.addMessage(userMessage);
 

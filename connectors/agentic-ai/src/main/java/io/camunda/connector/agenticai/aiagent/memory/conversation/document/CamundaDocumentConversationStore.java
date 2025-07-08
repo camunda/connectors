@@ -8,60 +8,43 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.BaseConversationStore;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreSession;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSessionHandler;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.document.store.CamundaDocumentStore;
 
-public class CamundaDocumentConversationStore
-    extends BaseConversationStore<CamundaDocumentConversationContext> {
-  private static final int DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE = 2;
+public class CamundaDocumentConversationStore implements ConversationStore {
 
   private final CamundaDocumentMemoryStorageConfiguration config;
   private final CamundaDocumentStore documentStore;
   private final ObjectMapper objectMapper;
   private final ObjectWriter objectWriter;
-  private final int previousDocumentsRetentionSize;
 
   public CamundaDocumentConversationStore(
       CamundaDocumentMemoryStorageConfiguration config,
       CamundaDocumentStore documentStore,
       ObjectMapper objectMapper) {
-    this(config, documentStore, objectMapper, DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE);
-  }
-
-  public CamundaDocumentConversationStore(
-      CamundaDocumentMemoryStorageConfiguration config,
-      CamundaDocumentStore documentStore,
-      ObjectMapper objectMapper,
-      int previousDocumentsRetentionSize) {
     this.config = config;
     this.documentStore = documentStore;
     this.objectMapper = objectMapper;
     this.objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
-    this.previousDocumentsRetentionSize = previousDocumentsRetentionSize;
   }
 
   @Override
-  public Class<CamundaDocumentConversationContext> conversationContextClass() {
-    return CamundaDocumentConversationContext.class;
-  }
-
-  @Override
-  protected ConversationStoreSession<CamundaDocumentConversationContext> createSession(
+  public AgentResponse executeInSession(
       OutboundConnectorContext context,
+      AgentRequest request,
       AgentContext agentContext,
-      CamundaDocumentConversationContext previousConversationContext) {
-    return new CamundaDocumentConversationStoreSession(
-        config,
-        context,
-        documentStore,
-        objectMapper,
-        objectWriter,
-        context.getJobContext(),
-        previousDocumentsRetentionSize,
-        previousConversationContext);
+      ConversationSessionHandler sessionHandler) {
+    return sessionHandler.handleSession(createSession(context));
+  }
+
+  private CamundaDocumentConversationSession createSession(OutboundConnectorContext context) {
+    return new CamundaDocumentConversationSession(
+        config, context, documentStore, objectMapper, objectWriter, context.getJobContext());
   }
 }
