@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -15,7 +16,6 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemor
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -97,7 +97,7 @@ class InProcessConversationStoreTest {
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
     store.loadIntoRuntimeMemory(context, agentContext, memory);
 
-    final var userMessage = UserMessage.userMessage("User message");
+    final var userMessage = userMessage("User message");
     memory.addMessage(userMessage);
 
     final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);

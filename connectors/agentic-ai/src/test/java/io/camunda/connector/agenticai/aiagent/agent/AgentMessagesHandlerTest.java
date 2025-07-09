@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,7 +25,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
@@ -70,7 +71,7 @@ class AgentMessagesHandlerTest {
 
       assertThat(runtimeMemory.allMessages())
           .hasSize(1)
-          .containsExactly(SystemMessage.systemMessage("You are a helpful assistant."));
+          .containsExactly(systemMessage("You are a helpful assistant."));
     }
 
     @Test
@@ -82,8 +83,7 @@ class AgentMessagesHandlerTest {
 
       assertThat(runtimeMemory.allMessages())
           .hasSize(1)
-          .containsExactly(
-              SystemMessage.systemMessage("You are a helpful assistant named Johnny."));
+          .containsExactly(systemMessage("You are a helpful assistant named Johnny."));
     }
 
     @ParameterizedTest
@@ -183,7 +183,7 @@ class AgentMessagesHandlerTest {
         assertThat(runtimeMemory.allMessages())
             .noneMatch(msg -> msg instanceof ToolCallResultMessage)
             .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .isEqualTo(UserMessage.userMessage("Tell me a story"));
+            .isEqualTo(userMessage("Tell me a story"));
       }
 
       @Test
@@ -198,7 +198,7 @@ class AgentMessagesHandlerTest {
         assertThat(runtimeMemory.allMessages())
             .noneMatch(msg -> msg instanceof ToolCallResultMessage)
             .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .isEqualTo(UserMessage.userMessage("Tell me a story about Johnny"));
+            .isEqualTo(userMessage("Tell me a story about Johnny"));
       }
 
       @Test

@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS;
+import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
 import dev.langchain4j.model.input.PromptTemplate;
@@ -45,7 +46,10 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       AgentContext agentContext, RuntimeMemory memory, SystemPromptConfiguration systemPrompt) {
     if (StringUtils.isNotBlank(systemPrompt.prompt())) {
       // memory will take care of replacing any existing system message if already present
-      memory.addMessage(SystemMessage.systemMessage(promptFromConfiguration(systemPrompt)));
+      memory.addMessage(
+          SystemMessage.builder()
+              .content(singleTextContent(promptFromConfiguration(systemPrompt)))
+              .build());
     }
   }
 

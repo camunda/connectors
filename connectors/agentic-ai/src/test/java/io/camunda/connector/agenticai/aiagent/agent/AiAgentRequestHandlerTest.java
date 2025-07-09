@@ -8,8 +8,9 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
-import static io.camunda.connector.agenticai.model.message.AssistantMessage.assistantMessage;
-import static io.camunda.connector.agenticai.model.message.UserMessage.userMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -41,7 +42,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfigu
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -137,7 +137,7 @@ class AiAgentRequestHandlerTest {
 
     final var expectedMessages =
         List.of(
-            SystemMessage.systemMessage(SYSTEM_PROMPT_CONFIGURATION.prompt()),
+            systemMessage(SYSTEM_PROMPT_CONFIGURATION.prompt()),
             userMessage(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS.prompt()),
             assistantMessage);
 
@@ -189,7 +189,7 @@ class AiAgentRequestHandlerTest {
 
     final var expectedMessages =
         List.of(
-            SystemMessage.systemMessage(SYSTEM_PROMPT_CONFIGURATION.prompt()),
+            systemMessage(SYSTEM_PROMPT_CONFIGURATION.prompt()),
             userMessage(USER_PROMPT_CONFIGURATION_WITH_TOOLS.prompt()),
             assistantMessage);
 
@@ -327,8 +327,7 @@ class AiAgentRequestHandlerTest {
     doAnswer(
             i -> {
               final var runtimeMemory = i.getArgument(1, RuntimeMemory.class);
-              runtimeMemory.addMessage(
-                  SystemMessage.systemMessage(systemPromptConfiguration.prompt()));
+              runtimeMemory.addMessage(systemMessage(systemPromptConfiguration.prompt()));
               return null;
             })
         .when(messagesHandler)

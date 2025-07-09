@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
@@ -23,7 +24,6 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.document.Document;
@@ -171,7 +171,7 @@ class CamundaDocumentConversationStoreTest {
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
     store.loadIntoRuntimeMemory(context, agentContext, memory);
 
-    final var userMessage = UserMessage.userMessage("User message");
+    final var userMessage = userMessage("User message");
     memory.addMessage(userMessage);
 
     final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
