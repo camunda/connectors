@@ -15,9 +15,9 @@ public class Authentication {
   @FEEL
   @TemplateProperty(
       group = "authentication",
-      label = "JSON Key of the Service account",
+      label = "JSON key of the service account",
       description =
-          "The key of the service account in JSON format. See more details in the <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a>.",
+          "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
       feel = Property.FeelMode.optional)
   @NotBlank
   private String jsonKey;
