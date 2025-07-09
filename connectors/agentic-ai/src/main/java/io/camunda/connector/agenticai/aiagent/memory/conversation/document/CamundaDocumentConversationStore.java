@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSessionHandler;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -35,11 +34,11 @@ public class CamundaDocumentConversationStore implements ConversationStore {
   }
 
   @Override
-  public AgentResponse executeInSession(
+  public <T> T executeInSession(
       OutboundConnectorContext context,
       AgentRequest request,
       AgentContext agentContext,
-      ConversationSessionHandler sessionHandler) {
+      ConversationSessionHandler<T> sessionHandler) {
     return sessionHandler.handleSession(createSession(context));
   }
 

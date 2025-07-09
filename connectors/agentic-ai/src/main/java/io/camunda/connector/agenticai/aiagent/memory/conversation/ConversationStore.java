@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
@@ -16,9 +15,9 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
  * into runtime memory.
  */
 public interface ConversationStore {
-  AgentResponse executeInSession(
+  <T> T executeInSession(
       OutboundConnectorContext context,
       AgentRequest request,
       AgentContext agentContext,
-      ConversationSessionHandler sessionHandler);
+      ConversationSessionHandler<T> sessionHandler);
 }
