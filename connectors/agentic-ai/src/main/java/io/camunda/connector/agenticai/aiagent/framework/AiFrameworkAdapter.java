@@ -8,9 +8,11 @@ package io.camunda.connector.agenticai.aiagent.framework;
 
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
 public interface AiFrameworkAdapter<R extends AiFrameworkChatResponse<?>> {
   R executeChatRequest(
-      AgentRequest agentRequest, AgentContext agentContext, RuntimeMemory runtimeMemory);
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      RuntimeMemory runtimeMemory);
 }

@@ -12,9 +12,9 @@ import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtract
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponseBuilder;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
@@ -42,14 +42,15 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   @Override
   public AgentResponse createResponse(
-      AgentRequest request,
+      AgentExecutionContext executionContext,
       AgentContext agentContext,
       AssistantMessage assistantMessage,
       List<ToolCallProcessVariable> toolCalls) {
 
     // default to text content only if not configured
     final var responseConfiguration =
-        Optional.ofNullable(request.data().response()).orElse(DEFAULT_RESPONSE_CONFIGURATION);
+        Optional.ofNullable(executionContext.request().data().response())
+            .orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
