@@ -1,4 +1,4 @@
-name: Deploy snapshots
+name: Deploy 8.6 snapshots
 
 on:
   push:
