@@ -16,7 +16,9 @@ jobs:
   deploy-snapshots:
     name: Deploy snapshot artifacts
     runs-on: ubuntu-latest
-    concurrency: deploy-snapshots
+    concurrency:
+      group: deploy-snapshots-${{ github.ref_name }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
 
