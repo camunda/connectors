@@ -10,15 +10,14 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSe
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 
 public class InProcessConversationStore implements ConversationStore {
 
   @Override
-  public AgentResponse executeInSession(
+  public <T> T executeInSession(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      ConversationSessionHandler sessionHandler) {
+      ConversationSessionHandler<T> sessionHandler) {
     return sessionHandler.handleSession(new InProcessConversationSession());
   }
 }

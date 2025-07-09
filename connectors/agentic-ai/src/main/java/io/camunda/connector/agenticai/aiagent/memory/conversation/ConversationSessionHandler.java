@@ -6,9 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-
 @FunctionalInterface
-public interface ConversationSessionHandler {
-  AgentResponse handleSession(ConversationSession session);
+public interface ConversationSessionHandler<T> {
+  T handleSession(ConversationSession session);
 }

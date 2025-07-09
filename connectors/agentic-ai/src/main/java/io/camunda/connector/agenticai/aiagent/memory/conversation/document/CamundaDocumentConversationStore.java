@@ -12,7 +12,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSe
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
@@ -38,10 +37,10 @@ public class CamundaDocumentConversationStore implements ConversationStore {
   }
 
   @Override
-  public AgentResponse executeInSession(
+  public <T> T executeInSession(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      ConversationSessionHandler sessionHandler) {
+      ConversationSessionHandler<T> sessionHandler) {
     final var session =
         new CamundaDocumentConversationSession(
             config, documentFactory, documentStore, objectMapper, objectWriter, executionContext);
