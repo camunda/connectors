@@ -20,6 +20,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchema
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
@@ -32,7 +34,6 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,7 @@ class AgentInitializerTest {
               .build());
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private OutboundConnectorContext connectorContext;
+  private AgentJobContext agentJobContext;
 
   @Mock private AdHocToolsSchemaResolver schemaResolver;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -78,9 +79,7 @@ class AgentInitializerTest {
 
   @BeforeEach
   void setUp() {
-    lenient()
-        .when(connectorContext.getJobContext().getProcessDefinitionKey())
-        .thenReturn(PROCESS_DEFINITION_KEY);
+    lenient().when(agentJobContext.processDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
   }
 
   @Nested
@@ -96,8 +95,7 @@ class AgentInitializerTest {
           AgentContext.empty().withState(agentState).withProperty("hello", "world");
       final var result =
           agentInitializer.initializeAgent(
-              connectorContext,
-              agentRequest(
+              executionContext(
                   agentContext, new ToolsConfiguration(CONTAINER_ELEMENT_ID, TOOL_CALL_RESULTS)));
 
       assertThat(result)
@@ -115,8 +113,7 @@ class AgentInitializerTest {
     @Test
     void handlesNullToolsConfiguration() {
       final var agentContext = AgentContext.empty().withState(AgentState.READY);
-      final var result =
-          agentInitializer.initializeAgent(connectorContext, agentRequest(agentContext, null));
+      final var result = agentInitializer.initializeAgent(executionContext(agentContext, null));
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -135,8 +132,7 @@ class AgentInitializerTest {
       final var agentContext = AgentContext.empty().withState(AgentState.READY);
       final var result =
           agentInitializer.initializeAgent(
-              connectorContext,
-              agentRequest(agentContext, new ToolsConfiguration(CONTAINER_ELEMENT_ID, null)));
+              executionContext(agentContext, new ToolsConfiguration(CONTAINER_ELEMENT_ID, null)));
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -163,8 +159,8 @@ class AgentInitializerTest {
     void noToolDiscoveryWhenNoContainerElementIdIsConfigured(String containerElementId) {
       final var result =
           agentInitializer.initializeAgent(
-              connectorContext,
-              agentRequest(AGENT_CONTEXT, new ToolsConfiguration(containerElementId, List.of())));
+              executionContext(
+                  AGENT_CONTEXT, new ToolsConfiguration(containerElementId, List.of())));
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -190,8 +186,8 @@ class AgentInitializerTest {
 
       final var result =
           agentInitializer.initializeAgent(
-              connectorContext,
-              agentRequest(AGENT_CONTEXT, new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of())));
+              executionContext(
+                  AGENT_CONTEXT, new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of())));
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -226,8 +222,8 @@ class AgentInitializerTest {
 
       final var result =
           agentInitializer.initializeAgent(
-              connectorContext,
-              agentRequest(AGENT_CONTEXT, new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of())));
+              executionContext(
+                  AGENT_CONTEXT, new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of())));
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -267,8 +263,8 @@ class AgentInitializerTest {
 
       final var result =
           agentInitializer.initializeAgent(
-              connectorContext,
-              agentRequest(AGENT_CONTEXT, new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of())));
+              executionContext(
+                  AGENT_CONTEXT, new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of())));
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -334,8 +330,7 @@ class AgentInitializerTest {
 
       final var result =
           agentInitializer.initializeAgent(
-              connectorContext,
-              agentRequest(
+              executionContext(
                   AGENT_CONTEXT,
                   new ToolsConfiguration(
                       CONTAINER_ELEMENT_ID, GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS)));
@@ -378,8 +373,7 @@ class AgentInitializerTest {
 
       final var result =
           agentInitializer.initializeAgent(
-              connectorContext,
-              agentRequest(
+              executionContext(
                   AGENT_CONTEXT,
                   new ToolsConfiguration(CONTAINER_ELEMENT_ID, mergedToolCallResults)));
 
@@ -401,9 +395,13 @@ class AgentInitializerTest {
     }
   }
 
-  private AgentRequest agentRequest(
+  private AgentExecutionContext executionContext(
       AgentContext agentContext, ToolsConfiguration toolsConfiguration) {
-    return new AgentRequest(
-        null, new AgentRequestData(agentContext, null, null, toolsConfiguration, null, null, null));
+    final var agentRequest =
+        new AgentRequest(
+            null,
+            new AgentRequestData(agentContext, null, null, toolsConfiguration, null, null, null));
+
+    return new AgentExecutionContext(agentJobContext, agentRequest);
   }
 }

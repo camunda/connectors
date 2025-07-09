@@ -31,6 +31,8 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -46,7 +48,6 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -66,7 +67,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AiAgentRequestHandlerTest {
+class AgentRequestHandlerTest {
 
   private static final AgentContext INITIAL_AGENT_CONTEXT =
       AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
@@ -86,20 +87,23 @@ class AiAgentRequestHandlerTest {
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private AgentResponseHandler responseHandler;
 
-  @Mock private OutboundConnectorContext connectorContext;
+  @Mock private AgentJobContext agentJobContext;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentRequest agentRequest;
 
+  private AgentExecutionContext agentExecutionContext;
+
   @Captor private ArgumentCaptor<RuntimeMemory> runtimeMemoryCaptor;
 
-  @InjectMocks private AiAgentRequestHandlerImpl requestHandler;
+  @InjectMocks private AgentRequestHandlerImpl requestHandler;
 
   @BeforeEach
   void setUp() {
+    agentExecutionContext = new AgentExecutionContext(agentJobContext, agentRequest);
     doReturn(new InProcessConversationStore())
         .when(conversationStoreFactory)
-        .createConversationStore(eq(connectorContext), eq(agentRequest), any(AgentContext.class));
+        .createConversationStore(eq(agentExecutionContext), any(AgentContext.class));
   }
 
   @Test
@@ -115,10 +119,10 @@ class AiAgentRequestHandlerTest {
                         ToolCall.builder().id("tool_discovery").name("AGatewayTool").build())))
             .build();
 
-    when(agentInitializer.initializeAgent(connectorContext, agentRequest))
+    when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentResponseInitializationResult(agentResponse));
 
-    final var response = requestHandler.handleRequest(connectorContext, agentRequest);
+    final var response = requestHandler.handleRequest(agentExecutionContext);
     assertThat(response).isEqualTo(agentResponse);
 
     verifyNoInteractions(
@@ -130,7 +134,7 @@ class AiAgentRequestHandlerTest {
     mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
 
-    when(agentInitializer.initializeAgent(connectorContext, agentRequest))
+    when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var assistantMessageText =
@@ -148,7 +152,7 @@ class AiAgentRequestHandlerTest {
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
         .thenAnswer(i -> i.getArgument(1));
     when(responseHandler.createResponse(
-            any(AgentRequest.class), any(AgentContext.class), eq(assistantMessage), anyList()))
+            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
         .thenAnswer(
             i ->
                 AgentResponse.builder()
@@ -158,7 +162,7 @@ class AiAgentRequestHandlerTest {
                     .toolCalls(i.getArgument(3))
                     .build());
 
-    final var response = requestHandler.handleRequest(connectorContext, agentRequest);
+    final var response = requestHandler.handleRequest(agentExecutionContext);
 
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
@@ -175,8 +179,7 @@ class AiAgentRequestHandlerTest {
     assertThat(response.responseText()).isEqualTo(assistantMessageText);
     assertThat(response.toolCalls()).isEmpty();
 
-    verify(limitsValidator)
-        .validateConfiguredLimits(connectorContext, agentRequest, INITIAL_AGENT_CONTEXT);
+    verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
   }
 
   @Test
@@ -184,7 +187,7 @@ class AiAgentRequestHandlerTest {
     mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITH_TOOLS, List.of());
 
-    when(agentInitializer.initializeAgent(connectorContext, agentRequest))
+    when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
 
     final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
@@ -208,7 +211,7 @@ class AiAgentRequestHandlerTest {
             });
 
     when(responseHandler.createResponse(
-            any(AgentRequest.class), any(AgentContext.class), eq(assistantMessage), anyList()))
+            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
         .thenAnswer(
             i ->
                 AgentResponse.builder()
@@ -217,7 +220,7 @@ class AiAgentRequestHandlerTest {
                     .toolCalls(i.getArgument(3))
                     .build());
 
-    final var response = requestHandler.handleRequest(connectorContext, agentRequest);
+    final var response = requestHandler.handleRequest(agentExecutionContext);
 
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
@@ -241,8 +244,7 @@ class AiAgentRequestHandlerTest {
                 new ToolCallProcessVariable.ToolCallMetadata("fedcba_transformed", "getDateTime"),
                 Map.of()));
 
-    verify(limitsValidator)
-        .validateConfiguredLimits(connectorContext, agentRequest, INITIAL_AGENT_CONTEXT);
+    verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
   }
 
   @Test
@@ -304,7 +306,7 @@ class AiAgentRequestHandlerTest {
         INITIAL_AGENT_CONTEXT.withConversation(
             InProcessConversationContext.builder("in-process").messages(previousMessages).build());
 
-    when(agentInitializer.initializeAgent(connectorContext, agentRequest))
+    when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(initialAgentContext, List.of()));
 
     final var assistantMessageText = "This is the assistant message";
@@ -314,7 +316,7 @@ class AiAgentRequestHandlerTest {
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
         .thenAnswer(i -> i.getArgument(1));
 
-    requestHandler.handleRequest(connectorContext, agentRequest);
+    requestHandler.handleRequest(agentExecutionContext);
 
     return runtimeMemoryCaptor.getValue();
   }
@@ -356,7 +358,7 @@ class AiAgentRequestHandlerTest {
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
     when(framework.executeChatRequest(
-            eq(agentRequest), any(AgentContext.class), runtimeMemoryCaptor.capture()))
+            eq(agentExecutionContext), any(AgentContext.class), runtimeMemoryCaptor.capture()))
         .thenAnswer(
             i -> {
               final var agentContext = i.getArgument(1, AgentContext.class);
