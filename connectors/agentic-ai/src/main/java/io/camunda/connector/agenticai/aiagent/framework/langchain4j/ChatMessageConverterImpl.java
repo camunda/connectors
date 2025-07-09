@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.util.ClockProvider;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.document.Document;
 import java.util.List;
@@ -127,7 +128,9 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
     if (chatResponse.metadata() != null) {
       builder.metadata(
-          Map.of("framework", serializedChatResponseMetadata(chatResponse.metadata())));
+          Map.of(
+              "timestamp", ClockProvider.zonedDateTimeNow(),
+              "framework", serializedChatResponseMetadata(chatResponse.metadata())));
     }
 
     final var aiMessage = chatResponse.aiMessage();

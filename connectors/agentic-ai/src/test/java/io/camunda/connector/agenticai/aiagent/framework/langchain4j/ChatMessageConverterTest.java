@@ -32,11 +32,17 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.util.ClockProvider;
 import io.camunda.document.Document;
+import java.time.Clock;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -47,11 +53,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ChatMessageConverterTest {
 
+  private static final ZonedDateTime CLOCK_TIME =
+      ZonedDateTime.of(2025, 7, 9, 12, 44, 11, 0, ZoneId.systemDefault());
+
   @Mock private ToolCallConverter toolCallConverter;
   @Mock private DocumentToContentConverter documentToContentConverter;
   @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
   @InjectMocks private ChatMessageConverterImpl chatMessageConverter;
+
+  @BeforeEach
+  void setUp() {
+    ClockProvider.setClock(Clock.fixed(CLOCK_TIME.toInstant(), CLOCK_TIME.getZone()));
+  }
+
+  @AfterEach
+  void tearDown() {
+    ClockProvider.resetClock();
+  }
 
   @Test
   void fromSystemMessage_withSingleTextContent_returnsSystemMessage() {
@@ -221,6 +240,7 @@ class ChatMessageConverterTest {
                   .isEqualTo("AI response");
             });
 
+    assertThat(result.metadata()).containsEntry("timestamp", CLOCK_TIME);
     assertThat(result.metadata()).containsKey("framework");
     assertThat(result.metadata().get("framework"))
         .asInstanceOf(InstanceOfAssertFactories.MAP)

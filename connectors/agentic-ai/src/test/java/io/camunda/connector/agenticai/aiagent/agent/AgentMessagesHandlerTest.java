@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMes
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -28,12 +29,17 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.util.ClockProvider;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.document.Document;
+import java.time.Clock;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,6 +54,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AgentMessagesHandlerTest {
 
+  private static final ZonedDateTime CLOCK_TIME =
+      ZonedDateTime.of(2025, 7, 9, 12, 44, 11, 0, ZoneId.systemDefault());
+
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
   private AgentMessagesHandler messagesHandler;
@@ -57,6 +66,12 @@ class AgentMessagesHandlerTest {
   void setUp() {
     messagesHandler = new AgentMessagesHandlerImpl(gatewayToolHandlers);
     runtimeMemory = spy(new DefaultRuntimeMemory());
+    ClockProvider.setClock(Clock.fixed(CLOCK_TIME.toInstant(), CLOCK_TIME.getZone()));
+  }
+
+  @AfterEach
+  void tearDown() {
+    ClockProvider.resetClock();
   }
 
   @Nested
@@ -183,7 +198,15 @@ class AgentMessagesHandlerTest {
         assertThat(runtimeMemory.allMessages())
             .noneMatch(msg -> msg instanceof ToolCallResultMessage)
             .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .isEqualTo(userMessage("Tell me a story"));
+            .satisfies(
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(1)
+                      .first()
+                      .isEqualTo(textContent("Tell me a story"));
+                  assertThat(userMessage.metadata())
+                      .containsExactly(entry("timestamp", CLOCK_TIME));
+                });
       }
 
       @Test
@@ -198,7 +221,15 @@ class AgentMessagesHandlerTest {
         assertThat(runtimeMemory.allMessages())
             .noneMatch(msg -> msg instanceof ToolCallResultMessage)
             .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .isEqualTo(userMessage("Tell me a story about Johnny"));
+            .satisfies(
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(1)
+                      .first()
+                      .isEqualTo(textContent("Tell me a story about Johnny"));
+                  assertThat(userMessage.metadata())
+                      .containsExactly(entry("timestamp", CLOCK_TIME));
+                });
       }
 
       @Test
@@ -298,8 +329,10 @@ class AgentMessagesHandlerTest {
             .noneMatch(msg -> msg instanceof UserMessage)
             .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
             .satisfies(
-                message ->
-                    assertThat(message.results()).containsExactlyElementsOf(TOOL_CALL_RESULTS));
+                message -> {
+                  assertThat(message.results()).containsExactlyElementsOf(TOOL_CALL_RESULTS);
+                  assertThat(message.metadata()).containsExactly(entry("timestamp", CLOCK_TIME));
+                });
       }
 
       @Test

@@ -26,10 +26,12 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.util.ClockProvider;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
@@ -101,7 +103,11 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
               .formatted(agentContext.state()));
     }
 
-    memory.addMessage(UserMessage.builder().content(content).build());
+    memory.addMessage(
+        UserMessage.builder()
+            .content(content)
+            .metadata(Map.of("timestamp", ClockProvider.zonedDateTimeNow()))
+            .build());
   }
 
   private void addToolCallResults(
@@ -115,7 +121,11 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     var transformedToolCallResults =
         gatewayToolHandlers.transformToolCallResults(agentContext, toolCallResults);
 
-    memory.addMessage(ToolCallResultMessage.builder().results(transformedToolCallResults).build());
+    memory.addMessage(
+        ToolCallResultMessage.builder()
+            .results(transformedToolCallResults)
+            .metadata(Map.of("timestamp", ClockProvider.zonedDateTimeNow()))
+            .build());
   }
 
   private String promptFromConfiguration(
