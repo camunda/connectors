@@ -49,11 +49,11 @@ public class ConversationStoreRegistryImpl implements ConversationStoreRegistry 
             .map(AgentRequest.AgentRequestData.MemoryConfiguration::storage)
             .orElseGet(InProcessMemoryStorageConfiguration::new);
 
-    final var conversationStore = conversationStores.get(storageConfig.type());
+    final var conversationStore = conversationStores.get(storageConfig.storeType());
     if (conversationStore == null) {
       throw new IllegalStateException(
           "No conversation store registered for storage configuration type: %s"
-              .formatted(storageConfig.type()));
+              .formatted(storageConfig.storeType()));
     }
 
     return conversationStore;

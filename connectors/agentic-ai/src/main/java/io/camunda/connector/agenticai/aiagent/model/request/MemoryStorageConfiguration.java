@@ -15,6 +15,7 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import java.util.Map;
 
@@ -25,7 +26,10 @@ import java.util.Map;
       name = InProcessConversationStore.TYPE),
   @JsonSubTypes.Type(
       value = MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration.class,
-      name = CamundaDocumentConversationStore.TYPE)
+      name = CamundaDocumentConversationStore.TYPE),
+  @JsonSubTypes.Type(
+      value = MemoryStorageConfiguration.CustomMemoryStorageConfiguration.class,
+      name = "custom")
 })
 @TemplateDiscriminatorProperty(
     label = "Memory storage type",
@@ -35,16 +39,17 @@ import java.util.Map;
     defaultValue = InProcessConversationStore.TYPE)
 public sealed interface MemoryStorageConfiguration
     permits MemoryStorageConfiguration.InProcessMemoryStorageConfiguration,
-        MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration {
+        MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration,
+        MemoryStorageConfiguration.CustomMemoryStorageConfiguration {
 
-  String type();
+  String storeType();
 
   @TemplateSubType(
       id = InProcessConversationStore.TYPE,
       label = "In Process (part of agent context)")
   record InProcessMemoryStorageConfiguration() implements MemoryStorageConfiguration {
     @Override
-    public String type() {
+    public String storeType() {
       return InProcessConversationStore.TYPE;
     }
   }
@@ -70,8 +75,27 @@ public sealed interface MemoryStorageConfiguration
           Map<String, Object> customProperties)
       implements MemoryStorageConfiguration {
     @Override
-    public String type() {
+    public String storeType() {
       return CamundaDocumentConversationStore.TYPE;
     }
   }
+
+  @TemplateSubType(id = "custom", label = "Custom Implementation")
+  record CustomMemoryStorageConfiguration(
+      @FEEL
+          @TemplateProperty(
+              label = "Implementation type",
+              type = TemplateProperty.PropertyType.String,
+              feel = Property.FeelMode.optional,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          @NotBlank
+          String storeType,
+      @FEEL
+          @TemplateProperty(
+              label = "Parameters",
+              description = "Parameters for the custom memory storage implementation.",
+              feel = Property.FeelMode.required,
+              optional = true)
+          Map<String, Object> parameters)
+      implements MemoryStorageConfiguration {}
 }
