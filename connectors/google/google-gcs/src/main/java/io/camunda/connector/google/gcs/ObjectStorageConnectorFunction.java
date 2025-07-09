@@ -41,7 +41,10 @@ import java.util.function.Function;
         @ElementTemplate.Metadata(
             keywords = {
               "download file from google cloud storage",
-              "upload file to google cloud storage"
+              "upload file to google cloud storage",
+              "download file from gcs",
+              "upload file to gcs",
+              "gcs"
             }),
     documentationRef =
         "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage",

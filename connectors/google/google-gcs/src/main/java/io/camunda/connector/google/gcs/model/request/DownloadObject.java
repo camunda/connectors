@@ -45,10 +45,11 @@ public record DownloadObject(
             id = "downloadOperationAsFile",
             group = "operation",
             tooltip =
-                "By default, only a reference to the document is returned. If this option is unchecked, the full content of the document is extracted and included in the response.",
+                "If checked, a Camunda document is created and its reference is returned\n"
+                    + "If not checked, no document is created and the content is passed as is",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
             defaultValue = "true",
-            binding = @TemplateProperty.PropertyBinding(name = "operation.asFile"))
-        boolean asFile)
+            binding = @TemplateProperty.PropertyBinding(name = "operation.asDocument"))
+        boolean asDocument)
     implements ObjectStorageOperation {}

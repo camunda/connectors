@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.google.gcp.v1",
   "description" : "Upload and download files from Google Cloud Storage.",
   "metadata" : {
-    "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage" ]
+    "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage",
   "version" : 1,
@@ -148,7 +148,7 @@
     "feel" : "static",
     "group" : "operation",
     "binding" : {
-      "name" : "operation.asFile",
+      "name" : "operation.asDocument",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -156,7 +156,7 @@
       "equals" : "downloadObject",
       "type" : "simple"
     },
-    "tooltip" : "By default, only a reference to the document is returned. If this option is unchecked, the full content of the document is extracted and included in the response.",
+    "tooltip" : "If checked, a Camunda document is created and its reference is returned\nIf not checked, no document is created and the content is passed as is",
     "type" : "Boolean"
   }, {
     "id" : "uploadOperationProject",
