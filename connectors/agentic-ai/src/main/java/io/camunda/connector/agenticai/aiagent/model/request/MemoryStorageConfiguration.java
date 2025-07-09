@@ -6,11 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration.CAMUNDA_DOCUMENT_TYPE;
-import static io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration.IN_PROCESS_TYPE;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -23,27 +22,34 @@ import java.util.Map;
 @JsonSubTypes({
   @JsonSubTypes.Type(
       value = MemoryStorageConfiguration.InProcessMemoryStorageConfiguration.class,
-      name = IN_PROCESS_TYPE),
+      name = InProcessConversationStore.TYPE),
   @JsonSubTypes.Type(
       value = MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration.class,
-      name = CAMUNDA_DOCUMENT_TYPE)
+      name = CamundaDocumentConversationStore.TYPE)
 })
 @TemplateDiscriminatorProperty(
     label = "Memory storage type",
     group = "memory",
     name = "type",
     description = "Specify how to store the conversation memory.",
-    defaultValue = IN_PROCESS_TYPE)
+    defaultValue = InProcessConversationStore.TYPE)
 public sealed interface MemoryStorageConfiguration
     permits MemoryStorageConfiguration.InProcessMemoryStorageConfiguration,
         MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration {
-  @TemplateSubType(id = IN_PROCESS_TYPE, label = "In Process (part of agent context)")
+
+  String type();
+
+  @TemplateSubType(
+      id = InProcessConversationStore.TYPE,
+      label = "In Process (part of agent context)")
   record InProcessMemoryStorageConfiguration() implements MemoryStorageConfiguration {
-    @TemplateProperty(ignore = true)
-    public static final String IN_PROCESS_TYPE = "in-process";
+    @Override
+    public String type() {
+      return InProcessConversationStore.TYPE;
+    }
   }
 
-  @TemplateSubType(id = CAMUNDA_DOCUMENT_TYPE, label = "Camunda Document Storage")
+  @TemplateSubType(id = CamundaDocumentConversationStore.TYPE, label = "Camunda Document Storage")
   record CamundaDocumentMemoryStorageConfiguration(
       @TemplateProperty(
               label = "Document TTL",
@@ -63,7 +69,9 @@ public sealed interface MemoryStorageConfiguration
               optional = true)
           Map<String, Object> customProperties)
       implements MemoryStorageConfiguration {
-    @TemplateProperty(ignore = true)
-    public static final String CAMUNDA_DOCUMENT_TYPE = "camunda-document";
+    @Override
+    public String type() {
+      return CamundaDocumentConversationStore.TYPE;
+    }
   }
 }

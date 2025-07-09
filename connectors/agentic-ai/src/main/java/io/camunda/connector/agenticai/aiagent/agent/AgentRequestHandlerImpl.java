@@ -11,7 +11,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -29,7 +29,7 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
   private static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
 
   private final AgentInitializer agentInitializer;
-  private final ConversationStoreFactory conversationStoreFactory;
+  private final ConversationStoreRegistry conversationStoreRegistry;
   private final AgentLimitsValidator limitsValidator;
   private final AgentMessagesHandler messagesHandler;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -38,14 +38,14 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
 
   public AgentRequestHandlerImpl(
       AgentInitializer agentInitializer,
-      ConversationStoreFactory conversationStoreFactory,
+      ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
       AgentResponseHandler responseHandler) {
     this.agentInitializer = agentInitializer;
-    this.conversationStoreFactory = conversationStoreFactory;
+    this.conversationStoreRegistry = conversationStoreRegistry;
     this.limitsValidator = limitsValidator;
     this.messagesHandler = messagesHandler;
     this.gatewayToolHandlers = gatewayToolHandlers;
@@ -73,7 +73,7 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
       final AgentContext agentContext,
       final List<ToolCallResult> toolCallResults) {
     final var conversationStore =
-        conversationStoreFactory.createConversationStore(executionContext, agentContext);
+        conversationStoreRegistry.getConversationStore(executionContext, agentContext);
     return conversationStore.executeInSession(
         executionContext,
         agentContext,

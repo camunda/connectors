@@ -26,6 +26,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -48,6 +50,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -67,32 +70,84 @@ class CamundaDocumentConversationStoreTest {
 
   private static final int PREVIOUS_DOCUMENTS_RETENTION_SIZE = 2;
 
-  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-
-  @Mock private AgentJobContext agentJobContext;
-  @Mock private AgentRequest agentRequest;
-  private AgentExecutionContext executionContext;
-
   @Mock private DocumentFactory documentFactory;
   @Mock private CamundaDocumentStore documentStore;
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   private CamundaDocumentConversationStore store;
+
+  @Mock private AgentJobContext agentJobContext;
+
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  private AgentRequest agentRequest;
+
+  private AgentExecutionContext executionContext;
   private RuntimeMemory memory;
 
   @Captor private ArgumentCaptor<DocumentCreationRequest> documentCreationRequestCaptor;
 
   @BeforeEach
   void setUp() {
+    when(agentRequest.data().memory())
+        .thenReturn(
+            new MemoryConfiguration(
+                new CamundaDocumentMemoryStorageConfiguration(
+                    Duration.ofHours(1), Map.of("customKey", "customValue")),
+                20));
+
     executionContext = new AgentExecutionContext(agentJobContext, agentRequest);
-    store =
-        new CamundaDocumentConversationStore(
-            new CamundaDocumentMemoryStorageConfiguration(
-                Duration.ofHours(1), Map.of("customKey", "customValue")),
-            documentFactory,
-            documentStore,
-            objectMapper);
+    store = new CamundaDocumentConversationStore(documentFactory, documentStore, objectMapper);
 
     memory = new DefaultRuntimeMemory();
+  }
+
+  @Test
+  void storeTypeIsAlignedWithConfiguration() {
+    final var configuration =
+        new CamundaDocumentMemoryStorageConfiguration(Duration.ofHours(1), Map.of());
+    assertThat(store.type()).isEqualTo(configuration.storeType()).isEqualTo("camunda-document");
+  }
+
+  @Test
+  void throwsExceptionForMissingConfiguration() {
+    final var agentContext = AgentContext.empty();
+    when(agentRequest.data().memory()).thenReturn(new MemoryConfiguration(null, 20));
+
+    assertThatThrownBy(
+            () ->
+                store.executeInSession(
+                    executionContext,
+                    agentContext,
+                    session -> {
+                      session.loadIntoRuntimeMemory(agentContext, memory);
+                      return agentResponse(agentContext);
+                    }))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Expected memory storage configuration to be of type CamundaDocumentMemoryStorageConfiguration, but got: null");
+  }
+
+  @Test
+  void throwsExceptionForUnsupportedConfiguration() {
+    final var agentContext = AgentContext.empty();
+    when(agentRequest.data().memory())
+        .thenReturn(
+            new MemoryConfiguration(
+                new MemoryStorageConfiguration.InProcessMemoryStorageConfiguration(), 20));
+
+    assertThatThrownBy(
+            () ->
+                store.executeInSession(
+                    executionContext,
+                    agentContext,
+                    session -> {
+                      session.loadIntoRuntimeMemory(agentContext, memory);
+                      return agentResponse(agentContext);
+                    }))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageStartingWith(
+            "Expected memory storage configuration to be of type CamundaDocumentMemoryStorageConfiguration, but got:")
+        .hasMessageContaining("InProcessMemoryStorageConfiguration");
   }
 
   @Test
