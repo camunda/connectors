@@ -7,6 +7,7 @@
 package io.camunda.connector.google.gcs.model.core;
 
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -26,6 +27,8 @@ import io.camunda.document.store.DocumentCreationRequest;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.function.Function;
@@ -82,10 +85,10 @@ public class ObjectStorageExecutor {
       return new UploadResponse(blob.getBucket(), blob.getName());
     } catch (IOException ioException) {
       log.error(
-          "GCS: Failed to upload file {} to bucket {}: {}",
+          "GCS: Failed to upload file {} to bucket {}",
           fileName,
           uploadObject.bucket(),
-          ioException.getMessage());
+          ioException);
       throw new ConnectorException("Failed to upload file", ioException);
     }
   }
@@ -94,32 +97,37 @@ public class ObjectStorageExecutor {
     StorageOptions storageOptions =
         StorageOptions.newBuilder().setProjectId(downloadObject.project()).build();
     try (Storage storage = storageOptions.getService()) {
-      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
       BlobId blobId = BlobId.of(downloadObject.bucket(), downloadObject.fileName());
-      storage.downloadTo(blobId, outputStream);
-      Blob blob = storage.get(blobId);
-
-      Optional<String> contentTypeOpt = Optional.ofNullable(blob).map(Blob::getContentType);
-
-      if (downloadObject.asFile()) {
-        DocumentCreationRequest.BuilderFinalStep requestBuilder =
-            DocumentCreationRequest.from(outputStream.toByteArray())
-                .fileName(downloadObject.fileName());
-
-        contentTypeOpt.ifPresent(requestBuilder::contentType);
-
-        return this.createDocument.andThen(DocumentContent::new).apply(requestBuilder.build());
+      if (downloadObject.asDocument()) {
+        return downloadAsDocument(storage, blobId, downloadObject.fileName());
       } else {
-        return new DownloadResponse.StringContent(outputStream.toString(StandardCharsets.UTF_8));
+        return downloadAsString(storage, blobId);
       }
-
     } catch (Exception e) {
       log.error(
-          "GCS: Failed to download file {} to bucket {}: {}",
+          "GCS: Failed to download file {} from bucket {}",
           downloadObject.fileName(),
           downloadObject.bucket(),
-          e.getMessage());
+          e);
       throw new ConnectorException(e);
     }
+  }
+
+  private DownloadResponse downloadAsDocument(Storage storage, BlobId blobId, String filename) {
+    try (ReadChannel reader = storage.reader(blobId)) {
+      Blob blob = storage.get(blobId);
+      Optional<String> contentTypeOpt = Optional.ofNullable(blob).map(Blob::getContentType);
+      InputStream inputStream = Channels.newInputStream(reader);
+      DocumentCreationRequest.BuilderFinalStep requestBuilder =
+          DocumentCreationRequest.from(inputStream).fileName(filename);
+      contentTypeOpt.ifPresent(requestBuilder::contentType);
+      return this.createDocument.andThen(DocumentContent::new).apply(requestBuilder.build());
+    }
+  }
+
+  private DownloadResponse downloadAsString(Storage storage, BlobId blobId) {
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    storage.downloadTo(blobId, outputStream);
+    return new DownloadResponse.StringContent(outputStream.toString(StandardCharsets.UTF_8));
   }
 }
