@@ -135,7 +135,7 @@
     },
     {
       "label": "Cluster ID",
-      "description": "SaaS cluster region and ID.<br>Lean more about <a href=\"https://docs.camunda.io/docs/guides/setup-client-connection-credentials\" target=\"_blank\">creating API client credentials</a>",
+      "description": "SaaS cluster region and ID.<br>Lean more about <a href=\"https://docs.camunda.io/docs/components/console/manage-clusters/setup-client-connection-credentials\" target=\"_blank\">creating API client credentials</a>",
       "group": "cluster",
       "type": "String",
       "feel": "optional",
