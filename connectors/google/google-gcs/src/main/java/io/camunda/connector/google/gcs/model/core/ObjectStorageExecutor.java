@@ -63,40 +63,46 @@ public class ObjectStorageExecutor {
 
   private UploadResponse upload(UploadObject uploadObject) {
     String fileName =
-        uploadObject.fileName() != null && !uploadObject.fileName().isEmpty()
-            ? uploadObject.fileName()
-            : uploadObject.document().metadata().getFileName();
+        Optional.ofNullable(uploadObject.fileName())
+            .filter(name -> !name.isEmpty())
+            .orElse(uploadObject.document().metadata().getFileName());
+
     BlobId blobId = BlobId.of(uploadObject.bucket(), fileName);
     BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
     try {
-      ServiceAccountCredentials sac =
-          ServiceAccountCredentials.fromStream(
-              new ByteArrayInputStream(
-                  authentication.getJsonKey().getBytes(StandardCharsets.UTF_8)));
       Storage storage =
           StorageOptions.newBuilder()
               .setProjectId(uploadObject.project())
-              .setCredentials(sac)
+              .setCredentials(getSAC())
               .build()
               .getService();
-
       Blob blob = storage.createFrom(blobInfo, uploadObject.document().asInputStream());
+      log.info(
+          "GCS: Successfully uploaded file '{}' to bucket '{}' in project '{}'",
+          fileName,
+          uploadObject.bucket(),
+          uploadObject.project());
       return new UploadResponse(blob.getBucket(), blob.getName());
     } catch (IOException ioException) {
       log.error(
-          "GCS: Failed to upload file {} to bucket {}",
+          "GCS: Failed to upload file {} to bucket {} in project {}",
           fileName,
           uploadObject.bucket(),
+          uploadObject.project(),
           ioException);
       throw new ConnectorException("Failed to upload file", ioException);
     }
   }
 
   private DownloadResponse download(DownloadObject downloadObject) {
-    StorageOptions storageOptions =
-        StorageOptions.newBuilder().setProjectId(downloadObject.project()).build();
-    try (Storage storage = storageOptions.getService()) {
+    try {
+      StorageOptions storageOptions =
+          StorageOptions.newBuilder()
+              .setCredentials(getSAC())
+              .setProjectId(downloadObject.project())
+              .build();
+      Storage storage = storageOptions.getService();
       BlobId blobId = BlobId.of(downloadObject.bucket(), downloadObject.fileName());
       if (downloadObject.asDocument()) {
         return downloadAsDocument(storage, blobId, downloadObject.fileName());
@@ -105,9 +111,10 @@ public class ObjectStorageExecutor {
       }
     } catch (Exception e) {
       log.error(
-          "GCS: Failed to download file {} from bucket {}",
+          "GCS: Failed to download file {} from bucket {} in project {}",
           downloadObject.fileName(),
           downloadObject.bucket(),
+          downloadObject.project(),
           e);
       throw new ConnectorException(e);
     }
@@ -129,5 +136,10 @@ public class ObjectStorageExecutor {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     storage.downloadTo(blobId, outputStream);
     return new DownloadResponse.StringContent(outputStream.toString(StandardCharsets.UTF_8));
+  }
+
+  private ServiceAccountCredentials getSAC() throws IOException {
+    return ServiceAccountCredentials.fromStream(
+        new ByteArrayInputStream(authentication.getJsonKey().getBytes(StandardCharsets.UTF_8)));
   }
 }
