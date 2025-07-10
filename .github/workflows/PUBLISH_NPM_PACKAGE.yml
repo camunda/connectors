@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch main branch
+        run: git fetch origin main
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -54,8 +57,16 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Commit and push version bump
-        run: |
-          git add element-template-generator/npm/package.json element-template-generator/npm/package-lock.json || true
-          git commit -m "ci: bump npm package version to ${{ inputs.npm-package-version }}"
-          git push origin main
+      - name: Create pull request to main branch
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/bump-npm-package-version
+          commit-message: "ci: bump npm package version to ${{ inputs.npm-package-version }}"
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          base: main
+          title: "chore(npm-package): bump npm package version"
+          labels: "no milestone"
+          body: |
+            This PR bumps the npm package version after successful release to npm. Feel free to verifiy it is available: https://www.npmjs.com/package/@camunda/connectors-element-templates?activeTab=versions
+            
