@@ -26,8 +26,8 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.util.ClockProvider;
 import io.camunda.connector.api.error.ConnectorException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -106,7 +106,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     memory.addMessage(
         UserMessage.builder()
             .content(content)
-            .metadata(Map.of("timestamp", ClockProvider.zonedDateTimeNow()))
+            .metadata(Map.of("timestamp", ZonedDateTime.now()))
             .build());
   }
 
@@ -124,7 +124,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     memory.addMessage(
         ToolCallResultMessage.builder()
             .results(transformedToolCallResults)
-            .metadata(Map.of("timestamp", ClockProvider.zonedDateTimeNow()))
+            .metadata(Map.of("timestamp", ZonedDateTime.now()))
             .build());
   }
 
