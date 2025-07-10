@@ -1,0 +1,3142 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "GraphQL connector",
+    "id": "io.camunda.connectors.GraphQL.v1",
+    "description": "Execute GraphQL query",
+    "version": 1,
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/",
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' version='1.1' id='GraphQL_Logo' x='0px' y='0px' viewBox='0 0 400 400' enable-background='new 0 0 400 400' xml:space='preserve'%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Crect x='122' y='-0.4' transform='matrix(-0.866 -0.5 0.5 -0.866 163.3196 363.3136)' fill='%23E535AB' width='16.6' height='320.3'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='39.8' y='272.2' fill='%23E535AB' width='320.3' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='37.9' y='312.2' transform='matrix(-0.866 -0.5 0.5 -0.866 83.0693 663.3409)' fill='%23E535AB' width='185' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='177.1' y='71.1' transform='matrix(-0.866 -0.5 0.5 -0.866 463.3409 283.0693)' fill='%23E535AB' width='185' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='122.1' y='-13' transform='matrix(-0.5 -0.866 0.866 -0.5 126.7903 232.1221)' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='109.6' y='151.6' transform='matrix(-0.5 -0.866 0.866 -0.5 266.0828 473.3766)' fill='%23E535AB' width='320.3' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='52.5' y='107.5' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='330.9' y='107.5' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='262.4' y='240.1' transform='matrix(-0.5 -0.866 0.866 -0.5 126.7953 714.2875)' fill='%23E535AB' width='14.5' height='160.9'/%3E%3C/g%3E%3C/g%3E%3Cpath fill='%23E535AB' d='M369.5,297.9c-9.6,16.7-31,22.4-47.7,12.8c-16.7-9.6-22.4-31-12.8-47.7c9.6-16.7,31-22.4,47.7-12.8 C373.5,259.9,379.2,281.2,369.5,297.9'/%3E%3Cpath fill='%23E535AB' d='M90.9,137c-9.6,16.7-31,22.4-47.7,12.8c-16.7-9.6-22.4-31-12.8-47.7c9.6-16.7,31-22.4,47.7-12.8 C94.8,99,100.5,120.3,90.9,137'/%3E%3Cpath fill='%23E535AB' d='M30.5,297.9c-9.6-16.7-3.9-38,12.8-47.7c16.7-9.6,38-3.9,47.7,12.8c9.6,16.7,3.9,38-12.8,47.7 C61.4,320.3,40.1,314.6,30.5,297.9'/%3E%3Cpath fill='%23E535AB' d='M309.1,137c-9.6-16.7-3.9-38,12.8-47.7c16.7-9.6,38-3.9,47.7,12.8c9.6,16.7,3.9,38-12.8,47.7 C340.1,159.4,318.7,153.7,309.1,137'/%3E%3Cpath fill='%23E535AB' d='M200,395.8c-19.3,0-34.9-15.6-34.9-34.9c0-19.3,15.6-34.9,34.9-34.9c19.3,0,34.9,15.6,34.9,34.9 C234.9,380.1,219.3,395.8,200,395.8'/%3E%3Cpath fill='%23E535AB' d='M200,74c-19.3,0-34.9-15.6-34.9-34.9c0-19.3,15.6-34.9,34.9-34.9c19.3,0,34.9,15.6,34.9,34.9 C234.9,58.4,219.3,74,200,74'/%3E%3C/g%3E%3C/svg%3E"
+    },
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "endpoint",
+        "label": "HTTP endpoint"
+      },
+      {
+        "id": "graphql",
+        "label": "GraphQL query"
+      },
+      {
+        "id": "timeout",
+        "label": "Connect timeout"
+      },
+      {
+        "id": "output",
+        "label": "Response mapping"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:connector-graphql:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Type",
+        "id": "authenticationType",
+        "group": "authentication",
+        "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+        "value": "noAuth",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "None",
+            "value": "noAuth"
+          },
+          {
+            "name": "Basic",
+            "value": "basic"
+          },
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "OAuth 2.0",
+            "value": "oauth-client-credentials-flow"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        }
+      },
+      {
+        "label": "URL",
+        "group": "endpoint",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.url"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(http://|https://|secrets).*$)",
+            "message": "Must be a http(s) URL."
+          }
+        }
+      },
+      {
+        "id": "method",
+        "label": "Method",
+        "group": "endpoint",
+        "type": "Dropdown",
+        "value": "post",
+        "choices": [
+          {
+            "name": "POST",
+            "value": "post"
+          },
+          {
+            "name": "GET",
+            "value": "get"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.method"
+        }
+      },
+      {
+        "id": "headers",
+        "label": "Headers",
+        "group": "endpoint",
+        "type": "Text",
+        "feel": "required",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.headers"
+        }
+      },
+      {
+        "label": "Query/Mutation",
+        "description": "See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+        "group": "graphql",
+        "type": "Text",
+        "language": "graphql",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.query"
+        },
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Variables",
+        "description": "Learn how to <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#variables\" target=\"_blank\">define variables</a>",
+        "group": "graphql",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.variables"
+        },
+        "optional": true
+      },
+      {
+        "label": "Bearer token",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.authentication.token"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "bearer"
+        }
+      },
+      {
+        "label": "OAuth token endpoint",
+        "description": "The OAuth token endpoint",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthTokenEndpoint"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client ID",
+        "description": "Your application's client ID from the OAuth client",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client secret",
+        "description": "Your application's client secret from the OAuth client",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientSecret"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Scopes",
+        "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.scopes"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Audience",
+        "description": "The unique identifier of the target API you want to access",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.audience"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client authentication",
+        "id": "authentication.clientAuthentication",
+        "group": "authentication",
+        "description": "Send client id and client secret as Basic Auth request in the header, or as client credentials in the request body",
+        "value": "basicAuthHeader",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send client credentials in body",
+            "value": "credentialsBody"
+          },
+          {
+            "name": "Send as Basic Auth header",
+            "value": "basicAuthHeader"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientAuthentication"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Username",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.username"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "basic"
+        }
+      },
+      {
+        "label": "Password",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.password"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "basic"
+        }
+      },
+      {
+        "label": "Connection timeout",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "group": "timeout",
+        "type": "String",
+        "value": "20",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.connectionTimeoutInSeconds"
+        },
+        "feel": "optional",
+        "optional": true,
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=|([0-9]+|secrets\\..+)$)",
+            "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+          }
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "engines": {
+      "camunda": "^8.2"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "GraphQL Outbound Connector",
+    "id": "io.camunda.connectors.GraphQL.v1",
+    "description": "Execute GraphQL query",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
+    "version": 6,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "endpoint",
+        "label": "HTTP Endpoint"
+      },
+      {
+        "id": "graphql",
+        "label": "GraphQL query"
+      },
+      {
+        "id": "timeout",
+        "label": "Connection timeout"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:connector-graphql:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Type",
+        "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+        "value": "noAuth",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "API key",
+            "value": "apiKey"
+          },
+          {
+            "name": "Basic",
+            "value": "basic"
+          },
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "None",
+            "value": "noAuth"
+          },
+          {
+            "name": "OAuth 2.0",
+            "value": "oauth-client-credentials-flow"
+          }
+        ]
+      },
+      {
+        "id": "authentication.apiKeyLocation",
+        "label": "Api key location",
+        "description": "Choose type: Send API key in header or as query parameter.",
+        "optional": false,
+        "value": "headers",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.apiKeyLocation",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKey",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Headers",
+            "value": "headers"
+          },
+          {
+            "name": "Query parameters",
+            "value": "query"
+          }
+        ]
+      },
+      {
+        "id": "authentication.name",
+        "label": "API key name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.name",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKey",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.value",
+        "label": "API key value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.value",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKey",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.username",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "basic",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.password",
+        "label": "Password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "basic",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.token",
+        "label": "Bearer token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.token",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "bearer",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthTokenEndpoint",
+        "label": "OAuth 2.0 token endpoint",
+        "description": "The OAuth token endpoint",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
+            "message": "Must be a http(s) URL"
+          }
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthTokenEndpoint",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientId",
+        "label": "Client ID",
+        "description": "Your application's client ID from the OAuth client",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientSecret",
+        "label": "Client secret",
+        "description": "Your application's client secret from the OAuth client",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.audience",
+        "label": "Audience",
+        "description": "The unique identifier of the target API you want to access",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.audience",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientAuthentication",
+        "label": "Client authentication",
+        "description": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientAuthentication",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send client credentials in body",
+            "value": "credentialsBody"
+          },
+          {
+            "name": "Send as Basic Auth header",
+            "value": "basicAuthHeader"
+          }
+        ]
+      },
+      {
+        "id": "authentication.scopes",
+        "label": "Scopes",
+        "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.scopes",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.method",
+        "label": "Method",
+        "optional": false,
+        "value": "get",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.method",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "GET",
+            "value": "get"
+          },
+          {
+            "name": "POST",
+            "value": "post"
+          }
+        ]
+      },
+      {
+        "id": "graphql.url",
+        "label": "URL",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
+            "message": "Must be a http(s) URL"
+          }
+        },
+        "feel": "optional",
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.url",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.headers",
+        "label": "Headers",
+        "description": "Map of HTTP headers to add to the request",
+        "optional": true,
+        "feel": "required",
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.headers",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.query",
+        "label": "Query/Mutation",
+        "description": "See <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "graphql",
+        "binding": {
+          "name": "graphql.query",
+          "type": "zeebe:input"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "graphql.variables",
+        "label": "Variables",
+        "optional": true,
+        "feel": "required",
+        "group": "graphql",
+        "binding": {
+          "name": "graphql.variables",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.connectionTimeoutInSeconds",
+        "label": "Connection timeout in seconds",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "optional": true,
+        "value": "20",
+        "feel": "optional",
+        "group": "timeout",
+        "binding": {
+          "name": "graphql.connectionTimeoutInSeconds",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHhtbG5zOnhsaW5rPSdodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rJyB2ZXJzaW9uPScxLjEnIGlkPSdHcmFwaFFMX0xvZ28nCiAgICAgeD0nMHB4JyB5PScwcHgnIHZpZXdCb3g9JzAgMCA0MDAgNDAwJyBlbmFibGUtYmFja2dyb3VuZD0nbmV3IDAgMCA0MDAgNDAwJyB4bWw6c3BhY2U9J3ByZXNlcnZlJz48Zz48Zz48Zz48cmVjdCB4PScxMjInIHk9Jy0wLjQnIHRyYW5zZm9ybT0nbWF0cml4KC0wLjg2NiAtMC41IDAuNSAtMC44NjYgMTYzLjMxOTYgMzYzLjMxMzYpJyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTYuNicgaGVpZ2h0PSczMjAuMycvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMzkuOCcgeT0nMjcyLjInIGZpbGw9JyNFNTM1QUInIHdpZHRoPSczMjAuMycgaGVpZ2h0PScxNi42Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PSczNy45JyB5PSczMTIuMicgdHJhbnNmb3JtPSdtYXRyaXgoLTAuODY2IC0wLjUgMC41IC0wLjg2NiA4My4wNjkzIDY2My4zNDA5KScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzE4NScgaGVpZ2h0PScxNi42Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PScxNzcuMScgeT0nNzEuMScgdHJhbnNmb3JtPSdtYXRyaXgoLTAuODY2IC0wLjUgMC41IC0wLjg2NiA0NjMuMzQwOSAyODMuMDY5MyknIGZpbGw9JyNFNTM1QUInIHdpZHRoPScxODUnIGhlaWdodD0nMTYuNicvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMTIyLjEnIHk9Jy0xMycgdHJhbnNmb3JtPSdtYXRyaXgoLTAuNSAtMC44NjYgMC44NjYgLTAuNSAxMjYuNzkwMyAyMzIuMTIyMSknIGZpbGw9JyNFNTM1QUInIHdpZHRoPScxNi42JyBoZWlnaHQ9JzE4NScvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMTA5LjYnIHk9JzE1MS42JyB0cmFuc2Zvcm09J21hdHJpeCgtMC41IC0wLjg2NiAwLjg2NiAtMC41IDI2Ni4wODI4IDQ3My4zNzY2KScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzMyMC4zJyBoZWlnaHQ9JzE2LjYnLz48L2c+PC9nPjxnPjxnPjxyZWN0IHg9JzUyLjUnIHk9JzEwNy41JyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTYuNicgaGVpZ2h0PScxODUnLz48L2c+PC9nPjxnPjxnPjxyZWN0IHg9JzMzMC45JyB5PScxMDcuNScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzE2LjYnIGhlaWdodD0nMTg1Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PScyNjIuNCcgeT0nMjQwLjEnIHRyYW5zZm9ybT0nbWF0cml4KC0wLjUgLTAuODY2IDAuODY2IC0wLjUgMTI2Ljc5NTMgNzE0LjI4NzUpJyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTQuNScgaGVpZ2h0PScxNjAuOScvPjwvZz48L2c+PHBhdGgKICAgICAgICBmaWxsPScjRTUzNUFCJwogICAgICAgIGQ9J00zNjkuNSwyOTcuOWMtOS42LDE2LjctMzEsMjIuNC00Ny43LDEyLjhjLTE2LjctOS42LTIyLjQtMzEtMTIuOC00Ny43YzkuNi0xNi43LDMxLTIyLjQsNDcuNy0xMi44IEMzNzMuNSwyNTkuOSwzNzkuMiwyODEuMiwzNjkuNSwyOTcuOScvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNOTAuOSwxMzdjLTkuNiwxNi43LTMxLDIyLjQtNDcuNywxMi44Yy0xNi43LTkuNi0yMi40LTMxLTEyLjgtNDcuN2M5LjYtMTYuNywzMS0yMi40LDQ3LjctMTIuOCBDOTQuOCw5OSwxMDAuNSwxMjAuMyw5MC45LDEzNycvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNMzAuNSwyOTcuOWMtOS42LTE2LjctMy45LTM4LDEyLjgtNDcuN2MxNi43LTkuNiwzOC0zLjksNDcuNywxMi44YzkuNiwxNi43LDMuOSwzOC0xMi44LDQ3LjcgQzYxLjQsMzIwLjMsNDAuMSwzMTQuNiwzMC41LDI5Ny45Jy8+PHBhdGgKICAgICAgICBmaWxsPScjRTUzNUFCJwogICAgICAgIGQ9J00zMDkuMSwxMzdjLTkuNi0xNi43LTMuOS0zOCwxMi44LTQ3LjdjMTYuNy05LjYsMzgtMy45LDQ3LjcsMTIuOGM5LjYsMTYuNywzLjksMzgtMTIuOCw0Ny43IEMzNDAuMSwxNTkuNCwzMTguNywxNTMuNywzMDkuMSwxMzcnLz48cGF0aAogICAgICAgIGZpbGw9JyNFNTM1QUInCiAgICAgICAgZD0nTTIwMCwzOTUuOGMtMTkuMywwLTM0LjktMTUuNi0zNC45LTM0LjljMC0xOS4zLDE1LjYtMzQuOSwzNC45LTM0LjljMTkuMywwLDM0LjksMTUuNiwzNC45LDM0LjkgQzIzNC45LDM4MC4xLDIxOS4zLDM5NS44LDIwMCwzOTUuOCcvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNMjAwLDc0Yy0xOS4zLDAtMzQuOS0xNS42LTM0LjktMzQuOWMwLTE5LjMsMTUuNi0zNC45LDM0LjktMzQuOWMxOS4zLDAsMzQuOSwxNS42LDM0LjksMzQuOSBDMjM0LjksNTguNCwyMTkuMyw3NCwyMDAsNzQnLz48L2c+PC9zdmc+"
+    },
+    "engines": {
+      "camunda": "^8.5"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "GraphQL Outbound Connector",
+    "id": "io.camunda.connectors.GraphQL.v1",
+    "description": "Execute GraphQL query",
+    "version": 3,
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/",
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' version='1.1' id='GraphQL_Logo' x='0px' y='0px' viewBox='0 0 400 400' enable-background='new 0 0 400 400' xml:space='preserve'%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Crect x='122' y='-0.4' transform='matrix(-0.866 -0.5 0.5 -0.866 163.3196 363.3136)' fill='%23E535AB' width='16.6' height='320.3'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='39.8' y='272.2' fill='%23E535AB' width='320.3' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='37.9' y='312.2' transform='matrix(-0.866 -0.5 0.5 -0.866 83.0693 663.3409)' fill='%23E535AB' width='185' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='177.1' y='71.1' transform='matrix(-0.866 -0.5 0.5 -0.866 463.3409 283.0693)' fill='%23E535AB' width='185' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='122.1' y='-13' transform='matrix(-0.5 -0.866 0.866 -0.5 126.7903 232.1221)' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='109.6' y='151.6' transform='matrix(-0.5 -0.866 0.866 -0.5 266.0828 473.3766)' fill='%23E535AB' width='320.3' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='52.5' y='107.5' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='330.9' y='107.5' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='262.4' y='240.1' transform='matrix(-0.5 -0.866 0.866 -0.5 126.7953 714.2875)' fill='%23E535AB' width='14.5' height='160.9'/%3E%3C/g%3E%3C/g%3E%3Cpath fill='%23E535AB' d='M369.5,297.9c-9.6,16.7-31,22.4-47.7,12.8c-16.7-9.6-22.4-31-12.8-47.7c9.6-16.7,31-22.4,47.7-12.8 C373.5,259.9,379.2,281.2,369.5,297.9'/%3E%3Cpath fill='%23E535AB' d='M90.9,137c-9.6,16.7-31,22.4-47.7,12.8c-16.7-9.6-22.4-31-12.8-47.7c9.6-16.7,31-22.4,47.7-12.8 C94.8,99,100.5,120.3,90.9,137'/%3E%3Cpath fill='%23E535AB' d='M30.5,297.9c-9.6-16.7-3.9-38,12.8-47.7c16.7-9.6,38-3.9,47.7,12.8c9.6,16.7,3.9,38-12.8,47.7 C61.4,320.3,40.1,314.6,30.5,297.9'/%3E%3Cpath fill='%23E535AB' d='M309.1,137c-9.6-16.7-3.9-38,12.8-47.7c16.7-9.6,38-3.9,47.7,12.8c9.6,16.7,3.9,38-12.8,47.7 C340.1,159.4,318.7,153.7,309.1,137'/%3E%3Cpath fill='%23E535AB' d='M200,395.8c-19.3,0-34.9-15.6-34.9-34.9c0-19.3,15.6-34.9,34.9-34.9c19.3,0,34.9,15.6,34.9,34.9 C234.9,380.1,219.3,395.8,200,395.8'/%3E%3Cpath fill='%23E535AB' d='M200,74c-19.3,0-34.9-15.6-34.9-34.9c0-19.3,15.6-34.9,34.9-34.9c19.3,0,34.9,15.6,34.9,34.9 C234.9,58.4,219.3,74,200,74'/%3E%3C/g%3E%3C/svg%3E"
+    },
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "endpoint",
+        "label": "HTTP endpoint"
+      },
+      {
+        "id": "graphql",
+        "label": "GraphQL query"
+      },
+      {
+        "id": "timeout",
+        "label": "Connect timeout"
+      },
+      {
+        "id": "output",
+        "label": "Response mapping"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:connector-graphql:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Type",
+        "id": "authenticationType",
+        "group": "authentication",
+        "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+        "value": "noAuth",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "None",
+            "value": "noAuth"
+          },
+          {
+            "name": "Basic",
+            "value": "basic"
+          },
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "OAuth 2.0",
+            "value": "oauth-client-credentials-flow"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        }
+      },
+      {
+        "label": "URL",
+        "group": "endpoint",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.url"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
+            "message": "Must be a http(s) URL."
+          }
+        }
+      },
+      {
+        "id": "method",
+        "label": "Method",
+        "group": "endpoint",
+        "type": "Dropdown",
+        "value": "post",
+        "choices": [
+          {
+            "name": "POST",
+            "value": "post"
+          },
+          {
+            "name": "GET",
+            "value": "get"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.method"
+        }
+      },
+      {
+        "id": "headers",
+        "label": "Headers",
+        "group": "endpoint",
+        "type": "Text",
+        "feel": "required",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.headers"
+        }
+      },
+      {
+        "label": "Query/Mutation",
+        "description": "See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+        "group": "graphql",
+        "type": "Text",
+        "language": "graphql",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.query"
+        },
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Variables",
+        "description": "Learn how to <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#variables\" target=\"_blank\">define variables</a>",
+        "group": "graphql",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.variables"
+        },
+        "optional": true
+      },
+      {
+        "label": "Bearer token",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.authentication.token"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "bearer"
+        }
+      },
+      {
+        "label": "OAuth token endpoint",
+        "description": "The OAuth token endpoint",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthTokenEndpoint"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client ID",
+        "description": "Your application's client ID from the OAuth client",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client secret",
+        "description": "Your application's client secret from the OAuth client",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientSecret"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Scopes",
+        "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.scopes"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Audience",
+        "description": "The unique identifier of the target API you want to access",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.audience"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client authentication",
+        "id": "authentication.clientAuthentication",
+        "group": "authentication",
+        "description": "Send client id and client secret as Basic Auth request in the header, or as client credentials in the request body",
+        "value": "basicAuthHeader",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send client credentials in body",
+            "value": "credentialsBody"
+          },
+          {
+            "name": "Send as Basic Auth header",
+            "value": "basicAuthHeader"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientAuthentication"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Username",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.username"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "basic"
+        }
+      },
+      {
+        "label": "Password",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.password"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "basic"
+        }
+      },
+      {
+        "label": "Connection timeout",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "group": "timeout",
+        "type": "String",
+        "value": "20",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.connectionTimeoutInSeconds"
+        },
+        "feel": "optional",
+        "optional": true,
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=|([0-9]+|\\{\\{secrets\\..+\\}\\})$)",
+            "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+          }
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "engines": {
+      "camunda": "^8.2"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "GraphQL Outbound Connector",
+    "id": "io.camunda.connectors.GraphQL.v1",
+    "description": "Execute GraphQL query",
+    "version": 4,
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/",
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' version='1.1' id='GraphQL_Logo' x='0px' y='0px' viewBox='0 0 400 400' enable-background='new 0 0 400 400' xml:space='preserve'%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Crect x='122' y='-0.4' transform='matrix(-0.866 -0.5 0.5 -0.866 163.3196 363.3136)' fill='%23E535AB' width='16.6' height='320.3'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='39.8' y='272.2' fill='%23E535AB' width='320.3' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='37.9' y='312.2' transform='matrix(-0.866 -0.5 0.5 -0.866 83.0693 663.3409)' fill='%23E535AB' width='185' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='177.1' y='71.1' transform='matrix(-0.866 -0.5 0.5 -0.866 463.3409 283.0693)' fill='%23E535AB' width='185' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='122.1' y='-13' transform='matrix(-0.5 -0.866 0.866 -0.5 126.7903 232.1221)' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='109.6' y='151.6' transform='matrix(-0.5 -0.866 0.866 -0.5 266.0828 473.3766)' fill='%23E535AB' width='320.3' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='52.5' y='107.5' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='330.9' y='107.5' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='262.4' y='240.1' transform='matrix(-0.5 -0.866 0.866 -0.5 126.7953 714.2875)' fill='%23E535AB' width='14.5' height='160.9'/%3E%3C/g%3E%3C/g%3E%3Cpath fill='%23E535AB' d='M369.5,297.9c-9.6,16.7-31,22.4-47.7,12.8c-16.7-9.6-22.4-31-12.8-47.7c9.6-16.7,31-22.4,47.7-12.8 C373.5,259.9,379.2,281.2,369.5,297.9'/%3E%3Cpath fill='%23E535AB' d='M90.9,137c-9.6,16.7-31,22.4-47.7,12.8c-16.7-9.6-22.4-31-12.8-47.7c9.6-16.7,31-22.4,47.7-12.8 C94.8,99,100.5,120.3,90.9,137'/%3E%3Cpath fill='%23E535AB' d='M30.5,297.9c-9.6-16.7-3.9-38,12.8-47.7c16.7-9.6,38-3.9,47.7,12.8c9.6,16.7,3.9,38-12.8,47.7 C61.4,320.3,40.1,314.6,30.5,297.9'/%3E%3Cpath fill='%23E535AB' d='M309.1,137c-9.6-16.7-3.9-38,12.8-47.7c16.7-9.6,38-3.9,47.7,12.8c9.6,16.7,3.9,38-12.8,47.7 C340.1,159.4,318.7,153.7,309.1,137'/%3E%3Cpath fill='%23E535AB' d='M200,395.8c-19.3,0-34.9-15.6-34.9-34.9c0-19.3,15.6-34.9,34.9-34.9c19.3,0,34.9,15.6,34.9,34.9 C234.9,380.1,219.3,395.8,200,395.8'/%3E%3Cpath fill='%23E535AB' d='M200,74c-19.3,0-34.9-15.6-34.9-34.9c0-19.3,15.6-34.9,34.9-34.9c19.3,0,34.9,15.6,34.9,34.9 C234.9,58.4,219.3,74,200,74'/%3E%3C/g%3E%3C/svg%3E"
+    },
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "endpoint",
+        "label": "HTTP endpoint"
+      },
+      {
+        "id": "graphql",
+        "label": "GraphQL query"
+      },
+      {
+        "id": "timeout",
+        "label": "Connect timeout"
+      },
+      {
+        "id": "output",
+        "label": "Response mapping"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:connector-graphql:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Type",
+        "id": "authenticationType",
+        "group": "authentication",
+        "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+        "value": "noAuth",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "None",
+            "value": "noAuth"
+          },
+          {
+            "name": "Basic",
+            "value": "basic"
+          },
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "OAuth 2.0",
+            "value": "oauth-client-credentials-flow"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        }
+      },
+      {
+        "label": "URL",
+        "group": "endpoint",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.url"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
+            "message": "Must be a http(s) URL."
+          }
+        }
+      },
+      {
+        "id": "method",
+        "label": "Method",
+        "group": "endpoint",
+        "type": "Dropdown",
+        "value": "post",
+        "choices": [
+          {
+            "name": "POST",
+            "value": "post"
+          },
+          {
+            "name": "GET",
+            "value": "get"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.method"
+        }
+      },
+      {
+        "id": "headers",
+        "label": "Headers",
+        "group": "endpoint",
+        "type": "Text",
+        "feel": "required",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.headers"
+        }
+      },
+      {
+        "label": "Query/Mutation",
+        "description": "See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+        "group": "graphql",
+        "type": "Text",
+        "language": "graphql",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.query"
+        },
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Variables",
+        "description": "Learn how to <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#variables\" target=\"_blank\">define variables</a>",
+        "group": "graphql",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.variables"
+        },
+        "optional": true
+      },
+      {
+        "label": "Bearer token",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.token"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "bearer"
+        }
+      },
+      {
+        "label": "OAuth token endpoint",
+        "description": "The OAuth token endpoint",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthTokenEndpoint"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client ID",
+        "description": "Your application's client ID from the OAuth client",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client secret",
+        "description": "Your application's client secret from the OAuth client",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientSecret"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Scopes",
+        "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.scopes"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Audience",
+        "description": "The unique identifier of the target API you want to access",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.audience"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client authentication",
+        "id": "authentication.clientAuthentication",
+        "group": "authentication",
+        "description": "Send client id and client secret as Basic Auth request in the header, or as client credentials in the request body",
+        "value": "basicAuthHeader",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send client credentials in body",
+            "value": "credentialsBody"
+          },
+          {
+            "name": "Send as Basic Auth header",
+            "value": "basicAuthHeader"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientAuthentication"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Username",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.username"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "basic"
+        }
+      },
+      {
+        "label": "Password",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.password"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "basic"
+        }
+      },
+      {
+        "label": "Connection timeout",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "group": "timeout",
+        "type": "String",
+        "value": "20",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.connectionTimeoutInSeconds"
+        },
+        "feel": "optional",
+        "optional": true,
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=|([0-9]+|\\{\\{secrets\\..+\\}\\})$)",
+            "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+          }
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "engines": {
+      "camunda": "^8.4"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "GraphQL connector",
+    "id": "io.camunda.connectors.GraphQL.v1",
+    "description": "Execute GraphQL query",
+    "version": 2,
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/",
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' version='1.1' id='GraphQL_Logo' x='0px' y='0px' viewBox='0 0 400 400' enable-background='new 0 0 400 400' xml:space='preserve'%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Crect x='122' y='-0.4' transform='matrix(-0.866 -0.5 0.5 -0.866 163.3196 363.3136)' fill='%23E535AB' width='16.6' height='320.3'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='39.8' y='272.2' fill='%23E535AB' width='320.3' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='37.9' y='312.2' transform='matrix(-0.866 -0.5 0.5 -0.866 83.0693 663.3409)' fill='%23E535AB' width='185' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='177.1' y='71.1' transform='matrix(-0.866 -0.5 0.5 -0.866 463.3409 283.0693)' fill='%23E535AB' width='185' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='122.1' y='-13' transform='matrix(-0.5 -0.866 0.866 -0.5 126.7903 232.1221)' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='109.6' y='151.6' transform='matrix(-0.5 -0.866 0.866 -0.5 266.0828 473.3766)' fill='%23E535AB' width='320.3' height='16.6'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='52.5' y='107.5' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='330.9' y='107.5' fill='%23E535AB' width='16.6' height='185'/%3E%3C/g%3E%3C/g%3E%3Cg%3E%3Cg%3E%3Crect x='262.4' y='240.1' transform='matrix(-0.5 -0.866 0.866 -0.5 126.7953 714.2875)' fill='%23E535AB' width='14.5' height='160.9'/%3E%3C/g%3E%3C/g%3E%3Cpath fill='%23E535AB' d='M369.5,297.9c-9.6,16.7-31,22.4-47.7,12.8c-16.7-9.6-22.4-31-12.8-47.7c9.6-16.7,31-22.4,47.7-12.8 C373.5,259.9,379.2,281.2,369.5,297.9'/%3E%3Cpath fill='%23E535AB' d='M90.9,137c-9.6,16.7-31,22.4-47.7,12.8c-16.7-9.6-22.4-31-12.8-47.7c9.6-16.7,31-22.4,47.7-12.8 C94.8,99,100.5,120.3,90.9,137'/%3E%3Cpath fill='%23E535AB' d='M30.5,297.9c-9.6-16.7-3.9-38,12.8-47.7c16.7-9.6,38-3.9,47.7,12.8c9.6,16.7,3.9,38-12.8,47.7 C61.4,320.3,40.1,314.6,30.5,297.9'/%3E%3Cpath fill='%23E535AB' d='M309.1,137c-9.6-16.7-3.9-38,12.8-47.7c16.7-9.6,38-3.9,47.7,12.8c9.6,16.7,3.9,38-12.8,47.7 C340.1,159.4,318.7,153.7,309.1,137'/%3E%3Cpath fill='%23E535AB' d='M200,395.8c-19.3,0-34.9-15.6-34.9-34.9c0-19.3,15.6-34.9,34.9-34.9c19.3,0,34.9,15.6,34.9,34.9 C234.9,380.1,219.3,395.8,200,395.8'/%3E%3Cpath fill='%23E535AB' d='M200,74c-19.3,0-34.9-15.6-34.9-34.9c0-19.3,15.6-34.9,34.9-34.9c19.3,0,34.9,15.6,34.9,34.9 C234.9,58.4,219.3,74,200,74'/%3E%3C/g%3E%3C/svg%3E"
+    },
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "endpoint",
+        "label": "HTTP endpoint"
+      },
+      {
+        "id": "graphql",
+        "label": "GraphQL query"
+      },
+      {
+        "id": "timeout",
+        "label": "Connect timeout"
+      },
+      {
+        "id": "output",
+        "label": "Response mapping"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:connector-graphql:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Type",
+        "id": "authenticationType",
+        "group": "authentication",
+        "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+        "value": "noAuth",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "None",
+            "value": "noAuth"
+          },
+          {
+            "name": "Basic",
+            "value": "basic"
+          },
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "OAuth 2.0",
+            "value": "oauth-client-credentials-flow"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        }
+      },
+      {
+        "label": "URL",
+        "group": "endpoint",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.url"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(https?://|secrets\\..+|\\{\\{secrets\\..+\\}\\}).*$)",
+            "message": "Must be a http(s) URL."
+          }
+        }
+      },
+      {
+        "id": "method",
+        "label": "Method",
+        "group": "endpoint",
+        "type": "Dropdown",
+        "value": "post",
+        "choices": [
+          {
+            "name": "POST",
+            "value": "post"
+          },
+          {
+            "name": "GET",
+            "value": "get"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.method"
+        }
+      },
+      {
+        "id": "headers",
+        "label": "Headers",
+        "group": "endpoint",
+        "type": "Text",
+        "feel": "required",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.headers"
+        }
+      },
+      {
+        "label": "Query/Mutation",
+        "description": "See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+        "group": "graphql",
+        "type": "Text",
+        "language": "graphql",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.query"
+        },
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Variables",
+        "description": "Learn how to <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#variables\" target=\"_blank\">define variables</a>",
+        "group": "graphql",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.variables"
+        },
+        "optional": true
+      },
+      {
+        "label": "Bearer token",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.authentication.token"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "bearer"
+        }
+      },
+      {
+        "label": "OAuth token endpoint",
+        "description": "The OAuth token endpoint",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthTokenEndpoint"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client ID",
+        "description": "Your application's client ID from the OAuth client",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client secret",
+        "description": "Your application's client secret from the OAuth client",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientSecret"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Scopes",
+        "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.scopes"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Audience",
+        "description": "The unique identifier of the target API you want to access",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.audience"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Client authentication",
+        "id": "authentication.clientAuthentication",
+        "group": "authentication",
+        "description": "Send client id and client secret as Basic Auth request in the header, or as client credentials in the request body",
+        "value": "basicAuthHeader",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send client credentials in body",
+            "value": "credentialsBody"
+          },
+          {
+            "name": "Send as Basic Auth header",
+            "value": "basicAuthHeader"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.clientAuthentication"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "oauth-client-credentials-flow"
+        }
+      },
+      {
+        "label": "Username",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.username"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "basic"
+        }
+      },
+      {
+        "label": "Password",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.password"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "basic"
+        }
+      },
+      {
+        "label": "Connection timeout",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "group": "timeout",
+        "type": "String",
+        "value": "20",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "graphql.connectionTimeoutInSeconds"
+        },
+        "feel": "optional",
+        "optional": true,
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=|([0-9]+|secrets\\..+|\\{\\{secrets\\..+\\}\\})$)",
+            "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+          }
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "engines": {
+      "camunda": "^8.2"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "GraphQL Outbound Connector",
+    "id": "io.camunda.connectors.GraphQL.v1",
+    "description": "Execute GraphQL query",
+    "metadata": {
+      "keywords": []
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
+    "version": 7,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.3"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "endpoint",
+        "label": "HTTP Endpoint"
+      },
+      {
+        "id": "graphql",
+        "label": "GraphQL query"
+      },
+      {
+        "id": "timeout",
+        "label": "Connection timeout"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:connector-graphql:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Type",
+        "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+        "value": "noAuth",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "API key",
+            "value": "apiKey"
+          },
+          {
+            "name": "Basic",
+            "value": "basic"
+          },
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "None",
+            "value": "noAuth"
+          },
+          {
+            "name": "OAuth 2.0",
+            "value": "oauth-client-credentials-flow"
+          }
+        ]
+      },
+      {
+        "id": "authentication.apiKeyLocation",
+        "label": "Api key location",
+        "description": "Choose type: Send API key in header or as query parameter.",
+        "optional": false,
+        "value": "headers",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.apiKeyLocation",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKey",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Headers",
+            "value": "headers"
+          },
+          {
+            "name": "Query parameters",
+            "value": "query"
+          }
+        ]
+      },
+      {
+        "id": "authentication.name",
+        "label": "API key name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.name",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKey",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.value",
+        "label": "API key value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.value",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKey",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.username",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "basic",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.password",
+        "label": "Password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "basic",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.token",
+        "label": "Bearer token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.token",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "bearer",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthTokenEndpoint",
+        "label": "OAuth 2.0 token endpoint",
+        "description": "The OAuth token endpoint",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
+            "message": "Must be a http(s) URL"
+          }
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthTokenEndpoint",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientId",
+        "label": "Client ID",
+        "description": "Your application's client ID from the OAuth client",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientSecret",
+        "label": "Client secret",
+        "description": "Your application's client secret from the OAuth client",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.audience",
+        "label": "Audience",
+        "description": "The unique identifier of the target API you want to access",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.audience",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientAuthentication",
+        "label": "Client authentication",
+        "description": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientAuthentication",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send client credentials in body",
+            "value": "credentialsBody"
+          },
+          {
+            "name": "Send as Basic Auth header",
+            "value": "basicAuthHeader"
+          }
+        ]
+      },
+      {
+        "id": "authentication.scopes",
+        "label": "Scopes",
+        "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.scopes",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.method",
+        "label": "Method",
+        "optional": false,
+        "value": "get",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.method",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "GET",
+            "value": "get"
+          },
+          {
+            "name": "POST",
+            "value": "post"
+          }
+        ]
+      },
+      {
+        "id": "graphql.url",
+        "label": "URL",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
+            "message": "Must be a http(s) URL"
+          }
+        },
+        "feel": "optional",
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.url",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.headers",
+        "label": "Headers",
+        "description": "Map of HTTP headers to add to the request",
+        "optional": true,
+        "feel": "required",
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.headers",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.storeResponse",
+        "label": "Store response",
+        "description": "Store the response as a document in the document store",
+        "optional": false,
+        "value": false,
+        "feel": "static",
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.storeResponse",
+          "type": "zeebe:input"
+        },
+        "type": "Boolean"
+      },
+      {
+        "id": "graphql.query",
+        "label": "Query/Mutation",
+        "description": "See <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "graphql",
+        "binding": {
+          "name": "graphql.query",
+          "type": "zeebe:input"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "graphql.variables",
+        "label": "Variables",
+        "optional": true,
+        "feel": "required",
+        "group": "graphql",
+        "binding": {
+          "name": "graphql.variables",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.connectionTimeoutInSeconds",
+        "label": "Connection timeout in seconds",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "optional": true,
+        "value": 20,
+        "feel": "static",
+        "group": "timeout",
+        "binding": {
+          "name": "graphql.connectionTimeoutInSeconds",
+          "type": "zeebe:input"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHhtbG5zOnhsaW5rPSdodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rJyB2ZXJzaW9uPScxLjEnIGlkPSdHcmFwaFFMX0xvZ28nCiAgICAgeD0nMHB4JyB5PScwcHgnIHZpZXdCb3g9JzAgMCA0MDAgNDAwJyBlbmFibGUtYmFja2dyb3VuZD0nbmV3IDAgMCA0MDAgNDAwJyB4bWw6c3BhY2U9J3ByZXNlcnZlJz48Zz48Zz48Zz48cmVjdCB4PScxMjInIHk9Jy0wLjQnIHRyYW5zZm9ybT0nbWF0cml4KC0wLjg2NiAtMC41IDAuNSAtMC44NjYgMTYzLjMxOTYgMzYzLjMxMzYpJyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTYuNicgaGVpZ2h0PSczMjAuMycvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMzkuOCcgeT0nMjcyLjInIGZpbGw9JyNFNTM1QUInIHdpZHRoPSczMjAuMycgaGVpZ2h0PScxNi42Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PSczNy45JyB5PSczMTIuMicgdHJhbnNmb3JtPSdtYXRyaXgoLTAuODY2IC0wLjUgMC41IC0wLjg2NiA4My4wNjkzIDY2My4zNDA5KScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzE4NScgaGVpZ2h0PScxNi42Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PScxNzcuMScgeT0nNzEuMScgdHJhbnNmb3JtPSdtYXRyaXgoLTAuODY2IC0wLjUgMC41IC0wLjg2NiA0NjMuMzQwOSAyODMuMDY5MyknIGZpbGw9JyNFNTM1QUInIHdpZHRoPScxODUnIGhlaWdodD0nMTYuNicvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMTIyLjEnIHk9Jy0xMycgdHJhbnNmb3JtPSdtYXRyaXgoLTAuNSAtMC44NjYgMC44NjYgLTAuNSAxMjYuNzkwMyAyMzIuMTIyMSknIGZpbGw9JyNFNTM1QUInIHdpZHRoPScxNi42JyBoZWlnaHQ9JzE4NScvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMTA5LjYnIHk9JzE1MS42JyB0cmFuc2Zvcm09J21hdHJpeCgtMC41IC0wLjg2NiAwLjg2NiAtMC41IDI2Ni4wODI4IDQ3My4zNzY2KScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzMyMC4zJyBoZWlnaHQ9JzE2LjYnLz48L2c+PC9nPjxnPjxnPjxyZWN0IHg9JzUyLjUnIHk9JzEwNy41JyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTYuNicgaGVpZ2h0PScxODUnLz48L2c+PC9nPjxnPjxnPjxyZWN0IHg9JzMzMC45JyB5PScxMDcuNScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzE2LjYnIGhlaWdodD0nMTg1Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PScyNjIuNCcgeT0nMjQwLjEnIHRyYW5zZm9ybT0nbWF0cml4KC0wLjUgLTAuODY2IDAuODY2IC0wLjUgMTI2Ljc5NTMgNzE0LjI4NzUpJyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTQuNScgaGVpZ2h0PScxNjAuOScvPjwvZz48L2c+PHBhdGgKICAgICAgICBmaWxsPScjRTUzNUFCJwogICAgICAgIGQ9J00zNjkuNSwyOTcuOWMtOS42LDE2LjctMzEsMjIuNC00Ny43LDEyLjhjLTE2LjctOS42LTIyLjQtMzEtMTIuOC00Ny43YzkuNi0xNi43LDMxLTIyLjQsNDcuNy0xMi44IEMzNzMuNSwyNTkuOSwzNzkuMiwyODEuMiwzNjkuNSwyOTcuOScvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNOTAuOSwxMzdjLTkuNiwxNi43LTMxLDIyLjQtNDcuNywxMi44Yy0xNi43LTkuNi0yMi40LTMxLTEyLjgtNDcuN2M5LjYtMTYuNywzMS0yMi40LDQ3LjctMTIuOCBDOTQuOCw5OSwxMDAuNSwxMjAuMyw5MC45LDEzNycvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNMzAuNSwyOTcuOWMtOS42LTE2LjctMy45LTM4LDEyLjgtNDcuN2MxNi43LTkuNiwzOC0zLjksNDcuNywxMi44YzkuNiwxNi43LDMuOSwzOC0xMi44LDQ3LjcgQzYxLjQsMzIwLjMsNDAuMSwzMTQuNiwzMC41LDI5Ny45Jy8+PHBhdGgKICAgICAgICBmaWxsPScjRTUzNUFCJwogICAgICAgIGQ9J00zMDkuMSwxMzdjLTkuNi0xNi43LTMuOS0zOCwxMi44LTQ3LjdjMTYuNy05LjYsMzgtMy45LDQ3LjcsMTIuOGM5LjYsMTYuNywzLjksMzgtMTIuOCw0Ny43IEMzNDAuMSwxNTkuNCwzMTguNywxNTMuNywzMDkuMSwxMzcnLz48cGF0aAogICAgICAgIGZpbGw9JyNFNTM1QUInCiAgICAgICAgZD0nTTIwMCwzOTUuOGMtMTkuMywwLTM0LjktMTUuNi0zNC45LTM0LjljMC0xOS4zLDE1LjYtMzQuOSwzNC45LTM0LjljMTkuMywwLDM0LjksMTUuNiwzNC45LDM0LjkgQzIzNC45LDM4MC4xLDIxOS4zLDM5NS44LDIwMCwzOTUuOCcvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNMjAwLDc0Yy0xOS4zLDAtMzQuOS0xNS42LTM0LjktMzQuOWMwLTE5LjMsMTUuNi0zNC45LDM0LjktMzQuOWMxOS4zLDAsMzQuOSwxNS42LDM0LjksMzQuOSBDMjM0LjksNTguNCwyMTkuMyw3NCwyMDAsNzQnLz48L2c+PC9zdmc+"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "GraphQL Outbound Connector",
+    "id": "io.camunda.connectors.GraphQL.v1",
+    "description": "Execute GraphQL query",
+    "metadata": {
+      "keywords": []
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
+    "version": 8,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.3"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "endpoint",
+        "label": "HTTP Endpoint"
+      },
+      {
+        "id": "graphql",
+        "label": "GraphQL query"
+      },
+      {
+        "id": "timeout",
+        "label": "Connection timeout"
+      },
+      {
+        "id": "connector",
+        "label": "Connector"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:connector-graphql:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Type",
+        "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+        "value": "noAuth",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "API key",
+            "value": "apiKey"
+          },
+          {
+            "name": "Basic",
+            "value": "basic"
+          },
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "None",
+            "value": "noAuth"
+          },
+          {
+            "name": "OAuth 2.0",
+            "value": "oauth-client-credentials-flow"
+          }
+        ]
+      },
+      {
+        "id": "authentication.apiKeyLocation",
+        "label": "Api key location",
+        "description": "Choose type: Send API key in header or as query parameter.",
+        "optional": false,
+        "value": "headers",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.apiKeyLocation",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKey",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Headers",
+            "value": "headers"
+          },
+          {
+            "name": "Query parameters",
+            "value": "query"
+          }
+        ]
+      },
+      {
+        "id": "authentication.name",
+        "label": "API key name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.name",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKey",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.value",
+        "label": "API key value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.value",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKey",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.username",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "basic",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.password",
+        "label": "Password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "basic",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.token",
+        "label": "Bearer token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.token",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "bearer",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthTokenEndpoint",
+        "label": "OAuth 2.0 token endpoint",
+        "description": "The OAuth token endpoint",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
+            "message": "Must be a http(s) URL"
+          }
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthTokenEndpoint",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientId",
+        "label": "Client ID",
+        "description": "Your application's client ID from the OAuth client",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientSecret",
+        "label": "Client secret",
+        "description": "Your application's client secret from the OAuth client",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.audience",
+        "label": "Audience",
+        "description": "The unique identifier of the target API you want to access",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.audience",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientAuthentication",
+        "label": "Client authentication",
+        "description": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientAuthentication",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send client credentials in body",
+            "value": "credentialsBody"
+          },
+          {
+            "name": "Send as Basic Auth header",
+            "value": "basicAuthHeader"
+          }
+        ]
+      },
+      {
+        "id": "authentication.scopes",
+        "label": "Scopes",
+        "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.scopes",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "oauth-client-credentials-flow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.method",
+        "label": "Method",
+        "optional": false,
+        "value": "get",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.method",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "GET",
+            "value": "get"
+          },
+          {
+            "name": "POST",
+            "value": "post"
+          }
+        ]
+      },
+      {
+        "id": "graphql.url",
+        "label": "URL",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
+            "message": "Must be a http(s) URL"
+          }
+        },
+        "feel": "optional",
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.url",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.headers",
+        "label": "Headers",
+        "description": "Map of HTTP headers to add to the request",
+        "optional": true,
+        "feel": "required",
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.headers",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.storeResponse",
+        "label": "Store response",
+        "description": "Store the response as a document in the document store",
+        "optional": false,
+        "value": false,
+        "feel": "static",
+        "group": "endpoint",
+        "binding": {
+          "name": "graphql.storeResponse",
+          "type": "zeebe:input"
+        },
+        "type": "Boolean"
+      },
+      {
+        "id": "graphql.query",
+        "label": "Query/Mutation",
+        "description": "See <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "graphql",
+        "binding": {
+          "name": "graphql.query",
+          "type": "zeebe:input"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "graphql.variables",
+        "label": "Variables",
+        "optional": true,
+        "feel": "required",
+        "group": "graphql",
+        "binding": {
+          "name": "graphql.variables",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "graphql.connectionTimeoutInSeconds",
+        "label": "Connection timeout in seconds",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "optional": true,
+        "value": 20,
+        "feel": "static",
+        "group": "timeout",
+        "binding": {
+          "name": "graphql.connectionTimeoutInSeconds",
+          "type": "zeebe:input"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "version",
+        "label": "Version",
+        "description": "Version of the element template",
+        "value": "8",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateVersion",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "id",
+        "label": "ID",
+        "description": "ID of the element template",
+        "value": "io.camunda.connectors.GraphQL.v1",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateId",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHhtbG5zOnhsaW5rPSdodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rJyB2ZXJzaW9uPScxLjEnIGlkPSdHcmFwaFFMX0xvZ28nCiAgICAgeD0nMHB4JyB5PScwcHgnIHZpZXdCb3g9JzAgMCA0MDAgNDAwJyBlbmFibGUtYmFja2dyb3VuZD0nbmV3IDAgMCA0MDAgNDAwJyB4bWw6c3BhY2U9J3ByZXNlcnZlJz48Zz48Zz48Zz48cmVjdCB4PScxMjInIHk9Jy0wLjQnIHRyYW5zZm9ybT0nbWF0cml4KC0wLjg2NiAtMC41IDAuNSAtMC44NjYgMTYzLjMxOTYgMzYzLjMxMzYpJyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTYuNicgaGVpZ2h0PSczMjAuMycvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMzkuOCcgeT0nMjcyLjInIGZpbGw9JyNFNTM1QUInIHdpZHRoPSczMjAuMycgaGVpZ2h0PScxNi42Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PSczNy45JyB5PSczMTIuMicgdHJhbnNmb3JtPSdtYXRyaXgoLTAuODY2IC0wLjUgMC41IC0wLjg2NiA4My4wNjkzIDY2My4zNDA5KScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzE4NScgaGVpZ2h0PScxNi42Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PScxNzcuMScgeT0nNzEuMScgdHJhbnNmb3JtPSdtYXRyaXgoLTAuODY2IC0wLjUgMC41IC0wLjg2NiA0NjMuMzQwOSAyODMuMDY5MyknIGZpbGw9JyNFNTM1QUInIHdpZHRoPScxODUnIGhlaWdodD0nMTYuNicvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMTIyLjEnIHk9Jy0xMycgdHJhbnNmb3JtPSdtYXRyaXgoLTAuNSAtMC44NjYgMC44NjYgLTAuNSAxMjYuNzkwMyAyMzIuMTIyMSknIGZpbGw9JyNFNTM1QUInIHdpZHRoPScxNi42JyBoZWlnaHQ9JzE4NScvPjwvZz48L2c+PGc+PGc+PHJlY3QgeD0nMTA5LjYnIHk9JzE1MS42JyB0cmFuc2Zvcm09J21hdHJpeCgtMC41IC0wLjg2NiAwLjg2NiAtMC41IDI2Ni4wODI4IDQ3My4zNzY2KScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzMyMC4zJyBoZWlnaHQ9JzE2LjYnLz48L2c+PC9nPjxnPjxnPjxyZWN0IHg9JzUyLjUnIHk9JzEwNy41JyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTYuNicgaGVpZ2h0PScxODUnLz48L2c+PC9nPjxnPjxnPjxyZWN0IHg9JzMzMC45JyB5PScxMDcuNScgZmlsbD0nI0U1MzVBQicgd2lkdGg9JzE2LjYnIGhlaWdodD0nMTg1Jy8+PC9nPjwvZz48Zz48Zz48cmVjdCB4PScyNjIuNCcgeT0nMjQwLjEnIHRyYW5zZm9ybT0nbWF0cml4KC0wLjUgLTAuODY2IDAuODY2IC0wLjUgMTI2Ljc5NTMgNzE0LjI4NzUpJyBmaWxsPScjRTUzNUFCJyB3aWR0aD0nMTQuNScgaGVpZ2h0PScxNjAuOScvPjwvZz48L2c+PHBhdGgKICAgICAgICBmaWxsPScjRTUzNUFCJwogICAgICAgIGQ9J00zNjkuNSwyOTcuOWMtOS42LDE2LjctMzEsMjIuNC00Ny43LDEyLjhjLTE2LjctOS42LTIyLjQtMzEtMTIuOC00Ny43YzkuNi0xNi43LDMxLTIyLjQsNDcuNy0xMi44IEMzNzMuNSwyNTkuOSwzNzkuMiwyODEuMiwzNjkuNSwyOTcuOScvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNOTAuOSwxMzdjLTkuNiwxNi43LTMxLDIyLjQtNDcuNywxMi44Yy0xNi43LTkuNi0yMi40LTMxLTEyLjgtNDcuN2M5LjYtMTYuNywzMS0yMi40LDQ3LjctMTIuOCBDOTQuOCw5OSwxMDAuNSwxMjAuMyw5MC45LDEzNycvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNMzAuNSwyOTcuOWMtOS42LTE2LjctMy45LTM4LDEyLjgtNDcuN2MxNi43LTkuNiwzOC0zLjksNDcuNywxMi44YzkuNiwxNi43LDMuOSwzOC0xMi44LDQ3LjcgQzYxLjQsMzIwLjMsNDAuMSwzMTQuNiwzMC41LDI5Ny45Jy8+PHBhdGgKICAgICAgICBmaWxsPScjRTUzNUFCJwogICAgICAgIGQ9J00zMDkuMSwxMzdjLTkuNi0xNi43LTMuOS0zOCwxMi44LTQ3LjdjMTYuNy05LjYsMzgtMy45LDQ3LjcsMTIuOGM5LjYsMTYuNywzLjksMzgtMTIuOCw0Ny43IEMzNDAuMSwxNTkuNCwzMTguNywxNTMuNywzMDkuMSwxMzcnLz48cGF0aAogICAgICAgIGZpbGw9JyNFNTM1QUInCiAgICAgICAgZD0nTTIwMCwzOTUuOGMtMTkuMywwLTM0LjktMTUuNi0zNC45LTM0LjljMC0xOS4zLDE1LjYtMzQuOSwzNC45LTM0LjljMTkuMywwLDM0LjksMTUuNiwzNC45LDM0LjkgQzIzNC45LDM4MC4xLDIxOS4zLDM5NS44LDIwMCwzOTUuOCcvPjxwYXRoCiAgICAgICAgZmlsbD0nI0U1MzVBQicKICAgICAgICBkPSdNMjAwLDc0Yy0xOS4zLDAtMzQuOS0xNS42LTM0LjktMzQuOWMwLTE5LjMsMTUuNi0zNC45LDM0LjktMzQuOWMxOS4zLDAsMzQuOSwxNS42LDM0LjksMzQuOSBDMjM0LjksNTguNCwyMTkuMyw3NCwyMDAsNzQnLz48L2c+PC9zdmc+"
+    }
+  }
+]

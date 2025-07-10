@@ -1,0 +1,1398 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Box Outbound Connector",
+    "id": "io.camunda.connectors.box",
+    "description": "Interact with the Box Document API",
+    "metadata": {
+      "keywords": []
+    },
+    "documentationRef": "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",
+    "version": 2,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.7"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "operation",
+        "label": "Operation"
+      },
+      {
+        "id": "connector",
+        "label": "Connector"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:box:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Authentication",
+        "description": "Specify authentication strategy. Learn more at the <a href=\"https://developer.box.com/guides/authentication/\" target=\"_blank\">documentation page</a>",
+        "value": "developerToken",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Client Credentials Enterprise",
+            "value": "clientCredentialsEnterprise"
+          },
+          {
+            "name": "Client Credentials User",
+            "value": "clientCredentialsUser"
+          },
+          {
+            "name": "Developer token",
+            "value": "developerToken"
+          },
+          {
+            "name": "JWT JSON Config",
+            "value": "jwtJsonConfig"
+          }
+        ]
+      },
+      {
+        "id": "authentication.clientIdEnterprise",
+        "label": "Client id",
+        "description": "The client id",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsEnterprise",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientSecretEnterprise",
+        "label": "Client secret",
+        "description": "The client secret",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsEnterprise",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.enterpriseId",
+        "label": "Enterprise ID",
+        "description": "The enterprise ID to authenticate against",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.enterpriseId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsEnterprise",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientIdUser",
+        "label": "Client id",
+        "description": "The client id",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsUser",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientSecretUser",
+        "label": "Client secret",
+        "description": "The client secret",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsUser",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.userId",
+        "label": "User ID",
+        "description": "The user ID to of the account to authenticate against",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.userId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsUser",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.accessToken",
+        "label": "Access key",
+        "description": "The access key or developer token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.accessToken",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "developerToken",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.jsonConfig",
+        "label": "JSON config",
+        "description": "The JSON config as string",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.jsonConfig",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "jwtJsonConfig",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.type",
+        "label": "Operation",
+        "description": "The operation to execute.",
+        "value": "createFolder",
+        "group": "operation",
+        "binding": {
+          "name": "operation.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Create Folder",
+            "value": "createFolder"
+          },
+          {
+            "name": "Delete Folder",
+            "value": "deleteFolder"
+          },
+          {
+            "name": "Upload File",
+            "value": "uploadFile"
+          },
+          {
+            "name": "Download File",
+            "value": "downloadFile"
+          },
+          {
+            "name": "Move File",
+            "value": "moveFile"
+          },
+          {
+            "name": "Delete File",
+            "value": "deleteFile"
+          },
+          {
+            "name": "Search",
+            "value": "search"
+          }
+        ]
+      },
+      {
+        "id": "operation.createFolderName",
+        "label": "Folder name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.name",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createFolder",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.createFolderParentPath",
+        "label": "Parent path",
+        "optional": false,
+        "value": "/",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.folderPath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createFolder",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.deleteFolderPath",
+        "label": "Folder path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.folderPath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteFolder",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.recursive",
+        "label": "Recursive",
+        "description": "Deletes all items contained by the folder",
+        "optional": false,
+        "value": true,
+        "feel": "static",
+        "group": "operation",
+        "binding": {
+          "name": "operation.recursive",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteFolder",
+          "type": "simple"
+        },
+        "type": "Boolean"
+      },
+      {
+        "id": "operation.uploadFileName",
+        "label": "File name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.name",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "uploadFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.uploadFileFolderPath",
+        "label": "Folder path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.folderPath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "uploadFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.uploadFileDocument",
+        "label": "Document reference",
+        "description": "The document reference that will be uploaded",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "operation",
+        "binding": {
+          "name": "operation.document",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "uploadFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.downloadFilePath",
+        "label": "File path",
+        "description": "Path to the file item to download",
+        "optional": false,
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.filePath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "downloadFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.moveFilePath",
+        "label": "File path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.filePath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "moveFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.moveFileFolderPath",
+        "label": "Target folder path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.folderPath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "moveFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.deleteFilePath",
+        "label": "File path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.filePath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.searchQuery",
+        "label": "Search query",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.query",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.searchSortColumn",
+        "label": "Search sort column",
+        "description": "Column for sorting search results",
+        "optional": false,
+        "value": "modified_at",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.sortColumn",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.searchSortDirection",
+        "label": "Search sort direction",
+        "description": "Direction for sorting search results",
+        "optional": false,
+        "value": "DESC",
+        "group": "operation",
+        "binding": {
+          "name": "operation.sortDirection",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ASC",
+            "value": "ASC"
+          },
+          {
+            "name": "DESC",
+            "value": "DESC"
+          }
+        ]
+      },
+      {
+        "id": "operation.searchOffset",
+        "label": "Search offset",
+        "description": "Offset for search results",
+        "optional": false,
+        "value": 0,
+        "feel": "static",
+        "group": "operation",
+        "binding": {
+          "name": "operation.offset",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "operation.searchLimit",
+        "label": "Search limit",
+        "description": "Limit",
+        "optional": false,
+        "value": 30,
+        "feel": "static",
+        "group": "operation",
+        "binding": {
+          "name": "operation.limit",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "version",
+        "label": "Version",
+        "description": "Version of the element template",
+        "value": "2",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateVersion",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "id",
+        "label": "ID",
+        "description": "ID of the element template",
+        "value": "io.camunda.connectors.box",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateId",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE1LjY5MjkgMTEuMjAwMkMxNS44ODggMTEuNDczNCAxNS44NDkgMTEuODI0NiAxNS42MTQ4IDEyLjAxOTdDMTUuMzQxNyAxMi4yMTQ4IDE0Ljk1MTQgMTIuMTc1OCAxNC43NTYzIDExLjk0MTdMMTMuMzkwNCAxMC4xODU2TDEyLjA2MzYgMTEuOTAyNkMxMS44Njg1IDEyLjE3NTggMTEuNDc4MiAxMi4xNzU4IDExLjIwNTEgMTEuOTgwN0MxMC45MzE5IDExLjc4NTYgMTAuODkyOSAxMS40MzQzIDExLjA4OCAxMS4xNjEyTDEyLjY0OSA5LjEzMTkxTDExLjA4OCA3LjEwMjY0QzEwLjg5MjkgNi44Mjk0NyAxMC45NzA5IDYuNDM5MjMgMTEuMjA1MSA2LjI0NDFDMTEuNDc4MiA2LjA0ODk4IDExLjg2ODUgNi4xMjcwMyAxMi4wNjM2IDYuMzYxMThMMTMuMzkwNCA4LjExNzI4TDE0Ljc1NjMgNi40MzkyM0MxNC45NTE0IDYuMTY2MDYgMTUuMzAyNiA2LjEyNzAzIDE1LjYxNDggNi4zMjIxNUMxNS44ODggNi41MTcyOCAxNS44ODggNi45MDc1MiAxNS42OTI5IDcuMTgwNjlMMTQuMTcwOSA5LjE3MDkzTDE1LjY5MjkgMTEuMjAwMlpNOC41OTA0NCAxMC45NjYxQzcuNTc1OCAxMC45NjYxIDYuNzU2MjkgMTAuMTg1NiA2Ljc1NjI5IDkuMTcwOTNDNi43NTYyOSA4LjE5NTMyIDcuNTc1OCA3LjM3NTgxIDguNTkwNDQgNy4zNzU4MUM5LjYwNTA3IDcuMzc1ODEgMTAuNDI0NiA4LjE5NTMyIDEwLjQyNDYgOS4xNzA5M0MxMC4zODU2IDEwLjE4NTYgOS41NjYwNSAxMC45NjYxIDguNTkwNDQgMTAuOTY2MVpNMy4yMDUwNyAxMC45NjYxQzIuMTkwNDQgMTAuOTY2MSAxLjM3MDkzIDEwLjE4NTYgMS4zNzA5MyA5LjE3MDkzQzEuMzcwOTMgOC4xOTUzMiAyLjE5MDQ0IDcuMzc1ODEgMy4yMDUwNyA3LjM3NTgxQzQuMjE5NzEgNy4zNzU4MSA1LjAzOTIyIDguMTk1MzIgNS4wMzkyMiA5LjE3MDkzQzUuMDM5MjIgMTAuMTg1NiA0LjIxOTcxIDEwLjk2NjEgMy4yMDUwNyAxMC45NjYxWk04LjU5MDQ0IDYuMjA1MDhDNy40NTg3MyA2LjIwNTA4IDYuNDQ0MSA2LjgyOTQ3IDUuOTM2NzggNy43NjYwNkM1LjQyOTQ2IDYuODI5NDcgNC40MTQ4MyA2LjIwNTA4IDMuMjQ0MSA2LjIwNTA4QzIuNTQxNjYgNi4yMDUwOCAxLjkxNzI3IDYuNDM5MjMgMS40MDk5NSA2Ljc5MDQ1VjQuMjkyODlDMS40MDk5NSAzLjk4MDY5IDEuMTM2NzggMy43MDc1MiAwLjgyNDU4NiAzLjcwNzUyQzAuNDczMzY2IDMuNzA3NTIgMC4yMDAxOTUgMy45ODA2OSAwLjIwMDE5NSA0LjI5Mjg5VjkuMjA5OTZDMC4yMzkyMiAxMC44NDkgMS41NjYwNSAxMi4xMzY4IDMuMjA1MDcgMTIuMTM2OEM0LjM3NTggMTIuMTM2OCA1LjM5MDQ0IDExLjQ3MzQgNS44OTc3NiAxMC41MzY4QzYuNDA1MDcgMTEuNDczNCA3LjQxOTcxIDEyLjEzNjggOC41NTE0MSAxMi4xMzY4QzEwLjIyOTUgMTIuMTM2OCAxMS41OTUzIDEwLjgxIDExLjU5NTMgOS4xMzE5MUMxMS42MzQzIDcuNTMxOTEgMTAuMjY4NSA2LjIwNTA4IDguNTkwNDQgNi4yMDUwOFoiIGZpbGw9IiMwMDcxRjciLz4KPC9zdmc+Cg=="
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Box Outbound Connector",
+    "id": "io.camunda.connectors.box",
+    "description": "Interact with the Box Document API",
+    "metadata": {
+      "keywords": []
+    },
+    "documentationRef": "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",
+    "version": 1,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.7"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "operation",
+        "label": "Operation"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:box:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Authentication",
+        "description": "Specify authentication strategy. Learn more at the <a href=\"https://developer.box.com/guides/authentication/\" target=\"_blank\">documentation page</a>",
+        "value": "developerToken",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Client Credentials Enterprise",
+            "value": "clientCredentialsEnterprise"
+          },
+          {
+            "name": "Client Credentials User",
+            "value": "clientCredentialsUser"
+          },
+          {
+            "name": "Developer token",
+            "value": "developerToken"
+          },
+          {
+            "name": "JWT JSON Config",
+            "value": "jwtJsonConfig"
+          }
+        ]
+      },
+      {
+        "id": "authentication.clientIdEnterprise",
+        "label": "Client id",
+        "description": "The client id",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsEnterprise",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientSecretEnterprise",
+        "label": "Client secret",
+        "description": "The client secret",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsEnterprise",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.enterpriseId",
+        "label": "Enterprise ID",
+        "description": "The enterprise ID to authenticate against",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.enterpriseId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsEnterprise",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientIdUser",
+        "label": "Client id",
+        "description": "The client id",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsUser",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.clientSecretUser",
+        "label": "Client secret",
+        "description": "The client secret",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.clientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsUser",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.userId",
+        "label": "User ID",
+        "description": "The user ID to of the account to authenticate against",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.userId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "clientCredentialsUser",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.accessToken",
+        "label": "Access key",
+        "description": "The access key or developer token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.accessToken",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "developerToken",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.jsonConfig",
+        "label": "JSON config",
+        "description": "The JSON config as string",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.jsonConfig",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "jwtJsonConfig",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.type",
+        "label": "Operation",
+        "description": "The operation to execute.",
+        "value": "createFolder",
+        "group": "operation",
+        "binding": {
+          "name": "operation.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Create Folder",
+            "value": "createFolder"
+          },
+          {
+            "name": "Delete Folder",
+            "value": "deleteFolder"
+          },
+          {
+            "name": "Upload File",
+            "value": "uploadFile"
+          },
+          {
+            "name": "Download File",
+            "value": "downloadFile"
+          },
+          {
+            "name": "Move File",
+            "value": "moveFile"
+          },
+          {
+            "name": "Delete File",
+            "value": "deleteFile"
+          },
+          {
+            "name": "Search",
+            "value": "search"
+          }
+        ]
+      },
+      {
+        "id": "operation.createFolderName",
+        "label": "Folder name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.name",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createFolder",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.createFolderParentPath",
+        "label": "Parent path",
+        "optional": false,
+        "value": "/",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.folderPath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createFolder",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.deleteFolderPath",
+        "label": "Folder path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.folderPath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteFolder",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.recursive",
+        "label": "Recursive",
+        "description": "Deletes all items contained by the folder",
+        "optional": false,
+        "value": true,
+        "feel": "static",
+        "group": "operation",
+        "binding": {
+          "name": "operation.recursive",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteFolder",
+          "type": "simple"
+        },
+        "type": "Boolean"
+      },
+      {
+        "id": "operation.uploadFileName",
+        "label": "File name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.name",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "uploadFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.uploadFileFolderPath",
+        "label": "Folder path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.folderPath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "uploadFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.uploadFileDocument",
+        "label": "Document reference",
+        "description": "The document reference that will be uploaded",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "operation",
+        "binding": {
+          "name": "operation.document",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "uploadFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.downloadFilePath",
+        "label": "File path",
+        "description": "Path to the file item to download",
+        "optional": false,
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.filePath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "downloadFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.moveFilePath",
+        "label": "File path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.filePath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "moveFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.moveFileFolderPath",
+        "label": "Target folder path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.folderPath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "moveFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.deleteFilePath",
+        "label": "File path",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.filePath",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteFile",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.searchQuery",
+        "label": "Search query",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.query",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.searchSortColumn",
+        "label": "Search sort column",
+        "description": "Column for sorting search results",
+        "optional": false,
+        "value": "modified_at",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operation",
+        "binding": {
+          "name": "operation.sortColumn",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.searchSortDirection",
+        "label": "Search sort direction",
+        "description": "Direction for sorting search results",
+        "optional": false,
+        "value": "DESC",
+        "group": "operation",
+        "binding": {
+          "name": "operation.sortDirection",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ASC",
+            "value": "ASC"
+          },
+          {
+            "name": "DESC",
+            "value": "DESC"
+          }
+        ]
+      },
+      {
+        "id": "operation.searchOffset",
+        "label": "Search offset",
+        "description": "Offset for search results",
+        "optional": false,
+        "value": 0,
+        "feel": "static",
+        "group": "operation",
+        "binding": {
+          "name": "operation.offset",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "operation.searchLimit",
+        "label": "Search limit",
+        "description": "Limit",
+        "optional": false,
+        "value": 30,
+        "feel": "static",
+        "group": "operation",
+        "binding": {
+          "name": "operation.limit",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "search",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE1LjY5MjkgMTEuMjAwMkMxNS44ODggMTEuNDczNCAxNS44NDkgMTEuODI0NiAxNS42MTQ4IDEyLjAxOTdDMTUuMzQxNyAxMi4yMTQ4IDE0Ljk1MTQgMTIuMTc1OCAxNC43NTYzIDExLjk0MTdMMTMuMzkwNCAxMC4xODU2TDEyLjA2MzYgMTEuOTAyNkMxMS44Njg1IDEyLjE3NTggMTEuNDc4MiAxMi4xNzU4IDExLjIwNTEgMTEuOTgwN0MxMC45MzE5IDExLjc4NTYgMTAuODkyOSAxMS40MzQzIDExLjA4OCAxMS4xNjEyTDEyLjY0OSA5LjEzMTkxTDExLjA4OCA3LjEwMjY0QzEwLjg5MjkgNi44Mjk0NyAxMC45NzA5IDYuNDM5MjMgMTEuMjA1MSA2LjI0NDFDMTEuNDc4MiA2LjA0ODk4IDExLjg2ODUgNi4xMjcwMyAxMi4wNjM2IDYuMzYxMThMMTMuMzkwNCA4LjExNzI4TDE0Ljc1NjMgNi40MzkyM0MxNC45NTE0IDYuMTY2MDYgMTUuMzAyNiA2LjEyNzAzIDE1LjYxNDggNi4zMjIxNUMxNS44ODggNi41MTcyOCAxNS44ODggNi45MDc1MiAxNS42OTI5IDcuMTgwNjlMMTQuMTcwOSA5LjE3MDkzTDE1LjY5MjkgMTEuMjAwMlpNOC41OTA0NCAxMC45NjYxQzcuNTc1OCAxMC45NjYxIDYuNzU2MjkgMTAuMTg1NiA2Ljc1NjI5IDkuMTcwOTNDNi43NTYyOSA4LjE5NTMyIDcuNTc1OCA3LjM3NTgxIDguNTkwNDQgNy4zNzU4MUM5LjYwNTA3IDcuMzc1ODEgMTAuNDI0NiA4LjE5NTMyIDEwLjQyNDYgOS4xNzA5M0MxMC4zODU2IDEwLjE4NTYgOS41NjYwNSAxMC45NjYxIDguNTkwNDQgMTAuOTY2MVpNMy4yMDUwNyAxMC45NjYxQzIuMTkwNDQgMTAuOTY2MSAxLjM3MDkzIDEwLjE4NTYgMS4zNzA5MyA5LjE3MDkzQzEuMzcwOTMgOC4xOTUzMiAyLjE5MDQ0IDcuMzc1ODEgMy4yMDUwNyA3LjM3NTgxQzQuMjE5NzEgNy4zNzU4MSA1LjAzOTIyIDguMTk1MzIgNS4wMzkyMiA5LjE3MDkzQzUuMDM5MjIgMTAuMTg1NiA0LjIxOTcxIDEwLjk2NjEgMy4yMDUwNyAxMC45NjYxWk04LjU5MDQ0IDYuMjA1MDhDNy40NTg3MyA2LjIwNTA4IDYuNDQ0MSA2LjgyOTQ3IDUuOTM2NzggNy43NjYwNkM1LjQyOTQ2IDYuODI5NDcgNC40MTQ4MyA2LjIwNTA4IDMuMjQ0MSA2LjIwNTA4QzIuNTQxNjYgNi4yMDUwOCAxLjkxNzI3IDYuNDM5MjMgMS40MDk5NSA2Ljc5MDQ1VjQuMjkyODlDMS40MDk5NSAzLjk4MDY5IDEuMTM2NzggMy43MDc1MiAwLjgyNDU4NiAzLjcwNzUyQzAuNDczMzY2IDMuNzA3NTIgMC4yMDAxOTUgMy45ODA2OSAwLjIwMDE5NSA0LjI5Mjg5VjkuMjA5OTZDMC4yMzkyMiAxMC44NDkgMS41NjYwNSAxMi4xMzY4IDMuMjA1MDcgMTIuMTM2OEM0LjM3NTggMTIuMTM2OCA1LjM5MDQ0IDExLjQ3MzQgNS44OTc3NiAxMC41MzY4QzYuNDA1MDcgMTEuNDczNCA3LjQxOTcxIDEyLjEzNjggOC41NTE0MSAxMi4xMzY4QzEwLjIyOTUgMTIuMTM2OCAxMS41OTUzIDEwLjgxIDExLjU5NTMgOS4xMzE5MUMxMS42MzQzIDcuNTMxOTEgMTAuMjY4NSA2LjIwNTA4IDguNTkwNDQgNi4yMDUwOFoiIGZpbGw9IiMwMDcxRjciLz4KPC9zdmc+Cg=="
+    }
+  }
+]

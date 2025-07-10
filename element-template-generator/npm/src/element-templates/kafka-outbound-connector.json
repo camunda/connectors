@@ -1,0 +1,1562 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Kafka Outbound Connector",
+    "id": "io.camunda.connectors.KAFKA.v1",
+    "description": "Produce Kafka message",
+    "metadata": {
+      "keywords": []
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
+    "version": 6,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.3"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "kafka",
+        "label": "Kafka"
+      },
+      {
+        "id": "schema",
+        "label": "Schema"
+      },
+      {
+        "id": "message",
+        "label": "Message"
+      },
+      {
+        "id": "connector",
+        "label": "Connector"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:connector-kafka:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.username",
+        "label": "Username",
+        "description": "Provide the username (must have permissions to produce message to the topic)",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.password",
+        "label": "Password",
+        "description": "Provide a password for the user",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "topic.bootstrapServers",
+        "label": "Bootstrap servers",
+        "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "kafka",
+        "binding": {
+          "name": "topic.bootstrapServers",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "topic.topicName",
+        "label": "Topic",
+        "description": "Provide topic name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "kafka",
+        "binding": {
+          "name": "topic.topicName",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "additionalProperties",
+        "label": "Additional properties",
+        "description": "Provide additional Kafka producer properties in JSON",
+        "optional": true,
+        "feel": "required",
+        "group": "kafka",
+        "binding": {
+          "name": "additionalProperties",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "schemaStrategy.type",
+        "label": "Schema strategy",
+        "value": "noSchema",
+        "group": "schema",
+        "binding": {
+          "name": "schemaStrategy.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "No schema",
+            "value": "noSchema"
+          },
+          {
+            "name": "Avro Inline schema",
+            "value": "inlineSchema"
+          },
+          {
+            "name": "Confluent Schema registry",
+            "value": "schemaRegistry"
+          }
+        ]
+      },
+      {
+        "id": "schemaStrategy.avro.schema",
+        "label": "Schema",
+        "description": "Avro inline schema for the message value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "schema",
+        "binding": {
+          "name": "schemaStrategy.schema",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "schemaStrategy.type",
+          "equals": "inlineSchema",
+          "type": "simple"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "schemaStrategy.schema",
+        "label": "Schema",
+        "description": "Schema (JSON or AVRO) for the message value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "schema",
+        "binding": {
+          "name": "schemaStrategy.schema",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "schemaStrategy.type",
+          "equals": "schemaRegistry",
+          "type": "simple"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "schemaStrategy.schemaType",
+        "label": "Schema type",
+        "description": "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "value": "avro",
+        "group": "schema",
+        "binding": {
+          "name": "schemaStrategy.schemaType",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "schemaStrategy.type",
+          "equals": "schemaRegistry",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "JSON",
+            "value": "json"
+          },
+          {
+            "name": "Avro",
+            "value": "avro"
+          }
+        ]
+      },
+      {
+        "id": "schemaStrategy.schemaRegistryUrl",
+        "label": "Schema registry URL",
+        "description": "Provide the schema registry URL",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "schema",
+        "binding": {
+          "name": "schemaStrategy.schemaRegistryUrl",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "schemaStrategy.type",
+          "equals": "schemaRegistry",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "message.key",
+        "label": "Key",
+        "description": "Provide message key",
+        "optional": false,
+        "feel": "optional",
+        "group": "message",
+        "binding": {
+          "name": "message.key",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "message.value",
+        "label": "Value",
+        "description": "Provide message value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "message",
+        "binding": {
+          "name": "message.value",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "headers",
+        "label": "Headers",
+        "description": "Provide Kafka producer headers in JSON",
+        "optional": true,
+        "feel": "required",
+        "group": "message",
+        "binding": {
+          "name": "headers",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "version",
+        "label": "Version",
+        "description": "Version of the element template",
+        "value": "6",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateVersion",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "id",
+        "label": "ID",
+        "description": "ID of the element template",
+        "value": "io.camunda.connectors.KAFKA.v1",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateId",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAyNTYgNDE2JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yMDEuODE2IDIzMC4yMTZjLTE2LjE4NiAwLTMwLjY5NyA3LjE3MS00MC42MzQgMTguNDYxbC0yNS40NjMtMTguMDI2YzIuNzAzLTcuNDQyIDQuMjU1LTE1LjQzMyA0LjI1NS0yMy43OTcgMC04LjIxOS0xLjQ5OC0xNi4wNzYtNC4xMTItMjMuNDA4bDI1LjQwNi0xNy44MzVjOS45MzYgMTEuMjMzIDI0LjQwOSAxOC4zNjUgNDAuNTQ4IDE4LjM2NSAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yOS44NzktMjQuMzA5LTU0LjE4NC01NC4xODQtNTQuMTg0LTI5Ljg3NSAwLTU0LjE4NCAyNC4zMDUtNTQuMTg0IDU0LjE4NCAwIDUuMzQ4LjgwOCAxMC41MDUgMi4yNTggMTUuMzg5bC0yNS40MjMgMTcuODQ0Yy0xMC42Mi0xMy4xNzUtMjUuOTExLTIyLjM3NC00My4zMzMtMjUuMTgydi0zMC42NGMyNC41NDQtNS4xNTUgNDMuMDM3LTI2Ljk2MiA0My4wMzctNTMuMDE5QzEyNC4xNzEgMjQuMzA1IDk5Ljg2MiAwIDY5Ljk4NyAwIDQwLjExMiAwIDE1LjgwMyAyNC4zMDUgMTUuODAzIDU0LjE4NGMwIDI1LjcwOCAxOC4wMTQgNDcuMjQ2IDQyLjA2NyA1Mi43Njl2MzEuMDM4QzI1LjA0NCAxNDMuNzUzIDAgMTcyLjQwMSAwIDIwNi44NTRjMCAzNC42MjEgMjUuMjkyIDYzLjM3NCA1OC4zNTUgNjguOTR2MzIuNzc0Yy0yNC4yOTkgNS4zNDEtNDIuNTUyIDI3LjAxMS00Mi41NTIgNTIuODk0IDAgMjkuODc5IDI0LjMwOSA1NC4xODQgNTQuMTg0IDU0LjE4NCAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yNS44ODMtMTguMjUzLTQ3LjU1My00Mi41NTItNTIuODk0di0zMi43NzVhNjkuOTY1IDY5Ljk2NSAwIDAgMCA0Mi42LTI0Ljc3NmwyNS42MzMgMTguMTQzYy0xLjQyMyA0Ljg0LTIuMjIgOS45NDYtMi4yMiAxNS4yNCAwIDI5Ljg3OSAyNC4zMDkgNTQuMTg0IDU0LjE4NCA1NC4xODQgMjkuODc1IDAgNTQuMTg0LTI0LjMwNSA1NC4xODQtNTQuMTg0IDAtMjkuODc5LTI0LjMwOS01NC4xODQtNTQuMTg0LTU0LjE4NHptMC0xMjYuNjk1YzE0LjQ4NyAwIDI2LjI3IDExLjc4OCAyNi4yNyAyNi4yNzFzLTExLjc4MyAyNi4yNy0yNi4yNyAyNi4yNy0yNi4yNy0xMS43ODctMjYuMjctMjYuMjdjMC0xNC40ODMgMTEuNzgzLTI2LjI3MSAyNi4yNy0yNi4yNzF6bS0xNTguMS00OS4zMzdjMC0xNC40ODMgMTEuNzg0LTI2LjI3IDI2LjI3MS0yNi4yN3MyNi4yNyAxMS43ODcgMjYuMjcgMjYuMjdjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN3ptNTIuNTQxIDMwNy4yNzhjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN2MwLTE0LjQ4MyAxMS43ODQtMjYuMjcgMjYuMjcxLTI2LjI3czI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN3ptLTI2LjI3Mi0xMTcuOTdjLTIwLjIwNSAwLTM2LjY0Mi0xNi40MzQtMzYuNjQyLTM2LjYzOCAwLTIwLjIwNSAxNi40MzctMzYuNjQyIDM2LjY0Mi0zNi42NDIgMjAuMjA0IDAgMzYuNjQxIDE2LjQzNyAzNi42NDEgMzYuNjQyIDAgMjAuMjA0LTE2LjQzNyAzNi42MzgtMzYuNjQxIDM2LjYzOHptMTMxLjgzMSA2Ny4xNzljLTE0LjQ4NyAwLTI2LjI3LTExLjc4OC0yNi4yNy0yNi4yNzFzMTEuNzgzLTI2LjI3IDI2LjI3LTI2LjI3IDI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN2MwIDE0LjQ4My0xMS43ODMgMjYuMjcxLTI2LjI3IDI2LjI3MXonCiAgICAgICAgICBzdHlsZT0nZmlsbDojMjMxZjIwJy8+Cjwvc3ZnPg=="
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Kafka Outbound Connector",
+    "id": "io.camunda.connectors.KAFKA.v1",
+    "description": "Produce Kafka message",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
+    "version": 4,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "kafka",
+        "label": "Kafka"
+      },
+      {
+        "id": "message",
+        "label": "Message"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:connector-kafka:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.username",
+        "label": "Username",
+        "description": "Provide the username (must have permissions to produce message to the topic)",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.password",
+        "label": "Password",
+        "description": "Provide a password for the user",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "serializationType",
+        "label": "Serialization type",
+        "description": "Select the serialization type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "value": "json",
+        "group": "kafka",
+        "binding": {
+          "name": "serializationType",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Default (JSON)",
+            "value": "json"
+          },
+          {
+            "name": "AVRO (experimental)",
+            "value": "avro"
+          }
+        ]
+      },
+      {
+        "id": "topic.bootstrapServers",
+        "label": "Bootstrap servers",
+        "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "kafka",
+        "binding": {
+          "name": "topic.bootstrapServers",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "topic.topicName",
+        "label": "Topic",
+        "description": "Provide topic name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "kafka",
+        "binding": {
+          "name": "topic.topicName",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "headers",
+        "label": "Headers",
+        "description": "Provide Kafka producer headers in JSON",
+        "optional": true,
+        "feel": "required",
+        "group": "kafka",
+        "binding": {
+          "name": "headers",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "additionalProperties",
+        "label": "Additional properties",
+        "description": "Provide additional Kafka producer properties in JSON",
+        "optional": true,
+        "feel": "required",
+        "group": "kafka",
+        "binding": {
+          "name": "additionalProperties",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "message.key",
+        "label": "Key",
+        "description": "Provide message key",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "message",
+        "binding": {
+          "name": "message.key",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "message.value",
+        "label": "Value",
+        "description": "Provide message value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "message",
+        "binding": {
+          "name": "message.value",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "avro.schema",
+        "label": "Avro schema",
+        "description": "Avro schema for the message value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "message",
+        "binding": {
+          "name": "avro.schema",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "serializationType",
+          "equals": "avro",
+          "type": "simple"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAyNTYgNDE2JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yMDEuODE2IDIzMC4yMTZjLTE2LjE4NiAwLTMwLjY5NyA3LjE3MS00MC42MzQgMTguNDYxbC0yNS40NjMtMTguMDI2YzIuNzAzLTcuNDQyIDQuMjU1LTE1LjQzMyA0LjI1NS0yMy43OTcgMC04LjIxOS0xLjQ5OC0xNi4wNzYtNC4xMTItMjMuNDA4bDI1LjQwNi0xNy44MzVjOS45MzYgMTEuMjMzIDI0LjQwOSAxOC4zNjUgNDAuNTQ4IDE4LjM2NSAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yOS44NzktMjQuMzA5LTU0LjE4NC01NC4xODQtNTQuMTg0LTI5Ljg3NSAwLTU0LjE4NCAyNC4zMDUtNTQuMTg0IDU0LjE4NCAwIDUuMzQ4LjgwOCAxMC41MDUgMi4yNTggMTUuMzg5bC0yNS40MjMgMTcuODQ0Yy0xMC42Mi0xMy4xNzUtMjUuOTExLTIyLjM3NC00My4zMzMtMjUuMTgydi0zMC42NGMyNC41NDQtNS4xNTUgNDMuMDM3LTI2Ljk2MiA0My4wMzctNTMuMDE5QzEyNC4xNzEgMjQuMzA1IDk5Ljg2MiAwIDY5Ljk4NyAwIDQwLjExMiAwIDE1LjgwMyAyNC4zMDUgMTUuODAzIDU0LjE4NGMwIDI1LjcwOCAxOC4wMTQgNDcuMjQ2IDQyLjA2NyA1Mi43Njl2MzEuMDM4QzI1LjA0NCAxNDMuNzUzIDAgMTcyLjQwMSAwIDIwNi44NTRjMCAzNC42MjEgMjUuMjkyIDYzLjM3NCA1OC4zNTUgNjguOTR2MzIuNzc0Yy0yNC4yOTkgNS4zNDEtNDIuNTUyIDI3LjAxMS00Mi41NTIgNTIuODk0IDAgMjkuODc5IDI0LjMwOSA1NC4xODQgNTQuMTg0IDU0LjE4NCAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yNS44ODMtMTguMjUzLTQ3LjU1My00Mi41NTItNTIuODk0di0zMi43NzVhNjkuOTY1IDY5Ljk2NSAwIDAgMCA0Mi42LTI0Ljc3NmwyNS42MzMgMTguMTQzYy0xLjQyMyA0Ljg0LTIuMjIgOS45NDYtMi4yMiAxNS4yNCAwIDI5Ljg3OSAyNC4zMDkgNTQuMTg0IDU0LjE4NCA1NC4xODQgMjkuODc1IDAgNTQuMTg0LTI0LjMwNSA1NC4xODQtNTQuMTg0IDAtMjkuODc5LTI0LjMwOS01NC4xODQtNTQuMTg0LTU0LjE4NHptMC0xMjYuNjk1YzE0LjQ4NyAwIDI2LjI3IDExLjc4OCAyNi4yNyAyNi4yNzFzLTExLjc4MyAyNi4yNy0yNi4yNyAyNi4yNy0yNi4yNy0xMS43ODctMjYuMjctMjYuMjdjMC0xNC40ODMgMTEuNzgzLTI2LjI3MSAyNi4yNy0yNi4yNzF6bS0xNTguMS00OS4zMzdjMC0xNC40ODMgMTEuNzg0LTI2LjI3IDI2LjI3MS0yNi4yN3MyNi4yNyAxMS43ODcgMjYuMjcgMjYuMjdjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN3ptNTIuNTQxIDMwNy4yNzhjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN2MwLTE0LjQ4MyAxMS43ODQtMjYuMjcgMjYuMjcxLTI2LjI3czI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN3ptLTI2LjI3Mi0xMTcuOTdjLTIwLjIwNSAwLTM2LjY0Mi0xNi40MzQtMzYuNjQyLTM2LjYzOCAwLTIwLjIwNSAxNi40MzctMzYuNjQyIDM2LjY0Mi0zNi42NDIgMjAuMjA0IDAgMzYuNjQxIDE2LjQzNyAzNi42NDEgMzYuNjQyIDAgMjAuMjA0LTE2LjQzNyAzNi42MzgtMzYuNjQxIDM2LjYzOHptMTMxLjgzMSA2Ny4xNzljLTE0LjQ4NyAwLTI2LjI3LTExLjc4OC0yNi4yNy0yNi4yNzFzMTEuNzgzLTI2LjI3IDI2LjI3LTI2LjI3IDI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN2MwIDE0LjQ4My0xMS43ODMgMjYuMjcxLTI2LjI3IDI2LjI3MXonCiAgICAgICAgICBzdHlsZT0nZmlsbDojMjMxZjIwJy8+Cjwvc3ZnPg=="
+    },
+    "engines": {
+      "camunda": "^8.5"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Kafka Outbound Connector",
+    "id": "io.camunda.connectors.KAFKA.v1",
+    "version": 2,
+    "description": "Produce Kafka message",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/",
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "kafka",
+        "label": "Kafka"
+      },
+      {
+        "id": "message",
+        "label": "Message"
+      },
+      {
+        "id": "output",
+        "label": "Response mapping"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:connector-kafka:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Username",
+        "description": "Provide the username (must have permissions to produce message to the topic)",
+        "group": "authentication",
+        "type": "String",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.username"
+        }
+      },
+      {
+        "label": "Password",
+        "description": "Provide a password for the user",
+        "group": "authentication",
+        "type": "String",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.password"
+        }
+      },
+      {
+        "label": "Bootstrap servers",
+        "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
+        "group": "kafka",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "topic.bootstrapServers"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Topic",
+        "description": "Provide topic name",
+        "group": "kafka",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "topic.topicName"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Additional properties",
+        "description": "Provide additional Kafka producer properties in JSON",
+        "group": "kafka",
+        "type": "String",
+        "optional": true,
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "additionalProperties"
+        }
+      },
+      {
+        "label": "Key",
+        "description": "Provide message key",
+        "group": "message",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "message.key"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Value",
+        "description": "Provide message value",
+        "group": "message",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "message.value"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg width='18' height='18' viewBox='0 0 256 416' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMidYMid'%3E%3Cpath d='M201.816 230.216c-16.186 0-30.697 7.171-40.634 18.461l-25.463-18.026c2.703-7.442 4.255-15.433 4.255-23.797 0-8.219-1.498-16.076-4.112-23.408l25.406-17.835c9.936 11.233 24.409 18.365 40.548 18.365 29.875 0 54.184-24.305 54.184-54.184 0-29.879-24.309-54.184-54.184-54.184-29.875 0-54.184 24.305-54.184 54.184 0 5.348.808 10.505 2.258 15.389l-25.423 17.844c-10.62-13.175-25.911-22.374-43.333-25.182v-30.64c24.544-5.155 43.037-26.962 43.037-53.019C124.171 24.305 99.862 0 69.987 0 40.112 0 15.803 24.305 15.803 54.184c0 25.708 18.014 47.246 42.067 52.769v31.038C25.044 143.753 0 172.401 0 206.854c0 34.621 25.292 63.374 58.355 68.94v32.774c-24.299 5.341-42.552 27.011-42.552 52.894 0 29.879 24.309 54.184 54.184 54.184 29.875 0 54.184-24.305 54.184-54.184 0-25.883-18.253-47.553-42.552-52.894v-32.775a69.965 69.965 0 0 0 42.6-24.776l25.633 18.143c-1.423 4.84-2.22 9.946-2.22 15.24 0 29.879 24.309 54.184 54.184 54.184 29.875 0 54.184-24.305 54.184-54.184 0-29.879-24.309-54.184-54.184-54.184zm0-126.695c14.487 0 26.27 11.788 26.27 26.271s-11.783 26.27-26.27 26.27-26.27-11.787-26.27-26.27c0-14.483 11.783-26.271 26.27-26.271zm-158.1-49.337c0-14.483 11.784-26.27 26.271-26.27s26.27 11.787 26.27 26.27c0 14.483-11.783 26.27-26.27 26.27s-26.271-11.787-26.271-26.27zm52.541 307.278c0 14.483-11.783 26.27-26.27 26.27s-26.271-11.787-26.271-26.27c0-14.483 11.784-26.27 26.271-26.27s26.27 11.787 26.27 26.27zm-26.272-117.97c-20.205 0-36.642-16.434-36.642-36.638 0-20.205 16.437-36.642 36.642-36.642 20.204 0 36.641 16.437 36.641 36.642 0 20.204-16.437 36.638-36.641 36.638zm131.831 67.179c-14.487 0-26.27-11.788-26.27-26.271s11.783-26.27 26.27-26.27 26.27 11.787 26.27 26.27c0 14.483-11.783 26.271-26.27 26.271z' style='fill:%23231f20'/%3E%3C/svg%3E"
+    },
+    "engines": {
+      "camunda": "^8.2"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Kafka producer connector",
+    "id": "io.camunda.connectors.KAFKA.v1",
+    "version": 1,
+    "description": "Produce Kafka message",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/",
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "kafka",
+        "label": "Kafka"
+      },
+      {
+        "id": "message",
+        "label": "Message"
+      },
+      {
+        "id": "output",
+        "label": "Response mapping"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:connector-kafka:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Username",
+        "description": "Provide the username (must have permissions to produce message to the topic)",
+        "group": "authentication",
+        "type": "String",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.username"
+        }
+      },
+      {
+        "label": "Password",
+        "description": "Provide a password for the user",
+        "group": "authentication",
+        "type": "String",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.password"
+        }
+      },
+      {
+        "label": "Bootstrap servers",
+        "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
+        "group": "kafka",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "topic.bootstrapServers"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Topic",
+        "description": "Provide topic name",
+        "group": "kafka",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "topic.topicName"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Additional properties",
+        "description": "Provide additional Kafka producer properties in JSON",
+        "group": "kafka",
+        "type": "String",
+        "optional": true,
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "additionalProperties"
+        }
+      },
+      {
+        "label": "Key",
+        "description": "Provide message key",
+        "group": "message",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "message.key"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Value",
+        "description": "Provide message value",
+        "group": "message",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "message.value"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg width='18' height='18' viewBox='0 0 256 416' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMidYMid'%3E%3Cpath d='M201.816 230.216c-16.186 0-30.697 7.171-40.634 18.461l-25.463-18.026c2.703-7.442 4.255-15.433 4.255-23.797 0-8.219-1.498-16.076-4.112-23.408l25.406-17.835c9.936 11.233 24.409 18.365 40.548 18.365 29.875 0 54.184-24.305 54.184-54.184 0-29.879-24.309-54.184-54.184-54.184-29.875 0-54.184 24.305-54.184 54.184 0 5.348.808 10.505 2.258 15.389l-25.423 17.844c-10.62-13.175-25.911-22.374-43.333-25.182v-30.64c24.544-5.155 43.037-26.962 43.037-53.019C124.171 24.305 99.862 0 69.987 0 40.112 0 15.803 24.305 15.803 54.184c0 25.708 18.014 47.246 42.067 52.769v31.038C25.044 143.753 0 172.401 0 206.854c0 34.621 25.292 63.374 58.355 68.94v32.774c-24.299 5.341-42.552 27.011-42.552 52.894 0 29.879 24.309 54.184 54.184 54.184 29.875 0 54.184-24.305 54.184-54.184 0-25.883-18.253-47.553-42.552-52.894v-32.775a69.965 69.965 0 0 0 42.6-24.776l25.633 18.143c-1.423 4.84-2.22 9.946-2.22 15.24 0 29.879 24.309 54.184 54.184 54.184 29.875 0 54.184-24.305 54.184-54.184 0-29.879-24.309-54.184-54.184-54.184zm0-126.695c14.487 0 26.27 11.788 26.27 26.271s-11.783 26.27-26.27 26.27-26.27-11.787-26.27-26.27c0-14.483 11.783-26.271 26.27-26.271zm-158.1-49.337c0-14.483 11.784-26.27 26.271-26.27s26.27 11.787 26.27 26.27c0 14.483-11.783 26.27-26.27 26.27s-26.271-11.787-26.271-26.27zm52.541 307.278c0 14.483-11.783 26.27-26.27 26.27s-26.271-11.787-26.271-26.27c0-14.483 11.784-26.27 26.271-26.27s26.27 11.787 26.27 26.27zm-26.272-117.97c-20.205 0-36.642-16.434-36.642-36.638 0-20.205 16.437-36.642 36.642-36.642 20.204 0 36.641 16.437 36.641 36.642 0 20.204-16.437 36.638-36.641 36.638zm131.831 67.179c-14.487 0-26.27-11.788-26.27-26.271s11.783-26.27 26.27-26.27 26.27 11.787 26.27 26.27c0 14.483-11.783 26.271-26.27 26.271z' style='fill:%23231f20'/%3E%3C/svg%3E"
+    },
+    "engines": {
+      "camunda": "^8.2"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Kafka Outbound Connector",
+    "id": "io.camunda.connectors.KAFKA.v1",
+    "description": "Produce Kafka message",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
+    "version": 5,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "kafka",
+        "label": "Kafka"
+      },
+      {
+        "id": "message",
+        "label": "Message"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:connector-kafka:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.username",
+        "label": "Username",
+        "description": "Provide the username (must have permissions to produce message to the topic)",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.password",
+        "label": "Password",
+        "description": "Provide a password for the user",
+        "optional": true,
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "topic.bootstrapServers",
+        "label": "Bootstrap servers",
+        "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "kafka",
+        "binding": {
+          "name": "topic.bootstrapServers",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "topic.topicName",
+        "label": "Topic",
+        "description": "Provide topic name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "kafka",
+        "binding": {
+          "name": "topic.topicName",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "schemaStrategy.type",
+        "label": "Schema strategy",
+        "value": "noSchema",
+        "group": "kafka",
+        "binding": {
+          "name": "schemaStrategy.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "No schema",
+            "value": "noSchema"
+          },
+          {
+            "name": "Inline schema",
+            "value": "inlineSchema"
+          },
+          {
+            "name": "Schema registry",
+            "value": "schemaRegistry"
+          }
+        ]
+      },
+      {
+        "id": "schemaStrategy.schemaType",
+        "label": "Schema type",
+        "description": "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "value": "avro",
+        "group": "kafka",
+        "binding": {
+          "name": "schemaStrategy.schemaType",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "schemaStrategy.type",
+          "equals": "schemaRegistry",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "JSON",
+            "value": "json"
+          },
+          {
+            "name": "Avro (alpha)",
+            "value": "avro"
+          }
+        ]
+      },
+      {
+        "id": "schemaStrategy.schemaRegistryUrl",
+        "label": "Schema registry URL",
+        "description": "Provide the schema registry URL",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "kafka",
+        "binding": {
+          "name": "schemaStrategy.schemaRegistryUrl",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "schemaStrategy.type",
+          "equals": "schemaRegistry",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "headers",
+        "label": "Headers",
+        "description": "Provide Kafka producer headers in JSON",
+        "optional": true,
+        "feel": "required",
+        "group": "kafka",
+        "binding": {
+          "name": "headers",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "additionalProperties",
+        "label": "Additional properties",
+        "description": "Provide additional Kafka producer properties in JSON",
+        "optional": true,
+        "feel": "required",
+        "group": "kafka",
+        "binding": {
+          "name": "additionalProperties",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "message.key",
+        "label": "Key",
+        "description": "Provide message key",
+        "optional": false,
+        "feel": "optional",
+        "group": "message",
+        "binding": {
+          "name": "message.key",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "message.value",
+        "label": "Value",
+        "description": "Provide message value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "message",
+        "binding": {
+          "name": "message.value",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "schemaStrategy.avro.schema",
+        "label": "Schema",
+        "description": "Inline schema (Avro) for the message value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "message",
+        "binding": {
+          "name": "schemaStrategy.schema",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "schemaStrategy.type",
+          "equals": "inlineSchema",
+          "type": "simple"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "schemaStrategy.schema",
+        "label": "Schema",
+        "description": "Schema (JSON or AVRO) for the message value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "message",
+        "binding": {
+          "name": "schemaStrategy.schema",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "schemaStrategy.type",
+          "equals": "schemaRegistry",
+          "type": "simple"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAyNTYgNDE2JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yMDEuODE2IDIzMC4yMTZjLTE2LjE4NiAwLTMwLjY5NyA3LjE3MS00MC42MzQgMTguNDYxbC0yNS40NjMtMTguMDI2YzIuNzAzLTcuNDQyIDQuMjU1LTE1LjQzMyA0LjI1NS0yMy43OTcgMC04LjIxOS0xLjQ5OC0xNi4wNzYtNC4xMTItMjMuNDA4bDI1LjQwNi0xNy44MzVjOS45MzYgMTEuMjMzIDI0LjQwOSAxOC4zNjUgNDAuNTQ4IDE4LjM2NSAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yOS44NzktMjQuMzA5LTU0LjE4NC01NC4xODQtNTQuMTg0LTI5Ljg3NSAwLTU0LjE4NCAyNC4zMDUtNTQuMTg0IDU0LjE4NCAwIDUuMzQ4LjgwOCAxMC41MDUgMi4yNTggMTUuMzg5bC0yNS40MjMgMTcuODQ0Yy0xMC42Mi0xMy4xNzUtMjUuOTExLTIyLjM3NC00My4zMzMtMjUuMTgydi0zMC42NGMyNC41NDQtNS4xNTUgNDMuMDM3LTI2Ljk2MiA0My4wMzctNTMuMDE5QzEyNC4xNzEgMjQuMzA1IDk5Ljg2MiAwIDY5Ljk4NyAwIDQwLjExMiAwIDE1LjgwMyAyNC4zMDUgMTUuODAzIDU0LjE4NGMwIDI1LjcwOCAxOC4wMTQgNDcuMjQ2IDQyLjA2NyA1Mi43Njl2MzEuMDM4QzI1LjA0NCAxNDMuNzUzIDAgMTcyLjQwMSAwIDIwNi44NTRjMCAzNC42MjEgMjUuMjkyIDYzLjM3NCA1OC4zNTUgNjguOTR2MzIuNzc0Yy0yNC4yOTkgNS4zNDEtNDIuNTUyIDI3LjAxMS00Mi41NTIgNTIuODk0IDAgMjkuODc5IDI0LjMwOSA1NC4xODQgNTQuMTg0IDU0LjE4NCAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yNS44ODMtMTguMjUzLTQ3LjU1My00Mi41NTItNTIuODk0di0zMi43NzVhNjkuOTY1IDY5Ljk2NSAwIDAgMCA0Mi42LTI0Ljc3NmwyNS42MzMgMTguMTQzYy0xLjQyMyA0Ljg0LTIuMjIgOS45NDYtMi4yMiAxNS4yNCAwIDI5Ljg3OSAyNC4zMDkgNTQuMTg0IDU0LjE4NCA1NC4xODQgMjkuODc1IDAgNTQuMTg0LTI0LjMwNSA1NC4xODQtNTQuMTg0IDAtMjkuODc5LTI0LjMwOS01NC4xODQtNTQuMTg0LTU0LjE4NHptMC0xMjYuNjk1YzE0LjQ4NyAwIDI2LjI3IDExLjc4OCAyNi4yNyAyNi4yNzFzLTExLjc4MyAyNi4yNy0yNi4yNyAyNi4yNy0yNi4yNy0xMS43ODctMjYuMjctMjYuMjdjMC0xNC40ODMgMTEuNzgzLTI2LjI3MSAyNi4yNy0yNi4yNzF6bS0xNTguMS00OS4zMzdjMC0xNC40ODMgMTEuNzg0LTI2LjI3IDI2LjI3MS0yNi4yN3MyNi4yNyAxMS43ODcgMjYuMjcgMjYuMjdjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN3ptNTIuNTQxIDMwNy4yNzhjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN2MwLTE0LjQ4MyAxMS43ODQtMjYuMjcgMjYuMjcxLTI2LjI3czI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN3ptLTI2LjI3Mi0xMTcuOTdjLTIwLjIwNSAwLTM2LjY0Mi0xNi40MzQtMzYuNjQyLTM2LjYzOCAwLTIwLjIwNSAxNi40MzctMzYuNjQyIDM2LjY0Mi0zNi42NDIgMjAuMjA0IDAgMzYuNjQxIDE2LjQzNyAzNi42NDEgMzYuNjQyIDAgMjAuMjA0LTE2LjQzNyAzNi42MzgtMzYuNjQxIDM2LjYzOHptMTMxLjgzMSA2Ny4xNzljLTE0LjQ4NyAwLTI2LjI3LTExLjc4OC0yNi4yNy0yNi4yNzFzMTEuNzgzLTI2LjI3IDI2LjI3LTI2LjI3IDI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN2MwIDE0LjQ4My0xMS43ODMgMjYuMjcxLTI2LjI3IDI2LjI3MXonCiAgICAgICAgICBzdHlsZT0nZmlsbDojMjMxZjIwJy8+Cjwvc3ZnPg=="
+    },
+    "engines": {
+      "camunda": "^8.6"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Kafka Outbound Connector",
+    "id": "io.camunda.connectors.KAFKA.v1",
+    "version": 3,
+    "description": "Produce Kafka message",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "kafka",
+        "label": "Kafka"
+      },
+      {
+        "id": "message",
+        "label": "Message"
+      },
+      {
+        "id": "output",
+        "label": "Response mapping"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:connector-kafka:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Username",
+        "id": "authentication.username",
+        "description": "Provide the username (must have permissions to produce message to the topic)",
+        "group": "authentication",
+        "type": "String",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.username"
+        }
+      },
+      {
+        "label": "Password",
+        "id": "authentication.password",
+        "description": "Provide a password for the user",
+        "group": "authentication",
+        "type": "String",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.password"
+        }
+      },
+      {
+        "label": "Bootstrap servers",
+        "id": "topic.bootstrapServers",
+        "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
+        "group": "kafka",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "topic.bootstrapServers"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Topic",
+        "id": "topic.topicName",
+        "description": "Provide topic name",
+        "group": "kafka",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "topic.topicName"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Headers",
+        "id": "headers",
+        "description": "Provide Kafka producer headers in JSON",
+        "group": "kafka",
+        "type": "String",
+        "optional": true,
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "headers"
+        }
+      },
+      {
+        "label": "Additional properties",
+        "id": "additionalProperties",
+        "description": "Provide additional Kafka producer properties in JSON",
+        "group": "kafka",
+        "type": "String",
+        "optional": true,
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "additionalProperties"
+        }
+      },
+      {
+        "label": "Key",
+        "id": "message.key",
+        "description": "Provide message key",
+        "group": "message",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "message.key"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Value",
+        "id": "message.value",
+        "description": "Provide message value",
+        "group": "message",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "message.value"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Result variable",
+        "id": "resultVariable",
+        "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "id": "resultExpression",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      },
+      {
+        "label": "Error expression",
+        "id": "errorExpression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg width='18' height='18' viewBox='0 0 256 416' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMidYMid'%3E%3Cpath d='M201.816 230.216c-16.186 0-30.697 7.171-40.634 18.461l-25.463-18.026c2.703-7.442 4.255-15.433 4.255-23.797 0-8.219-1.498-16.076-4.112-23.408l25.406-17.835c9.936 11.233 24.409 18.365 40.548 18.365 29.875 0 54.184-24.305 54.184-54.184 0-29.879-24.309-54.184-54.184-54.184-29.875 0-54.184 24.305-54.184 54.184 0 5.348.808 10.505 2.258 15.389l-25.423 17.844c-10.62-13.175-25.911-22.374-43.333-25.182v-30.64c24.544-5.155 43.037-26.962 43.037-53.019C124.171 24.305 99.862 0 69.987 0 40.112 0 15.803 24.305 15.803 54.184c0 25.708 18.014 47.246 42.067 52.769v31.038C25.044 143.753 0 172.401 0 206.854c0 34.621 25.292 63.374 58.355 68.94v32.774c-24.299 5.341-42.552 27.011-42.552 52.894 0 29.879 24.309 54.184 54.184 54.184 29.875 0 54.184-24.305 54.184-54.184 0-25.883-18.253-47.553-42.552-52.894v-32.775a69.965 69.965 0 0 0 42.6-24.776l25.633 18.143c-1.423 4.84-2.22 9.946-2.22 15.24 0 29.879 24.309 54.184 54.184 54.184 29.875 0 54.184-24.305 54.184-54.184 0-29.879-24.309-54.184-54.184-54.184zm0-126.695c14.487 0 26.27 11.788 26.27 26.271s-11.783 26.27-26.27 26.27-26.27-11.787-26.27-26.27c0-14.483 11.783-26.271 26.27-26.271zm-158.1-49.337c0-14.483 11.784-26.27 26.271-26.27s26.27 11.787 26.27 26.27c0 14.483-11.783 26.27-26.27 26.27s-26.271-11.787-26.271-26.27zm52.541 307.278c0 14.483-11.783 26.27-26.27 26.27s-26.271-11.787-26.271-26.27c0-14.483 11.784-26.27 26.271-26.27s26.27 11.787 26.27 26.27zm-26.272-117.97c-20.205 0-36.642-16.434-36.642-36.638 0-20.205 16.437-36.642 36.642-36.642 20.204 0 36.641 16.437 36.641 36.642 0 20.204-16.437 36.638-36.641 36.638zm131.831 67.179c-14.487 0-26.27-11.788-26.27-26.271s11.783-26.27 26.27-26.27 26.27 11.787 26.27 26.27c0 14.483-11.783 26.271-26.27 26.271z' style='fill:%23231f20'/%3E%3C/svg%3E"
+    },
+    "engines": {
+      "camunda": "^8.4"
+    }
+  }
+]

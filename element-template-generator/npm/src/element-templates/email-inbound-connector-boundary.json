@@ -1,0 +1,1109 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Email Boundary Event Connector",
+    "id": "io.camunda.connectors.inbound.EmailBoundary.v1",
+    "description": "Consume emails",
+    "metadata": {
+      "keywords": ["email received"]
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
+    "version": 2,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:BoundaryEvent"],
+    "elementType": {
+      "value": "bpmn:BoundaryEvent",
+      "eventDefinition": "bpmn:MessageEventDefinition"
+    },
+    "engines": {
+      "camunda": "^8.6"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "protocol",
+        "label": "Imap Details"
+      },
+      {
+        "id": "listenerInfos",
+        "label": "Listener information"
+      },
+      {
+        "id": "unseenPollingConfig",
+        "label": "After process"
+      },
+      {
+        "id": "allPollingConfig",
+        "label": "After process"
+      },
+      {
+        "id": "activation",
+        "label": "Activation"
+      },
+      {
+        "id": "correlation",
+        "label": "Correlation",
+        "tooltip": "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
+      },
+      {
+        "id": "deduplication",
+        "label": "Deduplication",
+        "tooltip": "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID."
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:connector-email-inbound:1",
+        "binding": {
+          "name": "inbound.type",
+          "type": "zeebe:property"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Authentication",
+        "description": "Specify the Email authentication strategy.",
+        "value": "simple",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:property"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple",
+            "value": "simple"
+          }
+        ]
+      },
+      {
+        "id": "authentication.simpleAuthenticationUsername",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
+        "type": "String"
+      },
+      {
+        "id": "authentication.simpleAuthenticationPassword",
+        "label": "Email password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
+        "type": "String"
+      },
+      {
+        "id": "data.imapHost",
+        "label": "IMAP Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapHost",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.imapPort",
+        "label": "IMAP Port",
+        "optional": false,
+        "value": "993",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapPort",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
+        "type": "String"
+      },
+      {
+        "id": "imapCryptographicProtocol",
+        "label": "Encryption protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapCryptographicProtocol",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          }
+        ]
+      },
+      {
+        "id": "data.folderToListen",
+        "label": "Folder to listen",
+        "optional": true,
+        "feel": "optional",
+        "group": "listenerInfos",
+        "binding": {
+          "name": "data.folderToListen",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Enter the names of the folder you wish to monitor. If left blank, the listener will default to monitoring the 'INBOX' folder.",
+        "type": "String"
+      },
+      {
+        "id": "pollingWaitTime",
+        "label": "Polling wait time",
+        "optional": false,
+        "value": "PT20S",
+        "group": "listenerInfos",
+        "binding": {
+          "name": "data.pollingWaitTime",
+          "type": "zeebe:property"
+        },
+        "tooltip": "The duration for which the task will wait for a message to arrive in the mailbox before correlating",
+        "type": "String"
+      },
+      {
+        "id": "data.pollingConfigDiscriminator",
+        "label": "Polling configuration",
+        "value": "unseenPollingConfig",
+        "group": "listenerInfos",
+        "binding": {
+          "name": "data.pollingConfigDiscriminator",
+          "type": "zeebe:property"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Poll unseen emails",
+            "value": "unseenPollingConfig"
+          },
+          {
+            "name": "Poll all emails",
+            "value": "allPollingConfig"
+          }
+        ]
+      },
+      {
+        "id": "data.pollingConfig.unseenHandlingStrategy",
+        "label": "Handling strategy",
+        "optional": false,
+        "value": "READ",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "unseenPollingConfig",
+        "binding": {
+          "name": "data.pollingConfig.handlingStrategy",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "data.pollingConfigDiscriminator",
+          "equals": "unseenPollingConfig",
+          "type": "simple"
+        },
+        "tooltip": "Chose the desired handling strategy",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Mark as read after processing",
+            "value": "READ"
+          },
+          {
+            "name": "Delete after processing",
+            "value": "DELETE"
+          },
+          {
+            "name": "Move to another folder after processing",
+            "value": "MOVE"
+          }
+        ]
+      },
+      {
+        "id": "unseenTargetFolder",
+        "label": "Choose the target folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "unseenPollingConfig",
+        "binding": {
+          "name": "data.pollingConfig.targetFolder",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pollingConfig.unseenHandlingStrategy",
+              "equals": "MOVE",
+              "type": "simple"
+            },
+            {
+              "property": "data.pollingConfigDiscriminator",
+              "equals": "unseenPollingConfig",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
+        "type": "String"
+      },
+      {
+        "id": "data.pollingConfig.allHandlingStrategy",
+        "label": "Handling strategy",
+        "optional": false,
+        "value": "DELETE",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "allPollingConfig",
+        "binding": {
+          "name": "data.pollingConfig.handlingStrategy",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "data.pollingConfigDiscriminator",
+          "equals": "allPollingConfig",
+          "type": "simple"
+        },
+        "tooltip": "Chose the desired handling strategy",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Delete after processing",
+            "value": "DELETE"
+          },
+          {
+            "name": "Move to another folder after processing",
+            "value": "MOVE"
+          }
+        ]
+      },
+      {
+        "id": "allTargetFolder",
+        "label": "Choose the target folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "allPollingConfig",
+        "binding": {
+          "name": "data.pollingConfig.targetFolder",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pollingConfig.allHandlingStrategy",
+              "equals": "MOVE",
+              "type": "simple"
+            },
+            {
+              "property": "data.pollingConfigDiscriminator",
+              "equals": "allPollingConfig",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
+        "type": "String"
+      },
+      {
+        "id": "activationCondition",
+        "label": "Activation condition",
+        "description": "Condition under which the Connector triggers. Leave empty to catch all events",
+        "optional": true,
+        "feel": "required",
+        "group": "activation",
+        "binding": {
+          "name": "activationCondition",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "consumeUnmatchedEvents",
+        "label": "Consume unmatched events",
+        "value": true,
+        "group": "activation",
+        "binding": {
+          "name": "consumeUnmatchedEvents",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
+        "type": "Boolean"
+      },
+      {
+        "id": "correlationKeyProcess",
+        "label": "Correlation key (process)",
+        "description": "Sets up the correlation key from process variables",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "correlation",
+        "binding": {
+          "name": "correlationKey",
+          "type": "bpmn:Message#zeebe:subscription#property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "correlationKeyPayload",
+        "label": "Correlation key (payload)",
+        "description": "Extracts the correlation key from the incoming message payload",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "correlation",
+        "binding": {
+          "name": "correlationKeyExpression",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "messageIdExpression",
+        "label": "Message ID expression",
+        "description": "Expression to extract unique identifier of a message",
+        "optional": true,
+        "feel": "required",
+        "group": "correlation",
+        "binding": {
+          "name": "messageIdExpression",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "messageTtl",
+        "label": "Message TTL",
+        "description": "Time-to-live for the message in the broker (ISO-8601 duration)",
+        "optional": true,
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(PT.*|)$",
+            "message": "must be an ISO-8601 duration"
+          }
+        },
+        "feel": "optional",
+        "group": "correlation",
+        "binding": {
+          "name": "messageTtl",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "messageNameUuid",
+        "generatedValue": {
+          "type": "uuid"
+        },
+        "group": "correlation",
+        "binding": {
+          "name": "name",
+          "type": "bpmn:Message#property"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "deduplicationModeManualFlag",
+        "label": "Manual mode",
+        "description": "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode",
+        "value": false,
+        "group": "deduplication",
+        "binding": {
+          "name": "deduplicationModeManualFlag",
+          "type": "zeebe:property"
+        },
+        "type": "Boolean"
+      },
+      {
+        "id": "deduplicationId",
+        "label": "Deduplication ID",
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^[a-zA-Z0-9_-]+$",
+            "message": "can only contain alphanumeric characters, dashes, and underscores"
+          }
+        },
+        "group": "deduplication",
+        "binding": {
+          "name": "deduplicationId",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "deduplicationModeManualFlag",
+          "equals": true,
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "deduplicationModeManual",
+        "value": "MANUAL",
+        "group": "deduplication",
+        "binding": {
+          "name": "deduplicationMode",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "deduplicationId",
+          "isActive": true,
+          "type": "simple"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "deduplicationModeAuto",
+        "value": "AUTO",
+        "group": "deduplication",
+        "binding": {
+          "name": "deduplicationMode",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "deduplicationId",
+          "isActive": false,
+          "type": "simple"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "name": "resultVariable",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "name": "resultExpression",
+          "type": "zeebe:property"
+        },
+        "type": "Text"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzkwXzI0MjApIj4KPHBhdGggZD0iTTguMzM4MzUgOS45NTM2NUwxMC4zODk0IDEyLjAxMDRMOC4zMzI2MiAxNC4wNjcyTDkuMTQ2MTYgMTQuODc1TDEyLjAxMDcgMTIuMDEwNEw5LjE0NjE2IDkuMTQ1ODNMOC4zMzgzNSA5Ljk1MzY1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTEyLjM0ODggOS45NTM2NUwxNC4zOTk4IDEyLjAxMDRMMTIuMzQzIDE0LjA2NzJMMTMuMTU2NiAxNC44NzVMMTYuMDIxMiAxMi4wMTA0TDEzLjE1NjYgOS4xNDU4M0wxMi4zNDg4IDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMy45NzIgMTEuNDM3NUgxLjEyNTMzVjIuNzkyMTlMNy42NzM3NiA3LjMyMzk2QzcuNzY5NjcgNy4zOTA0OSA3Ljg4MzYgNy40MjYxNCA4LjAwMDMyIDcuNDI2MTRDOC4xMTcwNSA3LjQyNjE0IDguMjMwOTggNy4zOTA0OSA4LjMyNjg5IDcuMzIzOTZMMTQuODc1MyAyLjc5MjE5VjhIMTYuMDIxMlYyLjI3MDgzQzE2LjAyMTIgMS45NjY5NCAxNS45MDA0IDEuNjc1NDkgMTUuNjg1NiAxLjQ2MDYxQzE1LjQ3MDcgMS4yNDU3MiAxNS4xNzkyIDEuMTI1IDE0Ljg3NTMgMS4xMjVIMS4xMjUzM0MwLjgyMTQzMiAxLjEyNSAwLjUyOTk4NCAxLjI0NTcyIDAuMzE1MDk5IDEuNDYwNjFDMC4xMDAyMTQgMS42NzU0OSAtMC4wMjA1MDc4IDEuOTY2OTQgLTAuMDIwNTA3OCAyLjI3MDgzVjExLjQzNzVDLTAuMDIwNTA3OCAxMS43NDE0IDAuMTAwMjE0IDEyLjAzMjggMC4zMTUwOTkgMTIuMjQ3N0MwLjUyOTk4NCAxMi40NjI2IDAuODIxNDMyIDEyLjU4MzMgMS4xMjUzMyAxMi41ODMzSDMuOTcyVjExLjQzNzVaTTEzLjYxNDkgMi4yNzA4M0w4LjAwMDMyIDYuMTU1MjFMMi4zODU3NCAyLjI3MDgzSDEzLjYxNDlaIiBmaWxsPSIjRkM1RDBEIi8+CjxwYXRoIGQ9Ik00LjI4MjEgOS45NTM2NUw2LjMzMzE0IDEyLjAxMDRMNC4yNzYzNyAxNC4wNjcyTDUuMDg5OTEgMTQuODc1TDcuOTU0NDkgMTIuMDEwNEw1LjA4OTkxIDkuMTQ1ODNMNC4yODIxIDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzkwXzI0MjAiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg=="
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Email Boundary Event Connector",
+    "id": "io.camunda.connectors.inbound.EmailBoundary.v1",
+    "description": "Consume emails",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
+    "version": 1,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:BoundaryEvent"],
+    "elementType": {
+      "value": "bpmn:BoundaryEvent",
+      "eventDefinition": "bpmn:MessageEventDefinition"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "protocol",
+        "label": "Imap Details"
+      },
+      {
+        "id": "listenerInfos",
+        "label": "Listener information"
+      },
+      {
+        "id": "unseenPollingConfig",
+        "label": "After process"
+      },
+      {
+        "id": "allPollingConfig",
+        "label": "After process"
+      },
+      {
+        "id": "activation",
+        "label": "Activation"
+      },
+      {
+        "id": "correlation",
+        "label": "Correlation",
+        "tooltip": "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
+      },
+      {
+        "id": "deduplication",
+        "label": "Deduplication",
+        "tooltip": "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID."
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:connector-email-inbound:1",
+        "binding": {
+          "name": "inbound.type",
+          "type": "zeebe:property"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Authentication",
+        "description": "Specify the Email authentication strategy.",
+        "value": "simple",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:property"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple",
+            "value": "simple"
+          }
+        ]
+      },
+      {
+        "id": "authentication.simpleAuthenticationUsername",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
+        "type": "String"
+      },
+      {
+        "id": "authentication.simpleAuthenticationPassword",
+        "label": "Email password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
+        "type": "String"
+      },
+      {
+        "id": "data.imapHost",
+        "label": "IMAP Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapHost",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.imapPort",
+        "label": "IMAP Port",
+        "optional": false,
+        "value": "993",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapPort",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
+        "type": "String"
+      },
+      {
+        "id": "imapCryptographicProtocol",
+        "label": "Encryption protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapCryptographicProtocol",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          }
+        ]
+      },
+      {
+        "id": "data.folderToListen",
+        "label": "Folder to listen",
+        "optional": true,
+        "feel": "optional",
+        "group": "listenerInfos",
+        "binding": {
+          "name": "data.folderToListen",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Enter the names of the folder you wish to monitor. If left blank, the listener will default to monitoring the 'INBOX' folder.",
+        "type": "String"
+      },
+      {
+        "id": "pollingWaitTime",
+        "label": "Polling wait time",
+        "optional": false,
+        "value": "PT20S",
+        "group": "listenerInfos",
+        "binding": {
+          "name": "data.pollingWaitTime",
+          "type": "zeebe:property"
+        },
+        "tooltip": "The duration for which the task will wait for a message to arrive in the mailbox before correlating",
+        "type": "String"
+      },
+      {
+        "id": "data.pollingConfigDiscriminator",
+        "label": "Polling configuration",
+        "value": "unseenPollingConfig",
+        "group": "listenerInfos",
+        "binding": {
+          "name": "data.pollingConfigDiscriminator",
+          "type": "zeebe:property"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Poll unseen emails",
+            "value": "unseenPollingConfig"
+          },
+          {
+            "name": "Poll all emails",
+            "value": "allPollingConfig"
+          }
+        ]
+      },
+      {
+        "id": "data.pollingConfig.unseenHandlingStrategy",
+        "label": "Handling strategy",
+        "optional": false,
+        "value": "READ",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "unseenPollingConfig",
+        "binding": {
+          "name": "data.pollingConfig.handlingStrategy",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "data.pollingConfigDiscriminator",
+          "equals": "unseenPollingConfig",
+          "type": "simple"
+        },
+        "tooltip": "Chose the desired handling strategy",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Mark as read after processing",
+            "value": "READ"
+          },
+          {
+            "name": "Delete after processing",
+            "value": "DELETE"
+          },
+          {
+            "name": "Move to another folder after processing",
+            "value": "MOVE"
+          }
+        ]
+      },
+      {
+        "id": "unseenTargetFolder",
+        "label": "Choose the target folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "unseenPollingConfig",
+        "binding": {
+          "name": "data.pollingConfig.targetFolder",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pollingConfig.unseenHandlingStrategy",
+              "equals": "MOVE",
+              "type": "simple"
+            },
+            {
+              "property": "data.pollingConfigDiscriminator",
+              "equals": "unseenPollingConfig",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
+        "type": "String"
+      },
+      {
+        "id": "data.pollingConfig.allHandlingStrategy",
+        "label": "Handling strategy",
+        "optional": false,
+        "value": "DELETE",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "allPollingConfig",
+        "binding": {
+          "name": "data.pollingConfig.handlingStrategy",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "data.pollingConfigDiscriminator",
+          "equals": "allPollingConfig",
+          "type": "simple"
+        },
+        "tooltip": "Chose the desired handling strategy",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Delete after processing",
+            "value": "DELETE"
+          },
+          {
+            "name": "Move to another folder after processing",
+            "value": "MOVE"
+          }
+        ]
+      },
+      {
+        "id": "allTargetFolder",
+        "label": "Choose the target folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "allPollingConfig",
+        "binding": {
+          "name": "data.pollingConfig.targetFolder",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pollingConfig.allHandlingStrategy",
+              "equals": "MOVE",
+              "type": "simple"
+            },
+            {
+              "property": "data.pollingConfigDiscriminator",
+              "equals": "allPollingConfig",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
+        "type": "String"
+      },
+      {
+        "id": "activationCondition",
+        "label": "Activation condition",
+        "description": "Condition under which the Connector triggers. Leave empty to catch all events",
+        "optional": true,
+        "feel": "required",
+        "group": "activation",
+        "binding": {
+          "name": "activationCondition",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "consumeUnmatchedEvents",
+        "label": "Consume unmatched events",
+        "value": true,
+        "group": "activation",
+        "binding": {
+          "name": "consumeUnmatchedEvents",
+          "type": "zeebe:property"
+        },
+        "tooltip": "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
+        "type": "Boolean"
+      },
+      {
+        "id": "correlationKeyProcess",
+        "label": "Correlation key (process)",
+        "description": "Sets up the correlation key from process variables",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "correlation",
+        "binding": {
+          "name": "correlationKey",
+          "type": "bpmn:Message#zeebe:subscription#property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "correlationKeyPayload",
+        "label": "Correlation key (payload)",
+        "description": "Extracts the correlation key from the incoming message payload",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "correlation",
+        "binding": {
+          "name": "correlationKeyExpression",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "messageIdExpression",
+        "label": "Message ID expression",
+        "description": "Expression to extract unique identifier of a message",
+        "optional": true,
+        "feel": "required",
+        "group": "correlation",
+        "binding": {
+          "name": "messageIdExpression",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "messageTtl",
+        "label": "Message TTL",
+        "description": "Time-to-live for the message in the broker (ISO-8601 duration)",
+        "optional": true,
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(PT.*|)$",
+            "message": "must be an ISO-8601 duration"
+          }
+        },
+        "feel": "optional",
+        "group": "correlation",
+        "binding": {
+          "name": "messageTtl",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "messageNameUuid",
+        "generatedValue": {
+          "type": "uuid"
+        },
+        "group": "correlation",
+        "binding": {
+          "name": "name",
+          "type": "bpmn:Message#property"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "deduplicationModeManualFlag",
+        "label": "Manual mode",
+        "description": "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode",
+        "value": false,
+        "group": "deduplication",
+        "binding": {
+          "name": "deduplicationModeManualFlag",
+          "type": "zeebe:property"
+        },
+        "type": "Boolean"
+      },
+      {
+        "id": "deduplicationId",
+        "label": "Deduplication ID",
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^[a-zA-Z0-9_-]+$",
+            "message": "can only contain alphanumeric characters, dashes, and underscores"
+          }
+        },
+        "group": "deduplication",
+        "binding": {
+          "name": "deduplicationId",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "deduplicationModeManualFlag",
+          "equals": true,
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "deduplicationModeManual",
+        "value": "MANUAL",
+        "group": "deduplication",
+        "binding": {
+          "name": "deduplicationMode",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "deduplicationId",
+          "isActive": true,
+          "type": "simple"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "deduplicationModeAuto",
+        "value": "AUTO",
+        "group": "deduplication",
+        "binding": {
+          "name": "deduplicationMode",
+          "type": "zeebe:property"
+        },
+        "condition": {
+          "property": "deduplicationId",
+          "isActive": false,
+          "type": "simple"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "name": "resultVariable",
+          "type": "zeebe:property"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "name": "resultExpression",
+          "type": "zeebe:property"
+        },
+        "type": "Text"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzkwXzI0MjApIj4KPHBhdGggZD0iTTguMzM4MzUgOS45NTM2NUwxMC4zODk0IDEyLjAxMDRMOC4zMzI2MiAxNC4wNjcyTDkuMTQ2MTYgMTQuODc1TDEyLjAxMDcgMTIuMDEwNEw5LjE0NjE2IDkuMTQ1ODNMOC4zMzgzNSA5Ljk1MzY1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTEyLjM0ODggOS45NTM2NUwxNC4zOTk4IDEyLjAxMDRMMTIuMzQzIDE0LjA2NzJMMTMuMTU2NiAxNC44NzVMMTYuMDIxMiAxMi4wMTA0TDEzLjE1NjYgOS4xNDU4M0wxMi4zNDg4IDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMy45NzIgMTEuNDM3NUgxLjEyNTMzVjIuNzkyMTlMNy42NzM3NiA3LjMyMzk2QzcuNzY5NjcgNy4zOTA0OSA3Ljg4MzYgNy40MjYxNCA4LjAwMDMyIDcuNDI2MTRDOC4xMTcwNSA3LjQyNjE0IDguMjMwOTggNy4zOTA0OSA4LjMyNjg5IDcuMzIzOTZMMTQuODc1MyAyLjc5MjE5VjhIMTYuMDIxMlYyLjI3MDgzQzE2LjAyMTIgMS45NjY5NCAxNS45MDA0IDEuNjc1NDkgMTUuNjg1NiAxLjQ2MDYxQzE1LjQ3MDcgMS4yNDU3MiAxNS4xNzkyIDEuMTI1IDE0Ljg3NTMgMS4xMjVIMS4xMjUzM0MwLjgyMTQzMiAxLjEyNSAwLjUyOTk4NCAxLjI0NTcyIDAuMzE1MDk5IDEuNDYwNjFDMC4xMDAyMTQgMS42NzU0OSAtMC4wMjA1MDc4IDEuOTY2OTQgLTAuMDIwNTA3OCAyLjI3MDgzVjExLjQzNzVDLTAuMDIwNTA3OCAxMS43NDE0IDAuMTAwMjE0IDEyLjAzMjggMC4zMTUwOTkgMTIuMjQ3N0MwLjUyOTk4NCAxMi40NjI2IDAuODIxNDMyIDEyLjU4MzMgMS4xMjUzMyAxMi41ODMzSDMuOTcyVjExLjQzNzVaTTEzLjYxNDkgMi4yNzA4M0w4LjAwMDMyIDYuMTU1MjFMMi4zODU3NCAyLjI3MDgzSDEzLjYxNDlaIiBmaWxsPSIjRkM1RDBEIi8+CjxwYXRoIGQ9Ik00LjI4MjEgOS45NTM2NUw2LjMzMzE0IDEyLjAxMDRMNC4yNzYzNyAxNC4wNjcyTDUuMDg5OTEgMTQuODc1TDcuOTU0NDkgMTIuMDEwNEw1LjA4OTkxIDkuMTQ1ODNMNC4yODIxIDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzkwXzI0MjAiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg=="
+    },
+    "engines": {
+      "camunda": "^8.6"
+    }
+  }
+]

@@ -1,0 +1,959 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Embeddings Vector DB Outbound Connector",
+    "id": "io.camunda.connectors.EmbeddingsVectorDB.v1",
+    "description": "Embed and download documents with vector databases",
+    "metadata": {
+      "keywords": []
+    },
+    "documentationRef": "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
+    "version": 1,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.2"
+    },
+    "groups": [
+      {
+        "id": "operation",
+        "label": "Operation"
+      },
+      {
+        "id": "query",
+        "label": "Query"
+      },
+      {
+        "id": "embeddingModel",
+        "label": "Embedding model"
+      },
+      {
+        "id": "embeddingsStore",
+        "label": "Vector store"
+      },
+      {
+        "id": "document",
+        "label": "Document"
+      },
+      {
+        "id": "connector",
+        "label": "Connector"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:embeddings-vector-database:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.operationType",
+        "label": "Operation",
+        "description": "Select operation",
+        "value": "OPERATION_RETRIEVE_DOCUMENT",
+        "group": "operation",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.operationType",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Embed document",
+            "value": "OPERATION_EMBED_DOCUMENT"
+          },
+          {
+            "name": "Retrieve document",
+            "value": "OPERATION_RETRIEVE_DOCUMENT"
+          }
+        ]
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.query.query",
+        "label": "Search query",
+        "description": "Document lookup query",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true,
+          "minLength": 0,
+          "maxLength": 200
+        },
+        "feel": "optional",
+        "group": "query",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.query",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorDatabaseConnectorOperation.operationType",
+          "equals": "OPERATION_RETRIEVE_DOCUMENT",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.query.maxResults",
+        "label": "Max results",
+        "description": "Limit number of returned results",
+        "optional": false,
+        "value": 5,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "static",
+        "group": "query",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.documentLimit",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorDatabaseConnectorOperation.operationType",
+          "equals": "OPERATION_RETRIEVE_DOCUMENT",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.query.minScore",
+        "label": "Min score",
+        "description": "Minimal vector similarity score for result to be included. Must be between 0 and 1 floating point value, e.g. 0.6. Incorrect and empty value resolves to 0.0",
+        "optional": true,
+        "feel": "static",
+        "group": "query",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.minScore",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorDatabaseConnectorOperation.operationType",
+          "equals": "OPERATION_RETRIEVE_DOCUMENT",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "embeddingModelProvider.modelProvider",
+        "label": "Model provider",
+        "description": "Select embedding model provider",
+        "value": "BEDROCK_MODEL_PROVIDER",
+        "group": "embeddingModel",
+        "binding": {
+          "name": "embeddingModelProvider.modelProvider",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "AWS Bedrock",
+            "value": "BEDROCK_MODEL_PROVIDER"
+          }
+        ]
+      },
+      {
+        "id": "embeddingModelProvider.bedrockAccessKey",
+        "label": "Access key",
+        "description": "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingModel",
+        "binding": {
+          "name": "embeddingModelProvider.accessKey",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "embeddingModelProvider.modelProvider",
+          "equals": "BEDROCK_MODEL_PROVIDER",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "embeddingModelProvider.bedrockSecretKey",
+        "label": "Secret key",
+        "description": "Provide a secret key associated with the access key",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingModel",
+        "binding": {
+          "name": "embeddingModelProvider.secretKey",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "embeddingModelProvider.modelProvider",
+          "equals": "BEDROCK_MODEL_PROVIDER",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "embeddingModelProvider.bedrockRegion",
+        "label": "Region",
+        "description": "AWS Bedrock region",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingModel",
+        "binding": {
+          "name": "embeddingModelProvider.region",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "embeddingModelProvider.modelProvider",
+          "equals": "BEDROCK_MODEL_PROVIDER",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "embeddingModelProvider.modelName",
+        "label": "Model name",
+        "description": "Bedrock model name or identifier",
+        "optional": false,
+        "value": "TitanEmbedTextV2",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "embeddingModel",
+        "binding": {
+          "name": "embeddingModelProvider.modelName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "embeddingModelProvider.modelProvider",
+          "equals": "BEDROCK_MODEL_PROVIDER",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Custom",
+            "value": "Custom"
+          },
+          {
+            "name": "amazon.titan-embed-text-v1",
+            "value": "TitanEmbedTextV1"
+          },
+          {
+            "name": "amazon.titan-embed-text-v2:0",
+            "value": "TitanEmbedTextV2"
+          }
+        ]
+      },
+      {
+        "id": "embeddingModelProvider.bedrockCustomModelName",
+        "label": "Custom model name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingModel",
+        "binding": {
+          "name": "embeddingModelProvider.customModelName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "embeddingModelProvider.modelName",
+              "equals": "Custom",
+              "type": "simple"
+            },
+            {
+              "property": "embeddingModelProvider.modelProvider",
+              "equals": "BEDROCK_MODEL_PROVIDER",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "String"
+      },
+      {
+        "id": "embeddingModelProvider.bedrockDimensions",
+        "label": "Embedding dimensions",
+        "description": "Max segment size in chars",
+        "optional": false,
+        "value": "D1024",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "embeddingModel",
+        "binding": {
+          "name": "embeddingModelProvider.dimensions",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "embeddingModelProvider.modelName",
+              "equals": "TitanEmbedTextV2",
+              "type": "simple"
+            },
+            {
+              "property": "embeddingModelProvider.modelProvider",
+              "equals": "BEDROCK_MODEL_PROVIDER",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "256",
+            "value": "D256"
+          },
+          {
+            "name": "512",
+            "value": "D512"
+          },
+          {
+            "name": "1024",
+            "value": "D1024"
+          }
+        ]
+      },
+      {
+        "id": "embeddingModelProvider.bedrockNormalize",
+        "label": "Normalize",
+        "description": "Normalize vector",
+        "optional": false,
+        "value": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "static",
+        "group": "embeddingModel",
+        "binding": {
+          "name": "embeddingModelProvider.normalize",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "embeddingModelProvider.modelName",
+              "equals": "TitanEmbedTextV2",
+              "type": "simple"
+            },
+            {
+              "property": "embeddingModelProvider.modelProvider",
+              "equals": "BEDROCK_MODEL_PROVIDER",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "Boolean"
+      },
+      {
+        "id": "embeddingModelProvider.bedrockMaxRetries",
+        "label": "Max retries",
+        "description": "Max retries",
+        "optional": false,
+        "value": 3,
+        "feel": "static",
+        "group": "embeddingModel",
+        "binding": {
+          "name": "embeddingModelProvider.maxRetries",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "embeddingModelProvider.modelProvider",
+          "equals": "BEDROCK_MODEL_PROVIDER",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "vectorStore.vectorStore",
+        "label": "Embeddings store",
+        "description": "Select embedding store",
+        "value": "STORE_ELASTICSEARCH",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.storeType",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Amazon Managed OpenSearch",
+            "value": "STORE_AMAZON_MANAGED_OPENSEARCH"
+          },
+          {
+            "name": "Elasticsearch",
+            "value": "STORE_ELASTICSEARCH"
+          },
+          {
+            "name": "OpenSearch",
+            "value": "STORE_OPENSEARCH"
+          }
+        ]
+      },
+      {
+        "id": "vectorStore.amazonManagedOpensearch.accessKey",
+        "label": "Access key",
+        "description": "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.accessKey",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_AMAZON_MANAGED_OPENSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.amazonManagedOpensearch.secretKey",
+        "label": "Secret key",
+        "description": "Provide a secret key associated with the access key",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.secretKey",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_AMAZON_MANAGED_OPENSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.amazonManagedOpensearch.serverUrl",
+        "label": "Server URL",
+        "description": "Provide a fully qualified server URL",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.serverUrl",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_AMAZON_MANAGED_OPENSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.amazonManagedOpensearch.region",
+        "label": "Region",
+        "description": "Provide an instance region",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.region",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_AMAZON_MANAGED_OPENSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.amazonManagedOpensearch.indexName",
+        "label": "Index name",
+        "description": "Provide an index to store embeddings",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.indexName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_AMAZON_MANAGED_OPENSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.embeddingsStore.elasticsearch.baseUrl",
+        "label": "Base URL",
+        "description": "Elasticsearch base URL, i.e. http(s)://host:port",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.baseUrl",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_ELASTICSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.embeddingsStore.elasticsearch.username",
+        "label": "Username",
+        "description": "Elasticsearch username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.userName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_ELASTICSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.embeddingsStore.elasticsearch.password",
+        "label": "Password",
+        "description": "Elasticsearch password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.password",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_ELASTICSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.embeddingsStore.elasticsearch.indexName",
+        "label": "Index name",
+        "description": "Elasticsearch index",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.indexName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_ELASTICSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.embeddingsStore.opensearch.baseUrl",
+        "label": "Base URL",
+        "description": "OpenSearch base URL, i.e. http(s)://host:port",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.baseUrl",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_OPENSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.embeddingsStore.opensearch.username",
+        "label": "Username",
+        "description": "OpenSearch username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.userName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_OPENSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.embeddingsStore.opensearch.password",
+        "label": "Password",
+        "description": "OpenSearch password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.password",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_OPENSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorStore.embeddingsStore.opensearch.indexName",
+        "label": "Index name",
+        "description": "OpenSearch index",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "embeddingsStore",
+        "binding": {
+          "name": "vectorStore.indexName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorStore.vectorStore",
+          "equals": "STORE_OPENSEARCH",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.documentSource",
+        "label": "Document source",
+        "description": "Whether you want to embed a Camunda document file or plain text",
+        "optional": false,
+        "value": "CamundaDocument",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "document",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.documentSource",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorDatabaseConnectorOperation.operationType",
+          "equals": "OPERATION_EMBED_DOCUMENT",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Camunda document",
+            "value": "CamundaDocument"
+          },
+          {
+            "name": "Plain text",
+            "value": "PlainText"
+          }
+        ]
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.documentSourceFromProcessVariable",
+        "label": "Plain text to embed",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "document",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.documentSourceFromProcessVariable",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "vectorDatabaseConnectorOperation.documentSource",
+              "equals": "PlainText",
+              "type": "simple"
+            },
+            {
+              "property": "vectorDatabaseConnectorOperation.operationType",
+              "equals": "OPERATION_EMBED_DOCUMENT",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.newDocuments",
+        "label": "Documents",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "document",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.newDocuments",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "vectorDatabaseConnectorOperation.documentSource",
+              "equals": "CamundaDocument",
+              "type": "simple"
+            },
+            {
+              "property": "vectorDatabaseConnectorOperation.operationType",
+              "equals": "OPERATION_EMBED_DOCUMENT",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "String"
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
+        "label": "Document splitting strategy",
+        "value": "DOCUMENT_SPLITTER_RECURSIVE",
+        "group": "document",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.documentSplitter.splitterType",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "vectorDatabaseConnectorOperation.operationType",
+          "equals": "OPERATION_EMBED_DOCUMENT",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Recursive",
+            "value": "DOCUMENT_SPLITTER_RECURSIVE"
+          },
+          {
+            "name": "Do not split",
+            "value": "DOCUMENT_SPLITTER_NONE"
+          }
+        ]
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.documentSplitter.document.splitter.recursive.maxSegmentSizeInChars",
+        "label": "Max chars",
+        "description": "Max splitting segment size in chars",
+        "optional": false,
+        "value": 500,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "static",
+        "group": "document",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.documentSplitter.maxSegmentSizeInChars",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
+              "equals": "DOCUMENT_SPLITTER_RECURSIVE",
+              "type": "simple"
+            },
+            {
+              "property": "vectorDatabaseConnectorOperation.operationType",
+              "equals": "OPERATION_EMBED_DOCUMENT",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "Number"
+      },
+      {
+        "id": "vectorDatabaseConnectorOperation.documentSplitter.document.splitter.recursive.maxOverlapSizeInChars",
+        "label": "Max overlap window",
+        "description": "Max segment splitting overlap size in chars",
+        "optional": false,
+        "value": 80,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "static",
+        "group": "document",
+        "binding": {
+          "name": "vectorDatabaseConnectorOperation.documentSplitter.maxOverlapSizeInChars",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
+              "equals": "DOCUMENT_SPLITTER_RECURSIVE",
+              "type": "simple"
+            },
+            {
+              "property": "vectorDatabaseConnectorOperation.operationType",
+              "equals": "OPERATION_EMBED_DOCUMENT",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "Number"
+      },
+      {
+        "id": "version",
+        "label": "Version",
+        "description": "Version of the element template",
+        "value": "1",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateVersion",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "id",
+        "label": "ID",
+        "description": "ID of the element template",
+        "value": "io.camunda.connectors.EmbeddingsVectorDB.v1",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateId",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjAxIiBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6bXVsdGlwbHkiLz4KPHBhdGggZD0iTTI1NS45OTkgMTM2LjcwMkMxOTMuMzE4IDEzNi43MDIgMTI1Ljg1NSAxNTEuNDg1IDEyNS44NTUgMTgzLjkzM1YzOTYuNDc1QzEyNS44NTUgNDI4LjkyMyAxOTMuMzE4IDQ0My43MDcgMjU1Ljk5OSA0NDMuNzA3QzMxOC42NzkgNDQzLjcwNyAzODYuMTQyIDQyOC45MjMgMzg2LjE0MiAzOTYuNDc1VjE4My45MzNDMzg2LjE0MiAxNTEuNDg1IDMxOC42NzkgMTM2LjcwMiAyNTUuOTk5IDEzNi43MDJaTTI1NS45OTkgMTYwLjMxOEMzMjQuNTkxIDE2MC4zMTggMzYwLjA1MyAxNzcuMjUxIDM2Mi40NDIgMTgzLjkzM0MzNjAuMDUzIDE5MC42MTUgMzI0LjU5MSAyMDcuNTQ5IDI1NS45OTkgMjA3LjU0OUMxODYuODg5IDIwNy41NDkgMTUxLjQxOCAxOTAuMzYyIDE0OS41MTggMTg0LjE0MVYxODQuMDgzQzE1MS40MTggMTc3LjUwNSAxODYuODg5IDE2MC4zMTggMjU1Ljk5OSAxNjAuMzE4Wk0xNDkuNTE4IDIxMi41OTlDMTc0LjY5NCAyMjUuMjAzIDIxNi4yNzcgMjMxLjE2NSAyNTUuOTk5IDIzMS4xNjVDMjk1LjcyMSAyMzEuMTY1IDMzNy4zMDQgMjI1LjIwMyAzNjIuNDggMjEyLjU5OVYyNTQuNjMxQzM2MC41OCAyNjEuMjA5IDMyNS4xMDggMjc4LjM5NiAyNTUuOTk5IDI3OC4zOTZDMTg2Ljc4NSAyNzguMzk2IDE1MS4zMDMgMjYxLjE1NyAxNDkuNTE4IDI1NC43ODFWMjEyLjU5OVpNMTQ5LjUxOCAyODMuNDQ3QzE3NC42OTQgMjk2LjA1IDIxNi4yNzcgMzAyLjAxMiAyNTUuOTk5IDMwMi4wMTJDMjk1LjcyMSAzMDIuMDEyIDMzNy4zMDQgMjk2LjA1IDM2Mi40OCAyODMuNDQ3VjMyNS40NzhDMzYwLjU4IDMzMi4wNTYgMzI1LjEwOCAzNDkuMjQ0IDI1NS45OTkgMzQ5LjI0NEMxODYuNzg1IDM0OS4yNDQgMTUxLjMwMyAzMzIuMDA0IDE0OS41MTggMzI1LjYyOFYyODMuNDQ3Wk0yNTUuOTk5IDQyMC4wOTFDMTg2Ljc4NSA0MjAuMDkxIDE1MS4zMDMgNDAyLjg1MSAxNDkuNTE4IDM5Ni40NzVWMzU0LjI5NEMxNzQuNjk0IDM2Ni44OTggMjE2LjI3NyAzNzIuODU5IDI1NS45OTkgMzcyLjg1OUMyOTUuNzIxIDM3Mi44NTkgMzM3LjMwNCAzNjYuODk4IDM2Mi40OCAzNTQuMjk0VjM5Ni4zMjVDMzYwLjU4IDQwMi45MDMgMzI1LjEwOCA0MjAuMDkxIDI1NS45OTkgNDIwLjA5MVoiIGZpbGw9IiNGQzVEMEQiIHN0cm9rZT0iI0ZDNUQwRCIgc3Ryb2tlLXdpZHRoPSI2LjY3NDAyIi8+CjxwYXRoIGQ9Ik0zODcuODYgMzk5Ljg4M0wzNzQuNTMxIDQxMy4yMTFMNDQ2Ljg4NiA0ODUuNTY2SDM4NC4wNTJWNTA0LjYwN0g0NzkuMjU2VjQwOS40MDNINDYwLjIxNVY0NzIuMjM4TDM4Ny44NiAzOTkuODgzWiIgZmlsbD0iI0ZDNUQwRCIgc3Ryb2tlPSIjRkM1RDBEIiBzdHJva2Utd2lkdGg9IjguMzQyNTIiLz4KPHBhdGggZD0iTTEyNC4xMzggMzk5Ljg4M0wxMzcuNDY3IDQxMy4yMTFMNjUuMTExNiA0ODUuNTY2SDEyNy45NDZWNTA0LjYwN0gzMi43NDIyVjQwOS40MDNINTEuNzgzVjQ3Mi4yMzhMMTI0LjEzOCAzOTkuODgzWiIgZmlsbD0iI0ZDNUQwRCIgc3Ryb2tlPSIjRkM1RDBEIiBzdHJva2Utd2lkdGg9IjguMzQyNTIiLz4KPHBhdGggZD0iTTI0Ni41NzUgMTQ2LjA3MUgyNjUuNDI1VjQzLjc0NTNMMzA5Ljg1NiA4OC4xNzYxTDMyMy4zMTkgNzQuNzEyMkwyNTYgNy4zOTI4MkwxODguNjgxIDc0LjcxMjJMMjAyLjE0NCA4OC4xNzYxTDI0Ni41NzUgNDMuNzQ1M1YxNDYuMDcxWiIgZmlsbD0iI0ZDNUQwRCIgc3Ryb2tlPSIjRkM1RDBEIiBzdHJva2Utd2lkdGg9IjguMzQyNTIiLz4KPC9zdmc+Cg=="
+    }
+  }
+]

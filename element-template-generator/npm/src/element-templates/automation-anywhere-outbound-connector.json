@@ -1,0 +1,2634 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Automation Anywhere Outbound Connector",
+    "id": "io.camunda.connectors.AutomationAnywhere",
+    "description": "Manage work items in Automation Anywhere queues.",
+    "metadata": {
+      "keywords": [
+        "add work item to queue",
+        "get work item from queue",
+        "get work item result from queue by ID"
+      ]
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
+    "version": 3,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.4"
+    },
+    "groups": [
+      {
+        "id": "operation",
+        "label": "Operation"
+      },
+      {
+        "id": "configuration",
+        "label": "Configuration"
+      },
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "input",
+        "label": "Input"
+      },
+      {
+        "id": "timeout",
+        "label": "Timeout"
+      },
+      {
+        "id": "connector",
+        "label": "Connector"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:connector-automationanywhere:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "operation.type",
+        "label": "Type",
+        "group": "operation",
+        "binding": {
+          "name": "operation.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Add work item to the queue",
+            "value": "addWorkItemsToTheQueue"
+          },
+          {
+            "name": "Get work item result from queue by ID",
+            "value": "listWorkItemsInQueue"
+          }
+        ]
+      },
+      {
+        "id": "configuration.controlRoomUrl",
+        "label": "Control room URL",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "configuration",
+        "binding": {
+          "name": "configuration.controlRoomUrl",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Type",
+        "description": "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "value": "passwordBasedAuthentication",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Authenticate (username and password)",
+            "value": "passwordBasedAuthentication"
+          },
+          {
+            "name": "Authenticate (username and API key)",
+            "value": "apiKeyAuthentication"
+          },
+          {
+            "name": "Authentication (refresh) token",
+            "value": "tokenBasedAuthentication"
+          }
+        ]
+      },
+      {
+        "id": "authentication.passwordBassesUsername",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "passwordBasedAuthentication",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.password",
+        "label": "Password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "passwordBasedAuthentication",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.multipleLogin",
+        "label": "Multiple login",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.multipleLogin",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "passwordBasedAuthentication",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TRUE",
+            "value": "true"
+          },
+          {
+            "name": "FALSE",
+            "value": "false"
+          }
+        ]
+      },
+      {
+        "id": "authentication.apiUsername",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKeyAuthentication",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.apiKey",
+        "label": "API key",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.apiKey",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "apiKeyAuthentication",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.token",
+        "label": "Token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.token",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "tokenBasedAuthentication",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.queueId",
+        "label": "Work queue ID",
+        "description": "The queue ID of the item",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "input",
+        "binding": {
+          "name": "operation.queueId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addWorkItemsToTheQueue",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.data",
+        "label": "Work item json data",
+        "description": "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "input",
+        "binding": {
+          "name": "operation.data",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addWorkItemsToTheQueue",
+          "type": "simple"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "operation.workQueueId",
+        "label": "Work queue ID",
+        "description": "The queue ID of the item",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "input",
+        "binding": {
+          "name": "operation.queueId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "listWorkItemsInQueue",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.workItemId",
+        "label": "Work item ID",
+        "description": "The queue item identifier to be fetched from queue",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "static",
+        "group": "input",
+        "binding": {
+          "name": "operation.workItemId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "listWorkItemsInQueue",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "configuration.connectionTimeoutInSeconds",
+        "label": "Connection timeout in seconds",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "optional": true,
+        "value": 20,
+        "feel": "static",
+        "group": "timeout",
+        "binding": {
+          "name": "configuration.connectionTimeoutInSeconds",
+          "type": "zeebe:input"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "version",
+        "label": "Version",
+        "description": "Version of the element template",
+        "value": "3",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateVersion",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "id",
+        "label": "ID",
+        "description": "ID of the element template",
+        "value": "io.camunda.connectors.AutomationAnywhere",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateId",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgNjUyIDY1Micgc3R5bGU9J2VuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNjUyIDY1MjsnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+CiAgICA8ZGVmcz4KICAgICAgICA8c3R5bGUgdHlwZT0ndGV4dC9jc3MnPi5zdDB7Y2xpcC1wYXRoOnVybCgjU1ZHSURfMl8pO2ZpbGw6dXJsKCNTVkdJRF8zXyk7fSAuc3Qxe29wYWNpdHk6MC4zO30KICAgICAgICAgICAgLnN0MntjbGlwLXBhdGg6dXJsKCNTVkdJRF81Xyk7ZmlsbDp1cmwoI1NWR0lEXzZfKTt9IC5zdDN7ZmlsbDojNDA0MDQxO30gLnN0NHtmaWxsOiNGNzk4Mzc7fQogICAgICAgIDwvc3R5bGU+CiAgICA8L2RlZnM+CiAgICA8ZyBzdHlsZT0nJyB0cmFuc2Zvcm09J21hdHJpeCgyLjgzODk0NiwgMCwgMCwgMi44MDcxMjYsIC00NC41MzQzNjMsIC01NzguMzQzMzg0KSc+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxkZWZzPgogICAgICAgICAgICAgICAgPHBhdGggaWQ9J1NWR0lEXzFfJwogICAgICAgICAgICAgICAgICAgICAgZD0nTTE5OS41LDQxMi43bC0wLjItMC41bC0wLjUtMWwtMTEuNy0zMS41YzExLjEsNS4xLDIxLjQsMTEuOCwzMC43LDIwLjFsMCwwYzEuMiwwLjksMi4yLDIuMiwzLDMuNyBjMC45LDEuNywxLjQsMy41LDEuNCw1LjVjMCw2LjQtNS4yLDExLjYtMTEuNiwxMS42QzIwNS41LDQyMC42LDIwMS4xLDQxNy40LDE5OS41LDQxMi43IE0xMDMuMywyMjkuNmMxLjUtNC4xLDQuOS02LjksOC43LTcgYzAsMCwwLjEsMCwwLjEsMGMzLjgsMC4yLDcuMiwyLjksOC43LDdsNDguMywxMzIuNmMtMTAuNy0yLjctMjEuNy00LjEtMzIuOS00LjFjLTIzLjUsMC00Ni43LDYuMi02Ni45LDE4IGMtOS44LDUuNy0xOC44LDEyLjctMjYuOSwyMC42TDEwMy4zLDIyOS42eiBNMTEwLjksMjEyYy03LjgsMC42LTE0LjcsNi0xNy42LDE0TDIxLDQyNC41Yy0xLDIuOCwwLjQsNS44LDMuMiw2LjggYzAuNiwwLjIsMS4yLDAuMywxLjgsMC4zYzEuNywwLDMuMy0wLjgsNC4zLTIuMmMwLjItMC4yLDAuMy0wLjQsMC41LTAuN2MxMC43LTE4LDI1LjgtMzMuMSw0My45LTQzLjYgYzE4LjYtMTAuOCwzOS45LTE2LjYsNjEuNi0xNi42YzEyLjksMCwyNS42LDIsMzcuNiw1LjlsMTUuMyw0MS4xbDAuNSwwLjljMy4yLDguOCwxMS41LDE0LjcsMjAuOSwxNC43YzEyLjMsMCwyMi4yLTEwLDIyLjItMjIuMiBjMC0zLjYtMC45LTcuMy0yLjYtMTAuNWMtMC43LTEuMi0xLjQtMi4zLTIuMi0zLjRjLTAuMy0wLjUtMC42LTEtMS0xLjRjLTEzLjEtMTIuMi0yOC40LTIxLjUtNDQuOS0yNy42bC0xLjEtMi44bC0wLjEsMCBMMTMwLjgsMjI2Yy0yLjktNy45LTkuNy0xMy4zLTE3LjYtMTRjLTAuMywwLTAuNi0wLjEtMC45LTAuMWMtMC4xLDAtMC4yLDAtMC4yLDBjLTAuMSwwLTAuMiwwLTAuMiwwIEMxMTEuNSwyMTEuOSwxMTEuMiwyMTIsMTEwLjksMjEyJy8+CiAgICAgICAgICAgIDwvZGVmcz4KICAgICAgICAgICAgPGNsaXBQYXRoIGlkPSdTVkdJRF8yXyc+CiAgICAgICAgICAgICAgICA8cGF0aCBkPSdNMTk5LjUsNDEyLjdsLTAuMi0wLjVsLTAuNS0xbC0xMS43LTMxLjVjMTEuMSw1LjEsMjEuNCwxMS44LDMwLjcsMjAuMWwwLDBjMS4yLDAuOSwyLjIsMi4yLDMsMy43IGMwLjksMS43LDEuNCwzLjUsMS40LDUuNWMwLDYuNC01LjIsMTEuNi0xMS42LDExLjZDMjA1LjUsNDIwLjYsMjAxLjEsNDE3LjQsMTk5LjUsNDEyLjcgTTEwMy4zLDIyOS42YzEuNS00LjEsNC45LTYuOSw4LjctNyBjMCwwLDAuMSwwLDAuMSwwYzMuOCwwLjIsNy4yLDIuOSw4LjcsN2w0OC4zLDEzMi42Yy0xMC43LTIuNy0yMS43LTQuMS0zMi45LTQuMWMtMjMuNSwwLTQ2LjcsNi4yLTY2LjksMTggYy05LjgsNS43LTE4LjgsMTIuNy0yNi45LDIwLjZMMTAzLjMsMjI5LjZ6IE0xMTAuOSwyMTJjLTcuOCwwLjYtMTQuNyw2LTE3LjYsMTRMMjEsNDI0LjVjLTEsMi44LDAuNCw1LjgsMy4yLDYuOCBjMC42LDAuMiwxLjIsMC4zLDEuOCwwLjNjMS43LDAsMy4zLTAuOCw0LjMtMi4yYzAuMi0wLjIsMC4zLTAuNCwwLjUtMC43YzEwLjctMTgsMjUuOC0zMy4xLDQzLjktNDMuNiBjMTguNi0xMC44LDM5LjktMTYuNiw2MS42LTE2LjZjMTIuOSwwLDI1LjYsMiwzNy42LDUuOWwxNS4zLDQxLjFsMC41LDAuOWMzLjIsOC44LDExLjUsMTQuNywyMC45LDE0LjdjMTIuMywwLDIyLjItMTAsMjIuMi0yMi4yIGMwLTMuNi0wLjktNy4zLTIuNi0xMC41Yy0wLjctMS4yLTEuNC0yLjMtMi4yLTMuNGMtMC4zLTAuNS0wLjYtMS0xLTEuNGMtMTMuMS0xMi4yLTI4LjQtMjEuNS00NC45LTI3LjZsLTEuMS0yLjhsLTAuMSwwIEwxMzAuOCwyMjZjLTIuOS03LjktOS43LTEzLjMtMTcuNi0xNGMtMC4zLDAtMC42LTAuMS0wLjktMC4xYy0wLjEsMC0wLjIsMC0wLjIsMGMtMC4xLDAtMC4yLDAtMC4yLDAgQzExMS41LDIxMS45LDExMS4yLDIxMiwxMTAuOSwyMTInCiAgICAgICAgICAgICAgICAgICAgICB0cmFuc2Zvcm09J21hdHJpeCgxLCAwLCAwLCAxLCAwLCAwKScgc3R5bGU9J292ZXJmbG93OiB2aXNpYmxlOycvPgogICAgICAgICAgICA8L2NsaXBQYXRoPgogICAgICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9J1NWR0lEXzNfJyBncmFkaWVudFVuaXRzPSd1c2VyU3BhY2VPblVzZScgeDE9Jy00LjkzOCcgeTE9Jzc0My4wMjAzJyB4Mj0nMS45NzkyJwogICAgICAgICAgICAgICAgICAgICAgICAgICAgeTI9Jzc0My4wMjAzJyBncmFkaWVudFRyYW5zZm9ybT0nbWF0cml4KDMwLjY1OCAwIDAgLTMwLjY1OCAxNzIuMDgwMyAyMzEwMS4zNDE4KSc+CiAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAnIHN0eWxlPSdzdG9wLWNvbG9yOiNGRkREMTUnLz4KICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC4wMzQzJyBzdHlsZT0nc3RvcC1jb2xvcjojRkVEMjE3Jy8+CiAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuMTY2Mycgc3R5bGU9J3N0b3AtY29sb3I6I0ZBQUQxQycvPgogICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjMwNDknIHN0eWxlPSdzdG9wLWNvbG9yOiNGNjhGMjAnLz4KICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC40NScgc3R5bGU9J3N0b3AtY29sb3I6I0YzNzgyNCcvPgogICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjYwNDUnIHN0eWxlPSdzdG9wLWNvbG9yOiNGMTY3MjYnLz4KICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC43NzQ3JyBzdHlsZT0nc3RvcC1jb2xvcjojRjA1RDI4Jy8+CiAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuOTkxJyBzdHlsZT0nc3RvcC1jb2xvcjojRjA1QTI4Jy8+CiAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzEnIHN0eWxlPSdzdG9wLWNvbG9yOiNGMDVBMjgnLz4KICAgICAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgICAgICAgPHJlY3QgeD0nMjAnIHk9JzIxMS45JyBjbGFzcz0nc3QwJyB3aWR0aD0nMjEyLjgnIGhlaWdodD0nMjE5LjcnLz4KICAgICAgICA8L2c+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxnIGNsYXNzPSdzdDEnPgogICAgICAgICAgICAgICAgPGc+CiAgICAgICAgICAgICAgICAgICAgPGc+CiAgICAgICAgICAgICAgICAgICAgICAgIDxkZWZzPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHBhdGggaWQ9J1NWR0lEXzRfJwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZD0nTTE4Ny4zLDM4MC4zYzExLjEsNS4xLDIxLjQsMTEuOCwzMC43LDIwbDAsMGMxLjIsMSwyLjIsMi4yLDMsMy43YzAuOSwxLjcsMS40LDMuNSwxLjQsNS41SDIzMyBjMC0zLjYtMC45LTcuMy0yLjYtMTAuNWMtMC42LTEuMi0xLjQtMi4zLTIuMi0zLjRjLTAuMy0wLjUtMC42LTEtMS0xLjRjLTEzLjEtMTIuMi0yOC40LTIxLjUtNDQuOS0yNy42TDE4Ny4zLDM4MC4zeiBNNjkuNSwzNzYuN2MtOS44LDUuNy0xOC44LDEyLjctMjYuOSwyMC42bC0xMi4yLDMyLjhjMC4yLTAuMiwwLjMtMC40LDAuNS0wLjdjMTAuNy0xOCwyNS45LTMzLjEsNDMuOS00My42IGMxOC42LTEwLjgsMzkuOS0xNi42LDYxLjYtMTYuNmMxMi4xLDAsMjUuMSwxLjksMzcuNiw1LjlsLTQuNy0xMi40Yy0xMC43LTIuNy0yMS43LTQuMS0zMi45LTQuMSBDMTEyLjksMzU4LjcsODkuOCwzNjQuOSw2OS41LDM3Ni43Jy8+CiAgICAgICAgICAgICAgICAgICAgICAgIDwvZGVmcz4KICAgICAgICAgICAgICAgICAgICAgICAgPGNsaXBQYXRoIGlkPSdTVkdJRF81Xyc+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8cGF0aCBkPSdNMTg3LjMsMzgwLjNjMTEuMSw1LjEsMjEuNCwxMS44LDMwLjcsMjBsMCwwYzEuMiwxLDIuMiwyLjIsMywzLjdjMC45LDEuNywxLjQsMy41LDEuNCw1LjVIMjMzIGMwLTMuNi0wLjktNy4zLTIuNi0xMC41Yy0wLjYtMS4yLTEuNC0yLjMtMi4yLTMuNGMtMC4zLTAuNS0wLjYtMS0xLTEuNGMtMTMuMS0xMi4yLTI4LjQtMjEuNS00NC45LTI3LjZMMTg3LjMsMzgwLjN6IE02OS41LDM3Ni43Yy05LjgsNS43LTE4LjgsMTIuNy0yNi45LDIwLjZsLTEyLjIsMzIuOGMwLjItMC4yLDAuMy0wLjQsMC41LTAuN2MxMC43LTE4LDI1LjktMzMuMSw0My45LTQzLjYgYzE4LjYtMTAuOCwzOS45LTE2LjYsNjEuNi0xNi42YzEyLjEsMCwyNS4xLDEuOSwzNy42LDUuOWwtNC43LTEyLjRjLTEwLjctMi43LTIxLjctNC4xLTMyLjktNC4xIEMxMTIuOSwzNTguNyw4OS44LDM2NC45LDY5LjUsMzc2LjcnCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB0cmFuc2Zvcm09J21hdHJpeCgxLCAwLCAwLCAxLCAwLCAwKScgc3R5bGU9J292ZXJmbG93OiB2aXNpYmxlOycvPgogICAgICAgICAgICAgICAgICAgICAgICA8L2NsaXBQYXRoPgogICAgICAgICAgICAgICAgICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9J1NWR0lEXzZfJyBncmFkaWVudFVuaXRzPSd1c2VyU3BhY2VPblVzZScgeDE9Jy01LjQwNDInIHkxPSc3NDEuNDczJwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgeDI9JzEuNTEzMScgeTI9Jzc0MS40NzMnCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBncmFkaWVudFRyYW5zZm9ybT0nbWF0cml4KDI5LjI3NDggMCAwIC0yOS4yNzQ4IDE4OC43MTUyIDIyMTAwLjg0NzcpJz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMCcgc3R5bGU9J3N0b3AtY29sb3I6I0ZGRkZGRicvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjMyODUnIHN0eWxlPSdzdG9wLWNvbG9yOiNGRkZGRkYnLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC4zNzQ1JyBzdHlsZT0nc3RvcC1jb2xvcjojRkJGQkZCJy8+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuNDIzMycgc3R5bGU9J3N0b3AtY29sb3I6I0VFRUVFRScvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjQ3MzUnIHN0eWxlPSdzdG9wLWNvbG9yOiNEOUQ5RDknLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC41MjQ2JyBzdHlsZT0nc3RvcC1jb2xvcjojQkNCQkJCJy8+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuNTc2NCcgc3R5bGU9J3N0b3AtY29sb3I6Izk2OTU5NScvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjYyODgnIHN0eWxlPSdzdG9wLWNvbG9yOiM2ODY2NjYnLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC42ODA4JyBzdHlsZT0nc3RvcC1jb2xvcjojMzMyRjMwJy8+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuNjk0OCcgc3R5bGU9J3N0b3AtY29sb3I6IzIzMUYyMCcvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjkzMDEnIHN0eWxlPSdzdG9wLWNvbG9yOiNGRkZGRkYnLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMScgc3R5bGU9J3N0b3AtY29sb3I6I0ZGRkZGRicvPgogICAgICAgICAgICAgICAgICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgICAgICAgICAgICAgICAgICA8cmVjdCB4PSczMC41JyB5PSczNTguNycgY2xhc3M9J3N0Micgd2lkdGg9JzE4JyBoZWlnaHQ9JzE4Jy8+CiAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICA8L2c+CiAgICAgICAgPC9nPgogICAgICAgIDxnLz4KICAgIDwvZz4KPC9zdmc+"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Automation Anywhere Outbound Connector",
+    "id": "io.camunda.connectors.AutomationAnywhere.v1",
+    "version": 4,
+    "description": "[Deprecated] Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",
+    "deprecated": {
+      "message": "This version of the connector will no longer be supported in the future. You can find a new supported version in the marketplace",
+      "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/camunda-marketplace"
+    },
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3Csvg viewBox='0 0 652 652' style='enable-background:new 0 0 652 652;' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cstyle type='text/css'%3E .st0%7Bclip-path:url(%23SVGID_2_);fill:url(%23SVGID_3_);%7D .st1%7Bopacity:0.3;%7D .st2%7Bclip-path:url(%23SVGID_5_);fill:url(%23SVGID_6_);%7D .st3%7Bfill:%23404041;%7D .st4%7Bfill:%23F79837;%7D%0A%3C/style%3E%3C/defs%3E%3Cg style='' transform='matrix(2.838946, 0, 0, 2.807126, -44.534363, -578.343384)'%3E%3Cg%3E%3Cdefs%3E%3Cpath id='SVGID_1_' d='M199.5,412.7l-0.2-0.5l-0.5-1l-11.7-31.5c11.1,5.1,21.4,11.8,30.7,20.1l0,0c1.2,0.9,2.2,2.2,3,3.7 c0.9,1.7,1.4,3.5,1.4,5.5c0,6.4-5.2,11.6-11.6,11.6C205.5,420.6,201.1,417.4,199.5,412.7 M103.3,229.6c1.5-4.1,4.9-6.9,8.7-7 c0,0,0.1,0,0.1,0c3.8,0.2,7.2,2.9,8.7,7l48.3,132.6c-10.7-2.7-21.7-4.1-32.9-4.1c-23.5,0-46.7,6.2-66.9,18 c-9.8,5.7-18.8,12.7-26.9,20.6L103.3,229.6z M110.9,212c-7.8,0.6-14.7,6-17.6,14L21,424.5c-1,2.8,0.4,5.8,3.2,6.8 c0.6,0.2,1.2,0.3,1.8,0.3c1.7,0,3.3-0.8,4.3-2.2c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.8-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.9,0,25.6,2,37.6,5.9l15.3,41.1l0.5,0.9c3.2,8.8,11.5,14.7,20.9,14.7c12.3,0,22.2-10,22.2-22.2 c0-3.6-0.9-7.3-2.6-10.5c-0.7-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6l-1.1-2.8l-0.1,0 L130.8,226c-2.9-7.9-9.7-13.3-17.6-14c-0.3,0-0.6-0.1-0.9-0.1c-0.1,0-0.2,0-0.2,0c-0.1,0-0.2,0-0.2,0 C111.5,211.9,111.2,212,110.9,212'/%3E%3C/defs%3E%3CclipPath id='SVGID_2_'%3E%3Cpath d='M199.5,412.7l-0.2-0.5l-0.5-1l-11.7-31.5c11.1,5.1,21.4,11.8,30.7,20.1l0,0c1.2,0.9,2.2,2.2,3,3.7 c0.9,1.7,1.4,3.5,1.4,5.5c0,6.4-5.2,11.6-11.6,11.6C205.5,420.6,201.1,417.4,199.5,412.7 M103.3,229.6c1.5-4.1,4.9-6.9,8.7-7 c0,0,0.1,0,0.1,0c3.8,0.2,7.2,2.9,8.7,7l48.3,132.6c-10.7-2.7-21.7-4.1-32.9-4.1c-23.5,0-46.7,6.2-66.9,18 c-9.8,5.7-18.8,12.7-26.9,20.6L103.3,229.6z M110.9,212c-7.8,0.6-14.7,6-17.6,14L21,424.5c-1,2.8,0.4,5.8,3.2,6.8 c0.6,0.2,1.2,0.3,1.8,0.3c1.7,0,3.3-0.8,4.3-2.2c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.8-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.9,0,25.6,2,37.6,5.9l15.3,41.1l0.5,0.9c3.2,8.8,11.5,14.7,20.9,14.7c12.3,0,22.2-10,22.2-22.2 c0-3.6-0.9-7.3-2.6-10.5c-0.7-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6l-1.1-2.8l-0.1,0 L130.8,226c-2.9-7.9-9.7-13.3-17.6-14c-0.3,0-0.6-0.1-0.9-0.1c-0.1,0-0.2,0-0.2,0c-0.1,0-0.2,0-0.2,0 C111.5,211.9,111.2,212,110.9,212' transform='matrix(1, 0, 0, 1, 0, 0)' style='overflow: visible;'/%3E%3C/clipPath%3E%3ClinearGradient id='SVGID_3_' gradientUnits='userSpaceOnUse' x1='-4.938' y1='743.0203' x2='1.9792' y2='743.0203' gradientTransform='matrix(30.658 0 0 -30.658 172.0803 23101.3418)'%3E%3Cstop offset='0' style='stop-color:%23FFDD15'/%3E%3Cstop offset='0.0343' style='stop-color:%23FED217'/%3E%3Cstop offset='0.1663' style='stop-color:%23FAAD1C'/%3E%3Cstop offset='0.3049' style='stop-color:%23F68F20'/%3E%3Cstop offset='0.45' style='stop-color:%23F37824'/%3E%3Cstop offset='0.6045' style='stop-color:%23F16726'/%3E%3Cstop offset='0.7747' style='stop-color:%23F05D28'/%3E%3Cstop offset='0.991' style='stop-color:%23F05A28'/%3E%3Cstop offset='1' style='stop-color:%23F05A28'/%3E%3C/linearGradient%3E%3Crect x='20' y='211.9' class='st0' width='212.8' height='219.7'/%3E%3C/g%3E%3Cg%3E%3Cg class='st1'%3E%3Cg%3E%3Cg%3E%3Cdefs%3E%3Cpath id='SVGID_4_' d='M187.3,380.3c11.1,5.1,21.4,11.8,30.7,20l0,0c1.2,1,2.2,2.2,3,3.7c0.9,1.7,1.4,3.5,1.4,5.5H233 c0-3.6-0.9-7.3-2.6-10.5c-0.6-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6L187.3,380.3z M69.5,376.7c-9.8,5.7-18.8,12.7-26.9,20.6l-12.2,32.8c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.9-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.1,0,25.1,1.9,37.6,5.9l-4.7-12.4c-10.7-2.7-21.7-4.1-32.9-4.1 C112.9,358.7,89.8,364.9,69.5,376.7'/%3E%3C/defs%3E%3CclipPath id='SVGID_5_'%3E%3Cpath d='M187.3,380.3c11.1,5.1,21.4,11.8,30.7,20l0,0c1.2,1,2.2,2.2,3,3.7c0.9,1.7,1.4,3.5,1.4,5.5H233 c0-3.6-0.9-7.3-2.6-10.5c-0.6-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6L187.3,380.3z M69.5,376.7c-9.8,5.7-18.8,12.7-26.9,20.6l-12.2,32.8c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.9-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.1,0,25.1,1.9,37.6,5.9l-4.7-12.4c-10.7-2.7-21.7-4.1-32.9-4.1 C112.9,358.7,89.8,364.9,69.5,376.7' transform='matrix(1, 0, 0, 1, 0, 0)' style='overflow: visible;'/%3E%3C/clipPath%3E%3ClinearGradient id='SVGID_6_' gradientUnits='userSpaceOnUse' x1='-5.4042' y1='741.473' x2='1.5131' y2='741.473' gradientTransform='matrix(29.2748 0 0 -29.2748 188.7152 22100.8477)'%3E%3Cstop offset='0' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='0.3285' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='0.3745' style='stop-color:%23FBFBFB'/%3E%3Cstop offset='0.4233' style='stop-color:%23EEEEEE'/%3E%3Cstop offset='0.4735' style='stop-color:%23D9D9D9'/%3E%3Cstop offset='0.5246' style='stop-color:%23BCBBBB'/%3E%3Cstop offset='0.5764' style='stop-color:%23969595'/%3E%3Cstop offset='0.6288' style='stop-color:%23686666'/%3E%3Cstop offset='0.6808' style='stop-color:%23332F30'/%3E%3Cstop offset='0.6948' style='stop-color:%23231F20'/%3E%3Cstop offset='0.9301' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='1' style='stop-color:%23FFFFFF'/%3E%3C/linearGradient%3E%3Crect x='30.5' y='358.7' class='st2' width='18' height='18'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/g%3E%3Cg/%3E%3C/g%3E%3C/svg%3E"
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.4"
+    },
+    "groups": [
+      {
+        "id": "operation",
+        "label": "Operation"
+      },
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "configuration",
+        "label": "Configuration"
+      },
+      {
+        "id": "input",
+        "label": "Input"
+      },
+      {
+        "id": "output",
+        "label": "Output"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:http-json:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Operation type",
+        "id": "operationType",
+        "group": "operation",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Add work item to the queue",
+            "value": "addWorkItemsToTheQueue"
+          },
+          {
+            "name": "Get work item result from queue by ID",
+            "value": "listWorkItemsInQueue"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operationType"
+        }
+      },
+      {
+        "label": "Control room URL",
+        "group": "configuration",
+        "feel": "optional",
+        "description": "Automation Anywhere control room URL. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "controlRoomURL"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(https?://|secrets\\..+|\\{\\{secrets\\..+\\}\\}).*$)",
+            "message": "Must be a http(s) URL"
+          }
+        }
+      },
+      {
+        "label": "Type",
+        "id": "authenticationType",
+        "group": "authentication",
+        "description": "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "value": "userNamePasswordAuth",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Authenticate (username and password)",
+            "value": "userNamePasswordAuth"
+          },
+          {
+            "name": "Authenticate (username and API key)",
+            "value": "userNameApiKeyAuth"
+          },
+          {
+            "name": "Authentication (refresh) token",
+            "value": "tokenAuth"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.withoutBindingType"
+        }
+      },
+      {
+        "id": "credentialsInBodyAuthType",
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "credentialsInBody",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "noAuth",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "id": "tokenAuthType",
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "noAuth",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["tokenAuth"]
+        }
+      },
+      {
+        "description": "method for authentication",
+        "type": "Hidden",
+        "value": "post",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.method"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "label": "Username",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.username"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "label": "Password",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.password"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNamePasswordAuth"
+        }
+      },
+      {
+        "label": "API key",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.apiKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNameApiKeyAuth"
+        }
+      },
+      {
+        "label": "Multiple login",
+        "group": "authentication",
+        "description": "For more information on multi-login, see <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "type": "Dropdown",
+        "value": "false",
+        "choices": [
+          {
+            "name": "TRUE",
+            "value": "true"
+          },
+          {
+            "name": "FALSE",
+            "value": "false"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.multipleLogin"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNamePasswordAuth"
+        }
+      },
+      {
+        "label": "Token",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "token"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "tokenAuth"
+        }
+      },
+      {
+        "description": "Token",
+        "type": "Hidden",
+        "value": "={\"X-Authorization\":token}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "headers"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "tokenAuth"
+        }
+      },
+      {
+        "description": "Output headers",
+        "type": "Hidden",
+        "value": "={\"X-Authorization\":\"asObject:token.asString\"}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.outputHeaders"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "description": "Full authentication url",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v1/authentication\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "description": "method for request",
+        "type": "Hidden",
+        "value": "post",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "method"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue", "listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Work queue ID",
+        "group": "input",
+        "description": "The queue ID of the item",
+        "type": "String",
+        "optional": false,
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "queueId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue", "listWorkItemsInQueue"]
+        }
+      },
+      {
+        "description": "Add work items to the queue",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v3/wlm/queues/\"+queueId+\"/workitems\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "Work item ID",
+        "description": "The queue item identifier to be fetched from queue",
+        "group": "input",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "workItemId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Work item json data",
+        "description": "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "group": "input",
+        "type": "String",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "itemData"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "description": "body with a new work item",
+        "type": "Hidden",
+        "optional": false,
+        "value": "={\"workItems\":[{\"json\":itemData}]}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "body"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "filter for getting item by id",
+        "type": "Hidden",
+        "optional": false,
+        "value": "={\"filter\":{\"operator\":\"eq\",\"value\":workItemId,\"field\":\"id\"}}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "body"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "description": "List work items in queue",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v3/wlm/queues/\"+queueId+\"/workitems/list\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Connection timeout",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "group": "errors",
+        "type": "String",
+        "value": "20",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "connectionTimeoutInSeconds"
+        },
+        "optional": true,
+        "feel": "optional",
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=|([0-9]+|secrets\\..+|\\{\\{secrets\\..+\\}\\})$)",
+            "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+          }
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "id": "resultExpressionGetItemState",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "feel": "required",
+        "value": "={itemState:response.body.list[1].status}",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Result expression",
+        "id": "resultExpressionGetItemId",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "feel": "required",
+        "value": "={itemId:response.body.list[1].id}",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ]
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Automation Anywhere connector",
+    "id": "io.camunda.connectors.AutomationAnywhere.v1",
+    "version": 2,
+    "description": "[Deprecated] Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",
+    "deprecated": {
+      "message": "This version of the connector will no longer be supported in the future. You can find a new supported version in the marketplace",
+      "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/camunda-marketplace"
+    },
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3Csvg viewBox='0 0 652 652' style='enable-background:new 0 0 652 652;' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cstyle type='text/css'%3E .st0%7Bclip-path:url(%23SVGID_2_);fill:url(%23SVGID_3_);%7D .st1%7Bopacity:0.3;%7D .st2%7Bclip-path:url(%23SVGID_5_);fill:url(%23SVGID_6_);%7D .st3%7Bfill:%23404041;%7D .st4%7Bfill:%23F79837;%7D%0A%3C/style%3E%3C/defs%3E%3Cg style='' transform='matrix(2.838946, 0, 0, 2.807126, -44.534363, -578.343384)'%3E%3Cg%3E%3Cdefs%3E%3Cpath id='SVGID_1_' d='M199.5,412.7l-0.2-0.5l-0.5-1l-11.7-31.5c11.1,5.1,21.4,11.8,30.7,20.1l0,0c1.2,0.9,2.2,2.2,3,3.7 c0.9,1.7,1.4,3.5,1.4,5.5c0,6.4-5.2,11.6-11.6,11.6C205.5,420.6,201.1,417.4,199.5,412.7 M103.3,229.6c1.5-4.1,4.9-6.9,8.7-7 c0,0,0.1,0,0.1,0c3.8,0.2,7.2,2.9,8.7,7l48.3,132.6c-10.7-2.7-21.7-4.1-32.9-4.1c-23.5,0-46.7,6.2-66.9,18 c-9.8,5.7-18.8,12.7-26.9,20.6L103.3,229.6z M110.9,212c-7.8,0.6-14.7,6-17.6,14L21,424.5c-1,2.8,0.4,5.8,3.2,6.8 c0.6,0.2,1.2,0.3,1.8,0.3c1.7,0,3.3-0.8,4.3-2.2c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.8-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.9,0,25.6,2,37.6,5.9l15.3,41.1l0.5,0.9c3.2,8.8,11.5,14.7,20.9,14.7c12.3,0,22.2-10,22.2-22.2 c0-3.6-0.9-7.3-2.6-10.5c-0.7-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6l-1.1-2.8l-0.1,0 L130.8,226c-2.9-7.9-9.7-13.3-17.6-14c-0.3,0-0.6-0.1-0.9-0.1c-0.1,0-0.2,0-0.2,0c-0.1,0-0.2,0-0.2,0 C111.5,211.9,111.2,212,110.9,212'/%3E%3C/defs%3E%3CclipPath id='SVGID_2_'%3E%3Cpath d='M199.5,412.7l-0.2-0.5l-0.5-1l-11.7-31.5c11.1,5.1,21.4,11.8,30.7,20.1l0,0c1.2,0.9,2.2,2.2,3,3.7 c0.9,1.7,1.4,3.5,1.4,5.5c0,6.4-5.2,11.6-11.6,11.6C205.5,420.6,201.1,417.4,199.5,412.7 M103.3,229.6c1.5-4.1,4.9-6.9,8.7-7 c0,0,0.1,0,0.1,0c3.8,0.2,7.2,2.9,8.7,7l48.3,132.6c-10.7-2.7-21.7-4.1-32.9-4.1c-23.5,0-46.7,6.2-66.9,18 c-9.8,5.7-18.8,12.7-26.9,20.6L103.3,229.6z M110.9,212c-7.8,0.6-14.7,6-17.6,14L21,424.5c-1,2.8,0.4,5.8,3.2,6.8 c0.6,0.2,1.2,0.3,1.8,0.3c1.7,0,3.3-0.8,4.3-2.2c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.8-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.9,0,25.6,2,37.6,5.9l15.3,41.1l0.5,0.9c3.2,8.8,11.5,14.7,20.9,14.7c12.3,0,22.2-10,22.2-22.2 c0-3.6-0.9-7.3-2.6-10.5c-0.7-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6l-1.1-2.8l-0.1,0 L130.8,226c-2.9-7.9-9.7-13.3-17.6-14c-0.3,0-0.6-0.1-0.9-0.1c-0.1,0-0.2,0-0.2,0c-0.1,0-0.2,0-0.2,0 C111.5,211.9,111.2,212,110.9,212' transform='matrix(1, 0, 0, 1, 0, 0)' style='overflow: visible;'/%3E%3C/clipPath%3E%3ClinearGradient id='SVGID_3_' gradientUnits='userSpaceOnUse' x1='-4.938' y1='743.0203' x2='1.9792' y2='743.0203' gradientTransform='matrix(30.658 0 0 -30.658 172.0803 23101.3418)'%3E%3Cstop offset='0' style='stop-color:%23FFDD15'/%3E%3Cstop offset='0.0343' style='stop-color:%23FED217'/%3E%3Cstop offset='0.1663' style='stop-color:%23FAAD1C'/%3E%3Cstop offset='0.3049' style='stop-color:%23F68F20'/%3E%3Cstop offset='0.45' style='stop-color:%23F37824'/%3E%3Cstop offset='0.6045' style='stop-color:%23F16726'/%3E%3Cstop offset='0.7747' style='stop-color:%23F05D28'/%3E%3Cstop offset='0.991' style='stop-color:%23F05A28'/%3E%3Cstop offset='1' style='stop-color:%23F05A28'/%3E%3C/linearGradient%3E%3Crect x='20' y='211.9' class='st0' width='212.8' height='219.7'/%3E%3C/g%3E%3Cg%3E%3Cg class='st1'%3E%3Cg%3E%3Cg%3E%3Cdefs%3E%3Cpath id='SVGID_4_' d='M187.3,380.3c11.1,5.1,21.4,11.8,30.7,20l0,0c1.2,1,2.2,2.2,3,3.7c0.9,1.7,1.4,3.5,1.4,5.5H233 c0-3.6-0.9-7.3-2.6-10.5c-0.6-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6L187.3,380.3z M69.5,376.7c-9.8,5.7-18.8,12.7-26.9,20.6l-12.2,32.8c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.9-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.1,0,25.1,1.9,37.6,5.9l-4.7-12.4c-10.7-2.7-21.7-4.1-32.9-4.1 C112.9,358.7,89.8,364.9,69.5,376.7'/%3E%3C/defs%3E%3CclipPath id='SVGID_5_'%3E%3Cpath d='M187.3,380.3c11.1,5.1,21.4,11.8,30.7,20l0,0c1.2,1,2.2,2.2,3,3.7c0.9,1.7,1.4,3.5,1.4,5.5H233 c0-3.6-0.9-7.3-2.6-10.5c-0.6-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6L187.3,380.3z M69.5,376.7c-9.8,5.7-18.8,12.7-26.9,20.6l-12.2,32.8c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.9-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.1,0,25.1,1.9,37.6,5.9l-4.7-12.4c-10.7-2.7-21.7-4.1-32.9-4.1 C112.9,358.7,89.8,364.9,69.5,376.7' transform='matrix(1, 0, 0, 1, 0, 0)' style='overflow: visible;'/%3E%3C/clipPath%3E%3ClinearGradient id='SVGID_6_' gradientUnits='userSpaceOnUse' x1='-5.4042' y1='741.473' x2='1.5131' y2='741.473' gradientTransform='matrix(29.2748 0 0 -29.2748 188.7152 22100.8477)'%3E%3Cstop offset='0' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='0.3285' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='0.3745' style='stop-color:%23FBFBFB'/%3E%3Cstop offset='0.4233' style='stop-color:%23EEEEEE'/%3E%3Cstop offset='0.4735' style='stop-color:%23D9D9D9'/%3E%3Cstop offset='0.5246' style='stop-color:%23BCBBBB'/%3E%3Cstop offset='0.5764' style='stop-color:%23969595'/%3E%3Cstop offset='0.6288' style='stop-color:%23686666'/%3E%3Cstop offset='0.6808' style='stop-color:%23332F30'/%3E%3Cstop offset='0.6948' style='stop-color:%23231F20'/%3E%3Cstop offset='0.9301' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='1' style='stop-color:%23FFFFFF'/%3E%3C/linearGradient%3E%3Crect x='30.5' y='358.7' class='st2' width='18' height='18'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/g%3E%3Cg/%3E%3C/g%3E%3C/svg%3E"
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.2"
+    },
+    "groups": [
+      {
+        "id": "operation",
+        "label": "Operation"
+      },
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "configuration",
+        "label": "Configuration"
+      },
+      {
+        "id": "input",
+        "label": "Input"
+      },
+      {
+        "id": "output",
+        "label": "Output"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:http-json:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Operation type",
+        "id": "operationType",
+        "group": "operation",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Add work item to the queue",
+            "value": "addWorkItemsToTheQueue"
+          },
+          {
+            "name": "Get work item result from queue by ID",
+            "value": "listWorkItemsInQueue"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operationType"
+        }
+      },
+      {
+        "label": "Control room URL",
+        "group": "configuration",
+        "feel": "optional",
+        "description": "Automation Anywhere control room URL. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "controlRoomURL"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(https?://|secrets\\..+|\\{\\{secrets\\..+\\}\\}).*$)",
+            "message": "Must be a http(s) URL"
+          }
+        }
+      },
+      {
+        "label": "Type",
+        "id": "authenticationType",
+        "group": "authentication",
+        "description": "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "value": "userNamePasswordAuth",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Authenticate (username and password)",
+            "value": "userNamePasswordAuth"
+          },
+          {
+            "name": "Authenticate (username and API key)",
+            "value": "userNameApiKeyAuth"
+          },
+          {
+            "name": "Authentication (refresh) token",
+            "value": "tokenAuth"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.withoutBindingType"
+        }
+      },
+      {
+        "id": "credentialsInBodyAuthType",
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "credentialsInBody",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "noAuth",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "id": "tokenAuthType",
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "noAuth",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["tokenAuth"]
+        }
+      },
+      {
+        "description": "method for authentication",
+        "type": "Hidden",
+        "value": "post",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.method"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "label": "Username",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.username"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "label": "Password",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.password"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNamePasswordAuth"
+        }
+      },
+      {
+        "label": "API key",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.apiKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNameApiKeyAuth"
+        }
+      },
+      {
+        "label": "Multiple login",
+        "group": "authentication",
+        "description": "For more information on multi-login, see <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "type": "Dropdown",
+        "value": "false",
+        "choices": [
+          {
+            "name": "TRUE",
+            "value": "true"
+          },
+          {
+            "name": "FALSE",
+            "value": "false"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.multipleLogin"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNamePasswordAuth"
+        }
+      },
+      {
+        "label": "Token",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "token"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "tokenAuth"
+        }
+      },
+      {
+        "description": "Token",
+        "type": "Hidden",
+        "value": "={\"X-Authorization\":token}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "headers"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "tokenAuth"
+        }
+      },
+      {
+        "description": "Output headers",
+        "type": "Hidden",
+        "value": "={\"X-Authorization\":\"asObject:token.asString\"}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.outputHeaders"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "description": "Full authentication url",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v1/authentication\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "description": "method for request",
+        "type": "Hidden",
+        "value": "post",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "method"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue", "listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Work queue ID",
+        "group": "input",
+        "description": "The queue ID of the item",
+        "type": "String",
+        "optional": false,
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "queueId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue", "listWorkItemsInQueue"]
+        }
+      },
+      {
+        "description": "Add work items to the queue",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v3/wlm/queues/\"+queueId+\"/workitems\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "Work item ID",
+        "description": "The queue item identifier to be fetched from queue",
+        "group": "input",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "workItemId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Work item json data",
+        "description": "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "group": "input",
+        "type": "String",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "itemData"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "description": "body with a new work item",
+        "type": "Hidden",
+        "optional": false,
+        "value": "={\"workItems\":[{\"json\":itemData}]}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "body"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "filter for getting item by id",
+        "type": "Hidden",
+        "optional": false,
+        "value": "={\"filter\":{\"operator\":\"eq\",\"value\":workItemId,\"field\":\"id\"}}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "body"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "description": "List work items in queue",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v3/wlm/queues/\"+queueId+\"/workitems/list\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Connection timeout",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "group": "errors",
+        "type": "String",
+        "value": "20",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "connectionTimeoutInSeconds"
+        },
+        "optional": true,
+        "feel": "optional",
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=|([0-9]+|secrets\\..+|\\{\\{secrets\\..+\\}\\})$)",
+            "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+          }
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "id": "resultExpressionGetItemState",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "feel": "required",
+        "value": "={itemState:response.body.list[1].status}",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Result expression",
+        "id": "resultExpressionGetItemId",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "feel": "required",
+        "value": "={itemId:response.body.list[1].id}",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ]
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Automation Anywhere Outbound Connector",
+    "id": "io.camunda.connectors.AutomationAnywhere.v1",
+    "version": 3,
+    "description": "[Deprecated] Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",
+    "deprecated": {
+      "message": "This version of the connector will no longer be supported in the future. You can find a new supported version in the marketplace",
+      "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/camunda-marketplace"
+    },
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3Csvg viewBox='0 0 652 652' style='enable-background:new 0 0 652 652;' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cstyle type='text/css'%3E .st0%7Bclip-path:url(%23SVGID_2_);fill:url(%23SVGID_3_);%7D .st1%7Bopacity:0.3;%7D .st2%7Bclip-path:url(%23SVGID_5_);fill:url(%23SVGID_6_);%7D .st3%7Bfill:%23404041;%7D .st4%7Bfill:%23F79837;%7D%0A%3C/style%3E%3C/defs%3E%3Cg style='' transform='matrix(2.838946, 0, 0, 2.807126, -44.534363, -578.343384)'%3E%3Cg%3E%3Cdefs%3E%3Cpath id='SVGID_1_' d='M199.5,412.7l-0.2-0.5l-0.5-1l-11.7-31.5c11.1,5.1,21.4,11.8,30.7,20.1l0,0c1.2,0.9,2.2,2.2,3,3.7 c0.9,1.7,1.4,3.5,1.4,5.5c0,6.4-5.2,11.6-11.6,11.6C205.5,420.6,201.1,417.4,199.5,412.7 M103.3,229.6c1.5-4.1,4.9-6.9,8.7-7 c0,0,0.1,0,0.1,0c3.8,0.2,7.2,2.9,8.7,7l48.3,132.6c-10.7-2.7-21.7-4.1-32.9-4.1c-23.5,0-46.7,6.2-66.9,18 c-9.8,5.7-18.8,12.7-26.9,20.6L103.3,229.6z M110.9,212c-7.8,0.6-14.7,6-17.6,14L21,424.5c-1,2.8,0.4,5.8,3.2,6.8 c0.6,0.2,1.2,0.3,1.8,0.3c1.7,0,3.3-0.8,4.3-2.2c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.8-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.9,0,25.6,2,37.6,5.9l15.3,41.1l0.5,0.9c3.2,8.8,11.5,14.7,20.9,14.7c12.3,0,22.2-10,22.2-22.2 c0-3.6-0.9-7.3-2.6-10.5c-0.7-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6l-1.1-2.8l-0.1,0 L130.8,226c-2.9-7.9-9.7-13.3-17.6-14c-0.3,0-0.6-0.1-0.9-0.1c-0.1,0-0.2,0-0.2,0c-0.1,0-0.2,0-0.2,0 C111.5,211.9,111.2,212,110.9,212'/%3E%3C/defs%3E%3CclipPath id='SVGID_2_'%3E%3Cpath d='M199.5,412.7l-0.2-0.5l-0.5-1l-11.7-31.5c11.1,5.1,21.4,11.8,30.7,20.1l0,0c1.2,0.9,2.2,2.2,3,3.7 c0.9,1.7,1.4,3.5,1.4,5.5c0,6.4-5.2,11.6-11.6,11.6C205.5,420.6,201.1,417.4,199.5,412.7 M103.3,229.6c1.5-4.1,4.9-6.9,8.7-7 c0,0,0.1,0,0.1,0c3.8,0.2,7.2,2.9,8.7,7l48.3,132.6c-10.7-2.7-21.7-4.1-32.9-4.1c-23.5,0-46.7,6.2-66.9,18 c-9.8,5.7-18.8,12.7-26.9,20.6L103.3,229.6z M110.9,212c-7.8,0.6-14.7,6-17.6,14L21,424.5c-1,2.8,0.4,5.8,3.2,6.8 c0.6,0.2,1.2,0.3,1.8,0.3c1.7,0,3.3-0.8,4.3-2.2c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.8-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.9,0,25.6,2,37.6,5.9l15.3,41.1l0.5,0.9c3.2,8.8,11.5,14.7,20.9,14.7c12.3,0,22.2-10,22.2-22.2 c0-3.6-0.9-7.3-2.6-10.5c-0.7-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6l-1.1-2.8l-0.1,0 L130.8,226c-2.9-7.9-9.7-13.3-17.6-14c-0.3,0-0.6-0.1-0.9-0.1c-0.1,0-0.2,0-0.2,0c-0.1,0-0.2,0-0.2,0 C111.5,211.9,111.2,212,110.9,212' transform='matrix(1, 0, 0, 1, 0, 0)' style='overflow: visible;'/%3E%3C/clipPath%3E%3ClinearGradient id='SVGID_3_' gradientUnits='userSpaceOnUse' x1='-4.938' y1='743.0203' x2='1.9792' y2='743.0203' gradientTransform='matrix(30.658 0 0 -30.658 172.0803 23101.3418)'%3E%3Cstop offset='0' style='stop-color:%23FFDD15'/%3E%3Cstop offset='0.0343' style='stop-color:%23FED217'/%3E%3Cstop offset='0.1663' style='stop-color:%23FAAD1C'/%3E%3Cstop offset='0.3049' style='stop-color:%23F68F20'/%3E%3Cstop offset='0.45' style='stop-color:%23F37824'/%3E%3Cstop offset='0.6045' style='stop-color:%23F16726'/%3E%3Cstop offset='0.7747' style='stop-color:%23F05D28'/%3E%3Cstop offset='0.991' style='stop-color:%23F05A28'/%3E%3Cstop offset='1' style='stop-color:%23F05A28'/%3E%3C/linearGradient%3E%3Crect x='20' y='211.9' class='st0' width='212.8' height='219.7'/%3E%3C/g%3E%3Cg%3E%3Cg class='st1'%3E%3Cg%3E%3Cg%3E%3Cdefs%3E%3Cpath id='SVGID_4_' d='M187.3,380.3c11.1,5.1,21.4,11.8,30.7,20l0,0c1.2,1,2.2,2.2,3,3.7c0.9,1.7,1.4,3.5,1.4,5.5H233 c0-3.6-0.9-7.3-2.6-10.5c-0.6-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6L187.3,380.3z M69.5,376.7c-9.8,5.7-18.8,12.7-26.9,20.6l-12.2,32.8c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.9-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.1,0,25.1,1.9,37.6,5.9l-4.7-12.4c-10.7-2.7-21.7-4.1-32.9-4.1 C112.9,358.7,89.8,364.9,69.5,376.7'/%3E%3C/defs%3E%3CclipPath id='SVGID_5_'%3E%3Cpath d='M187.3,380.3c11.1,5.1,21.4,11.8,30.7,20l0,0c1.2,1,2.2,2.2,3,3.7c0.9,1.7,1.4,3.5,1.4,5.5H233 c0-3.6-0.9-7.3-2.6-10.5c-0.6-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6L187.3,380.3z M69.5,376.7c-9.8,5.7-18.8,12.7-26.9,20.6l-12.2,32.8c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.9-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.1,0,25.1,1.9,37.6,5.9l-4.7-12.4c-10.7-2.7-21.7-4.1-32.9-4.1 C112.9,358.7,89.8,364.9,69.5,376.7' transform='matrix(1, 0, 0, 1, 0, 0)' style='overflow: visible;'/%3E%3C/clipPath%3E%3ClinearGradient id='SVGID_6_' gradientUnits='userSpaceOnUse' x1='-5.4042' y1='741.473' x2='1.5131' y2='741.473' gradientTransform='matrix(29.2748 0 0 -29.2748 188.7152 22100.8477)'%3E%3Cstop offset='0' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='0.3285' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='0.3745' style='stop-color:%23FBFBFB'/%3E%3Cstop offset='0.4233' style='stop-color:%23EEEEEE'/%3E%3Cstop offset='0.4735' style='stop-color:%23D9D9D9'/%3E%3Cstop offset='0.5246' style='stop-color:%23BCBBBB'/%3E%3Cstop offset='0.5764' style='stop-color:%23969595'/%3E%3Cstop offset='0.6288' style='stop-color:%23686666'/%3E%3Cstop offset='0.6808' style='stop-color:%23332F30'/%3E%3Cstop offset='0.6948' style='stop-color:%23231F20'/%3E%3Cstop offset='0.9301' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='1' style='stop-color:%23FFFFFF'/%3E%3C/linearGradient%3E%3Crect x='30.5' y='358.7' class='st2' width='18' height='18'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/g%3E%3Cg/%3E%3C/g%3E%3C/svg%3E"
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.2"
+    },
+    "groups": [
+      {
+        "id": "operation",
+        "label": "Operation"
+      },
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "configuration",
+        "label": "Configuration"
+      },
+      {
+        "id": "input",
+        "label": "Input"
+      },
+      {
+        "id": "output",
+        "label": "Output"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:http-json:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Operation type",
+        "id": "operationType",
+        "group": "operation",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Add work item to the queue",
+            "value": "addWorkItemsToTheQueue"
+          },
+          {
+            "name": "Get work item result from queue by ID",
+            "value": "listWorkItemsInQueue"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operationType"
+        }
+      },
+      {
+        "label": "Control room URL",
+        "group": "configuration",
+        "feel": "optional",
+        "description": "Automation Anywhere control room URL. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "controlRoomURL"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(https?://|secrets\\..+|\\{\\{secrets\\..+\\}\\}).*$)",
+            "message": "Must be a http(s) URL"
+          }
+        }
+      },
+      {
+        "label": "Type",
+        "id": "authenticationType",
+        "group": "authentication",
+        "description": "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "value": "userNamePasswordAuth",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Authenticate (username and password)",
+            "value": "userNamePasswordAuth"
+          },
+          {
+            "name": "Authenticate (username and API key)",
+            "value": "userNameApiKeyAuth"
+          },
+          {
+            "name": "Authentication (refresh) token",
+            "value": "tokenAuth"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.withoutBindingType"
+        }
+      },
+      {
+        "id": "credentialsInBodyAuthType",
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "credentialsInBody",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "noAuth",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "id": "tokenAuthType",
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "noAuth",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["tokenAuth"]
+        }
+      },
+      {
+        "description": "method for authentication",
+        "type": "Hidden",
+        "value": "post",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.method"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "label": "Username",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.username"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "label": "Password",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.password"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNamePasswordAuth"
+        }
+      },
+      {
+        "label": "API key",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.apiKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNameApiKeyAuth"
+        }
+      },
+      {
+        "label": "Multiple login",
+        "group": "authentication",
+        "description": "For more information on multi-login, see <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "type": "Dropdown",
+        "value": "false",
+        "choices": [
+          {
+            "name": "TRUE",
+            "value": "true"
+          },
+          {
+            "name": "FALSE",
+            "value": "false"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.multipleLogin"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNamePasswordAuth"
+        }
+      },
+      {
+        "label": "Token",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "token"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "tokenAuth"
+        }
+      },
+      {
+        "description": "Token",
+        "type": "Hidden",
+        "value": "={\"X-Authorization\":token}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "headers"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "tokenAuth"
+        }
+      },
+      {
+        "description": "Output headers",
+        "type": "Hidden",
+        "value": "={\"X-Authorization\":\"asObject:token.asString\"}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.outputHeaders"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "description": "Full authentication url",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v1/authentication\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "description": "method for request",
+        "type": "Hidden",
+        "value": "post",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "method"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue", "listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Work queue ID",
+        "group": "input",
+        "description": "The queue ID of the item",
+        "type": "String",
+        "optional": false,
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "queueId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue", "listWorkItemsInQueue"]
+        }
+      },
+      {
+        "description": "Add work items to the queue",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v3/wlm/queues/\"+queueId+\"/workitems\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "Work item ID",
+        "description": "The queue item identifier to be fetched from queue",
+        "group": "input",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "workItemId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Work item json data",
+        "description": "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "group": "input",
+        "type": "String",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "itemData"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "description": "body with a new work item",
+        "type": "Hidden",
+        "optional": false,
+        "value": "={\"workItems\":[{\"json\":itemData}]}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "body"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "filter for getting item by id",
+        "type": "Hidden",
+        "optional": false,
+        "value": "={\"filter\":{\"operator\":\"eq\",\"value\":workItemId,\"field\":\"id\"}}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "body"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "description": "List work items in queue",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v3/wlm/queues/\"+queueId+\"/workitems/list\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Connection timeout",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "group": "errors",
+        "type": "String",
+        "value": "20",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "connectionTimeoutInSeconds"
+        },
+        "optional": true,
+        "feel": "optional",
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=|([0-9]+|secrets\\..+|\\{\\{secrets\\..+\\}\\})$)",
+            "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+          }
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "id": "resultExpressionGetItemState",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "feel": "required",
+        "value": "={itemState:response.body.list[1].status}",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Result expression",
+        "id": "resultExpressionGetItemId",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "feel": "required",
+        "value": "={itemId:response.body.list[1].id}",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ]
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Automation Anywhere connector",
+    "id": "io.camunda.connectors.AutomationAnywhere.v1",
+    "version": 1,
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3Csvg viewBox='0 0 652 652' style='enable-background:new 0 0 652 652;' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cstyle type='text/css'%3E .st0%7Bclip-path:url(%23SVGID_2_);fill:url(%23SVGID_3_);%7D .st1%7Bopacity:0.3;%7D .st2%7Bclip-path:url(%23SVGID_5_);fill:url(%23SVGID_6_);%7D .st3%7Bfill:%23404041;%7D .st4%7Bfill:%23F79837;%7D%0A%3C/style%3E%3C/defs%3E%3Cg style='' transform='matrix(2.838946, 0, 0, 2.807126, -44.534363, -578.343384)'%3E%3Cg%3E%3Cdefs%3E%3Cpath id='SVGID_1_' d='M199.5,412.7l-0.2-0.5l-0.5-1l-11.7-31.5c11.1,5.1,21.4,11.8,30.7,20.1l0,0c1.2,0.9,2.2,2.2,3,3.7 c0.9,1.7,1.4,3.5,1.4,5.5c0,6.4-5.2,11.6-11.6,11.6C205.5,420.6,201.1,417.4,199.5,412.7 M103.3,229.6c1.5-4.1,4.9-6.9,8.7-7 c0,0,0.1,0,0.1,0c3.8,0.2,7.2,2.9,8.7,7l48.3,132.6c-10.7-2.7-21.7-4.1-32.9-4.1c-23.5,0-46.7,6.2-66.9,18 c-9.8,5.7-18.8,12.7-26.9,20.6L103.3,229.6z M110.9,212c-7.8,0.6-14.7,6-17.6,14L21,424.5c-1,2.8,0.4,5.8,3.2,6.8 c0.6,0.2,1.2,0.3,1.8,0.3c1.7,0,3.3-0.8,4.3-2.2c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.8-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.9,0,25.6,2,37.6,5.9l15.3,41.1l0.5,0.9c3.2,8.8,11.5,14.7,20.9,14.7c12.3,0,22.2-10,22.2-22.2 c0-3.6-0.9-7.3-2.6-10.5c-0.7-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6l-1.1-2.8l-0.1,0 L130.8,226c-2.9-7.9-9.7-13.3-17.6-14c-0.3,0-0.6-0.1-0.9-0.1c-0.1,0-0.2,0-0.2,0c-0.1,0-0.2,0-0.2,0 C111.5,211.9,111.2,212,110.9,212'/%3E%3C/defs%3E%3CclipPath id='SVGID_2_'%3E%3Cpath d='M199.5,412.7l-0.2-0.5l-0.5-1l-11.7-31.5c11.1,5.1,21.4,11.8,30.7,20.1l0,0c1.2,0.9,2.2,2.2,3,3.7 c0.9,1.7,1.4,3.5,1.4,5.5c0,6.4-5.2,11.6-11.6,11.6C205.5,420.6,201.1,417.4,199.5,412.7 M103.3,229.6c1.5-4.1,4.9-6.9,8.7-7 c0,0,0.1,0,0.1,0c3.8,0.2,7.2,2.9,8.7,7l48.3,132.6c-10.7-2.7-21.7-4.1-32.9-4.1c-23.5,0-46.7,6.2-66.9,18 c-9.8,5.7-18.8,12.7-26.9,20.6L103.3,229.6z M110.9,212c-7.8,0.6-14.7,6-17.6,14L21,424.5c-1,2.8,0.4,5.8,3.2,6.8 c0.6,0.2,1.2,0.3,1.8,0.3c1.7,0,3.3-0.8,4.3-2.2c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.8-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.9,0,25.6,2,37.6,5.9l15.3,41.1l0.5,0.9c3.2,8.8,11.5,14.7,20.9,14.7c12.3,0,22.2-10,22.2-22.2 c0-3.6-0.9-7.3-2.6-10.5c-0.7-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6l-1.1-2.8l-0.1,0 L130.8,226c-2.9-7.9-9.7-13.3-17.6-14c-0.3,0-0.6-0.1-0.9-0.1c-0.1,0-0.2,0-0.2,0c-0.1,0-0.2,0-0.2,0 C111.5,211.9,111.2,212,110.9,212' transform='matrix(1, 0, 0, 1, 0, 0)' style='overflow: visible;'/%3E%3C/clipPath%3E%3ClinearGradient id='SVGID_3_' gradientUnits='userSpaceOnUse' x1='-4.938' y1='743.0203' x2='1.9792' y2='743.0203' gradientTransform='matrix(30.658 0 0 -30.658 172.0803 23101.3418)'%3E%3Cstop offset='0' style='stop-color:%23FFDD15'/%3E%3Cstop offset='0.0343' style='stop-color:%23FED217'/%3E%3Cstop offset='0.1663' style='stop-color:%23FAAD1C'/%3E%3Cstop offset='0.3049' style='stop-color:%23F68F20'/%3E%3Cstop offset='0.45' style='stop-color:%23F37824'/%3E%3Cstop offset='0.6045' style='stop-color:%23F16726'/%3E%3Cstop offset='0.7747' style='stop-color:%23F05D28'/%3E%3Cstop offset='0.991' style='stop-color:%23F05A28'/%3E%3Cstop offset='1' style='stop-color:%23F05A28'/%3E%3C/linearGradient%3E%3Crect x='20' y='211.9' class='st0' width='212.8' height='219.7'/%3E%3C/g%3E%3Cg%3E%3Cg class='st1'%3E%3Cg%3E%3Cg%3E%3Cdefs%3E%3Cpath id='SVGID_4_' d='M187.3,380.3c11.1,5.1,21.4,11.8,30.7,20l0,0c1.2,1,2.2,2.2,3,3.7c0.9,1.7,1.4,3.5,1.4,5.5H233 c0-3.6-0.9-7.3-2.6-10.5c-0.6-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6L187.3,380.3z M69.5,376.7c-9.8,5.7-18.8,12.7-26.9,20.6l-12.2,32.8c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.9-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.1,0,25.1,1.9,37.6,5.9l-4.7-12.4c-10.7-2.7-21.7-4.1-32.9-4.1 C112.9,358.7,89.8,364.9,69.5,376.7'/%3E%3C/defs%3E%3CclipPath id='SVGID_5_'%3E%3Cpath d='M187.3,380.3c11.1,5.1,21.4,11.8,30.7,20l0,0c1.2,1,2.2,2.2,3,3.7c0.9,1.7,1.4,3.5,1.4,5.5H233 c0-3.6-0.9-7.3-2.6-10.5c-0.6-1.2-1.4-2.3-2.2-3.4c-0.3-0.5-0.6-1-1-1.4c-13.1-12.2-28.4-21.5-44.9-27.6L187.3,380.3z M69.5,376.7c-9.8,5.7-18.8,12.7-26.9,20.6l-12.2,32.8c0.2-0.2,0.3-0.4,0.5-0.7c10.7-18,25.9-33.1,43.9-43.6 c18.6-10.8,39.9-16.6,61.6-16.6c12.1,0,25.1,1.9,37.6,5.9l-4.7-12.4c-10.7-2.7-21.7-4.1-32.9-4.1 C112.9,358.7,89.8,364.9,69.5,376.7' transform='matrix(1, 0, 0, 1, 0, 0)' style='overflow: visible;'/%3E%3C/clipPath%3E%3ClinearGradient id='SVGID_6_' gradientUnits='userSpaceOnUse' x1='-5.4042' y1='741.473' x2='1.5131' y2='741.473' gradientTransform='matrix(29.2748 0 0 -29.2748 188.7152 22100.8477)'%3E%3Cstop offset='0' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='0.3285' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='0.3745' style='stop-color:%23FBFBFB'/%3E%3Cstop offset='0.4233' style='stop-color:%23EEEEEE'/%3E%3Cstop offset='0.4735' style='stop-color:%23D9D9D9'/%3E%3Cstop offset='0.5246' style='stop-color:%23BCBBBB'/%3E%3Cstop offset='0.5764' style='stop-color:%23969595'/%3E%3Cstop offset='0.6288' style='stop-color:%23686666'/%3E%3Cstop offset='0.6808' style='stop-color:%23332F30'/%3E%3Cstop offset='0.6948' style='stop-color:%23231F20'/%3E%3Cstop offset='0.9301' style='stop-color:%23FFFFFF'/%3E%3Cstop offset='1' style='stop-color:%23FFFFFF'/%3E%3C/linearGradient%3E%3Crect x='30.5' y='358.7' class='st2' width='18' height='18'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/g%3E%3Cg/%3E%3C/g%3E%3C/svg%3E"
+    },
+    "description": "[Deprecated] Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",
+    "deprecated": {
+      "message": "This version of the connector will no longer be supported in the future. You can find a new supported version in the marketplace",
+      "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/camunda-marketplace"
+    },
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.2"
+    },
+    "groups": [
+      {
+        "id": "operation",
+        "label": "Operation"
+      },
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "configuration",
+        "label": "Configuration"
+      },
+      {
+        "id": "input",
+        "label": "Input"
+      },
+      {
+        "id": "output",
+        "label": "Output"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:http-json:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "Operation type",
+        "id": "operationType",
+        "group": "operation",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Add work item to the queue",
+            "value": "addWorkItemsToTheQueue"
+          },
+          {
+            "name": "Get work item result from queue by ID",
+            "value": "listWorkItemsInQueue"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operationType"
+        }
+      },
+      {
+        "label": "Control room URL",
+        "group": "configuration",
+        "feel": "optional",
+        "description": "Automation Anywhere control room URL. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "controlRoomURL"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^(=|(http://|https://|secrets).*$)",
+            "message": "Must be a http(s) URL."
+          }
+        }
+      },
+      {
+        "label": "Type",
+        "id": "authenticationType",
+        "group": "authentication",
+        "description": "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "value": "userNamePasswordAuth",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Authenticate (username and password)",
+            "value": "userNamePasswordAuth"
+          },
+          {
+            "name": "Authenticate (username and API key)",
+            "value": "userNameApiKeyAuth"
+          },
+          {
+            "name": "Authentication (refresh) token",
+            "value": "tokenAuth"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.withoutBindingType"
+        }
+      },
+      {
+        "id": "credentialsInBodyAuthType",
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "credentialsInBody",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "noAuth",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "id": "tokenAuthType",
+        "group": "authentication",
+        "type": "Hidden",
+        "value": "noAuth",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["tokenAuth"]
+        }
+      },
+      {
+        "description": "method for authentication",
+        "type": "Hidden",
+        "value": "post",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.method"
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "label": "Username",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.username"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "label": "Password",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.password"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNamePasswordAuth"
+        }
+      },
+      {
+        "label": "API key",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.apiKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNameApiKeyAuth"
+        }
+      },
+      {
+        "label": "Multiple login",
+        "group": "authentication",
+        "description": "For more information on multi-login, see <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "type": "Dropdown",
+        "value": "false",
+        "choices": [
+          {
+            "name": "TRUE",
+            "value": "true"
+          },
+          {
+            "name": "FALSE",
+            "value": "false"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.body.multipleLogin"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "userNamePasswordAuth"
+        }
+      },
+      {
+        "label": "Token",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "token"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "tokenAuth"
+        }
+      },
+      {
+        "description": "Token",
+        "type": "Hidden",
+        "value": "={\"X-Authorization\":token}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "headers"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "tokenAuth"
+        }
+      },
+      {
+        "description": "Output headers",
+        "type": "Hidden",
+        "value": "={\"X-Authorization\":\"asObject:token.asString\"}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.outputHeaders"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "description": "Full authentication url",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v1/authentication\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.request.url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "oneOf": ["userNamePasswordAuth", "userNameApiKeyAuth"]
+        }
+      },
+      {
+        "description": "method for request",
+        "type": "Hidden",
+        "value": "post",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "method"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue", "listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Work queue ID",
+        "group": "input",
+        "description": "The queue ID of the item",
+        "type": "String",
+        "optional": false,
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "queueId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue", "listWorkItemsInQueue"]
+        }
+      },
+      {
+        "description": "Add work items to the queue",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v3/wlm/queues/\"+queueId+\"/workitems\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "Work item ID",
+        "description": "The queue item identifier to be fetched from queue",
+        "group": "input",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "workItemId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Work item json data",
+        "description": "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+        "group": "input",
+        "type": "String",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "itemData"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "description": "body with a new work item",
+        "type": "Hidden",
+        "optional": false,
+        "value": "={\"workItems\":[{\"json\":itemData}]}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "body"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "filter for getting item by id",
+        "type": "Hidden",
+        "optional": false,
+        "value": "={\"filter\":{\"operator\":\"eq\",\"value\":workItemId,\"field\":\"id\"}}",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "body"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "description": "List work items in queue",
+        "type": "Hidden",
+        "optional": false,
+        "value": "=controlRoomURL+\"/v3/wlm/queues/\"+queueId+\"/workitems/list\"",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "url"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Connection timeout",
+        "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+        "group": "errors",
+        "type": "String",
+        "value": "20",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "connectionTimeoutInSeconds"
+        },
+        "optional": true,
+        "feel": "optional",
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=|([0-9]+|secrets\\..+)$)",
+            "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+          }
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "id": "resultExpressionGetItemState",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "feel": "required",
+        "value": "={itemState:response.body.list[1].status}",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["listWorkItemsInQueue"]
+        }
+      },
+      {
+        "label": "Result expression",
+        "id": "resultExpressionGetItemId",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "feel": "required",
+        "value": "={itemId:response.body.list[1].id}",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["addWorkItemsToTheQueue"]
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ]
+  }
+]

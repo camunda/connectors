@@ -1,0 +1,1492 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "SendGrid Outbound Connector",
+    "id": "io.camunda.connectors.SendGrid.v2",
+    "description": "Send an email via SendGrid",
+    "metadata": {
+      "keywords": []
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
+    "version": 5,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.3"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "sender",
+        "label": "Sender"
+      },
+      {
+        "id": "receiver",
+        "label": "Receiver"
+      },
+      {
+        "id": "content",
+        "label": "Compose email"
+      },
+      {
+        "id": "connector",
+        "label": "Connector"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:sendgrid:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "apiKey",
+        "label": "SendGrid API key",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "apiKey",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "from.name",
+        "label": "Name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sender",
+        "binding": {
+          "name": "from.name",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "from.email",
+        "label": "Email address",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sender",
+        "binding": {
+          "name": "from.email",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "to.name",
+        "label": "Name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "receiver",
+        "binding": {
+          "name": "to.name",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "to.email",
+        "label": "Email address",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "receiver",
+        "binding": {
+          "name": "to.email",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "unMappedFieldNotUseInModel.mailType",
+        "label": "Mail contents",
+        "optional": false,
+        "group": "content",
+        "binding": {
+          "name": "unMappedFieldNotUseInModel.mailType",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple (no dynamic template)",
+            "value": "mail"
+          },
+          {
+            "name": "Using dynamic template",
+            "value": "byTemplate"
+          }
+        ]
+      },
+      {
+        "id": "template.id",
+        "label": "Template ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "template.id",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "byTemplate",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "template.data",
+        "label": "Template data",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "content",
+        "binding": {
+          "name": "template.data",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "byTemplate",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "content.subject",
+        "label": "Subject",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "content.subject",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "mail",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "content.type",
+        "label": "Content type",
+        "optional": false,
+        "value": "text/plain",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "content.type",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "mail",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "content.value",
+        "label": "Body",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "content.value",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "mail",
+          "type": "simple"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "attachments",
+        "label": "attachments",
+        "description": "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>",
+        "optional": true,
+        "feel": "required",
+        "group": "content",
+        "binding": {
+          "name": "attachments",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "version",
+        "label": "Version",
+        "description": "Version of the element template",
+        "value": "5",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateVersion",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "id",
+        "label": "ID",
+        "description": "ID of the element template",
+        "value": "io.camunda.connectors.SendGrid.v2",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateId",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxwYXRoIGQ9Ik0wLjI4NTcwNiA1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMUgwLjI4NTcwNlY1LjQwODQ3WiIgZmlsbD0id2hpdGUiLz4KICAgIDxwYXRoIGQ9Ik0wLjI4NTcwNiA1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMUgwLjI4NTcwNlY1LjQwODQ3WiIgZmlsbD0iIzk5RTFGNCIvPgogICAgPHBhdGggZD0iTTUuNDM4MzcgMTAuNTYxMUwxMC41NjExIDEwLjU2MTZWMTUuNjg0NEg1LjQzODM3VjEwLjU2MTFaIiBmaWxsPSJ3aGl0ZSIvPgogICAgPHBhdGggZD0iTTUuNDM4MzcgMTAuNTYxMUwxMC41NjExIDEwLjU2MTZWMTUuNjg0NEg1LjQzODM3VjEwLjU2MTFaIiBmaWxsPSIjOTlFMUY0Ii8+CiAgICA8cGF0aCBkPSJNMC4yODU3MDYgMTUuNjg0Nkw1LjQzODM3IDE1LjY4NDRWMTUuNzE0M0gwLjI4NTcwNlYxNS42ODQ2Wk0wLjI4NTcwNiAxMC41NjE5SDUuNDM4MzdWMTUuNjg0NEwwLjI4NTcwNiAxNS42ODQ2VjEwLjU2MTlaIiBmaWxsPSIjMUE4MkUyIi8+CiAgICA8cGF0aCBkPSJNNS40MzgzNyAwLjI4NTcwNkgxMC41NjExVjUuNDA4NDdINS40MzgzN1YwLjI4NTcwNlpNMTAuNTYxNiA1LjQzODM3SDE1LjcxNDNWMTAuNTYxMUgxMC41NjE2VjUuNDM4MzdaIiBmaWxsPSIjMDBCM0UzIi8+CiAgICA8cGF0aCBkPSJNNS40MzgzNyAxMC41NjExTDEwLjU2MTEgMTAuNTYxNlY1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMVoiIGZpbGw9IiMwMDlERDkiLz4KICAgIDxwYXRoIGQ9Ik0xMC41NjExIDAuMjg1NzA2SDE1LjcxNDNWNS40MDg0N0gxMC41NjExVjAuMjg1NzA2WiIgZmlsbD0iIzFBODJFMiIvPgogICAgPHBhdGggZD0iTTEwLjU2MTEgNS40MDg0N0gxNS43MTQzVjUuNDM4MzdIMTAuNTYxNkwxMC41NjExIDUuNDA4NDdaIiBmaWxsPSIjMUE4MkUyIi8+Cjwvc3ZnPg=="
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "SendGrid Outbound Connector",
+    "id": "io.camunda.connectors.SendGrid.v2",
+    "description": "Send an email via SendGrid",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
+    "version": 3,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "sender",
+        "label": "Sender"
+      },
+      {
+        "id": "receiver",
+        "label": "Receiver"
+      },
+      {
+        "id": "content",
+        "label": "Compose email"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:sendgrid:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "apiKey",
+        "label": "SendGrid API key",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "apiKey",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "from.name",
+        "label": "Name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sender",
+        "binding": {
+          "name": "from.name",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "from.email",
+        "label": "Email address",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sender",
+        "binding": {
+          "name": "from.email",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "to.name",
+        "label": "Name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "receiver",
+        "binding": {
+          "name": "to.name",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "to.email",
+        "label": "Email address",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "receiver",
+        "binding": {
+          "name": "to.email",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "unMappedFieldNotUseInModel.mailType",
+        "label": "Mail contents",
+        "optional": false,
+        "group": "content",
+        "binding": {
+          "name": "unMappedFieldNotUseInModel.mailType",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple (no dynamic template)",
+            "value": "mail"
+          },
+          {
+            "name": "Using dynamic template",
+            "value": "byTemplate"
+          }
+        ]
+      },
+      {
+        "id": "template.id",
+        "label": "Template ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "template.id",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "byTemplate",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "template.data",
+        "label": "Template data",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "content",
+        "binding": {
+          "name": "template.data",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "byTemplate",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "content.subject",
+        "label": "Subject",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "content.subject",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "mail",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "content.type",
+        "label": "Content type",
+        "optional": false,
+        "value": "text/plain",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "content.type",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "mail",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "content.value",
+        "label": "Body",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "content.value",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "mail",
+          "type": "simple"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxwYXRoIGQ9Ik0wLjI4NTcwNiA1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMUgwLjI4NTcwNlY1LjQwODQ3WiIgZmlsbD0id2hpdGUiLz4KICAgIDxwYXRoIGQ9Ik0wLjI4NTcwNiA1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMUgwLjI4NTcwNlY1LjQwODQ3WiIgZmlsbD0iIzk5RTFGNCIvPgogICAgPHBhdGggZD0iTTUuNDM4MzcgMTAuNTYxMUwxMC41NjExIDEwLjU2MTZWMTUuNjg0NEg1LjQzODM3VjEwLjU2MTFaIiBmaWxsPSJ3aGl0ZSIvPgogICAgPHBhdGggZD0iTTUuNDM4MzcgMTAuNTYxMUwxMC41NjExIDEwLjU2MTZWMTUuNjg0NEg1LjQzODM3VjEwLjU2MTFaIiBmaWxsPSIjOTlFMUY0Ii8+CiAgICA8cGF0aCBkPSJNMC4yODU3MDYgMTUuNjg0Nkw1LjQzODM3IDE1LjY4NDRWMTUuNzE0M0gwLjI4NTcwNlYxNS42ODQ2Wk0wLjI4NTcwNiAxMC41NjE5SDUuNDM4MzdWMTUuNjg0NEwwLjI4NTcwNiAxNS42ODQ2VjEwLjU2MTlaIiBmaWxsPSIjMUE4MkUyIi8+CiAgICA8cGF0aCBkPSJNNS40MzgzNyAwLjI4NTcwNkgxMC41NjExVjUuNDA4NDdINS40MzgzN1YwLjI4NTcwNlpNMTAuNTYxNiA1LjQzODM3SDE1LjcxNDNWMTAuNTYxMUgxMC41NjE2VjUuNDM4MzdaIiBmaWxsPSIjMDBCM0UzIi8+CiAgICA8cGF0aCBkPSJNNS40MzgzNyAxMC41NjExTDEwLjU2MTEgMTAuNTYxNlY1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMVoiIGZpbGw9IiMwMDlERDkiLz4KICAgIDxwYXRoIGQ9Ik0xMC41NjExIDAuMjg1NzA2SDE1LjcxNDNWNS40MDg0N0gxMC41NjExVjAuMjg1NzA2WiIgZmlsbD0iIzFBODJFMiIvPgogICAgPHBhdGggZD0iTTEwLjU2MTEgNS40MDg0N0gxNS43MTQzVjUuNDM4MzdIMTAuNTYxNkwxMC41NjExIDUuNDA4NDdaIiBmaWxsPSIjMUE4MkUyIi8+Cjwvc3ZnPg=="
+    },
+    "engines": {
+      "camunda": "^8.5"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "SendGrid Outbound Connector",
+    "id": "io.camunda.connectors.SendGrid.v2",
+    "version": 2,
+    "description": "Send an email via SendGrid",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%2015.6846L5.43837%2015.6844V15.7143H0.285706V15.6846ZM0.285706%2010.5619H5.43837V15.6844L0.285706%2015.6846V10.5619Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%200.285706H10.5611V5.40847H5.43837V0.285706ZM10.5616%205.43837H15.7143V10.5611H10.5616V5.43837Z%22%20fill%3D%22%2300B3E3%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V5.40847H5.43837V10.5611Z%22%20fill%3D%22%23009DD9%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%200.285706H15.7143V5.40847H10.5611V0.285706Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%205.40847H15.7143V5.43837H10.5616L10.5611%205.40847Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3C%2Fsvg%3E"
+    },
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "sender",
+        "label": "Sender"
+      },
+      {
+        "id": "receiver",
+        "label": "Receiver"
+      },
+      {
+        "id": "content",
+        "label": "Compose email"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:sendgrid:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "SendGrid API key",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "apiKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Name",
+        "group": "sender",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "from.name"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Email address",
+        "group": "sender",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "from.email"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Name",
+        "group": "receiver",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "to.name"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Email address",
+        "group": "receiver",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "to.email"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "id": "mailType",
+        "group": "content",
+        "value": "mail",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple (no dynamic template)",
+            "value": "mail"
+          },
+          {
+            "name": "Using dynamic template",
+            "value": "byTemplate"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "unMappedFieldNotUseInModel.mailType"
+        }
+      },
+      {
+        "label": "Subject",
+        "group": "content",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "content.subject"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "mail"
+        }
+      },
+      {
+        "label": "Content type",
+        "group": "content",
+        "type": "String",
+        "feel": "optional",
+        "value": "text/plain",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "content.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "mail"
+        }
+      },
+      {
+        "label": "Body",
+        "group": "content",
+        "type": "Text",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "content.value"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "mail"
+        }
+      },
+      {
+        "label": "Template ID",
+        "group": "content",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "template.id"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "byTemplate"
+        }
+      },
+      {
+        "label": "Template data",
+        "group": "content",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "template.data"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "byTemplate"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "engines": {
+      "camunda": "^8.2"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "SendGrid Outbound Connector",
+    "id": "io.camunda.connectors.SendGrid.v2",
+    "description": "Send an email via SendGrid",
+    "metadata": {
+      "keywords": []
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
+    "version": 4,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.3"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "sender",
+        "label": "Sender"
+      },
+      {
+        "id": "receiver",
+        "label": "Receiver"
+      },
+      {
+        "id": "content",
+        "label": "Compose email"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:sendgrid:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "apiKey",
+        "label": "SendGrid API key",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "apiKey",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "from.name",
+        "label": "Name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sender",
+        "binding": {
+          "name": "from.name",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "from.email",
+        "label": "Email address",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sender",
+        "binding": {
+          "name": "from.email",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "to.name",
+        "label": "Name",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "receiver",
+        "binding": {
+          "name": "to.name",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "to.email",
+        "label": "Email address",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "receiver",
+        "binding": {
+          "name": "to.email",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "unMappedFieldNotUseInModel.mailType",
+        "label": "Mail contents",
+        "optional": false,
+        "group": "content",
+        "binding": {
+          "name": "unMappedFieldNotUseInModel.mailType",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple (no dynamic template)",
+            "value": "mail"
+          },
+          {
+            "name": "Using dynamic template",
+            "value": "byTemplate"
+          }
+        ]
+      },
+      {
+        "id": "template.id",
+        "label": "Template ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "template.id",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "byTemplate",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "template.data",
+        "label": "Template data",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "content",
+        "binding": {
+          "name": "template.data",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "byTemplate",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "content.subject",
+        "label": "Subject",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "content.subject",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "mail",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "content.type",
+        "label": "Content type",
+        "optional": false,
+        "value": "text/plain",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "content.type",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "mail",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "content.value",
+        "label": "Body",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "content",
+        "binding": {
+          "name": "content.value",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "unMappedFieldNotUseInModel.mailType",
+          "equals": "mail",
+          "type": "simple"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "attachments",
+        "label": "attachments",
+        "description": "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>",
+        "optional": true,
+        "feel": "required",
+        "group": "content",
+        "binding": {
+          "name": "attachments",
+          "type": "zeebe:input"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxwYXRoIGQ9Ik0wLjI4NTcwNiA1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMUgwLjI4NTcwNlY1LjQwODQ3WiIgZmlsbD0id2hpdGUiLz4KICAgIDxwYXRoIGQ9Ik0wLjI4NTcwNiA1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMUgwLjI4NTcwNlY1LjQwODQ3WiIgZmlsbD0iIzk5RTFGNCIvPgogICAgPHBhdGggZD0iTTUuNDM4MzcgMTAuNTYxMUwxMC41NjExIDEwLjU2MTZWMTUuNjg0NEg1LjQzODM3VjEwLjU2MTFaIiBmaWxsPSJ3aGl0ZSIvPgogICAgPHBhdGggZD0iTTUuNDM4MzcgMTAuNTYxMUwxMC41NjExIDEwLjU2MTZWMTUuNjg0NEg1LjQzODM3VjEwLjU2MTFaIiBmaWxsPSIjOTlFMUY0Ii8+CiAgICA8cGF0aCBkPSJNMC4yODU3MDYgMTUuNjg0Nkw1LjQzODM3IDE1LjY4NDRWMTUuNzE0M0gwLjI4NTcwNlYxNS42ODQ2Wk0wLjI4NTcwNiAxMC41NjE5SDUuNDM4MzdWMTUuNjg0NEwwLjI4NTcwNiAxNS42ODQ2VjEwLjU2MTlaIiBmaWxsPSIjMUE4MkUyIi8+CiAgICA8cGF0aCBkPSJNNS40MzgzNyAwLjI4NTcwNkgxMC41NjExVjUuNDA4NDdINS40MzgzN1YwLjI4NTcwNlpNMTAuNTYxNiA1LjQzODM3SDE1LjcxNDNWMTAuNTYxMUgxMC41NjE2VjUuNDM4MzdaIiBmaWxsPSIjMDBCM0UzIi8+CiAgICA8cGF0aCBkPSJNNS40MzgzNyAxMC41NjExTDEwLjU2MTEgMTAuNTYxNlY1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMVoiIGZpbGw9IiMwMDlERDkiLz4KICAgIDxwYXRoIGQ9Ik0xMC41NjExIDAuMjg1NzA2SDE1LjcxNDNWNS40MDg0N0gxMC41NjExVjAuMjg1NzA2WiIgZmlsbD0iIzFBODJFMiIvPgogICAgPHBhdGggZD0iTTEwLjU2MTEgNS40MDg0N0gxNS43MTQzVjUuNDM4MzdIMTAuNTYxNkwxMC41NjExIDUuNDA4NDdaIiBmaWxsPSIjMUE4MkUyIi8+Cjwvc3ZnPg=="
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "SendGrid connector",
+    "id": "io.camunda.connectors.SendGrid.v2",
+    "version": 1,
+    "description": "Send an email via SendGrid",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%2015.6846L5.43837%2015.6844V15.7143H0.285706V15.6846ZM0.285706%2010.5619H5.43837V15.6844L0.285706%2015.6846V10.5619Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%200.285706H10.5611V5.40847H5.43837V0.285706ZM10.5616%205.43837H15.7143V10.5611H10.5616V5.43837Z%22%20fill%3D%22%2300B3E3%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V5.40847H5.43837V10.5611Z%22%20fill%3D%22%23009DD9%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%200.285706H15.7143V5.40847H10.5611V0.285706Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%205.40847H15.7143V5.43837H10.5616L10.5611%205.40847Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3C%2Fsvg%3E"
+    },
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "sender",
+        "label": "Sender"
+      },
+      {
+        "id": "receiver",
+        "label": "Receiver"
+      },
+      {
+        "id": "content",
+        "label": "Compose email"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:sendgrid:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "label": "SendGrid API key",
+        "group": "authentication",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "apiKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Name",
+        "group": "sender",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "from.name"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Email address",
+        "group": "sender",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "from.email"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Name",
+        "group": "receiver",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "to.name"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Email address",
+        "group": "receiver",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "to.email"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "id": "mailType",
+        "group": "content",
+        "value": "mail",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple (no dynamic template)",
+            "value": "mail"
+          },
+          {
+            "name": "Using dynamic template",
+            "value": "byTemplate"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "unMappedFieldNotUseInModel.mailType"
+        }
+      },
+      {
+        "label": "Subject",
+        "group": "content",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "content.subject"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "mail"
+        }
+      },
+      {
+        "label": "Content type",
+        "group": "content",
+        "type": "String",
+        "feel": "optional",
+        "value": "text/plain",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "content.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "mail"
+        }
+      },
+      {
+        "label": "Body",
+        "group": "content",
+        "type": "Text",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "content.value"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "mail"
+        }
+      },
+      {
+        "label": "Template ID",
+        "group": "content",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "template.id"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "byTemplate"
+        }
+      },
+      {
+        "label": "Template data",
+        "group": "content",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "template.data"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "byTemplate"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "engines": {
+      "camunda": "^8.2"
+    }
+  }
+]

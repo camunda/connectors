@@ -1,0 +1,4178 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Google Sheets Outbound Connector",
+    "id": "io.camunda.connectors.GoogleSheets.v1",
+    "description": "Manage spreadsheets with Google Sheets",
+    "metadata": {
+      "keywords": [
+        "create spreadsheet",
+        "add values to spreadsheet",
+        "create row",
+        "create column",
+        "create worksheet",
+        "delete worksheet",
+        "get row",
+        "get spreadsheet details",
+        "get worksheet data"
+      ]
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
+    "version": 5,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.3"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "operation",
+        "label": "Select operation"
+      },
+      {
+        "id": "operationDetails",
+        "label": "Operation details"
+      },
+      {
+        "id": "connector",
+        "label": "Connector"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:google-sheets:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.authType",
+        "label": "Type",
+        "optional": false,
+        "value": "refresh",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.authType",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "Refresh token",
+            "value": "refresh"
+          }
+        ]
+      },
+      {
+        "id": "authentication.bearerToken",
+        "label": "Bearer token",
+        "description": "Enter a valid Google API Bearer token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.bearerToken",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "bearer",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthClientId",
+        "label": "Client ID",
+        "description": "Enter Google API Client ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthClientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "refresh",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthClientSecret",
+        "label": "Client secret",
+        "description": "Enter Google API client Secret",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthClientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "refresh",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthRefreshToken",
+        "label": "Refresh token",
+        "description": "Enter a valid Google API refresh token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthRefreshToken",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "refresh",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.type",
+        "label": "Input",
+        "value": "createSpreadsheet",
+        "group": "operation",
+        "binding": {
+          "name": "operation.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Create spreadsheet",
+            "value": "createSpreadsheet"
+          },
+          {
+            "name": "Add values to spreadsheet",
+            "value": "addValues"
+          },
+          {
+            "name": "Create empty column or row",
+            "value": "createEmptyColumnOrRow"
+          },
+          {
+            "name": "Create row",
+            "value": "createRow"
+          },
+          {
+            "name": "Create worksheet",
+            "value": "createWorksheet"
+          },
+          {
+            "name": "Delete column",
+            "value": "deleteColumn"
+          },
+          {
+            "name": "Delete worksheet",
+            "value": "deleteWorksheet"
+          },
+          {
+            "name": "Get row by index",
+            "value": "getRowByIndex"
+          },
+          {
+            "name": "Get spreadsheet details",
+            "value": "spreadsheetsDetails"
+          },
+          {
+            "name": "Get worksheet data",
+            "value": "getWorksheetData"
+          }
+        ]
+      },
+      {
+        "id": "createSpreadsheet.spreadsheetName",
+        "label": "Spreadsheet name",
+        "description": "Enter name for the new spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createSpreadsheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "parent",
+        "label": "Parent folder ID",
+        "description": "Enter ID of the parent folder where new spreadsheet will be created",
+        "optional": true,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.parent",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createSpreadsheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "addValues.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "addValues.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "cellId",
+        "label": "Cell ID",
+        "description": "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.cellId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "description": "Enter the value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.value",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createEmptyColumnOrRow.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createEmptyColumnOrRow.worksheetId",
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "dimension",
+        "label": "Dimension",
+        "description": "Choose what to add: column or row",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.dimension",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ROWS",
+            "value": "ROWS"
+          },
+          {
+            "name": "COLUMNS",
+            "value": "COLUMNS"
+          }
+        ]
+      },
+      {
+        "id": "startIndex",
+        "label": "Start index",
+        "description": "Enter start index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.startIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "endIndex",
+        "label": "End index",
+        "description": "Enter end index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.endIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "createRow.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createRow.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createRow.rowIndex",
+        "label": "Row index",
+        "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "optional": true,
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=.*|[0-9]+|)$",
+            "message": "Must be a number"
+          }
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.rowIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "values",
+        "label": "Enter values",
+        "description": "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">Learn more about the required format</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.values",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createWorksheet.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createWorksheet.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "worksheetIndex",
+        "label": "Worksheet index",
+        "description": "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createWorksheet",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "deleteColumn.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteColumn",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteColumn.worksheetId",
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteColumn",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "columnIndexType",
+        "label": "Index format",
+        "description": "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "value": "NUMBERS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.columnIndexType",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteColumn",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Numbers",
+            "value": "NUMBERS"
+          },
+          {
+            "name": "Letters",
+            "value": "LETTERS"
+          }
+        ]
+      },
+      {
+        "id": "columnNumberIndex",
+        "label": "Column numeric index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.columnNumberIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "operation.columnIndexType",
+              "equals": "NUMBERS",
+              "type": "simple"
+            },
+            {
+              "property": "operation.type",
+              "equals": "deleteColumn",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "Number"
+      },
+      {
+        "id": "columnLetterIndex",
+        "label": "Column letter index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.columnLetterIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "operation.columnIndexType",
+              "equals": "LETTERS",
+              "type": "simple"
+            },
+            {
+              "property": "operation.type",
+              "equals": "deleteColumn",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteWorksheet.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteWorksheet.worksheetId",
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteWorksheet",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "getRowByIndex.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getRowByIndex",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getRowByIndex.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getRowByIndex",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getRowByIndex.rowIndex",
+        "label": "Row index",
+        "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.rowIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getRowByIndex",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "spreadsheetsDetails.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "spreadsheetsDetails",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getWorksheetData.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getWorksheetData",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getWorksheetData.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getWorksheetData",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "version",
+        "label": "Version",
+        "description": "Version of the element template",
+        "value": "5",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateVersion",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "id",
+        "label": "ID",
+        "description": "ID of the element template",
+        "value": "io.camunda.connectors.GoogleSheets.v1",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateId",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iNDlweCIgaGVpZ2h0PSI2N3B4IiB2aWV3Qm94PSIwIDAgNDkgNjciIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8IS0tIEdlbmVyYXRvcjogU2tldGNoIDU0LjEgKDc2NDkwKSAtIGh0dHBzOi8vc2tldGNoYXBwLmNvbSAtLT4KICAgIDx0aXRsZT5TaGVldHMtaWNvbjwvdGl0bGU+CiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggU2tldGNoLjwvZGVzYz4KICAgIDxkZWZzPgogICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDI5LjU4MzMzMzMsMCBaIiBpZD0icGF0aC0xIj48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTMiPjwvcGF0aD4KICAgICAgICA8cGF0aCBkPSJNMjkuNTgzMzMzMywwIEw0LjQzNzUsMCBDMS45OTY4NzUsMCAwLDEuOTk2ODc1IDAsNC40Mzc1IEwwLDYwLjY0NTgzMzMgQzAsNjMuMDg2NDU4MyAxLjk5Njg3NSw2NS4wODMzMzMzIDQuNDM3NSw2NS4wODMzMzMzIEw0Mi44OTU4MzMzLDY1LjA4MzMzMzMgQzQ1LjMzNjQ1ODMsNjUuMDgzMzMzMyA0Ny4zMzMzMzMzLDYzLjA4NjQ1ODMgNDcuMzMzMzMzMyw2MC42NDU4MzMzIEw0Ny4zMzMzMzMzLDE3Ljc1IEwyOS41ODMzMzMzLDAgWiIgaWQ9InBhdGgtNSI+PC9wYXRoPgogICAgICAgIDxsaW5lYXJHcmFkaWVudCB4MT0iNTAuMDA1Mzk0NSUiIHkxPSI4LjU4NjEwNjEyJSIgeDI9IjUwLjAwNTM5NDUlIiB5Mj0iMTAwLjAxMzkzOSUiIGlkPSJsaW5lYXJHcmFkaWVudC03Ij4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iIzI2MzIzOCIgc3RvcC1vcGFjaXR5PSIwLjIiIG9mZnNldD0iMCUiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iIzI2MzIzOCIgc3RvcC1vcGFjaXR5PSIwLjAyIiBvZmZzZXQ9IjEwMCUiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDI5LjU4MzMzMzMsMCBaIiBpZD0icGF0aC04Ij48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTEwIj48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTEyIj48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTE0Ij48L3BhdGg+CiAgICAgICAgPHJhZGlhbEdyYWRpZW50IGN4PSIzLjE2ODA0Njg4JSIgY3k9IjIuNzE3NDQzMTglIiBmeD0iMy4xNjgwNDY4OCUiIGZ5PSIyLjcxNzQ0MzE4JSIgcj0iMTYxLjI0ODUxNiUiIGdyYWRpZW50VHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMzE2ODAsMC4wMjcxNzQpLHNjYWxlKDEuMDAwMDAwLDAuNzI3MjczKSx0cmFuc2xhdGUoLTAuMDMxNjgwLC0wLjAyNzE3NCkiIGlkPSJyYWRpYWxHcmFkaWVudC0xNiI+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNGRkZGRkYiIHN0b3Atb3BhY2l0eT0iMC4xIiBvZmZzZXQ9IjAlIj48L3N0b3A+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNGRkZGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIj48L3N0b3A+CiAgICAgICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDwvZGVmcz4KICAgIDxnIGlkPSJQYWdlLTEiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPgogICAgICAgIDxnIGlkPSJDb25zdW1lci1BcHBzLVNoZWV0cy1MYXJnZS1WRC1SOC0iIHRyYW5zZm9ybT0idHJhbnNsYXRlKC00NTEuMDAwMDAwLCAtNDUxLjAwMDAwMCkiPgogICAgICAgICAgICA8ZyBpZD0iSGVybyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMDAwMDAsIDYzLjAwMDAwMCkiPgogICAgICAgICAgICAgICAgPGcgaWQ9IlBlcnNvbmFsIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNzcuMDAwMDAwLCAyOTkuMDAwMDAwKSI+CiAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IlNoZWV0cy1pY29uIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNzQuODMzMzMzLCA4OS45NTgzMzMpIj4KICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9Ikdyb3VwIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay0yIiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtMSI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDM2Ljk3OTE2NjcsMTAuMzU0MTY2NyBMMjkuNTgzMzMzMywwIFoiIGlkPSJQYXRoIiBmaWxsPSIjMEY5RDU4IiBmaWxsLXJ1bGU9Im5vbnplcm8iIG1hc2s9InVybCgjbWFzay0yKSI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IkNsaXBwZWQiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxtYXNrIGlkPSJtYXNrLTQiIGZpbGw9IndoaXRlIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHVzZSB4bGluazpocmVmPSIjcGF0aC0zIj48L3VzZT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L21hc2s+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IlNWR0lEXzFfIj48L2c+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHBhdGggZD0iTTExLjgzMzMzMzMsMzEuODAyMDgzMyBMMTEuODMzMzMzMyw1My4yNSBMMzUuNSw1My4yNSBMMzUuNSwzMS44MDIwODMzIEwxMS44MzMzMzMzLDMxLjgwMjA4MzMgWiBNMjIuMTg3NSw1MC4yOTE2NjY3IEwxNC43OTE2NjY3LDUwLjI5MTY2NjcgTDE0Ljc5MTY2NjcsNDYuNTkzNzUgTDIyLjE4NzUsNDYuNTkzNzUgTDIyLjE4NzUsNTAuMjkxNjY2NyBaIE0yMi4xODc1LDQ0LjM3NSBMMTQuNzkxNjY2Nyw0NC4zNzUgTDE0Ljc5MTY2NjcsNDAuNjc3MDgzMyBMMjIuMTg3NSw0MC42NzcwODMzIEwyMi4xODc1LDQ0LjM3NSBaIE0yMi4xODc1LDM4LjQ1ODMzMzMgTDE0Ljc5MTY2NjcsMzguNDU4MzMzMyBMMTQuNzkxNjY2NywzNC43NjA0MTY3IEwyMi4xODc1LDM0Ljc2MDQxNjcgTDIyLjE4NzUsMzguNDU4MzMzMyBaIE0zMi41NDE2NjY3LDUwLjI5MTY2NjcgTDI1LjE0NTgzMzMsNTAuMjkxNjY2NyBMMjUuMTQ1ODMzMyw0Ni41OTM3NSBMMzIuNTQxNjY2Nyw0Ni41OTM3NSBMMzIuNTQxNjY2Nyw1MC4yOTE2NjY3IFogTTMyLjU0MTY2NjcsNDQuMzc1IEwyNS4xNDU4MzMzLDQ0LjM3NSBMMjUuMTQ1ODMzMyw0MC42NzcwODMzIEwzMi41NDE2NjY3LDQwLjY3NzA4MzMgTDMyLjU0MTY2NjcsNDQuMzc1IFogTTMyLjU0MTY2NjcsMzguNDU4MzMzMyBMMjUuMTQ1ODMzMywzOC40NTgzMzMzIEwyNS4xNDU4MzMzLDM0Ljc2MDQxNjcgTDMyLjU0MTY2NjcsMzQuNzYwNDE2NyBMMzIuNTQxNjY2NywzOC40NTgzMzMzIFoiIGlkPSJTaGFwZSIgZmlsbD0iI0YxRjFGMSIgZmlsbC1ydWxlPSJub256ZXJvIiBtYXNrPSJ1cmwoI21hc2stNCkiPjwvcGF0aD4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay02IiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtNSI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwb2x5Z29uIGlkPSJQYXRoIiBmaWxsPSJ1cmwoI2xpbmVhckdyYWRpZW50LTcpIiBmaWxsLXJ1bGU9Im5vbnplcm8iIG1hc2s9InVybCgjbWFzay02KSIgcG9pbnRzPSIzMC44ODEzMDIxIDE2LjQ1MjAzMTMgNDcuMzMzMzMzMyAzMi45MDAzNjQ2IDQ3LjMzMzMzMzMgMTcuNzUiPjwvcG9seWdvbj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay05IiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtOCI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJHcm91cCIgbWFzaz0idXJsKCNtYXNrLTkpIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjYuNjI1MDAwLCAtMi45NTgzMzMpIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0yLjk1ODMzMzMzLDIuOTU4MzMzMzMgTDIuOTU4MzMzMzMsMTYuMjcwODMzMyBDMi45NTgzMzMzMywxOC43MjI1NTIxIDQuOTQ0MTE0NTgsMjAuNzA4MzMzMyA3LjM5NTgzMzMzLDIwLjcwODMzMzMgTDIwLjcwODMzMzMsMjAuNzA4MzMzMyBMMi45NTgzMzMzMywyLjk1ODMzMzMzIFoiIGlkPSJQYXRoIiBmaWxsPSIjODdDRUFDIiBmaWxsLXJ1bGU9Im5vbnplcm8iPjwvcGF0aD4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay0xMSIgZmlsbD0id2hpdGUiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dXNlIHhsaW5rOmhyZWY9IiNwYXRoLTEwIj48L3VzZT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L21hc2s+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IlNWR0lEXzFfIj48L2c+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHBhdGggZD0iTTQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNC44MDcyOTE2NyBDMCwyLjM2NjY2NjY3IDEuOTk2ODc1LDAuMzY5NzkxNjY3IDQuNDM3NSwwLjM2OTc5MTY2NyBMMjkuNTgzMzMzMywwLjM2OTc5MTY2NyBMMjkuNTgzMzMzMywwIEw0LjQzNzUsMCBaIiBpZD0iUGF0aCIgZmlsbC1vcGFjaXR5PSIwLjIiIGZpbGw9IiNGRkZGRkYiIGZpbGwtcnVsZT0ibm9uemVybyIgbWFzaz0idXJsKCNtYXNrLTExKSI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IkNsaXBwZWQiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxtYXNrIGlkPSJtYXNrLTEzIiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtMTIiPjwvdXNlPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvbWFzaz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8ZyBpZD0iU1ZHSURfMV8iPjwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8cGF0aCBkPSJNNDIuODk1ODMzMyw2NC43MTM1NDE3IEw0LjQzNzUsNjQuNzEzNTQxNyBDMS45OTY4NzUsNjQuNzEzNTQxNyAwLDYyLjcxNjY2NjcgMCw2MC4yNzYwNDE3IEwwLDYwLjY0NTgzMzMgQzAsNjMuMDg2NDU4MyAxLjk5Njg3NSw2NS4wODMzMzMzIDQuNDM3NSw2NS4wODMzMzMzIEw0Mi44OTU4MzMzLDY1LjA4MzMzMzMgQzQ1LjMzNjQ1ODMsNjUuMDgzMzMzMyA0Ny4zMzMzMzMzLDYzLjA4NjQ1ODMgNDcuMzMzMzMzMyw2MC42NDU4MzMzIEw0Ny4zMzMzMzMzLDYwLjI3NjA0MTcgQzQ3LjMzMzMzMzMsNjIuNzE2NjY2NyA0NS4zMzY0NTgzLDY0LjcxMzU0MTcgNDIuODk1ODMzMyw2NC43MTM1NDE3IFoiIGlkPSJQYXRoIiBmaWxsLW9wYWNpdHk9IjAuMiIgZmlsbD0iIzI2MzIzOCIgZmlsbC1ydWxlPSJub256ZXJvIiBtYXNrPSJ1cmwoI21hc2stMTMpIj48L3BhdGg+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L2c+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8ZyBpZD0iQ2xpcHBlZCI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPG1hc2sgaWQ9Im1hc2stMTUiIGZpbGw9IndoaXRlIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHVzZSB4bGluazpocmVmPSIjcGF0aC0xNCI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0zNC4wMjA4MzMzLDE3Ljc1IEMzMS41NjkxMTQ2LDE3Ljc1IDI5LjU4MzMzMzMsMTUuNzY0MjE4OCAyOS41ODMzMzMzLDEzLjMxMjUgTDI5LjU4MzMzMzMsMTMuNjgyMjkxNyBDMjkuNTgzMzMzMywxNi4xMzQwMTA0IDMxLjU2OTExNDYsMTguMTE5NzkxNyAzNC4wMjA4MzMzLDE4LjExOTc5MTcgTDQ3LjMzMzMzMzMsMTguMTE5NzkxNyBMNDcuMzMzMzMzMywxNy43NSBMMzQuMDIwODMzMywxNy43NSBaIiBpZD0iUGF0aCIgZmlsbC1vcGFjaXR5PSIwLjEiIGZpbGw9IiMyNjMyMzgiIGZpbGwtcnVsZT0ibm9uemVybyIgbWFzaz0idXJsKCNtYXNrLTE1KSI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICA8L2c+CiAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDI5LjU4MzMzMzMsMCBaIiBpZD0iUGF0aCIgZmlsbD0idXJsKCNyYWRpYWxHcmFkaWVudC0xNikiIGZpbGwtcnVsZT0ibm9uemVybyI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgPC9nPgogICAgICAgIDwvZz4KICAgIDwvZz4KPC9zdmc+"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Google Sheets Outbound Connector",
+    "id": "io.camunda.connectors.GoogleSheets.v1",
+    "version": 2,
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
+    "description": "Work with spreadsheets",
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "operation",
+        "label": "Select operation"
+      },
+      {
+        "id": "operationDetails",
+        "label": "Operation details"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:google-sheets:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "id": "authenticationType",
+        "label": "Type",
+        "group": "authentication",
+        "type": "Dropdown",
+        "value": "bearer",
+        "choices": [
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "Refresh token",
+            "value": "refresh"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.authType",
+          "key": "authentication.authType"
+        }
+      },
+      {
+        "label": "Bearer token",
+        "description": "Enter Google API Bearer token that is authorized to interact with desired spreadsheet",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.bearerToken"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "bearer"
+        }
+      },
+      {
+        "label": "Client ID",
+        "description": "Enter Google API Client ID",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthClientId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "refresh"
+        }
+      },
+      {
+        "label": "Client secret",
+        "description": "Enter Google API client Secret",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthClientSecret"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "refresh"
+        }
+      },
+      {
+        "label": "Refresh token",
+        "description": "Enter Google API refresh token that is authorized to interact with desired spreadsheet",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthRefreshToken"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "refresh"
+        }
+      },
+      {
+        "id": "operationType",
+        "group": "operation",
+        "type": "Dropdown",
+        "value": "createSpreadsheet",
+        "choices": [
+          {
+            "name": "Create spreadsheet",
+            "value": "createSpreadsheet"
+          },
+          {
+            "name": "Add values to spreadsheet",
+            "value": "addValues"
+          },
+          {
+            "name": "Get spreadsheet details",
+            "value": "spreadsheetsDetails"
+          },
+          {
+            "name": "Create worksheet",
+            "value": "createWorksheet"
+          },
+          {
+            "name": "Get worksheet data",
+            "value": "getWorksheetData"
+          },
+          {
+            "name": "Delete worksheet",
+            "value": "deleteWorksheet"
+          },
+          {
+            "name": "Create empty column or row",
+            "value": "createEmptyColumnOrRow"
+          },
+          {
+            "name": "Create row",
+            "value": "createRow"
+          },
+          {
+            "name": "Delete column",
+            "value": "deleteColumn"
+          },
+          {
+            "name": "Get row by index",
+            "value": "getRowByIndex"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.type",
+          "key": "operation.type"
+        }
+      },
+      {
+        "label": "Parent folder ID",
+        "description": "Enter ID of the parent folder where new spreadsheet will be created",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.parent"
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createSpreadsheet"
+        }
+      },
+      {
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.spreadsheetId"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": [
+            "createWorksheet",
+            "getRowByIndex",
+            "createEmptyColumnOrRow",
+            "deleteWorksheet",
+            "deleteColumn",
+            "getWorksheetData",
+            "spreadsheetsDetails",
+            "createRow",
+            "addValues"
+          ]
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Spreadsheet name",
+        "description": "Enter name for the new spreadsheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.spreadsheetName"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createSpreadsheet"
+        }
+      },
+      {
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.worksheetId"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["deleteWorksheet", "createEmptyColumnOrRow", "deleteColumn"]
+        }
+      },
+      {
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.worksheetName"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["createWorksheet", "getWorksheetData"]
+        }
+      },
+      {
+        "label": "Worksheet name",
+        "description": "Enter the name of the worksheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.worksheetName"
+        },
+        "constraints": {
+          "notEmpty": false
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["getRowByIndex", "createRow", "addValues"]
+        }
+      },
+      {
+        "label": "Worksheet index",
+        "description": "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.worksheetIndex"
+        },
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createWorksheet"
+        }
+      },
+      {
+        "label": "Dimension",
+        "description": "Choose what to add: column or row",
+        "group": "operationDetails",
+        "type": "Dropdown",
+        "optional": false,
+        "choices": [
+          {
+            "name": "Column",
+            "value": "COLUMNS"
+          },
+          {
+            "name": "Row",
+            "value": "ROWS"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.dimension"
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createEmptyColumnOrRow"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Row index",
+        "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.rowIndex"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "getRowByIndex"
+        }
+      },
+      {
+        "label": "Row index",
+        "description": "Enter the index of the row to add . Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.rowIndex"
+        },
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must contains only numbers."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createRow"
+        }
+      },
+      {
+        "id": "columnIndexFormat",
+        "label": "Index format",
+        "description": "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "Dropdown",
+        "optional": false,
+        "choices": [
+          {
+            "name": "Letters",
+            "value": "LETTERS"
+          },
+          {
+            "name": "Numbers",
+            "value": "NUMBERS"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.columnIndexType"
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "deleteColumn"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Column letter index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.columnLetterIndex"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "[A-Z]+",
+            "message": "Must contains only capital letters."
+          }
+        },
+        "condition": {
+          "property": "columnIndexFormat",
+          "equals": "LETTERS"
+        }
+      },
+      {
+        "label": "Column numeric index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.columnNumberIndex"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must contains only numbers."
+          }
+        },
+        "condition": {
+          "property": "columnIndexFormat",
+          "equals": "NUMBERS"
+        }
+      },
+      {
+        "label": "Start index",
+        "description": "Enter start index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.startIndex"
+        },
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createEmptyColumnOrRow"
+        }
+      },
+      {
+        "label": "End index",
+        "description": "Enter End index (leave empty if add to the end of the sheet) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.endIndex"
+        },
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createEmptyColumnOrRow"
+        }
+      },
+      {
+        "label": "Cell ID",
+        "description": "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.cellId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "addValues"
+        }
+      },
+      {
+        "label": "Enter values",
+        "description": "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">Learn more about the required format</a>",
+        "group": "operationDetails",
+        "type": "Text",
+        "feel": "required",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.values"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createRow"
+        }
+      },
+      {
+        "label": "Value",
+        "description": "Enter the value",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.value"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "addValues"
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Enter name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMC8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAxL1JFQy1TVkctMjAwMTA5MDQvRFREL3N2ZzEwLmR0ZCI+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgaWQ9ImJvZHlfMSIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE0Ij4KCjxnIHRyYW5zZm9ybT0ibWF0cml4KDAuMTU5MDkwOSAwIDAgMC4xNTkwOTA5IDMuOTA5MDkxIC0wKSI+CiAgICA8cGF0aCBkPSJNNDIgMEw2NCAyMkw1MyAyNEw0MiAyMkw0MCAxMUw0MiAweiIgc3Ryb2tlPSJub25lIiBmaWxsPSIjMTg4MDM4IiBmaWxsLXJ1bGU9Im5vbnplcm8iIC8+CiAgICA8cGF0aCBkPSJNNDIgMjJMNDIgMEw2IDBDIDIuNjg1IDAgMCAyLjY4NSAwIDZMMCA2TDAgODJDIDAgODUuMzE1IDIuNjg1IDg4IDYgODhMNiA4OEw1OCA4OEMgNjEuMzE1IDg4IDY0IDg1LjMxNSA2NCA4Mkw2NCA4Mkw2NCAyMkw0MiAyMnoiIHN0cm9rZT0ibm9uZSIgZmlsbD0iIzM0QTg1MyIgZmlsbC1ydWxlPSJub256ZXJvIiAvPgogICAgPHBhdGggZD0iTTEyIDM0TDEyIDYzTDUyIDYzTDUyIDM0TDEyIDM0ek0yOS41IDU4TDE3IDU4TDE3IDUxTDI5LjUgNTF6TTI5LjUgNDZMMTcgNDZMMTcgMzlMMjkuNSAzOXpNNDcgNThMMzQuNSA1OEwzNC41IDUxTDQ3IDUxek00NyA0NkwzNC41IDQ2TDM0LjUgMzlMNDcgMzl6IiBzdHJva2U9Im5vbmUiIGZpbGw9IiNGRkZGRkYiIGZpbGwtcnVsZT0ibm9uemVybyIgLz4KPC9nPgo8L3N2Zz4="
+    },
+    "engines": {
+      "camunda": "^8.2"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Google Sheets Outbound Connector",
+    "id": "io.camunda.connectors.GoogleSheets.v1",
+    "description": "Manage spreadsheets with Google Sheets",
+    "metadata": {
+      "keywords": [
+        "create spreadsheet",
+        "add values to spreadsheet",
+        "create row",
+        "create column",
+        "create worksheet",
+        "delete worksheet",
+        "get row",
+        "get spreadsheet details",
+        "get worksheet data"
+      ]
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
+    "version": 4,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "operation",
+        "label": "Select operation"
+      },
+      {
+        "id": "operationDetails",
+        "label": "Operation details"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:google-sheets:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.authType",
+        "label": "Type",
+        "optional": false,
+        "value": "refresh",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.authType",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "Refresh token",
+            "value": "refresh"
+          }
+        ]
+      },
+      {
+        "id": "authentication.bearerToken",
+        "label": "Bearer token",
+        "description": "Enter a valid Google API Bearer token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.bearerToken",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "bearer",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthClientId",
+        "label": "Client ID",
+        "description": "Enter Google API Client ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthClientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "refresh",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthClientSecret",
+        "label": "Client secret",
+        "description": "Enter Google API client Secret",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthClientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "refresh",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthRefreshToken",
+        "label": "Refresh token",
+        "description": "Enter a valid Google API refresh token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthRefreshToken",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "refresh",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.type",
+        "label": "Input",
+        "value": "createSpreadsheet",
+        "group": "operation",
+        "binding": {
+          "name": "operation.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Create spreadsheet",
+            "value": "createSpreadsheet"
+          },
+          {
+            "name": "Add values to spreadsheet",
+            "value": "addValues"
+          },
+          {
+            "name": "Create empty column or row",
+            "value": "createEmptyColumnOrRow"
+          },
+          {
+            "name": "Create row",
+            "value": "createRow"
+          },
+          {
+            "name": "Create worksheet",
+            "value": "createWorksheet"
+          },
+          {
+            "name": "Delete column",
+            "value": "deleteColumn"
+          },
+          {
+            "name": "Delete worksheet",
+            "value": "deleteWorksheet"
+          },
+          {
+            "name": "Get row by index",
+            "value": "getRowByIndex"
+          },
+          {
+            "name": "Get spreadsheet details",
+            "value": "spreadsheetsDetails"
+          },
+          {
+            "name": "Get worksheet data",
+            "value": "getWorksheetData"
+          }
+        ]
+      },
+      {
+        "id": "createSpreadsheet.spreadsheetName",
+        "label": "Spreadsheet name",
+        "description": "Enter name for the new spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createSpreadsheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "parent",
+        "label": "Parent folder ID",
+        "description": "Enter ID of the parent folder where new spreadsheet will be created",
+        "optional": true,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.parent",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createSpreadsheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "addValues.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "addValues.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "cellId",
+        "label": "Cell ID",
+        "description": "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.cellId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "description": "Enter the value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.value",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createEmptyColumnOrRow.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createEmptyColumnOrRow.worksheetId",
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "dimension",
+        "label": "Dimension",
+        "description": "Choose what to add: column or row",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.dimension",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ROWS",
+            "value": "ROWS"
+          },
+          {
+            "name": "COLUMNS",
+            "value": "COLUMNS"
+          }
+        ]
+      },
+      {
+        "id": "startIndex",
+        "label": "Start index",
+        "description": "Enter start index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.startIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "endIndex",
+        "label": "End index",
+        "description": "Enter end index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.endIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "createRow.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createRow.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createRow.rowIndex",
+        "label": "Row index",
+        "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "optional": true,
+        "constraints": {
+          "notEmpty": false,
+          "pattern": {
+            "value": "^(=.*|[0-9]+|)$",
+            "message": "Must be a number"
+          }
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.rowIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "values",
+        "label": "Enter values",
+        "description": "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">Learn more about the required format</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.values",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createWorksheet.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createWorksheet.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "worksheetIndex",
+        "label": "Worksheet index",
+        "description": "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createWorksheet",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "deleteColumn.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteColumn",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteColumn.worksheetId",
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteColumn",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "columnIndexType",
+        "label": "Index format",
+        "description": "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "value": "NUMBERS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.columnIndexType",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteColumn",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Numbers",
+            "value": "NUMBERS"
+          },
+          {
+            "name": "Letters",
+            "value": "LETTERS"
+          }
+        ]
+      },
+      {
+        "id": "columnNumberIndex",
+        "label": "Column numeric index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.columnNumberIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "operation.columnIndexType",
+              "equals": "NUMBERS",
+              "type": "simple"
+            },
+            {
+              "property": "operation.type",
+              "equals": "deleteColumn",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "Number"
+      },
+      {
+        "id": "columnLetterIndex",
+        "label": "Column letter index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.columnLetterIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "operation.columnIndexType",
+              "equals": "LETTERS",
+              "type": "simple"
+            },
+            {
+              "property": "operation.type",
+              "equals": "deleteColumn",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteWorksheet.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteWorksheet.worksheetId",
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteWorksheet",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "getRowByIndex.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getRowByIndex",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getRowByIndex.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getRowByIndex",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getRowByIndex.rowIndex",
+        "label": "Row index",
+        "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.rowIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getRowByIndex",
+          "type": "simple"
+        },
+        "type": "Number"
+      },
+      {
+        "id": "spreadsheetsDetails.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "spreadsheetsDetails",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getWorksheetData.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getWorksheetData",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getWorksheetData.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getWorksheetData",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iNDlweCIgaGVpZ2h0PSI2N3B4IiB2aWV3Qm94PSIwIDAgNDkgNjciIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8IS0tIEdlbmVyYXRvcjogU2tldGNoIDU0LjEgKDc2NDkwKSAtIGh0dHBzOi8vc2tldGNoYXBwLmNvbSAtLT4KICAgIDx0aXRsZT5TaGVldHMtaWNvbjwvdGl0bGU+CiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggU2tldGNoLjwvZGVzYz4KICAgIDxkZWZzPgogICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDI5LjU4MzMzMzMsMCBaIiBpZD0icGF0aC0xIj48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTMiPjwvcGF0aD4KICAgICAgICA8cGF0aCBkPSJNMjkuNTgzMzMzMywwIEw0LjQzNzUsMCBDMS45OTY4NzUsMCAwLDEuOTk2ODc1IDAsNC40Mzc1IEwwLDYwLjY0NTgzMzMgQzAsNjMuMDg2NDU4MyAxLjk5Njg3NSw2NS4wODMzMzMzIDQuNDM3NSw2NS4wODMzMzMzIEw0Mi44OTU4MzMzLDY1LjA4MzMzMzMgQzQ1LjMzNjQ1ODMsNjUuMDgzMzMzMyA0Ny4zMzMzMzMzLDYzLjA4NjQ1ODMgNDcuMzMzMzMzMyw2MC42NDU4MzMzIEw0Ny4zMzMzMzMzLDE3Ljc1IEwyOS41ODMzMzMzLDAgWiIgaWQ9InBhdGgtNSI+PC9wYXRoPgogICAgICAgIDxsaW5lYXJHcmFkaWVudCB4MT0iNTAuMDA1Mzk0NSUiIHkxPSI4LjU4NjEwNjEyJSIgeDI9IjUwLjAwNTM5NDUlIiB5Mj0iMTAwLjAxMzkzOSUiIGlkPSJsaW5lYXJHcmFkaWVudC03Ij4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iIzI2MzIzOCIgc3RvcC1vcGFjaXR5PSIwLjIiIG9mZnNldD0iMCUiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iIzI2MzIzOCIgc3RvcC1vcGFjaXR5PSIwLjAyIiBvZmZzZXQ9IjEwMCUiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDI5LjU4MzMzMzMsMCBaIiBpZD0icGF0aC04Ij48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTEwIj48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTEyIj48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTE0Ij48L3BhdGg+CiAgICAgICAgPHJhZGlhbEdyYWRpZW50IGN4PSIzLjE2ODA0Njg4JSIgY3k9IjIuNzE3NDQzMTglIiBmeD0iMy4xNjgwNDY4OCUiIGZ5PSIyLjcxNzQ0MzE4JSIgcj0iMTYxLjI0ODUxNiUiIGdyYWRpZW50VHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMzE2ODAsMC4wMjcxNzQpLHNjYWxlKDEuMDAwMDAwLDAuNzI3MjczKSx0cmFuc2xhdGUoLTAuMDMxNjgwLC0wLjAyNzE3NCkiIGlkPSJyYWRpYWxHcmFkaWVudC0xNiI+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNGRkZGRkYiIHN0b3Atb3BhY2l0eT0iMC4xIiBvZmZzZXQ9IjAlIj48L3N0b3A+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNGRkZGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIj48L3N0b3A+CiAgICAgICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDwvZGVmcz4KICAgIDxnIGlkPSJQYWdlLTEiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPgogICAgICAgIDxnIGlkPSJDb25zdW1lci1BcHBzLVNoZWV0cy1MYXJnZS1WRC1SOC0iIHRyYW5zZm9ybT0idHJhbnNsYXRlKC00NTEuMDAwMDAwLCAtNDUxLjAwMDAwMCkiPgogICAgICAgICAgICA8ZyBpZD0iSGVybyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMDAwMDAsIDYzLjAwMDAwMCkiPgogICAgICAgICAgICAgICAgPGcgaWQ9IlBlcnNvbmFsIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNzcuMDAwMDAwLCAyOTkuMDAwMDAwKSI+CiAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IlNoZWV0cy1pY29uIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNzQuODMzMzMzLCA4OS45NTgzMzMpIj4KICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9Ikdyb3VwIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay0yIiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtMSI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDM2Ljk3OTE2NjcsMTAuMzU0MTY2NyBMMjkuNTgzMzMzMywwIFoiIGlkPSJQYXRoIiBmaWxsPSIjMEY5RDU4IiBmaWxsLXJ1bGU9Im5vbnplcm8iIG1hc2s9InVybCgjbWFzay0yKSI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IkNsaXBwZWQiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxtYXNrIGlkPSJtYXNrLTQiIGZpbGw9IndoaXRlIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHVzZSB4bGluazpocmVmPSIjcGF0aC0zIj48L3VzZT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L21hc2s+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IlNWR0lEXzFfIj48L2c+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHBhdGggZD0iTTExLjgzMzMzMzMsMzEuODAyMDgzMyBMMTEuODMzMzMzMyw1My4yNSBMMzUuNSw1My4yNSBMMzUuNSwzMS44MDIwODMzIEwxMS44MzMzMzMzLDMxLjgwMjA4MzMgWiBNMjIuMTg3NSw1MC4yOTE2NjY3IEwxNC43OTE2NjY3LDUwLjI5MTY2NjcgTDE0Ljc5MTY2NjcsNDYuNTkzNzUgTDIyLjE4NzUsNDYuNTkzNzUgTDIyLjE4NzUsNTAuMjkxNjY2NyBaIE0yMi4xODc1LDQ0LjM3NSBMMTQuNzkxNjY2Nyw0NC4zNzUgTDE0Ljc5MTY2NjcsNDAuNjc3MDgzMyBMMjIuMTg3NSw0MC42NzcwODMzIEwyMi4xODc1LDQ0LjM3NSBaIE0yMi4xODc1LDM4LjQ1ODMzMzMgTDE0Ljc5MTY2NjcsMzguNDU4MzMzMyBMMTQuNzkxNjY2NywzNC43NjA0MTY3IEwyMi4xODc1LDM0Ljc2MDQxNjcgTDIyLjE4NzUsMzguNDU4MzMzMyBaIE0zMi41NDE2NjY3LDUwLjI5MTY2NjcgTDI1LjE0NTgzMzMsNTAuMjkxNjY2NyBMMjUuMTQ1ODMzMyw0Ni41OTM3NSBMMzIuNTQxNjY2Nyw0Ni41OTM3NSBMMzIuNTQxNjY2Nyw1MC4yOTE2NjY3IFogTTMyLjU0MTY2NjcsNDQuMzc1IEwyNS4xNDU4MzMzLDQ0LjM3NSBMMjUuMTQ1ODMzMyw0MC42NzcwODMzIEwzMi41NDE2NjY3LDQwLjY3NzA4MzMgTDMyLjU0MTY2NjcsNDQuMzc1IFogTTMyLjU0MTY2NjcsMzguNDU4MzMzMyBMMjUuMTQ1ODMzMywzOC40NTgzMzMzIEwyNS4xNDU4MzMzLDM0Ljc2MDQxNjcgTDMyLjU0MTY2NjcsMzQuNzYwNDE2NyBMMzIuNTQxNjY2NywzOC40NTgzMzMzIFoiIGlkPSJTaGFwZSIgZmlsbD0iI0YxRjFGMSIgZmlsbC1ydWxlPSJub256ZXJvIiBtYXNrPSJ1cmwoI21hc2stNCkiPjwvcGF0aD4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay02IiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtNSI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwb2x5Z29uIGlkPSJQYXRoIiBmaWxsPSJ1cmwoI2xpbmVhckdyYWRpZW50LTcpIiBmaWxsLXJ1bGU9Im5vbnplcm8iIG1hc2s9InVybCgjbWFzay02KSIgcG9pbnRzPSIzMC44ODEzMDIxIDE2LjQ1MjAzMTMgNDcuMzMzMzMzMyAzMi45MDAzNjQ2IDQ3LjMzMzMzMzMgMTcuNzUiPjwvcG9seWdvbj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay05IiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtOCI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJHcm91cCIgbWFzaz0idXJsKCNtYXNrLTkpIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjYuNjI1MDAwLCAtMi45NTgzMzMpIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0yLjk1ODMzMzMzLDIuOTU4MzMzMzMgTDIuOTU4MzMzMzMsMTYuMjcwODMzMyBDMi45NTgzMzMzMywxOC43MjI1NTIxIDQuOTQ0MTE0NTgsMjAuNzA4MzMzMyA3LjM5NTgzMzMzLDIwLjcwODMzMzMgTDIwLjcwODMzMzMsMjAuNzA4MzMzMyBMMi45NTgzMzMzMywyLjk1ODMzMzMzIFoiIGlkPSJQYXRoIiBmaWxsPSIjODdDRUFDIiBmaWxsLXJ1bGU9Im5vbnplcm8iPjwvcGF0aD4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay0xMSIgZmlsbD0id2hpdGUiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dXNlIHhsaW5rOmhyZWY9IiNwYXRoLTEwIj48L3VzZT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L21hc2s+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IlNWR0lEXzFfIj48L2c+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHBhdGggZD0iTTQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNC44MDcyOTE2NyBDMCwyLjM2NjY2NjY3IDEuOTk2ODc1LDAuMzY5NzkxNjY3IDQuNDM3NSwwLjM2OTc5MTY2NyBMMjkuNTgzMzMzMywwLjM2OTc5MTY2NyBMMjkuNTgzMzMzMywwIEw0LjQzNzUsMCBaIiBpZD0iUGF0aCIgZmlsbC1vcGFjaXR5PSIwLjIiIGZpbGw9IiNGRkZGRkYiIGZpbGwtcnVsZT0ibm9uemVybyIgbWFzaz0idXJsKCNtYXNrLTExKSI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IkNsaXBwZWQiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxtYXNrIGlkPSJtYXNrLTEzIiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtMTIiPjwvdXNlPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvbWFzaz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8ZyBpZD0iU1ZHSURfMV8iPjwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8cGF0aCBkPSJNNDIuODk1ODMzMyw2NC43MTM1NDE3IEw0LjQzNzUsNjQuNzEzNTQxNyBDMS45OTY4NzUsNjQuNzEzNTQxNyAwLDYyLjcxNjY2NjcgMCw2MC4yNzYwNDE3IEwwLDYwLjY0NTgzMzMgQzAsNjMuMDg2NDU4MyAxLjk5Njg3NSw2NS4wODMzMzMzIDQuNDM3NSw2NS4wODMzMzMzIEw0Mi44OTU4MzMzLDY1LjA4MzMzMzMgQzQ1LjMzNjQ1ODMsNjUuMDgzMzMzMyA0Ny4zMzMzMzMzLDYzLjA4NjQ1ODMgNDcuMzMzMzMzMyw2MC42NDU4MzMzIEw0Ny4zMzMzMzMzLDYwLjI3NjA0MTcgQzQ3LjMzMzMzMzMsNjIuNzE2NjY2NyA0NS4zMzY0NTgzLDY0LjcxMzU0MTcgNDIuODk1ODMzMyw2NC43MTM1NDE3IFoiIGlkPSJQYXRoIiBmaWxsLW9wYWNpdHk9IjAuMiIgZmlsbD0iIzI2MzIzOCIgZmlsbC1ydWxlPSJub256ZXJvIiBtYXNrPSJ1cmwoI21hc2stMTMpIj48L3BhdGg+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L2c+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8ZyBpZD0iQ2xpcHBlZCI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPG1hc2sgaWQ9Im1hc2stMTUiIGZpbGw9IndoaXRlIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHVzZSB4bGluazpocmVmPSIjcGF0aC0xNCI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0zNC4wMjA4MzMzLDE3Ljc1IEMzMS41NjkxMTQ2LDE3Ljc1IDI5LjU4MzMzMzMsMTUuNzY0MjE4OCAyOS41ODMzMzMzLDEzLjMxMjUgTDI5LjU4MzMzMzMsMTMuNjgyMjkxNyBDMjkuNTgzMzMzMywxNi4xMzQwMTA0IDMxLjU2OTExNDYsMTguMTE5NzkxNyAzNC4wMjA4MzMzLDE4LjExOTc5MTcgTDQ3LjMzMzMzMzMsMTguMTE5NzkxNyBMNDcuMzMzMzMzMywxNy43NSBMMzQuMDIwODMzMywxNy43NSBaIiBpZD0iUGF0aCIgZmlsbC1vcGFjaXR5PSIwLjEiIGZpbGw9IiMyNjMyMzgiIGZpbGwtcnVsZT0ibm9uemVybyIgbWFzaz0idXJsKCNtYXNrLTE1KSI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICA8L2c+CiAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDI5LjU4MzMzMzMsMCBaIiBpZD0iUGF0aCIgZmlsbD0idXJsKCNyYWRpYWxHcmFkaWVudC0xNikiIGZpbGwtcnVsZT0ibm9uemVybyI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgPC9nPgogICAgICAgIDwvZz4KICAgIDwvZz4KPC9zdmc+"
+    },
+    "engines": {
+      "camunda": "^8.6"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Google Sheets Outbound Connector",
+    "id": "io.camunda.connectors.GoogleSheets.v1",
+    "description": "Work with spreadsheets",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
+    "version": 3,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "operation",
+        "label": "Select operation"
+      },
+      {
+        "id": "operationDetails",
+        "label": "Operation details"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:google-sheets:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.authType",
+        "label": "Type",
+        "optional": false,
+        "value": "refresh",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.authType",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "Refresh token",
+            "value": "refresh"
+          }
+        ]
+      },
+      {
+        "id": "authentication.bearerToken",
+        "label": "Bearer token",
+        "description": "Enter a valid Google API Bearer token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.bearerToken",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "bearer",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthClientId",
+        "label": "Client ID",
+        "description": "Enter Google API Client ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthClientId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "refresh",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthClientSecret",
+        "label": "Client secret",
+        "description": "Enter Google API client Secret",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthClientSecret",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "refresh",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "authentication.oauthRefreshToken",
+        "label": "Refresh token",
+        "description": "Enter a valid Google API refresh token",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.oauthRefreshToken",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.authType",
+          "equals": "refresh",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "operation.type",
+        "label": "Input",
+        "value": "createSpreadsheet",
+        "group": "operation",
+        "binding": {
+          "name": "operation.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Create spreadsheet",
+            "value": "createSpreadsheet"
+          },
+          {
+            "name": "Add values to spreadsheet",
+            "value": "addValues"
+          },
+          {
+            "name": "Create empty column or row",
+            "value": "createEmptyColumnOrRow"
+          },
+          {
+            "name": "Create row",
+            "value": "createRow"
+          },
+          {
+            "name": "Create worksheet",
+            "value": "createWorksheet"
+          },
+          {
+            "name": "Delete column",
+            "value": "deleteColumn"
+          },
+          {
+            "name": "Delete worksheet",
+            "value": "deleteWorksheet"
+          },
+          {
+            "name": "Get row by index",
+            "value": "getRowByIndex"
+          },
+          {
+            "name": "Get spreadsheet details",
+            "value": "spreadsheetsDetails"
+          },
+          {
+            "name": "Get worksheet data",
+            "value": "getWorksheetData"
+          }
+        ]
+      },
+      {
+        "id": "createSpreadsheet.spreadsheetName",
+        "label": "Spreadsheet name",
+        "description": "Enter name for the new spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createSpreadsheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "parent",
+        "label": "Parent folder ID",
+        "description": "Enter ID of the parent folder where new spreadsheet will be created",
+        "optional": true,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.parent",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createSpreadsheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "addValues.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "addValues.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "cellId",
+        "label": "Cell ID",
+        "description": "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.cellId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "value",
+        "label": "Value",
+        "description": "Enter the value",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.value",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "addValues",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createEmptyColumnOrRow.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createEmptyColumnOrRow.worksheetId",
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "dimension",
+        "label": "Dimension",
+        "description": "Choose what to add: column or row",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.dimension",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "COLUMNS",
+            "value": "COLUMNS"
+          },
+          {
+            "name": "ROWS",
+            "value": "ROWS"
+          }
+        ]
+      },
+      {
+        "id": "startIndex",
+        "label": "Start index",
+        "description": "Enter start index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.startIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "endIndex",
+        "label": "End index",
+        "description": "Enter end index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.endIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createEmptyColumnOrRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createRow.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createRow.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createRow.rowIndex",
+        "label": "Row index",
+        "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.rowIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "values",
+        "label": "Enter values",
+        "description": "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">Learn more about the required format</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "required",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.values",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createRow",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createWorksheet.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "createWorksheet.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "worksheetIndex",
+        "label": "Worksheet index",
+        "description": "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "createWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteColumn.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteColumn",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteColumn.worksheetId",
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteColumn",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "columnIndexType",
+        "label": "Index format",
+        "description": "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "value": "NUMBERS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.columnIndexType",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteColumn",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Numbers",
+            "value": "NUMBERS"
+          },
+          {
+            "name": "Letters",
+            "value": "LETTERS"
+          }
+        ]
+      },
+      {
+        "id": "columnNumberIndex",
+        "label": "Column numeric index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.columnNumberIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "operation.columnIndexType",
+              "equals": "NUMBERS",
+              "type": "simple"
+            },
+            {
+              "property": "operation.type",
+              "equals": "deleteColumn",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "String"
+      },
+      {
+        "id": "columnLetterIndex",
+        "label": "Column letter index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.columnLetterIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "operation.columnIndexType",
+              "equals": "LETTERS",
+              "type": "simple"
+            },
+            {
+              "property": "operation.type",
+              "equals": "deleteColumn",
+              "type": "simple"
+            }
+          ]
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteWorksheet.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "deleteWorksheet.worksheetId",
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "deleteWorksheet",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getRowByIndex.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getRowByIndex",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getRowByIndex.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getRowByIndex",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getRowByIndex.rowIndex",
+        "label": "Row index",
+        "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.rowIndex",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getRowByIndex",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "spreadsheetsDetails.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "spreadsheetsDetails",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getWorksheetData.spreadsheetId",
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.spreadsheetId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getWorksheetData",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "getWorksheetData.worksheetName",
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "operationDetails",
+        "binding": {
+          "name": "operation.worksheetName",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "operation.type",
+          "equals": "getWorksheetData",
+          "type": "simple"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iNDlweCIgaGVpZ2h0PSI2N3B4IiB2aWV3Qm94PSIwIDAgNDkgNjciIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8IS0tIEdlbmVyYXRvcjogU2tldGNoIDU0LjEgKDc2NDkwKSAtIGh0dHBzOi8vc2tldGNoYXBwLmNvbSAtLT4KICAgIDx0aXRsZT5TaGVldHMtaWNvbjwvdGl0bGU+CiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggU2tldGNoLjwvZGVzYz4KICAgIDxkZWZzPgogICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDI5LjU4MzMzMzMsMCBaIiBpZD0icGF0aC0xIj48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTMiPjwvcGF0aD4KICAgICAgICA8cGF0aCBkPSJNMjkuNTgzMzMzMywwIEw0LjQzNzUsMCBDMS45OTY4NzUsMCAwLDEuOTk2ODc1IDAsNC40Mzc1IEwwLDYwLjY0NTgzMzMgQzAsNjMuMDg2NDU4MyAxLjk5Njg3NSw2NS4wODMzMzMzIDQuNDM3NSw2NS4wODMzMzMzIEw0Mi44OTU4MzMzLDY1LjA4MzMzMzMgQzQ1LjMzNjQ1ODMsNjUuMDgzMzMzMyA0Ny4zMzMzMzMzLDYzLjA4NjQ1ODMgNDcuMzMzMzMzMyw2MC42NDU4MzMzIEw0Ny4zMzMzMzMzLDE3Ljc1IEwyOS41ODMzMzMzLDAgWiIgaWQ9InBhdGgtNSI+PC9wYXRoPgogICAgICAgIDxsaW5lYXJHcmFkaWVudCB4MT0iNTAuMDA1Mzk0NSUiIHkxPSI4LjU4NjEwNjEyJSIgeDI9IjUwLjAwNTM5NDUlIiB5Mj0iMTAwLjAxMzkzOSUiIGlkPSJsaW5lYXJHcmFkaWVudC03Ij4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iIzI2MzIzOCIgc3RvcC1vcGFjaXR5PSIwLjIiIG9mZnNldD0iMCUiPjwvc3RvcD4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iIzI2MzIzOCIgc3RvcC1vcGFjaXR5PSIwLjAyIiBvZmZzZXQ9IjEwMCUiPjwvc3RvcD4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDI5LjU4MzMzMzMsMCBaIiBpZD0icGF0aC04Ij48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTEwIj48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTEyIj48L3BhdGg+CiAgICAgICAgPHBhdGggZD0iTTI5LjU4MzMzMzMsMCBMNC40Mzc1LDAgQzEuOTk2ODc1LDAgMCwxLjk5Njg3NSAwLDQuNDM3NSBMMCw2MC42NDU4MzMzIEMwLDYzLjA4NjQ1ODMgMS45OTY4NzUsNjUuMDgzMzMzMyA0LjQzNzUsNjUuMDgzMzMzMyBMNDIuODk1ODMzMyw2NS4wODMzMzMzIEM0NS4zMzY0NTgzLDY1LjA4MzMzMzMgNDcuMzMzMzMzMyw2My4wODY0NTgzIDQ3LjMzMzMzMzMsNjAuNjQ1ODMzMyBMNDcuMzMzMzMzMywxNy43NSBMMjkuNTgzMzMzMywwIFoiIGlkPSJwYXRoLTE0Ij48L3BhdGg+CiAgICAgICAgPHJhZGlhbEdyYWRpZW50IGN4PSIzLjE2ODA0Njg4JSIgY3k9IjIuNzE3NDQzMTglIiBmeD0iMy4xNjgwNDY4OCUiIGZ5PSIyLjcxNzQ0MzE4JSIgcj0iMTYxLjI0ODUxNiUiIGdyYWRpZW50VHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMzE2ODAsMC4wMjcxNzQpLHNjYWxlKDEuMDAwMDAwLDAuNzI3MjczKSx0cmFuc2xhdGUoLTAuMDMxNjgwLC0wLjAyNzE3NCkiIGlkPSJyYWRpYWxHcmFkaWVudC0xNiI+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNGRkZGRkYiIHN0b3Atb3BhY2l0eT0iMC4xIiBvZmZzZXQ9IjAlIj48L3N0b3A+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNGRkZGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIj48L3N0b3A+CiAgICAgICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDwvZGVmcz4KICAgIDxnIGlkPSJQYWdlLTEiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPgogICAgICAgIDxnIGlkPSJDb25zdW1lci1BcHBzLVNoZWV0cy1MYXJnZS1WRC1SOC0iIHRyYW5zZm9ybT0idHJhbnNsYXRlKC00NTEuMDAwMDAwLCAtNDUxLjAwMDAwMCkiPgogICAgICAgICAgICA8ZyBpZD0iSGVybyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMDAwMDAsIDYzLjAwMDAwMCkiPgogICAgICAgICAgICAgICAgPGcgaWQ9IlBlcnNvbmFsIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNzcuMDAwMDAwLCAyOTkuMDAwMDAwKSI+CiAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IlNoZWV0cy1pY29uIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNzQuODMzMzMzLCA4OS45NTgzMzMpIj4KICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9Ikdyb3VwIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay0yIiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtMSI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDM2Ljk3OTE2NjcsMTAuMzU0MTY2NyBMMjkuNTgzMzMzMywwIFoiIGlkPSJQYXRoIiBmaWxsPSIjMEY5RDU4IiBmaWxsLXJ1bGU9Im5vbnplcm8iIG1hc2s9InVybCgjbWFzay0yKSI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IkNsaXBwZWQiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxtYXNrIGlkPSJtYXNrLTQiIGZpbGw9IndoaXRlIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHVzZSB4bGluazpocmVmPSIjcGF0aC0zIj48L3VzZT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L21hc2s+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IlNWR0lEXzFfIj48L2c+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHBhdGggZD0iTTExLjgzMzMzMzMsMzEuODAyMDgzMyBMMTEuODMzMzMzMyw1My4yNSBMMzUuNSw1My4yNSBMMzUuNSwzMS44MDIwODMzIEwxMS44MzMzMzMzLDMxLjgwMjA4MzMgWiBNMjIuMTg3NSw1MC4yOTE2NjY3IEwxNC43OTE2NjY3LDUwLjI5MTY2NjcgTDE0Ljc5MTY2NjcsNDYuNTkzNzUgTDIyLjE4NzUsNDYuNTkzNzUgTDIyLjE4NzUsNTAuMjkxNjY2NyBaIE0yMi4xODc1LDQ0LjM3NSBMMTQuNzkxNjY2Nyw0NC4zNzUgTDE0Ljc5MTY2NjcsNDAuNjc3MDgzMyBMMjIuMTg3NSw0MC42NzcwODMzIEwyMi4xODc1LDQ0LjM3NSBaIE0yMi4xODc1LDM4LjQ1ODMzMzMgTDE0Ljc5MTY2NjcsMzguNDU4MzMzMyBMMTQuNzkxNjY2NywzNC43NjA0MTY3IEwyMi4xODc1LDM0Ljc2MDQxNjcgTDIyLjE4NzUsMzguNDU4MzMzMyBaIE0zMi41NDE2NjY3LDUwLjI5MTY2NjcgTDI1LjE0NTgzMzMsNTAuMjkxNjY2NyBMMjUuMTQ1ODMzMyw0Ni41OTM3NSBMMzIuNTQxNjY2Nyw0Ni41OTM3NSBMMzIuNTQxNjY2Nyw1MC4yOTE2NjY3IFogTTMyLjU0MTY2NjcsNDQuMzc1IEwyNS4xNDU4MzMzLDQ0LjM3NSBMMjUuMTQ1ODMzMyw0MC42NzcwODMzIEwzMi41NDE2NjY3LDQwLjY3NzA4MzMgTDMyLjU0MTY2NjcsNDQuMzc1IFogTTMyLjU0MTY2NjcsMzguNDU4MzMzMyBMMjUuMTQ1ODMzMywzOC40NTgzMzMzIEwyNS4xNDU4MzMzLDM0Ljc2MDQxNjcgTDMyLjU0MTY2NjcsMzQuNzYwNDE2NyBMMzIuNTQxNjY2NywzOC40NTgzMzMzIFoiIGlkPSJTaGFwZSIgZmlsbD0iI0YxRjFGMSIgZmlsbC1ydWxlPSJub256ZXJvIiBtYXNrPSJ1cmwoI21hc2stNCkiPjwvcGF0aD4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay02IiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtNSI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwb2x5Z29uIGlkPSJQYXRoIiBmaWxsPSJ1cmwoI2xpbmVhckdyYWRpZW50LTcpIiBmaWxsLXJ1bGU9Im5vbnplcm8iIG1hc2s9InVybCgjbWFzay02KSIgcG9pbnRzPSIzMC44ODEzMDIxIDE2LjQ1MjAzMTMgNDcuMzMzMzMzMyAzMi45MDAzNjQ2IDQ3LjMzMzMzMzMgMTcuNzUiPjwvcG9seWdvbj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay05IiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtOCI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJHcm91cCIgbWFzaz0idXJsKCNtYXNrLTkpIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjYuNjI1MDAwLCAtMi45NTgzMzMpIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0yLjk1ODMzMzMzLDIuOTU4MzMzMzMgTDIuOTU4MzMzMzMsMTYuMjcwODMzMyBDMi45NTgzMzMzMywxOC43MjI1NTIxIDQuOTQ0MTE0NTgsMjAuNzA4MzMzMyA3LjM5NTgzMzMzLDIwLjcwODMzMzMgTDIwLjcwODMzMzMsMjAuNzA4MzMzMyBMMi45NTgzMzMzMywyLjk1ODMzMzMzIFoiIGlkPSJQYXRoIiBmaWxsPSIjODdDRUFDIiBmaWxsLXJ1bGU9Im5vbnplcm8iPjwvcGF0aD4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJDbGlwcGVkIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8bWFzayBpZD0ibWFzay0xMSIgZmlsbD0id2hpdGUiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8dXNlIHhsaW5rOmhyZWY9IiNwYXRoLTEwIj48L3VzZT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L21hc2s+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IlNWR0lEXzFfIj48L2c+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHBhdGggZD0iTTQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNC44MDcyOTE2NyBDMCwyLjM2NjY2NjY3IDEuOTk2ODc1LDAuMzY5NzkxNjY3IDQuNDM3NSwwLjM2OTc5MTY2NyBMMjkuNTgzMzMzMywwLjM2OTc5MTY2NyBMMjkuNTgzMzMzMywwIEw0LjQzNzUsMCBaIiBpZD0iUGF0aCIgZmlsbC1vcGFjaXR5PSIwLjIiIGZpbGw9IiNGRkZGRkYiIGZpbGwtcnVsZT0ibm9uemVybyIgbWFzaz0idXJsKCNtYXNrLTExKSI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPGcgaWQ9IkNsaXBwZWQiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxtYXNrIGlkPSJtYXNrLTEzIiBmaWxsPSJ3aGl0ZSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgeGxpbms6aHJlZj0iI3BhdGgtMTIiPjwvdXNlPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvbWFzaz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8ZyBpZD0iU1ZHSURfMV8iPjwvZz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8cGF0aCBkPSJNNDIuODk1ODMzMyw2NC43MTM1NDE3IEw0LjQzNzUsNjQuNzEzNTQxNyBDMS45OTY4NzUsNjQuNzEzNTQxNyAwLDYyLjcxNjY2NjcgMCw2MC4yNzYwNDE3IEwwLDYwLjY0NTgzMzMgQzAsNjMuMDg2NDU4MyAxLjk5Njg3NSw2NS4wODMzMzMzIDQuNDM3NSw2NS4wODMzMzMzIEw0Mi44OTU4MzMzLDY1LjA4MzMzMzMgQzQ1LjMzNjQ1ODMsNjUuMDgzMzMzMyA0Ny4zMzMzMzMzLDYzLjA4NjQ1ODMgNDcuMzMzMzMzMyw2MC42NDU4MzMzIEw0Ny4zMzMzMzMzLDYwLjI3NjA0MTcgQzQ3LjMzMzMzMzMsNjIuNzE2NjY2NyA0NS4zMzY0NTgzLDY0LjcxMzU0MTcgNDIuODk1ODMzMyw2NC43MTM1NDE3IFoiIGlkPSJQYXRoIiBmaWxsLW9wYWNpdHk9IjAuMiIgZmlsbD0iIzI2MzIzOCIgZmlsbC1ydWxlPSJub256ZXJvIiBtYXNrPSJ1cmwoI21hc2stMTMpIj48L3BhdGg+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L2c+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8ZyBpZD0iQ2xpcHBlZCI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPG1hc2sgaWQ9Im1hc2stMTUiIGZpbGw9IndoaXRlIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHVzZSB4bGluazpocmVmPSIjcGF0aC0xNCI+PC91c2U+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9tYXNrPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxnIGlkPSJTVkdJRF8xXyI+PC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0zNC4wMjA4MzMzLDE3Ljc1IEMzMS41NjkxMTQ2LDE3Ljc1IDI5LjU4MzMzMzMsMTUuNzY0MjE4OCAyOS41ODMzMzMzLDEzLjMxMjUgTDI5LjU4MzMzMzMsMTMuNjgyMjkxNyBDMjkuNTgzMzMzMywxNi4xMzQwMTA0IDMxLjU2OTExNDYsMTguMTE5NzkxNyAzNC4wMjA4MzMzLDE4LjExOTc5MTcgTDQ3LjMzMzMzMzMsMTguMTE5NzkxNyBMNDcuMzMzMzMzMywxNy43NSBMMzQuMDIwODMzMywxNy43NSBaIiBpZD0iUGF0aCIgZmlsbC1vcGFjaXR5PSIwLjEiIGZpbGw9IiMyNjMyMzgiIGZpbGwtcnVsZT0ibm9uemVybyIgbWFzaz0idXJsKCNtYXNrLTE1KSI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICA8L2c+CiAgICAgICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0yOS41ODMzMzMzLDAgTDQuNDM3NSwwIEMxLjk5Njg3NSwwIDAsMS45OTY4NzUgMCw0LjQzNzUgTDAsNjAuNjQ1ODMzMyBDMCw2My4wODY0NTgzIDEuOTk2ODc1LDY1LjA4MzMzMzMgNC40Mzc1LDY1LjA4MzMzMzMgTDQyLjg5NTgzMzMsNjUuMDgzMzMzMyBDNDUuMzM2NDU4Myw2NS4wODMzMzMzIDQ3LjMzMzMzMzMsNjMuMDg2NDU4MyA0Ny4zMzMzMzMzLDYwLjY0NTgzMzMgTDQ3LjMzMzMzMzMsMTcuNzUgTDI5LjU4MzMzMzMsMCBaIiBpZD0iUGF0aCIgZmlsbD0idXJsKCNyYWRpYWxHcmFkaWVudC0xNikiIGZpbGwtcnVsZT0ibm9uemVybyI+PC9wYXRoPgogICAgICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgPC9nPgogICAgICAgIDwvZz4KICAgIDwvZz4KPC9zdmc+"
+    },
+    "engines": {
+      "camunda": "^8.5"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Google Sheets connector",
+    "id": "io.camunda.connectors.GoogleSheets.v1",
+    "version": 1,
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
+    "description": "Work with spreadsheets",
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "operation",
+        "label": "Select operation"
+      },
+      {
+        "id": "operationDetails",
+        "label": "Operation details"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "errors",
+        "label": "Error handling"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:google-sheets:1",
+        "binding": {
+          "type": "zeebe:taskDefinition",
+          "property": "type"
+        }
+      },
+      {
+        "id": "authenticationType",
+        "label": "Type",
+        "group": "authentication",
+        "type": "Dropdown",
+        "value": "bearer",
+        "choices": [
+          {
+            "name": "Bearer token",
+            "value": "bearer"
+          },
+          {
+            "name": "Refresh token",
+            "value": "refresh"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.authType",
+          "key": "authentication.authType"
+        }
+      },
+      {
+        "label": "Bearer token",
+        "description": "Enter Google API Bearer token that is authorized to interact with desired spreadsheet",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.bearerToken"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "bearer"
+        }
+      },
+      {
+        "label": "Client ID",
+        "description": "Enter Google API Client ID",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthClientId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "refresh"
+        }
+      },
+      {
+        "label": "Client secret",
+        "description": "Enter Google API client Secret",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthClientSecret"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "refresh"
+        }
+      },
+      {
+        "label": "Refresh token",
+        "description": "Enter Google API refresh token that is authorized to interact with desired spreadsheet",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthRefreshToken"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "refresh"
+        }
+      },
+      {
+        "id": "operationType",
+        "group": "operation",
+        "type": "Dropdown",
+        "value": "createSpreadsheet",
+        "choices": [
+          {
+            "name": "Create spreadsheet",
+            "value": "createSpreadsheet"
+          },
+          {
+            "name": "Add values to spreadsheet",
+            "value": "addValues"
+          },
+          {
+            "name": "Get spreadsheet details",
+            "value": "spreadsheetsDetails"
+          },
+          {
+            "name": "Create worksheet",
+            "value": "createWorksheet"
+          },
+          {
+            "name": "Get worksheet data",
+            "value": "getWorksheetData"
+          },
+          {
+            "name": "Delete worksheet",
+            "value": "deleteWorksheet"
+          },
+          {
+            "name": "Create empty column or row",
+            "value": "createEmptyColumnOrRow"
+          },
+          {
+            "name": "Create row",
+            "value": "createRow"
+          },
+          {
+            "name": "Delete column",
+            "value": "deleteColumn"
+          },
+          {
+            "name": "Get row by index",
+            "value": "getRowByIndex"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.type",
+          "key": "operation.type"
+        }
+      },
+      {
+        "label": "Parent folder ID",
+        "description": "Enter ID of the parent folder where new spreadsheet will be created",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.parent"
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createSpreadsheet"
+        }
+      },
+      {
+        "label": "Spreadsheet ID",
+        "description": "Enter the ID of the spreadsheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.spreadsheetId"
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": [
+            "createWorksheet",
+            "getRowByIndex",
+            "createEmptyColumnOrRow",
+            "deleteWorksheet",
+            "deleteColumn",
+            "getWorksheetData",
+            "spreadsheetsDetails",
+            "createRow",
+            "addValues"
+          ]
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Spreadsheet name",
+        "description": "Enter name for the new spreadsheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.spreadsheetName"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 255
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createSpreadsheet"
+        }
+      },
+      {
+        "label": "Worksheet ID",
+        "description": "Enter the ID of the worksheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.worksheetId"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 100,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["deleteWorksheet", "createEmptyColumnOrRow", "deleteColumn"]
+        }
+      },
+      {
+        "label": "Worksheet name",
+        "description": "Enter name for the worksheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.worksheetName"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 100
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["createWorksheet", "getWorksheetData"]
+        }
+      },
+      {
+        "label": "Worksheet name",
+        "description": "Enter the name of the worksheet",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.worksheetName"
+        },
+        "constraints": {
+          "notEmpty": false,
+          "maxLength": 100
+        },
+        "condition": {
+          "property": "operationType",
+          "oneOf": ["getRowByIndex", "createRow", "addValues"]
+        }
+      },
+      {
+        "label": "Worksheet index",
+        "description": "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.worksheetIndex"
+        },
+        "constraints": {
+          "notEmpty": false,
+          "maxLength": 5,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createWorksheet"
+        }
+      },
+      {
+        "label": "Dimension",
+        "description": "Choose what to add: column or row",
+        "group": "operationDetails",
+        "type": "Dropdown",
+        "optional": false,
+        "choices": [
+          {
+            "name": "Column",
+            "value": "COLUMNS"
+          },
+          {
+            "name": "Row",
+            "value": "ROWS"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.dimension"
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createEmptyColumnOrRow"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Row index",
+        "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.rowIndex"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 100,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "getRowByIndex"
+        }
+      },
+      {
+        "label": "Row index",
+        "description": "Enter the index of the row to add . Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.rowIndex"
+        },
+        "constraints": {
+          "notEmpty": false,
+          "maxLength": 100,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must contains only numbers."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createRow"
+        }
+      },
+      {
+        "id": "columnIndexFormat",
+        "label": "Index format",
+        "description": "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "Dropdown",
+        "optional": false,
+        "choices": [
+          {
+            "name": "Letters",
+            "value": "LETTERS"
+          },
+          {
+            "name": "Numbers",
+            "value": "NUMBERS"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.columnIndexType"
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "deleteColumn"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Column letter index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.columnLetterIndex"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 100,
+          "pattern": {
+            "value": "[A-Z]+",
+            "message": "Must contains only capital letters."
+          }
+        },
+        "condition": {
+          "property": "columnIndexFormat",
+          "equals": "LETTERS"
+        }
+      },
+      {
+        "label": "Column numeric index",
+        "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.columnNumberIndex"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 100,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must contains only numbers."
+          }
+        },
+        "condition": {
+          "property": "columnIndexFormat",
+          "equals": "NUMBERS"
+        }
+      },
+      {
+        "label": "Start index",
+        "description": "Enter start index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.startIndex"
+        },
+        "constraints": {
+          "notEmpty": false,
+          "maxLength": 100,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createEmptyColumnOrRow"
+        }
+      },
+      {
+        "label": "End index",
+        "description": "Enter End index (leave empty if add to the end of the sheet) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": true,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.endIndex"
+        },
+        "constraints": {
+          "notEmpty": false,
+          "maxLength": 100,
+          "pattern": {
+            "value": "^([0-9]*$)",
+            "message": "Must be a number."
+          }
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createEmptyColumnOrRow"
+        }
+      },
+      {
+        "label": "Cell ID",
+        "description": "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">documentation</a>",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.cellId"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 100
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "addValues"
+        }
+      },
+      {
+        "label": "Enter values",
+        "description": "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">Learn more about the required format</a>",
+        "group": "operationDetails",
+        "type": "Text",
+        "feel": "required",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.values"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 100
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "createRow"
+        }
+      },
+      {
+        "label": "Value",
+        "description": "Enter the value",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "optional": false,
+        "binding": {
+          "type": "zeebe:input",
+          "name": "operation.value"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 200
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "addValues"
+        }
+      },
+      {
+        "label": "Result variable",
+        "description": "Enter name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      },
+      {
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+        "group": "errors",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "errorExpression"
+        }
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMC8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAxL1JFQy1TVkctMjAwMTA5MDQvRFREL3N2ZzEwLmR0ZCI+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgaWQ9ImJvZHlfMSIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE0Ij4KCjxnIHRyYW5zZm9ybT0ibWF0cml4KDAuMTU5MDkwOSAwIDAgMC4xNTkwOTA5IDMuOTA5MDkxIC0wKSI+CiAgICA8cGF0aCBkPSJNNDIgMEw2NCAyMkw1MyAyNEw0MiAyMkw0MCAxMUw0MiAweiIgc3Ryb2tlPSJub25lIiBmaWxsPSIjMTg4MDM4IiBmaWxsLXJ1bGU9Im5vbnplcm8iIC8+CiAgICA8cGF0aCBkPSJNNDIgMjJMNDIgMEw2IDBDIDIuNjg1IDAgMCAyLjY4NSAwIDZMMCA2TDAgODJDIDAgODUuMzE1IDIuNjg1IDg4IDYgODhMNiA4OEw1OCA4OEMgNjEuMzE1IDg4IDY0IDg1LjMxNSA2NCA4Mkw2NCA4Mkw2NCAyMkw0MiAyMnoiIHN0cm9rZT0ibm9uZSIgZmlsbD0iIzM0QTg1MyIgZmlsbC1ydWxlPSJub256ZXJvIiAvPgogICAgPHBhdGggZD0iTTEyIDM0TDEyIDYzTDUyIDYzTDUyIDM0TDEyIDM0ek0yOS41IDU4TDE3IDU4TDE3IDUxTDI5LjUgNTF6TTI5LjUgNDZMMTcgNDZMMTcgMzlMMjkuNSAzOXpNNDcgNThMMzQuNSA1OEwzNC41IDUxTDQ3IDUxek00NyA0NkwzNC41IDQ2TDM0LjUgMzlMNDcgMzl6IiBzdHJva2U9Im5vbmUiIGZpbGw9IiNGRkZGRkYiIGZpbGwtcnVsZT0ibm9uemVybyIgLz4KPC9nPgo8L3N2Zz4="
+    },
+    "engines": {
+      "camunda": "^8.2"
+    }
+  }
+]

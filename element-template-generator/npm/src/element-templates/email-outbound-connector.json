@@ -1,0 +1,4373 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Email Connector",
+    "id": "io.camunda.connectors.email.v1",
+    "description": "Execute email requests",
+    "metadata": {
+      "keywords": [
+        "send emails",
+        "list emails",
+        "search emails",
+        "delete emails",
+        "read emails",
+        "move emails"
+      ]
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
+    "version": 3,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "engines": {
+      "camunda": "^8.6"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "protocol",
+        "label": "Protocol"
+      },
+      {
+        "id": "smtpAction",
+        "label": "SMTP Action"
+      },
+      {
+        "id": "pop3Action",
+        "label": "POP3 Action"
+      },
+      {
+        "id": "imapAction",
+        "label": "IMAP Action"
+      },
+      {
+        "id": "sendEmailSmtp",
+        "label": "Send Email"
+      },
+      {
+        "id": "listEmailsPop3",
+        "label": "List Emails"
+      },
+      {
+        "id": "searchEmailsPop3",
+        "label": "Search Emails"
+      },
+      {
+        "id": "deleteEmailPop3",
+        "label": "Delete Email"
+      },
+      {
+        "id": "readEmailPop3",
+        "label": "Read Email"
+      },
+      {
+        "id": "listEmailsImap",
+        "label": "List Email"
+      },
+      {
+        "id": "searchEmailsImap",
+        "label": "Search Emails"
+      },
+      {
+        "id": "readEmailImap",
+        "label": "Read Email"
+      },
+      {
+        "id": "deleteEmailImap",
+        "label": "Read Email"
+      },
+      {
+        "id": "moveEmailImap",
+        "label": "Move Emails"
+      },
+      {
+        "id": "connector",
+        "label": "Connector"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:email:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Authentication",
+        "description": "Specify the Email authentication strategy.",
+        "value": "simple",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple",
+            "value": "simple"
+          }
+        ]
+      },
+      {
+        "id": "authentication.simpleAuthenticationUsername",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
+        "type": "String"
+      },
+      {
+        "id": "authentication.simpleAuthenticationPassword",
+        "label": "Email password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
+        "type": "String"
+      },
+      {
+        "id": "protocol",
+        "label": "Email Protocol",
+        "value": "smtp",
+        "group": "protocol",
+        "binding": {
+          "name": "protocol",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "IMAP",
+            "value": "imap"
+          },
+          {
+            "name": "POP3",
+            "value": "pop3"
+          },
+          {
+            "name": "SMTP",
+            "value": "smtp"
+          }
+        ]
+      },
+      {
+        "id": "data.imapHost",
+        "label": "IMAP Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapHost",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "tooltip": "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.imapPort",
+        "label": "IMAP Port",
+        "optional": false,
+        "value": 993,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapPort",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "tooltip": "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
+        "type": "Number"
+      },
+      {
+        "id": "imapCryptographicProtocol",
+        "label": "Encryption protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapCryptographicProtocol",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          }
+        ]
+      },
+      {
+        "id": "data.pop3Host",
+        "label": "POP3 Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.pop3Config.pop3Host",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "tooltip": "Enter the address of the POP3 server if you want to download your emails to a single device. This server is typically used for retrieving emails without syncing. (e.g., pop.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.pop3Port",
+        "label": "POP3 Port",
+        "optional": false,
+        "value": 995,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.pop3Config.pop3Port",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "tooltip": "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
+        "type": "Number"
+      },
+      {
+        "id": "pop3CryptographicProtocol",
+        "label": "Cryptographic protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.pop3Config.pop3CryptographicProtocol",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          }
+        ]
+      },
+      {
+        "id": "data.smtpHost",
+        "label": "SMTP Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.smtpConfig.smtpHost",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "tooltip": "Provide the address of the SMTP server used for sending emails. This server handles the delivery of your outgoing messages. (e.g., smtp.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.smtpPort",
+        "label": "SMTP Port",
+        "optional": false,
+        "value": 587,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.smtpConfig.smtpPort",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "tooltip": "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
+        "type": "Number"
+      },
+      {
+        "id": "smtpCryptographicProtocol",
+        "label": "Cryptographic protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.smtpConfig.smtpCryptographicProtocol",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          }
+        ]
+      },
+      {
+        "id": "data.smtpActionDiscriminator",
+        "label": "SMTP action",
+        "value": "sendEmailSmtp",
+        "group": "smtpAction",
+        "binding": {
+          "name": "data.smtpActionDiscriminator",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send Email",
+            "value": "sendEmailSmtp"
+          }
+        ]
+      },
+      {
+        "id": "data.pop3ActionDiscriminator",
+        "label": "POP3 action",
+        "value": "listEmailsPop3",
+        "group": "pop3Action",
+        "binding": {
+          "name": "data.pop3ActionDiscriminator",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Delete Email",
+            "value": "deleteEmailPop3"
+          },
+          {
+            "name": "List Emails",
+            "value": "listEmailsPop3"
+          },
+          {
+            "name": "Read Email",
+            "value": "readEmailPop3"
+          },
+          {
+            "name": "Search emails",
+            "value": "searchEmailsPop3"
+          }
+        ]
+      },
+      {
+        "id": "data.imapActionDiscriminator",
+        "label": "IMAP action",
+        "value": "listEmailsImap",
+        "group": "imapAction",
+        "binding": {
+          "name": "data.imapActionDiscriminator",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Delete an email",
+            "value": "deleteEmailImap"
+          },
+          {
+            "name": "List emails",
+            "value": "listEmailsImap"
+          },
+          {
+            "name": "Move email",
+            "value": "moveEmailImap"
+          },
+          {
+            "name": "Read an email",
+            "value": "readEmailImap"
+          },
+          {
+            "name": "Search emails",
+            "value": "searchEmailsImap"
+          }
+        ]
+      },
+      {
+        "id": "smtpFrom",
+        "label": "From",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.from",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Address the email will be sent from",
+        "type": "String"
+      },
+      {
+        "id": "smtpTo",
+        "label": "To",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.to",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+        "type": "String"
+      },
+      {
+        "id": "smtpCc",
+        "label": "Cc",
+        "optional": true,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.cc",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+        "type": "String"
+      },
+      {
+        "id": "smtpBcc",
+        "label": "Bcc",
+        "optional": true,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.bcc",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+        "type": "String"
+      },
+      {
+        "id": "smtpHeaders",
+        "label": "Headers",
+        "optional": true,
+        "feel": "required",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.headers",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Additional email headers",
+        "type": "String"
+      },
+      {
+        "id": "smtpSubject",
+        "label": "Subject",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.subject",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's subject",
+        "type": "String"
+      },
+      {
+        "id": "contentType",
+        "label": "ContentType",
+        "optional": false,
+        "value": "PLAIN",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.contentType",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's contentType",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "PLAIN",
+            "value": "PLAIN"
+          },
+          {
+            "name": "HTML",
+            "value": "HTML"
+          },
+          {
+            "name": "HTML & Plaintext",
+            "value": "MULTIPART"
+          }
+        ]
+      },
+      {
+        "id": "smtpBody",
+        "label": "Email Text Content",
+        "optional": false,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.body",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "contentType",
+              "oneOf": ["PLAIN", "MULTIPART"],
+              "type": "simple"
+            },
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's content",
+        "type": "Text"
+      },
+      {
+        "id": "smtpHtmlBody",
+        "label": "Email Html Content",
+        "optional": false,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.htmlBody",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "contentType",
+              "oneOf": ["HTML", "MULTIPART"],
+              "type": "simple"
+            },
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's Html content",
+        "type": "Text"
+      },
+      {
+        "id": "attachmentsSmtp",
+        "label": "Attachment",
+        "description": "Email's attachment. e.g., =[ document1, document2]",
+        "optional": true,
+        "feel": "required",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.attachments",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's attachments, should be set as a list ",
+        "type": "String"
+      },
+      {
+        "id": "pop3maxToBeRead",
+        "label": "Maximum number of emails to be read",
+        "optional": false,
+        "value": 100,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "static",
+        "group": "listEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.maxToBeRead",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "listEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
+        "type": "Number"
+      },
+      {
+        "id": "pop3SortField",
+        "label": "Sort emails by",
+        "optional": false,
+        "value": "SENT_DATE",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.sortField",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "listEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Sent Date'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Sent Date",
+            "value": "SENT_DATE"
+          },
+          {
+            "name": "Size",
+            "value": "SIZE"
+          }
+        ]
+      },
+      {
+        "id": "pop3SortOrder",
+        "label": "Sort order",
+        "optional": false,
+        "value": "ASC",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.sortOrder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "listEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ASC",
+            "value": "ASC"
+          },
+          {
+            "name": "DESC",
+            "value": "DESC"
+          }
+        ]
+      },
+      {
+        "id": "searchStringEmailPop3",
+        "label": "Search criteria",
+        "description": "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+        "optional": true,
+        "feel": "required",
+        "group": "searchEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.criteria",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "searchEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Define the search criteria using supported keywords and syntax to filter emails.",
+        "type": "Text"
+      },
+      {
+        "id": "pop3MessageIdDelete",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "deleteEmailPop3",
+        "binding": {
+          "name": "data.pop3Action.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "deleteEmailPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "pop3MessageIdRead",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "readEmailPop3",
+        "binding": {
+          "name": "data.pop3Action.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "readEmailPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
+        "type": "String"
+      },
+      {
+        "id": "imapMaxToBeRead",
+        "label": "Maximum number of emails to be read",
+        "optional": false,
+        "value": 100,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "static",
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.maxToBeRead",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
+        "type": "Number"
+      },
+      {
+        "id": "imapListEmailsFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.listEmailsFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the folder from which you want to list emails (e.g., 'INBOX', 'Sent', 'Drafts'). If left blank, emails will be listed from the default 'INBOX' folder.",
+        "type": "String"
+      },
+      {
+        "id": "imapSortField",
+        "label": "Sort emails by",
+        "optional": false,
+        "value": "RECEIVED_DATE",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.sortField",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Received Date'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Received Date",
+            "value": "RECEIVED_DATE"
+          },
+          {
+            "name": "Sent Date",
+            "value": "SENT_DATE"
+          },
+          {
+            "name": "Size",
+            "value": "SIZE"
+          }
+        ]
+      },
+      {
+        "id": "imapSortOrder",
+        "label": "Sort order",
+        "optional": false,
+        "value": "ASC",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.sortOrder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ASC",
+            "value": "ASC"
+          },
+          {
+            "name": "DESC",
+            "value": "DESC"
+          }
+        ]
+      },
+      {
+        "id": "searchStringEmailImap",
+        "label": "Search criteria",
+        "description": "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+        "optional": true,
+        "feel": "required",
+        "group": "searchEmailsImap",
+        "binding": {
+          "name": "data.imapAction.criteria",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "searchEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Define the search criteria using supported keywords and syntax to filter emails.",
+        "type": "Text"
+      },
+      {
+        "id": "searchEmailFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "searchEmailsImap",
+        "binding": {
+          "name": "data.imapAction.searchEmailFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "searchEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
+        "type": "String"
+      },
+      {
+        "id": "imapMessageIdRead",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "readEmailImap",
+        "binding": {
+          "name": "data.imapAction.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "readEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "readEmailFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "readEmailImap",
+        "binding": {
+          "name": "data.imapAction.readEmailFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "readEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the name of the folder from which you wish to read emails. If left blank, emails will be read from the default 'INBOX' folder.",
+        "type": "String"
+      },
+      {
+        "id": "imapMessageIdDelete",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "deleteEmailImap",
+        "binding": {
+          "name": "data.imapAction.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "deleteEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "deleteEmailFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "deleteEmailImap",
+        "binding": {
+          "name": "data.imapAction.deleteEmailFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "deleteEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the name of the folder from which you want to delete emails. If left blank, the default 'INBOX' will be used. For example, you can enter 'Trash' to delete emails from the Trash folder.",
+        "type": "String"
+      },
+      {
+        "id": "imapMessageIdMove",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "moveEmailImap",
+        "binding": {
+          "name": "data.imapAction.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "moveEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "data.fromFolder",
+        "label": "Source folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "moveEmailImap",
+        "binding": {
+          "name": "data.imapAction.fromFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "moveEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the name of the folder from which the emails will be moved. This field is required. For example, enter 'INBOX' to move emails from your Inbox.",
+        "type": "String"
+      },
+      {
+        "id": "data.toFolder",
+        "label": "Target folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "moveEmailImap",
+        "binding": {
+          "name": "data.imapAction.toFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "moveEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
+        "type": "String"
+      },
+      {
+        "id": "version",
+        "label": "Version",
+        "description": "Version of the element template",
+        "value": "3",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateVersion",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "id",
+        "label": "ID",
+        "description": "ID of the element template",
+        "value": "io.camunda.connectors.email.v1",
+        "group": "connector",
+        "binding": {
+          "key": "elementTemplateId",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzkwXzI0MjApIj4KPHBhdGggZD0iTTguMzM4MzUgOS45NTM2NUwxMC4zODk0IDEyLjAxMDRMOC4zMzI2MiAxNC4wNjcyTDkuMTQ2MTYgMTQuODc1TDEyLjAxMDcgMTIuMDEwNEw5LjE0NjE2IDkuMTQ1ODNMOC4zMzgzNSA5Ljk1MzY1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTEyLjM0ODggOS45NTM2NUwxNC4zOTk4IDEyLjAxMDRMMTIuMzQzIDE0LjA2NzJMMTMuMTU2NiAxNC44NzVMMTYuMDIxMiAxMi4wMTA0TDEzLjE1NjYgOS4xNDU4M0wxMi4zNDg4IDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMy45NzIgMTEuNDM3NUgxLjEyNTMzVjIuNzkyMTlMNy42NzM3NiA3LjMyMzk2QzcuNzY5NjcgNy4zOTA0OSA3Ljg4MzYgNy40MjYxNCA4LjAwMDMyIDcuNDI2MTRDOC4xMTcwNSA3LjQyNjE0IDguMjMwOTggNy4zOTA0OSA4LjMyNjg5IDcuMzIzOTZMMTQuODc1MyAyLjc5MjE5VjhIMTYuMDIxMlYyLjI3MDgzQzE2LjAyMTIgMS45NjY5NCAxNS45MDA0IDEuNjc1NDkgMTUuNjg1NiAxLjQ2MDYxQzE1LjQ3MDcgMS4yNDU3MiAxNS4xNzkyIDEuMTI1IDE0Ljg3NTMgMS4xMjVIMS4xMjUzM0MwLjgyMTQzMiAxLjEyNSAwLjUyOTk4NCAxLjI0NTcyIDAuMzE1MDk5IDEuNDYwNjFDMC4xMDAyMTQgMS42NzU0OSAtMC4wMjA1MDc4IDEuOTY2OTQgLTAuMDIwNTA3OCAyLjI3MDgzVjExLjQzNzVDLTAuMDIwNTA3OCAxMS43NDE0IDAuMTAwMjE0IDEyLjAzMjggMC4zMTUwOTkgMTIuMjQ3N0MwLjUyOTk4NCAxMi40NjI2IDAuODIxNDMyIDEyLjU4MzMgMS4xMjUzMyAxMi41ODMzSDMuOTcyVjExLjQzNzVaTTEzLjYxNDkgMi4yNzA4M0w4LjAwMDMyIDYuMTU1MjFMMi4zODU3NCAyLjI3MDgzSDEzLjYxNDlaIiBmaWxsPSIjRkM1RDBEIi8+CjxwYXRoIGQ9Ik00LjI4MjEgOS45NTM2NUw2LjMzMzE0IDEyLjAxMDRMNC4yNzYzNyAxNC4wNjcyTDUuMDg5OTEgMTQuODc1TDcuOTU0NDkgMTIuMDEwNEw1LjA4OTkxIDkuMTQ1ODNMNC4yODIxIDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzkwXzI0MjAiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg=="
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Email Connector",
+    "id": "io.camunda.connectors.email.v1",
+    "description": "Execute email requests",
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
+    "version": 1,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "protocol",
+        "label": "Protocol"
+      },
+      {
+        "id": "smtpAction",
+        "label": "SMTP Action"
+      },
+      {
+        "id": "pop3Action",
+        "label": "POP3 Action"
+      },
+      {
+        "id": "imapAction",
+        "label": "IMAP Action"
+      },
+      {
+        "id": "sendEmailSmtp",
+        "label": "Send Email"
+      },
+      {
+        "id": "listEmailsPop3",
+        "label": "List Emails"
+      },
+      {
+        "id": "searchEmailsPop3",
+        "label": "Search Emails"
+      },
+      {
+        "id": "deleteEmailPop3",
+        "label": "Delete Email"
+      },
+      {
+        "id": "readEmailPop3",
+        "label": "Read Email"
+      },
+      {
+        "id": "listEmailsImap",
+        "label": "List Email"
+      },
+      {
+        "id": "searchEmailsImap",
+        "label": "Search Emails"
+      },
+      {
+        "id": "readEmailImap",
+        "label": "Read Email"
+      },
+      {
+        "id": "deleteEmailImap",
+        "label": "Read Email"
+      },
+      {
+        "id": "moveEmailImap",
+        "label": "Move Emails"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:email:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Authentication",
+        "description": "Specify the Email authentication strategy.",
+        "value": "simple",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple",
+            "value": "simple"
+          }
+        ]
+      },
+      {
+        "id": "authentication.simpleAuthenticationUsername",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
+        "type": "String"
+      },
+      {
+        "id": "authentication.simpleAuthenticationPassword",
+        "label": "Email password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
+        "type": "String"
+      },
+      {
+        "id": "protocol",
+        "label": "Email Protocol",
+        "value": "smtp",
+        "group": "protocol",
+        "binding": {
+          "name": "protocol",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "IMAP",
+            "value": "imap"
+          },
+          {
+            "name": "POP3",
+            "value": "pop3"
+          },
+          {
+            "name": "SMTP",
+            "value": "smtp"
+          }
+        ]
+      },
+      {
+        "id": "data.imapHost",
+        "label": "IMAP Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapHost",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "tooltip": "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.imapPort",
+        "label": "IMAP Port",
+        "optional": false,
+        "value": "993",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapPort",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "tooltip": "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
+        "type": "String"
+      },
+      {
+        "id": "imapCryptographicProtocol",
+        "label": "Encryption protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapCryptographicProtocol",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          }
+        ]
+      },
+      {
+        "id": "data.pop3Host",
+        "label": "POP3 Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.pop3Config.pop3Host",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "tooltip": "Enter the address of the POP3 server if you want to download your emails to a single device. This server is typically used for retrieving emails without syncing. (e.g., pop.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.pop3Port",
+        "label": "POP3 Port",
+        "optional": false,
+        "value": "995",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.pop3Config.pop3Port",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "tooltip": "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
+        "type": "String"
+      },
+      {
+        "id": "pop3CryptographicProtocol",
+        "label": "Cryptographic protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.pop3Config.pop3CryptographicProtocol",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          }
+        ]
+      },
+      {
+        "id": "data.smtpHost",
+        "label": "SMTP Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.smtpConfig.smtpHost",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "tooltip": "Provide the address of the SMTP server used for sending emails. This server handles the delivery of your outgoing messages. (e.g., smtp.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.smtpPort",
+        "label": "SMTP Port",
+        "optional": false,
+        "value": "587",
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.smtpConfig.smtpPort",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "tooltip": "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
+        "type": "String"
+      },
+      {
+        "id": "smtpCryptographicProtocol",
+        "label": "Cryptographic protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.smtpConfig.smtpCryptographicProtocol",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          }
+        ]
+      },
+      {
+        "id": "data.smtpActionDiscriminator",
+        "label": "SMTP action",
+        "value": "sendEmailSmtp",
+        "group": "smtpAction",
+        "binding": {
+          "name": "data.smtpActionDiscriminator",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send Email",
+            "value": "sendEmailSmtp"
+          }
+        ]
+      },
+      {
+        "id": "data.pop3ActionDiscriminator",
+        "label": "POP3 action",
+        "value": "listEmailsPop3",
+        "group": "pop3Action",
+        "binding": {
+          "name": "data.pop3ActionDiscriminator",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Delete Email",
+            "value": "deleteEmailPop3"
+          },
+          {
+            "name": "List Emails",
+            "value": "listEmailsPop3"
+          },
+          {
+            "name": "Read Email",
+            "value": "readEmailPop3"
+          },
+          {
+            "name": "Search emails",
+            "value": "searchEmailsPop3"
+          }
+        ]
+      },
+      {
+        "id": "data.imapActionDiscriminator",
+        "label": "IMAP action",
+        "value": "listEmailsImap",
+        "group": "imapAction",
+        "binding": {
+          "name": "data.imapActionDiscriminator",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Delete an email",
+            "value": "deleteEmailImap"
+          },
+          {
+            "name": "List emails",
+            "value": "listEmailsImap"
+          },
+          {
+            "name": "Move email",
+            "value": "moveEmailImap"
+          },
+          {
+            "name": "Read an email",
+            "value": "readEmailImap"
+          },
+          {
+            "name": "Search emails",
+            "value": "searchEmailsImap"
+          }
+        ]
+      },
+      {
+        "id": "smtpFrom",
+        "label": "From",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.from",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Address the email will be sent from",
+        "type": "String"
+      },
+      {
+        "id": "smtpTo",
+        "label": "To",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.to",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+        "type": "String"
+      },
+      {
+        "id": "smtpCc",
+        "label": "Cc",
+        "optional": true,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.cc",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+        "type": "String"
+      },
+      {
+        "id": "smtpBcc",
+        "label": "Bcc",
+        "optional": true,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.bcc",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+        "type": "String"
+      },
+      {
+        "id": "smtpSubject",
+        "label": "Subject",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.subject",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's subject",
+        "type": "String"
+      },
+      {
+        "id": "smtpBody",
+        "label": "Email Content",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.body",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's content",
+        "type": "Text"
+      },
+      {
+        "id": "pop3maxToBeRead",
+        "label": "Maximum number of emails to be read",
+        "optional": false,
+        "value": "100",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.maxToBeRead",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "listEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
+        "type": "String"
+      },
+      {
+        "id": "pop3SortField",
+        "label": "Sort emails by",
+        "optional": false,
+        "value": "SENT_DATE",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.sortField",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "listEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Sent Date'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Sent Date",
+            "value": "SENT_DATE"
+          },
+          {
+            "name": "Size",
+            "value": "SIZE"
+          }
+        ]
+      },
+      {
+        "id": "pop3SortOrder",
+        "label": "Sort order",
+        "optional": false,
+        "value": "ASC",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.sortOrder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "listEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ASC",
+            "value": "ASC"
+          },
+          {
+            "name": "DESC",
+            "value": "DESC"
+          }
+        ]
+      },
+      {
+        "id": "searchStringEmailPop3",
+        "label": "Search criteria",
+        "description": "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+        "optional": true,
+        "feel": "required",
+        "group": "searchEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.criteria",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "searchEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Define the search criteria using supported keywords and syntax to filter emails.",
+        "type": "Text"
+      },
+      {
+        "id": "pop3MessageIdDelete",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "deleteEmailPop3",
+        "binding": {
+          "name": "data.pop3Action.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "deleteEmailPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "pop3MessageIdRead",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "readEmailPop3",
+        "binding": {
+          "name": "data.pop3Action.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "readEmailPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
+        "type": "String"
+      },
+      {
+        "id": "imapMaxToBeRead",
+        "label": "Maximum number of emails to be read",
+        "optional": false,
+        "value": "100",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.maxToBeRead",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
+        "type": "String"
+      },
+      {
+        "id": "imapListEmailsFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.listEmailsFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the folder from which you want to list emails (e.g., 'INBOX', 'Sent', 'Drafts'). If left blank, emails will be listed from the default 'INBOX' folder.",
+        "type": "String"
+      },
+      {
+        "id": "imapSortField",
+        "label": "Sort emails by",
+        "optional": false,
+        "value": "RECEIVED_DATE",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.sortField",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Received Date'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Received Date",
+            "value": "RECEIVED_DATE"
+          },
+          {
+            "name": "Sent Date",
+            "value": "SENT_DATE"
+          },
+          {
+            "name": "Size",
+            "value": "SIZE"
+          }
+        ]
+      },
+      {
+        "id": "imapSortOrder",
+        "label": "Sort order",
+        "optional": false,
+        "value": "ASC",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.sortOrder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ASC",
+            "value": "ASC"
+          },
+          {
+            "name": "DESC",
+            "value": "DESC"
+          }
+        ]
+      },
+      {
+        "id": "searchStringEmailImap",
+        "label": "Search criteria",
+        "description": "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+        "optional": true,
+        "feel": "required",
+        "group": "searchEmailsImap",
+        "binding": {
+          "name": "data.imapAction.criteria",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "searchEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Define the search criteria using supported keywords and syntax to filter emails.",
+        "type": "Text"
+      },
+      {
+        "id": "searchEmailFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "searchEmailsImap",
+        "binding": {
+          "name": "data.imapAction.searchEmailFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "searchEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
+        "type": "String"
+      },
+      {
+        "id": "imapMessageIdRead",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "readEmailImap",
+        "binding": {
+          "name": "data.imapAction.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "readEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "readEmailFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "readEmailImap",
+        "binding": {
+          "name": "data.imapAction.readEmailFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "readEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the name of the folder from which you wish to read emails. If left blank, emails will be read from the default 'INBOX' folder.",
+        "type": "String"
+      },
+      {
+        "id": "imapMessageIdDelete",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "deleteEmailImap",
+        "binding": {
+          "name": "data.imapAction.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "deleteEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "deleteEmailFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "deleteEmailImap",
+        "binding": {
+          "name": "data.imapAction.deleteEmailFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "deleteEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the name of the folder from which you want to delete emails. If left blank, the default 'INBOX' will be used. For example, you can enter 'Trash' to delete emails from the Trash folder.",
+        "type": "String"
+      },
+      {
+        "id": "imapMessageIdMove",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "moveEmailImap",
+        "binding": {
+          "name": "data.imapAction.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "moveEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "data.fromFolder",
+        "label": "Source folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "moveEmailImap",
+        "binding": {
+          "name": "data.imapAction.fromFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "moveEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the name of the folder from which the emails will be moved. This field is required. For example, enter 'INBOX' to move emails from your Inbox.",
+        "type": "String"
+      },
+      {
+        "id": "data.toFolder",
+        "label": "Target folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "moveEmailImap",
+        "binding": {
+          "name": "data.imapAction.toFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "moveEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
+        "type": "String"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzkwXzI0MjApIj4KPHBhdGggZD0iTTguMzM4MzUgOS45NTM2NUwxMC4zODk0IDEyLjAxMDRMOC4zMzI2MiAxNC4wNjcyTDkuMTQ2MTYgMTQuODc1TDEyLjAxMDcgMTIuMDEwNEw5LjE0NjE2IDkuMTQ1ODNMOC4zMzgzNSA5Ljk1MzY1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTEyLjM0ODggOS45NTM2NUwxNC4zOTk4IDEyLjAxMDRMMTIuMzQzIDE0LjA2NzJMMTMuMTU2NiAxNC44NzVMMTYuMDIxMiAxMi4wMTA0TDEzLjE1NjYgOS4xNDU4M0wxMi4zNDg4IDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMy45NzIgMTEuNDM3NUgxLjEyNTMzVjIuNzkyMTlMNy42NzM3NiA3LjMyMzk2QzcuNzY5NjcgNy4zOTA0OSA3Ljg4MzYgNy40MjYxNCA4LjAwMDMyIDcuNDI2MTRDOC4xMTcwNSA3LjQyNjE0IDguMjMwOTggNy4zOTA0OSA4LjMyNjg5IDcuMzIzOTZMMTQuODc1MyAyLjc5MjE5VjhIMTYuMDIxMlYyLjI3MDgzQzE2LjAyMTIgMS45NjY5NCAxNS45MDA0IDEuNjc1NDkgMTUuNjg1NiAxLjQ2MDYxQzE1LjQ3MDcgMS4yNDU3MiAxNS4xNzkyIDEuMTI1IDE0Ljg3NTMgMS4xMjVIMS4xMjUzM0MwLjgyMTQzMiAxLjEyNSAwLjUyOTk4NCAxLjI0NTcyIDAuMzE1MDk5IDEuNDYwNjFDMC4xMDAyMTQgMS42NzU0OSAtMC4wMjA1MDc4IDEuOTY2OTQgLTAuMDIwNTA3OCAyLjI3MDgzVjExLjQzNzVDLTAuMDIwNTA3OCAxMS43NDE0IDAuMTAwMjE0IDEyLjAzMjggMC4zMTUwOTkgMTIuMjQ3N0MwLjUyOTk4NCAxMi40NjI2IDAuODIxNDMyIDEyLjU4MzMgMS4xMjUzMyAxMi41ODMzSDMuOTcyVjExLjQzNzVaTTEzLjYxNDkgMi4yNzA4M0w4LjAwMDMyIDYuMTU1MjFMMi4zODU3NCAyLjI3MDgzSDEzLjYxNDlaIiBmaWxsPSIjRkM1RDBEIi8+CjxwYXRoIGQ9Ik00LjI4MjEgOS45NTM2NUw2LjMzMzE0IDEyLjAxMDRMNC4yNzYzNyAxNC4wNjcyTDUuMDg5OTEgMTQuODc1TDcuOTU0NDkgMTIuMDEwNEw1LjA4OTkxIDkuMTQ1ODNMNC4yODIxIDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzkwXzI0MjAiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg=="
+    },
+    "engines": {
+      "camunda": "^8.6"
+    }
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Email Connector",
+    "id": "io.camunda.connectors.email.v1",
+    "description": "Execute email requests",
+    "metadata": {
+      "keywords": [
+        "send emails",
+        "list emails",
+        "search emails",
+        "delete emails",
+        "read emails",
+        "move emails"
+      ]
+    },
+    "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
+    "version": 2,
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": ["bpmn:Task"],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "protocol",
+        "label": "Protocol"
+      },
+      {
+        "id": "smtpAction",
+        "label": "SMTP Action"
+      },
+      {
+        "id": "pop3Action",
+        "label": "POP3 Action"
+      },
+      {
+        "id": "imapAction",
+        "label": "IMAP Action"
+      },
+      {
+        "id": "sendEmailSmtp",
+        "label": "Send Email"
+      },
+      {
+        "id": "listEmailsPop3",
+        "label": "List Emails"
+      },
+      {
+        "id": "searchEmailsPop3",
+        "label": "Search Emails"
+      },
+      {
+        "id": "deleteEmailPop3",
+        "label": "Delete Email"
+      },
+      {
+        "id": "readEmailPop3",
+        "label": "Read Email"
+      },
+      {
+        "id": "listEmailsImap",
+        "label": "List Email"
+      },
+      {
+        "id": "searchEmailsImap",
+        "label": "Search Emails"
+      },
+      {
+        "id": "readEmailImap",
+        "label": "Read Email"
+      },
+      {
+        "id": "deleteEmailImap",
+        "label": "Read Email"
+      },
+      {
+        "id": "moveEmailImap",
+        "label": "Move Emails"
+      },
+      {
+        "id": "output",
+        "label": "Output mapping"
+      },
+      {
+        "id": "error",
+        "label": "Error handling"
+      },
+      {
+        "id": "retries",
+        "label": "Retries"
+      }
+    ],
+    "properties": [
+      {
+        "value": "io.camunda:email:1",
+        "binding": {
+          "property": "type",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "Hidden"
+      },
+      {
+        "id": "authentication.type",
+        "label": "Authentication",
+        "description": "Specify the Email authentication strategy.",
+        "value": "simple",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.type",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple",
+            "value": "simple"
+          }
+        ]
+      },
+      {
+        "id": "authentication.simpleAuthenticationUsername",
+        "label": "Username",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.username",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
+        "type": "String"
+      },
+      {
+        "id": "authentication.simpleAuthenticationPassword",
+        "label": "Email password",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "authentication",
+        "binding": {
+          "name": "authentication.password",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "authentication.type",
+          "equals": "simple",
+          "type": "simple"
+        },
+        "tooltip": "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
+        "type": "String"
+      },
+      {
+        "id": "protocol",
+        "label": "Email Protocol",
+        "value": "smtp",
+        "group": "protocol",
+        "binding": {
+          "name": "protocol",
+          "type": "zeebe:input"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "IMAP",
+            "value": "imap"
+          },
+          {
+            "name": "POP3",
+            "value": "pop3"
+          },
+          {
+            "name": "SMTP",
+            "value": "smtp"
+          }
+        ]
+      },
+      {
+        "id": "data.imapHost",
+        "label": "IMAP Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapHost",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "tooltip": "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.imapPort",
+        "label": "IMAP Port",
+        "optional": false,
+        "value": 993,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapPort",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "tooltip": "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
+        "type": "Number"
+      },
+      {
+        "id": "imapCryptographicProtocol",
+        "label": "Encryption protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.imapConfig.imapCryptographicProtocol",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          }
+        ]
+      },
+      {
+        "id": "data.pop3Host",
+        "label": "POP3 Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.pop3Config.pop3Host",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "tooltip": "Enter the address of the POP3 server if you want to download your emails to a single device. This server is typically used for retrieving emails without syncing. (e.g., pop.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.pop3Port",
+        "label": "POP3 Port",
+        "optional": false,
+        "value": 995,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.pop3Config.pop3Port",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "tooltip": "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
+        "type": "Number"
+      },
+      {
+        "id": "pop3CryptographicProtocol",
+        "label": "Cryptographic protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.pop3Config.pop3CryptographicProtocol",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          }
+        ]
+      },
+      {
+        "id": "data.smtpHost",
+        "label": "SMTP Host",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.smtpConfig.smtpHost",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "tooltip": "Provide the address of the SMTP server used for sending emails. This server handles the delivery of your outgoing messages. (e.g., smtp.example.com)",
+        "type": "String"
+      },
+      {
+        "id": "data.smtpPort",
+        "label": "SMTP Port",
+        "optional": false,
+        "value": 587,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "protocol",
+        "binding": {
+          "name": "data.smtpConfig.smtpPort",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "tooltip": "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
+        "type": "Number"
+      },
+      {
+        "id": "smtpCryptographicProtocol",
+        "label": "Cryptographic protocol",
+        "optional": false,
+        "value": "TLS",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "protocol",
+        "binding": {
+          "name": "data.smtpConfig.smtpCryptographicProtocol",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "tooltip": "Select the encryption protocol for email security.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "TLS",
+            "value": "TLS"
+          },
+          {
+            "name": "SSL",
+            "value": "SSL"
+          },
+          {
+            "name": "None",
+            "value": "NONE"
+          }
+        ]
+      },
+      {
+        "id": "data.smtpActionDiscriminator",
+        "label": "SMTP action",
+        "value": "sendEmailSmtp",
+        "group": "smtpAction",
+        "binding": {
+          "name": "data.smtpActionDiscriminator",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "smtp",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Send Email",
+            "value": "sendEmailSmtp"
+          }
+        ]
+      },
+      {
+        "id": "data.pop3ActionDiscriminator",
+        "label": "POP3 action",
+        "value": "listEmailsPop3",
+        "group": "pop3Action",
+        "binding": {
+          "name": "data.pop3ActionDiscriminator",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "pop3",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Delete Email",
+            "value": "deleteEmailPop3"
+          },
+          {
+            "name": "List Emails",
+            "value": "listEmailsPop3"
+          },
+          {
+            "name": "Read Email",
+            "value": "readEmailPop3"
+          },
+          {
+            "name": "Search emails",
+            "value": "searchEmailsPop3"
+          }
+        ]
+      },
+      {
+        "id": "data.imapActionDiscriminator",
+        "label": "IMAP action",
+        "value": "listEmailsImap",
+        "group": "imapAction",
+        "binding": {
+          "name": "data.imapActionDiscriminator",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "property": "protocol",
+          "equals": "imap",
+          "type": "simple"
+        },
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Delete an email",
+            "value": "deleteEmailImap"
+          },
+          {
+            "name": "List emails",
+            "value": "listEmailsImap"
+          },
+          {
+            "name": "Move email",
+            "value": "moveEmailImap"
+          },
+          {
+            "name": "Read an email",
+            "value": "readEmailImap"
+          },
+          {
+            "name": "Search emails",
+            "value": "searchEmailsImap"
+          }
+        ]
+      },
+      {
+        "id": "smtpFrom",
+        "label": "From",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.from",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Address the email will be sent from",
+        "type": "String"
+      },
+      {
+        "id": "smtpTo",
+        "label": "To",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.to",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+        "type": "String"
+      },
+      {
+        "id": "smtpCc",
+        "label": "Cc",
+        "optional": true,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.cc",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+        "type": "String"
+      },
+      {
+        "id": "smtpBcc",
+        "label": "Bcc",
+        "optional": true,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.bcc",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
+        "type": "String"
+      },
+      {
+        "id": "smtpHeaders",
+        "label": "Headers",
+        "optional": true,
+        "feel": "required",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.headers",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Additional email headers",
+        "type": "String"
+      },
+      {
+        "id": "smtpSubject",
+        "label": "Subject",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.subject",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's subject",
+        "type": "String"
+      },
+      {
+        "id": "contentType",
+        "label": "ContentType",
+        "optional": false,
+        "value": "PLAIN",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.contentType",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's contentType",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "PLAIN",
+            "value": "PLAIN"
+          },
+          {
+            "name": "HTML",
+            "value": "HTML"
+          },
+          {
+            "name": "HTML & Plaintext",
+            "value": "MULTIPART"
+          }
+        ]
+      },
+      {
+        "id": "smtpBody",
+        "label": "Email Text Content",
+        "optional": false,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.body",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "contentType",
+              "oneOf": ["PLAIN", "MULTIPART"],
+              "type": "simple"
+            },
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's content",
+        "type": "Text"
+      },
+      {
+        "id": "smtpHtmlBody",
+        "label": "Email Html Content",
+        "optional": false,
+        "feel": "optional",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.htmlBody",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "contentType",
+              "oneOf": ["HTML", "MULTIPART"],
+              "type": "simple"
+            },
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's Html content",
+        "type": "Text"
+      },
+      {
+        "id": "attachmentsSmtp",
+        "label": "Attachment",
+        "description": "Email's attachment. e.g., =[ document1, document2]",
+        "optional": true,
+        "feel": "required",
+        "group": "sendEmailSmtp",
+        "binding": {
+          "name": "data.smtpAction.attachments",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.smtpActionDiscriminator",
+              "equals": "sendEmailSmtp",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "smtp",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Email's attachments, should be set as a list ",
+        "type": "String"
+      },
+      {
+        "id": "pop3maxToBeRead",
+        "label": "Maximum number of emails to be read",
+        "optional": false,
+        "value": 100,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "static",
+        "group": "listEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.maxToBeRead",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "listEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
+        "type": "Number"
+      },
+      {
+        "id": "pop3SortField",
+        "label": "Sort emails by",
+        "optional": false,
+        "value": "SENT_DATE",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.sortField",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "listEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Sent Date'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Sent Date",
+            "value": "SENT_DATE"
+          },
+          {
+            "name": "Size",
+            "value": "SIZE"
+          }
+        ]
+      },
+      {
+        "id": "pop3SortOrder",
+        "label": "Sort order",
+        "optional": false,
+        "value": "ASC",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.sortOrder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "listEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ASC",
+            "value": "ASC"
+          },
+          {
+            "name": "DESC",
+            "value": "DESC"
+          }
+        ]
+      },
+      {
+        "id": "searchStringEmailPop3",
+        "label": "Search criteria",
+        "description": "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+        "optional": true,
+        "feel": "required",
+        "group": "searchEmailsPop3",
+        "binding": {
+          "name": "data.pop3Action.criteria",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "searchEmailsPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Define the search criteria using supported keywords and syntax to filter emails.",
+        "type": "Text"
+      },
+      {
+        "id": "pop3MessageIdDelete",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "deleteEmailPop3",
+        "binding": {
+          "name": "data.pop3Action.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "deleteEmailPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "pop3MessageIdRead",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "readEmailPop3",
+        "binding": {
+          "name": "data.pop3Action.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.pop3ActionDiscriminator",
+              "equals": "readEmailPop3",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "pop3",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
+        "type": "String"
+      },
+      {
+        "id": "imapMaxToBeRead",
+        "label": "Maximum number of emails to be read",
+        "optional": false,
+        "value": 100,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "static",
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.maxToBeRead",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
+        "type": "Number"
+      },
+      {
+        "id": "imapListEmailsFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.listEmailsFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the folder from which you want to list emails (e.g., 'INBOX', 'Sent', 'Drafts'). If left blank, emails will be listed from the default 'INBOX' folder.",
+        "type": "String"
+      },
+      {
+        "id": "imapSortField",
+        "label": "Sort emails by",
+        "optional": false,
+        "value": "RECEIVED_DATE",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.sortField",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Received Date'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Received Date",
+            "value": "RECEIVED_DATE"
+          },
+          {
+            "name": "Sent Date",
+            "value": "SENT_DATE"
+          },
+          {
+            "name": "Size",
+            "value": "SIZE"
+          }
+        ]
+      },
+      {
+        "id": "imapSortOrder",
+        "label": "Sort order",
+        "optional": false,
+        "value": "ASC",
+        "constraints": {
+          "notEmpty": true
+        },
+        "group": "listEmailsImap",
+        "binding": {
+          "name": "data.imapAction.sortOrder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "listEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "ASC",
+            "value": "ASC"
+          },
+          {
+            "name": "DESC",
+            "value": "DESC"
+          }
+        ]
+      },
+      {
+        "id": "searchStringEmailImap",
+        "label": "Search criteria",
+        "description": "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
+        "optional": true,
+        "feel": "required",
+        "group": "searchEmailsImap",
+        "binding": {
+          "name": "data.imapAction.criteria",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "searchEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Define the search criteria using supported keywords and syntax to filter emails.",
+        "type": "Text"
+      },
+      {
+        "id": "searchEmailFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "searchEmailsImap",
+        "binding": {
+          "name": "data.imapAction.searchEmailFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "searchEmailsImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
+        "type": "String"
+      },
+      {
+        "id": "imapMessageIdRead",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "readEmailImap",
+        "binding": {
+          "name": "data.imapAction.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "readEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "readEmailFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "readEmailImap",
+        "binding": {
+          "name": "data.imapAction.readEmailFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "readEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the name of the folder from which you wish to read emails. If left blank, emails will be read from the default 'INBOX' folder.",
+        "type": "String"
+      },
+      {
+        "id": "imapMessageIdDelete",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "deleteEmailImap",
+        "binding": {
+          "name": "data.imapAction.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "deleteEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "deleteEmailFolder",
+        "label": "Folder",
+        "optional": true,
+        "feel": "optional",
+        "group": "deleteEmailImap",
+        "binding": {
+          "name": "data.imapAction.deleteEmailFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "deleteEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the name of the folder from which you want to delete emails. If left blank, the default 'INBOX' will be used. For example, you can enter 'Trash' to delete emails from the Trash folder.",
+        "type": "String"
+      },
+      {
+        "id": "imapMessageIdMove",
+        "label": "Message ID",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "moveEmailImap",
+        "binding": {
+          "name": "data.imapAction.messageId",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "moveEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "The ID of the message, typically returned by a previous email task.",
+        "type": "String"
+      },
+      {
+        "id": "data.fromFolder",
+        "label": "Source folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "moveEmailImap",
+        "binding": {
+          "name": "data.imapAction.fromFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "moveEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Enter the name of the folder from which the emails will be moved. This field is required. For example, enter 'INBOX' to move emails from your Inbox.",
+        "type": "String"
+      },
+      {
+        "id": "data.toFolder",
+        "label": "Target folder",
+        "optional": false,
+        "constraints": {
+          "notEmpty": true
+        },
+        "feel": "optional",
+        "group": "moveEmailImap",
+        "binding": {
+          "name": "data.imapAction.toFolder",
+          "type": "zeebe:input"
+        },
+        "condition": {
+          "allMatch": [
+            {
+              "property": "data.imapActionDiscriminator",
+              "equals": "moveEmailImap",
+              "type": "simple"
+            },
+            {
+              "property": "protocol",
+              "equals": "imap",
+              "type": "simple"
+            }
+          ]
+        },
+        "tooltip": "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
+        "type": "String"
+      },
+      {
+        "id": "resultVariable",
+        "label": "Result variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "binding": {
+          "key": "resultVariable",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      },
+      {
+        "id": "resultExpression",
+        "label": "Result expression",
+        "description": "Expression to map the response into process variables",
+        "feel": "required",
+        "group": "output",
+        "binding": {
+          "key": "resultExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "errorExpression",
+        "label": "Error expression",
+        "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+        "feel": "required",
+        "group": "error",
+        "binding": {
+          "key": "errorExpression",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "Text"
+      },
+      {
+        "id": "retryCount",
+        "label": "Retries",
+        "description": "Number of retries",
+        "value": "3",
+        "feel": "optional",
+        "group": "retries",
+        "binding": {
+          "property": "retries",
+          "type": "zeebe:taskDefinition"
+        },
+        "type": "String"
+      },
+      {
+        "id": "retryBackoff",
+        "label": "Retry backoff",
+        "description": "ISO-8601 duration to wait between retries",
+        "value": "PT0S",
+        "group": "retries",
+        "binding": {
+          "key": "retryBackoff",
+          "type": "zeebe:taskHeader"
+        },
+        "type": "String"
+      }
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzkwXzI0MjApIj4KPHBhdGggZD0iTTguMzM4MzUgOS45NTM2NUwxMC4zODk0IDEyLjAxMDRMOC4zMzI2MiAxNC4wNjcyTDkuMTQ2MTYgMTQuODc1TDEyLjAxMDcgMTIuMDEwNEw5LjE0NjE2IDkuMTQ1ODNMOC4zMzgzNSA5Ljk1MzY1WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTEyLjM0ODggOS45NTM2NUwxNC4zOTk4IDEyLjAxMDRMMTIuMzQzIDE0LjA2NzJMMTMuMTU2NiAxNC44NzVMMTYuMDIxMiAxMi4wMTA0TDEzLjE1NjYgOS4xNDU4M0wxMi4zNDg4IDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMy45NzIgMTEuNDM3NUgxLjEyNTMzVjIuNzkyMTlMNy42NzM3NiA3LjMyMzk2QzcuNzY5NjcgNy4zOTA0OSA3Ljg4MzYgNy40MjYxNCA4LjAwMDMyIDcuNDI2MTRDOC4xMTcwNSA3LjQyNjE0IDguMjMwOTggNy4zOTA0OSA4LjMyNjg5IDcuMzIzOTZMMTQuODc1MyAyLjc5MjE5VjhIMTYuMDIxMlYyLjI3MDgzQzE2LjAyMTIgMS45NjY5NCAxNS45MDA0IDEuNjc1NDkgMTUuNjg1NiAxLjQ2MDYxQzE1LjQ3MDcgMS4yNDU3MiAxNS4xNzkyIDEuMTI1IDE0Ljg3NTMgMS4xMjVIMS4xMjUzM0MwLjgyMTQzMiAxLjEyNSAwLjUyOTk4NCAxLjI0NTcyIDAuMzE1MDk5IDEuNDYwNjFDMC4xMDAyMTQgMS42NzU0OSAtMC4wMjA1MDc4IDEuOTY2OTQgLTAuMDIwNTA3OCAyLjI3MDgzVjExLjQzNzVDLTAuMDIwNTA3OCAxMS43NDE0IDAuMTAwMjE0IDEyLjAzMjggMC4zMTUwOTkgMTIuMjQ3N0MwLjUyOTk4NCAxMi40NjI2IDAuODIxNDMyIDEyLjU4MzMgMS4xMjUzMyAxMi41ODMzSDMuOTcyVjExLjQzNzVaTTEzLjYxNDkgMi4yNzA4M0w4LjAwMDMyIDYuMTU1MjFMMi4zODU3NCAyLjI3MDgzSDEzLjYxNDlaIiBmaWxsPSIjRkM1RDBEIi8+CjxwYXRoIGQ9Ik00LjI4MjEgOS45NTM2NUw2LjMzMzE0IDEyLjAxMDRMNC4yNzYzNyAxNC4wNjcyTDUuMDg5OTEgMTQuODc1TDcuOTU0NDkgMTIuMDEwNEw1LjA4OTkxIDkuMTQ1ODNMNC4yODIxIDkuOTUzNjVaIiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzkwXzI0MjAiPgo8cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg=="
+    },
+    "engines": {
+      "camunda": "^8.7"
+    }
+  }
+]
