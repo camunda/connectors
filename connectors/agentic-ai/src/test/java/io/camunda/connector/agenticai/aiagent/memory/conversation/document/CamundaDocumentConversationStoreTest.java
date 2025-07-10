@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.document.Document;
@@ -140,7 +139,7 @@ class CamundaDocumentConversationStoreTest {
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(document);
               assertThat(conversation.previousDocuments()).isEmpty();
             });
@@ -172,7 +171,7 @@ class CamundaDocumentConversationStoreTest {
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
     store.loadIntoRuntimeMemory(context, agentContext, memory);
 
-    final var userMessage = UserMessage.userMessage("User message");
+    final var userMessage = userMessage("User message");
     memory.addMessage(userMessage);
 
     final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
@@ -181,7 +180,7 @@ class CamundaDocumentConversationStoreTest {
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(newDocument);
               assertThat(conversation.previousDocuments()).containsExactly(previousDocument);
             });
@@ -237,7 +236,7 @@ class CamundaDocumentConversationStoreTest {
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(newDocument);
               assertThat(conversation.previousDocuments())
                   .containsExactlyElementsOf(expectedPreviousDocuments);
@@ -283,7 +282,7 @@ class CamundaDocumentConversationStoreTest {
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(newDocument);
               assertThat(conversation.previousDocuments())
                   .containsExactly(
@@ -302,7 +301,7 @@ class CamundaDocumentConversationStoreTest {
     assertThat(creationRequest.customProperties())
         .containsExactlyInAnyOrderEntriesOf(
             Map.ofEntries(
-                Map.entry("conversationId", updatedAgentContext.conversation().id()),
+                Map.entry("conversationId", updatedAgentContext.conversation().conversationId()),
                 Map.entry("customKey", "customValue")));
   }
 

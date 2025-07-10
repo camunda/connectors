@@ -49,7 +49,7 @@ public class Langchain4JAiAgentMemoryStorageTests extends BaseLangchain4JAiAgent
               .isInstanceOfSatisfying(
                   InProcessConversationContext.class,
                   conversation -> {
-                    assertThat(conversation.id()).isNotNull();
+                    assertThat(conversation.conversationId()).isNotNull();
                     assertThat(conversation.messages()).hasSize(7);
                   });
         });
@@ -76,7 +76,7 @@ public class Langchain4JAiAgentMemoryStorageTests extends BaseLangchain4JAiAgent
               .isInstanceOfSatisfying(
                   CamundaDocumentConversationContext.class,
                   conversation -> {
-                    assertThat(conversation.id()).isNotNull();
+                    assertThat(conversation.conversationId()).isNotNull();
                     assertThat(conversation.previousDocuments()).hasSize(2);
 
                     assertThat(conversation.document().reference())
@@ -94,7 +94,8 @@ public class Langchain4JAiAgentMemoryStorageTests extends BaseLangchain4JAiAgent
                               assertThat(doc.getMetadata().getCustomProperties())
                                   .containsExactlyInAnyOrderEntriesOf(
                                       Map.ofEntries(
-                                          Map.entry("conversationId", conversation.id()),
+                                          Map.entry(
+                                              "conversationId", conversation.conversationId()),
                                           Map.entry("customProperty", "customValue")));
                             });
                   });

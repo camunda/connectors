@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
@@ -16,7 +16,6 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemor
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +84,7 @@ class InProcessConversationStoreTest {
         .asInstanceOf(InstanceOfAssertFactories.type(InProcessConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.messages()).containsExactlyElementsOf(TEST_MESSAGES);
             });
   }
@@ -98,7 +97,7 @@ class InProcessConversationStoreTest {
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
     store.loadIntoRuntimeMemory(context, agentContext, memory);
 
-    final var userMessage = UserMessage.userMessage("User message");
+    final var userMessage = userMessage("User message");
     memory.addMessage(userMessage);
 
     final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
@@ -110,7 +109,8 @@ class InProcessConversationStoreTest {
               final var expectedMessages = new ArrayList<>(TEST_MESSAGES);
               expectedMessages.add(userMessage);
 
-              assertThat(conversation.id()).isEqualTo(previousConversationContext.id());
+              assertThat(conversation.conversationId())
+                  .isEqualTo(previousConversationContext.conversationId());
               assertThat(conversation.messages()).containsExactlyElementsOf(expectedMessages);
             });
   }

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -15,6 +16,7 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
+import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
@@ -63,25 +65,53 @@ public abstract class TestMessagesFixture {
 
   public static List<Message> testMessages() {
     return List.of(
-        SystemMessage.systemMessage("You are a helpful assistant. Be nice."),
-        UserMessage.userMessage(
+        systemMessage("You are a helpful assistant. Be nice."),
+        userMessage(
                 List.of(
                     textContent("What is the weather in Munich?"),
                     textContent("Is it typical for this time of the year?")))
             .withName("user1"),
-        AssistantMessage.assistantMessage(
+        assistantMessage(
             "To give an answer, I need to first look up the weather in Munich. Considering available tools, I should call the getWeather tool. In addition I will call the getDateTime tool to know the current date and time.",
             TOOL_CALLS),
-        ToolCallResultMessage.toolCallResultMessage(TOOL_CALL_RESULTS),
-        AssistantMessage.assistantMessage(
+        toolCallResultMessage(TOOL_CALL_RESULTS),
+        assistantMessage(
                 "The weather in Munich is sunny with a temperature of 22°C. This is typical for April.")
             .withMetadata(Map.of("some", "value")),
-        UserMessage.userMessage("Thank you!").withName("user1"));
+        userMessage("Thank you!").withName("user1"));
   }
 
   public static List<Message> testMessagesFromFile() throws IOException {
     return OBJECT_MAPPER.readValue(
         TestMessagesFixture.class.getClassLoader().getResourceAsStream("test-messages.json"),
         new TypeReference<>() {});
+  }
+
+  public static SystemMessage systemMessage(String text) {
+    return SystemMessage.builder().content(singleTextContent(text)).build();
+  }
+
+  public static UserMessage userMessage(String text) {
+    return UserMessage.builder().content(singleTextContent(text)).build();
+  }
+
+  public static UserMessage userMessage(List<Content> content) {
+    return UserMessage.builder().content(content).build();
+  }
+
+  public static AssistantMessage assistantMessage(String text) {
+    return AssistantMessage.builder().content(singleTextContent(text)).build();
+  }
+
+  public static AssistantMessage assistantMessage(String text, List<ToolCall> toolCalls) {
+    return AssistantMessage.builder().content(singleTextContent(text)).toolCalls(toolCalls).build();
+  }
+
+  public static AssistantMessage assistantMessage(List<Content> content) {
+    return AssistantMessage.builder().content(content).build();
+  }
+
+  public static ToolCallResultMessage toolCallResultMessage(List<ToolCallResult> results) {
+    return ToolCallResultMessage.builder().results(results).build();
   }
 }

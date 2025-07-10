@@ -92,10 +92,11 @@ public class CamundaDocumentConversationStore
     final var conversationContextBuilder =
         previousConversationContext != null
             ? previousConversationContext.with()
-            : CamundaDocumentConversationContext.builder().id(UUID.randomUUID().toString());
+            : CamundaDocumentConversationContext.builder()
+                .conversationId(UUID.randomUUID().toString());
 
     final var updatedDocument =
-        createUpdatedDocument(context, memory, conversationContextBuilder.id());
+        createUpdatedDocument(context, memory, conversationContextBuilder.conversationId());
     conversationContextBuilder.document(updatedDocument);
 
     // after write succeeded, try to purge previous documents, but keep at least the last

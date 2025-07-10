@@ -6,15 +6,16 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.runtime;
 
-import static io.camunda.connector.agenticai.model.message.UserMessage.userMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCallResultMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
-import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
@@ -103,7 +104,7 @@ class MessageWindowRuntimeMemoryTest {
 
   @Test
   void doesNotFilterSystemMessage() {
-    SystemMessage systemMessage = SystemMessage.systemMessage("System message");
+    SystemMessage systemMessage = systemMessage("System message");
 
     List<Message> messages = new ArrayList<>();
     messages.add(systemMessage);
@@ -130,13 +131,13 @@ class MessageWindowRuntimeMemoryTest {
   void removesOrphanedToolCallResultMessages() {
     final List<Message> messages =
         List.of(
-            SystemMessage.systemMessage("You are a helpful assistant. Be nice."),
-            UserMessage.userMessage(
+            systemMessage("You are a helpful assistant. Be nice."),
+            userMessage(
                     List.of(
                         textContent("What is the weather in Munich?"),
                         textContent("Is it typical for this time of the year?")))
                 .withName("user1"),
-            AssistantMessage.assistantMessage(
+            assistantMessage(
                 "To give an answer, I need to first look up the weather in Munich. Considering available tools, I should call the getWeather tool. In addition I will call the getDateTime tool to know the current date and time.",
                 List.of(
                     ToolCall.builder()
@@ -145,7 +146,7 @@ class MessageWindowRuntimeMemoryTest {
                         .arguments(Map.of("location", "MUC"))
                         .build(),
                     ToolCall.builder().id("fedcba").name("getDateTime").build())),
-            ToolCallResultMessage.toolCallResultMessage(
+            toolCallResultMessage(
                 List.of(
                     ToolCallResult.builder()
                         .id("abcdef")
@@ -164,10 +165,10 @@ class MessageWindowRuntimeMemoryTest {
                                 "iso",
                                 "2025-04-14T15:56:50"))
                         .build())),
-            AssistantMessage.assistantMessage(
+            assistantMessage(
                     "The weather in Munich is sunny with a temperature of 22°C. This is typical for April.")
                 .withMetadata(Map.of("some", "value")),
-            UserMessage.userMessage("Thank you!").withName("user1"));
+            userMessage("Thank you!").withName("user1"));
 
     memory.addMessages(messages);
     memory.addMessage(userMessage("User message 1"));

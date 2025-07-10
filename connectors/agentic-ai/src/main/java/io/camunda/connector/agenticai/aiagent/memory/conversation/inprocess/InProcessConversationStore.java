@@ -38,7 +38,7 @@ public class InProcessConversationStore
     final var conversationContextBuilder =
         previousConversationContext != null
             ? previousConversationContext.with()
-            : InProcessConversationContext.builder().id(UUID.randomUUID().toString());
+            : InProcessConversationContext.builder().conversationId(UUID.randomUUID().toString());
 
     final var conversationContext =
         conversationContextBuilder.messages(memory.allMessages()).build();

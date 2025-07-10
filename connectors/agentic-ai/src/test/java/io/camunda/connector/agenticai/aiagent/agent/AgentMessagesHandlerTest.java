@@ -7,9 +7,12 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -23,12 +26,13 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.document.Document;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +74,7 @@ class AgentMessagesHandlerTest {
 
       assertThat(runtimeMemory.allMessages())
           .hasSize(1)
-          .containsExactly(SystemMessage.systemMessage("You are a helpful assistant."));
+          .containsExactly(systemMessage("You are a helpful assistant."));
     }
 
     @Test
@@ -82,8 +86,7 @@ class AgentMessagesHandlerTest {
 
       assertThat(runtimeMemory.allMessages())
           .hasSize(1)
-          .containsExactly(
-              SystemMessage.systemMessage("You are a helpful assistant named Johnny."));
+          .containsExactly(systemMessage("You are a helpful assistant named Johnny."));
     }
 
     @ParameterizedTest
@@ -183,7 +186,16 @@ class AgentMessagesHandlerTest {
         assertThat(runtimeMemory.allMessages())
             .noneMatch(msg -> msg instanceof ToolCallResultMessage)
             .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .isEqualTo(UserMessage.userMessage("Tell me a story"));
+            .satisfies(
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(1)
+                      .first()
+                      .isEqualTo(textContent("Tell me a story"));
+                  assertThat(userMessage.metadata()).containsOnlyKeys("timestamp");
+                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                });
       }
 
       @Test
@@ -198,7 +210,16 @@ class AgentMessagesHandlerTest {
         assertThat(runtimeMemory.allMessages())
             .noneMatch(msg -> msg instanceof ToolCallResultMessage)
             .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .isEqualTo(UserMessage.userMessage("Tell me a story about Johnny"));
+            .satisfies(
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(1)
+                      .first()
+                      .isEqualTo(textContent("Tell me a story about Johnny"));
+                  assertThat(userMessage.metadata()).containsOnlyKeys("timestamp");
+                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                });
       }
 
       @Test
@@ -298,8 +319,12 @@ class AgentMessagesHandlerTest {
             .noneMatch(msg -> msg instanceof UserMessage)
             .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
             .satisfies(
-                message ->
-                    assertThat(message.results()).containsExactlyElementsOf(TOOL_CALL_RESULTS));
+                message -> {
+                  assertThat(message.results()).containsExactlyElementsOf(TOOL_CALL_RESULTS);
+                  assertThat(message.metadata()).containsOnlyKeys("timestamp");
+                  assertThat((ZonedDateTime) message.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                });
       }
 
       @Test

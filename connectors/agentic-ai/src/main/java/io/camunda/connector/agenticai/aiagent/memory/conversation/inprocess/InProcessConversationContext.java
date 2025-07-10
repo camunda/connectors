@@ -6,29 +6,24 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
-import java.util.Map;
 
 @AgenticAiRecord
 @JsonDeserialize(
     builder = InProcessConversationContext.InProcessConversationContextJacksonProxyBuilder.class)
-public record InProcessConversationContext(
-    String id,
-    List<Message> messages,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
+public record InProcessConversationContext(String conversationId, List<Message> messages)
     implements ConversationContext, InProcessConversationContextBuilder.With {
   public static InProcessConversationContextBuilder builder() {
     return InProcessConversationContextBuilder.builder();
   }
 
-  public static InProcessConversationContextBuilder builder(String id) {
-    return builder().id(id);
+  public static InProcessConversationContextBuilder builder(String conversationId) {
+    return builder().conversationId(conversationId);
   }
 
   @JsonPOJOBuilder(withPrefix = "")

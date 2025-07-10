@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -33,8 +36,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
-import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
@@ -58,15 +59,14 @@ class Langchain4JAiFrameworkAdapterTest {
       "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
 
   private static final List<Message> INPUT_MESSAGES =
-      List.of(SystemMessage.systemMessage(SYSTEM_PROMPT), UserMessage.userMessage(USER_PROMPT));
+      List.of(systemMessage(SYSTEM_PROMPT), userMessage(USER_PROMPT));
 
   private static final List<ChatMessage> L4J_MESSAGES =
       List.of(
           dev.langchain4j.data.message.SystemMessage.systemMessage(SYSTEM_PROMPT),
           dev.langchain4j.data.message.UserMessage.userMessage(USER_PROMPT));
 
-  private static final AssistantMessage ASSISTANT_MESSAGE =
-      AssistantMessage.assistantMessage(RESPONSE_TEXT);
+  private static final AssistantMessage ASSISTANT_MESSAGE = assistantMessage(RESPONSE_TEXT);
 
   private static final List<ToolDefinition> TOOL_DEFINITIONS =
       List.of(

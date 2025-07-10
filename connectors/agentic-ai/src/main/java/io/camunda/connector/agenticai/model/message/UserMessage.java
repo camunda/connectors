@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.model.message;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
@@ -24,14 +22,6 @@ public record UserMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements UserMessageBuilder.With, Message, ContentMessage {
-
-  public static UserMessage userMessage(String text) {
-    return builder().content(List.of(textContent(text))).build();
-  }
-
-  public static UserMessage userMessage(List<Content> content) {
-    return builder().content(content).build();
-  }
 
   public static UserMessageBuilder builder() {
     return UserMessageBuilder.builder();

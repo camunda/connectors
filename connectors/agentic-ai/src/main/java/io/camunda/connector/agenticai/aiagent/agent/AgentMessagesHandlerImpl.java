@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS;
+import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
 import dev.langchain4j.model.input.PromptTemplate;
@@ -26,9 +27,11 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
@@ -45,7 +48,10 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       AgentContext agentContext, RuntimeMemory memory, SystemPromptConfiguration systemPrompt) {
     if (StringUtils.isNotBlank(systemPrompt.prompt())) {
       // memory will take care of replacing any existing system message if already present
-      memory.addMessage(SystemMessage.systemMessage(promptFromConfiguration(systemPrompt)));
+      memory.addMessage(
+          SystemMessage.builder()
+              .content(singleTextContent(promptFromConfiguration(systemPrompt)))
+              .build());
     }
   }
 
@@ -97,7 +103,11 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
               .formatted(agentContext.state()));
     }
 
-    memory.addMessage(UserMessage.builder().content(content).build());
+    memory.addMessage(
+        UserMessage.builder()
+            .content(content)
+            .metadata(Map.of("timestamp", ZonedDateTime.now()))
+            .build());
   }
 
   private void addToolCallResults(
@@ -111,7 +121,11 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     var transformedToolCallResults =
         gatewayToolHandlers.transformToolCallResults(agentContext, toolCallResults);
 
-    memory.addMessage(ToolCallResultMessage.builder().results(transformedToolCallResults).build());
+    memory.addMessage(
+        ToolCallResultMessage.builder()
+            .results(transformedToolCallResults)
+            .metadata(Map.of("timestamp", ZonedDateTime.now()))
+            .build());
   }
 
   private String promptFromConfiguration(
