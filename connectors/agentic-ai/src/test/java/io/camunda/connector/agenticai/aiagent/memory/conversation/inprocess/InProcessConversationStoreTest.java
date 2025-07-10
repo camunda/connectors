@@ -15,6 +15,8 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversati
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
@@ -32,6 +34,7 @@ class InProcessConversationStoreTest {
   private static final List<Message> TEST_MESSAGES = TestMessagesFixture.testMessages();
 
   @Mock private OutboundConnectorContext context;
+  @Mock private AgentRequest agentRequest;
 
   private final InProcessConversationStore store = new InProcessConversationStore();
 
@@ -46,7 +49,14 @@ class InProcessConversationStoreTest {
   void supportsAgentContextWithoutPreviousConversation() {
     final var agentContext = AgentContext.empty();
 
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    store.executeInSession(
+        context,
+        agentRequest,
+        agentContext,
+        session -> {
+          session.loadIntoRuntimeMemory(agentContext, memory);
+          return agentResponse(agentContext);
+        });
 
     assertThat(memory.allMessages()).isEmpty();
   }
@@ -58,7 +68,14 @@ class InProcessConversationStoreTest {
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
 
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    store.executeInSession(
+        context,
+        agentRequest,
+        agentContext,
+        session -> {
+          session.loadIntoRuntimeMemory(agentContext, memory);
+          return agentResponse(agentContext);
+        });
 
     assertThat(memory.allMessages()).containsExactlyElementsOf(TEST_MESSAGES);
   }
@@ -68,7 +85,16 @@ class InProcessConversationStoreTest {
     final var agentContext =
         AgentContext.empty().withConversation(new TestConversationContext("dummy"));
 
-    assertThatThrownBy(() -> store.loadIntoRuntimeMemory(context, agentContext, memory))
+    assertThatThrownBy(
+            () ->
+                store.executeInSession(
+                    context,
+                    agentRequest,
+                    agentContext,
+                    session -> {
+                      session.loadIntoRuntimeMemory(agentContext, memory);
+                      return agentResponse(agentContext);
+                    }))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Unsupported conversation context: TestConversationContext");
   }
@@ -78,7 +104,14 @@ class InProcessConversationStoreTest {
     memory.addMessages(TEST_MESSAGES);
 
     final var agentContext = AgentContext.empty();
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                context,
+                agentRequest,
+                agentContext,
+                session -> agentResponse(session.storeFromRuntimeMemory(agentContext, memory)))
+            .context();
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(InProcessConversationContext.class))
@@ -94,13 +127,23 @@ class InProcessConversationStoreTest {
     final var previousConversationContext =
         InProcessConversationContext.builder("test-conversation").messages(TEST_MESSAGES).build();
 
-    final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
-
     final var userMessage = userMessage("User message");
-    memory.addMessage(userMessage);
 
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
+    final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                context,
+                agentRequest,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(agentContext, memory);
+
+                  memory.addMessage(userMessage);
+
+                  return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
+                })
+            .context();
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(InProcessConversationContext.class))
@@ -113,5 +156,9 @@ class InProcessConversationStoreTest {
                   .isEqualTo(previousConversationContext.conversationId());
               assertThat(conversation.messages()).containsExactlyElementsOf(expectedMessages);
             });
+  }
+
+  private AgentResponse agentResponse(AgentContext agentContext) {
+    return AgentResponse.builder().context(agentContext).build();
   }
 }

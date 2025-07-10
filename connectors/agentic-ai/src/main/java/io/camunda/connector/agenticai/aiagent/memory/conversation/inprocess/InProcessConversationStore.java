@@ -6,42 +6,20 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
-import io.camunda.connector.agenticai.aiagent.memory.conversation.BaseConversationStore;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSessionHandler;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import java.util.UUID;
 
-public class InProcessConversationStore
-    extends BaseConversationStore<InProcessConversationContext> {
+public class InProcessConversationStore implements ConversationStore {
 
   @Override
-  public Class<InProcessConversationContext> conversationContextClass() {
-    return InProcessConversationContext.class;
-  }
-
-  @Override
-  public void loadIntoRuntimeMemory(
-      OutboundConnectorContext context, AgentContext agentContext, RuntimeMemory memory) {
-    final var previousConversationContext = loadPreviousConversationContext(agentContext);
-    if (previousConversationContext == null) {
-      return;
-    }
-
-    memory.addMessages(previousConversationContext.messages());
-  }
-
-  @Override
-  public AgentContext storeFromRuntimeMemory(
-      OutboundConnectorContext context, AgentContext agentContext, RuntimeMemory memory) {
-    final var previousConversationContext = loadPreviousConversationContext(agentContext);
-    final var conversationContextBuilder =
-        previousConversationContext != null
-            ? previousConversationContext.with()
-            : InProcessConversationContext.builder().conversationId(UUID.randomUUID().toString());
-
-    final var conversationContext =
-        conversationContextBuilder.messages(memory.allMessages()).build();
-    return agentContext.withConversation(conversationContext);
+  public <T> T executeInSession(
+      OutboundConnectorContext context,
+      AgentRequest request,
+      AgentContext agentContext,
+      ConversationSessionHandler<T> sessionHandler) {
+    return sessionHandler.handleSession(new InProcessConversationSession());
   }
 }
