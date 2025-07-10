@@ -587,7 +587,7 @@
   }, {
     "id" : "data.systemPrompt.parameters",
     "label" : "System prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.",
+    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
     "optional" : true,
     "feel" : "required",
     "group" : "systemPrompt",
@@ -595,7 +595,6 @@
       "name" : "data.systemPrompt.parameters",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
     "type" : "String"
   }, {
     "id" : "data.userPrompt.prompt",
@@ -614,7 +613,7 @@
   }, {
     "id" : "data.userPrompt.parameters",
     "label" : "User prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.",
+    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
     "optional" : true,
     "feel" : "required",
     "group" : "userPrompt",
@@ -622,7 +621,6 @@
       "name" : "data.userPrompt.parameters",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
     "type" : "String"
   }, {
     "id" : "data.userPrompt.documents",

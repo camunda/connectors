@@ -50,9 +50,7 @@ public record AgentRequest(
 
     public interface PromptConfiguration {
       String PROMPT_PARAMETERS_DESCRIPTION =
-          "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.";
-      String PROMPT_PARAMETERS_TOOLTIP =
-          "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>";
+          "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.";
 
       String prompt();
 
@@ -75,7 +73,6 @@ public record AgentRequest(
                 group = "systemPrompt",
                 label = "System prompt parameters",
                 description = PROMPT_PARAMETERS_DESCRIPTION,
-                tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
                 optional = true)
             Map<String, Object> parameters)
@@ -114,7 +111,6 @@ Reveal **no** additional private reasoning outside these tags.
                 group = "userPrompt",
                 label = "User prompt parameters",
                 description = PROMPT_PARAMETERS_DESCRIPTION,
-                tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
                 optional = true)
             Map<String, Object> parameters,
