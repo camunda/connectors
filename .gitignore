@@ -69,3 +69,5 @@ THIRD-PARTY.properties
 .DS_Store
 
 element-template-generator/npm/node_modules
+element-template-generator/npm/src/element-templates
+element-template-generator/npm/src/connectors.js
