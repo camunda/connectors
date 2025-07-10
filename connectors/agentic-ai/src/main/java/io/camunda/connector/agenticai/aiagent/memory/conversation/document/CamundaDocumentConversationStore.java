@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSessionHandler;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -21,8 +20,7 @@ public class CamundaDocumentConversationStore implements ConversationStore {
   private final CamundaDocumentMemoryStorageConfiguration config;
   private final DocumentFactory documentFactory;
   private final CamundaDocumentStore documentStore;
-  private final ObjectMapper objectMapper;
-  private final ObjectWriter objectWriter;
+  private final CamundaDocumentConversationSerializer conversationSerializer;
 
   public CamundaDocumentConversationStore(
       CamundaDocumentMemoryStorageConfiguration config,
@@ -32,8 +30,7 @@ public class CamundaDocumentConversationStore implements ConversationStore {
     this.config = config;
     this.documentFactory = documentFactory;
     this.documentStore = documentStore;
-    this.objectMapper = objectMapper;
-    this.objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
+    this.conversationSerializer = new CamundaDocumentConversationSerializer(objectMapper);
   }
 
   @Override
@@ -43,7 +40,7 @@ public class CamundaDocumentConversationStore implements ConversationStore {
       ConversationSessionHandler<T> sessionHandler) {
     final var session =
         new CamundaDocumentConversationSession(
-            config, documentFactory, documentStore, objectMapper, objectWriter, executionContext);
+            config, documentFactory, documentStore, conversationSerializer, executionContext);
 
     return sessionHandler.handleSession(session);
   }
