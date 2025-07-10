@@ -27,7 +27,12 @@ public class GoogleDriveClient {
 
   public File createWithMetadata(final File fileMetadata) {
     try {
-      return driveService.files().create(fileMetadata).execute();
+      return driveService
+          .files()
+          .create(fileMetadata)
+          .setSupportsAllDrives(true)
+          .setSupportsTeamDrives(true)
+          .execute();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -35,7 +40,12 @@ public class GoogleDriveClient {
 
   public File createWithTemplate(final File fileMetaData, final String templateId) {
     try {
-      return driveService.files().copy(templateId, fileMetaData).execute();
+      return driveService
+          .files()
+          .copy(templateId, fileMetaData)
+          .setSupportsAllDrives(true)
+          .setSupportsTeamDrives(true)
+          .execute();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
