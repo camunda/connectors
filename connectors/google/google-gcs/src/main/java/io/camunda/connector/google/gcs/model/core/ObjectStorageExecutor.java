@@ -14,6 +14,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.google.gcs.model.request.Authentication;
 import io.camunda.connector.google.gcs.model.request.DownloadObject;
 import io.camunda.connector.google.gcs.model.request.ObjectStorageOperation;
@@ -70,13 +71,12 @@ public class ObjectStorageExecutor {
     BlobId blobId = BlobId.of(uploadObject.bucket(), fileName);
     BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
-    try {
-      Storage storage =
-          StorageOptions.newBuilder()
-              .setProjectId(uploadObject.project())
-              .setCredentials(getSAC())
-              .build()
-              .getService();
+    StorageOptions storageOptions = StorageOptions.newBuilder()
+        .setProjectId(uploadObject.project())
+        .setCredentials(getSAC())
+        .build();
+
+    try (Storage storage = storageOptions.getService()) {
       Blob blob = storage.createFrom(blobInfo, uploadObject.document().asInputStream());
       log.info(
           "GCS: Successfully uploaded file '{}' to bucket '{}' in project '{}'",
@@ -84,25 +84,24 @@ public class ObjectStorageExecutor {
           uploadObject.bucket(),
           uploadObject.project());
       return new UploadResponse(blob.getBucket(), blob.getName());
-    } catch (IOException ioException) {
+    } catch (Exception exception) {
       log.error(
           "GCS: Failed to upload file {} to bucket {} in project {}",
           fileName,
           uploadObject.bucket(),
           uploadObject.project(),
-          ioException);
-      throw new ConnectorException("Failed to upload file", ioException);
+          exception);
+      throw new ConnectorException("Failed to upload file", exception);
     }
   }
 
   private DownloadResponse download(DownloadObject downloadObject) {
-    try {
-      StorageOptions storageOptions =
-          StorageOptions.newBuilder()
-              .setCredentials(getSAC())
-              .setProjectId(downloadObject.project())
-              .build();
-      Storage storage = storageOptions.getService();
+    StorageOptions storageOptions =
+        StorageOptions.newBuilder()
+            .setCredentials(getSAC())
+            .setProjectId(downloadObject.project())
+            .build();
+    try (Storage storage = storageOptions.getService()) {
       BlobId blobId = BlobId.of(downloadObject.bucket(), downloadObject.fileName());
       if (downloadObject.asDocument()) {
         return downloadAsDocument(storage, blobId, downloadObject.fileName());
@@ -138,8 +137,14 @@ public class ObjectStorageExecutor {
     return new DownloadResponse.StringContent(outputStream.toString(StandardCharsets.UTF_8));
   }
 
-  private ServiceAccountCredentials getSAC() throws IOException {
-    return ServiceAccountCredentials.fromStream(
-        new ByteArrayInputStream(authentication.getJsonKey().getBytes(StandardCharsets.UTF_8)));
+  private ServiceAccountCredentials getSAC() {
+    try {
+      return ServiceAccountCredentials.fromStream(
+          new ByteArrayInputStream(authentication.getJsonKey().getBytes(StandardCharsets.UTF_8)));
+    } catch (IOException e) {
+      log.error("Failed to parse service account credentials", e);
+      throw new ConnectorInputException(
+          "Authentication failed for provided service account credentials", e);
+    }
   }
 }
