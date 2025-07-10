@@ -13,10 +13,9 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 
-import dev.langchain4j.model.input.PromptTemplate;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -34,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
@@ -128,11 +128,20 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
             .build());
   }
 
-  private String promptFromConfiguration(
-      AgentRequest.AgentRequestData.PromptConfiguration promptConfiguration) {
-    // TODO replace L4j prompt with something more powerful?
-    final var parameters =
-        Optional.ofNullable(promptConfiguration.parameters()).orElseGet(Collections::emptyMap);
-    return PromptTemplate.from(promptConfiguration.prompt()).apply(parameters).text();
+  private String promptFromConfiguration(PromptConfiguration promptConfiguration) {
+    final var promptText = promptConfiguration.prompt();
+    final var parameters = promptConfiguration.parameters();
+    if (StringUtils.isBlank(promptText) || CollectionUtils.isEmpty(parameters)) {
+      return promptText;
+    }
+
+    var updatedPromptText = promptText;
+    for (Map.Entry<String, Object> parameter : parameters.entrySet()) {
+      updatedPromptText =
+          updatedPromptText.replace(
+              "{{%s}}".formatted(parameter.getKey().trim()), parameter.getValue().toString());
+    }
+
+    return updatedPromptText;
   }
 }

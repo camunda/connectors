@@ -101,17 +101,16 @@ class AgentMessagesHandlerTest {
     }
 
     @Test
-    void throwsExceptionWhenReferencingAMissingVariableName() {
+    void missingVariableResultsInValueNotBeingReplaced() {
       final var systemPrompt =
           new SystemPromptConfiguration(
               "You are a helpful assistant named {{name}}.", Collections.emptyMap());
+      messagesHandler.addSystemMessage(AgentContext.empty(), runtimeMemory, systemPrompt);
 
-      assertThatThrownBy(
-              () ->
-                  messagesHandler.addSystemMessage(
-                      AgentContext.empty(), runtimeMemory, systemPrompt))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("Value for the variable 'name' is missing");
+      assertThat(runtimeMemory.allMessages())
+          .hasSize(1)
+          .containsExactly(
+              SystemMessage.systemMessage("You are a helpful assistant named {{name}}."));
     }
   }
 
@@ -223,17 +222,17 @@ class AgentMessagesHandlerTest {
       }
 
       @Test
-      void throwsExceptionWhenReferencingAMissingVariableName() {
-        assertThatThrownBy(
-                () ->
-                    messagesHandler.addMessagesFromRequest(
-                        AGENT_CONTEXT,
-                        runtimeMemory,
-                        new UserPromptConfiguration(
-                            "Tell me a story about {{name}}", Map.of(), List.of()),
-                        TOOL_CALL_RESULTS))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Value for the variable 'name' is missing");
+      void missingVariableResultsInValueNotBeingReplaced() {
+        messagesHandler.addMessagesFromRequest(
+            AGENT_CONTEXT,
+            runtimeMemory,
+            new UserPromptConfiguration("Tell me a story about {{name}}", Map.of(), List.of()),
+            TOOL_CALL_RESULTS);
+
+        assertThat(runtimeMemory.allMessages())
+            .noneMatch(msg -> msg instanceof ToolCallResultMessage)
+            .first(InstanceOfAssertFactories.type(UserMessage.class))
+            .isEqualTo(UserMessage.userMessage("Tell me a story about {{name}}"));
       }
 
       @Test
