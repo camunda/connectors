@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.Optional;
 
 public class AgentLimitsValidatorImpl implements AgentLimitsValidator {
@@ -19,8 +19,8 @@ public class AgentLimitsValidatorImpl implements AgentLimitsValidator {
 
   @Override
   public void validateConfiguredLimits(
-      OutboundConnectorContext context, AgentRequest request, AgentContext agentContext) {
-    verifyMaxModelCalls(request, agentContext);
+      AgentExecutionContext executionContext, AgentContext agentContext) {
+    verifyMaxModelCalls(executionContext.request(), agentContext);
   }
 
   private void verifyMaxModelCalls(AgentRequest request, AgentContext agentContext) {

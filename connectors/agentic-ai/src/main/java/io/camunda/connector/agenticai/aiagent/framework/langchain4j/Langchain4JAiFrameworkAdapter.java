@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
@@ -45,8 +46,10 @@ public class Langchain4JAiFrameworkAdapter
 
   @Override
   public Langchain4JAiFrameworkChatResponse executeChatRequest(
-      AgentRequest request, AgentContext agentContext, RuntimeMemory runtimeMemory) {
-
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      RuntimeMemory runtimeMemory) {
+    final var request = executionContext.request();
     final var messages = chatMessageConverter.map(runtimeMemory.filteredMessages());
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(agentContext.toolDefinitions());

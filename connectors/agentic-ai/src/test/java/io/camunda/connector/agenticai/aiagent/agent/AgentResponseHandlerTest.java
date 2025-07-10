@@ -16,6 +16,8 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -73,6 +75,8 @@ class AgentResponseHandlerTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AgentResponseHandler responseHandler = new AgentResponseHandlerImpl(objectMapper);
+
+  @Mock private AgentJobContext agentJobContext;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentRequest request;
@@ -206,7 +210,11 @@ class AgentResponseHandlerTest {
 
   private AgentResponse createResponse(AssistantMessage assistantMessage) {
     final var response =
-        responseHandler.createResponse(request, AGENT_CONTEXT, assistantMessage, TOOL_CALLS);
+        responseHandler.createResponse(
+            new AgentExecutionContext(agentJobContext, request),
+            AGENT_CONTEXT,
+            assistantMessage,
+            TOOL_CALLS);
 
     assertThat(response).isNotNull();
     assertThat(response.context()).isEqualTo(AGENT_CONTEXT);

@@ -11,11 +11,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.LimitsConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AgentLimitsValidatorTest {
 
-  @Mock private OutboundConnectorContext connectorContext;
+  @Mock private AgentJobContext agentJobContext;
 
   @Nested
   class MaxModelCallsValidation {
@@ -44,9 +45,7 @@ class AgentLimitsValidatorTest {
       assertDoesNotThrow(
           () ->
               limitsValidator.validateConfiguredLimits(
-                  connectorContext,
-                  agentRequest(AGENT_CONTEXT, new LimitsConfiguration(8)),
-                  AGENT_CONTEXT));
+                  executionContext(AGENT_CONTEXT, new LimitsConfiguration(8)), AGENT_CONTEXT));
     }
 
     @ParameterizedTest
@@ -58,9 +57,7 @@ class AgentLimitsValidatorTest {
       assertThatThrownBy(
               () ->
                   limitsValidator.validateConfiguredLimits(
-                      connectorContext,
-                      agentRequest(agentContext, new LimitsConfiguration(8)),
-                      agentContext))
+                      executionContext(agentContext, new LimitsConfiguration(8)), agentContext))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> {
@@ -81,9 +78,7 @@ class AgentLimitsValidatorTest {
       assertThatThrownBy(
               () ->
                   limitsValidator.validateConfiguredLimits(
-                      connectorContext,
-                      agentRequest(agentContext, limitsConfiguration),
-                      agentContext))
+                      executionContext(agentContext, limitsConfiguration), agentContext))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> {
@@ -98,11 +93,14 @@ class AgentLimitsValidatorTest {
     }
   }
 
-  private AgentRequest agentRequest(
+  private AgentExecutionContext executionContext(
       AgentContext agentContext, LimitsConfiguration limitsConfiguration) {
-    return new AgentRequest(
-        null,
-        new AgentRequest.AgentRequestData(
-            agentContext, null, null, null, null, limitsConfiguration, null));
+    final var agentRequest =
+        new AgentRequest(
+            null,
+            new AgentRequest.AgentRequestData(
+                agentContext, null, null, null, null, limitsConfiguration, null));
+
+    return new AgentExecutionContext(agentJobContext, agentRequest);
   }
 }

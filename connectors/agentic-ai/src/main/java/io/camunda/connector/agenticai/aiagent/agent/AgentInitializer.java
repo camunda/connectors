@@ -6,8 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
 /**
  * Primarily responsible for initializing the agent context and to resolve tool call results from
@@ -17,5 +16,5 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
  * client activities to list tools).
  */
 public interface AgentInitializer {
-  AgentInitializationResult initializeAgent(OutboundConnectorContext context, AgentRequest request);
+  AgentInitializationResult initializeAgent(AgentExecutionContext executionContext);
 }
