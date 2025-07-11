@@ -12,12 +12,16 @@ import static org.mockito.Mockito.mockConstruction;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.time.Duration;
 import java.util.Map;
@@ -30,8 +34,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ConversationStoreFactoryTest {
 
+  private final AgentContext agentContext = AgentContext.empty();
+
   @Mock private ObjectMapper objectMapper;
+  @Mock private DocumentFactory documentFactory;
   @Mock private CamundaDocumentStore camundaDocumentStore;
+  @Mock private AgentJobContext agentJobContext;
 
   @InjectMocks private ConversationStoreFactoryImpl factory;
 
@@ -39,7 +47,10 @@ class ConversationStoreFactoryTest {
   void createsInProcessConversationStore() {
     try (final var constructor = mockConstruction(InProcessConversationStore.class)) {
       final var store =
-          factory.createConversationStore(agentRequest(new InProcessMemoryStorageConfiguration()));
+          factory.createConversationStore(
+              new AgentExecutionContext(
+                  agentJobContext, agentRequest(new InProcessMemoryStorageConfiguration())),
+              agentContext);
 
       assertThat(store).isInstanceOf(InProcessConversationStore.class);
       assertThat(constructor.constructed()).hasSize(1).first().isEqualTo(store);
@@ -49,7 +60,9 @@ class ConversationStoreFactoryTest {
   @Test
   void fallsbackToInProcessConversationStoreWhenNotConfigured() {
     try (final var constructor = mockConstruction(InProcessConversationStore.class)) {
-      final var store = factory.createConversationStore(agentRequest(null));
+      final var store =
+          factory.createConversationStore(
+              new AgentExecutionContext(agentJobContext, agentRequest(null)), agentContext);
 
       assertThat(store).isInstanceOf(InProcessConversationStore.class);
       assertThat(constructor.constructed()).hasSize(1).first().isEqualTo(store);
@@ -61,9 +74,12 @@ class ConversationStoreFactoryTest {
     try (final var constructor = mockConstruction(CamundaDocumentConversationStore.class)) {
       final var store =
           factory.createConversationStore(
-              agentRequest(
-                  new CamundaDocumentMemoryStorageConfiguration(
-                      Duration.ofHours(1), Map.of("customKey", "customValue"))));
+              new AgentExecutionContext(
+                  agentJobContext,
+                  agentRequest(
+                      new CamundaDocumentMemoryStorageConfiguration(
+                          Duration.ofHours(1), Map.of("customKey", "customValue")))),
+              agentContext);
 
       assertThat(store).isInstanceOf(CamundaDocumentConversationStore.class);
       assertThat(constructor.constructed()).hasSize(1).first().isEqualTo(store);

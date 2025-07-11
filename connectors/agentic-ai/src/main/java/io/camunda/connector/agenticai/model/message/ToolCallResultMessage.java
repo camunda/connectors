@@ -21,10 +21,6 @@ public record ToolCallResultMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements ToolCallResultMessageBuilder.With, Message {
 
-  public static ToolCallResultMessage toolCallResultMessage(List<ToolCallResult> results) {
-    return builder().results(results).build();
-  }
-
   public static ToolCallResultMessageBuilder builder() {
     return ToolCallResultMessageBuilder.builder();
   }

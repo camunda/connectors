@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +34,8 @@ import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.document.Document;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -221,6 +224,9 @@ class ChatMessageConverterTest {
                   .isEqualTo("AI response");
             });
 
+    assertThat(result.metadata()).containsKey("timestamp");
+    assertThat((ZonedDateTime) result.metadata().get("timestamp"))
+        .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
     assertThat(result.metadata()).containsKey("framework");
     assertThat(result.metadata().get("framework"))
         .asInstanceOf(InstanceOfAssertFactories.MAP)

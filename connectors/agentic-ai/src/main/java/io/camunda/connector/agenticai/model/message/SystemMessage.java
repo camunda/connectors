@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.model.message;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
@@ -22,14 +20,6 @@ public record SystemMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Content> content,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements SystemMessageBuilder.With, Message, ContentMessage {
-
-  public static SystemMessage systemMessage(String text) {
-    return builder().content(List.of(textContent(text))).build();
-  }
-
-  public static SystemMessage systemMessage(List<Content> content) {
-    return builder().content(content).build();
-  }
 
   public static SystemMessageBuilder builder() {
     return SystemMessageBuilder.builder();

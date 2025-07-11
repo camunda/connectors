@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
+
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
@@ -83,8 +85,9 @@ public record AgentResponse(
   @DataExample(id = "assistantMessage", feel = "=responseMessage.content[type = \"text\"][1].text")
   public static AgentResponse exampleResultWithAssistantMessageResponse() {
     final var assistantMessage =
-        AssistantMessage.assistantMessage("This is a sample response text from the AI agent.")
-            .withMetadata(
+        AssistantMessage.builder()
+            .content(singleTextContent("This is a sample response text from the AI agent."))
+            .metadata(
                 Map.of(
                     "framework",
                     Map.ofEntries(
@@ -94,7 +97,8 @@ public record AgentResponse(
                                 "inputTokenCount", 5,
                                 "outputTokenCount", 6,
                                 "totalTokenCount", 11)),
-                        Map.entry("finishReason", "STOP"))));
+                        Map.entry("finishReason", "STOP"))))
+            .build();
 
     return AgentResponse.builder()
         .context(exampleResultWithTextResponse().context())

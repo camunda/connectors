@@ -24,10 +24,10 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidatorImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
-import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactory;
@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImp
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -60,8 +61,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FeelInputParamExtractor feelInputParamExtractor(ObjectMapper objectMapper) {
-    return new FeelInputParamExtractorImpl(objectMapper);
+  public FeelInputParamExtractor feelInputParamExtractor() {
+    return new FeelInputParamExtractorImpl();
   }
 
   @Bean
@@ -124,8 +125,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ConversationStoreFactory aiAgentConversationStoreFactory(
-      ObjectMapper objectMapper, CamundaDocumentStore camundaDocumentStore) {
-    return new ConversationStoreFactoryImpl(objectMapper, camundaDocumentStore);
+      ObjectMapper objectMapper,
+      DocumentFactory documentFactory,
+      CamundaDocumentStore camundaDocumentStore) {
+    return new ConversationStoreFactoryImpl(objectMapper, documentFactory, camundaDocumentStore);
   }
 
   @Bean
@@ -149,7 +152,7 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AiAgentRequestHandler aiAgentRequestHandler(
+  public AgentRequestHandler aiAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreFactory conversationStoreFactory,
       AgentLimitsValidator limitsValidator,
@@ -157,7 +160,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       AgentResponseHandler responseHandler) {
-    return new AiAgentRequestHandlerImpl(
+    return new AgentRequestHandlerImpl(
         agentInitializer,
         conversationStoreFactory,
         limitsValidator,
@@ -172,7 +175,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.enabled",
       matchIfMissing = true)
-  public AiAgentFunction aiAgentFunction(AiAgentRequestHandler aiAgentRequestHandler) {
-    return new AiAgentFunction(aiAgentRequestHandler);
+  public AiAgentFunction aiAgentFunction(AgentRequestHandler agentRequestHandler) {
+    return new AiAgentFunction(agentRequestHandler);
   }
 }

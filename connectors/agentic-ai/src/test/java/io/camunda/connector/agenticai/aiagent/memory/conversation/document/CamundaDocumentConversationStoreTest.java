@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -22,12 +22,15 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.DocumentCreationRequest;
@@ -45,7 +48,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -67,9 +69,11 @@ class CamundaDocumentConversationStoreTest {
 
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
-  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private OutboundConnectorContext context;
+  @Mock private AgentJobContext agentJobContext;
+  @Mock private AgentRequest agentRequest;
+  private AgentExecutionContext executionContext;
 
+  @Mock private DocumentFactory documentFactory;
   @Mock private CamundaDocumentStore documentStore;
 
   private CamundaDocumentConversationStore store;
@@ -79,13 +83,14 @@ class CamundaDocumentConversationStoreTest {
 
   @BeforeEach
   void setUp() {
+    executionContext = new AgentExecutionContext(agentJobContext, agentRequest);
     store =
         new CamundaDocumentConversationStore(
             new CamundaDocumentMemoryStorageConfiguration(
                 Duration.ofHours(1), Map.of("customKey", "customValue")),
+            documentFactory,
             documentStore,
-            objectMapper,
-            PREVIOUS_DOCUMENTS_RETENTION_SIZE);
+            objectMapper);
 
     memory = new DefaultRuntimeMemory();
   }
@@ -94,7 +99,13 @@ class CamundaDocumentConversationStoreTest {
   void supportsAgentContextWithoutPreviousConversation() {
     final var agentContext = AgentContext.empty();
 
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    store.executeInSession(
+        executionContext,
+        agentContext,
+        session -> {
+          session.loadIntoRuntimeMemory(agentContext, memory);
+          return agentResponse(agentContext);
+        });
 
     assertThat(memory.allMessages()).isEmpty();
   }
@@ -110,7 +121,13 @@ class CamundaDocumentConversationStoreTest {
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
 
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    store.executeInSession(
+        executionContext,
+        agentContext,
+        session -> {
+          session.loadIntoRuntimeMemory(agentContext, memory);
+          return agentResponse(agentContext);
+        });
 
     assertThat(memory.allMessages()).containsExactlyElementsOf(TEST_MESSAGES);
   }
@@ -120,7 +137,15 @@ class CamundaDocumentConversationStoreTest {
     final var agentContext =
         AgentContext.empty().withConversation(new TestConversationContext("dummy"));
 
-    assertThatThrownBy(() -> store.loadIntoRuntimeMemory(context, agentContext, memory))
+    assertThatThrownBy(
+            () ->
+                store.executeInSession(
+                    executionContext,
+                    agentContext,
+                    session -> {
+                      session.loadIntoRuntimeMemory(agentContext, memory);
+                      return agentResponse(agentContext);
+                    }))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Unsupported conversation context: TestConversationContext");
   }
@@ -131,16 +156,22 @@ class CamundaDocumentConversationStoreTest {
     memory.addMessages(TEST_MESSAGES);
 
     final var document = mock(Document.class);
-    when(context.create(documentCreationRequestCaptor.capture())).thenReturn(document);
+    when(documentFactory.create(documentCreationRequestCaptor.capture())).thenReturn(document);
 
     final var agentContext = AgentContext.empty();
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                executionContext,
+                agentContext,
+                session -> agentResponse(session.storeFromRuntimeMemory(agentContext, memory)))
+            .context();
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(document);
               assertThat(conversation.previousDocuments()).isEmpty();
             });
@@ -167,21 +198,30 @@ class CamundaDocumentConversationStoreTest {
             .build();
 
     final var newDocument = mock(Document.class);
-    when(context.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
+    when(documentFactory.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
+
+    final var userMessage = userMessage("User message");
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                executionContext,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(agentContext, memory);
 
-    final var userMessage = UserMessage.userMessage("User message");
-    memory.addMessage(userMessage);
+                  memory.addMessage(userMessage);
 
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
+                  return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
+                })
+            .context();
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(newDocument);
               assertThat(conversation.previousDocuments()).containsExactly(previousDocument);
             });
@@ -227,17 +267,25 @@ class CamundaDocumentConversationStoreTest {
     expectedPreviousDocuments.add(previousDocument);
 
     final var newDocument = mock(Document.class);
-    when(context.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
+    when(documentFactory.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                executionContext,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(agentContext, memory);
+                  return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
+                })
+            .context();
 
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(newDocument);
               assertThat(conversation.previousDocuments())
                   .containsExactlyElementsOf(expectedPreviousDocuments);
@@ -273,17 +321,25 @@ class CamundaDocumentConversationStoreTest {
         .deleteDocument(failingReference);
 
     final var newDocument = mock(Document.class);
-    when(context.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
+    when(documentFactory.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
-    store.loadIntoRuntimeMemory(context, agentContext, memory);
+    final var updatedAgentContext =
+        store
+            .executeInSession(
+                executionContext,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(agentContext, memory);
+                  return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
+                })
+            .context();
 
-    final var updatedAgentContext = store.storeFromRuntimeMemory(context, agentContext, memory);
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
         .satisfies(
             conversation -> {
-              assertThat(conversation.id()).isNotEmpty();
+              assertThat(conversation.conversationId()).isNotEmpty();
               assertThat(conversation.document()).isEqualTo(newDocument);
               assertThat(conversation.previousDocuments())
                   .containsExactly(
@@ -291,6 +347,10 @@ class CamundaDocumentConversationStoreTest {
                       previousDocuments.get(2),
                       previousDocument);
             });
+  }
+
+  private AgentResponse agentResponse(AgentContext agentContext) {
+    return AgentResponse.builder().context(agentContext).build();
   }
 
   private void assertDocumentCreationRequest(
@@ -302,14 +362,14 @@ class CamundaDocumentConversationStoreTest {
     assertThat(creationRequest.customProperties())
         .containsExactlyInAnyOrderEntriesOf(
             Map.ofEntries(
-                Map.entry("conversationId", updatedAgentContext.conversation().id()),
+                Map.entry("conversationId", updatedAgentContext.conversation().conversationId()),
                 Map.entry("customKey", "customValue")));
   }
 
   private void mockJobContext() {
-    when(context.getJobContext().getBpmnProcessId()).thenReturn(BPMN_PROCESS_ID);
-    when(context.getJobContext().getProcessInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
-    when(context.getJobContext().getElementId()).thenReturn(ELEMENT_ID);
+    when(agentJobContext.bpmnProcessId()).thenReturn(BPMN_PROCESS_ID);
+    when(agentJobContext.processInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
+    when(agentJobContext.elementId()).thenReturn(ELEMENT_ID);
   }
 
   private InputStream documentContentAsInputStream(DocumentContent documentContent)

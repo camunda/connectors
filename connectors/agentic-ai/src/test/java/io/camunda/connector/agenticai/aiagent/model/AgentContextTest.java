@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -13,7 +14,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
-import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +82,7 @@ class AgentContextTest {
 
   @Test
   void withConversation() {
-    final var newMessage = UserMessage.userMessage("Hello");
+    final var newMessage = userMessage("Hello");
     final var newConversationContext =
         InProcessConversationContext.builder("test-conversation")
             .messages(List.of(newMessage))
@@ -146,7 +146,7 @@ class AgentContextTest {
                         .build()))
             .conversation(
                 InProcessConversationContext.builder("test-conversation")
-                    .messages(List.of(UserMessage.userMessage("Hello")))
+                    .messages(List.of(userMessage("Hello")))
                     .build())
             .build();
 

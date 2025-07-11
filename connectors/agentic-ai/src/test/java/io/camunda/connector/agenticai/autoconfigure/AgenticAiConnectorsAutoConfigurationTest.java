@@ -20,8 +20,8 @@ import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
-import io.camunda.connector.agenticai.aiagent.agent.AiAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
@@ -51,7 +51,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentLimitsValidator.class,
           AgentMessagesHandler.class,
           AgentResponseHandler.class,
-          AiAgentRequestHandler.class,
+          AgentRequestHandler.class,
           AiAgentFunction.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =

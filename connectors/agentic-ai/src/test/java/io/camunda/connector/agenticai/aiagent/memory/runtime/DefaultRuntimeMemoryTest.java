@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.runtime;
 
-import static io.camunda.connector.agenticai.model.message.SystemMessage.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;

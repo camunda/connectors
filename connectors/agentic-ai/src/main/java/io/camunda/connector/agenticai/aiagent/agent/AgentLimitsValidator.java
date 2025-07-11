@@ -7,8 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
 /**
  * Validates the configured limits for an agent request.
@@ -16,6 +15,5 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
  * <p>Based on the configured limits, it can throw an exception if the limits are not met.
  */
 public interface AgentLimitsValidator {
-  void validateConfiguredLimits(
-      OutboundConnectorContext context, AgentRequest request, AgentContext agentContext);
+  void validateConfiguredLimits(AgentExecutionContext executionContext, AgentContext agentContext);
 }

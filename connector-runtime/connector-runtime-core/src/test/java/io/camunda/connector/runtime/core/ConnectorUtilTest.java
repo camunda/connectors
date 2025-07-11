@@ -27,7 +27,6 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Optional;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,13 +47,14 @@ public class ConnectorUtilTest {
           ConnectorUtil.getOutboundConnectorConfiguration(AnnotatedFunction.class);
 
       // then
-      Assertions.assertThat(configuration)
+      assertThat(configuration)
           .isPresent()
           .hasValueSatisfying(
               config -> {
                 assertThat(config.name()).isEqualTo("ANNOTATED");
                 assertThat(config.type()).isEqualTo("io.camunda.Annotated");
                 assertThat(config.inputVariables()).isEqualTo(new String[] {"FOO"});
+                assertThat(config.timeout()).isNull();
               });
     }
 
@@ -66,7 +66,24 @@ public class ConnectorUtilTest {
           ConnectorUtil.getOutboundConnectorConfiguration(UnannotatedFunction.class);
 
       // then
-      Assertions.assertThat(configuration).isNotPresent();
+      assertThat(configuration).isNotPresent();
+    }
+
+    @Test
+    void shouldOverrideTypeAndTimeout() throws Exception {
+      EnvironmentVariables environmentVariables =
+          new EnvironmentVariables(
+              "CONNECTOR_ANNOTATED_TYPE", "io.camunda:connector:XXXXXXX",
+              "CONNECTOR_ANNOTATED_TIMEOUT", "123456");
+
+      environmentVariables.execute(
+          () -> {
+            Optional<OutboundConnectorConfiguration> configuration =
+                ConnectorUtil.getOutboundConnectorConfiguration(AnnotatedFunction.class);
+            assertThat(configuration).isPresent();
+            assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
+            assertThat(configuration.get().timeout()).isEqualTo(123456L);
+          });
     }
 
     @Test
@@ -173,6 +190,52 @@ public class ConnectorUtilTest {
             assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
           });
     }
+  }
+
+  @Nested
+  class GetInboundConnectorConfiguration {
+
+    @Test
+    public void shouldRetrieveConnectorConfiguration() {
+
+      // when
+      Optional<InboundConnectorConfiguration> configuration =
+          ConnectorUtil.getInboundConnectorConfiguration(AnnotatedExecutable.class);
+
+      // then
+      assertThat(configuration)
+          .isPresent()
+          .hasValueSatisfying(
+              config -> {
+                assertThat(config.name()).isEqualTo("ANNOTATED");
+                assertThat(config.type()).isEqualTo("io.camunda.Annotated");
+                assertThat(config.deduplicationProperties()).containsExactly("id");
+              });
+    }
+
+    @Test
+    public void shouldHandleMissingConnectorConfiguration() {
+      // when
+      Optional<InboundConnectorConfiguration> configuration =
+          ConnectorUtil.getInboundConnectorConfiguration(UnannotatedExecutable.class);
+
+      // then
+      assertThat(configuration).isNotPresent();
+    }
+
+    @Test
+    void shouldOverrideType() throws Exception {
+      EnvironmentVariables environmentVariables =
+          new EnvironmentVariables("CONNECTOR_ANNOTATED_TYPE", "io.camunda:connector:XXXXXXX");
+
+      environmentVariables.execute(
+          () -> {
+            Optional<InboundConnectorConfiguration> configuration =
+                ConnectorUtil.getInboundConnectorConfiguration(AnnotatedExecutable.class);
+            assertThat(configuration).isPresent();
+            assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
+          });
+    }
 
     @Test
     void shouldNormalizeInboundConnectorNameWithoutOverride() {
@@ -242,4 +305,26 @@ class UnannotatedFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     return null;
   }
+}
+
+@InboundConnector(
+    name = "ANNOTATED",
+    type = "io.camunda.Annotated",
+    deduplicationProperties = {"id"})
+class AnnotatedExecutable implements InboundConnectorExecutable {
+
+  @Override
+  public void activate(InboundConnectorContext context) {}
+
+  @Override
+  public void deactivate() {}
+}
+
+class UnannotatedExecutable implements InboundConnectorExecutable {
+
+  @Override
+  public void activate(InboundConnectorContext context) {}
+
+  @Override
+  public void deactivate() {}
 }

@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.document.Document;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -127,7 +128,9 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
     if (chatResponse.metadata() != null) {
       builder.metadata(
-          Map.of("framework", serializedChatResponseMetadata(chatResponse.metadata())));
+          Map.of(
+              "timestamp", ZonedDateTime.now(),
+              "framework", serializedChatResponseMetadata(chatResponse.metadata())));
     }
 
     final var aiMessage = chatResponse.aiMessage();

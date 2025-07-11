@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -23,6 +26,8 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpe
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
@@ -33,8 +38,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.SystemMessage;
-import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
@@ -58,15 +61,14 @@ class Langchain4JAiFrameworkAdapterTest {
       "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
 
   private static final List<Message> INPUT_MESSAGES =
-      List.of(SystemMessage.systemMessage(SYSTEM_PROMPT), UserMessage.userMessage(USER_PROMPT));
+      List.of(systemMessage(SYSTEM_PROMPT), userMessage(USER_PROMPT));
 
   private static final List<ChatMessage> L4J_MESSAGES =
       List.of(
           dev.langchain4j.data.message.SystemMessage.systemMessage(SYSTEM_PROMPT),
           dev.langchain4j.data.message.UserMessage.userMessage(USER_PROMPT));
 
-  private static final AssistantMessage ASSISTANT_MESSAGE =
-      AssistantMessage.assistantMessage(RESPONSE_TEXT);
+  private static final AssistantMessage ASSISTANT_MESSAGE = assistantMessage(RESPONSE_TEXT);
 
   private static final List<ToolDefinition> TOOL_DEFINITIONS =
       List.of(
@@ -101,6 +103,8 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
 
+  @Mock private AgentJobContext agentJobContext;
+
   private RuntimeMemory runtimeMemory;
   private Langchain4JAiFrameworkAdapter adapter;
 
@@ -128,7 +132,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void modelRequestContainsMessagesAndToolSpecifications() {
-    adapter.executeChatRequest(createRequest(), AGENT_CONTEXT, runtimeMemory);
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.messages()).containsExactlyElementsOf(L4J_MESSAGES);
@@ -137,7 +141,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void requestsTextResponseWhenConfigured() {
-    adapter.executeChatRequest(createRequest(), AGENT_CONTEXT, runtimeMemory);
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.TEXT);
@@ -146,7 +150,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void requestsTextResponseIfResponseConfigurationIsMissing() {
-    adapter.executeChatRequest(createRequest(null), AGENT_CONTEXT, runtimeMemory);
+    adapter.executeChatRequest(createExecutionContext(null), AGENT_CONTEXT, runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.TEXT);
@@ -156,7 +160,9 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void requestsTextResponseIfResponseFormatConfigurationIsMissing() {
     adapter.executeChatRequest(
-        createRequest(new ResponseConfiguration(null, false)), AGENT_CONTEXT, runtimeMemory);
+        createExecutionContext(new ResponseConfiguration(null, false)),
+        AGENT_CONTEXT,
+        runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.TEXT);
@@ -166,7 +172,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void requestsJsonResponseWhenConfigured() {
     adapter.executeChatRequest(
-        createRequest(
+        createExecutionContext(
             new ResponseConfiguration(new JsonResponseFormatConfiguration(null, null), false)),
         AGENT_CONTEXT,
         runtimeMemory);
@@ -185,7 +191,7 @@ class Langchain4JAiFrameworkAdapterTest {
     when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
 
     adapter.executeChatRequest(
-        createRequest(
+        createExecutionContext(
             new ResponseConfiguration(
                 new JsonResponseFormatConfiguration(schema, schemaName), false)),
         AGENT_CONTEXT,
@@ -208,7 +214,7 @@ class Langchain4JAiFrameworkAdapterTest {
     when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
 
     adapter.executeChatRequest(
-        createRequest(
+        createExecutionContext(
             new ResponseConfiguration(
                 new JsonResponseFormatConfiguration(schema, schemaName), false)),
         AGENT_CONTEXT,
@@ -224,7 +230,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void incrementsMetricsFromResponse() {
     final var adapterResponse =
-        adapter.executeChatRequest(createRequest(), AGENT_CONTEXT, runtimeMemory);
+        adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
     final var expectedMetrics =
         AGENT_CONTEXT
             .metrics()
@@ -244,21 +250,26 @@ class Langchain4JAiFrameworkAdapterTest {
     when(chatResponse.tokenUsage()).thenReturn(null);
 
     final var adapterResponse =
-        adapter.executeChatRequest(createRequest(), AGENT_CONTEXT, runtimeMemory);
+        adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
 
     assertThat(adapterResponse.agentContext())
         .usingRecursiveComparison()
         .isEqualTo(AGENT_CONTEXT.withMetrics(AGENT_CONTEXT.metrics().withModelCalls(6)));
   }
 
-  private AgentRequest createRequest() {
-    return createRequest(
+  private AgentExecutionContext createExecutionContext() {
+    return createExecutionContext(
         new ResponseConfiguration(new TextResponseFormatConfiguration(false), false));
   }
 
-  private AgentRequest createRequest(ResponseConfiguration responseConfiguration) {
-    return new AgentRequest(
-        new OpenAiProviderConfiguration(null),
-        new AgentRequestData(AGENT_CONTEXT, null, null, null, null, null, responseConfiguration));
+  private AgentExecutionContext createExecutionContext(
+      ResponseConfiguration responseConfiguration) {
+    final var agentRequest =
+        new AgentRequest(
+            new OpenAiProviderConfiguration(null),
+            new AgentRequestData(
+                AGENT_CONTEXT, null, null, null, null, null, responseConfiguration));
+
+    return new AgentExecutionContext(agentJobContext, agentRequest);
   }
 }
