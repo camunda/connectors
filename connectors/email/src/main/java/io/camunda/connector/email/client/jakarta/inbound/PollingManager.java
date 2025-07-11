@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.email.client.jakarta.inbound;
 
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
+import io.camunda.connector.email.exception.EmailConnectorException;
 import io.camunda.connector.email.inbound.model.*;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import io.camunda.document.Document;
@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.eclipse.angus.mail.imap.IMAPMessage;
+import org.eclipse.angus.mail.util.MailConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,6 +88,16 @@ public class PollingManager {
             "If the post process action is `MOVE`, a target folder must be specified");
       return new PollingManager(
           connectorContext, emailListenerConfig, authentication, jakartaUtils, folder, store);
+    } catch (AuthenticationFailedException exception) {
+      connectorContext.log(
+          Activity.level(Severity.ERROR)
+              .tag("Authentication error")
+              .message("Authentication failed"));
+      throw new RuntimeException(exception);
+    } catch (MailConnectException exception) {
+      connectorContext.log(
+          Activity.level(Severity.ERROR).tag("Connection error").message(exception.getMessage()));
+      throw new EmailConnectorException(exception);
     } catch (MessagingException e) {
       try {
         if (folder != null && folder.isOpen()) {
@@ -96,9 +107,9 @@ public class PollingManager {
           store.close();
         }
       } catch (MessagingException ex) {
-        throw new RuntimeException(ex);
+        throw new EmailConnectorException(ex);
       }
-      throw new RuntimeException(e);
+      throw new EmailConnectorException(e);
     }
   }
 
@@ -187,7 +198,13 @@ public class PollingManager {
     } catch (Exception e) {
       this.connectorContext.log(
           Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
-      this.connectorContext.cancel(new ConnectorException(e.getMessage(), e));
+      this.connectorContext.cancel(
+          ConnectorRetryException.builder()
+              .cause(e)
+              .message(e.getMessage())
+              .retries(1)
+              .backoffDuration(Duration.of(5, ChronoUnit.SECONDS))
+              .build());
     }
   }
 
@@ -204,8 +221,8 @@ public class PollingManager {
           ConnectorRetryException.builder()
               .cause(e)
               .message(e.getMessage())
-              .retries(2)
-              .backoffDuration(Duration.of(3, ChronoUnit.SECONDS))
+              .retries(1)
+              .backoffDuration(Duration.of(5, ChronoUnit.SECONDS))
               .build());
     }
   }
