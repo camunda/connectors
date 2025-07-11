@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,12 @@ class InProcessConversationStoreTest {
   void setUp() {
     executionContext = new AgentExecutionContext(agentJobContext, agentRequest);
     memory = new DefaultRuntimeMemory();
+  }
+
+  @Test
+  void storeTypeIsAlignedWithConfiguration() {
+    final var configuration = new InProcessMemoryStorageConfiguration();
+    assertThat(store.type()).isEqualTo(configuration.storeType()).isEqualTo("in-process");
   }
 
   @Test

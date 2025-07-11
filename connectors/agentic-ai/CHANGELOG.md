@@ -1,9 +1,19 @@
 # Agentic AI connectors changelog
 
+## 8.8.0-alpha7
+
+- Added support to provide custom storage backends in a self-managed deployment:
+  - https://github.com/camunda/connectors/pull/5035
+
 ## 8.8.0-alpha6
 
 - Added support to define the response format and to opt into JSON mode with a configurable schema for supported models:
   - https://github.com/camunda/connectors/pull/4833
+- Added support for storing conversation history as Camunda JSON documents instead of using process variables:
+  - https://github.com/camunda/connectors/pull/4899
+- Initial, experimental support for MCP clients:
+  - https://github.com/camunda/connectors/pull/4860
+  - https://github.com/camunda/connectors/pull/4822
 
 ## 8.8.0-alpha5
 

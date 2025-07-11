@@ -691,6 +691,9 @@
     }, {
       "name" : "Camunda Document Storage",
       "value" : "camunda-document"
+    }, {
+      "name" : "Custom Implementation",
+      "value" : "custom"
     } ]
   }, {
     "id" : "data.memory.storage.timeToLive",
@@ -724,6 +727,42 @@
     "condition" : {
       "property" : "data.memory.storage.type",
       "equals" : "camunda-document",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.storeType",
+    "label" : "Implementation type",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.storeType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "custom",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.parameters",
+    "label" : "Parameters",
+    "description" : "Parameters for the custom memory storage implementation.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.parameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "custom",
       "type" : "simple"
     },
     "type" : "String"

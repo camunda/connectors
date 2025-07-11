@@ -14,6 +14,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
  * into runtime memory.
  */
 public interface ConversationStore {
+  String type();
+
   <T> T executeInSession(
       AgentExecutionContext executionContext,
       AgentContext agentContext,

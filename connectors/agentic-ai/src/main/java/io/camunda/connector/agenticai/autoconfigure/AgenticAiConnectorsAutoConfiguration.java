@@ -30,8 +30,11 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactory;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactoryImpl;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
@@ -124,11 +127,24 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ConversationStoreFactory aiAgentConversationStoreFactory(
-      ObjectMapper objectMapper,
+  public InProcessConversationStore aiAgentInProcessConversationStore() {
+    return new InProcessConversationStore();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public CamundaDocumentConversationStore aiAgentCamundaDocumentConversationStore(
       DocumentFactory documentFactory,
-      CamundaDocumentStore camundaDocumentStore) {
-    return new ConversationStoreFactoryImpl(objectMapper, documentFactory, camundaDocumentStore);
+      CamundaDocumentStore documentStore,
+      ObjectMapper objectMapper) {
+    return new CamundaDocumentConversationStore(documentFactory, documentStore, objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ConversationStoreRegistry aiAgentConversationStoreRegistry(
+      List<ConversationStore> conversationStores) {
+    return new ConversationStoreRegistryImpl(conversationStores);
   }
 
   @Bean
@@ -154,7 +170,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AgentRequestHandler aiAgentRequestHandler(
       AgentInitializer agentInitializer,
-      ConversationStoreFactory conversationStoreFactory,
+      ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
@@ -162,7 +178,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentResponseHandler responseHandler) {
     return new AgentRequestHandlerImpl(
         agentInitializer,
-        conversationStoreFactory,
+        conversationStoreRegistry,
         limitsValidator,
         messagesHandler,
         gatewayToolHandlers,

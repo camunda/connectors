@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
-public interface ConversationStoreFactory {
-  ConversationStore createConversationStore(
-      AgentExecutionContext executionContext, final AgentContext agentContext);
+public interface ConversationStoreRegistry {
+  ConversationStore getConversationStore(
+      final AgentExecutionContext executionContext, final AgentContext agentContext);
 }
