@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import static io.camunda.connector.runtime.core.testutil.TestUtil.withEnvVars;
 
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDisabler;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -29,7 +30,8 @@ public class OutboundConnectorDiscoveryTest {
 
   private static DefaultOutboundConnectorFactory getFactory() {
     return new DefaultOutboundConnectorFactory(
-        OutboundConnectorDiscovery.loadConnectorConfigurations());
+        OutboundConnectorDiscovery.loadConnectorConfigurations(),
+        EnvVarsConnectorDisabler.getDisabledOutboundConnectorTypes());
   }
 
   @Test
@@ -166,6 +168,19 @@ public class OutboundConnectorDiscoveryTest {
         new String[] {"foo", "bar"},
         NotAnnotatedFunction.class.getName(),
         null);
+  }
+
+  @Test
+  public void shouldDisableThroughEnv() throws Exception {
+    // given
+    var env = new Object[] {"CONNECTOR_OUTBOUND_DISABLED", "io.camunda:annotated"};
+
+    // when
+    List<OutboundConnectorConfiguration> registrations =
+        withEnvVars(env, () -> getFactory().getConfigurations());
+
+    // then
+    Assertions.assertThat(registrations).isEmpty();
   }
 
   private static void assertRegistration(
