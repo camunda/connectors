@@ -13,8 +13,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.identity.ClientSecretCredential;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
+import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -26,6 +29,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicModel;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicModel.AnthropicModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureOpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureOpenAiModel.AzureOpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockConnection;
@@ -154,6 +162,86 @@ class ChatModelFactoryTest {
 
     static Stream<AnthropicModelParameters> nullModelParameters() {
       return Stream.of(new AnthropicModelParameters(null, null, null, null));
+    }
+  }
+
+  @Nested
+  class AzureOpenAiChatModelFactoryTest {
+
+    private static final String AZURE_OPENAI_API_KEY = "azureOpenAiApiKey";
+    private static final String AZURE_OPENAI_ENDPOINT = "azure-openai-endpoint.local";
+    private static final String AZURE_OPENAI_DEPLOYMENT_NAME = "gpt-4o";
+    private static final String CLIENT_ID = "clientId";
+    private static final String CLIENT_SECRET = "clientSecret";
+    private static final String TENANT_ID = "tenantId";
+
+    private static final AzureOpenAiModelParameters DEFAULT_MODEL_PARAMETERS =
+        new AzureOpenAiModelParameters(10, 1.0, 0.8);
+
+    @Captor ArgumentCaptor<TokenCredential> tokenCredentialsCapture;
+
+    @Test
+    void createsAzureOpenAiChatModelWithApiKey() {
+      final var providerConfig =
+          new AzureOpenAiProviderConfiguration(
+              new AzureOpenAiConnection(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
+                  new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
+                      AZURE_OPENAI_DEPLOYMENT_NAME, DEFAULT_MODEL_PARAMETERS)));
+
+      testAzureOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).apiKey(AZURE_OPENAI_API_KEY);
+            verify(builder, never()).tokenCredential(any());
+          });
+    }
+
+    @Test
+    void createsAzureOpenAiChatModelWithClientCredentials() {
+      final var providerConfig =
+          new AzureOpenAiProviderConfiguration(
+              new AzureOpenAiConnection(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureClientCredentialsAuthentication(
+                      CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
+                  new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
+                      AZURE_OPENAI_DEPLOYMENT_NAME, DEFAULT_MODEL_PARAMETERS)));
+
+      testAzureOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).apiKey(any());
+            verify(builder).tokenCredential(tokenCredentialsCapture.capture());
+            final var tokenCredential = tokenCredentialsCapture.getValue();
+            assertThat(tokenCredential).isNotNull().isInstanceOf(ClientSecretCredential.class);
+          });
+    }
+
+    private void testAzureOpenAiChatModelBuilder(
+        AzureOpenAiProviderConfiguration providerConfig,
+        ThrowingConsumer<AzureOpenAiChatModel.Builder> builderAssertions) {
+      final var chatModelBuilder = spy(AzureOpenAiChatModel.builder());
+      final var chatModelResultCaptor = new ResultCaptor<AzureOpenAiChatModel>();
+      doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
+
+      try (MockedStatic<AzureOpenAiChatModel> chatModelMock =
+          Mockito.mockStatic(AzureOpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+        chatModelMock.when(AzureOpenAiChatModel::builder).thenReturn(chatModelBuilder);
+
+        final var chatModel = chatModelFactory.createChatModel(providerConfig);
+        assertThat(chatModel).isNotNull().isInstanceOf(AzureOpenAiChatModel.class);
+        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+
+        verify(chatModelBuilder).endpoint(AZURE_OPENAI_ENDPOINT);
+        verify(chatModelBuilder).deploymentName(AZURE_OPENAI_DEPLOYMENT_NAME);
+        verify(chatModelBuilder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
+        verify(chatModelBuilder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
+        verify(chatModelBuilder).topP(DEFAULT_MODEL_PARAMETERS.topP());
+
+        builderAssertions.accept(chatModelBuilder);
+      }
     }
   }
 
