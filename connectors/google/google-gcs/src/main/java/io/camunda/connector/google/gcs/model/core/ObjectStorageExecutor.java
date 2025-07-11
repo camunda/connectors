@@ -71,10 +71,11 @@ public class ObjectStorageExecutor {
     BlobId blobId = BlobId.of(uploadObject.bucket(), fileName);
     BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
-    StorageOptions storageOptions = StorageOptions.newBuilder()
-        .setProjectId(uploadObject.project())
-        .setCredentials(getSAC())
-        .build();
+    StorageOptions storageOptions =
+        StorageOptions.newBuilder()
+            .setProjectId(uploadObject.project())
+            .setCredentials(getSAC())
+            .build();
 
     try (Storage storage = storageOptions.getService()) {
       Blob blob = storage.createFrom(blobInfo, uploadObject.document().asInputStream());
