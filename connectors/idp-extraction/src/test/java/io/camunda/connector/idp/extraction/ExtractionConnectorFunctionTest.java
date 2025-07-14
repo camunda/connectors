@@ -53,7 +53,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any())).thenReturn(expectedResponseJson);
+    when(bedrockCaller.call(any(), any(), any(), any())).thenReturn(expectedResponseJson);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
     assertExtractionResult(result, expectedResponseJson);
@@ -73,7 +73,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any())).thenReturn(expectedResponseJson);
+    when(bedrockCaller.call(any(), any(), any(), any())).thenReturn(expectedResponseJson);
 
     var result = extractionConnectorFunction.execute(outBounderContext);
     assertExtractionResult(result, expectedResponseJson);
@@ -86,7 +86,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
+    when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
                    {
@@ -115,7 +115,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
+    when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
                    {
@@ -153,7 +153,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
+    when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
                    {
@@ -193,7 +193,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
+    when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
                    {
@@ -220,7 +220,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
+    when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
                         {
@@ -238,7 +238,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
+    when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
                         []
@@ -257,7 +257,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
+    when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
                         {
@@ -278,7 +278,7 @@ class ExtractionConnectorFunctionTest {
 
     when(pollingTextractCaller.call(any(), any(), any(), any()))
         .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any()))
+    when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
                         {
