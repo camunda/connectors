@@ -133,6 +133,7 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
       String bedrockResponse =
           bedrockCaller.call(
               input,
+              baseRequest.getConfiguration().region(),
               extractedText,
               bedrockRuntimeClientSupplier.getBedrockRuntimeClient(baseRequest));
       long endTime = System.currentTimeMillis();
