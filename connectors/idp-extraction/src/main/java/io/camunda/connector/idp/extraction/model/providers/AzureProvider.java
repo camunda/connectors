@@ -23,4 +23,13 @@ public final class AzureProvider implements ProviderConfig {
   public AIFoundryConfig getAiFoundryConfig() {
     return aiFoundryConfig;
   }
+
+  public void setDocumentIntelligenceConfiguration(
+      DocumentIntelligenceConfiguration documentIntelligenceConfiguration) {
+    this.documentIntelligenceConfiguration = documentIntelligenceConfiguration;
+  }
+
+  public void setAiFoundryConfig(AIFoundryConfig aiFoundryConfig) {
+    this.aiFoundryConfig = aiFoundryConfig;
+  }
 }
