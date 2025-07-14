@@ -33,7 +33,7 @@ public class SecretProviderAggregatorTest {
     SecretProviderAggregator aggregator = new SecretProviderAggregator(override);
 
     // when
-    var secret = aggregator.getSecret(FooBarSecretProvider.SECRET_NAME);
+    var secret = aggregator.getSecret(FooBarSecretProvider.SECRET_NAME, null);
 
     // then SPI provider not used
     assertThat(aggregator.getSecretProviders()).containsExactlyElementsOf(override);
@@ -47,7 +47,7 @@ public class SecretProviderAggregatorTest {
         new SecretProviderAggregator(SecretProviderDiscovery.discoverSecretProviders());
 
     // when
-    var secret = aggregator.getSecret(FooBarSecretProvider.SECRET_NAME);
+    var secret = aggregator.getSecret(FooBarSecretProvider.SECRET_NAME, null);
 
     // then
     assertThat(aggregator.getSecretProviders()).hasSize(2);

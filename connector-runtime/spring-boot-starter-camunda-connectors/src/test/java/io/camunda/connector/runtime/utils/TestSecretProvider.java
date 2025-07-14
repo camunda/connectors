@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.utils;
 
 import static java.util.Collections.singletonMap;
 
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Map;
 
@@ -29,7 +30,7 @@ public class TestSecretProvider implements SecretProvider {
   private static final Map<String, String> SECRETS = singletonMap(SECRET_NAME, SECRET_VALUE);
 
   @Override
-  public String getSecret(String value) {
+  public String getSecret(String value, SecretContext context) {
     return SECRETS.get(value);
   }
 }

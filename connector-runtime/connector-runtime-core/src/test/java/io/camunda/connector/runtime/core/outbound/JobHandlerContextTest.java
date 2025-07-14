@@ -62,7 +62,7 @@ class JobHandlerContextTest {
   void bindVariables_failedSecretAreBounded() {
     String json = "{ \"integer\": \"{{secrets.FOO}}\"";
     when(activatedJob.getVariables()).thenReturn(json);
-    when(secretProvider.getSecret("FOO")).thenReturn("secret");
+    when(secretProvider.getSecret("FOO", null)).thenReturn("secret");
     Exception thrown =
         assertThrows(
             ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -74,7 +74,7 @@ class JobHandlerContextTest {
   void bindVariables_successSecretAreBounded() {
     String json = "{ \"integer\": {{secrets.FOO}} }";
     when(activatedJob.getVariables()).thenReturn(json);
-    when(secretProvider.getSecret("FOO")).thenReturn("1");
+    when(secretProvider.getSecret("FOO", null)).thenReturn("1");
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(1);
   }
 
@@ -82,7 +82,7 @@ class JobHandlerContextTest {
   void bindVariables_secretIsNotAvailable() {
     String json = "{ \"integer\": {{secrets.FOO2}} }";
     when(activatedJob.getVariables()).thenReturn(json);
-    when(secretProvider.getSecret("FOO2")).thenReturn(null);
+    when(secretProvider.getSecret("FOO2", null)).thenReturn(null);
     assertThrows(
         ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
   }

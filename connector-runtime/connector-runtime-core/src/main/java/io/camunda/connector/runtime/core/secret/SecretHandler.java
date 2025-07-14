@@ -17,28 +17,29 @@
 package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Optional;
-import java.util.function.Function;
 
 public class SecretHandler {
 
   protected final SecretProvider secretProvider;
 
-  protected Function<String, String> secretReplacer;
+  protected SecretReplacer secretReplacer;
 
   public SecretHandler(final SecretProvider secretProvider) {
     this.secretProvider = secretProvider;
     secretReplacer =
-        name ->
-            Optional.ofNullable(secretProvider.getSecret(name))
+        (name, context) ->
+            Optional.ofNullable(secretProvider.getSecret(name, context))
                 .orElseThrow(
                     () ->
                         new ConnectorInputException(
-                            String.format("Secret with name '%s' is not available", name), null));
+                            String.format("Secret with context '%s' is not available", context),
+                            null));
   }
 
-  public String replaceSecrets(String input) {
-    return SecretUtil.replaceSecrets(input, secretReplacer);
+  public String replaceSecrets(String input, SecretContext context) {
+    return SecretUtil.replaceSecrets(input, context, secretReplacer);
   }
 }
