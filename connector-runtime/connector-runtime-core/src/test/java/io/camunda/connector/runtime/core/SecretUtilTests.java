@@ -56,7 +56,7 @@ public class SecretUtilTests {
     var secretReplacer = mock(SecretReplacer.class);
     SecretUtil.replaceSecrets(input, null, secretReplacer);
     if (shouldDetect) {
-      verify(secretReplacer).replaceSecrets(secret, any());
+      verify(secretReplacer).replaceSecrets(eq(secret), any());
     } else {
       verifyNoInteractions(secretReplacer);
     }
