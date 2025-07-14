@@ -158,7 +158,7 @@ public class BatchExecutableProcessor {
                   executable.getClass(),
                   EvictingQueue.create(inboundLogsSize));
     } catch (NoSuchElementException e) {
-      LOG.error("Failed to create executable", e);
+      LOG.warn("Failed to create executable", e);
       return new ConnectorNotRegistered(validData);
     }
 
