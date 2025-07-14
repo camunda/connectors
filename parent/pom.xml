@@ -115,7 +115,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>3.9.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.44.0</version.microsoft-graph>
+    <version.microsoft-graph>6.45.0</version.microsoft-graph>
     <version.azure-identity>1.16.2</version.azure-identity>
 
     <version.bouncycastle>1.81</version.bouncycastle>
@@ -145,7 +145,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.0</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.3</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.44.5</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>2.45.0</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.4.2</plugin.version.maven-jar-plugin>
   </properties>
 
@@ -454,7 +454,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.17.0</version>
+        <version>3.18.0</version>
       </dependency>
 
       <!-- Fixes CWE-770 -->
