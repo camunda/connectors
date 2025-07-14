@@ -12,10 +12,10 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS;
 import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.util.PromptUtils.resolveParameterizedPrompt;
 
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.CollectionUtils;
 
 public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
@@ -46,12 +45,12 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
   @Override
   public void addSystemMessage(
       AgentContext agentContext, RuntimeMemory memory, SystemPromptConfiguration systemPrompt) {
-    if (StringUtils.isNotBlank(systemPrompt.prompt())) {
+    final var systemPromptText =
+        resolveParameterizedPrompt(systemPrompt.prompt(), systemPrompt.parameters());
+    if (StringUtils.isNotBlank(systemPromptText)) {
       // memory will take care of replacing any existing system message if already present
       memory.addMessage(
-          SystemMessage.builder()
-              .content(singleTextContent(promptFromConfiguration(systemPrompt)))
-              .build());
+          SystemMessage.builder().content(singleTextContent(systemPromptText)).build());
     }
   }
 
@@ -87,8 +86,10 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     final var content = new ArrayList<Content>();
 
     // add user prompt text
-    if (StringUtils.isNotBlank(userPrompt.prompt())) {
-      content.add(textContent(promptFromConfiguration(userPrompt)));
+    final var userPromptText =
+        resolveParameterizedPrompt(userPrompt.prompt(), userPrompt.parameters());
+    if (StringUtils.isNotBlank(userPromptText)) {
+      content.add(textContent(userPromptText));
     }
 
     // add documents
@@ -126,22 +127,5 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
             .results(transformedToolCallResults)
             .metadata(Map.of("timestamp", ZonedDateTime.now()))
             .build());
-  }
-
-  private String promptFromConfiguration(PromptConfiguration promptConfiguration) {
-    final var promptText = promptConfiguration.prompt();
-    final var parameters = promptConfiguration.parameters();
-    if (StringUtils.isBlank(promptText) || CollectionUtils.isEmpty(parameters)) {
-      return promptText;
-    }
-
-    var updatedPromptText = promptText;
-    for (Map.Entry<String, Object> parameter : parameters.entrySet()) {
-      updatedPromptText =
-          updatedPromptText.replace(
-              "{{%s}}".formatted(parameter.getKey().trim()), parameter.getValue().toString());
-    }
-
-    return updatedPromptText;
   }
 }

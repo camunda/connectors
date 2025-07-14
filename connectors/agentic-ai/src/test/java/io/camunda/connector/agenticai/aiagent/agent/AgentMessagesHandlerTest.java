@@ -99,19 +99,6 @@ class AgentMessagesHandlerTest {
       verifyNoInteractions(runtimeMemory);
       assertThat(runtimeMemory.allMessages()).isEmpty();
     }
-
-    @Test
-    void missingVariableResultsInValueNotBeingReplaced() {
-      final var systemPrompt =
-          new SystemPromptConfiguration(
-              "You are a helpful assistant named {{name}}.", Collections.emptyMap());
-      messagesHandler.addSystemMessage(AgentContext.empty(), runtimeMemory, systemPrompt);
-
-      assertThat(runtimeMemory.allMessages())
-          .hasSize(1)
-          .containsExactly(
-              SystemMessage.systemMessage("You are a helpful assistant named {{name}}."));
-    }
   }
 
   @Nested
@@ -219,20 +206,6 @@ class AgentMessagesHandlerTest {
                   assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
                       .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
                 });
-      }
-
-      @Test
-      void missingVariableResultsInValueNotBeingReplaced() {
-        messagesHandler.addMessagesFromRequest(
-            AGENT_CONTEXT,
-            runtimeMemory,
-            new UserPromptConfiguration("Tell me a story about {{name}}", Map.of(), List.of()),
-            TOOL_CALL_RESULTS);
-
-        assertThat(runtimeMemory.allMessages())
-            .noneMatch(msg -> msg instanceof ToolCallResultMessage)
-            .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .isEqualTo(UserMessage.userMessage("Tell me a story about {{name}}"));
       }
 
       @Test
