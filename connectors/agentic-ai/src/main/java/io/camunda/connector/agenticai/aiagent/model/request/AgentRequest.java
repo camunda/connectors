@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import java.util.Map;
 
@@ -66,7 +67,6 @@ public record AgentRequest(
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true),
                 defaultValue = DEFAULT_SYSTEM_PROMPT)
-            @NotBlank
             String prompt,
         @FEEL
             @TemplateProperty(
@@ -75,7 +75,15 @@ public record AgentRequest(
                 description = PROMPT_PARAMETERS_DESCRIPTION,
                 feel = Property.FeelMode.required,
                 optional = true)
-            Map<String, Object> parameters)
+            Map<
+                    @NotBlank(message = "System prompt parameter key must not be blank")
+                    @Pattern(
+                        regexp = "^[a-zA-Z0-9_]+$",
+                        message =
+                            "System prompt parameter key can only contain letters, digits, or underscores")
+                    String,
+                    Object>
+                parameters)
         implements PromptConfiguration {
 
       @TemplateProperty(ignore = true)
@@ -104,7 +112,6 @@ Reveal **no** additional private reasoning outside these tags.
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
-            @NotBlank
             String prompt,
         @FEEL
             @TemplateProperty(
@@ -113,7 +120,15 @@ Reveal **no** additional private reasoning outside these tags.
                 description = PROMPT_PARAMETERS_DESCRIPTION,
                 feel = Property.FeelMode.required,
                 optional = true)
-            Map<String, Object> parameters,
+            Map<
+                    @NotBlank(message = "User prompt parameter key must not be blank")
+                    @Pattern(
+                        regexp = "^[a-zA-Z0-9_]+$",
+                        message =
+                            "User prompt parameter key can only contain letters, digits, or underscores")
+                    String,
+                    Object>
+                parameters,
         @FEEL
             @TemplateProperty(
                 group = "userPrompt",
