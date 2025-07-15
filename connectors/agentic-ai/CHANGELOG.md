@@ -4,6 +4,11 @@
 
 - Added support to provide custom storage backends in a self-managed deployment:
   - https://github.com/camunda/connectors/pull/5035
+- Changed the way how prompt parameters are resolved to be less intrusive. Now only defined parameters
+  are considered in `{{curlyBraces}}` syntax while keeping other usages of curly braces in the prompt text intact.
+  - Breaking change: the default parameters for current date and time are not available by default anymore but can be
+    added on demand with FEEL's temporal functions.
+  - https://github.com/camunda/connectors/pull/5065
 
 ## 8.8.0-alpha6
 

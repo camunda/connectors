@@ -99,20 +99,6 @@ class AgentMessagesHandlerTest {
       verifyNoInteractions(runtimeMemory);
       assertThat(runtimeMemory.allMessages()).isEmpty();
     }
-
-    @Test
-    void throwsExceptionWhenReferencingAMissingVariableName() {
-      final var systemPrompt =
-          new SystemPromptConfiguration(
-              "You are a helpful assistant named {{name}}.", Collections.emptyMap());
-
-      assertThatThrownBy(
-              () ->
-                  messagesHandler.addSystemMessage(
-                      AgentContext.empty(), runtimeMemory, systemPrompt))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("Value for the variable 'name' is missing");
-    }
   }
 
   @Nested
@@ -220,20 +206,6 @@ class AgentMessagesHandlerTest {
                   assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
                       .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
                 });
-      }
-
-      @Test
-      void throwsExceptionWhenReferencingAMissingVariableName() {
-        assertThatThrownBy(
-                () ->
-                    messagesHandler.addMessagesFromRequest(
-                        AGENT_CONTEXT,
-                        runtimeMemory,
-                        new UserPromptConfiguration(
-                            "Tell me a story about {{name}}", Map.of(), List.of()),
-                        TOOL_CALL_RESULTS))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Value for the variable 'name' is missing");
       }
 
       @Test
