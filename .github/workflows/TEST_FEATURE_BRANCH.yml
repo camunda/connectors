@@ -63,7 +63,7 @@ jobs:
         run: npm install --global element-templates-cli
 
       - name: Build Connectors
-        run: mvn --batch-mode clean test -PcheckFormat -Dquickly
+        run: mvn --batch-mode clean test -PcheckFormat -Dquickly -Pe2eIncluded
 
       - name: Lint Dockerfile - connector-runtime
         uses: hadolint/hadolint-action@v3.1.0

@@ -65,7 +65,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Compile and Test
-        run: mvn -B package generate-sources source:jar javadoc:jar
+        run: mvn -B package generate-sources source:jar javadoc:jar -Pe2eIncluded
 
       - name: Generate sbom reports
         run: |
