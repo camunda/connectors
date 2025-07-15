@@ -45,7 +45,7 @@ class AzureDocumentIntelligenceCallerTest {
   AnalyzeResult analyzeResult = mock(AnalyzeResult.class);
   AzureDocumentIntelligenceCaller azureCaller = new AzureDocumentIntelligenceCaller();
 
-  MockedConstruction<DocumentIntelligenceClientBuilder> mockedClientBuilder;
+  MockedConstruction<DocumentIntelligenceClientBuilder> mockedClientBuilder = null;
 
   @BeforeEach
   void setUp() {
