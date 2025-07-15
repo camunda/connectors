@@ -222,7 +222,6 @@ class AzureDocumentIntelligenceCallerTest {
         ArgumentCaptor.forClass(AnalyzeDocumentOptions.class);
     verify(documentIntelligenceClient)
         .beginAnalyzeDocument(eq("prebuilt-read"), optionsCaptor.capture());
-
   }
 
   @Test
