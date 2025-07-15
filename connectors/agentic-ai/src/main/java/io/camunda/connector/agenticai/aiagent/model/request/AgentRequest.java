@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import java.util.Map;
 
@@ -50,9 +51,7 @@ public record AgentRequest(
 
     public interface PromptConfiguration {
       String PROMPT_PARAMETERS_DESCRIPTION =
-          "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.";
-      String PROMPT_PARAMETERS_TOOLTIP =
-          "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>";
+          "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.";
 
       String prompt();
 
@@ -68,17 +67,23 @@ public record AgentRequest(
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true),
                 defaultValue = DEFAULT_SYSTEM_PROMPT)
-            @NotBlank
             String prompt,
         @FEEL
             @TemplateProperty(
                 group = "systemPrompt",
                 label = "System prompt parameters",
                 description = PROMPT_PARAMETERS_DESCRIPTION,
-                tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
                 optional = true)
-            Map<String, Object> parameters)
+            Map<
+                    @NotBlank(message = "System prompt parameter key must not be blank")
+                    @Pattern(
+                        regexp = "^[a-zA-Z0-9_]+$",
+                        message =
+                            "System prompt parameter key can only contain letters, digits, or underscores")
+                    String,
+                    Object>
+                parameters)
         implements PromptConfiguration {
 
       @TemplateProperty(ignore = true)
@@ -107,17 +112,23 @@ Reveal **no** additional private reasoning outside these tags.
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
-            @NotBlank
             String prompt,
         @FEEL
             @TemplateProperty(
                 group = "userPrompt",
                 label = "User prompt parameters",
                 description = PROMPT_PARAMETERS_DESCRIPTION,
-                tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
                 optional = true)
-            Map<String, Object> parameters,
+            Map<
+                    @NotBlank(message = "User prompt parameter key must not be blank")
+                    @Pattern(
+                        regexp = "^[a-zA-Z0-9_]+$",
+                        message =
+                            "User prompt parameter key can only contain letters, digits, or underscores")
+                    String,
+                    Object>
+                parameters,
         @FEEL
             @TemplateProperty(
                 group = "userPrompt",
