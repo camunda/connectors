@@ -84,7 +84,7 @@ jobs:
         run: npm install --global element-templates-cli
 
       - name: Build Connectors
-        run: mvn --batch-mode clean test -PcheckFormat -Pe2eIncluded
+        run: mvn --batch-mode clean test -PcheckFormat
 
       - name: Send Slack notification on failure
         if: failure()

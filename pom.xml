@@ -38,7 +38,13 @@
 
   <profiles>
     <profile>
-      <id>e2eIncluded</id>
+      <id>e2eExcluded</id>
+    </profile>
+    <profile>
+      <id>default</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
       <modules>
         <module>connectors-e2e-test</module>
       </modules>

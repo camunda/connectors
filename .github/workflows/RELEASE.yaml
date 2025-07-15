@@ -65,7 +65,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Compile and Test
-        run: mvn -B package generate-sources source:jar javadoc:jar -Pe2eIncluded
+        run: mvn -B package generate-sources source:jar javadoc:jar
 
       - name: Generate sbom reports
         run: |
@@ -162,7 +162,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(github.event.release.tag_name, 'rc')"
-        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish
+        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -172,7 +172,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory
         if: "contains(github.event.release.tag_name, 'rc')"
-        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true
+        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}

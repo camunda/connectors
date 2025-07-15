@@ -61,7 +61,7 @@ jobs:
       - name: Package Connectors
         env:
           PROJECTS: bundle/default-bundle
-        run: mvn --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make -Pe2eIncluded
+        run: mvn --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make
 
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v3
