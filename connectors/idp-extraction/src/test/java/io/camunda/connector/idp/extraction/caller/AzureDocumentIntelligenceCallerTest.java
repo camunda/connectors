@@ -223,10 +223,6 @@ class AzureDocumentIntelligenceCallerTest {
     verify(documentIntelligenceClient)
         .beginAnalyzeDocument(eq("prebuilt-read"), optionsCaptor.capture());
 
-    // Verify that the document bytes are passed correctly
-    AnalyzeDocumentOptions capturedOptions = optionsCaptor.getValue();
-    // Note: We can't easily verify the exact bytes without more complex mocking,
-    // but we can verify the method was called with the correct model name
   }
 
   @Test
