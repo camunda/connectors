@@ -24,8 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -1022,14 +1020,9 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               new Equals("operation-1:p1", "myValue"), new Equals("operation", "operation-1"));
 
       var propOp3P1 = getPropertyById("operation-3:p1", template);
+      assertThat(propOp3P1).isNotNull();
       var propOp3P2 = getPropertyById("operation-3:param2", template);
-
-      try {
-        System.out.println(new ObjectMapper().writeValueAsString(template));
-        ;
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
+      assertThat(propOp3P2).isNotNull();
     }
   }
 }

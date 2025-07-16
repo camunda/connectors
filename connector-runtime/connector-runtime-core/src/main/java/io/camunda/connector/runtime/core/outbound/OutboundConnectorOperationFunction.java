@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -69,31 +70,28 @@ public class OutboundConnectorOperationFunction implements OutboundConnectorFunc
         if (varAnnotation != null) {
           var variableName = varAnnotation.value();
           if (jobVariables == null) {
-            try {
-              jobVariables = objectMapper.readTree(context.getJobContext().getVariables());
-            } catch (JsonProcessingException e) {
-              throw new RuntimeException(e);
-            }
+            jobVariables = readJsonAsTree(context.getJobContext().getVariables());
           }
           Object value;
-          try {
-            if (variableName != null && variableName.isEmpty()) {
-              value = jobVariables.at("").traverse(objectMapper).readValueAs(parameter.getType());
+          if (variableName != null) {
+            if (variableName.isEmpty()) {
+              value = readVariable(jobVariables, "", parameter.getType());
             } else {
               value =
-                  jobVariables
-                      .at("/" + variableName.replace(".", "/"))
-                      .traverse(objectMapper)
-                      .readValueAs(parameter.getType());
+                  readVariable(
+                      jobVariables, "/" + variableName.replace(".", "/"), parameter.getType());
             }
-          } catch (IOException e) {
-            throw new RuntimeException(e);
+          } else {
+            throw new RuntimeException(
+                "Missing required variable name for operation: "
+                    + operationId
+                    + " and parameter: "
+                    + parameter.getName());
           }
 
           if (value != null) {
             validationProvider.validate(value);
           }
-
           if (varAnnotation.required() && value == null) {
             throw new ConnectorInputException(
                 "Required variable '" + variableName + "' is missing or null");
@@ -114,6 +112,23 @@ public class OutboundConnectorOperationFunction implements OutboundConnectorFunc
       }
     } else {
       throw new RuntimeException("Operation not found: " + operationId);
+    }
+  }
+
+  private JsonNode readJsonAsTree(String json) {
+    try {
+      return objectMapper.readTree(json);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Object readVariable(JsonNode jobVariables, String jsonPtr, Class<?> clazz) {
+    JsonNode node = jobVariables.at(jsonPtr);
+    try (JsonParser parser = node.traverse(objectMapper)) {
+      return parser.readValueAs(clazz);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
