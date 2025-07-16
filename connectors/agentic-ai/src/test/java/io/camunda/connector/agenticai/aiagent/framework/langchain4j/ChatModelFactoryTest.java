@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -52,6 +54,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -134,10 +137,10 @@ class ChatModelFactoryTest {
       testAnthropicChatModelBuilder(
           providerConfig,
           (builder) -> {
-            verify(builder, never()).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
-            verify(builder, never()).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
-            verify(builder, never()).topP(DEFAULT_MODEL_PARAMETERS.topP());
-            verify(builder, never()).topK(DEFAULT_MODEL_PARAMETERS.topK());
+            verify(builder, never()).maxTokens(anyInt());
+            verify(builder, never()).temperature(anyDouble());
+            verify(builder, never()).topP(anyDouble());
+            verify(builder, never()).topK(anyInt());
           });
     }
 
@@ -194,18 +197,23 @@ class ChatModelFactoryTest {
           providerConfig,
           (builder) -> {
             verify(builder).apiKey(AZURE_OPENAI_API_KEY);
+            verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
+            verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
+            verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
             verify(builder, never()).tokenCredential(any());
           });
     }
 
-    @Test
-    void createsAzureOpenAiChatModelWithClientCredentials() {
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"https://some-authortiy-host"})
+    void createsAzureOpenAiChatModelWithClientCredentials(String authorityHost) {
       final var providerConfig =
           new AzureOpenAiProviderConfiguration(
               new AzureOpenAiConnection(
                   AZURE_OPENAI_ENDPOINT,
                   new AzureClientCredentialsAuthentication(
-                      CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
+                      CLIENT_ID, CLIENT_SECRET, TENANT_ID, authorityHost),
                   new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
                       AZURE_OPENAI_DEPLOYMENT_NAME, DEFAULT_MODEL_PARAMETERS)));
 
@@ -213,9 +221,35 @@ class ChatModelFactoryTest {
           providerConfig,
           (builder) -> {
             verify(builder, never()).apiKey(any());
+            verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
+            verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
+            verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
             verify(builder).tokenCredential(tokenCredentialsCapture.capture());
             final var tokenCredential = tokenCredentialsCapture.getValue();
             assertThat(tokenCredential).isNotNull().isInstanceOf(ClientSecretCredential.class);
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource("nullModelParameters")
+    void createsAzureOpenAiChatModelWithNullModelParameters(
+        AzureOpenAiModelParameters modelParameters) {
+      final var providerConfig =
+          new AzureOpenAiProviderConfiguration(
+              new AzureOpenAiConnection(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureClientCredentialsAuthentication(
+                      CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
+                  new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
+                      AZURE_OPENAI_DEPLOYMENT_NAME, modelParameters)));
+
+      testAzureOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).maxTokens(anyInt());
+            verify(builder, never()).temperature(anyDouble());
+            verify(builder, never()).topP(anyDouble());
           });
     }
 
@@ -236,12 +270,12 @@ class ChatModelFactoryTest {
 
         verify(chatModelBuilder).endpoint(AZURE_OPENAI_ENDPOINT);
         verify(chatModelBuilder).deploymentName(AZURE_OPENAI_DEPLOYMENT_NAME);
-        verify(chatModelBuilder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
-        verify(chatModelBuilder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
-        verify(chatModelBuilder).topP(DEFAULT_MODEL_PARAMETERS.topP());
-
         builderAssertions.accept(chatModelBuilder);
       }
+    }
+
+    static Stream<AzureOpenAiModelParameters> nullModelParameters() {
+      return Stream.of(new AzureOpenAiModelParameters(null, null, null));
     }
   }
 

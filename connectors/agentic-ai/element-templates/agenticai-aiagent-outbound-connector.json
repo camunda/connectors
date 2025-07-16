@@ -91,11 +91,11 @@
       "name" : "Anthropic",
       "value" : "anthropic"
     }, {
-      "name" : "Azure OpenAI",
-      "value" : "azureOpenAi"
-    }, {
       "name" : "AWS Bedrock",
       "value" : "bedrock"
+    }, {
+      "name" : "Azure OpenAI",
+      "value" : "azureOpenAi"
     }, {
       "name" : "OpenAI",
       "value" : "openai"
@@ -136,6 +136,117 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.bedrock.region",
+    "label" : "Region",
+    "description" : "Specify the AWS region (example: <code>eu-west-1</code>)",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use a custom API endpoint",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.bedrock.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>",
+    "value" : "credentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
+    }, {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    } ]
+  }, {
+    "id" : "provider.bedrock.authentication.accessKey",
+    "label" : "Access key",
+    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.azureOpenAi.endpoint",
     "label" : "Endpoint",
     "description" : "Specify Azure OpenAI endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
@@ -158,7 +269,7 @@
   }, {
     "id" : "provider.azureOpenAi.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the Azure OpenAI authentication strategy. Learn more at the <a href=\"https://docs.langchain4j.dev/integrations/language-models/azure-open-ai\" target=\"_blank\">documentation page</a>",
+    "description" : "Specify the Azure OpenAI authentication strategy.",
     "value" : "apiKey",
     "group" : "provider",
     "binding" : {
@@ -300,117 +411,6 @@
       }, {
         "property" : "provider.type",
         "equals" : "azureOpenAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.bedrock.region",
-    "label" : "Region",
-    "description" : "Specify the AWS region (example: <code>eu-west-1</code>)",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.region",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.bedrock.endpoint",
-    "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use a custom API endpoint",
-    "optional" : true,
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.endpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "provider.bedrock.authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>",
-    "value" : "credentials",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.authentication.type",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "bedrock",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
-    }, {
-      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
-      "value" : "defaultCredentialsChain"
-    } ]
-  }, {
-    "id" : "provider.bedrock.authentication.accessKey",
-    "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.authentication.accessKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
-        "equals" : "credentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "bedrock",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.bedrock.authentication.secretKey",
-    "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.bedrock.authentication.secretKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
-        "equals" : "credentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "bedrock",
         "type" : "simple"
       } ]
     },
@@ -593,77 +593,6 @@
     "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "provider.azureOpenAi.model.deploymentName",
-    "label" : "Model deployment name",
-    "description" : "Specify the model deployment name. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureOpenAi.model.deploymentName",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.azureOpenAi.model.parameters.maxTokens",
-    "label" : "Maximum tokens",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureOpenAi.model.parameters.maxTokens",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureOpenAi.model.parameters.temperature",
-    "label" : "Temperature",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureOpenAi.model.parameters.temperature",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
-    "id" : "provider.azureOpenAi.model.parameters.topP",
-    "label" : "top P",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.azureOpenAi.model.parameters.topP",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "azureOpenAi",
-      "type" : "simple"
-    },
-    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
-    "type" : "Number"
-  }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>.",
@@ -734,6 +663,77 @@
       "type" : "simple"
     },
     "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.azureOpenAi.model.deploymentName",
+    "label" : "Model deployment name",
+    "description" : "Specify the model deployment name. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.azureOpenAi.model.deploymentName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.azureOpenAi.model.parameters.maxTokens",
+    "label" : "Maximum tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.azureOpenAi.model.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.azureOpenAi.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.azureOpenAi.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.azureOpenAi.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.azureOpenAi.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.openai.model.model",

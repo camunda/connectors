@@ -16,6 +16,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration;
@@ -38,7 +39,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     return switch (providerConfiguration) {
       case AnthropicProviderConfiguration anthropic ->
           createAnthropicChatModelBuilder(anthropic).build();
-      case ProviderConfiguration.AzureOpenAiProviderConfiguration azureOpenAi ->
+      case AzureOpenAiProviderConfiguration azureOpenAi ->
           createAzureOpenAiChatModelBuilder(azureOpenAi).build();
       case BedrockProviderConfiguration bedrock -> createBedrockChatModelBuilder(bedrock).build();
       case OpenAiProviderConfiguration openai -> createOpenaiChatModelBuilder(openai).build();
@@ -70,7 +71,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   }
 
   protected AzureOpenAiChatModel.Builder createAzureOpenAiChatModelBuilder(
-      ProviderConfiguration.AzureOpenAiProviderConfiguration configuration) {
+      AzureOpenAiProviderConfiguration configuration) {
     final var connection = configuration.azureOpenAi();
     final var builder =
         AzureOpenAiChatModel.builder()
