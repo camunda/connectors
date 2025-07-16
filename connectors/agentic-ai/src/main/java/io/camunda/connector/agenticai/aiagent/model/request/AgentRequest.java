@@ -30,6 +30,8 @@ public record AgentRequest(
               label = "Agent context",
               group = "memory",
               id = "agentContext",
+              description =
+                  "Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
               tooltip =
                   "The agent context variable containing all relevant data for the agent to support the feedback loop between "
                       + "user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> "
