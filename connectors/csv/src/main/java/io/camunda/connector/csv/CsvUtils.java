@@ -26,8 +26,8 @@ public class CsvUtils {
       var csvFormat = CsvUtils.buildFrom(format, rowType);
       var csvParser = csvFormat.parse(csvReader);
       return switch (rowType) {
-        case object -> new ReadCsvResult.Objects(csvParser.stream().map(CSVRecord::toMap).toList());
-        case array -> new ReadCsvResult.Arrays(csvParser.stream().map(CSVRecord::toList).toList());
+        case Object -> new ReadCsvResult.Objects(csvParser.stream().map(CSVRecord::toMap).toList());
+        case Array -> new ReadCsvResult.Arrays(csvParser.stream().map(CSVRecord::toList).toList());
       };
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -56,35 +56,33 @@ public class CsvUtils {
   }
 
   static CSVFormat buildFrom(CsvFormat format, ReadCsvRequest.RowType rowType) {
-    CSVFormat.Builder builder = CSVFormat.Builder.create();
-
+    CSVFormat.Builder builder =
+        CSVFormat.Builder.create().setSkipHeaderRecord(skipHeaderRecord(format));
     if (format.delimiter() != null) {
       builder.setDelimiter(format.delimiter().trim());
     }
-
-    if (format.skipHeaderRecord() != null) {
-      builder.setSkipHeaderRecord(format.skipHeaderRecord());
-      if (format.skipHeaderRecord() && (format.headers() == null || format.headers().isEmpty())) {
-        // First row is skipped, so we set the header to default (first row).
-        builder.setHeader();
-      }
-    } else {
-      // Object rows require a header by default.
-      if (rowType == ReadCsvRequest.RowType.object
-          && (format.headers() == null || format.headers().isEmpty())) {
-        // First row is skipped, so we set the header to default (first row).
-        builder.setHeader();
-      }
-    }
-
-    if (format.headers() != null && !format.headers().isEmpty()) {
+    if (headersDefined(format)) {
       String[] headers = format.headers().toArray(new String[format.headers().size()]);
       builder.setHeader(headers);
-      if (format.skipHeaderRecord() != null && format.skipHeaderRecord()) {
-        builder.setSkipHeaderRecord(true);
+    } else {
+      if (isObjectTypeRow(rowType) && !skipHeaderRecord(format)) {
+        throw new IllegalArgumentException(
+            "Headers must be defined when 'skipHeaderRecord' is true and row type is Object.");
       }
+      builder.setHeader();
     }
+    return builder.get();
+  }
 
-    return builder.build();
+  private static boolean isObjectTypeRow(ReadCsvRequest.RowType rowType) {
+    return rowType == ReadCsvRequest.RowType.Object;
+  }
+
+  private static boolean headersDefined(CsvFormat format) {
+    return format.headers() != null && !format.headers().isEmpty();
+  }
+
+  private static boolean skipHeaderRecord(CsvFormat format) {
+    return format.skipHeaderRecord() != null && format.skipHeaderRecord();
   }
 }

@@ -19,22 +19,29 @@ import io.camunda.connector.csv.model.ReadCsvRequest.RowType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.Optional;
 
 /** Connector for reading and writing CSV files. */
 @OutboundConnector(name = "CSV Connector", type = "io.camunda:csv-connector")
-@ElementTemplate(name = "CSV Connector", id = "io.camunda.connectors.csv", engineVersion = "^8.7")
+@ElementTemplate(name = "CSV Connector", id = "io.camunda.connectors.csv", engineVersion = "^8.8")
 public class CsvConnector implements OutboundConnectorProvider {
 
   @Operation(id = "readCsv", name = "Read CSV")
   public ReadCsvResult readCsv(@Variable ReadCsvRequest request) {
-    var rowType = Optional.ofNullable(request.rowType()).orElse(RowType.object);
+    var rowType = Optional.ofNullable(request.rowType()).orElse(RowType.Object);
     return switch (request.document()) {
       case String csv -> readCsvRequest(new StringReader(csv), request.format(), rowType);
-      case Document csv ->
-          readCsvRequest(new InputStreamReader(csv.asInputStream()), request.format(), rowType);
+      case Document csv -> {
+        try (InputStream csvInputStream = csv.asInputStream()) {
+          yield readCsvRequest(new InputStreamReader(csvInputStream), request.format(), rowType);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
       default ->
           throw new IllegalArgumentException(
               "Unsupported CSV document type: " + request.document().getClass().getSimpleName());

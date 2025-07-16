@@ -1,0 +1,313 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "CSV Connector",
+  "id" : "io.camunda.connectors.csv",
+  "metadata" : {
+    "keywords" : [ ]
+  },
+  "version" : 0,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.7"
+  },
+  "groups" : [ {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:csv-connector",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "operation",
+    "label" : "Operation",
+    "description" : "The operation to execute",
+    "group" : "operation",
+    "binding" : {
+      "key" : "operation",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Read CSV",
+      "value" : "readCsv"
+    }, {
+      "name" : "Write CSV",
+      "value" : "writeCsv"
+    } ]
+  }, {
+    "id" : "readCsv:document",
+    "label" : "CSV",
+    "description" : "CSV as document or text",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "document",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "readCsv:format.delimiter",
+    "label" : "Delimiter",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.delimiter",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "readCsv:format.skipHeaderRecord",
+    "label" : "Skip header record",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.skipHeaderRecord",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "readCsv:format.headers",
+    "label" : "Headers",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "readCsv:rowType",
+    "label" : "Row type",
+    "group" : "operation",
+    "binding" : {
+      "name" : "rowType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Object",
+      "value" : "object"
+    }, {
+      "name" : "Array",
+      "value" : "array"
+    } ]
+  }, {
+    "id" : "writeCsv:data",
+    "label" : "Data",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "writeCsv:createDocument",
+    "label" : "Create document",
+    "group" : "operation",
+    "binding" : {
+      "name" : "createDocument",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "writeCsv:format.delimiter",
+    "label" : "Delimiter",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.delimiter",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "writeCsv:format.skipHeaderRecord",
+    "label" : "Skip header record",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.skipHeaderRecord",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "writeCsv:format.headers",
+    "label" : "Headers",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.csv",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ]
+}
