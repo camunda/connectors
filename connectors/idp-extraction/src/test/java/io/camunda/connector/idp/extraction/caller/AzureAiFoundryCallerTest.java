@@ -23,7 +23,7 @@ import com.azure.ai.openai.OpenAIClient;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
-import io.camunda.connector.idp.extraction.model.providers.azure.AIFoundryConfig;
+import io.camunda.connector.idp.extraction.model.providers.azure.AiFoundryConfig;
 import io.camunda.connector.idp.extraction.supplier.AzureAiFoundrySupplier;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -309,18 +309,18 @@ class AzureAiFoundryCallerTest {
         converseData);
   }
 
-  private AIFoundryConfig createAIFoundryConfig() {
-    AIFoundryConfig config = new AIFoundryConfig();
+  private AiFoundryConfig createAIFoundryConfig() {
+    AiFoundryConfig config = new AiFoundryConfig();
     config.setEndpoint("https://test-foundry.openai.azure.com/");
     config.setApiKey("test-api-key");
     return config;
   }
 
   private AzureProvider createAzureProvider(boolean usingOpenAI) {
-    AIFoundryConfig config = createAIFoundryConfig();
+    AiFoundryConfig config = createAIFoundryConfig();
     // Set the usingOpenAI field
     try {
-      var usingOpenAIField = AIFoundryConfig.class.getDeclaredField("usingOpenAI");
+      var usingOpenAIField = AiFoundryConfig.class.getDeclaredField("usingOpenAI");
       usingOpenAIField.setAccessible(true);
       usingOpenAIField.set(config, usingOpenAI);
     } catch (Exception e) {

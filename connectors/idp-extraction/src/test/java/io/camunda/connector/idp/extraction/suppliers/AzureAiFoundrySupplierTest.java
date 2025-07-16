@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.azure.ai.inference.ChatCompletionsClient;
 import com.azure.ai.openai.OpenAIClient;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
-import io.camunda.connector.idp.extraction.model.providers.azure.AIFoundryConfig;
+import io.camunda.connector.idp.extraction.model.providers.azure.AiFoundryConfig;
 import io.camunda.connector.idp.extraction.supplier.AzureAiFoundrySupplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,14 +38,14 @@ class AzureAiFoundrySupplierTest {
   }
 
   private AzureProvider createAzureProvider() {
-    AIFoundryConfig config = createAIFoundryConfig();
+    AiFoundryConfig config = createAIFoundryConfig();
     AzureProvider provider = new AzureProvider();
     provider.setAiFoundryConfig(config);
     return provider;
   }
 
-  private AIFoundryConfig createAIFoundryConfig() {
-    AIFoundryConfig config = new AIFoundryConfig();
+  private AiFoundryConfig createAIFoundryConfig() {
+    AiFoundryConfig config = new AiFoundryConfig();
     config.setEndpoint("https://test-foundry.openai.azure.com/");
     config.setApiKey("test-api-key");
     config.setUsingOpenAI(false);

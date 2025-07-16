@@ -7,20 +7,20 @@
 package io.camunda.connector.idp.extraction.model.providers;
 
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import io.camunda.connector.idp.extraction.model.providers.azure.AIFoundryConfig;
+import io.camunda.connector.idp.extraction.model.providers.azure.AiFoundryConfig;
 import io.camunda.connector.idp.extraction.model.providers.azure.DocumentIntelligenceConfiguration;
 
 @TemplateSubType(id = "azure", label = "Azure Provider")
 public final class AzureProvider implements ProviderConfig {
 
   private DocumentIntelligenceConfiguration documentIntelligenceConfiguration;
-  private AIFoundryConfig aiFoundryConfig;
+  private AiFoundryConfig aiFoundryConfig;
 
   public DocumentIntelligenceConfiguration getDocumentIntelligenceConfiguration() {
     return documentIntelligenceConfiguration;
   }
 
-  public AIFoundryConfig getAiFoundryConfig() {
+  public AiFoundryConfig getAiFoundryConfig() {
     return aiFoundryConfig;
   }
 
@@ -29,7 +29,7 @@ public final class AzureProvider implements ProviderConfig {
     this.documentIntelligenceConfiguration = documentIntelligenceConfiguration;
   }
 
-  public void setAiFoundryConfig(AIFoundryConfig aiFoundryConfig) {
+  public void setAiFoundryConfig(AiFoundryConfig aiFoundryConfig) {
     this.aiFoundryConfig = aiFoundryConfig;
   }
 }

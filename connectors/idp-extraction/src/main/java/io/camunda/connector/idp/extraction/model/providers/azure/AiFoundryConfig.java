@@ -12,7 +12,7 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 
-public class AIFoundryConfig {
+public class AiFoundryConfig {
 
   @TemplateProperty(
       id = "usingOpenAI",

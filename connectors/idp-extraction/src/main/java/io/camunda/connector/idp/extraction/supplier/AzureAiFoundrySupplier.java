@@ -12,14 +12,14 @@ import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
-import io.camunda.connector.idp.extraction.model.providers.azure.AIFoundryConfig;
+import io.camunda.connector.idp.extraction.model.providers.azure.AiFoundryConfig;
 
 public final class AzureAiFoundrySupplier {
 
   private AzureAiFoundrySupplier() {}
 
   public static ChatCompletionsClient getChatCompletionsClient(AzureProvider baseRequest) {
-    AIFoundryConfig configuration = baseRequest.getAiFoundryConfig();
+    AiFoundryConfig configuration = baseRequest.getAiFoundryConfig();
     return new ChatCompletionsClientBuilder()
         .endpoint(configuration.getEndpoint())
         .credential(new AzureKeyCredential(configuration.getApiKey()))
@@ -27,7 +27,7 @@ public final class AzureAiFoundrySupplier {
   }
 
   public static OpenAIClient getOpenAIClient(AzureProvider baseRequest) {
-    AIFoundryConfig configuration = baseRequest.getAiFoundryConfig();
+    AiFoundryConfig configuration = baseRequest.getAiFoundryConfig();
     return new OpenAIClientBuilder()
         .endpoint(configuration.getEndpoint())
         .credential(new AzureKeyCredential(configuration.getApiKey()))
