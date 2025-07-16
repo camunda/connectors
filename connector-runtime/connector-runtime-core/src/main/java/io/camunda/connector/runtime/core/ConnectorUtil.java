@@ -20,7 +20,6 @@ import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -34,7 +33,7 @@ public final class ConnectorUtil {
   private ConnectorUtil() {}
 
   public static Optional<OutboundConnectorConfiguration> getOutboundConnectorConfiguration(
-      Class<? extends OutboundConnectorFunction> cls) {
+      Class<?> cls) {
     return Optional.ofNullable(cls.getAnnotation(OutboundConnector.class))
         .map(
             annotation -> {
@@ -51,7 +50,7 @@ public final class ConnectorUtil {
   }
 
   public static OutboundConnectorConfiguration getRequiredOutboundConnectorConfiguration(
-      Class cls) {
+      Class<?> cls) {
     return getOutboundConnectorConfiguration(cls)
         .orElseThrow(
             () ->
