@@ -659,6 +659,7 @@
   }, {
     "id" : "data.agentContext",
     "label" : "Agent context",
+    "description" : "Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
     "optional" : false,
     "value" : "=agent.context",
     "constraints" : {
