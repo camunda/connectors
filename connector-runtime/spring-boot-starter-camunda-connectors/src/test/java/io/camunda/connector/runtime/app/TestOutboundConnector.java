@@ -22,7 +22,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
 @OutboundConnector(
     name = "TEST",
-    type = "org:test:1",
+    type = "io.camunda:test-outbound:1",
     inputVariables = {})
 public class TestOutboundConnector implements OutboundConnectorFunction {
 

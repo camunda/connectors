@@ -14,33 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.outbound;
+package io.camunda.connector.runtime.app;
 
-import io.camunda.connector.runtime.core.discovery.EnvironmentVariablesAdapter;
+import java.lang.reflect.InvocationTargetException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.env.ConfigurableEnvironment;
 
 /**
- * This is a hack to inject the "environment variables" before the
- * OutboundConnectorRuntimeConfiguration is loaded, so that the env vars are considered during
- * construction of the OutboundConnectorFactory and the OutboundConnectorManager.
- *
- * @see RuntimeStartupWithConnectorsFromEnvVarsTests
+ * This is a hack to inject the "environment variables" before the Configurations are loaded, so
+ * that the env vars are considered during construction of the inbound and outbound factories.
  */
 public class EnvVarContextInitializer implements EnvironmentPostProcessor {
 
   @Override
   public void postProcessEnvironment(
       ConfigurableEnvironment environment, SpringApplication application) {
-    String prop = environment.getProperty("camunda.connector.test_type");
-    if (prop == null || !prop.equals("EnvTest")) {
+    String prop = environment.getProperty("camunda.connector.test_class");
+    if (prop == null) {
       return;
     }
-    EnvironmentVariablesAdapter.addHardwiredEnvironmentVariable(
-        "CONNECTOR_TEST2_FUNCTION",
-        "io.camunda.connector.runtime.app.UnregisteredOutboundConnector");
-    EnvironmentVariablesAdapter.addHardwiredEnvironmentVariable(
-        "CONNECTOR_TEST2_TYPE", "non-default-TEST-task-type");
+    try {
+      Class<?> cls = Class.forName(prop);
+      cls.getMethod("envSetup").invoke(null);
+    } catch (ClassNotFoundException
+        | NoSuchMethodException
+        | IllegalAccessException
+        | InvocationTargetException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

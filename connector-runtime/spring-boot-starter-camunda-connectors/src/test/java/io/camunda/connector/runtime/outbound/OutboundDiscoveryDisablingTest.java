@@ -16,19 +16,15 @@
  */
 package io.camunda.connector.runtime.outbound;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import io.camunda.connector.runtime.app.EnvVarContextInitializer;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.app.TestSpringBasedOutboundConnector;
 import io.camunda.connector.runtime.core.discovery.EnvironmentVariablesAdapter;
-import io.camunda.connector.test.SlowTest;
-import io.camunda.process.test.api.CamundaSpringProcessTest;
-import io.camunda.spring.client.annotation.value.JobWorkerValue;
-import io.camunda.spring.client.jobhandling.JobWorkerManager;
-import java.util.Optional;
-import org.junit.jupiter.api.*;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import java.util.NoSuchElementException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
@@ -38,25 +34,18 @@ import org.springframework.test.annotation.DirtiesContext;
  */
 @SpringBootTest(
     properties = {
-      "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.polling.enabled=false",
-      "camunda.connector.test_class=io.camunda.connector.runtime.outbound.RuntimeStartupWithConnectorsFromEnvVarsTests"
+      "camunda.connector.test_class=io.camunda.connector.runtime.outbound.OutboundDiscoveryDisablingTest"
     },
-    classes = {TestConnectorRuntimeApplication.class})
+    classes = {TestConnectorRuntimeApplication.class, TestSpringBasedOutboundConnector.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@CamundaSpringProcessTest
-@SlowTest
-public class RuntimeStartupWithConnectorsFromEnvVarsTests {
-
-  @Autowired private JobWorkerManager jobWorkerManager;
+public class OutboundDiscoveryDisablingTest {
+  @Autowired OutboundConnectorFactory factory;
 
   // Invoked via reflection
   public static void envSetup() {
     EnvironmentVariablesAdapter.addHardwiredEnvironmentVariable(
-        "CONNECTOR_TEST2_FUNCTION",
-        "io.camunda.connector.runtime.app.UnregisteredOutboundConnector");
-    EnvironmentVariablesAdapter.addHardwiredEnvironmentVariable(
-        "CONNECTOR_TEST2_TYPE", "non-default-TEST-task-type");
+        "CONNECTOR_OUTBOUND_DISCOVERY_DISABLED", "true");
   }
 
   @AfterAll
@@ -65,12 +54,14 @@ public class RuntimeStartupWithConnectorsFromEnvVarsTests {
   }
 
   @Test
-  public void httpConnectorLoadedViaEnvVar() {
-    // Make sure the environment variables are used INSTEAD of SPI (which would load TEST)
-    assertFalse(jobWorkerManager.findJobWorkerConfigByName("TEST").isPresent());
-
-    Optional<JobWorkerValue> testConnector = jobWorkerManager.findJobWorkerConfigByName("TEST2");
-    assertTrue(testConnector.isPresent());
-    assertEquals("non-default-TEST-task-type", testConnector.get().getType());
+  public void ensureIsDisabled() {
+    Assertions.assertThrows(
+        NoSuchElementException.class,
+        () -> factory.getInstance("io.camunda:test-outbound:1"),
+        "Inbound connector should not be available when discovery is disabled");
+    Assertions.assertInstanceOf(
+        TestSpringBasedOutboundConnector.class,
+        factory.getInstance("io.camunda:test-outbound-spring:1"),
+        "Spring based registration should still be available");
   }
 }
