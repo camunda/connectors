@@ -10,6 +10,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.idp.extraction.caller.AzureAiFoundryCaller;
+import io.camunda.connector.idp.extraction.caller.AzureDocumentIntelligenceCaller;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.caller.VertexCaller;
@@ -18,10 +20,12 @@ import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
+import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
+import io.camunda.connector.idp.extraction.utils.StringUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -50,6 +54,10 @@ public class UnstructuredService implements ExtractionService {
 
   private final VertexCaller vertexCaller;
 
+  private final AzureAiFoundryCaller azureAiFoundryCaller;
+
+  private final AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller;
+
   public UnstructuredService() {
     this.textractClientSupplier = new TextractClientSupplier();
     this.s3ClientSupplier = new S3ClientSupplier();
@@ -58,6 +66,8 @@ public class UnstructuredService implements ExtractionService {
     this.bedrockCaller = new BedrockCaller();
     this.vertexCaller = new VertexCaller();
     this.objectMapper = new ObjectMapper();
+    this.azureAiFoundryCaller = new AzureAiFoundryCaller();
+    this.azureDocumentIntelligenceCaller = new AzureDocumentIntelligenceCaller();
   }
 
   public UnstructuredService(
@@ -67,7 +77,9 @@ public class UnstructuredService implements ExtractionService {
       PollingTextractCaller pollingTextractCaller,
       BedrockCaller bedrockCaller,
       VertexCaller vertexCaller,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      AzureAiFoundryCaller azureAiFoundryCaller,
+      AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller) {
     this.textractClientSupplier = textractClientSupplier;
     this.s3ClientSupplier = s3ClientSupplier;
     this.bedrockRuntimeClientSupplier = bedrockRuntimeClientSupplier;
@@ -75,6 +87,8 @@ public class UnstructuredService implements ExtractionService {
     this.bedrockCaller = bedrockCaller;
     this.vertexCaller = vertexCaller;
     this.objectMapper = objectMapper;
+    this.azureAiFoundryCaller = azureAiFoundryCaller;
+    this.azureDocumentIntelligenceCaller = azureDocumentIntelligenceCaller;
   }
 
   @Override
@@ -83,6 +97,7 @@ public class UnstructuredService implements ExtractionService {
     return switch (extractionRequest.baseRequest()) {
       case AwsProvider aws -> extractUsingAws(input, aws);
       case GcpProvider gemini -> extractUsingGcp(input, gemini);
+      case AzureProvider azure -> extractUsingAzure(input, azure);
       default ->
           throw new IllegalStateException("Unexpected value: " + extractionRequest.baseRequest());
     };
@@ -127,10 +142,33 @@ public class UnstructuredService implements ExtractionService {
     }
   }
 
+  private ExtractionResult extractUsingAzure(
+      ExtractionRequestData input, AzureProvider baseRequest) {
+    try {
+      long startTime = System.currentTimeMillis();
+
+      // Extract text using Azure Document Intelligence
+      String extractedText = azureDocumentIntelligenceCaller.call(input, baseRequest);
+
+      // Process the extracted text using Azure AI Foundry
+      String azureResponse = azureAiFoundryCaller.call(input, baseRequest, extractedText);
+
+      long endTime = System.currentTimeMillis();
+      LOGGER.info("Azure content extraction took {} ms", (endTime - startTime));
+
+      return new ExtractionResult(
+          buildResponseJsonIfPossible(azureResponse, input.taxonomyItems()));
+    } catch (Exception e) {
+      LOGGER.error("Document extraction failed: {}", e.getMessage());
+      throw new ConnectorException(e);
+    }
+  }
+
   private Map<String, Object> buildResponseJsonIfPossible(
       String llmResponse, List<TaxonomyItem> taxonomyItems) {
     try {
-      var llmResponseJson = objectMapper.readValue(llmResponse, JsonNode.class);
+      String cleanedResponse = StringUtil.stripMarkdownCodeBlocks(llmResponse);
+      var llmResponseJson = objectMapper.readValue(cleanedResponse, JsonNode.class);
       var taxonomyItemsNames = taxonomyItems.stream().map(TaxonomyItem::name).toList();
 
       if (llmResponseJson.isObject()) {
