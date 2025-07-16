@@ -65,4 +65,16 @@ public class AIFoundryConfig {
   public String getApiKey() {
     return apiKey;
   }
+
+  public void setUsingOpenAI(boolean usingOpenAI) {
+    this.usingOpenAI = usingOpenAI;
+  }
+
+  public void setEndpoint(String endpoint) {
+    this.endpoint = endpoint;
+  }
+
+  public void setApiKey(String apiKey) {
+    this.apiKey = apiKey;
+  }
 }

@@ -16,15 +16,16 @@ import com.azure.ai.openai.OpenAIClient;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
-import io.camunda.connector.idp.extraction.supplier.AzureAIFoundrySupplier;
+import io.camunda.connector.idp.extraction.supplier.AzureAiFoundrySupplier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AzureAIFoundryCaller {
+public class AzureAiFoundryCaller {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AzureAIFoundryCaller.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AzureAiFoundryCaller.class);
 
   public String call(ExtractionRequestData input, AzureProvider baseRequest, String extractedText) {
     LOGGER.debug("Calling Azure AI Foundry with extraction request data: {}", input);
@@ -51,7 +52,7 @@ public class AzureAIFoundryCaller {
       AzureProvider baseRequest,
       String extractedText,
       LlmModel llmModel) {
-    OpenAIClient client = AzureAIFoundrySupplier.getOpenAIClient(baseRequest);
+    OpenAIClient client = AzureAiFoundrySupplier.getOpenAIClient(baseRequest);
 
     // Build the messages for the chat completion
     List<com.azure.ai.openai.models.ChatRequestMessage> messages =
@@ -61,9 +62,13 @@ public class AzureAIFoundryCaller {
     com.azure.ai.openai.models.ChatCompletionsOptions options =
         new com.azure.ai.openai.models.ChatCompletionsOptions(messages);
     options.setModel(input.converseData().modelId());
-    options.setTemperature(input.converseData().temperature().doubleValue());
+    options.setTemperature(
+        Optional.ofNullable(input.converseData().temperature())
+            .map(Float::doubleValue)
+            .orElse(null));
     options.setMaxTokens(input.converseData().maxTokens());
-    options.setTopP(input.converseData().topP().doubleValue());
+    options.setTopP(
+        Optional.ofNullable(input.converseData().topP()).map(Float::doubleValue).orElse(1.0));
 
     // Make the call to Azure AI Foundry
     com.azure.ai.openai.models.ChatCompletions response =
@@ -81,10 +86,10 @@ public class AzureAIFoundryCaller {
       AzureProvider baseRequest,
       String extractedText,
       LlmModel llmModel) {
-    ChatCompletionsClient client = AzureAIFoundrySupplier.getChatCompletionsClient(baseRequest);
+    ChatCompletionsClient client = AzureAiFoundrySupplier.getChatCompletionsClient(baseRequest);
 
     // Build the messages for the chat completion
-    List<ChatRequestMessage> messages = buildMessages(input, extractedText, llmModel);
+    List<ChatRequestMessage> messages = buildChatRequestMessages(input, extractedText, llmModel);
 
     // Create the chat completions options for ChatCompletions client
     ChatCompletionsOptions options = new ChatCompletionsOptions(messages);
@@ -103,7 +108,7 @@ public class AzureAIFoundryCaller {
     return responseText;
   }
 
-  private List<ChatRequestMessage> buildMessages(
+  private List<ChatRequestMessage> buildChatRequestMessages(
       ExtractionRequestData input, String extractedText, LlmModel llmModel) {
     List<ChatRequestMessage> messages = new ArrayList<>();
 

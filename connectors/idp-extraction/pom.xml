@@ -73,7 +73,6 @@
       <artifactId>azure-ai-documentintelligence</artifactId>
       <version>1.0.2</version>
       <exclusions>
-
         <exclusion>
           <groupId>io.vertx</groupId>
           <artifactId>vertx-core</artifactId>

@@ -14,9 +14,9 @@ import com.azure.core.credential.AzureKeyCredential;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.azure.AIFoundryConfig;
 
-public final class AzureAIFoundrySupplier {
+public final class AzureAiFoundrySupplier {
 
-  private AzureAIFoundrySupplier() {}
+  private AzureAiFoundrySupplier() {}
 
   public static ChatCompletionsClient getChatCompletionsClient(AzureProvider baseRequest) {
     AIFoundryConfig configuration = baseRequest.getAiFoundryConfig();

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.idp.extraction.caller.AzureAIFoundryCaller;
+import io.camunda.connector.idp.extraction.caller.AzureAiFoundryCaller;
 import io.camunda.connector.idp.extraction.caller.AzureDocumentIntelligenceCaller;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
@@ -25,6 +25,7 @@ import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
+import io.camunda.connector.idp.extraction.utils.StringUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -53,7 +54,7 @@ public class UnstructuredService implements ExtractionService {
 
   private final VertexCaller vertexCaller;
 
-  private final AzureAIFoundryCaller azureAIFoundryCaller;
+  private final AzureAiFoundryCaller azureAiFoundryCaller;
 
   private final AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller;
 
@@ -65,7 +66,7 @@ public class UnstructuredService implements ExtractionService {
     this.bedrockCaller = new BedrockCaller();
     this.vertexCaller = new VertexCaller();
     this.objectMapper = new ObjectMapper();
-    this.azureAIFoundryCaller = new AzureAIFoundryCaller();
+    this.azureAiFoundryCaller = new AzureAiFoundryCaller();
     this.azureDocumentIntelligenceCaller = new AzureDocumentIntelligenceCaller();
   }
 
@@ -77,7 +78,7 @@ public class UnstructuredService implements ExtractionService {
       BedrockCaller bedrockCaller,
       VertexCaller vertexCaller,
       ObjectMapper objectMapper,
-      AzureAIFoundryCaller azureAIFoundryCaller,
+      AzureAiFoundryCaller azureAiFoundryCaller,
       AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller) {
     this.textractClientSupplier = textractClientSupplier;
     this.s3ClientSupplier = s3ClientSupplier;
@@ -86,7 +87,7 @@ public class UnstructuredService implements ExtractionService {
     this.bedrockCaller = bedrockCaller;
     this.vertexCaller = vertexCaller;
     this.objectMapper = objectMapper;
-    this.azureAIFoundryCaller = azureAIFoundryCaller;
+    this.azureAiFoundryCaller = azureAiFoundryCaller;
     this.azureDocumentIntelligenceCaller = azureDocumentIntelligenceCaller;
   }
 
@@ -150,7 +151,7 @@ public class UnstructuredService implements ExtractionService {
       String extractedText = azureDocumentIntelligenceCaller.call(input, baseRequest);
 
       // Process the extracted text using Azure AI Foundry
-      String azureResponse = azureAIFoundryCaller.call(input, baseRequest, extractedText);
+      String azureResponse = azureAiFoundryCaller.call(input, baseRequest, extractedText);
 
       long endTime = System.currentTimeMillis();
       LOGGER.info("Azure content extraction took {} ms", (endTime - startTime));
@@ -166,7 +167,7 @@ public class UnstructuredService implements ExtractionService {
   private Map<String, Object> buildResponseJsonIfPossible(
       String llmResponse, List<TaxonomyItem> taxonomyItems) {
     try {
-      String cleanedResponse = stripMarkdownCodeBlocks(llmResponse);
+      String cleanedResponse = StringUtil.stripMarkdownCodeBlocks(llmResponse);
       var llmResponseJson = objectMapper.readValue(cleanedResponse, JsonNode.class);
       var taxonomyItemsNames = taxonomyItems.stream().map(TaxonomyItem::name).toList();
 
@@ -213,25 +214,6 @@ public class UnstructuredService implements ExtractionService {
           String.format("Failed to parse the JSON response from LLM: %s", llmResponse),
           e);
     }
-  }
-
-  private String stripMarkdownCodeBlocks(String response) {
-    String trimmed = response.trim();
-
-    // Check if response is wrapped in markdown code blocks
-    if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
-      // Find the first newline after opening ```
-      int startIndex = trimmed.indexOf('\n');
-      if (startIndex != -1) {
-        // Find the last ```
-        int endIndex = trimmed.lastIndexOf("```");
-        if (endIndex > startIndex) {
-          return trimmed.substring(startIndex + 1, endIndex).trim();
-        }
-      }
-    }
-
-    return response;
   }
 
   private String extractTextUsingAwsTextract(ExtractionRequestData input, AwsProvider baseRequest)

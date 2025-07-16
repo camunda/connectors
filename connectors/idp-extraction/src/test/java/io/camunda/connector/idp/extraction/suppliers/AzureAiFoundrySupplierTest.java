@@ -12,11 +12,11 @@ import com.azure.ai.inference.ChatCompletionsClient;
 import com.azure.ai.openai.OpenAIClient;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.azure.AIFoundryConfig;
-import io.camunda.connector.idp.extraction.supplier.AzureAIFoundrySupplier;
+import io.camunda.connector.idp.extraction.supplier.AzureAiFoundrySupplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class AzureAIFoundrySupplierTest {
+class AzureAiFoundrySupplierTest {
 
   private AzureProvider azureProvider;
 
@@ -27,13 +27,13 @@ class AzureAIFoundrySupplierTest {
 
   @Test
   void getChatCompletionsClient() {
-    ChatCompletionsClient client = AzureAIFoundrySupplier.getChatCompletionsClient(azureProvider);
+    ChatCompletionsClient client = AzureAiFoundrySupplier.getChatCompletionsClient(azureProvider);
     assertThat(client).isInstanceOf(ChatCompletionsClient.class);
   }
 
   @Test
   void getOpenAIClient() {
-    OpenAIClient client = AzureAIFoundrySupplier.getOpenAIClient(azureProvider);
+    OpenAIClient client = AzureAiFoundrySupplier.getOpenAIClient(azureProvider);
     assertThat(client).isInstanceOf(OpenAIClient.class);
   }
 
@@ -46,22 +46,9 @@ class AzureAIFoundrySupplierTest {
 
   private AIFoundryConfig createAIFoundryConfig() {
     AIFoundryConfig config = new AIFoundryConfig();
-    // Using reflection to set private fields since there are no public setters
-    try {
-      var endpointField = AIFoundryConfig.class.getDeclaredField("endpoint");
-      endpointField.setAccessible(true);
-      endpointField.set(config, "https://test-foundry.openai.azure.com/");
-
-      var apiKeyField = AIFoundryConfig.class.getDeclaredField("apiKey");
-      apiKeyField.setAccessible(true);
-      apiKeyField.set(config, "test-api-key");
-
-      var usingOpenAIField = AIFoundryConfig.class.getDeclaredField("usingOpenAI");
-      usingOpenAIField.setAccessible(true);
-      usingOpenAIField.set(config, false);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to set AIFoundryConfig fields", e);
-    }
+    config.setEndpoint("https://test-foundry.openai.azure.com/");
+    config.setApiKey("test-api-key");
+    config.setUsingOpenAI(false);
     return config;
   }
 }

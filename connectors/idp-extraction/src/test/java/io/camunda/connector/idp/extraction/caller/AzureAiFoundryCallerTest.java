@@ -24,7 +24,7 @@ import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.azure.AIFoundryConfig;
-import io.camunda.connector.idp.extraction.supplier.AzureAIFoundrySupplier;
+import io.camunda.connector.idp.extraction.supplier.AzureAiFoundrySupplier;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,12 +37,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AzureAiFoundryCallerTest {
 
-  private AzureAIFoundryCaller azureAiFoundryCaller;
+  private AzureAiFoundryCaller azureAiFoundryCaller;
   private AzureProvider azureProvider;
 
   @BeforeEach
   void setUp() {
-    azureAiFoundryCaller = new AzureAIFoundryCaller();
+    azureAiFoundryCaller = new AzureAiFoundryCaller();
     azureProvider = createAzureProvider(false); // Default to non-OpenAI
   }
 
@@ -62,10 +62,10 @@ class AzureAiFoundryCallerTest {
     when(mockResponse.getChoices().get(0).getMessage().getContent()).thenReturn(expectedResponse);
     when(mockClient.complete(any(ChatCompletionsOptions.class))).thenReturn(mockResponse);
 
-    try (MockedStatic<AzureAIFoundrySupplier> mockedSupplier =
-        mockStatic(AzureAIFoundrySupplier.class)) {
+    try (MockedStatic<AzureAiFoundrySupplier> mockedSupplier =
+        mockStatic(AzureAiFoundrySupplier.class)) {
       mockedSupplier
-          .when(() -> AzureAIFoundrySupplier.getChatCompletionsClient(any()))
+          .when(() -> AzureAiFoundrySupplier.getChatCompletionsClient(any()))
           .thenReturn(mockClient);
 
       ExtractionRequestData requestData =
@@ -98,10 +98,10 @@ class AzureAiFoundryCallerTest {
             anyString(), any(com.azure.ai.openai.models.ChatCompletionsOptions.class)))
         .thenReturn(mockResponse);
 
-    try (MockedStatic<AzureAIFoundrySupplier> mockedSupplier =
-        mockStatic(AzureAIFoundrySupplier.class)) {
+    try (MockedStatic<AzureAiFoundrySupplier> mockedSupplier =
+        mockStatic(AzureAiFoundrySupplier.class)) {
       mockedSupplier
-          .when(() -> AzureAIFoundrySupplier.getOpenAIClient(any()))
+          .when(() -> AzureAiFoundrySupplier.getOpenAIClient(any()))
           .thenReturn(mockClient);
 
       ExtractionRequestData requestData = createTestRequestData("gpt-4");
@@ -125,10 +125,10 @@ class AzureAiFoundryCallerTest {
     when(mockResponse.getChoices().get(0).getMessage().getContent()).thenReturn(expectedResponse);
     when(mockClient.complete(any(ChatCompletionsOptions.class))).thenReturn(mockResponse);
 
-    try (MockedStatic<AzureAIFoundrySupplier> mockedSupplier =
-        mockStatic(AzureAIFoundrySupplier.class)) {
+    try (MockedStatic<AzureAiFoundrySupplier> mockedSupplier =
+        mockStatic(AzureAiFoundrySupplier.class)) {
       mockedSupplier
-          .when(() -> AzureAIFoundrySupplier.getChatCompletionsClient(any()))
+          .when(() -> AzureAiFoundrySupplier.getChatCompletionsClient(any()))
           .thenReturn(mockClient);
 
       ExtractionRequestData requestData = createTestRequestData(modelId);
@@ -160,10 +160,10 @@ class AzureAiFoundryCallerTest {
     when(mockResponse.getChoices().get(0).getMessage().getContent()).thenReturn(expectedResponse);
     when(mockClient.complete(any(ChatCompletionsOptions.class))).thenReturn(mockResponse);
 
-    try (MockedStatic<AzureAIFoundrySupplier> mockedSupplier =
-        mockStatic(AzureAIFoundrySupplier.class)) {
+    try (MockedStatic<AzureAiFoundrySupplier> mockedSupplier =
+        mockStatic(AzureAiFoundrySupplier.class)) {
       mockedSupplier
-          .when(() -> AzureAIFoundrySupplier.getChatCompletionsClient(any()))
+          .when(() -> AzureAiFoundrySupplier.getChatCompletionsClient(any()))
           .thenReturn(mockClient);
 
       ExtractionRequestData requestData = createTestRequestData(modelId);
@@ -197,10 +197,10 @@ class AzureAiFoundryCallerTest {
             anyString(), any(com.azure.ai.openai.models.ChatCompletionsOptions.class)))
         .thenReturn(mockResponse);
 
-    try (MockedStatic<AzureAIFoundrySupplier> mockedSupplier =
-        mockStatic(AzureAIFoundrySupplier.class)) {
+    try (MockedStatic<AzureAiFoundrySupplier> mockedSupplier =
+        mockStatic(AzureAiFoundrySupplier.class)) {
       mockedSupplier
-          .when(() -> AzureAIFoundrySupplier.getOpenAIClient(any()))
+          .when(() -> AzureAiFoundrySupplier.getOpenAIClient(any()))
           .thenReturn(mockClient);
 
       ExtractionRequestData requestData = createTestRequestData(modelId);
@@ -226,10 +226,10 @@ class AzureAiFoundryCallerTest {
     when(mockClient.complete(any(ChatCompletionsOptions.class)))
         .thenThrow(new RuntimeException("Azure service unavailable"));
 
-    try (MockedStatic<AzureAIFoundrySupplier> mockedSupplier =
-        mockStatic(AzureAIFoundrySupplier.class)) {
+    try (MockedStatic<AzureAiFoundrySupplier> mockedSupplier =
+        mockStatic(AzureAiFoundrySupplier.class)) {
       mockedSupplier
-          .when(() -> AzureAIFoundrySupplier.getChatCompletionsClient(any()))
+          .when(() -> AzureAiFoundrySupplier.getChatCompletionsClient(any()))
           .thenReturn(mockClient);
 
       ExtractionRequestData requestData =
@@ -254,10 +254,10 @@ class AzureAiFoundryCallerTest {
             anyString(), any(com.azure.ai.openai.models.ChatCompletionsOptions.class)))
         .thenThrow(new RuntimeException("OpenAI service error"));
 
-    try (MockedStatic<AzureAIFoundrySupplier> mockedSupplier =
-        mockStatic(AzureAIFoundrySupplier.class)) {
+    try (MockedStatic<AzureAiFoundrySupplier> mockedSupplier =
+        mockStatic(AzureAiFoundrySupplier.class)) {
       mockedSupplier
-          .when(() -> AzureAIFoundrySupplier.getOpenAIClient(any()))
+          .when(() -> AzureAiFoundrySupplier.getOpenAIClient(any()))
           .thenReturn(mockClient);
 
       ExtractionRequestData requestData = createTestRequestData("gpt-4");
@@ -283,10 +283,10 @@ class AzureAiFoundryCallerTest {
     when(mockResponse.getChoices().get(0).getMessage().getContent()).thenReturn(expectedResponse);
     when(mockClient.complete(any(ChatCompletionsOptions.class))).thenReturn(mockResponse);
 
-    try (MockedStatic<AzureAIFoundrySupplier> mockedSupplier =
-        mockStatic(AzureAIFoundrySupplier.class)) {
+    try (MockedStatic<AzureAiFoundrySupplier> mockedSupplier =
+        mockStatic(AzureAiFoundrySupplier.class)) {
       mockedSupplier
-          .when(() -> AzureAIFoundrySupplier.getChatCompletionsClient(any()))
+          .when(() -> AzureAiFoundrySupplier.getChatCompletionsClient(any()))
           .thenReturn(mockClient);
 
       ExtractionRequestData requestData = createTestRequestData(modelId);
@@ -311,18 +311,8 @@ class AzureAiFoundryCallerTest {
 
   private AIFoundryConfig createAIFoundryConfig() {
     AIFoundryConfig config = new AIFoundryConfig();
-    // Using reflection to set private fields since there are no public setters
-    try {
-      var endpointField = AIFoundryConfig.class.getDeclaredField("endpoint");
-      endpointField.setAccessible(true);
-      endpointField.set(config, "https://test-foundry.openai.azure.com/");
-
-      var apiKeyField = AIFoundryConfig.class.getDeclaredField("apiKey");
-      apiKeyField.setAccessible(true);
-      apiKeyField.set(config, "test-api-key");
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to set AIFoundryConfig fields", e);
-    }
+    config.setEndpoint("https://test-foundry.openai.azure.com/");
+    config.setApiKey("test-api-key");
     return config;
   }
 
