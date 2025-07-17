@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.outbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDisabler;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
@@ -43,8 +44,10 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public OutboundConnectorFactory outboundConnectorFactory() {
+    // filter out connectors that are disabled via additional env variable
     return new DefaultOutboundConnectorFactory(
-        OutboundConnectorDiscovery.loadConnectorConfigurations());
+        OutboundConnectorDiscovery.loadConnectorConfigurations(),
+        EnvVarsConnectorDisabler.getDisabledOutboundConnectorTypes());
   }
 
   @Bean

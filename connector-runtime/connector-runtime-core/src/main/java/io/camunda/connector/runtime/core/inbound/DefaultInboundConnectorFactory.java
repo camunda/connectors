@@ -21,11 +21,11 @@ import static io.camunda.connector.runtime.core.ConnectorHelper.instantiateConne
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDisabler;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,8 +40,12 @@ import org.slf4j.LoggerFactory;
 public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultInboundConnectorFactory.class);
+  public static final String DISABLED_THROUGH_ENV_VARIABLE =
+      "Connector {} has been disabled by the CONNECTORS_INBOUND_DISABLED environment variable";
 
   private List<InboundConnectorConfiguration> configurations;
+  private final Set<String> disabledConnectors =
+      EnvVarsConnectorDisabler.getDisabledInboundConnectorTypes();
 
   public DefaultInboundConnectorFactory() {
     loadConnectorConfigurations();
@@ -87,8 +91,13 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
             .findAny();
 
     if (oldConfig.isPresent()) {
-      LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
+      LOG.info("Connector {} is overridden, new configuration{}", oldConfig, configuration);
       configurations.remove(oldConfig.get());
+    }
+    // Old Config should never be present if disabled, but just to be sure, we're only checking now
+    if (disabledConnectors.contains(configuration.type().toLowerCase())) {
+      LOG.warn(DISABLED_THROUGH_ENV_VARIABLE, configuration);
+      return;
     }
     configurations.add(configuration);
   }
@@ -99,10 +108,25 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
   }
 
   protected void loadConnectorConfigurations() {
+    if (EnvVarsConnectorDisabler.isInboundDiscoveryDisabled()) {
+      configurations = new ArrayList<>();
+      return;
+    }
     if (EnvVarsConnectorDiscovery.isInboundConfigured()) {
       configurations = EnvVarsConnectorDiscovery.discoverInbound();
     } else {
       configurations = SPIConnectorDiscovery.discoverInbound();
     }
+    configurations =
+        configurations.stream()
+            .filter(
+                e -> {
+                  boolean shouldBeDisabled = !disabledConnectors.contains(e.type().toLowerCase());
+                  if (shouldBeDisabled) {
+                    LOG.warn(DISABLED_THROUGH_ENV_VARIABLE, e);
+                  }
+                  return shouldBeDisabled;
+                })
+            .collect(Collectors.toList());
   }
 }
