@@ -16,49 +16,43 @@
  */
 package io.camunda.connector.runtime.core.outbound.operation;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonPointer;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.VariableDescriptor;
-import java.io.IOException;
 
 public sealed interface ParameterResolver<T> {
 
-  record ResolverContext(OutboundConnectorContext context, JsonNode variables) {}
+  interface VariablesJson {
+    <T> T readValueAs(JsonPointer pointer, Class<T> type);
+  }
+
+  record ResolverContext(OutboundConnectorContext context, VariablesJson variablesJson) {}
 
   sealed interface ContextAware<T> extends ParameterResolver<T> {
     T resolve(ResolverContext context);
 
     final class Variable<T> implements ContextAware<T> {
-      private final ObjectMapper objectMapper;
       private final VariableDescriptor<T> descriptor;
-      private final String jsonPointer;
+      private final JsonPointer jsonPointer;
 
-      public Variable(ObjectMapper objectMapper, VariableDescriptor<T> descriptor) {
-        this.objectMapper = objectMapper;
+      public Variable(VariableDescriptor<T> descriptor) {
         this.descriptor = descriptor;
         if (descriptor.name().isEmpty()) {
-          jsonPointer = "";
+          jsonPointer = JsonPointer.empty();
         } else {
-          jsonPointer = "/" + descriptor.name().replace(".", "/");
+          jsonPointer = JsonPointer.compile("/" + descriptor.name().replace(".", "/"));
         }
       }
 
       @Override
       public T resolve(ResolverContext context) {
-        JsonNode node = context.variables().at(jsonPointer);
-        try (JsonParser parser = node.traverse(objectMapper)) {
-          var value = parser.readValueAs(descriptor.type());
-          if (descriptor.required() && value == null) {
-            throw new ConnectorInputException(
-                "Required variable '" + descriptor.name() + "' is missing or null");
-          }
-          return value;
-        } catch (IOException e) {
-          throw new RuntimeException(e);
+        var value = context.variablesJson.readValueAs(jsonPointer, descriptor.type());
+        if (descriptor.required() && value == null) {
+          throw new ConnectorInputException(
+              "Required variable '" + descriptor.name() + "' is missing or null");
         }
+        return value;
       }
     }
   }
