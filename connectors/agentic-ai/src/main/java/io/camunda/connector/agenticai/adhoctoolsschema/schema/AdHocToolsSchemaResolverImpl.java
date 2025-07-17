@@ -11,12 +11,13 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRes
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class AdHocToolDefinitionResolverImpl implements AdHocToolDefinitionResolver {
+public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
   private final List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers;
   private final AdHocToolSchemaGenerator schemaGenerator;
 
-  public AdHocToolDefinitionResolverImpl(
+  public AdHocToolsSchemaResolverImpl(
       List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       AdHocToolSchemaGenerator schemaGenerator) {
     this.gatewayToolDefinitionResolvers = gatewayToolDefinitionResolvers;
@@ -24,14 +25,16 @@ public class AdHocToolDefinitionResolverImpl implements AdHocToolDefinitionResol
   }
 
   @Override
-  public AdHocToolsSchemaResponse resolveToolDefinitions(List<AdHocToolElement> elements) {
+  public AdHocToolsSchemaResponse resolveAdHocToolsSchema(List<AdHocToolElement> elements) {
     final var gatewayToolDefinitions =
         gatewayToolDefinitionResolvers.stream()
             .flatMap(resolver -> resolver.resolveGatewayToolDefinitions(elements).stream())
             .toList();
 
     final var gatewayFlowNodeIds =
-        gatewayToolDefinitions.stream().map(GatewayToolDefinition::name).toList();
+        gatewayToolDefinitions.stream()
+            .map(GatewayToolDefinition::name)
+            .collect(Collectors.toSet());
 
     // map all non-gateway tool elements to tool definitions
     final var toolDefinitions =

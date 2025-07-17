@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
+package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
 import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentation;
 import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperties;
@@ -12,10 +12,8 @@ import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperti
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractionException;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelInputParamExtractionException;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelInputParamExtractor;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -35,10 +33,11 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver {
+public class CamundaClientProcessDefinitionAdHocToolElementsResolver
+    implements ProcessDefinitionAdHocToolElementsResolver {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(CamundaClientAdHocToolsSchemaResolver.class);
+      LoggerFactory.getLogger(CamundaClientProcessDefinitionAdHocToolElementsResolver.class);
 
   private static final String ERROR_CODE_AD_HOC_SUB_PROCESS_NOT_FOUND =
       "AD_HOC_SUB_PROCESS_NOT_FOUND";
@@ -47,19 +46,15 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
 
   private final CamundaClient camundaClient;
   private final FeelInputParamExtractor feelInputParamExtractor;
-  private final AdHocToolDefinitionResolver toolDefinitionResolver;
 
-  public CamundaClientAdHocToolsSchemaResolver(
-      CamundaClient camundaClient,
-      FeelInputParamExtractor feelInputParamExtractor,
-      AdHocToolDefinitionResolver toolDefinitionResolver) {
+  public CamundaClientProcessDefinitionAdHocToolElementsResolver(
+      CamundaClient camundaClient, FeelInputParamExtractor feelInputParamExtractor) {
     this.camundaClient = camundaClient;
     this.feelInputParamExtractor = feelInputParamExtractor;
-    this.toolDefinitionResolver = toolDefinitionResolver;
   }
 
   @Override
-  public AdHocToolsSchemaResponse resolveSchema(
+  public List<AdHocToolElement> resolveToolElements(
       Long processDefinitionKey, String adHocSubProcessId) {
     if (processDefinitionKey == null || processDefinitionKey <= 0) {
       throw new IllegalArgumentException("Process definition key must not be null or negative");
@@ -70,7 +65,7 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
     }
 
     LOGGER.info(
-        "Resolving tool schema for ad-hoc sub-process {} in process definition with key {}",
+        "Resolving tool elements for ad-hoc sub-process {} in process definition with key {}",
         adHocSubProcessId,
         processDefinitionKey);
 
@@ -85,17 +80,14 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
     if (!(processElement instanceof final AdHocSubProcess adHocSubProcess)) {
       throw new ConnectorException(
           ERROR_CODE_AD_HOC_SUB_PROCESS_NOT_FOUND,
-          "Unable to resolve tools schema. Ad-hoc sub-process with ID '%s' was not found."
+          "Unable to resolve tool elements. Ad-hoc sub-process with ID '%s' was not found."
               .formatted(adHocSubProcessId));
     }
 
-    final var toolElements =
-        adHocSubProcess.getChildElementsByType(FlowNode.class).stream()
-            .filter(this::isToolElement)
-            .map(this::asSubProcessElement)
-            .toList();
-
-    return toolDefinitionResolver.resolveToolDefinitions(toolElements);
+    return adHocSubProcess.getChildElementsByType(FlowNode.class).stream()
+        .filter(this::isToolElement)
+        .map(this::asSubProcessElement)
+        .toList();
   }
 
   private boolean isToolElement(FlowNode element) {

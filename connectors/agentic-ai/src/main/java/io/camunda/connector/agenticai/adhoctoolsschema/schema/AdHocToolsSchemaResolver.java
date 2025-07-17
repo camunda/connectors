@@ -8,14 +8,13 @@ package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-
 import java.util.List;
 
-public interface AdHocToolDefinitionResolver {
-  /**
-   * Converts a list of {@link AdHocToolElement} to a {@link AdHocToolsSchemaResponse} containing
-   * tool definitions and gateway tool definitions. Invokes registered {@link
-   * GatewayToolDefinitionResolver} implementations to handle gateway tool definitions.
-   */
-  AdHocToolsSchemaResponse resolveToolDefinitions(List<AdHocToolElement> elements);
+/**
+ * Converts a list of {@link AdHocToolElement} to a {@link AdHocToolsSchemaResponse} containing tool
+ * definitions and gateway tool definitions. Invokes registered {@link
+ * GatewayToolDefinitionResolver} implementations to handle gateway tool definitions.
+ */
+public interface AdHocToolsSchemaResolver {
+  AdHocToolsSchemaResponse resolveAdHocToolsSchema(List<AdHocToolElement> elements);
 }

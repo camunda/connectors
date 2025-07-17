@@ -11,12 +11,12 @@ import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAss
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
@@ -48,8 +48,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
       List.of(
           FeelInputParamExtractor.class,
           AdHocToolSchemaGenerator.class,
-          AdHocToolDefinitionResolver.class,
           AdHocToolsSchemaResolver.class,
+          ProcessDefinitionAdHocToolElementsResolver.class,
           AdHocToolsSchemaFunction.class,
           GatewayToolHandlerRegistry.class,
           AgentInitializer.class,
@@ -125,25 +125,25 @@ class AgenticAiConnectorsAutoConfigurationTest {
   }
 
   @Test
-  void whenToolsCachingDisabled_thenConfiguresDefaultToolsSchemaResolver() {
+  void whenToolsCachingDisabled_thenConfiguresDefaultToolElementsResolver() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.tools.cache.enabled=false")
         .run(
             context ->
                 assertThat(context)
-                    .getBean(AdHocToolsSchemaResolver.class)
-                    .isInstanceOf(CamundaClientAdHocToolsSchemaResolver.class));
+                    .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
+                    .isInstanceOf(CamundaClientProcessDefinitionAdHocToolElementsResolver.class));
   }
 
   @Test
-  void whenToolsCachingEnabled_thenConfiguresCachingToolsSchemaResolver() {
+  void whenToolsCachingEnabled_thenConfiguresCachingToolElementsResolver() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.tools.cache.enabled=true")
         .run(
             context ->
                 assertThat(context)
-                    .getBean(AdHocToolsSchemaResolver.class)
-                    .isInstanceOf(CachingAdHocToolsSchemaResolver.class));
+                    .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
+                    .isInstanceOf(CachingProcessDefinitionAdHocToolElementsResolver.class));
   }
 
   @Test

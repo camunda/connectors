@@ -40,7 +40,7 @@ import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.client.api.worker.JobWorker;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -84,7 +84,7 @@ abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
   @MockitoBean private ChatModelFactory chatModelFactory;
   @Mock protected ChatModel chatModel;
   @Captor protected ArgumentCaptor<ChatRequest> chatRequestCaptor;
-  @MockitoSpyBean protected AdHocToolsSchemaResolver schemaResolver;
+  @MockitoSpyBean protected AdHocToolsSchemaResolver toolsSchemaResolver;
 
   private JobWorker jobWorker;
   protected final AtomicInteger jobWorkerCounter = new AtomicInteger(0);

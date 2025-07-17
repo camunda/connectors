@@ -10,7 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,16 +22,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AdHocToolDefinitionResolverTest {
+class AdHocToolsSchemaResolverTest {
 
   private static final Map<String, Object> DUMMY_SCHEMA = Map.of("type", "dummy");
 
   @Mock private AdHocToolSchemaGenerator schemaGenerator;
-  private AdHocToolDefinitionResolverImpl resolver;
+  private AdHocToolsSchemaResolverImpl resolver;
 
   @BeforeEach
   void setUp() {
-    resolver = new AdHocToolDefinitionResolverImpl(List.of(), schemaGenerator);
+    resolver = new AdHocToolsSchemaResolverImpl(List.of(), schemaGenerator);
   }
 
   @Test
@@ -46,7 +45,7 @@ class AdHocToolDefinitionResolverTest {
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
 
-    final var schemaResponse = resolver.resolveToolDefinitions(List.of(element));
+    final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
     assertThat(schemaResponse.toolDefinitions())
         .singleElement()
         .satisfies(
@@ -70,7 +69,7 @@ class AdHocToolDefinitionResolverTest {
 
     when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
 
-    final var schemaResponse = resolver.resolveToolDefinitions(List.of(element));
+    final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
     assertThat(schemaResponse.toolDefinitions())
         .singleElement()
         .satisfies(
@@ -101,13 +100,13 @@ class AdHocToolDefinitionResolverTest {
                 .build());
 
     final var resolver =
-        new AdHocToolDefinitionResolverImpl(
+        new AdHocToolsSchemaResolverImpl(
             List.of(
                 new TypePropertyBasedGatewayToolDefinitionResolver("A"),
                 new TypePropertyBasedGatewayToolDefinitionResolver("B")),
             schemaGenerator);
 
-    final var schemaResponse = resolver.resolveToolDefinitions(elements);
+    final var schemaResponse = resolver.resolveAdHocToolsSchema(elements);
 
     assertThat(schemaResponse.toolDefinitions())
         .hasSize(3)
