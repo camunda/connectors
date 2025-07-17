@@ -27,7 +27,11 @@ import java.util.Optional;
 
 /** Connector for reading and writing CSV files. */
 @OutboundConnector(name = "CSV Connector", type = "io.camunda:csv-connector")
-@ElementTemplate(name = "CSV Connector", id = "io.camunda.connectors.csv", engineVersion = "^8.8")
+@ElementTemplate(
+    name = "CSV Connector",
+    id = "io.camunda.connectors.csv",
+    engineVersion = "^8.7",
+    icon = "icon.svg")
 public class CsvConnector implements OutboundConnectorProvider {
 
   @Operation(id = "readCsv", name = "Read CSV")

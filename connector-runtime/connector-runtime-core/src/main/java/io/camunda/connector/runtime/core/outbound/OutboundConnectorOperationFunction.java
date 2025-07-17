@@ -55,7 +55,6 @@ public class OutboundConnectorOperationFunction implements OutboundConnectorFunc
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-
     String operationId = context.getJobContext().getCustomHeaders().get("operation");
     Optional<MethodWithAnnotation<Operation>> methodCandidate =
         methods.stream().filter(m -> m.annotation().id().equals(operationId)).findFirst();
