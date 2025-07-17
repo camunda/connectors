@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.discovery;
 
-import static io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION;
+import static io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;

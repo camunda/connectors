@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputPa
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionResolverImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerationException;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;

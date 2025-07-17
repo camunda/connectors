@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.discovery;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.TypePropertyBasedGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.TypePropertyBasedGatewayToolDefinitionResolver;
 
 public class McpClientGatewayToolDefinitionResolver
     extends TypePropertyBasedGatewayToolDefinitionResolver {

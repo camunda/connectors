@@ -4,18 +4,19 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
+package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 
 public class TypePropertyBasedGatewayToolDefinitionResolver
     implements GatewayToolDefinitionResolver {
   private final String gatewayType;
 
   public TypePropertyBasedGatewayToolDefinitionResolver(String gatewayType) {
-    if (gatewayType == null || gatewayType.isBlank()) {
+    if (StringUtils.isBlank(gatewayType)) {
       throw new IllegalArgumentException("Gateway type must not be null or empty");
     }
 

@@ -12,7 +12,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionResolver;

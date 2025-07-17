@@ -10,8 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.TypePropertyBasedGatewayToolDefinitionResolver;
+
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
