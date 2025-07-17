@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.core.outbound.operation;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +28,7 @@ import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.
 import io.camunda.connector.runtime.core.outbound.operation.ParameterResolver.Context;
 import io.camunda.connector.runtime.core.outbound.operation.ParameterResolver.ContextAware.Variable;
 import io.camunda.connector.runtime.core.outbound.operation.ParameterResolver.ResolverContext;
+import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +56,7 @@ public class OperationInvoker {
                       return ParameterResolver.CONTEXT_RESOLVER;
                     }
                     case VariableDescriptor<?> variableDescriptor -> {
-                      return new Variable<>(objectMapper, variableDescriptor);
+                      return new Variable<>(variableDescriptor);
                     }
                   }
                 })
@@ -72,8 +75,9 @@ public class OperationInvoker {
           if (jobVariables == null) {
             jobVariables = readJsonAsTree(context.getJobContext().getVariables());
           }
+          JsonNode finalJobVariables = jobVariables;
           if (resolverContext == null) {
-            resolverContext = new ResolverContext(context, jobVariables);
+            resolverContext = createResolverContext(context, finalJobVariables);
           }
           Object value = variableResolver.resolve(resolverContext);
           if (value != null) {
@@ -89,6 +93,23 @@ public class OperationInvoker {
       log.debug("Failed to invoke operation: {}", descriptor.id(), e);
       throw new RuntimeException(e);
     }
+  }
+
+  private ResolverContext createResolverContext(
+      OutboundConnectorContext context, JsonNode jobVariables) {
+    return new ResolverContext(
+        context,
+        new ParameterResolver.VariablesJson() {
+          @Override
+          public <T> T readValueAs(JsonPointer pointer, Class<T> type) {
+            JsonNode node = jobVariables.at(pointer);
+            try (JsonParser parser = node.traverse(objectMapper)) {
+              return parser.readValueAs(type);
+            } catch (IOException ex) {
+              throw new RuntimeException(ex);
+            }
+          }
+        });
   }
 
   private JsonNode readJsonAsTree(String json) {
