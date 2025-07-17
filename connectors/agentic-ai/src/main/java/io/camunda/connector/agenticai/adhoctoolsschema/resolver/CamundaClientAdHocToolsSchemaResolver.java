@@ -15,8 +15,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementPar
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionConverter;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionResolver;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -47,19 +46,16 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
       "AD_HOC_TOOL_DEFINITION_INVALID";
 
   private final CamundaClient camundaClient;
-  private final List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers;
   private final FeelInputParamExtractor feelInputParamExtractor;
-  private final AdHocToolDefinitionConverter toolDefinitionConverter;
+  private final AdHocToolDefinitionResolver toolDefinitionResolver;
 
   public CamundaClientAdHocToolsSchemaResolver(
       CamundaClient camundaClient,
-      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       FeelInputParamExtractor feelInputParamExtractor,
-      AdHocToolDefinitionConverter toolDefinitionConverter) {
+      AdHocToolDefinitionResolver toolDefinitionResolver) {
     this.camundaClient = camundaClient;
-    this.gatewayToolDefinitionResolvers = gatewayToolDefinitionResolvers;
     this.feelInputParamExtractor = feelInputParamExtractor;
-    this.toolDefinitionConverter = toolDefinitionConverter;
+    this.toolDefinitionResolver = toolDefinitionResolver;
   }
 
   @Override
@@ -99,7 +95,7 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
             .map(this::asSubProcessElement)
             .toList();
 
-    return resolveTools(toolElements);
+    return toolDefinitionResolver.resolveToolDefinitions(toolElements);
   }
 
   private boolean isToolElement(FlowNode element) {
@@ -114,25 +110,6 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
         .properties(getExtensionProperties(element))
         .parameters(extractParameters(element))
         .build();
-  }
-
-  private AdHocToolsSchemaResponse resolveTools(List<AdHocToolElement> toolElements) {
-    final var gatewayToolDefinitions =
-        gatewayToolDefinitionResolvers.stream()
-            .flatMap(resolver -> resolver.resolveGatewayToolDefinitions(toolElements).stream())
-            .toList();
-
-    final var gatewayFlowNodeIds =
-        gatewayToolDefinitions.stream().map(GatewayToolDefinition::name).toList();
-
-    // map all non-gateway tool elements to tool definitions
-    final var toolDefinitions =
-        toolElements.stream()
-            .filter(toolElement -> !gatewayFlowNodeIds.contains(toolElement.elementId()))
-            .map(toolDefinitionConverter::createToolDefinition)
-            .toList();
-
-    return new AdHocToolsSchemaResponse(toolDefinitions, gatewayToolDefinitions);
   }
 
   private List<AdHocToolElementParameter> extractParameters(FlowNode element) {

@@ -6,27 +6,12 @@
  */
 package io.camunda.connector.agenticai.mcp.discovery;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import java.util.List;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.TypePropertyBasedGatewayToolDefinitionResolver;
 
-public class McpClientGatewayToolDefinitionResolver implements GatewayToolDefinitionResolver {
+public class McpClientGatewayToolDefinitionResolver
+    extends TypePropertyBasedGatewayToolDefinitionResolver {
 
-  @Override
-  public List<GatewayToolDefinition> resolveGatewayToolDefinitions(
-      List<AdHocToolElement> elements) {
-    return elements.stream()
-        .filter(
-            element ->
-                hasGatewayTypeExtensionProperty(element, McpClientGatewayToolHandler.GATEWAY_TYPE))
-        .map(
-            element ->
-                GatewayToolDefinition.builder()
-                    .type(McpClientGatewayToolHandler.GATEWAY_TYPE)
-                    .name(element.elementId())
-                    .description(element.documentationWithNameFallback())
-                    .build())
-        .toList();
+  public McpClientGatewayToolDefinitionResolver() {
+    super(McpClientGatewayToolHandler.GATEWAY_TYPE);
   }
 }

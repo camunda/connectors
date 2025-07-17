@@ -20,8 +20,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionConverter;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionConverterImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionResolverImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerationException;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
@@ -69,20 +68,20 @@ class CamundaClientAdHocToolsSchemaResolverTest {
 
   @BeforeEach
   void setUp() throws IOException {
-    AdHocToolDefinitionConverter toolDefinitionConverter =
-        new AdHocToolDefinitionConverterImpl(schemaGenerator);
-
     resolver =
         new CamundaClientAdHocToolsSchemaResolver(
-            camundaClient, List.of(), feelInputParamExtractor, toolDefinitionConverter);
+            camundaClient,
+            feelInputParamExtractor,
+            new AdHocToolDefinitionResolverImpl(List.of(), schemaGenerator));
     resolverWithGatewayToolDefinitionResolvers =
         new CamundaClientAdHocToolsSchemaResolver(
             camundaClient,
-            List.of(
-                new SimpleToolGatewayToolDefinitionResolver(),
-                new ComplexToolGatewayToolDefinitionResolver()),
             feelInputParamExtractor,
-            toolDefinitionConverter);
+            new AdHocToolDefinitionResolverImpl(
+                List.of(
+                    new SimpleToolGatewayToolDefinitionResolver(),
+                    new ComplexToolGatewayToolDefinitionResolver()),
+                schemaGenerator));
 
     bpmnXml =
         Files.readString(

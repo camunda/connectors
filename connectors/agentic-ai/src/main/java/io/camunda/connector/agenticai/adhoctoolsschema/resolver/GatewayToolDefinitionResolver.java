@@ -23,14 +23,4 @@ public interface GatewayToolDefinitionResolver {
   String GATEWAY_TYPE_EXTENSION = "io.camunda.agenticai.gateway.type";
 
   List<GatewayToolDefinition> resolveGatewayToolDefinitions(List<AdHocToolElement> elements);
-
-  default boolean hasGatewayTypeExtensionProperty(
-      AdHocToolElement element, String expectedTypeValue) {
-    return element.properties() != null
-        && element.properties().entrySet().stream()
-            .anyMatch(
-                property ->
-                    GATEWAY_TYPE_EXTENSION.equals(property.getKey())
-                        && expectedTypeValue.equals(property.getValue()));
-  }
 }

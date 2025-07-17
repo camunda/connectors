@@ -15,7 +15,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchema
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionConverter;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
@@ -30,6 +30,9 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.Doc
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.util.List;
 import java.util.stream.Stream;
@@ -44,12 +47,15 @@ class AgenticAiConnectorsAutoConfigurationTest {
   private static final List<Class<?>> AGENTIC_AI_BEANS =
       List.of(
           FeelInputParamExtractor.class,
-          AdHocToolDefinitionConverter.class,
           AdHocToolSchemaGenerator.class,
+          AdHocToolDefinitionResolver.class,
           AdHocToolsSchemaResolver.class,
           AdHocToolsSchemaFunction.class,
           GatewayToolHandlerRegistry.class,
           AgentInitializer.class,
+          InProcessConversationStore.class,
+          CamundaDocumentConversationStore.class,
+          ConversationStoreRegistry.class,
           AgentLimitsValidator.class,
           AgentMessagesHandler.class,
           AgentResponseHandler.class,

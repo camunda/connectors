@@ -15,8 +15,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdH
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractorImpl;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionConverter;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionConverterImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionResolverImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGeneratorImpl;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
@@ -66,38 +66,35 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FeelInputParamExtractor feelInputParamExtractor() {
+  public FeelInputParamExtractor aiAgentAdHocFeelInputParamExtractor() {
     return new FeelInputParamExtractorImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AdHocToolSchemaGenerator adHocToolSchemaGenerator() {
+  public AdHocToolSchemaGenerator aiAgentAdHocToolSchemaGenerator() {
     return new AdHocToolSchemaGeneratorImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AdHocToolDefinitionConverter adHocToolDefinitionConverter(
+  public AdHocToolDefinitionResolver aiAgentAdHocToolDefinitionResolver(
+      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       AdHocToolSchemaGenerator schemaGenerator) {
-    return new AdHocToolDefinitionConverterImpl(schemaGenerator);
+    return new AdHocToolDefinitionResolverImpl(gatewayToolDefinitionResolvers, schemaGenerator);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AdHocToolsSchemaResolver adHocToolsSchemaResolver(
+  public AdHocToolsSchemaResolver aiAgentAdHocToolsSchemaResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
-      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       FeelInputParamExtractor feelInputParamExtractor,
-      AdHocToolDefinitionConverter toolDefinitionConverter) {
+      AdHocToolDefinitionResolver toolDefinitionResolver) {
 
     final var resolver =
         new CamundaClientAdHocToolsSchemaResolver(
-            camundaClient,
-            gatewayToolDefinitionResolvers,
-            feelInputParamExtractor,
-            toolDefinitionConverter);
+            camundaClient, feelInputParamExtractor, toolDefinitionResolver);
 
     final var cacheConfiguration = configuration.tools().cache();
     if (cacheConfiguration.enabled()) {
@@ -115,14 +112,14 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled",
       matchIfMissing = true)
-  public AdHocToolsSchemaFunction adHocToolsSchemaFunction(
+  public AdHocToolsSchemaFunction aiAgentAdHocToolsSchemaFunction(
       AdHocToolsSchemaResolver schemaResolver) {
     return new AdHocToolsSchemaFunction(schemaResolver);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public GatewayToolHandlerRegistry gatewayToolHandlerRegistry(
+  public GatewayToolHandlerRegistry aiAgentGatewayToolHandlerRegistry(
       List<GatewayToolHandler> gatewayToolHandlers) {
     return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
   }
