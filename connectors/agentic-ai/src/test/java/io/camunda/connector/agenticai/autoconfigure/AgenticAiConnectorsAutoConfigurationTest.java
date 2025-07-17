@@ -11,11 +11,12 @@ import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAss
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolDefinitionConverter;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionConverter;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
@@ -44,6 +45,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
       List.of(
           FeelInputParamExtractor.class,
           AdHocToolDefinitionConverter.class,
+          AdHocToolSchemaGenerator.class,
           AdHocToolsSchemaResolver.class,
           AdHocToolsSchemaFunction.class,
           GatewayToolHandlerRegistry.class,

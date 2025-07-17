@@ -10,12 +10,12 @@ import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentat
 import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperties;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractionException;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolDefinitionConverter;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractionException;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.feel.FeelInputParamExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolDefinitionConverter;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;

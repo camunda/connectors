@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema;
+package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_DESCRIPTION;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_PROPERTIES;
@@ -43,40 +43,40 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
     element
         .parameters()
         .forEach(
-            inputParam -> {
-              if (restrictedParamNames.contains(inputParam.name())) {
+            parameter -> {
+              if (restrictedParamNames.contains(parameter.name())) {
                 throw new AdHocToolSchemaGenerationException(
                     "Failed to generate ad-hoc tool schema for element '%s'. Input parameter name '%s' is restricted and cannot be used."
-                        .formatted(element.elementId(), inputParam.name()));
+                        .formatted(element.elementId(), parameter.name()));
               }
 
-              if (properties.containsKey(inputParam.name())) {
+              if (properties.containsKey(parameter.name())) {
                 throw new AdHocToolSchemaGenerationException(
                     "Failed to generate ad-hoc tool schema for element '%s'. Duplicate input parameter name '%s'."
-                        .formatted(element.elementId(), inputParam.name()));
+                        .formatted(element.elementId(), parameter.name()));
               }
 
               final var propertySchema =
-                  Optional.ofNullable(inputParam.schema())
+                  Optional.ofNullable(parameter.schema())
                       .map(LinkedHashMap::new)
                       .orElseGet(LinkedHashMap::new);
 
-              // apply type from inputParam if it is set
-              if (!StringUtils.isBlank(inputParam.type())) {
-                propertySchema.put(PROPERTY_TYPE, inputParam.type());
+              // apply type from parameter if it is set
+              if (!StringUtils.isBlank(parameter.type())) {
+                propertySchema.put(PROPERTY_TYPE, parameter.type());
               }
 
-              // default to string if no type is set (not on inputParam, not in schema directly)
+              // default to string if no type is set (not on parameter, not in schema directly)
               if (!propertySchema.containsKey(PROPERTY_TYPE)) {
                 propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
               }
 
-              if (!StringUtils.isBlank(inputParam.description())) {
-                propertySchema.put(PROPERTY_DESCRIPTION, inputParam.description());
+              if (!StringUtils.isBlank(parameter.description())) {
+                propertySchema.put(PROPERTY_DESCRIPTION, parameter.description());
               }
 
-              properties.put(inputParam.name(), propertySchema);
-              required.add(inputParam.name());
+              properties.put(parameter.name(), propertySchema);
+              required.add(parameter.name());
             });
 
     Map<String, Object> inputSchema = new LinkedHashMap<>();

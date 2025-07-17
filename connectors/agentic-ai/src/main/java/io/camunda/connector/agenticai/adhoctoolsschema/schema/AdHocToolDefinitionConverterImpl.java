@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema;
+package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
