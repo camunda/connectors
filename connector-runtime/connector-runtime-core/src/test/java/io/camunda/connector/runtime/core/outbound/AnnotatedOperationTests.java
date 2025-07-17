@@ -21,10 +21,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.*;
 import org.junit.jupiter.api.Test;
@@ -32,18 +34,21 @@ import org.junit.jupiter.api.Test;
 public class AnnotatedOperationTests {
 
   ValidationProvider validationProvider = new DefaultValidationProvider();
+  ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
   AnnotatedOperationConnector connector = new AnnotatedOperationConnector();
+  ConnectorOperations connectorOperations =
+      ConnectorOperations.from(connector, objectMapper, validationProvider);
   OutboundConnectorOperationFunction invoker =
-      new OutboundConnectorOperationFunction(connector, validationProvider);
+      new OutboundConnectorOperationFunction(connectorOperations);
 
   String json =
       """
-    {
-        "myStringParam": "World",
-        "myObjectParam": {"name": "Test", "value": 42},
-        "deeply": {"nested": {"object": {"name": "Nested", "value": 100}}}
-    }
-    """;
+                    {
+                        "myStringParam": "World",
+                        "myObjectParam": {"name": "Test", "value": 42},
+                        "deeply": {"nested": {"object": {"name": "Nested", "value": 100}}}
+                    }
+                    """;
 
   @Test
   public void shouldInvokeAnnotatedOperation() throws Exception {

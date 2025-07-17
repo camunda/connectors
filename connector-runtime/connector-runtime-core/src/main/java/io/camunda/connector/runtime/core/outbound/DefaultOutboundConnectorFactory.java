@@ -17,11 +17,13 @@
 package io.camunda.connector.runtime.core.outbound;
 
 import io.camunda.connector.api.annotation.Operation;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.ReflectionUtil;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +93,10 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
                         + " does not have any methods annotated with @Operation.");
               } else {
                 var instance = ConnectorHelper.instantiateConnector(c.connectorClass());
-                return new OutboundConnectorOperationFunction(instance, validationProvider);
+                var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+                ConnectorOperations connectorOperations =
+                    ConnectorOperations.from(instance, objectMapper, validationProvider);
+                return new OutboundConnectorOperationFunction(connectorOperations);
               }
             }
           }
