@@ -8,8 +8,9 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,10 +82,10 @@ class ProviderConfigurationTest {
           "eu-central-1",
           null,
           authentication,
-          new ProviderConfiguration.BedrockProviderConfiguration.BedrockModel(
+          new BedrockProviderConfiguration.BedrockModel(
               "test",
-              new ProviderConfiguration.BedrockProviderConfiguration.BedrockModel
-                  .BedrockModelParameters(null, null, null)));
+              new BedrockProviderConfiguration.BedrockModel.BedrockModelParameters(
+                  null, null, null)));
     }
   }
 }
