@@ -45,6 +45,8 @@ public class DataImportConfiguration {
 
   @EventListener(ApplicationReadyEvent.class)
   public void testClient() {
+    String processAsString = getProcessAsString();
+
     try (ExecutorService executorService = Executors.newFixedThreadPool(10)) {
       List<CompletableFuture<Void>> futures =
           IntStream.range(0, PROCESS_NUMBER)
@@ -56,44 +58,59 @@ public class DataImportConfiguration {
                                 "Deploying process versions for ID: process-" + i + "...");
                             for (int j = 0; j < VERSIONS_PER_PROCESS; j++) {
                               final String processId = "process-" + i;
-                              try (final InputStream resourceStream =
-                                  getClass()
-                                      .getClassLoader()
-                                      .getResourceAsStream("data-import/QA Review Process.bpmn")) {
-                                Objects.requireNonNull(
-                                    resourceStream,
-                                    "Resource not found: data-import/QA Review Process.bpmn");
-                                var asString = new String(resourceStream.readAllBytes());
-                                String updatedProcess =
-                                    asString
-                                        .replace("__PROCESS_ID__", processId)
-                                        .replace("__ACTIVITY_NAME__", i + "--" + j);
-                                client
-                                    .newDeployResourceCommand()
-                                    .addResourceStringUtf8(updatedProcess, processId + ".bpmn")
-                                    .send()
-                                    .join(60, TimeUnit.SECONDS);
-                                if (i % 10 == 0) {
-                                  Thread.sleep(5000); // let zeebe catch up with deployments
-                                }
-                              } catch (IOException | InterruptedException e) {
-                                throw new RuntimeException(e);
+
+                              // this is required to ensure that a new version is created
+                              String updatedProcess =
+                                  updateActivityId(i, processAsString, processId, j);
+                              deployProcess(updatedProcess, processId);
+                              if (i % 10 == 0) {
+                                // every 10th process deployment, wait for Zeebe to catch up
+                                letZeebeCatchup();
                               }
                             }
                             System.out.println(
                                 "...Deployed all process versions for ID: process-" + i);
-                            try {
-                              Thread.sleep(5000);
-                            } catch (InterruptedException e) {
-                              throw new RuntimeException(e);
-                            }
                           },
                           executorService))
               .toList();
 
+      // wait for all deployments to finish
       CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
       executorService.shutdown();
     }
     System.out.println("All process versions deployed successfully.");
+  }
+
+  private void letZeebeCatchup() {
+    try {
+      Thread.sleep(5000);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void deployProcess(String updatedProcess, String processId) {
+    client
+        .newDeployResourceCommand()
+        .addResourceStringUtf8(updatedProcess, processId + ".bpmn")
+        .send()
+        .join(60, TimeUnit.SECONDS);
+  }
+
+  private String updateActivityId(int i, String processAsString, String processId, int j) {
+    return processAsString
+        .replace("__PROCESS_ID__", processId)
+        .replace("__ACTIVITY_NAME__", i + "--" + j);
+  }
+
+  private String getProcessAsString() {
+    try (final InputStream resourceStream =
+        getClass().getClassLoader().getResourceAsStream("data-import/QA Review Process.bpmn")) {
+      Objects.requireNonNull(
+          resourceStream, "Resource not found: data-import/QA Review Process.bpmn");
+      return new String(resourceStream.readAllBytes());
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to read BPMN resource", e);
+    }
   }
 }
