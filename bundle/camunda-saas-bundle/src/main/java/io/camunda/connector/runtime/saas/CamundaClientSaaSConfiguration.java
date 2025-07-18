@@ -80,8 +80,8 @@ public class CamundaClientSaaSConfiguration {
 
   public CredentialsProvider internalConnectorsSecretCredentialsProvider() {
     final var builder = new OAuthCredentialsProviderBuilder();
-    builder.clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID));
-    builder.clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET));
+    builder.clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null));
+    builder.clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null));
     builder.authorizationServerUrl(camundaClientTokenUrl);
     builder.audience(camundaClientAudience);
     builder.credentialsCachePath(credentialsCachePath);

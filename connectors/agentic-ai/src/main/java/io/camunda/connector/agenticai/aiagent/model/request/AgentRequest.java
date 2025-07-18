@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,8 @@ public record AgentRequest(
               label = "Agent context",
               group = "memory",
               id = "agentContext",
+              description =
+                  "Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
               tooltip =
                   "The agent context variable containing all relevant data for the agent to support the feedback loop between "
                       + "user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> "
@@ -50,9 +53,7 @@ public record AgentRequest(
 
     public interface PromptConfiguration {
       String PROMPT_PARAMETERS_DESCRIPTION =
-          "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.";
-      String PROMPT_PARAMETERS_TOOLTIP =
-          "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>";
+          "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.";
 
       String prompt();
 
@@ -68,17 +69,23 @@ public record AgentRequest(
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true),
                 defaultValue = DEFAULT_SYSTEM_PROMPT)
-            @NotBlank
             String prompt,
         @FEEL
             @TemplateProperty(
                 group = "systemPrompt",
                 label = "System prompt parameters",
                 description = PROMPT_PARAMETERS_DESCRIPTION,
-                tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
                 optional = true)
-            Map<String, Object> parameters)
+            Map<
+                    @NotBlank(message = "System prompt parameter key must not be blank")
+                    @Pattern(
+                        regexp = "^[a-zA-Z0-9_]+$",
+                        message =
+                            "System prompt parameter key can only contain letters, digits, or underscores")
+                    String,
+                    Object>
+                parameters)
         implements PromptConfiguration {
 
       @TemplateProperty(ignore = true)
@@ -86,7 +93,7 @@ public record AgentRequest(
           """
 You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.
 
-If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.
+If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.
 
 Wrap minimal, inspectable reasoning in *exactly* this XML template:
 
@@ -107,17 +114,23 @@ Reveal **no** additional private reasoning outside these tags.
                 type = TemplateProperty.PropertyType.Text,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
-            @NotBlank
             String prompt,
         @FEEL
             @TemplateProperty(
                 group = "userPrompt",
                 label = "User prompt parameters",
                 description = PROMPT_PARAMETERS_DESCRIPTION,
-                tooltip = PROMPT_PARAMETERS_TOOLTIP,
                 feel = Property.FeelMode.required,
                 optional = true)
-            Map<String, Object> parameters,
+            Map<
+                    @NotBlank(message = "User prompt parameter key must not be blank")
+                    @Pattern(
+                        regexp = "^[a-zA-Z0-9_]+$",
+                        message =
+                            "User prompt parameter key can only contain letters, digits, or underscores")
+                    String,
+                    Object>
+                parameters,
         @FEEL
             @TemplateProperty(
                 group = "userPrompt",

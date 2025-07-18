@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.secret;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import java.time.Duration;
@@ -54,7 +55,7 @@ public class ConsoleSecretProvider implements SecretProvider {
   }
 
   @Override
-  public String getSecret(String name) {
+  public String getSecret(String name, SecretContext context) {
     LOGGER.debug("Resolving secret for key: {}", name);
     return secretsCache.getUnchecked(CACHE_KEY).getOrDefault(name, null);
   }

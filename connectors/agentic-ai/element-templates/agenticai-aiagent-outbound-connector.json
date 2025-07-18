@@ -94,6 +94,9 @@
       "name" : "AWS Bedrock",
       "value" : "bedrock"
     }, {
+      "name" : "Azure OpenAI",
+      "value" : "azureOpenAi"
+    }, {
       "name" : "OpenAI",
       "value" : "openai"
     } ]
@@ -185,11 +188,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
-      "value" : "defaultCredentialsChain"
-    }, {
       "name" : "Credentials",
       "value" : "credentials"
+    }, {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
     } ]
   }, {
     "id" : "provider.bedrock.authentication.accessKey",
@@ -239,6 +242,175 @@
       }, {
         "property" : "provider.type",
         "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.azureOpenAi.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify Azure OpenAI endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.azureOpenAi.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.azureOpenAi.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Azure OpenAI authentication strategy.",
+    "value" : "apiKey",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.azureOpenAi.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Client credentials",
+      "value" : "clientCredentials"
+    } ]
+  }, {
+    "id" : "provider.azureOpenAi.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.azureOpenAi.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.azureOpenAi.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "azureOpenAi",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.azureOpenAi.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "ID of a Microsoft Entra application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.azureOpenAi.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.azureOpenAi.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "azureOpenAi",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.azureOpenAi.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Secret of a Microsoft Entra application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.azureOpenAi.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.azureOpenAi.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "azureOpenAi",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.azureOpenAi.authentication.tenantId",
+    "label" : "Tenant ID",
+    "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.azureOpenAi.authentication.tenantId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.azureOpenAi.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "azureOpenAi",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.azureOpenAi.authentication.authorityHost",
+    "label" : "Authority host",
+    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.azureOpenAi.authentication.authorityHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.azureOpenAi.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "azureOpenAi",
         "type" : "simple"
       } ]
     },
@@ -493,6 +665,77 @@
     "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
+    "id" : "provider.azureOpenAi.model.deploymentName",
+    "label" : "Model deployment name",
+    "description" : "Specify the model deployment name. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.azureOpenAi.model.deploymentName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.azureOpenAi.model.parameters.maxTokens",
+    "label" : "Maximum tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.azureOpenAi.model.parameters.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.azureOpenAi.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.azureOpenAi.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.azureOpenAi.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.azureOpenAi.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
     "id" : "provider.openai.model.model",
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
@@ -568,7 +811,7 @@
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
     "optional" : false,
-    "value" : "You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n  <context>…briefly state the customer’s need and current state…</context>\n  <reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\n",
+    "value" : "You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n  <context>…briefly state the customer’s need and current state…</context>\n  <reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\n",
     "constraints" : {
       "notEmpty" : true
     },
@@ -582,7 +825,7 @@
   }, {
     "id" : "data.systemPrompt.parameters",
     "label" : "System prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.",
+    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
     "optional" : true,
     "feel" : "required",
     "group" : "systemPrompt",
@@ -590,7 +833,6 @@
       "name" : "data.systemPrompt.parameters",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
     "type" : "String"
   }, {
     "id" : "data.userPrompt.prompt",
@@ -609,7 +851,7 @@
   }, {
     "id" : "data.userPrompt.parameters",
     "label" : "User prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format to insert dynamic values into the prompt.",
+    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
     "optional" : true,
     "feel" : "required",
     "group" : "userPrompt",
@@ -617,7 +859,6 @@
       "name" : "data.userPrompt.parameters",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Map parameters in the prompt using the <code>{{parameter}}</code> format. Default parameters: <code>current_date</code>, <code>current_time</code>, <code>current_date_time</code>",
     "type" : "String"
   }, {
     "id" : "data.userPrompt.documents",
@@ -661,6 +902,7 @@
   }, {
     "id" : "data.agentContext",
     "label" : "Agent context",
+    "description" : "Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
     "optional" : false,
     "value" : "=agent.context",
     "constraints" : {
@@ -691,6 +933,9 @@
     }, {
       "name" : "Camunda Document Storage",
       "value" : "camunda-document"
+    }, {
+      "name" : "Custom Implementation (Hybrid/Self-Managed only)",
+      "value" : "custom"
     } ]
   }, {
     "id" : "data.memory.storage.timeToLive",
@@ -724,6 +969,42 @@
     "condition" : {
       "property" : "data.memory.storage.type",
       "equals" : "camunda-document",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.storeType",
+    "label" : "Implementation type",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.storeType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "custom",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.parameters",
+    "label" : "Parameters",
+    "description" : "Parameters for the custom memory storage implementation.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.parameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "custom",
       "type" : "simple"
     },
     "type" : "String"

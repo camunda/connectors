@@ -1,9 +1,24 @@
 # Agentic AI connectors changelog
 
+## 8.8.0-alpha7
+
+- Added support to provide custom storage backends in a self-managed deployment:
+  - https://github.com/camunda/connectors/pull/5035
+- Changed the way how prompt parameters are resolved to be less intrusive. Now only defined parameters
+  are considered in `{{curlyBraces}}` syntax while keeping other usages of curly braces in the prompt text intact.
+  - Breaking change: the default parameters for current date and time are not available by default anymore but can be
+    added on demand with FEEL's temporal functions.
+  - https://github.com/camunda/connectors/pull/5065
+
 ## 8.8.0-alpha6
 
 - Added support to define the response format and to opt into JSON mode with a configurable schema for supported models:
   - https://github.com/camunda/connectors/pull/4833
+- Added support for storing conversation history as Camunda JSON documents instead of using process variables:
+  - https://github.com/camunda/connectors/pull/4899
+- Initial, experimental support for MCP clients:
+  - https://github.com/camunda/connectors/pull/4860
+  - https://github.com/camunda/connectors/pull/4822
 
 ## 8.8.0-alpha5
 

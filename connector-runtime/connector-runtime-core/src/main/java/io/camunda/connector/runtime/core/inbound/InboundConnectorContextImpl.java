@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.*;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
@@ -210,7 +211,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     if (propertiesWithSecrets == null) {
       propertiesWithSecrets =
           InboundPropertyHandler.getPropertiesWithSecrets(
-              getSecretHandler(), objectMapper, properties);
+              getSecretHandler(),
+              objectMapper,
+              properties,
+              new SecretContext(connectorDetails.tenantId()));
     }
     return propertiesWithSecrets;
   }

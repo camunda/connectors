@@ -26,7 +26,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreFactory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
@@ -80,7 +80,7 @@ class AgentRequestHandlerTest {
       new UserPromptConfiguration("What is the weather in Munich?", Map.of(), List.of());
 
   @Mock private AgentInitializer agentInitializer;
-  @Mock private ConversationStoreFactory conversationStoreFactory;
+  @Mock private ConversationStoreRegistry conversationStoreRegistry;
   @Mock private AgentLimitsValidator limitsValidator;
   @Mock private AgentMessagesHandler messagesHandler;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -102,13 +102,13 @@ class AgentRequestHandlerTest {
   void setUp() {
     agentExecutionContext = new AgentExecutionContext(agentJobContext, agentRequest);
     doReturn(new InProcessConversationStore())
-        .when(conversationStoreFactory)
-        .createConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+        .when(conversationStoreRegistry)
+        .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
   }
 
   @Test
   void directlyReturnsAgentResponseWhenInitializationReturnsResponse() {
-    reset(conversationStoreFactory);
+    reset(conversationStoreRegistry);
 
     final var agentResponse =
         AgentResponse.builder()

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.request;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BEDROCK_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OPENAI_ID;
 
@@ -34,6 +35,9 @@ import java.util.Map;
       value = ProviderConfiguration.BedrockProviderConfiguration.class,
       name = BEDROCK_ID),
   @JsonSubTypes.Type(
+      value = ProviderConfiguration.AzureOpenAiProviderConfiguration.class,
+      name = AZURE_OPENAI_ID),
+  @JsonSubTypes.Type(
       value = ProviderConfiguration.OpenAiProviderConfiguration.class,
       name = OPENAI_ID)
 })
@@ -43,10 +47,7 @@ import java.util.Map;
     name = "type",
     description = "Specify the LLM provider to use.",
     defaultValue = ANTHROPIC_ID)
-public sealed interface ProviderConfiguration
-    permits ProviderConfiguration.AnthropicProviderConfiguration,
-        ProviderConfiguration.BedrockProviderConfiguration,
-        ProviderConfiguration.OpenAiProviderConfiguration {
+public sealed interface ProviderConfiguration {
 
   @TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
   record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection anthropic)
@@ -74,7 +75,13 @@ public sealed interface ProviderConfiguration
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
-            String apiKey) {}
+            String apiKey) {
+
+      @Override
+      public String toString() {
+        return "AnthropicAuthentication{apiKey=[REDACTED]}";
+      }
+    }
 
     public record AnthropicModel(
         @NotBlank
@@ -183,9 +190,7 @@ public sealed interface ProviderConfiguration
         defaultValue = "credentials",
         description =
             "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>")
-    public sealed interface AwsAuthentication
-        permits AwsAuthentication.AwsDefaultCredentialsChainAuthentication,
-            AwsAuthentication.AwsStaticCredentialsAuthentication {
+    public sealed interface AwsAuthentication {
       @TemplateSubType(id = "credentials", label = "Credentials")
       record AwsStaticCredentialsAuthentication(
           @TemplateProperty(
@@ -264,6 +269,159 @@ public sealed interface ProviderConfiguration
     }
   }
 
+  @TemplateSubType(id = AZURE_OPENAI_ID, label = "Azure OpenAI")
+  record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnection azureOpenAi)
+      implements ProviderConfiguration {
+
+    @TemplateProperty(ignore = true)
+    public static final String AZURE_OPENAI_ID = "azureOpenAi";
+
+    public record AzureOpenAiConnection(
+        @FEEL
+            @TemplateProperty(
+                group = "provider",
+                description =
+                    "Specify Azure OpenAI endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
+                constraints = @PropertyConstraints(notEmpty = true))
+            String endpoint,
+        @Valid @NotNull AzureAuthentication authentication,
+        @Valid @NotNull AzureOpenAiModel model) {}
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes({
+      @JsonSubTypes.Type(
+          value =
+              AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication.class,
+          name = "apiKey"),
+      @JsonSubTypes.Type(
+          value =
+              AzureOpenAiProviderConfiguration.AzureAuthentication
+                  .AzureClientCredentialsAuthentication.class,
+          name = "clientCredentials")
+    })
+    @TemplateDiscriminatorProperty(
+        label = "Authentication",
+        group = "provider",
+        name = "type",
+        defaultValue = "apiKey",
+        description = "Specify the Azure OpenAI authentication strategy.")
+    public sealed interface AzureAuthentication {
+      @TemplateSubType(id = "apiKey", label = "API key")
+      record AzureApiKeyAuthentication(
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API key",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = Property.FeelMode.optional,
+                  constraints = @PropertyConstraints(notEmpty = true))
+              String apiKey)
+          implements AzureAuthentication {
+
+        @Override
+        public @NotNull String toString() {
+          return "AzureApiKeyAuthentication{apiKey=[REDACTED]}";
+        }
+      }
+
+      @TemplateSubType(id = "clientCredentials", label = "Client credentials")
+      record AzureClientCredentialsAuthentication(
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Client ID",
+                  description = "ID of a Microsoft Entra application",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = Property.FeelMode.optional,
+                  constraints = @PropertyConstraints(notEmpty = true))
+              String clientId,
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Client secret",
+                  description = "Secret of a Microsoft Entra application",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = Property.FeelMode.optional,
+                  constraints = @PropertyConstraints(notEmpty = true))
+              String clientSecret,
+          @NotBlank
+              @TemplateProperty(
+                  group = "provider",
+                  label = "Tenant ID",
+                  description =
+                      "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = Property.FeelMode.optional)
+              String tenantId,
+          @TemplateProperty(
+                  group = "provider",
+                  label = "Authority host",
+                  description =
+                      "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = Property.FeelMode.optional,
+                  optional = true)
+              String authorityHost)
+          implements AzureAuthentication {
+
+        @Override
+        public String toString() {
+          return "AzureClientCredentialsAuthentication{clientId=%s, clientSecret=[REDACTED]}, tenantId=%s, authorityHost=%s}"
+              .formatted(clientId, tenantId, authorityHost);
+        }
+      }
+    }
+
+    public record AzureOpenAiModel(
+        @NotBlank
+            @TemplateProperty(
+                group = "model",
+                label = "Model deployment name",
+                description =
+                    "Specify the model deployment name. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
+                type = TemplateProperty.PropertyType.String,
+                feel = Property.FeelMode.optional,
+                constraints = @PropertyConstraints(notEmpty = true))
+            String deploymentName,
+        @Valid
+            ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureOpenAiModel
+                    .AzureOpenAiModelParameters
+                parameters) {
+
+      public record AzureOpenAiModelParameters(
+          @Min(0)
+              @TemplateProperty(
+                  group = "model",
+                  label = "Maximum tokens",
+                  tooltip =
+                      "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Integer maxTokens,
+          @Min(0)
+              @TemplateProperty(
+                  group = "model",
+                  label = "Temperature",
+                  tooltip =
+                      "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double temperature,
+          @Min(0)
+              @TemplateProperty(
+                  group = "model",
+                  label = "top P",
+                  tooltip =
+                      "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
+                  type = TemplateProperty.PropertyType.Number,
+                  feel = Property.FeelMode.required,
+                  optional = true)
+              Double topP) {}
+    }
+  }
+
   @TemplateSubType(id = OPENAI_ID, label = "OpenAI")
   record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection openai)
       implements ProviderConfiguration {
@@ -320,7 +478,14 @@ public sealed interface ProviderConfiguration
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 optional = true)
-            String projectId) {}
+            String projectId) {
+
+      @Override
+      public String toString() {
+        return "OpenAiAuthentication{apiKey=[REDACTED], organizationId=%s, projectId=%s}"
+            .formatted(organizationId, projectId);
+      }
+    }
 
     public record OpenAiModel(
         @NotBlank

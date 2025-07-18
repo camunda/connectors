@@ -147,12 +147,12 @@ class ProcessInstanceClientImplTest {
 
   @SafeVarargs
   private <T> SearchResponse<T> createSearchResult(T... items) {
-    final var page = new SearchResponsePageImpl(items.length, null, null);
+    final var page = new SearchResponsePageImpl((long) items.length, null, null);
     return new SearchResponseImpl<>(Arrays.asList(items), page);
   }
 
   private <T> SearchResponse<T> createEmptySearchResult() {
-    final var page = new SearchResponsePageImpl(0, null, null);
+    final var page = new SearchResponsePageImpl(0L, null, null);
     return new SearchResponseImpl<>(Collections.emptyList(), page);
   }
 }

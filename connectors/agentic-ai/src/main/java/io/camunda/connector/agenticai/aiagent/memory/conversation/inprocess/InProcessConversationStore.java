@@ -12,6 +12,12 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
 public class InProcessConversationStore implements ConversationStore {
+  public static final String TYPE = "in-process";
+
+  @Override
+  public String type() {
+    return TYPE;
+  }
 
   @Override
   public <T> T executeInSession(

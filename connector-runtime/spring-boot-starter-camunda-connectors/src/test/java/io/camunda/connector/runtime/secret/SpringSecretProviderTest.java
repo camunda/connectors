@@ -41,9 +41,9 @@ public class SpringSecretProviderTest {
   void secretProviderIsLoadedFromSpringContext() {
     // given 2 secret providers defined in the spring context
     // then the secret provider aggregator should be able to find them
-    assertThat(secretProviderAggregator.getSecret("FOO")).isEqualTo("FOO");
-    assertThat(secretProviderAggregator.getSecret("BAR")).isEqualTo("BAR");
+    assertThat(secretProviderAggregator.getSecret("FOO", null)).isEqualTo("FOO");
+    assertThat(secretProviderAggregator.getSecret("BAR", null)).isEqualTo("BAR");
     // and SPI secret provider should not be loaded
-    assertThat(secretProviderAggregator.getSecret("SPI")).isNull();
+    assertThat(secretProviderAggregator.getSecret("SPI", null)).isNull();
   }
 }

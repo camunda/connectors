@@ -34,7 +34,20 @@
     <module>connector-runtime/connector-runtime-application</module>
     <module>connectors</module>
     <module>bundle</module>
-    <module>connectors-e2e-test</module>
   </modules>
 
+  <profiles>
+    <profile>
+      <id>e2eExcluded</id>
+    </profile>
+    <profile>
+      <id>default</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <modules>
+        <module>connectors-e2e-test</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>
