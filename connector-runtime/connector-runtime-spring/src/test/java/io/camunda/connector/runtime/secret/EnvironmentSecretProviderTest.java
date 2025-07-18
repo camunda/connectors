@@ -52,4 +52,14 @@ public class EnvironmentSecretProviderTest {
         secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant"));
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
+
+  @Test
+  void shouldApplyPrefixAndContext() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("secrets.my-tenant_my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "secrets.", true);
+    String myTotalSecret =
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant"));
+    assertThat(myTotalSecret).isEqualTo("beebop");
+  }
 }
