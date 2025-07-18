@@ -50,9 +50,10 @@ public class EnvironmentSecretProvider implements SecretProvider {
 
   @Override
   public String getSecret(String name, SecretContext context) {
-    String prefixedName =
+    String secretName =
         tenantAware ? composeSecretNameTenantAware(name, context) : composeSecretName(name);
-    return environment.getProperty(prefixedName);
+    LOG.debug("Getting secret value for name '{}'", secretName);
+    return environment.getProperty(secretName);
   }
 
   /**
@@ -66,7 +67,7 @@ public class EnvironmentSecretProvider implements SecretProvider {
   }
 
   /**
-   * returns the secret name in format ${prefix}${tenantId}${name}
+   * returns the secret name in format (${prefix}_)${tenantId}_${name}
    *
    * @param name the secrets' name to find the value for
    * @param context the context of where the secret is originated
