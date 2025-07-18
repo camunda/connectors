@@ -1,0 +1,49 @@
+name: update_doc_links_to_new_minor
+
+on:
+  workflow_dispatch:
+    inputs:
+      from-version:
+        description: 'Previous latest minor version, e.g. 8.7'
+        type: string
+        required: true
+      to-version:
+        description: 'New latest minor version, e.g. 8.8'
+        type: string
+        required: true
+
+jobs:
+  version_bump_docs_links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main branch
+        run: git fetch origin main
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Collect connector template links
+        run: |
+          chmod +x ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh
+          ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh ${{inputs.from-version}} ${{inputs.to-version}}
+        shell: bash
+
+      - name: Create pull request to main branch
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/bump-npm-package-version
+          commit-message: "ci: bump docs version from ${{inputs.from-version}} to ${{ inputs.to-version}}"
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          base: main
+          title: "chore(docs-links): bump versions from ${{inputs.from-version}} to ${{ inputs.to-version}}"
+          labels: "no milestone"
+          body: |
+            This bumps docs version of latest's element templates of a connector to latest minor version.
