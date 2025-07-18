@@ -31,6 +31,7 @@ public class OperationBasedConnectorUtil {
 
   public static PropertyBuilder createOperationsDropdown(
       List<ReflectionUtil.MethodWithAnnotation<Operation>> methods) {
+    // TODO handle case when there is only a single operation
     return new DropdownProperty.DropdownPropertyBuilder()
         .choices(
             methods.stream()

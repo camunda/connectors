@@ -18,12 +18,11 @@ package io.camunda.connector.runtime.core.outbound.operation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Operation;
-import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ReflectionUtil;
-import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.OutboundConnectorContextDescriptor;
-import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.VariableDescriptor;
+import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.Context;
+import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.Variable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
@@ -64,12 +63,13 @@ public record ConnectorOperations(Object connector, Map<String, OperationInvoker
   }
 
   private static ParameterDescriptor map(Parameter parameter) {
-    if (parameter.isAnnotationPresent(Variable.class)) {
-      Variable variableAnnotation = parameter.getAnnotation(Variable.class);
-      return new VariableDescriptor<>(
+    if (parameter.isAnnotationPresent(io.camunda.connector.api.annotation.Variable.class)) {
+      io.camunda.connector.api.annotation.Variable variableAnnotation =
+          parameter.getAnnotation(io.camunda.connector.api.annotation.Variable.class);
+      return new Variable<>(
           variableAnnotation.value(), parameter.getType(), variableAnnotation.required());
     } else if (parameter.getType().equals(OutboundConnectorContext.class)) {
-      return new OutboundConnectorContextDescriptor();
+      return new Context();
     } else {
       throw new IllegalArgumentException("Unsupported parameter type: " + parameter.getType());
     }

@@ -22,6 +22,7 @@ import static io.camunda.connector.generator.java.util.TemplateGenerationStringU
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -101,16 +102,19 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     List<PropertyBuilder> properties;
     if (OutboundConnectorFunction.class.isAssignableFrom(connectorDefinition)
         || InboundConnectorExecutable.class.isAssignableFrom(connectorDefinition)) {
-      // An outbound connector function or inbound connector executable
       properties =
           new ArrayList<>(
               TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context));
-    } else {
-      // Probably an operation annotated connector
+    } else if (OutboundConnectorProvider.class.isAssignableFrom(connectorDefinition)) {
       List<MethodWithAnnotation<Operation>> methods =
           ReflectionUtil.getMethodsAnnotatedWith(connectorDefinition, Operation.class);
       properties = new ArrayList<>(List.of(createOperationsDropdown(methods)));
       properties.addAll(getOperationProperties(methods, context));
+    } else {
+      throw new IllegalArgumentException(
+          "Connector class "
+              + connectorDefinition.getName()
+              + " must implement OutboundConnectorFunction, InboundConnectorExecutable or OutboundConnectorProvider");
     }
 
     Arrays.stream(template.extensionProperties())

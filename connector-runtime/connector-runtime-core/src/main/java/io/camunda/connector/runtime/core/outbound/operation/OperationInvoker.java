@@ -21,15 +21,10 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.OutboundConnectorContextDescriptor;
-import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.VariableDescriptor;
-import io.camunda.connector.runtime.core.outbound.operation.ParameterResolver.Context;
-import io.camunda.connector.runtime.core.outbound.operation.ParameterResolver.ContextAware.Variable;
-import io.camunda.connector.runtime.core.outbound.operation.ParameterResolver.ResolverContext;
 import java.io.IOException;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +33,6 @@ public class OperationInvoker {
   private final ObjectMapper objectMapper;
   private final ValidationProvider validationProvider;
   private final OperationDescriptor descriptor;
-  private final List<ParameterResolver<?>> parameterResolvers;
 
   public OperationInvoker(
       ObjectMapper objectMapper,
@@ -47,75 +41,65 @@ public class OperationInvoker {
     this.objectMapper = objectMapper;
     this.validationProvider = validationProvider;
     this.descriptor = descriptor;
-    this.parameterResolvers =
-        descriptor.params().stream()
-            .map(
-                param -> {
-                  switch (param) {
-                    case OutboundConnectorContextDescriptor ignored -> {
-                      return ParameterResolver.CONTEXT_RESOLVER;
-                    }
-                    case VariableDescriptor<?> variableDescriptor -> {
-                      return new Variable<>(variableDescriptor);
-                    }
-                  }
-                })
-            .toList();
   }
 
   public Object invoke(Object connectorInstance, OutboundConnectorContext context) {
-    Object[] args = new Object[parameterResolvers.size()];
+    Object[] args = new Object[descriptor.params().size()];
     JsonNode jobVariables = null;
-    ResolverContext resolverContext = null;
     for (int i = 0; i < args.length; i++) {
-      ParameterResolver<?> resolver = parameterResolvers.get(i);
-      switch (resolver) {
-        case Context ignored -> args[i] = context;
-        case Variable<?> variableResolver -> {
-          if (jobVariables == null) {
-            jobVariables = readJsonAsTree(context.getJobContext().getVariables());
-          }
-          JsonNode finalJobVariables = jobVariables;
-          if (resolverContext == null) {
-            resolverContext = createResolverContext(context, finalJobVariables);
-          }
-          Object value = variableResolver.resolve(resolverContext);
-          if (value != null) {
-            validationProvider.validate(value);
-          }
-          args[i] = value;
-        }
-      }
+      ParameterDescriptor parameterDescriptor = descriptor.params().get(i);
+      args[i] =
+          switch (parameterDescriptor) {
+            case ParameterDescriptor.Context ignored -> context;
+            case ParameterDescriptor.Variable<?> variable -> {
+              if (jobVariables == null) {
+                jobVariables = readJsonAsTree(context.getJobContext().getVariables());
+              }
+              yield resolveVariableValue(variable, jobVariables);
+            }
+          };
     }
-    try {
-      return descriptor.method().invoke(connectorInstance, args);
-    } catch (Exception e) {
-      log.debug("Failed to invoke operation: {}", descriptor.id(), e);
-      throw new RuntimeException(e);
-    }
+    return invokeMethod(connectorInstance, args);
   }
 
-  private ResolverContext createResolverContext(
-      OutboundConnectorContext context, JsonNode jobVariables) {
-    return new ResolverContext(
-        context,
-        new ParameterResolver.VariablesJson() {
-          @Override
-          public <T> T readValueAs(JsonPointer pointer, Class<T> type) {
-            JsonNode node = jobVariables.at(pointer);
-            try (JsonParser parser = node.traverse(objectMapper)) {
-              return parser.readValueAs(type);
-            } catch (IOException ex) {
-              throw new RuntimeException(ex);
-            }
-          }
-        });
+  private Object resolveVariableValue(
+      ParameterDescriptor.Variable<?> variableDescriptor, JsonNode jobVariables) {
+    JsonPointer jsonPointer = variableDescriptor.getJsonPointer();
+    Object value = readValueAs(jobVariables, jsonPointer, variableDescriptor.getType());
+    if (variableDescriptor.isRequired() && value == null) {
+      throw new ConnectorInputException(
+          "Required variable '"
+              + variableDescriptor.getName()
+              + "' is missing in the job variables.");
+    }
+    if (value != null) {
+      validationProvider.validate(value);
+    }
+    return value;
+  }
+
+  private Object readValueAs(JsonNode jsonNode, JsonPointer jsonPointer, Class<?> type) {
+    JsonNode node = jsonNode.at(jsonPointer);
+    try (JsonParser parser = node.traverse(objectMapper)) {
+      return parser.readValueAs(type);
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
   private JsonNode readJsonAsTree(String json) {
     try {
       return objectMapper.readTree(json);
     } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Object invokeMethod(Object connectorInstance, Object[] args) {
+    try {
+      return descriptor.method().invoke(connectorInstance, args);
+    } catch (Exception e) {
+      log.debug("Failed to invoke operation: {}", descriptor.id(), e);
       throw new RuntimeException(e);
     }
   }

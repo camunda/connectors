@@ -16,10 +16,44 @@
  */
 package io.camunda.connector.runtime.core.outbound.operation;
 
+import com.fasterxml.jackson.core.JsonPointer;
+
 public sealed interface ParameterDescriptor {
 
-  record OutboundConnectorContextDescriptor() implements ParameterDescriptor {}
+  record Context() implements ParameterDescriptor {}
 
-  record VariableDescriptor<T>(String name, Class<T> type, boolean required)
-      implements ParameterDescriptor {}
+  final class Variable<T> implements ParameterDescriptor {
+
+    private final JsonPointer jsonPointer;
+    private final String name;
+    private final Class<T> type;
+    private final boolean required;
+
+    public Variable(String name, Class<T> type, boolean required) {
+      this.name = name;
+      this.type = type;
+      this.required = required;
+      if (name.isEmpty()) {
+        jsonPointer = JsonPointer.empty();
+      } else {
+        jsonPointer = JsonPointer.compile("/" + name.replace(".", "/"));
+      }
+    }
+
+    public JsonPointer getJsonPointer() {
+      return jsonPointer;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public Class<T> getType() {
+      return type;
+    }
+
+    public boolean isRequired() {
+      return required;
+    }
+  }
 }
