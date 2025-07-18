@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.provider.Bedr
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.util.ConnectorUtils;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -48,7 +49,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
 
     @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
     public boolean isDefaultCredentialsChainUsedInSaaS() {
-      return System.getenv().containsKey("CAMUNDA_CONNECTOR_RUNTIME_SAAS")
+      return ConnectorUtils.isSaaS()
           && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
     }
   }

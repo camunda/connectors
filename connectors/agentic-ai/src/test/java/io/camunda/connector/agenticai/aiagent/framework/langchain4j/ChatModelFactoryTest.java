@@ -466,7 +466,7 @@ class ChatModelFactoryTest {
     private static final String MODEL = "gemini-2.5-pro";
 
     private static final GoogleVertexAiModelParameters DEFAULT_MODEL_PARAMETERS =
-        new GoogleVertexAiModelParameters(10, 1.0F, 0.8F);
+        new GoogleVertexAiModelParameters(10, 1.0F, 0.8F, 100);
 
     @Test
     void createsGoogleVertexAiChatModel() {
@@ -481,9 +481,10 @@ class ChatModelFactoryTest {
             verify(builder).location(LOCATION);
             verify(builder).project(PROJECT_ID);
             verify(builder).modelName(MODEL);
-            verify(builder).maxOutputTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
+            verify(builder).maxOutputTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
             verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
             verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
+            verify(builder).topK(DEFAULT_MODEL_PARAMETERS.topK());
           });
     }
 
@@ -503,6 +504,7 @@ class ChatModelFactoryTest {
             verify(builder, never()).maxOutputTokens(anyInt());
             verify(builder, never()).temperature(anyFloat());
             verify(builder, never()).topP(anyFloat());
+            verify(builder, never()).topK(anyInt());
           });
     }
 
@@ -526,7 +528,7 @@ class ChatModelFactoryTest {
     }
 
     static Stream<GoogleVertexAiModelParameters> nullModelParameters() {
-      return Stream.of(new GoogleVertexAiModelParameters(null, null, null));
+      return Stream.of(new GoogleVertexAiModelParameters(null, null, null, null));
     }
   }
 

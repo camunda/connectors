@@ -159,9 +159,10 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
-      Optional.ofNullable(modelParameters.maxTokens()).ifPresent(builder::maxOutputTokens);
+      Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxOutputTokens);
       Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
       Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
+      Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     }
 
     return builder;

@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,13 +33,13 @@ class ProviderConfigurationTest {
   @Autowired private Validator validator;
   @SystemStub private EnvironmentVariables environment;
 
+  @BeforeEach
+  void setUp() {
+    environment.set("CAMUNDA_CONNECTOR_RUNTIME_SAAS", null);
+  }
+
   @Nested
   class BedrockConnectionTest {
-
-    @BeforeEach
-    void setUp() {
-      environment.set("CAMUNDA_CONNECTOR_RUNTIME_SAAS", null);
-    }
 
     @Test
     void validationShouldFail_WhenSaaSAndDefaultCredentialChainUsed() {
@@ -86,6 +87,36 @@ class ProviderConfigurationTest {
               "test",
               new BedrockProviderConfiguration.BedrockModel.BedrockModelParameters(
                   null, null, null)));
+    }
+  }
+
+  @Nested
+  class GoogleVertexAiConnectionTest {
+
+    @Test
+    void validationShouldSucceed_WhenNotSaaS() {
+      final var connection = createConnection();
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @Test
+    void validationShouldFail_WhenSaaS() {
+      environment.set("CAMUNDA_CONNECTOR_RUNTIME_SAAS", "true");
+      final var connection = createConnection();
+      assertThat(validator.validate(connection))
+          .hasSize(1)
+          .extracting(ConstraintViolation::getMessage)
+          .containsExactly("Google Vertex AI is not supported on SaaS");
+    }
+
+    private static GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection createConnection() {
+      return new GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection(
+          "my-project-id",
+          "us-central1",
+          new GoogleVertexAiProviderConfiguration.GoogleVertexAiModel(
+              "gemini-1.5-flash",
+              new GoogleVertexAiProviderConfiguration.GoogleVertexAiModel
+                  .GoogleVertexAiModelParameters(null, null, null, null)));
     }
   }
 }

@@ -11,7 +11,7 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 
-public class BpmnUtils {
+public final class BpmnUtils {
   private BpmnUtils() {}
 
   public static Optional<String> getElementDocumentation(FlowNode element) {
