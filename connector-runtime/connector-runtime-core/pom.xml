@@ -70,6 +70,12 @@
     </dependency>
 
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-validation</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
@@ -87,6 +93,11 @@
       <artifactId>system-stubs-jupiter</artifactId>
       <version>${system-stubs.version}</version>
       <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-core</artifactId>
     </dependency>
 
     <dependency>

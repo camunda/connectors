@@ -16,13 +16,16 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -38,12 +41,16 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache;
 
-  public DefaultOutboundConnectorFactory(List<OutboundConnectorConfiguration> configurations) {
+  private final ValidationProvider validationProvider;
+
+  public DefaultOutboundConnectorFactory(
+      List<OutboundConnectorConfiguration> configurations, ValidationProvider validationProvider) {
     connectorConfigs =
         configurations.stream()
             .collect(
                 Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
     connectorInstanceCache = new ConcurrentHashMap<>();
+    this.validationProvider = validationProvider;
   }
 
   @Override
@@ -54,23 +61,41 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   @Override
   public OutboundConnectorFunction getInstance(String type) {
     return Optional.ofNullable(connectorConfigs.get(type))
-        .map(this::createInstance)
+        .map(this::createCachedInstance)
         .orElseThrow(
-            () ->
-                new NoSuchElementException(
-                    "Outbound connector \"" + type + "\" is not registered"));
+            () -> new RuntimeException("Outbound connector \"" + type + "\" is not registered"));
   }
 
-  private OutboundConnectorFunction createInstance(OutboundConnectorConfiguration config) {
-    return connectorInstanceCache.computeIfAbsent(
-        config,
-        c -> {
-          if (c.customInstanceSupplier() != null) {
-            return c.customInstanceSupplier().get();
-          } else {
-            return ConnectorHelper.instantiateConnector(c.connectorClass());
-          }
-        });
+  private OutboundConnectorFunction createCachedInstance(OutboundConnectorConfiguration config) {
+    return connectorInstanceCache.computeIfAbsent(config, this::createFunctionInstance);
+  }
+
+  private OutboundConnectorFunction createFunctionInstance(OutboundConnectorConfiguration config) {
+    var instance = createConnectorInstance(config);
+    switch (instance) {
+      case OutboundConnectorFunction function -> {
+        return function;
+      }
+      case OutboundConnectorProvider provider -> {
+        var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+        ConnectorOperations connectorOperations =
+            ConnectorOperations.from(provider, objectMapper, validationProvider);
+        return new OutboundConnectorOperationFunction(connectorOperations);
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "Connector class "
+                  + instance.getClass().getName()
+                  + " does not implement OutboundConnectorFunction or OutboundConnectorProvider");
+    }
+  }
+
+  private static Object createConnectorInstance(OutboundConnectorConfiguration config) {
+    if (config.customInstanceSupplier() != null) {
+      return config.customInstanceSupplier().get();
+    } else {
+      return ConnectorHelper.instantiateConnector(config.connectorClass());
+    }
   }
 
   @Override

@@ -18,6 +18,8 @@ package io.camunda.connector.generator.java.util;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -52,5 +54,33 @@ public class ReflectionUtil {
       getAllFields(fields, type.getSuperclass());
     }
     return fields;
+  }
+
+  public record MethodWithAnnotation<A extends Annotation>(
+      Method method, List<Parameter> parameters, A annotation) {}
+
+  public static <A extends Annotation> List<MethodWithAnnotation<A>> getMethodsAnnotatedWith(
+      final Class<?> type, final Class<? extends Annotation> annotation) {
+    final List<MethodWithAnnotation<A>> methods = new ArrayList<>();
+    Class<?> klass = type;
+    while (klass
+        != Object
+            .class) { // need to traverse a type hierarchy in order to process methods from super
+      // types
+      // iterate though the list of methods declared in the class represented by klass variable, and
+      // add those annotated with the specified annotation
+      for (final Method method : klass.getDeclaredMethods()) {
+        if (method.isAnnotationPresent(annotation)) {
+          Annotation methodAnnotation = method.getAnnotation(annotation);
+          method.setAccessible(true);
+          methods.add(
+              new MethodWithAnnotation(
+                  method, Arrays.asList(method.getParameters()), methodAnnotation));
+        }
+      }
+      // move to the upper class in the hierarchy in search for more methods
+      klass = klass.getSuperclass();
+    }
+    return methods;
   }
 }
