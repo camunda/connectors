@@ -42,9 +42,10 @@ import org.springframework.core.env.Environment;
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
-  public OutboundConnectorFactory outboundConnectorFactory(ValidationProvider validationProvider) {
+  public OutboundConnectorFactory outboundConnectorFactory(
+      ObjectMapper objectMapper, ValidationProvider validationProvider) {
     var configs = OutboundConnectorDiscovery.loadConnectorConfigurations();
-    return new DefaultOutboundConnectorFactory(configs, validationProvider);
+    return new DefaultOutboundConnectorFactory(configs, objectMapper, validationProvider);
   }
 
   @Bean

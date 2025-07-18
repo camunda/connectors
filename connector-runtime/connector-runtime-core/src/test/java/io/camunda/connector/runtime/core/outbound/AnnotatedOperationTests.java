@@ -27,6 +27,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
+import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.*;
 import org.junit.jupiter.api.Test;
