@@ -20,6 +20,7 @@ import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -30,7 +31,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
     engineVersion = "^8.7",
     id = OperationAnnotatedConnector.ID,
     name = OperationAnnotatedConnector.NAME)
-public class OperationAnnotatedConnector {
+public class OperationAnnotatedConnector implements OutboundConnectorProvider {
 
   public static final String ID = "operation-annotated-connector-id";
   public static final String TYPE = "operation-annotated-connector-type";
