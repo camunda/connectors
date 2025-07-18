@@ -80,7 +80,7 @@ public sealed interface MemoryStorageConfiguration
     }
   }
 
-  @TemplateSubType(id = "custom", label = "Custom Implementation")
+  @TemplateSubType(id = "custom", label = "Custom Implementation (Hybrid/Self-Managed only)")
   record CustomMemoryStorageConfiguration(
       @FEEL
           @TemplateProperty(
