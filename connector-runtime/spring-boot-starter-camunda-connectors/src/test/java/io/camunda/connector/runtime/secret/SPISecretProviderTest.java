@@ -36,6 +36,6 @@ public class SPISecretProviderTest {
     // given only the SPI secret provider is defined and no spring beans secret providers
     // then it should be discovered
     assertThat(secretProviderAggregator.getSecretProviders().size()).isEqualTo(1);
-    assertThat(secretProviderAggregator.getSecret("SPI")).isEqualTo("SPI");
+    assertThat(secretProviderAggregator.getSecret("SPI", null)).isEqualTo("SPI");
   }
 }

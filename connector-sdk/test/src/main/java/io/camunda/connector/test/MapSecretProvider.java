@@ -14,23 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.utils;
-
-import static java.util.Collections.singletonMap;
+package io.camunda.connector.test;
 
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Map;
 
-public class TestSecretProvider implements SecretProvider {
+public class MapSecretProvider implements SecretProvider {
+  private final Map<String, String> secrets;
 
-  public static final String SECRET_NAME = "FOO";
-  public static final String SECRET_VALUE = "bar";
-
-  private static final Map<String, String> SECRETS = singletonMap(SECRET_NAME, SECRET_VALUE);
+  public MapSecretProvider(Map<String, String> secrets) {
+    this.secrets = secrets;
+  }
 
   @Override
-  public String getSecret(String value, SecretContext context) {
-    return SECRETS.get(value);
+  public String getSecret(String name, SecretContext context) {
+    return secrets.get(name);
   }
 }

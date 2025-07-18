@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.outbound;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,7 +63,7 @@ class JobHandlerContextTest {
   void bindVariables_failedSecretAreBounded() {
     String json = "{ \"integer\": \"{{secrets.FOO}}\"";
     when(activatedJob.getVariables()).thenReturn(json);
-    when(secretProvider.getSecret("FOO")).thenReturn("secret");
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("secret");
     Exception thrown =
         assertThrows(
             ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
@@ -74,7 +75,7 @@ class JobHandlerContextTest {
   void bindVariables_successSecretAreBounded() {
     String json = "{ \"integer\": {{secrets.FOO}} }";
     when(activatedJob.getVariables()).thenReturn(json);
-    when(secretProvider.getSecret("FOO")).thenReturn("1");
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(1);
   }
 
@@ -82,7 +83,7 @@ class JobHandlerContextTest {
   void bindVariables_secretIsNotAvailable() {
     String json = "{ \"integer\": {{secrets.FOO2}} }";
     when(activatedJob.getVariables()).thenReturn(json);
-    when(secretProvider.getSecret("FOO2")).thenReturn(null);
+    when(secretProvider.getSecret(eq("FOO2"), any())).thenReturn(null);
     assertThrows(
         ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
   }

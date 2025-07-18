@@ -42,7 +42,7 @@ public class EnvironmentSecretProviderTest {
   void springEnvironmentSecretProviderShouldBePresent() {
     // Spring environment based secret provider should look up values from properties
     assertThat(secretProviderAggregator.getSecretProviders().size()).isEqualTo(1);
-    var actualSecretValue = secretProviderAggregator.getSecret("test.secret");
+    var actualSecretValue = secretProviderAggregator.getSecret("test.secret", null);
     assertThat(actualSecretValue).isNotNull();
     assertThat(actualSecretValue).isEqualTo(expectedSecretValue);
   }

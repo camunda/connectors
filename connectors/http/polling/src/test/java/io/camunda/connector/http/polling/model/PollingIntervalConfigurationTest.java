@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -36,7 +37,8 @@ public class PollingIntervalConfigurationTest {
 
   @BeforeEach
   public void setUp() {
-    SecretProvider secretProvider = name -> name; // Simplified secret provider for testing purposes
+    SecretProvider secretProvider =
+        new MirrorSecretProvider(); // Simplified secret provider for testing purposes
     properties = new HashMap<>();
     when(connectorData.rawPropertiesWithoutKeywords()).thenReturn(properties);
     inboundConnectorContext =
@@ -85,5 +87,12 @@ public class PollingIntervalConfigurationTest {
         Arguments.of("PT2H", 7200000L),
         Arguments.of("P1DT12H", 129600000L),
         Arguments.of(null, 5000));
+  }
+
+  private static class MirrorSecretProvider implements SecretProvider {
+    @Override
+    public String getSecret(String name, SecretContext context) {
+      return name;
+    }
   }
 }

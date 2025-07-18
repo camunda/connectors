@@ -79,7 +79,7 @@ public class OutboundConnectorContextBuilderTest {
   public void shouldProvideSecret() {
     var context =
         OutboundConnectorContextBuilder.create().variables("{}").secret("foo", "FOO").build();
-    var replaced = context.getSecretHandler().replaceSecrets("secrets.foo");
+    var replaced = context.getSecretHandler().replaceSecrets("secrets.foo", null);
     assertThat(replaced).isEqualTo("FOO");
   }
 
@@ -87,7 +87,7 @@ public class OutboundConnectorContextBuilderTest {
   public void shouldThrowOnMissingSecret() {
     var context =
         OutboundConnectorContextBuilder.create().variables("{}").secret("x", "FOO").build();
-    Executable replacement = () -> context.getSecretHandler().replaceSecrets("secrets.foo");
+    Executable replacement = () -> context.getSecretHandler().replaceSecrets("secrets.foo", null);
     assertThrows(
         ConnectorInputException.class, replacement, "Secret with name 'foo' is not available");
   }
@@ -100,7 +100,7 @@ public class OutboundConnectorContextBuilderTest {
             .secret("foo", "FOO")
             .secret("bar", "BAR")
             .build();
-    var replaced = context.getSecretHandler().replaceSecrets("secrets.foo secrets.bar");
+    var replaced = context.getSecretHandler().replaceSecrets("secrets.foo secrets.bar", null);
     assertThat(replaced).isEqualTo("FOO BAR");
   }
 
@@ -108,7 +108,7 @@ public class OutboundConnectorContextBuilderTest {
   public void shouldProvideSecretWithParentheses() {
     var context =
         OutboundConnectorContextBuilder.create().variables("{}").secret("foo", "FOO").build();
-    var replaced = context.getSecretHandler().replaceSecrets("{{secrets.foo}}");
+    var replaced = context.getSecretHandler().replaceSecrets("{{secrets.foo}}", null);
     assertThat(replaced).isEqualTo("FOO");
   }
 
@@ -120,7 +120,8 @@ public class OutboundConnectorContextBuilderTest {
             .secret("foo", "FOO")
             .secret("bar", "BAR")
             .build();
-    var replaced = context.getSecretHandler().replaceSecrets("{{secrets.foo}} {{secrets.bar}}");
+    var replaced =
+        context.getSecretHandler().replaceSecrets("{{secrets.foo}} {{secrets.bar}}", null);
     assertThat(replaced).isEqualTo("FOO BAR");
   }
 
