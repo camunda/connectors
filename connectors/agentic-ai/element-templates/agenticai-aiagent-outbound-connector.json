@@ -934,7 +934,7 @@
       "name" : "Camunda Document Storage",
       "value" : "camunda-document"
     }, {
-      "name" : "Custom Implementation",
+      "name" : "Custom Implementation (Hybrid/Self-Managed only)",
       "value" : "custom"
     } ]
   }, {
