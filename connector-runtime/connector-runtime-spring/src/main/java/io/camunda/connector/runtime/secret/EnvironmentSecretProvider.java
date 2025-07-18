@@ -67,7 +67,7 @@ public class EnvironmentSecretProvider implements SecretProvider {
   }
 
   /**
-   * returns the secret name in format (${prefix}_)${tenantId}_${name}
+   * returns the secret name in format ${prefix}${tenantId}_${name}
    *
    * @param name the secrets' name to find the value for
    * @param context the context of where the secret is originated
@@ -75,6 +75,6 @@ public class EnvironmentSecretProvider implements SecretProvider {
    */
   private String composeSecretNameTenantAware(String name, SecretContext context) {
     return String.format(
-        "%s%s_%s", StringUtils.hasText(prefix) ? prefix + "_" : "", context.tenantId(), name);
+        "%s%s_%s", StringUtils.hasText(prefix) ? prefix : "", context.tenantId(), name);
   }
 }
