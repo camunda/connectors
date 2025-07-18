@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.outbound;
+package io.camunda.connector.runtime.core.outbound.operation;
 
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
-import io.camunda.connector.runtime.core.outbound.operation.OperationInvoker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -16,13 +16,14 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
+import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,19 +37,23 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultOutboundConnectorFactory.class);
 
+  private final ObjectMapper objectMapper;
+  private final ValidationProvider validationProvider;
+
   private final Map<String, OutboundConnectorConfiguration> connectorConfigs;
 
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache;
 
-  private final ValidationProvider validationProvider;
-
   public DefaultOutboundConnectorFactory(
-      List<OutboundConnectorConfiguration> configurations, ValidationProvider validationProvider) {
+      List<OutboundConnectorConfiguration> configurations,
+      ObjectMapper objectMapper,
+      ValidationProvider validationProvider) {
     connectorConfigs =
         configurations.stream()
             .collect(
                 Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
+    this.objectMapper = objectMapper;
     connectorInstanceCache = new ConcurrentHashMap<>();
     this.validationProvider = validationProvider;
   }
@@ -77,7 +82,6 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
         return function;
       }
       case OutboundConnectorProvider provider -> {
-        var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
         ConnectorOperations connectorOperations =
             ConnectorOperations.from(provider, objectMapper, validationProvider);
         return new OutboundConnectorOperationFunction(connectorOperations);
