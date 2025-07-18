@@ -22,6 +22,7 @@ import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
@@ -67,7 +68,9 @@ public class OutboundConnectorExceptionHandler {
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration) {
     List<String> secrets =
-        this.secretProvider.fetchAll(SecretUtil.retrieveSecretKeysInInput(job.getVariables()));
+        this.secretProvider.fetchAll(
+            SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
+            new SecretContext(job.getTenantId()));
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
           handleBackOffException(invalidBackOffDurationException, secrets);
@@ -146,7 +149,9 @@ public class OutboundConnectorExceptionHandler {
 
   public ConnectorResult.ErrorResult handleFinalResultException(Exception ex, ActivatedJob job) {
     List<String> secrets =
-        this.secretProvider.fetchAll(SecretUtil.retrieveSecretKeysInInput(job.getVariables()));
+        this.secretProvider.fetchAll(
+            SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
+            new SecretContext(job.getTenantId()));
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(
         "Exception while processing job: {} for tenant: {}, message: {}",

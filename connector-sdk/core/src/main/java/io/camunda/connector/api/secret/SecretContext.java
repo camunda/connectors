@@ -14,23 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.utils;
+package io.camunda.connector.api.secret;
 
-import static java.util.Collections.singletonMap;
-
-import io.camunda.connector.api.secret.SecretContext;
-import io.camunda.connector.api.secret.SecretProvider;
-import java.util.Map;
-
-public class TestSecretProvider implements SecretProvider {
-
-  public static final String SECRET_NAME = "FOO";
-  public static final String SECRET_VALUE = "bar";
-
-  private static final Map<String, String> SECRETS = singletonMap(SECRET_NAME, SECRET_VALUE);
-
-  @Override
-  public String getSecret(String value, SecretContext context) {
-    return SECRETS.get(value);
-  }
-}
+public record SecretContext(String tenantId) {}
