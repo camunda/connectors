@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -26,24 +27,30 @@ import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicModel;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration.AnthropicModel.AnthropicModelParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureOpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AzureOpenAiProviderConfiguration.AzureOpenAiModel.AzureOpenAiModelParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockModel;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
+import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
+import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel.AnthropicModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureOpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureOpenAiModel.AzureOpenAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import java.net.URI;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -449,6 +456,80 @@ class ChatModelFactoryTest {
         BedrockRuntimeClientBuilder clientBuilder,
         ResultCaptor<BedrockRuntimeClient> clientResultCaptor,
         BedrockChatModel.Builder chatModelBuilder) {}
+  }
+
+  @Nested
+  class GoogleVertexAiChatModelFactoryTest {
+
+    private static final String PROJECT_ID = "projectId";
+    private static final String LOCATION = "us-central1";
+    private static final String MODEL = "gemini-2.5-pro";
+
+    private static final GoogleVertexAiModelParameters DEFAULT_MODEL_PARAMETERS =
+        new GoogleVertexAiModelParameters(10, 1.0F, 0.8F, 100);
+
+    @Test
+    void createsGoogleVertexAiChatModel() {
+      final var providerConfig =
+          new GoogleVertexAiProviderConfiguration(
+              new GoogleVertexAiConnection(
+                  PROJECT_ID, LOCATION, new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testGoogleVertexAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).location(LOCATION);
+            verify(builder).project(PROJECT_ID);
+            verify(builder).modelName(MODEL);
+            verify(builder).maxOutputTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
+            verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
+            verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
+            verify(builder).topK(DEFAULT_MODEL_PARAMETERS.topK());
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource("nullModelParameters")
+    void createsGoogleVertexAiChatModelWithNullModelParameters(
+        GoogleVertexAiModelParameters modelParameters) {
+      final var providerConfig =
+          new GoogleVertexAiProviderConfiguration(
+              new GoogleVertexAiConnection(
+                  PROJECT_ID, LOCATION, new GoogleVertexAiModel(MODEL, modelParameters)));
+
+      testGoogleVertexAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).maxOutputTokens(anyInt());
+            verify(builder, never()).temperature(anyFloat());
+            verify(builder, never()).topP(anyFloat());
+            verify(builder, never()).topK(anyInt());
+          });
+    }
+
+    private void testGoogleVertexAiChatModelBuilder(
+        GoogleVertexAiProviderConfiguration providerConfig,
+        ThrowingConsumer<VertexAiGeminiChatModelBuilder> builderAssertions) {
+      final var chatModelBuilder = spy(VertexAiGeminiChatModel.builder());
+      final var chatModelResultCaptor = new ResultCaptor<VertexAiGeminiChatModel>();
+      doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
+
+      try (MockedStatic<VertexAiGeminiChatModel> chatModelMock =
+          Mockito.mockStatic(VertexAiGeminiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+        chatModelMock.when(VertexAiGeminiChatModel::builder).thenReturn(chatModelBuilder);
+
+        final var chatModel = chatModelFactory.createChatModel(providerConfig);
+        assertThat(chatModel).isNotNull().isInstanceOf(VertexAiGeminiChatModel.class);
+        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+
+        builderAssertions.accept(chatModelBuilder);
+      }
+    }
+
+    static Stream<GoogleVertexAiModelParameters> nullModelParameters() {
+      return Stream.of(new GoogleVertexAiModelParameters(null, null, null, null));
+    }
   }
 
   @Nested

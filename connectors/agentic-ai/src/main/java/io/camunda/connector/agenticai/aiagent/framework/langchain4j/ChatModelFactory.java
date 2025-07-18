@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import dev.langchain4j.model.chat.ChatModel;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 
 public interface ChatModelFactory {
   ChatModel createChatModel(ProviderConfiguration providerConfiguration);
