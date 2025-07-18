@@ -72,7 +72,7 @@ public class ConsoleSecretProviderTest {
 
     // Test the provider
     var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofSeconds(1));
-    assertThat(consoleSecretProvider.getSecret("secretKey")).isEqualTo("secretValue");
+    assertThat(consoleSecretProvider.getSecret("secretKey", null)).isEqualTo("secretValue");
   }
 
   @Test
@@ -97,7 +97,7 @@ public class ConsoleSecretProviderTest {
             .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
 
     var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofMillis(1));
-    assertThat(consoleSecretProvider.getSecret("secretKey")).isEqualTo("secretValue");
+    assertThat(consoleSecretProvider.getSecret("secretKey", null)).isEqualTo("secretValue");
 
     // Sleep so cache requires a new refresh
     Thread.sleep(10);
@@ -109,7 +109,7 @@ public class ConsoleSecretProviderTest {
             .willReturn(ResponseDefinitionBuilder.responseDefinition().withStatus(500)));
 
     // Previously cached secret should still be resolved
-    assertThat(consoleSecretProvider.getSecret("secretKey")).isEqualTo("secretValue");
+    assertThat(consoleSecretProvider.getSecret("secretKey", null)).isEqualTo("secretValue");
 
     // Sleep so cache requires a new refresh
     Thread.sleep(10);
@@ -122,6 +122,6 @@ public class ConsoleSecretProviderTest {
             .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
 
     // New secrets should be resolved
-    assertThat(consoleSecretProvider.getSecret("secretKey")).isEqualTo("newSecretValue");
+    assertThat(consoleSecretProvider.getSecret("secretKey", null)).isEqualTo("newSecretValue");
   }
 }

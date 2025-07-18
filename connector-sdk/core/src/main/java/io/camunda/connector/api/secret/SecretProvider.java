@@ -32,9 +32,22 @@ public interface SecretProvider {
    * @return the secret's value for the given name, if it exists. Otherwise, <code>null</code> is
    *     returned.
    */
-  String getSecret(String name);
+  @Deprecated
+  default String getSecret(String name) {
+    return getSecret(name, null);
+  }
 
-  default List<String> fetchAll(List<String> keys) {
-    return keys.stream().map(this::getSecret).filter(Objects::nonNull).toList();
+  /**
+   * @param name - the secret's name to find a value for
+   * @param context - the secret context for which a value should be provided
+   * @return the secret's value for the given name, if it exists. Otherwise, <code>null</code> is
+   *     returned.
+   */
+  default String getSecret(String name, SecretContext context) {
+    return getSecret(name);
+  }
+
+  default List<String> fetchAll(List<String> keys, SecretContext context) {
+    return keys.stream().map(key -> getSecret(key, context)).filter(Objects::nonNull).toList();
   }
 }

@@ -33,6 +33,8 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -154,7 +156,7 @@ public class WebhookControllerPlainJavaTests {
   public static InboundConnectorContextImpl buildContext(ValidInboundConnectorDetails def) {
     var context =
         new InboundConnectorContextImpl(
-            name -> null,
+            new NullSecretProvider(),
             new DefaultValidationProvider(),
             def,
             mock(InboundCorrelationHandler.class),
@@ -183,5 +185,12 @@ public class WebhookControllerPlainJavaTests {
         new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey),
         new ProcessElement(
             bpmnProcessId, version, processDefinitionKey, "testElement", "<default>"));
+  }
+
+  private static class NullSecretProvider implements SecretProvider {
+    @Override
+    public String getSecret(String name, SecretContext context) {
+      return null;
+    }
   }
 }

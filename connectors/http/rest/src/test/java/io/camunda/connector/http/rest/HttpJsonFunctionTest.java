@@ -27,6 +27,8 @@ import com.github.tomakehurst.wiremock.admin.model.ServeEventQuery;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -87,7 +89,7 @@ public class HttpJsonFunctionTest extends BaseTest {
         OutboundConnectorContextBuilder.create()
             .variables(input)
             .validation(new DefaultValidationProvider())
-            .secrets(name -> "foo")
+            .secrets(new StaticSecretProvider("foo"))
             .build();
 
     // when
@@ -163,7 +165,18 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   private HttpCommonResult arrange(String input) throws Exception {
     final var context =
-        OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .secrets(new StaticSecretProvider("foo"))
+            .build();
     return (HttpCommonResult) functionUnderTest.execute(context);
+  }
+
+  private record StaticSecretProvider(String secret) implements SecretProvider {
+
+    @Override
+    public String getSecret(String name, SecretContext context) {
+      return secret;
+    }
   }
 }

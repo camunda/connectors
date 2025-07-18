@@ -17,13 +17,14 @@
 package io.camunda.connector.runtime.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import io.camunda.connector.runtime.core.secret.SecretReplacer;
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.Map;
-import java.util.function.Function;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -52,10 +53,10 @@ public class SecretUtilTests {
     "secrets.?,,false"
   })
   void testSecretPattern(String input, String secret, Boolean shouldDetect) {
-    var secretReplacer = mock(Function.class);
-    SecretUtil.replaceSecrets(input, secretReplacer);
+    var secretReplacer = mock(SecretReplacer.class);
+    SecretUtil.replaceSecrets(input, null, secretReplacer);
     if (shouldDetect) {
-      verify(secretReplacer).apply(secret);
+      verify(secretReplacer).replaceSecrets(eq(secret), any());
     } else {
       verifyNoInteractions(secretReplacer);
     }
@@ -77,8 +78,8 @@ public class SecretUtilTests {
       },
       delimiter = '|') // delimiter is needed to escape the comma in the json
   void testSecretReplacementWithJsonInput(String input, String output) {
-    Function<String, String> secretReplacer = (name) -> secrets.get(name);
-    var result = SecretUtil.replaceSecrets(input, secretReplacer);
+    SecretReplacer secretReplacer = (name, context) -> secrets.get(name);
+    var result = SecretUtil.replaceSecrets(input, null, secretReplacer);
     assertThat(result).isEqualTo(output);
   }
 }
