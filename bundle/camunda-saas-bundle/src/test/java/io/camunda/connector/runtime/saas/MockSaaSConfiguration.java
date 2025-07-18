@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.saas;
 
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.test.MapSecretProvider;
 import java.util.Map;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -42,7 +43,7 @@ public class MockSaaSConfiguration {
     return new SaaSConfiguration() {
       @Override
       public SecretProvider getInternalSecretProvider() {
-        return secrets::get;
+        return new MapSecretProvider(secrets);
       }
     };
   }
