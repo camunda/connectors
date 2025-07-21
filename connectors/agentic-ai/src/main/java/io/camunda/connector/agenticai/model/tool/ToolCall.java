@@ -10,11 +10,10 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import java.util.Map;
-import javax.annotation.Nullable;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolCall.ToolCallJacksonProxyBuilder.class)
-public record ToolCall(@Nullable String id, String name, Map<String, Object> arguments)
+public record ToolCall(String id, String name, Map<String, Object> arguments)
     implements ToolCallBuilder.With {
 
   public static ToolCallBuilder builder() {
