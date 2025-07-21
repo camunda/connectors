@@ -66,15 +66,18 @@
   "gatewayToolDefinitions": [
     {
       "type": "mcpClient",
-      "name": "A_MCP_Client"
+      "name": "A_MCP_Client",
+      "description": "A MCP Client"
     },
     {
       "type": "mcpClient",
-      "name": "A_Remote_MCP_Client"
+      "name": "A_Remote_MCP_Client",
+      "description": "A Remote MCP Client"
     },
     {
       "type": "mcpClient",
-      "name": "Filesystem_MCP_Flow"
+      "name": "Filesystem_MCP_Flow",
+      "description": "Filesystem MCP Flow"
     }
   ]
 }

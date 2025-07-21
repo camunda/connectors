@@ -4,31 +4,33 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
+package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
-public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver {
+public class CachingProcessDefinitionAdHocToolElementsResolver
+    implements ProcessDefinitionAdHocToolElementsResolver {
 
-  private final LoadingCache<AdHocToolsIdentifier, AdHocToolsSchemaResponse> cache;
+  private final LoadingCache<AdHocToolsIdentifier, List<AdHocToolElement>> cache;
 
-  public CachingAdHocToolsSchemaResolver(
-      AdHocToolsSchemaResolver delegate, CacheConfiguration cacheConfiguration) {
+  public CachingProcessDefinitionAdHocToolElementsResolver(
+      ProcessDefinitionAdHocToolElementsResolver delegate, CacheConfiguration cacheConfiguration) {
     this.cache = buildCache(delegate, cacheConfiguration);
   }
 
   @Override
-  public AdHocToolsSchemaResponse resolveSchema(
+  public List<AdHocToolElement> resolveToolElements(
       Long processDefinitionKey, String adHocSubProcessId) {
     return cache.get(new AdHocToolsIdentifier(processDefinitionKey, adHocSubProcessId));
   }
 
-  private LoadingCache<AdHocToolsIdentifier, AdHocToolsSchemaResponse> buildCache(
-      AdHocToolsSchemaResolver delegate, CacheConfiguration config) {
+  private LoadingCache<AdHocToolsIdentifier, List<AdHocToolElement>> buildCache(
+      ProcessDefinitionAdHocToolElementsResolver delegate, CacheConfiguration config) {
     // configured via camunda.connector.agenticai.tools.cache.*
     // see AgenticAiConnectorsConfigurationProperties for default values
     final var builder = Caffeine.newBuilder();
@@ -36,7 +38,7 @@ public class CachingAdHocToolsSchemaResolver implements AdHocToolsSchemaResolver
     Optional.ofNullable(config.expireAfterWrite()).ifPresent(builder::expireAfterWrite);
 
     return builder.build(
-        id -> delegate.resolveSchema(id.processDefinitionKey(), id.adHocSubProcessId()));
+        id -> delegate.resolveToolElements(id.processDefinitionKey(), id.adHocSubProcessId()));
   }
 
   private record AdHocToolsIdentifier(Long processDefinitionKey, String adHocSubProcessId) {

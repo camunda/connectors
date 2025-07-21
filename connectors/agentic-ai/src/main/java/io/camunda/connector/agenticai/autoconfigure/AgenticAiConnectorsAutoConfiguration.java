@@ -9,14 +9,16 @@ package io.camunda.connector.agenticai.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractorImpl;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGeneratorImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractorImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGeneratorImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolverImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
@@ -64,37 +66,40 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FeelInputParamExtractor feelInputParamExtractor() {
-    return new FeelInputParamExtractorImpl();
+  public FeelExpressionParameterExtractor aiAgentAdHocFeelExpressionParameterExtractor() {
+    return new FeelExpressionParameterExtractorImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AdHocToolSchemaGenerator adHocToolSchemaGenerator() {
+  public AdHocToolSchemaGenerator aiAgentAdHocToolSchemaGenerator() {
     return new AdHocToolSchemaGeneratorImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AdHocToolsSchemaResolver adHocToolsSchemaResolver(
+  public AdHocToolsSchemaResolver aiAgentAdHocToolDefinitionResolver(
+      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
+      AdHocToolSchemaGenerator schemaGenerator) {
+    return new AdHocToolsSchemaResolverImpl(gatewayToolDefinitionResolvers, schemaGenerator);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ProcessDefinitionAdHocToolElementsResolver aiAgentProcessDefinitionToolElementsResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
-      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
-      FeelInputParamExtractor feelInputParamExtractor,
-      AdHocToolSchemaGenerator adHocToolSchemaGenerator) {
+      FeelExpressionParameterExtractor parameterExtractor) {
 
     final var resolver =
-        new CamundaClientAdHocToolsSchemaResolver(
-            camundaClient,
-            gatewayToolDefinitionResolvers,
-            feelInputParamExtractor,
-            adHocToolSchemaGenerator);
+        new CamundaClientProcessDefinitionAdHocToolElementsResolver(
+            camundaClient, parameterExtractor);
 
     final var cacheConfiguration = configuration.tools().cache();
     if (cacheConfiguration.enabled()) {
-      return new CachingAdHocToolsSchemaResolver(
+      return new CachingProcessDefinitionAdHocToolElementsResolver(
           resolver,
-          new CachingAdHocToolsSchemaResolver.CacheConfiguration(
+          new CachingProcessDefinitionAdHocToolElementsResolver.CacheConfiguration(
               cacheConfiguration.maximumSize(), cacheConfiguration.expireAfterWrite()));
     }
 
@@ -106,14 +111,15 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled",
       matchIfMissing = true)
-  public AdHocToolsSchemaFunction adHocToolsSchemaFunction(
-      AdHocToolsSchemaResolver schemaResolver) {
-    return new AdHocToolsSchemaFunction(schemaResolver);
+  public AdHocToolsSchemaFunction aiAgentAdHocToolsSchemaFunction(
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      AdHocToolsSchemaResolver toolsSchemaResolver) {
+    return new AdHocToolsSchemaFunction(toolElementsResolver, toolsSchemaResolver);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public GatewayToolHandlerRegistry gatewayToolHandlerRegistry(
+  public GatewayToolHandlerRegistry aiAgentGatewayToolHandlerRegistry(
       List<GatewayToolHandler> gatewayToolHandlers) {
     return new GatewayToolHandlerRegistryImpl(gatewayToolHandlers);
   }
@@ -121,8 +127,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInitializer aiAgentInitializer(
-      AdHocToolsSchemaResolver schemaResolver, GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInitializerImpl(schemaResolver, gatewayToolHandlers);
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      AdHocToolsSchemaResolver toolsSchemaResolver,
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentInitializerImpl(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
   }
 
   @Bean

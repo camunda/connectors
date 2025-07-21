@@ -4,8 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.adhoctoolsschema.feel;
+package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,36 +27,36 @@ import org.camunda.feel.syntaxtree.PositionalFunctionParameters;
 import org.camunda.feel.syntaxtree.Ref;
 import scala.jdk.javaapi.CollectionConverters;
 
-public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
+public class FeelExpressionParameterExtractorImpl implements FeelExpressionParameterExtractor {
 
   private final FeelEngineApi feelEngineApi;
 
   private final FeelFunctionInvocationExtractor extractor =
       FeelFunctionInvocationExtractor.forFunctionName("fromAi");
 
-  public FeelInputParamExtractorImpl() {
+  public FeelExpressionParameterExtractorImpl() {
     this(FeelEngineBuilder.forJava().build());
   }
 
-  public FeelInputParamExtractorImpl(FeelEngineApi feelEngineApi) {
+  public FeelExpressionParameterExtractorImpl(FeelEngineApi feelEngineApi) {
     this.feelEngineApi = feelEngineApi;
   }
 
   @Override
-  public List<FeelInputParam> extractInputParams(String expression) {
+  public List<AdHocToolElementParameter> extractParameters(String expression) {
     ParseResult parseResult = feelEngineApi.parseExpression(expression);
     if (parseResult.isFailure()) {
-      throw new FeelInputParamExtractionException(
+      throw new FeelExpressionParameterExtractionException(
           "Failed to parse FEEL expression: " + parseResult.failure().message());
     }
 
     Set<FunctionInvocation> functionInvocations =
         extractor.findMatchingFunctionInvocations(parseResult.parsedExpression());
 
-    return functionInvocations.stream().map(this::mapToInputParameter).toList();
+    return functionInvocations.stream().map(this::mapToParameter).toList();
   }
 
-  private FeelInputParam mapToInputParameter(FunctionInvocation functionInvocation) {
+  private AdHocToolElementParameter mapToParameter(FunctionInvocation functionInvocation) {
     return switch (functionInvocation.params()) {
       case PositionalFunctionParameters positionalFunctionParameters ->
           fromPositionalFunctionInvocationParams(
@@ -66,12 +67,12 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
               CollectionConverters.asJava(namedFunctionParameters.params()));
 
       default ->
-          throw new FeelInputParamExtractionException(
+          throw new FeelExpressionParameterExtractionException(
               "Unsupported function invocation: " + functionInvocation.params());
     };
   }
 
-  private FeelInputParam fromPositionalFunctionInvocationParams(List<Exp> params) {
+  private AdHocToolElementParameter fromPositionalFunctionInvocationParams(List<Exp> params) {
     final Function<Integer, Exp> getParam =
         index -> (params.size() > index ? params.get(index) : null);
 
@@ -83,7 +84,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
         getParam.apply(4));
   }
 
-  private FeelInputParam fromNamedFunctionInvocationParams(Map<String, Exp> params) {
+  private AdHocToolElementParameter fromNamedFunctionInvocationParams(Map<String, Exp> params) {
     return fromFunctionInvocationParams(
         params.get("value"),
         params.get("description"),
@@ -92,7 +93,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
         params.get("options"));
   }
 
-  private FeelInputParam fromFunctionInvocationParams(
+  private AdHocToolElementParameter fromFunctionInvocationParams(
       Exp name, Exp description, Exp type, Exp schema, Exp options) {
 
     final var parameterName = parameterName(name);
@@ -101,12 +102,13 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
     final var schemaMap = evaluateToMap(schema, "schema");
     final var optionsMap = evaluateToMap(options, "options");
 
-    return new FeelInputParam(parameterName, descriptionStr, typeStr, schemaMap, optionsMap);
+    return new AdHocToolElementParameter(
+        parameterName, descriptionStr, typeStr, schemaMap, optionsMap);
   }
 
   private String parameterName(Exp value) {
     if (!(value instanceof Ref valueRef)) {
-      throw new FeelInputParamExtractionException(
+      throw new FeelExpressionParameterExtractionException(
           "Expected parameter 'value' to be a reference (e.g. 'toolCall.customParameter'), but received %s."
               .formatted(
                   switch (value) {
@@ -117,7 +119,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
 
     if (valueRef.names() == null || valueRef.names().isEmpty()) {
       // e.g. toolCall.parameter
-      throw new FeelInputParamExtractionException(
+      throw new FeelExpressionParameterExtractionException(
           "Expected parameter 'value' to be a reference with at least one segment, but received '%s'."
               .formatted(valueRef));
     }
@@ -132,7 +134,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
 
     Object result = evaluate(exp, parameterName);
     if (!(result instanceof String resultString)) {
-      throw new FeelInputParamExtractionException(
+      throw new FeelExpressionParameterExtractionException(
           "Expected parameter '%s' to be a string, but received '%s'."
               .formatted(parameterName, result));
     }
@@ -147,7 +149,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
 
     Object result = evaluate(exp, parameterName);
     if (!(result instanceof Map<?, ?> resultMap)) {
-      throw new FeelInputParamExtractionException(
+      throw new FeelExpressionParameterExtractionException(
           "Expected parameter '%s' to be a map, but received '%s'."
               .formatted(parameterName, result));
     }
@@ -165,7 +167,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
     EvaluationResult result =
         feelEngineApi.evaluate(new ParsedExpression(exp, ""), Collections.emptyMap());
     if (result.isFailure()) {
-      throw new FeelInputParamExtractionException(
+      throw new FeelExpressionParameterExtractionException(
           "Failed to evaluate expression for parameter '%s': %s"
               .formatted(parameterName, result.failure().message()));
     }

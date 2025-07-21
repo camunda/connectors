@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,8 +16,11 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -37,6 +41,7 @@ import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,6 +61,26 @@ class AgentInitializerTest {
   private static final Long PROCESS_DEFINITION_KEY = 123456789L;
   private static final String CONTAINER_ELEMENT_ID = "test-container-element-id";
 
+  public static final List<AdHocToolElement> AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS =
+      Stream.concat(
+              AD_HOC_TOOL_ELEMENTS.stream(),
+              Stream.of(
+                  AdHocToolElement.builder()
+                      .elementId("mcpClient")
+                      .elementName("AnMcpClient")
+                      .documentation("An MCP client for this cool service.")
+                      .properties(
+                          Map.of(GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION, "mcpClient"))
+                      .build(),
+                  AdHocToolElement.builder()
+                      .elementId("dummyType")
+                      .elementName("SomeOtherGateway")
+                      .documentation("Some other gateway type.")
+                      .properties(
+                          Map.of(GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION, "dummyType"))
+                      .build()))
+          .toList();
+
   private static final List<GatewayToolDefinition> GATEWAY_TOOL_DEFINITIONS =
       List.of(
           GatewayToolDefinition.builder()
@@ -73,7 +98,8 @@ class AgentInitializerTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentJobContext agentJobContext;
 
-  @Mock private AdHocToolsSchemaResolver schemaResolver;
+  @Mock private ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
+  @Mock private AdHocToolsSchemaResolver toolsSchemaResolver;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
@@ -106,8 +132,7 @@ class AgentInitializerTest {
                 assertThat(res.toolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
               });
 
-      verifyNoInteractions(schemaResolver);
-      verifyNoInteractions(gatewayToolHandlers);
+      verifyNoInteractions(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
     }
 
     @Test
@@ -123,8 +148,7 @@ class AgentInitializerTest {
                 assertThat(res.toolCallResults()).isNotNull().isEmpty();
               });
 
-      verifyNoInteractions(schemaResolver);
-      verifyNoInteractions(gatewayToolHandlers);
+      verifyNoInteractions(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
     }
 
     @Test
@@ -142,8 +166,7 @@ class AgentInitializerTest {
                 assertThat(res.toolCallResults()).isNotNull().isEmpty();
               });
 
-      verifyNoInteractions(schemaResolver);
-      verifyNoInteractions(gatewayToolHandlers);
+      verifyNoInteractions(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
     }
   }
 
@@ -172,8 +195,7 @@ class AgentInitializerTest {
                 assertThat(res.toolCallResults()).isNotNull().isEmpty();
               });
 
-      verifyNoInteractions(schemaResolver);
-      verifyNoInteractions(gatewayToolHandlers);
+      verifyNoInteractions(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
     }
 
     @ParameterizedTest
@@ -181,7 +203,9 @@ class AgentInitializerTest {
     void
         whenNoGatewayToolsResolved_returnsUpdatedAgentContextIncludingToolDefinitionsWithoutGatewayDiscovery(
             List<GatewayToolDefinition> gatewayToolDefinitions) {
-      when(schemaResolver.resolveSchema(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+      when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+          .thenReturn(AD_HOC_TOOL_ELEMENTS);
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(AD_HOC_TOOL_ELEMENTS))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, gatewayToolDefinitions));
 
       final var result =
@@ -209,8 +233,12 @@ class AgentInitializerTest {
     @NullAndEmptySource
     void whenNoToolDiscoveryToolCallsReturned_returnsUpdatedAgentContextIncludingToolDefinitions(
         List<ToolCall> toolDiscoveryToolCalls) {
-      when(schemaResolver.resolveSchema(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+      when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+          .thenReturn(AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS);
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(
+              AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
+
       when(gatewayToolHandlers.initiateToolDiscovery(
               any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
           .thenAnswer(
@@ -250,8 +278,12 @@ class AgentInitializerTest {
                   .arguments(Map.of("method", "tools/list"))
                   .build());
 
-      when(schemaResolver.resolveSchema(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+      when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+          .thenReturn(AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS);
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(
+              AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
+
       when(gatewayToolHandlers.initiateToolDiscovery(
               any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
           .thenAnswer(

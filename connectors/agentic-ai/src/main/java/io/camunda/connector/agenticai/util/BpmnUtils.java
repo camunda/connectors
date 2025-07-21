@@ -7,7 +7,11 @@
 package io.camunda.connector.agenticai.util;
 
 import io.camunda.zeebe.model.bpmn.instance.FlowNode;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 
@@ -20,5 +24,15 @@ public final class BpmnUtils {
         .findFirst()
         .map(ModelElementInstance::getTextContent)
         .filter(StringUtils::isNotBlank);
+  }
+
+  public static Map<String, String> getExtensionProperties(FlowNode element) {
+    final var extensionProperties = element.getSingleExtensionElement(ZeebeProperties.class);
+    if (extensionProperties == null) {
+      return Map.of();
+    }
+
+    return extensionProperties.getProperties().stream()
+        .collect(Collectors.toMap(ZeebeProperty::getName, ZeebeProperty::getValue));
   }
 }

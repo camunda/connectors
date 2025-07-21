@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -17,7 +18,7 @@ import java.util.List;
  * a specific type.
  *
  * <p>A single handler is expected to handle gateway tools identified by a specific {@link
- * io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver}.
+ * GatewayToolDefinitionResolver}.
  */
 public interface GatewayToolHandler extends GatewayToolCallTransformer {
   String type();
