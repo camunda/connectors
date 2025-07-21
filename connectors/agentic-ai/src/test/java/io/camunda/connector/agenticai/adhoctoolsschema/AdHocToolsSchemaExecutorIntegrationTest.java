@@ -19,8 +19,8 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelInputParamExtractionException;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelInputParamExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractionException;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerationException;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolverImpl;
@@ -60,7 +60,7 @@ class AdHocToolsSchemaExecutorIntegrationTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private CamundaClient camundaClient;
 
-  @Mock private FeelInputParamExtractor feelInputParamExtractor;
+  @Mock private FeelExpressionParameterExtractor parameterExtractor;
   @Mock private AdHocToolSchemaGenerator schemaGenerator;
 
   private AdHocToolsSchemaExecutor executor;
@@ -72,7 +72,7 @@ class AdHocToolsSchemaExecutorIntegrationTest {
   void setUp() throws IOException {
     final var toolElementsResolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
-            camundaClient, feelInputParamExtractor);
+            camundaClient, parameterExtractor);
 
     executor =
         new AdHocToolsSchemaExecutor(
@@ -103,11 +103,11 @@ class AdHocToolsSchemaExecutorIntegrationTest {
             new AdHocToolElementParameter("outputParameter", "An output parameter"));
 
     doReturn(List.of(toolAParameters.get(0)))
-        .when(feelInputParamExtractor)
-        .extractInputParams("fromAi(toolCall.inputParameter, \"An input parameter\")");
+        .when(parameterExtractor)
+        .extractParameters("fromAi(toolCall.inputParameter, \"An input parameter\")");
     doReturn(List.of(toolAParameters.get(1)))
-        .when(feelInputParamExtractor)
-        .extractInputParams("fromAi(toolCall.outputParameter, \"An output parameter\")");
+        .when(parameterExtractor)
+        .extractParameters("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
     when(schemaGenerator.generateToolSchema(any())).thenReturn(EXPECTED_EMPTY_SCHEMA);
     doReturn(EXPECTED_TOOL_A_SCHEMA)
@@ -160,11 +160,11 @@ class AdHocToolsSchemaExecutorIntegrationTest {
             new AdHocToolElementParameter("outputParameter", "An output parameter"));
 
     doReturn(List.of(toolAParameters.get(0)))
-        .when(feelInputParamExtractor)
-        .extractInputParams("fromAi(toolCall.inputParameter, \"An input parameter\")");
+        .when(parameterExtractor)
+        .extractParameters("fromAi(toolCall.inputParameter, \"An input parameter\")");
     doReturn(List.of(toolAParameters.get(1)))
-        .when(feelInputParamExtractor)
-        .extractInputParams("fromAi(toolCall.outputParameter, \"An output parameter\")");
+        .when(parameterExtractor)
+        .extractParameters("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
     when(schemaGenerator.generateToolSchema(any())).thenReturn(EXPECTED_EMPTY_SCHEMA);
     doReturn(EXPECTED_TOOL_A_SCHEMA)
@@ -224,7 +224,7 @@ class AdHocToolsSchemaExecutorIntegrationTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Process definition key must not be null or negative");
 
-    verifyNoInteractions(camundaClient, feelInputParamExtractor, schemaGenerator);
+    verifyNoInteractions(camundaClient, parameterExtractor, schemaGenerator);
   }
 
   @ParameterizedTest
@@ -235,7 +235,7 @@ class AdHocToolsSchemaExecutorIntegrationTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("adHocSubProcessId cannot be null or empty");
 
-    verifyNoInteractions(camundaClient, feelInputParamExtractor, schemaGenerator);
+    verifyNoInteractions(camundaClient, parameterExtractor, schemaGenerator);
   }
 
   @Test
@@ -265,13 +265,13 @@ class AdHocToolsSchemaExecutorIntegrationTest {
   }
 
   @Test
-  void throwsExceptionWhenInputParamExtractionFails() {
+  void throwsExceptionWhenParameterExtractionFails() {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn(bpmnXml);
 
-    doThrow(new FeelInputParamExtractionException("I can't handle the fromAi function."))
-        .when(feelInputParamExtractor)
-        .extractInputParams("fromAi(toolCall.inputParameter, \"An input parameter\")");
+    doThrow(new FeelExpressionParameterExtractionException("I can't handle the fromAi function."))
+        .when(parameterExtractor)
+        .extractParameters("fromAi(toolCall.inputParameter, \"An input parameter\")");
 
     assertThatThrownBy(
             () -> executor.resolveAdHocToolsSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
@@ -290,10 +290,10 @@ class AdHocToolsSchemaExecutorIntegrationTest {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn(bpmnXml);
 
-    when(feelInputParamExtractor.extractInputParams(any())).thenReturn(Collections.emptyList());
-    doThrow(new FeelInputParamExtractionException("I can't handle the fromAi function."))
-        .when(feelInputParamExtractor)
-        .extractInputParams("fromAi(toolCall.outputParameter, \"An output parameter\")");
+    when(parameterExtractor.extractParameters(any())).thenReturn(Collections.emptyList());
+    doThrow(new FeelExpressionParameterExtractionException("I can't handle the fromAi function."))
+        .when(parameterExtractor)
+        .extractParameters("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
     assertThatThrownBy(
             () -> executor.resolveAdHocToolsSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))

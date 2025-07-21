@@ -13,8 +13,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelInputParamExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelInputParamExtractorImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGeneratorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
@@ -67,8 +67,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FeelInputParamExtractor aiAgentAdHocFeelInputParamExtractor() {
-    return new FeelInputParamExtractorImpl();
+  public FeelExpressionParameterExtractor aiAgentAdHocFeelExpressionParameterExtractor() {
+    return new FeelExpressionParameterExtractorImpl();
   }
 
   @Bean
@@ -90,11 +90,11 @@ public class AgenticAiConnectorsAutoConfiguration {
   public ProcessDefinitionAdHocToolElementsResolver aiAgentProcessDefinitionToolElementsResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
-      FeelInputParamExtractor feelInputParamExtractor) {
+      FeelExpressionParameterExtractor parameterExtractor) {
 
     final var resolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
-            camundaClient, feelInputParamExtractor);
+            camundaClient, parameterExtractor);
 
     final var cacheConfiguration = configuration.tools().cache();
     if (cacheConfiguration.enabled()) {

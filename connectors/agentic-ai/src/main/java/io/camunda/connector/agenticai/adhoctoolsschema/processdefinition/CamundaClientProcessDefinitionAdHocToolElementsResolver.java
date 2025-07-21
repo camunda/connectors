@@ -12,8 +12,8 @@ import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperti
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelInputParamExtractionException;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelInputParamExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractionException;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractor;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -45,12 +45,12 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
       "AD_HOC_TOOL_DEFINITION_INVALID";
 
   private final CamundaClient camundaClient;
-  private final FeelInputParamExtractor feelInputParamExtractor;
+  private final FeelExpressionParameterExtractor parameterExtractor;
 
   public CamundaClientProcessDefinitionAdHocToolElementsResolver(
-      CamundaClient camundaClient, FeelInputParamExtractor feelInputParamExtractor) {
+      CamundaClient camundaClient, FeelExpressionParameterExtractor parameterExtractor) {
     this.camundaClient = camundaClient;
-    this.feelInputParamExtractor = feelInputParamExtractor;
+    this.parameterExtractor = parameterExtractor;
   }
 
   @Override
@@ -134,8 +134,8 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
     final String source = mapping.getSource().trim();
     if (source.startsWith("=")) {
       try {
-        return feelInputParamExtractor.extractInputParams(source.substring(1));
-      } catch (FeelInputParamExtractionException e) {
+        return parameterExtractor.extractParameters(source.substring(1));
+      } catch (FeelExpressionParameterExtractionException e) {
         final var mappingType =
             switch (mapping) {
               case ZeebeInput ignored -> "input";

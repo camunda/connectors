@@ -17,29 +17,29 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class FeelInputParamExtractorTest {
+class FeelExpressionParameterExtractorTest {
 
-  private final FeelInputParamExtractor extractor = new FeelInputParamExtractorImpl();
+  private final FeelExpressionParameterExtractor extractor =
+      new FeelExpressionParameterExtractorImpl();
 
   @ParameterizedTest
-  @MethodSource("testFeelExpressionsWithExpectedInputParams")
-  void extractsAllInputParametersFromExpression(FeelInputParamTestCase testCase) {
-    List<AdHocToolElementParameter> inputParams =
-        extractor.extractInputParams(testCase.expression());
+  @MethodSource("testFeelExpressionsWithExpectedParameters")
+  void extractsAllParametersFromExpression(FeelExpressionParameterTestCase testCase) {
+    List<AdHocToolElementParameter> parameters = extractor.extractParameters(testCase.expression());
 
-    if (testCase.expectedInputParams.isEmpty()) {
-      assertThat(inputParams).isEmpty();
+    if (testCase.expectedParameters.isEmpty()) {
+      assertThat(parameters).isEmpty();
     } else {
-      assertThat(inputParams)
+      assertThat(parameters)
           .usingRecursiveFieldByFieldElementComparator()
-          .containsExactlyElementsOf(testCase.expectedInputParams());
+          .containsExactlyElementsOf(testCase.expectedParameters());
     }
   }
 
   @Test
   void throwsExceptionWhenExpressionIsNotParseable() {
-    assertThatThrownBy(() -> extractor.extractInputParams("hello\""))
-        .isInstanceOf(FeelInputParamExtractionException.class)
+    assertThatThrownBy(() -> extractor.extractParameters("hello\""))
+        .isInstanceOf(FeelExpressionParameterExtractionException.class)
         .hasMessageStartingWith(
             "Failed to parse FEEL expression: failed to parse expression 'hello\"'");
   }
@@ -51,8 +51,8 @@ class FeelInputParamExtractorTest {
     "[],ConstList(List())"
   })
   void throwsExceptionWhenValueIsNotAReference(String parameter, String exceptionMessage) {
-    assertThatThrownBy(() -> extractor.extractInputParams("fromAi(%s)".formatted(parameter)))
-        .isInstanceOf(FeelInputParamExtractionException.class)
+    assertThatThrownBy(() -> extractor.extractParameters("fromAi(%s)".formatted(parameter)))
+        .isInstanceOf(FeelExpressionParameterExtractionException.class)
         .hasMessageStartingWith(
             "Expected parameter 'value' to be a reference (e.g. 'toolCall.customParameter'), but received "
                 + exceptionMessage);
@@ -62,8 +62,8 @@ class FeelInputParamExtractorTest {
   void throwsExceptionWhenDescriptionValueIsNotAString() {
     assertThatThrownBy(
             () ->
-                extractor.extractInputParams("fromAi(value: toolCall.myVariable, description: 10)"))
-        .isInstanceOf(FeelInputParamExtractionException.class)
+                extractor.extractParameters("fromAi(value: toolCall.myVariable, description: 10)"))
+        .isInstanceOf(FeelExpressionParameterExtractionException.class)
         .hasMessageStartingWith(
             "Expected parameter 'description' to be a string, but received '10'");
   }
@@ -71,8 +71,8 @@ class FeelInputParamExtractorTest {
   @Test
   void throwsExceptionWhenTypeValueIsNotAString() {
     assertThatThrownBy(
-            () -> extractor.extractInputParams("fromAi(value: toolCall.myVariable, type: 10)"))
-        .isInstanceOf(FeelInputParamExtractionException.class)
+            () -> extractor.extractParameters("fromAi(value: toolCall.myVariable, type: 10)"))
+        .isInstanceOf(FeelExpressionParameterExtractionException.class)
         .hasMessageStartingWith("Expected parameter 'type' to be a string, but received '10'.");
   }
 
@@ -80,9 +80,9 @@ class FeelInputParamExtractorTest {
   void throwsExceptionWhenSchemaValueIsNotAContext() {
     assertThatThrownBy(
             () ->
-                extractor.extractInputParams(
+                extractor.extractParameters(
                     "fromAi(value: toolCall.myVariable, schema: \"dummy\")"))
-        .isInstanceOf(FeelInputParamExtractionException.class)
+        .isInstanceOf(FeelExpressionParameterExtractionException.class)
         .hasMessageStartingWith("Expected parameter 'schema' to be a map, but received 'dummy'.");
   }
 
@@ -90,38 +90,38 @@ class FeelInputParamExtractorTest {
   void throwsExceptionWhenOptionsValueIsNotAContext() {
     assertThatThrownBy(
             () ->
-                extractor.extractInputParams(
+                extractor.extractParameters(
                     "fromAi(value: toolCall.myVariable, options: \"dummy\")"))
-        .isInstanceOf(FeelInputParamExtractionException.class)
+        .isInstanceOf(FeelExpressionParameterExtractionException.class)
         .hasMessageStartingWith("Expected parameter 'options' to be a map, but received 'dummy'.");
   }
 
-  static List<FeelInputParamTestCase> testFeelExpressionsWithExpectedInputParams() {
+  static List<FeelExpressionParameterTestCase> testFeelExpressionsWithExpectedParameters() {
     return List.of(
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "No parameters",
             """
             "hello"
             """),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name",
             """
             fromAi(toolCall.aSimpleValue)
             """,
             new AdHocToolElementParameter("aSimpleValue")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description",
             """
             fromAi(toolCall.aSimpleValue, "A simple value")
             """,
             new AdHocToolElementParameter("aSimpleValue", "A simple value")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description + type",
             """
             fromAi(toolCall.aSimpleValue, "A simple value", "string")
             """,
             new AdHocToolElementParameter("aSimpleValue", "A simple value", "string")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description + type + schema",
             """
             fromAi(toolCall.aSimpleValue, "A simple value", "string", { enum: ["A", "B", "C"] })
@@ -131,7 +131,7 @@ class FeelInputParamExtractorTest {
                 "A simple value",
                 "string",
                 Map.of("enum", List.of("A", "B", "C")))),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description + type + schema + options",
             """
             fromAi(toolCall.aSimpleValue, "A simple value", "string", { enum: ["A", "B", "C"] }, { optional: true })
@@ -142,7 +142,7 @@ class FeelInputParamExtractorTest {
                 "string",
                 Map.of("enum", List.of("A", "B", "C")),
                 Map.of("optional", true))),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description + type + schema + options (expressions to generate params)",
             """
             fromAi(toolCall.aSimpleValue, string join(["A", "simple", "value"], " "), "str" + "ing", context put({}, "enum", ["A", "B", "C"]), { optional: not(false) })
@@ -153,25 +153,25 @@ class FeelInputParamExtractorTest {
                 "string",
                 Map.of("enum", List.of("A", "B", "C")),
                 Map.of("optional", true))),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name (named params)",
             """
             fromAi(value: toolCall.aSimpleValue)
             """,
             new AdHocToolElementParameter("aSimpleValue")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description (named params)",
             """
             fromAi(value: toolCall.aSimpleValue, description: "A simple value")
             """,
             new AdHocToolElementParameter("aSimpleValue", "A simple value")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description + type (named params)",
             """
             fromAi(value: toolCall.aSimpleValue, description: "A simple value", type: "string")
             """,
             new AdHocToolElementParameter("aSimpleValue", "A simple value", "string")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description + type + schema (named params)",
             """
             fromAi(value: toolCall.aSimpleValue, description: "A simple value", type: "string", schema: { enum: ["A", "B", "C"] })
@@ -181,7 +181,7 @@ class FeelInputParamExtractorTest {
                 "A simple value",
                 "string",
                 Map.of("enum", List.of("A", "B", "C")))),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description + type + schema + options (named params)",
             """
             fromAi(
@@ -198,7 +198,7 @@ class FeelInputParamExtractorTest {
                 "string",
                 Map.of("enum", List.of("A", "B", "C")),
                 Map.of("optional", true))),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description + type + schema + options (named params, mixed order)",
             """
             fromAi(
@@ -215,7 +215,7 @@ class FeelInputParamExtractorTest {
                 "string",
                 Map.of("enum", List.of("A", "B", "C")),
                 Map.of("optional", true))),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Only expression: Name + description + type + schema + options (named params, mixed order, expressions to generate params)",
             """
             fromAi(
@@ -232,7 +232,7 @@ class FeelInputParamExtractorTest {
                 "string",
                 Map.of("enum", List.of("A", "B", "C")),
                 Map.of("optional", true))),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Array schema with sub-schema",
             """
             fromAi(toolCall.multiValue, "Select a multi value", "array", {
@@ -247,19 +247,19 @@ class FeelInputParamExtractorTest {
                 "Select a multi value",
                 "array",
                 Map.of("items", Map.of("type", "string", "enum", List.of("foo", "bar", "baz"))))),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Part of operation (integer)",
             """
             1 + 2 + fromAi(toolCall.thirdValue, "The third value to add", "integer")
             """,
             new AdHocToolElementParameter("thirdValue", "The third value to add", "integer")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Part of string concatenation",
             """
             "https://example.com/" + fromAi(toolCall.urlPath, "The URL path to use", "string")
             """,
             new AdHocToolElementParameter("urlPath", "The URL path to use", "string")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Multiple parameters, part of a context",
             """
             {
@@ -271,14 +271,14 @@ class FeelInputParamExtractorTest {
             new AdHocToolElementParameter("barValue", "A good bar value", "string"),
             new AdHocToolElementParameter("firstOne", "The first value"),
             new AdHocToolElementParameter("secondOne", "The second value", "string")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Multiple parameters, part of a list",
             """
             ["something", fromAi(toolCall.firstValue, "The first value", "string"), fromAi(toolCall.secondValue, "The second value", "integer")]
             """,
             new AdHocToolElementParameter("firstValue", "The first value", "string"),
             new AdHocToolElementParameter("secondValue", "The second value", "integer")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Multiple parameters, part of a context and list",
             """
             {
@@ -291,7 +291,7 @@ class FeelInputParamExtractorTest {
             new AdHocToolElementParameter("firstValue", "The first value", "string"),
             new AdHocToolElementParameter("secondValue", "The second value", "integer"),
             new AdHocToolElementParameter("thirdValue", "The third value to add")),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Multiple parameters, part of a context and list (named params)",
             """
             {
@@ -315,7 +315,7 @@ class FeelInputParamExtractorTest {
                 "The fourth value to add",
                 "array",
                 Map.of("items", Map.of("type", "string", "enum", List.of("foo", "bar", "baz"))))),
-        new FeelInputParamTestCase(
+        new FeelExpressionParameterTestCase(
             "Using camunda document reference data structure",
             """
             fromAi(toolCall.documents, "The documents to include", "array", {
@@ -364,12 +364,12 @@ class FeelInputParamExtractorTest {
                             "storeId", "documentId", "camunda.document.type", "contentHash"))))));
   }
 
-  record FeelInputParamTestCase(
-      String description, String expression, List<AdHocToolElementParameter> expectedInputParams) {
+  record FeelExpressionParameterTestCase(
+      String description, String expression, List<AdHocToolElementParameter> expectedParameters) {
 
-    FeelInputParamTestCase(
-        String description, String expression, AdHocToolElementParameter... expectedInputParams) {
-      this(description, expression, List.of(expectedInputParams));
+    FeelExpressionParameterTestCase(
+        String description, String expression, AdHocToolElementParameter... expectedParameters) {
+      this(description, expression, List.of(expectedParameters));
     }
 
     @Override

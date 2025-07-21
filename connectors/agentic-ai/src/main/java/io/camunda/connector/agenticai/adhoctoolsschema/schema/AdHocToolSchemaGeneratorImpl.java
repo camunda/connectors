@@ -46,13 +46,13 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
             parameter -> {
               if (restrictedParamNames.contains(parameter.name())) {
                 throw new AdHocToolSchemaGenerationException(
-                    "Failed to generate ad-hoc tool schema for element '%s'. Input parameter name '%s' is restricted and cannot be used."
+                    "Failed to generate ad-hoc tool schema for element '%s'. Parameter name '%s' is restricted and cannot be used."
                         .formatted(element.elementId(), parameter.name()));
               }
 
               if (properties.containsKey(parameter.name())) {
                 throw new AdHocToolSchemaGenerationException(
-                    "Failed to generate ad-hoc tool schema for element '%s'. Duplicate input parameter name '%s'."
+                    "Failed to generate ad-hoc tool schema for element '%s'. Duplicate parameter name '%s'."
                         .formatted(element.elementId(), parameter.name()));
               }
 

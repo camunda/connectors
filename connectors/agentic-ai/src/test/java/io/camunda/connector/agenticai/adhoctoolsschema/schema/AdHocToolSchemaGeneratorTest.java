@@ -169,7 +169,7 @@ class AdHocToolSchemaGeneratorTest {
     assertThatThrownBy(() -> generator.generateToolSchema(element))
         .isInstanceOf(AdHocToolSchemaGenerationException.class)
         .hasMessage(
-            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Input parameter name '_meta' is restricted and cannot be used.");
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter name '_meta' is restricted and cannot be used.");
   }
 
   @Test
@@ -183,7 +183,7 @@ class AdHocToolSchemaGeneratorTest {
     assertThatThrownBy(() -> generator.generateToolSchema(element))
         .isInstanceOf(AdHocToolSchemaGenerationException.class)
         .hasMessage(
-            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Duplicate input parameter name 'param1'.");
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Duplicate parameter name 'param1'.");
   }
 
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)
