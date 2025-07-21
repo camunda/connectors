@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -76,6 +77,11 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   @Override
   public LimitsConfiguration limits() {
     return request.data().limits();
+  }
+
+  @Override
+  public EventHandlingConfiguration events() {
+    return request.data().events();
   }
 
   @Override
