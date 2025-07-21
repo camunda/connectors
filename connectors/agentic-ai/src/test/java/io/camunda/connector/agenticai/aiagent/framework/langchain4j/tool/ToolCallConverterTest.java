@@ -25,10 +25,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.json.JSONException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolCallConverterTest {
@@ -78,6 +82,24 @@ class ToolCallConverterTest {
     assertThat(toolCall.id()).isEqualTo("123456");
     assertThat(toolCall.name()).isEqualTo("toolName");
     assertThat(toolCall.arguments()).isEqualTo(Map.of("key1", "value1", "key2", 42));
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"   "})
+  void addsRandomIdIfToolExecutionRequestIdIsMissing(String id) {
+    final var toolExecutionRequest =
+        ToolExecutionRequest.builder()
+            .id(id)
+            .name("toolName")
+            .arguments("{\"key\":\"value\"}")
+            .build();
+
+    final ToolCall toolCall = toolCallConverter.asToolCall(toolExecutionRequest);
+    assertThat(toolCall.id()).isNotBlank();
+    assertThat(UUID.fromString(toolCall.id())).isNotNull().isInstanceOf(UUID.class);
+    assertThat(toolCall.name()).isEqualTo("toolName");
+    assertThat(toolCall.arguments()).isEqualTo(Map.of("key", "value"));
   }
 
   @Test
