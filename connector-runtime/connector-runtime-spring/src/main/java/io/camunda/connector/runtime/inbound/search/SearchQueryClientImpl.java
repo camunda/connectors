@@ -25,7 +25,8 @@ import java.io.ByteArrayInputStream;
 
 public class SearchQueryClientImpl implements SearchQueryClient {
 
-  private static final int PAGE_SIZE = 50;
+  private static final int DEFAULT_PAGE_LIMIT = 200;
+  private int limit = DEFAULT_PAGE_LIMIT;
 
   private final CamundaClient camundaClient;
 
@@ -33,16 +34,22 @@ public class SearchQueryClientImpl implements SearchQueryClient {
     this.camundaClient = camundaClient;
   }
 
+  SearchQueryClientImpl(CamundaClient camundaClient, int limit) {
+    this.camundaClient = camundaClient;
+    if (limit <= 0) {
+      throw new IllegalArgumentException("Page limit must be greater than zero");
+    }
+    this.limit = limit;
+  }
+
   @Override
   public SearchResponse<ProcessDefinition> queryProcessDefinitions(String paginationIndex) {
     final var query =
-        camundaClient
-            .newProcessDefinitionSearchRequest()
-            .sort(s -> s.processDefinitionKey().desc());
+        camundaClient.newProcessDefinitionSearchRequest().filter(f -> f.isLatestVersion(true));
     if (paginationIndex != null) {
-      query.page(p -> p.limit(PAGE_SIZE).after(paginationIndex));
+      query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
-      query.page(p -> p.limit(PAGE_SIZE));
+      query.page(p -> p.limit(limit));
     }
     return query.send().join();
   }
@@ -59,9 +66,9 @@ public class SearchQueryClientImpl implements SearchQueryClient {
                         .elementId(elementId)
                         .state(ElementInstanceState.ACTIVE));
     if (paginationIndex != null) {
-      query.page(p -> p.limit(PAGE_SIZE).after(paginationIndex));
+      query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
-      query.page(p -> p.limit(PAGE_SIZE));
+      query.page(p -> p.limit(limit));
     }
     return query.send().join();
   }
@@ -74,9 +81,9 @@ public class SearchQueryClientImpl implements SearchQueryClient {
             .newVariableSearchRequest()
             .filter(v -> v.processInstanceKey(processInstanceKey).scopeKey(processInstanceKey));
     if (variablePaginationIndex != null) {
-      query.page(p -> p.limit(PAGE_SIZE).after(variablePaginationIndex));
+      query.page(p -> p.limit(limit).after(variablePaginationIndex));
     } else {
-      query.page(p -> p.limit(PAGE_SIZE));
+      query.page(p -> p.limit(limit));
     }
     return query.send().join();
   }
