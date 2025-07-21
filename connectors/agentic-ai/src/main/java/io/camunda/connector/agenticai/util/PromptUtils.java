@@ -11,7 +11,7 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
-public class PromptUtils {
+public final class PromptUtils {
   private PromptUtils() {}
 
   public static String resolveParameterizedPrompt(String template, Map<String, Object> parameters) {

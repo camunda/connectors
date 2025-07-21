@@ -97,6 +97,9 @@
       "name" : "Azure OpenAI",
       "value" : "azureOpenAi"
     }, {
+      "name" : "Google Vertex AI (Hybrid/Self-Managed only)",
+      "value" : "google-vertex-ai"
+    }, {
       "name" : "OpenAI",
       "value" : "openai"
     } ]
@@ -413,6 +416,46 @@
         "equals" : "azureOpenAi",
         "type" : "simple"
       } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleVertexAi.projectId",
+    "label" : "Project ID",
+    "description" : "Specify Google Cloud project ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleVertexAi.projectId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleVertexAi.location",
+    "label" : "Location",
+    "description" : "Specify the region where AI inference should take place",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleVertexAi.location",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -734,6 +777,94 @@
       "type" : "simple"
     },
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleVertexAi.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/models\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleVertexAi.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleVertexAi.model.parameters.maxOutputTokens",
+    "label" : "Maximum output tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleVertexAi.model.parameters.maxOutputTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
+    },
+    "tooltip" : "Maximum number of tokens that can be generated in the response. <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleVertexAi.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleVertexAi.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
+    },
+    "tooltip" : "Controls the degree of randomness in token selection. <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleVertexAi.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleVertexAi.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.googleVertexAi.model.parameters.topK",
+    "label" : "top K",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.googleVertexAi.model.parameters.topK",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
+    },
+    "tooltip" : "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
     "id" : "provider.openai.model.model",
