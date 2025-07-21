@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
@@ -105,6 +106,11 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
   @Override
   public LimitsConfiguration limits() {
     return request.data().limits();
+  }
+
+  @Override
+  public EventHandlingConfiguration events() {
+    return null;
   }
 
   @Override

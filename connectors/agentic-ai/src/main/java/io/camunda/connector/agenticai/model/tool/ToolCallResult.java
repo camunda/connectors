@@ -25,6 +25,8 @@ public record ToolCallResult(
         Map<String, Object> properties)
     implements ToolCallResultBuilder.With {
 
+  public static final String PROPERTY_INTERRUPTED = "interrupted";
+
   public static ToolCallResultBuilder builder() {
     return ToolCallResultBuilder.builder();
   }
