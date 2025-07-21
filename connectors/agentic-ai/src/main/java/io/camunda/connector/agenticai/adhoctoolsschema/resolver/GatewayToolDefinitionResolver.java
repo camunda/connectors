@@ -6,9 +6,8 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.zeebe.model.bpmn.instance.FlowNode;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
 import java.util.List;
 
 /**
@@ -23,15 +22,15 @@ import java.util.List;
 public interface GatewayToolDefinitionResolver {
   String GATEWAY_TYPE_EXTENSION = "io.camunda.agenticai.gateway.type";
 
-  List<GatewayToolDefinition> resolveGatewayToolDefinitions(List<FlowNode> elements);
+  List<GatewayToolDefinition> resolveGatewayToolDefinitions(List<AdHocToolElement> elements);
 
-  default boolean hasGatewayTypeExtensionProperty(FlowNode element, String expectedTypeValue) {
-    final var extensionProperties = element.getSingleExtensionElement(ZeebeProperties.class);
-    return extensionProperties != null
-        && extensionProperties.getProperties().stream()
+  default boolean hasGatewayTypeExtensionProperty(
+      AdHocToolElement element, String expectedTypeValue) {
+    return element.properties() != null
+        && element.properties().entrySet().stream()
             .anyMatch(
                 property ->
-                    GATEWAY_TYPE_EXTENSION.equals(property.getName())
-                        && property.getValue().equals(expectedTypeValue));
+                    GATEWAY_TYPE_EXTENSION.equals(property.getKey())
+                        && expectedTypeValue.equals(property.getValue()));
   }
 }

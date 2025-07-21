@@ -6,8 +6,13 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import java.util.List;
 
+/**
+ * Extracts input parameters defined as tagging functions (such as fromAi) from a given FEEL
+ * expression string
+ */
 public interface FeelInputParamExtractor {
-  List<FeelInputParam> extractInputParams(String expression);
+  List<AdHocToolElementParameter> extractInputParams(String expression);
 }

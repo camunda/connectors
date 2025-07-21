@@ -6,8 +6,12 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema;
 
-public class SchemaGenerationException extends RuntimeException {
-  public SchemaGenerationException(String message) {
-    super(message);
+import io.camunda.connector.api.error.ConnectorException;
+
+public class AdHocToolSchemaGenerationException extends ConnectorException {
+  private static final String ERROR_CODE_AD_HOC_TOOL_SCHEMA_INVALID = "AD_HOC_TOOL_SCHEMA_INVALID";
+
+  public AdHocToolSchemaGenerationException(String message) {
+    super(ERROR_CODE_AD_HOC_TOOL_SCHEMA_INVALID, message);
   }
 }

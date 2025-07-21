@@ -15,7 +15,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtrac
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CachingAdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.CamundaClientAdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolDefinitionConverter;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
@@ -43,7 +43,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   private static final List<Class<?>> AGENTIC_AI_BEANS =
       List.of(
           FeelInputParamExtractor.class,
-          AdHocToolSchemaGenerator.class,
+          AdHocToolDefinitionConverter.class,
           AdHocToolsSchemaResolver.class,
           AdHocToolsSchemaFunction.class,
           GatewayToolHandlerRegistry.class,

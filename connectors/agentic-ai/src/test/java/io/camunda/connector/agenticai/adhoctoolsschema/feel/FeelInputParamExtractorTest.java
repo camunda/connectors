@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,8 @@ class FeelInputParamExtractorTest {
   @ParameterizedTest
   @MethodSource("testFeelExpressionsWithExpectedInputParams")
   void extractsAllInputParametersFromExpression(FeelInputParamTestCase testCase) {
-    List<FeelInputParam> inputParams = extractor.extractInputParams(testCase.expression());
+    List<AdHocToolElementParameter> inputParams =
+        extractor.extractInputParams(testCase.expression());
 
     if (testCase.expectedInputParams.isEmpty()) {
       assertThat(inputParams).isEmpty();
@@ -106,25 +108,25 @@ class FeelInputParamExtractorTest {
             """
             fromAi(toolCall.aSimpleValue)
             """,
-            new FeelInputParam("aSimpleValue")),
+            new AdHocToolElementParameter("aSimpleValue")),
         new FeelInputParamTestCase(
             "Only expression: Name + description",
             """
             fromAi(toolCall.aSimpleValue, "A simple value")
             """,
-            new FeelInputParam("aSimpleValue", "A simple value")),
+            new AdHocToolElementParameter("aSimpleValue", "A simple value")),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type",
             """
             fromAi(toolCall.aSimpleValue, "A simple value", "string")
             """,
-            new FeelInputParam("aSimpleValue", "A simple value", "string")),
+            new AdHocToolElementParameter("aSimpleValue", "A simple value", "string")),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema",
             """
             fromAi(toolCall.aSimpleValue, "A simple value", "string", { enum: ["A", "B", "C"] })
             """,
-            new FeelInputParam(
+            new AdHocToolElementParameter(
                 "aSimpleValue",
                 "A simple value",
                 "string",
@@ -134,7 +136,7 @@ class FeelInputParamExtractorTest {
             """
             fromAi(toolCall.aSimpleValue, "A simple value", "string", { enum: ["A", "B", "C"] }, { optional: true })
             """,
-            new FeelInputParam(
+            new AdHocToolElementParameter(
                 "aSimpleValue",
                 "A simple value",
                 "string",
@@ -145,7 +147,7 @@ class FeelInputParamExtractorTest {
             """
             fromAi(toolCall.aSimpleValue, string join(["A", "simple", "value"], " "), "str" + "ing", context put({}, "enum", ["A", "B", "C"]), { optional: not(false) })
             """,
-            new FeelInputParam(
+            new AdHocToolElementParameter(
                 "aSimpleValue",
                 "A simple value",
                 "string",
@@ -156,25 +158,25 @@ class FeelInputParamExtractorTest {
             """
             fromAi(value: toolCall.aSimpleValue)
             """,
-            new FeelInputParam("aSimpleValue")),
+            new AdHocToolElementParameter("aSimpleValue")),
         new FeelInputParamTestCase(
             "Only expression: Name + description (named params)",
             """
             fromAi(value: toolCall.aSimpleValue, description: "A simple value")
             """,
-            new FeelInputParam("aSimpleValue", "A simple value")),
+            new AdHocToolElementParameter("aSimpleValue", "A simple value")),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type (named params)",
             """
             fromAi(value: toolCall.aSimpleValue, description: "A simple value", type: "string")
             """,
-            new FeelInputParam("aSimpleValue", "A simple value", "string")),
+            new AdHocToolElementParameter("aSimpleValue", "A simple value", "string")),
         new FeelInputParamTestCase(
             "Only expression: Name + description + type + schema (named params)",
             """
             fromAi(value: toolCall.aSimpleValue, description: "A simple value", type: "string", schema: { enum: ["A", "B", "C"] })
             """,
-            new FeelInputParam(
+            new AdHocToolElementParameter(
                 "aSimpleValue",
                 "A simple value",
                 "string",
@@ -190,7 +192,7 @@ class FeelInputParamExtractorTest {
               options: { optional: true }
             )
             """,
-            new FeelInputParam(
+            new AdHocToolElementParameter(
                 "aSimpleValue",
                 "A simple value",
                 "string",
@@ -207,7 +209,7 @@ class FeelInputParamExtractorTest {
               value: toolCall.aSimpleValue
             )
             """,
-            new FeelInputParam(
+            new AdHocToolElementParameter(
                 "aSimpleValue",
                 "A simple value",
                 "string",
@@ -224,7 +226,7 @@ class FeelInputParamExtractorTest {
               value: toolCall.aSimpleValue
             )
             """,
-            new FeelInputParam(
+            new AdHocToolElementParameter(
                 "aSimpleValue",
                 "A simple value",
                 "string",
@@ -240,7 +242,7 @@ class FeelInputParamExtractorTest {
               }
             })
             """,
-            new FeelInputParam(
+            new AdHocToolElementParameter(
                 "multiValue",
                 "Select a multi value",
                 "array",
@@ -250,13 +252,13 @@ class FeelInputParamExtractorTest {
             """
             1 + 2 + fromAi(toolCall.thirdValue, "The third value to add", "integer")
             """,
-            new FeelInputParam("thirdValue", "The third value to add", "integer")),
+            new AdHocToolElementParameter("thirdValue", "The third value to add", "integer")),
         new FeelInputParamTestCase(
             "Part of string concatenation",
             """
             "https://example.com/" + fromAi(toolCall.urlPath, "The URL path to use", "string")
             """,
-            new FeelInputParam("urlPath", "The URL path to use", "string")),
+            new AdHocToolElementParameter("urlPath", "The URL path to use", "string")),
         new FeelInputParamTestCase(
             "Multiple parameters, part of a context",
             """
@@ -266,16 +268,16 @@ class FeelInputParamExtractorTest {
               combined: fromAi(toolCall.firstOne, "The first value") + fromAi(toolCall.secondOne, "The second value", "string")
             }
             """,
-            new FeelInputParam("barValue", "A good bar value", "string"),
-            new FeelInputParam("firstOne", "The first value"),
-            new FeelInputParam("secondOne", "The second value", "string")),
+            new AdHocToolElementParameter("barValue", "A good bar value", "string"),
+            new AdHocToolElementParameter("firstOne", "The first value"),
+            new AdHocToolElementParameter("secondOne", "The second value", "string")),
         new FeelInputParamTestCase(
             "Multiple parameters, part of a list",
             """
             ["something", fromAi(toolCall.firstValue, "The first value", "string"), fromAi(toolCall.secondValue, "The second value", "integer")]
             """,
-            new FeelInputParam("firstValue", "The first value", "string"),
-            new FeelInputParam("secondValue", "The second value", "integer")),
+            new AdHocToolElementParameter("firstValue", "The first value", "string"),
+            new AdHocToolElementParameter("secondValue", "The second value", "integer")),
         new FeelInputParamTestCase(
             "Multiple parameters, part of a context and list",
             """
@@ -286,9 +288,9 @@ class FeelInputParamExtractorTest {
               }
             }
             """,
-            new FeelInputParam("firstValue", "The first value", "string"),
-            new FeelInputParam("secondValue", "The second value", "integer"),
-            new FeelInputParam("thirdValue", "The third value to add")),
+            new AdHocToolElementParameter("firstValue", "The first value", "string"),
+            new AdHocToolElementParameter("secondValue", "The second value", "integer"),
+            new AdHocToolElementParameter("thirdValue", "The third value to add")),
         new FeelInputParamTestCase(
             "Multiple parameters, part of a context and list (named params)",
             """
@@ -305,10 +307,10 @@ class FeelInputParamExtractorTest {
               }
             }
             """,
-            new FeelInputParam("firstValue", "The first value", "string"),
-            new FeelInputParam("secondValue", "The second value", "integer"),
-            new FeelInputParam("thirdValue", "The third value to add"),
-            new FeelInputParam(
+            new AdHocToolElementParameter("firstValue", "The first value", "string"),
+            new AdHocToolElementParameter("secondValue", "The second value", "integer"),
+            new AdHocToolElementParameter("thirdValue", "The third value to add"),
+            new AdHocToolElementParameter(
                 "fourthValue",
                 "The fourth value to add",
                 "array",
@@ -342,7 +344,7 @@ class FeelInputParamExtractorTest {
               }
             })
             """,
-            new FeelInputParam(
+            new AdHocToolElementParameter(
                 "documents",
                 "The documents to include",
                 "array",
@@ -363,10 +365,10 @@ class FeelInputParamExtractorTest {
   }
 
   record FeelInputParamTestCase(
-      String description, String expression, List<FeelInputParam> expectedInputParams) {
+      String description, String expression, List<AdHocToolElementParameter> expectedInputParams) {
 
     FeelInputParamTestCase(
-        String description, String expression, FeelInputParam... expectedInputParams) {
+        String description, String expression, AdHocToolElementParameter... expectedInputParams) {
       this(description, expression, List.of(expectedInputParams));
     }
 

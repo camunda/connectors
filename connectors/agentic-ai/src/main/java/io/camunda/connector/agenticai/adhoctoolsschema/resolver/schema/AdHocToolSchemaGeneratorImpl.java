@@ -13,7 +13,7 @@ import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_OBJECT;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_STRING;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,45 +36,48 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
   }
 
   @Override
-  public Map<String, Object> generateToolSchema(List<FeelInputParam> inputParams) {
+  public Map<String, Object> generateToolSchema(AdHocToolElement element) {
     Map<String, Object> properties = new LinkedHashMap<>();
     List<String> required = new ArrayList<>();
 
-    inputParams.forEach(
-        inputParam -> {
-          if (restrictedParamNames.contains(inputParam.name())) {
-            throw new SchemaGenerationException(
-                "Input parameter name '%s' is restricted and cannot be used."
-                    .formatted(inputParam.name()));
-          }
+    element
+        .parameters()
+        .forEach(
+            inputParam -> {
+              if (restrictedParamNames.contains(inputParam.name())) {
+                throw new AdHocToolSchemaGenerationException(
+                    "Failed to generate ad-hoc tool schema for element '%s'. Input parameter name '%s' is restricted and cannot be used."
+                        .formatted(element.elementId(), inputParam.name()));
+              }
 
-          if (properties.containsKey(inputParam.name())) {
-            throw new SchemaGenerationException(
-                "Duplicate input parameter name '%s'.".formatted(inputParam.name()));
-          }
+              if (properties.containsKey(inputParam.name())) {
+                throw new AdHocToolSchemaGenerationException(
+                    "Failed to generate ad-hoc tool schema for element '%s'. Duplicate input parameter name '%s'."
+                        .formatted(element.elementId(), inputParam.name()));
+              }
 
-          final var propertySchema =
-              Optional.ofNullable(inputParam.schema())
-                  .map(LinkedHashMap::new)
-                  .orElseGet(LinkedHashMap::new);
+              final var propertySchema =
+                  Optional.ofNullable(inputParam.schema())
+                      .map(LinkedHashMap::new)
+                      .orElseGet(LinkedHashMap::new);
 
-          // apply type from inputParam if it is set
-          if (!StringUtils.isBlank(inputParam.type())) {
-            propertySchema.put(PROPERTY_TYPE, inputParam.type());
-          }
+              // apply type from inputParam if it is set
+              if (!StringUtils.isBlank(inputParam.type())) {
+                propertySchema.put(PROPERTY_TYPE, inputParam.type());
+              }
 
-          // default to string if no type is set (not on inputParam, not in schema directly)
-          if (!propertySchema.containsKey(PROPERTY_TYPE)) {
-            propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
-          }
+              // default to string if no type is set (not on inputParam, not in schema directly)
+              if (!propertySchema.containsKey(PROPERTY_TYPE)) {
+                propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
+              }
 
-          if (!StringUtils.isBlank(inputParam.description())) {
-            propertySchema.put(PROPERTY_DESCRIPTION, inputParam.description());
-          }
+              if (!StringUtils.isBlank(inputParam.description())) {
+                propertySchema.put(PROPERTY_DESCRIPTION, inputParam.description());
+              }
 
-          properties.put(inputParam.name(), propertySchema);
-          required.add(inputParam.name());
-        });
+              properties.put(inputParam.name(), propertySchema);
+              required.add(inputParam.name());
+            });
 
     Map<String, Object> inputSchema = new LinkedHashMap<>();
     inputSchema.put(PROPERTY_TYPE, TYPE_OBJECT);

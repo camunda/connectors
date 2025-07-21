@@ -6,17 +6,16 @@
  */
 package io.camunda.connector.agenticai.mcp.discovery;
 
-import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentation;
-
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.zeebe.model.bpmn.instance.FlowNode;
 import java.util.List;
 
 public class McpClientGatewayToolDefinitionResolver implements GatewayToolDefinitionResolver {
 
   @Override
-  public List<GatewayToolDefinition> resolveGatewayToolDefinitions(List<FlowNode> elements) {
+  public List<GatewayToolDefinition> resolveGatewayToolDefinitions(
+      List<AdHocToolElement> elements) {
     return elements.stream()
         .filter(
             element ->
@@ -25,8 +24,8 @@ public class McpClientGatewayToolDefinitionResolver implements GatewayToolDefini
             element ->
                 GatewayToolDefinition.builder()
                     .type(McpClientGatewayToolHandler.GATEWAY_TYPE)
-                    .name(element.getId())
-                    .description(getElementDocumentation(element).orElse(null))
+                    .name(element.elementId())
+                    .description(element.documentationWithNameFallback())
                     .build())
         .toList();
   }

@@ -7,16 +7,16 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 
 import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentation;
+import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperties;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.SchemaGenerationException;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolDefinitionConverter;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,22 +45,21 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
       "AD_HOC_SUB_PROCESS_NOT_FOUND";
   private static final String ERROR_CODE_AD_HOC_TOOL_DEFINITION_INVALID =
       "AD_HOC_TOOL_DEFINITION_INVALID";
-  private static final String ERROR_CODE_AD_HOC_TOOL_SCHEMA_INVALID = "AD_HOC_TOOL_SCHEMA_INVALID";
 
   private final CamundaClient camundaClient;
   private final List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers;
   private final FeelInputParamExtractor feelInputParamExtractor;
-  private final AdHocToolSchemaGenerator schemaGenerator;
+  private final AdHocToolDefinitionConverter toolDefinitionConverter;
 
   public CamundaClientAdHocToolsSchemaResolver(
       CamundaClient camundaClient,
       List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
       FeelInputParamExtractor feelInputParamExtractor,
-      AdHocToolSchemaGenerator schemaGenerator) {
+      AdHocToolDefinitionConverter toolDefinitionConverter) {
     this.camundaClient = camundaClient;
     this.gatewayToolDefinitionResolvers = gatewayToolDefinitionResolvers;
     this.feelInputParamExtractor = feelInputParamExtractor;
-    this.schemaGenerator = schemaGenerator;
+    this.toolDefinitionConverter = toolDefinitionConverter;
   }
 
   @Override
@@ -97,17 +95,28 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
 
     final var toolElements =
         adHocSubProcess.getChildElementsByType(FlowNode.class).stream()
-            .filter(this::isEligibleElement)
+            .filter(this::isToolElement)
+            .map(this::asSubProcessElement)
             .toList();
 
     return resolveTools(toolElements);
   }
 
-  protected boolean isEligibleElement(FlowNode element) {
+  private boolean isToolElement(FlowNode element) {
     return element.getIncoming().isEmpty() && !(element instanceof BoundaryEvent);
   }
 
-  protected AdHocToolsSchemaResponse resolveTools(List<FlowNode> toolElements) {
+  private AdHocToolElement asSubProcessElement(FlowNode element) {
+    return AdHocToolElement.builder()
+        .elementId(element.getId())
+        .elementName(element.getName())
+        .documentation(getElementDocumentation(element).orElse(null))
+        .properties(getExtensionProperties(element))
+        .parameters(extractParameters(element))
+        .build();
+  }
+
+  private AdHocToolsSchemaResponse resolveTools(List<AdHocToolElement> toolElements) {
     final var gatewayToolDefinitions =
         gatewayToolDefinitionResolvers.stream()
             .flatMap(resolver -> resolver.resolveGatewayToolDefinitions(toolElements).stream())
@@ -119,59 +128,36 @@ public class CamundaClientAdHocToolsSchemaResolver implements AdHocToolsSchemaRe
     // map all non-gateway tool elements to tool definitions
     final var toolDefinitions =
         toolElements.stream()
-            .filter(flowNode -> !gatewayFlowNodeIds.contains(flowNode.getId()))
-            .map(this::mapActivityToToolDefinition)
+            .filter(toolElement -> !gatewayFlowNodeIds.contains(toolElement.elementId()))
+            .map(toolDefinitionConverter::createToolDefinition)
             .toList();
 
     return new AdHocToolsSchemaResponse(toolDefinitions, gatewayToolDefinitions);
   }
 
-  private ToolDefinition mapActivityToToolDefinition(FlowNode element) {
-    final var documentation = getElementDocumentation(element).orElseGet(element::getName);
-    final var inputSchema = generateInputSchema(element);
-
-    return ToolDefinition.builder()
-        .name(element.getId())
-        .description(documentation)
-        .inputSchema(inputSchema)
-        .build();
-  }
-
-  private Map<String, Object> generateInputSchema(FlowNode element) {
-    final var inputParams = extractFeelInputParams(element);
-
-    try {
-      return schemaGenerator.generateToolSchema(inputParams);
-    } catch (SchemaGenerationException e) {
-      throw new ConnectorException(
-          ERROR_CODE_AD_HOC_TOOL_SCHEMA_INVALID,
-          "Failed to generate ad-hoc tool schema for element '%s': %s"
-              .formatted(element.getId(), e.getMessage()));
-    }
-  }
-
-  private List<FeelInputParam> extractFeelInputParams(FlowNode element) {
+  private List<AdHocToolElementParameter> extractParameters(FlowNode element) {
     final var ioMapping = element.getSingleExtensionElement(ZeebeIoMapping.class);
     if (ioMapping == null) {
       return Collections.emptyList();
     }
 
-    List<FeelInputParam> result = new ArrayList<>();
-    result.addAll(extractFeelInputParams(element, ioMapping.getInputs()));
-    result.addAll(extractFeelInputParams(element, ioMapping.getOutputs()));
+    List<AdHocToolElementParameter> result = new ArrayList<>();
+    result.addAll(extractParameters(element, ioMapping.getInputs()));
+    result.addAll(extractParameters(element, ioMapping.getOutputs()));
 
     return result;
   }
 
-  private List<FeelInputParam> extractFeelInputParams(
+  private List<AdHocToolElementParameter> extractParameters(
       FlowNode element, Collection<? extends ZeebeMapping> mappings) {
     return mappings.stream()
-        .map(mapping -> extractFeelInputParams(element, mapping))
+        .map(mapping -> extractParameters(element, mapping))
         .flatMap(List::stream)
         .toList();
   }
 
-  private List<FeelInputParam> extractFeelInputParams(FlowNode element, ZeebeMapping mapping) {
+  private List<AdHocToolElementParameter> extractParameters(
+      FlowNode element, ZeebeMapping mapping) {
     if (mapping.getSource() == null) {
       return Collections.emptyList();
     }

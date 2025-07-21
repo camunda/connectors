@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.feel;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,7 +43,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
   }
 
   @Override
-  public List<FeelInputParam> extractInputParams(String expression) {
+  public List<AdHocToolElementParameter> extractInputParams(String expression) {
     ParseResult parseResult = feelEngineApi.parseExpression(expression);
     if (parseResult.isFailure()) {
       throw new FeelInputParamExtractionException(
@@ -55,7 +56,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
     return functionInvocations.stream().map(this::mapToInputParameter).toList();
   }
 
-  private FeelInputParam mapToInputParameter(FunctionInvocation functionInvocation) {
+  private AdHocToolElementParameter mapToInputParameter(FunctionInvocation functionInvocation) {
     return switch (functionInvocation.params()) {
       case PositionalFunctionParameters positionalFunctionParameters ->
           fromPositionalFunctionInvocationParams(
@@ -71,7 +72,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
     };
   }
 
-  private FeelInputParam fromPositionalFunctionInvocationParams(List<Exp> params) {
+  private AdHocToolElementParameter fromPositionalFunctionInvocationParams(List<Exp> params) {
     final Function<Integer, Exp> getParam =
         index -> (params.size() > index ? params.get(index) : null);
 
@@ -83,7 +84,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
         getParam.apply(4));
   }
 
-  private FeelInputParam fromNamedFunctionInvocationParams(Map<String, Exp> params) {
+  private AdHocToolElementParameter fromNamedFunctionInvocationParams(Map<String, Exp> params) {
     return fromFunctionInvocationParams(
         params.get("value"),
         params.get("description"),
@@ -92,7 +93,7 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
         params.get("options"));
   }
 
-  private FeelInputParam fromFunctionInvocationParams(
+  private AdHocToolElementParameter fromFunctionInvocationParams(
       Exp name, Exp description, Exp type, Exp schema, Exp options) {
 
     final var parameterName = parameterName(name);
@@ -101,7 +102,8 @@ public class FeelInputParamExtractorImpl implements FeelInputParamExtractor {
     final var schemaMap = evaluateToMap(schema, "schema");
     final var optionsMap = evaluateToMap(options, "options");
 
-    return new FeelInputParam(parameterName, descriptionStr, typeStr, schemaMap, optionsMap);
+    return new AdHocToolElementParameter(
+        parameterName, descriptionStr, typeStr, schemaMap, optionsMap);
   }
 
   private String parameterName(Exp value) {

@@ -9,22 +9,24 @@ package io.camunda.connector.agenticai.adhoctoolsschema.resolver;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParam;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.feel.FeelInputParamExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolDefinitionConverter;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolDefinitionConverterImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerationException;
 import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.AdHocToolSchemaGenerator;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.schema.SchemaGenerationException;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.util.BpmnUtils;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.zeebe.model.bpmn.instance.FlowNode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,9 +69,12 @@ class CamundaClientAdHocToolsSchemaResolverTest {
 
   @BeforeEach
   void setUp() throws IOException {
+    AdHocToolDefinitionConverter toolDefinitionConverter =
+        new AdHocToolDefinitionConverterImpl(schemaGenerator);
+
     resolver =
         new CamundaClientAdHocToolsSchemaResolver(
-            camundaClient, List.of(), feelInputParamExtractor, schemaGenerator);
+            camundaClient, List.of(), feelInputParamExtractor, toolDefinitionConverter);
     resolverWithGatewayToolDefinitionResolvers =
         new CamundaClientAdHocToolsSchemaResolver(
             camundaClient,
@@ -77,7 +82,7 @@ class CamundaClientAdHocToolsSchemaResolverTest {
                 new SimpleToolGatewayToolDefinitionResolver(),
                 new ComplexToolGatewayToolDefinitionResolver()),
             feelInputParamExtractor,
-            schemaGenerator);
+            toolDefinitionConverter);
 
     bpmnXml =
         Files.readString(
@@ -91,8 +96,8 @@ class CamundaClientAdHocToolsSchemaResolverTest {
 
     final var toolAInputParams =
         List.of(
-            new FeelInputParam("inputParameter", "An input parameter"),
-            new FeelInputParam("outputParameter", "An output parameter"));
+            new AdHocToolElementParameter("inputParameter", "An input parameter"),
+            new AdHocToolElementParameter("outputParameter", "An output parameter"));
 
     doReturn(List.of(toolAInputParams.get(0)))
         .when(feelInputParamExtractor)
@@ -102,7 +107,9 @@ class CamundaClientAdHocToolsSchemaResolverTest {
         .extractInputParams("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
     when(schemaGenerator.generateToolSchema(any())).thenReturn(EXPECTED_EMPTY_SCHEMA);
-    doReturn(EXPECTED_TOOL_A_SCHEMA).when(schemaGenerator).generateToolSchema(toolAInputParams);
+    doReturn(EXPECTED_TOOL_A_SCHEMA)
+        .when(schemaGenerator)
+        .generateToolSchema(argThat(element -> element.elementId().equals("Tool_A")));
 
     final var result = resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID);
 
@@ -145,8 +152,8 @@ class CamundaClientAdHocToolsSchemaResolverTest {
 
     final var toolAInputParams =
         List.of(
-            new FeelInputParam("inputParameter", "An input parameter"),
-            new FeelInputParam("outputParameter", "An output parameter"));
+            new AdHocToolElementParameter("inputParameter", "An input parameter"),
+            new AdHocToolElementParameter("outputParameter", "An output parameter"));
 
     doReturn(List.of(toolAInputParams.get(0)))
         .when(feelInputParamExtractor)
@@ -156,7 +163,9 @@ class CamundaClientAdHocToolsSchemaResolverTest {
         .extractInputParams("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
     when(schemaGenerator.generateToolSchema(any())).thenReturn(EXPECTED_EMPTY_SCHEMA);
-    doReturn(EXPECTED_TOOL_A_SCHEMA).when(schemaGenerator).generateToolSchema(toolAInputParams);
+    doReturn(EXPECTED_TOOL_A_SCHEMA)
+        .when(schemaGenerator)
+        .generateToolSchema(argThat(element -> element.elementId().equals("Tool_A")));
 
     final var result =
         resolverWithGatewayToolDefinitionResolvers.resolveSchema(
@@ -296,16 +305,14 @@ class CamundaClientAdHocToolsSchemaResolverTest {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn(bpmnXml);
     when(schemaGenerator.generateToolSchema(any()))
-        .thenThrow(new SchemaGenerationException("I can't generate this schema"));
+        .thenThrow(new AdHocToolSchemaGenerationException("I can't generate this schema"));
 
     assertThatThrownBy(() -> resolver.resolveSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
               assertThat(e.getErrorCode()).isEqualTo("AD_HOC_TOOL_SCHEMA_INVALID");
-              assertThat(e.getMessage())
-                  .isEqualTo(
-                      "Failed to generate ad-hoc tool schema for element 'A_Complex_Tool': I can't generate this schema");
+              assertThat(e.getMessage()).isEqualTo("I can't generate this schema");
             });
   }
 
@@ -313,15 +320,16 @@ class CamundaClientAdHocToolsSchemaResolverTest {
       implements GatewayToolDefinitionResolver {
 
     @Override
-    public List<GatewayToolDefinition> resolveGatewayToolDefinitions(List<FlowNode> elements) {
+    public List<GatewayToolDefinition> resolveGatewayToolDefinitions(
+        List<AdHocToolElement> elements) {
       return elements.stream()
-          .filter(element -> element.getId().equals("Simple_Tool"))
+          .filter(element -> element.elementId().equals("Simple_Tool"))
           .map(
               element ->
                   GatewayToolDefinition.builder()
                       .type("simpleTool")
-                      .name(element.getId())
-                      .description(BpmnUtils.getElementDocumentation(element).orElse(null))
+                      .name(element.elementId())
+                      .description(element.documentationWithNameFallback())
                       .properties(Map.of("simple", true))
                       .build())
           .toList();
@@ -332,15 +340,16 @@ class CamundaClientAdHocToolsSchemaResolverTest {
       implements GatewayToolDefinitionResolver {
 
     @Override
-    public List<GatewayToolDefinition> resolveGatewayToolDefinitions(List<FlowNode> elements) {
+    public List<GatewayToolDefinition> resolveGatewayToolDefinitions(
+        List<AdHocToolElement> elements) {
       return elements.stream()
-          .filter(element -> element.getId().equals("A_Complex_Tool"))
+          .filter(element -> element.elementId().equals("A_Complex_Tool"))
           .map(
               element ->
                   GatewayToolDefinition.builder()
                       .type("complexTool")
-                      .name(element.getId())
-                      .description(BpmnUtils.getElementDocumentation(element).orElse(null))
+                      .name(element.elementId())
+                      .description(element.documentationWithNameFallback())
                       .properties(Map.of("toolType", "complex"))
                       .build())
           .toList();
