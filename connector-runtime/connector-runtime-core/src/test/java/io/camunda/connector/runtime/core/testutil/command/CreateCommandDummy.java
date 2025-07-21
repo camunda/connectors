@@ -67,6 +67,10 @@ public class CreateCommandDummy
     return this;
   }
 
+  public CreateProcessInstanceCommandStep3 suspendAfterElement(String elementId) {
+    return null;
+  }
+
   public CreateProcessInstanceWithResultCommandStep1 withResult() {
     return null;
   }
