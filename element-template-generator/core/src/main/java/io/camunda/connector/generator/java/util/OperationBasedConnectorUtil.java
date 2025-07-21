@@ -29,25 +29,36 @@ public class OperationBasedConnectorUtil {
   public static String OPERATION_PROPERTY_SEPARATOR = ":";
   public static String VARIABLE_PATH_SEPARATOR = ".";
 
-  public static PropertyBuilder createOperationsDropdown(
+  public static PropertyBuilder createOperationsProperty(
       List<ReflectionUtil.MethodWithAnnotation<Operation>> methods) {
-    // TODO handle case when there is only a single operation
-    return new DropdownProperty.DropdownPropertyBuilder()
-        .choices(
-            methods.stream()
-                .map(
-                    m -> {
-                      Operation operation = m.annotation();
-                      String operationName = getOperationName(operation);
-                      String operationId = getOperationId(operation);
-                      return new DropdownProperty.DropdownChoice(operationName, operationId);
-                    })
-                .toList())
+    if (methods.isEmpty()) {
+      throw new IllegalArgumentException("No operations found for the connector.");
+    }
+    PropertyBuilder operationsProperty;
+    if (methods.size() == 1) {
+      operationsProperty = HiddenProperty.builder();
+    } else {
+      operationsProperty =
+          new DropdownProperty.DropdownPropertyBuilder()
+              .choices(
+                  methods.stream()
+                      .map(
+                          m -> {
+                            Operation operation = m.annotation();
+                            String operationName = getOperationName(operation);
+                            String operationId = getOperationId(operation);
+                            return new DropdownProperty.DropdownChoice(operationName, operationId);
+                          })
+                      .toList());
+    }
+
+    return operationsProperty
         .id(OPERATION_PROPERTY_ID)
         .binding(new PropertyBinding.ZeebeTaskHeader(OPERATION_TASK_HEADER_KEY))
         .label("Operation")
         .description("The operation to execute")
         .feel(Property.FeelMode.disabled)
+        .value(getOperationId(methods.getFirst().annotation()))
         .group("operation");
   }
 

@@ -19,43 +19,31 @@ package io.camunda.connector.generator.java.example.outbound;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.annotation.Variable;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
-import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 
-@OutboundConnector(name = OperationAnnotatedConnector.NAME, type = OperationAnnotatedConnector.TYPE)
+@OutboundConnector(
+    name = SingleOperationAnnotatedConnector.NAME,
+    type = SingleOperationAnnotatedConnector.TYPE)
 @ElementTemplate(
     engineVersion = "^8.8",
-    id = OperationAnnotatedConnector.ID,
-    name = OperationAnnotatedConnector.NAME)
-public class OperationAnnotatedConnector implements OutboundConnectorProvider {
+    id = SingleOperationAnnotatedConnector.ID,
+    name = SingleOperationAnnotatedConnector.NAME)
+public class SingleOperationAnnotatedConnector implements OutboundConnectorProvider {
 
   public static final String ID = "operation-annotated-connector-id";
   public static final String TYPE = "operation-annotated-connector-type";
   public static final String NAME = "Operation Annotated Connector";
 
-  record Operation1Request(
+  record OperationRequest(
       @TemplateProperty(id = "p1") String param1,
       @TemplateProperty(condition = @PropertyCondition(property = "p1", equals = "myValue"))
           String param2) {}
 
   @Operation(name = "Operation 1", id = "operation-1")
-  public String operation1(@Variable Operation1Request request) {
-    return "Operation 1 executed: " + request;
-  }
-
-  @Operation(name = "Operation 2", id = "operation-2")
-  public String operation2(OutboundConnectorContext context) {
-    return "Operation 2 executed";
-  }
-
-  record Operation3Request(@TemplateProperty(id = "p1") String param1, @FEEL String param2) {}
-
-  @Operation(name = "Operation 3", id = "operation-3")
-  public String operation3(@Variable("mydata") Operation3Request request) {
-    return "Operation 3 executed: " + request;
+  public String singleOperation(@Variable OperationRequest request) {
+    return "Operation executed: " + request;
   }
 }

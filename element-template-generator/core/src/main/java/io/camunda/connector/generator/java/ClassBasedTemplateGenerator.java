@@ -108,7 +108,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     } else if (OutboundConnectorProvider.class.isAssignableFrom(connectorDefinition)) {
       List<MethodWithAnnotation<Operation>> methods =
           ReflectionUtil.getMethodsAnnotatedWith(connectorDefinition, Operation.class);
-      properties = new ArrayList<>(List.of(createOperationsDropdown(methods)));
+      properties = new ArrayList<>(List.of(createOperationsProperty(methods)));
       properties.addAll(getOperationProperties(methods, context));
     } else {
       throw new IllegalArgumentException(

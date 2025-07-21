@@ -46,6 +46,7 @@ import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
+import io.camunda.connector.generator.java.example.outbound.SingleOperationAnnotatedConnector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -1003,6 +1004,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       DropdownProperty operationProperty =
           (DropdownProperty) getPropertyById("operation", template);
       assertThat(operationProperty.getChoices()).isNotNull();
+      assertThat(operationProperty.getValue()).isEqualTo("operation-1");
       assertThat(operationProperty.getChoices())
           .containsExactlyInAnyOrder(
               new DropdownChoice("Operation 1", "operation-1"),
@@ -1023,6 +1025,17 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(propOp3P1).isNotNull();
       var propOp3P2 = getPropertyById("operation-3:param2", template);
       assertThat(propOp3P2).isNotNull();
+    }
+
+    @Test
+    void singleOperationAnnotated() {
+      var template = generator.generate(SingleOperationAnnotatedConnector.class).getFirst();
+      assertThat(template.id()).isNotNull();
+      assertThat(template.id()).isEqualTo(SingleOperationAnnotatedConnector.ID);
+      assertThat(template.name()).isEqualTo(SingleOperationAnnotatedConnector.NAME);
+
+      HiddenProperty operationProperty = (HiddenProperty) getPropertyById("operation", template);
+      assertThat(operationProperty.getValue()).isEqualTo("operation-1");
     }
   }
 }
