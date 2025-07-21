@@ -62,7 +62,7 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
                       .orElseGet(LinkedHashMap::new);
 
               // apply type from parameter if it is set
-              if (!StringUtils.isBlank(parameter.type())) {
+              if (StringUtils.isNotBlank(parameter.type())) {
                 propertySchema.put(PROPERTY_TYPE, parameter.type());
               }
 
@@ -71,7 +71,7 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
                 propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
               }
 
-              if (!StringUtils.isBlank(parameter.description())) {
+              if (StringUtils.isNotBlank(parameter.description())) {
                 propertySchema.put(PROPERTY_DESCRIPTION, parameter.description());
               }
 
