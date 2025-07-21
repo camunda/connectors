@@ -12,8 +12,7 @@ import java.util.List;
 
 /**
  * Converts a list of {@link AdHocToolElement} to a {@link AdHocToolsSchemaResponse} containing tool
- * definitions and gateway tool definitions. Invokes registered {@link
- * GatewayToolDefinitionResolver} implementations to handle gateway tool definitions.
+ * definitions and gateway tool definitions.
  */
 public interface AdHocToolsSchemaResolver {
   AdHocToolsSchemaResponse resolveAdHocToolsSchema(List<AdHocToolElement> elements);
