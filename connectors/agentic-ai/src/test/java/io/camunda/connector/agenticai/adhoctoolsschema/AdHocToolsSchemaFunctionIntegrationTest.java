@@ -12,12 +12,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest.AdHocToolsSchemaRequestData;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractor;
@@ -28,6 +31,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinit
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,14 +44,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AdHocToolsSchemaExecutorIntegrationTest {
+class AdHocToolsSchemaFunctionIntegrationTest {
 
   private static final Long PROCESS_DEFINITION_KEY = 123456L;
   private static final String AD_HOC_SUB_PROCESS_ID = "Agent_Tools";
@@ -63,8 +66,8 @@ class AdHocToolsSchemaExecutorIntegrationTest {
   @Mock private FeelExpressionParameterExtractor parameterExtractor;
   @Mock private AdHocToolSchemaGenerator schemaGenerator;
 
-  private AdHocToolsSchemaExecutor executor;
-  private AdHocToolsSchemaExecutor executorWithGatewayToolDefinitionResolvers;
+  private AdHocToolsSchemaFunction function;
+  private AdHocToolsSchemaFunction functionWithGatewayToolDefinitionResolvers;
 
   private String bpmnXml;
 
@@ -74,12 +77,12 @@ class AdHocToolsSchemaExecutorIntegrationTest {
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
             camundaClient, parameterExtractor);
 
-    executor =
-        new AdHocToolsSchemaExecutor(
+    function =
+        new AdHocToolsSchemaFunction(
             toolElementsResolver, new AdHocToolsSchemaResolverImpl(List.of(), schemaGenerator));
 
-    executorWithGatewayToolDefinitionResolvers =
-        new AdHocToolsSchemaExecutor(
+    functionWithGatewayToolDefinitionResolvers =
+        new AdHocToolsSchemaFunction(
             toolElementsResolver,
             new AdHocToolsSchemaResolverImpl(
                 List.of(
@@ -115,7 +118,7 @@ class AdHocToolsSchemaExecutorIntegrationTest {
         .generateToolSchema(argThat(element -> element.elementId().equals("Tool_A")));
 
     final var result =
-        executor.resolveAdHocToolsSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID);
+        function.execute(outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID));
 
     assertThat(result).isNotNull();
     assertThat(result.toolDefinitions())
@@ -172,8 +175,8 @@ class AdHocToolsSchemaExecutorIntegrationTest {
         .generateToolSchema(argThat(element -> element.elementId().equals("Tool_A")));
 
     final var result =
-        executorWithGatewayToolDefinitionResolvers.resolveAdHocToolsSchema(
-            PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID);
+        functionWithGatewayToolDefinitionResolvers.execute(
+            outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID));
 
     assertThat(result).isNotNull();
     assertThat(result.toolDefinitions())
@@ -217,10 +220,12 @@ class AdHocToolsSchemaExecutorIntegrationTest {
   }
 
   @ParameterizedTest
-  @NullSource
   @ValueSource(longs = {0, -10})
   void throwsExceptionWhenProcessDefinitionKeyIsInvalid(Long processDefinitionKey) {
-    assertThatThrownBy(() -> executor.resolveAdHocToolsSchema(processDefinitionKey, "AHSP"))
+    assertThatThrownBy(
+            () ->
+                function.execute(
+                    outboundConnectorContext(processDefinitionKey, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Process definition key must not be null or negative");
 
@@ -231,7 +236,10 @@ class AdHocToolsSchemaExecutorIntegrationTest {
   @NullAndEmptySource
   @ValueSource(strings = {"   "})
   void throwsExceptionWhenAdHocSubProcessIdIsInvalid(String adHocSubProcessId) {
-    assertThatThrownBy(() -> executor.resolveAdHocToolsSchema(123456L, adHocSubProcessId))
+    assertThatThrownBy(
+            () ->
+                function.execute(
+                    outboundConnectorContext(PROCESS_DEFINITION_KEY, adHocSubProcessId)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("adHocSubProcessId cannot be null or empty");
 
@@ -244,7 +252,9 @@ class AdHocToolsSchemaExecutorIntegrationTest {
         .thenReturn("DUMMY");
 
     assertThatThrownBy(
-            () -> executor.resolveAdHocToolsSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
+            () ->
+                function.execute(
+                    outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOf(ModelParseException.class);
   }
 
@@ -253,7 +263,8 @@ class AdHocToolsSchemaExecutorIntegrationTest {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn(bpmnXml);
 
-    assertThatThrownBy(() -> executor.resolveAdHocToolsSchema(PROCESS_DEFINITION_KEY, "DUMMY"))
+    assertThatThrownBy(
+            () -> function.execute(outboundConnectorContext(PROCESS_DEFINITION_KEY, "DUMMY")))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
@@ -274,7 +285,9 @@ class AdHocToolsSchemaExecutorIntegrationTest {
         .extractParameters("fromAi(toolCall.inputParameter, \"An input parameter\")");
 
     assertThatThrownBy(
-            () -> executor.resolveAdHocToolsSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
+            () ->
+                function.execute(
+                    outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
@@ -296,7 +309,9 @@ class AdHocToolsSchemaExecutorIntegrationTest {
         .extractParameters("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
     assertThatThrownBy(
-            () -> executor.resolveAdHocToolsSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
+            () ->
+                function.execute(
+                    outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
@@ -315,13 +330,29 @@ class AdHocToolsSchemaExecutorIntegrationTest {
         .thenThrow(new AdHocToolSchemaGenerationException("I can't generate this schema"));
 
     assertThatThrownBy(
-            () -> executor.resolveAdHocToolsSchema(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID))
+            () ->
+                function.execute(
+                    outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
               assertThat(e.getErrorCode()).isEqualTo("AD_HOC_TOOL_SCHEMA_INVALID");
               assertThat(e.getMessage()).isEqualTo("I can't generate this schema");
             });
+  }
+
+  private OutboundConnectorContext outboundConnectorContext(
+      Long processDefinitionKey, String containerElementId) {
+    final var outboundConnectorContext =
+        mock(OutboundConnectorContext.class, Answers.RETURNS_DEEP_STUBS);
+
+    when(outboundConnectorContext.getJobContext().getProcessDefinitionKey())
+        .thenReturn(processDefinitionKey);
+    when(outboundConnectorContext.bindVariables(AdHocToolsSchemaRequest.class))
+        .thenReturn(
+            new AdHocToolsSchemaRequest(new AdHocToolsSchemaRequestData(containerElementId)));
+
+    return outboundConnectorContext;
   }
 
   private static class SimpleToolGatewayToolDefinitionResolver

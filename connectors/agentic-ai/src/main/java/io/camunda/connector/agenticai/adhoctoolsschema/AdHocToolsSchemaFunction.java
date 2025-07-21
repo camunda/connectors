@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.adhoctoolsschema;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -32,16 +34,23 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     icon = "adhoctoolsschema.svg")
 public class AdHocToolsSchemaFunction implements OutboundConnectorFunction {
 
-  private final AdHocToolsSchemaExecutor executor;
+  private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
+  private final AdHocToolsSchemaResolver toolsSchemaResolver;
 
-  public AdHocToolsSchemaFunction(AdHocToolsSchemaExecutor executor) {
-    this.executor = executor;
+  public AdHocToolsSchemaFunction(
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      AdHocToolsSchemaResolver toolsSchemaResolver) {
+    this.toolElementsResolver = toolElementsResolver;
+    this.toolsSchemaResolver = toolsSchemaResolver;
   }
 
   @Override
   public AdHocToolsSchemaResponse execute(OutboundConnectorContext context) {
-    AdHocToolsSchemaRequest request = context.bindVariables(AdHocToolsSchemaRequest.class);
-    return executor.resolveAdHocToolsSchema(
-        context.getJobContext().getProcessDefinitionKey(), request.data().containerElementId());
+    final var request = context.bindVariables(AdHocToolsSchemaRequest.class);
+    final var elements =
+        toolElementsResolver.resolveToolElements(
+            context.getJobContext().getProcessDefinitionKey(), request.data().containerElementId());
+
+    return toolsSchemaResolver.resolveAdHocToolsSchema(elements);
   }
 }

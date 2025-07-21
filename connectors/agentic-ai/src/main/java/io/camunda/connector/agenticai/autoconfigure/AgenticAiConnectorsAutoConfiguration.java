@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaExecutor;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
@@ -115,8 +114,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AdHocToolsSchemaFunction aiAgentAdHocToolsSchemaFunction(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       AdHocToolsSchemaResolver toolsSchemaResolver) {
-    return new AdHocToolsSchemaFunction(
-        new AdHocToolsSchemaExecutor(toolElementsResolver, toolsSchemaResolver));
+    return new AdHocToolsSchemaFunction(toolElementsResolver, toolsSchemaResolver);
   }
 
   @Bean
