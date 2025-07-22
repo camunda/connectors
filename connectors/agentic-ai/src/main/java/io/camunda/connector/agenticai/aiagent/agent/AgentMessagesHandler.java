@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
+import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 
@@ -25,10 +26,12 @@ import java.util.List;
  * Also handles mapping of tool call results in combination with gateway tool handlers.
  */
 public interface AgentMessagesHandler {
+  /** Adds the system message to the agent's memory. */
   void addSystemMessage(
       AgentContext agentContext, RuntimeMemory memory, SystemPromptConfiguration systemPrompt);
 
-  void addMessagesFromRequest(
+  /** Adds user and tool call results messages to the agent's memory. Returns the added messages. */
+  List<Message> addUserMessages(
       AgentContext agentContext,
       RuntimeMemory memory,
       UserPromptConfiguration userPrompt,

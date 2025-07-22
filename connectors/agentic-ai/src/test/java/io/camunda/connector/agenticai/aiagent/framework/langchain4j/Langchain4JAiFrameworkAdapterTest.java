@@ -83,7 +83,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   private static final AgentContext AGENT_CONTEXT =
       AgentContext.empty()
-          .withState(AgentState.WAITING_FOR_TOOL_INPUT)
+          .withState(AgentState.READY)
           .withToolDefinitions(TOOL_DEFINITIONS)
           .withMetrics(
               AgentMetrics.empty()

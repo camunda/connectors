@@ -100,4 +100,15 @@ class DefaultRuntimeMemoryTest {
         .containsExactly(newSystemMessage);
     assertThat(memory.allMessages().getFirst()).isEqualTo(newSystemMessage);
   }
+
+  @Test
+  void returnsLastMessage() {
+    memory.addMessages(TEST_MESSAGES);
+    assertThat(memory.lastMessage()).isPresent().get().isEqualTo(TEST_MESSAGES.getLast());
+  }
+
+  @Test
+  void returnsEmptyLastMessageWhenNoMessages() {
+    assertThat(memory.lastMessage()).isEmpty();
+  }
 }
