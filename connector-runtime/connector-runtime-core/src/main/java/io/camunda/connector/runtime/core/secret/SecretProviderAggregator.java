@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Collections;
 import java.util.List;
@@ -43,9 +44,9 @@ public class SecretProviderAggregator implements SecretProvider {
    * @param secretName the name of the secret
    * @return the secret value
    */
-  public String getSecret(String secretName) {
+  public String getSecret(String secretName, SecretContext context) {
     for (SecretProvider secretProvider : secretProviders) {
-      String secret = secretProvider.getSecret(secretName);
+      String secret = secretProvider.getSecret(secretName, context);
       if (secret != null) {
         LOG.debug(
             "Resolved secret '{}' from provider '{}'",

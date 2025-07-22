@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.secret.providers;
 
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +24,7 @@ import org.springframework.stereotype.Component;
 public class BarSpringSecretProvider implements SecretProvider {
 
   @Override
-  public String getSecret(String s) {
+  public String getSecret(String s, SecretContext context) {
     if ("BAR".equals(s)) {
       return "BAR";
     } else {

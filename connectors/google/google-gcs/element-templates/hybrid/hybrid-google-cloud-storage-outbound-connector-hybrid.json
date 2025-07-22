@@ -1,0 +1,324 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid Google Cloud Storage Outbound Connector",
+  "id" : "io.camunda.connectors.google.gcp.v1-hybrid",
+  "description" : "Upload and download files from Google Cloud Storage.",
+  "metadata" : {
+    "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs" ]
+  },
+  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.8"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "additionalProperties",
+    "label" : "Additional properties"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:google-gcs:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.jsonKey",
+    "label" : "JSON key of the service account",
+    "description" : "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.jsonKey",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operationDiscriminator",
+    "label" : "Operation",
+    "value" : "uploadObject",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operationDiscriminator",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Download object",
+      "value" : "downloadObject"
+    }, {
+      "name" : "Upload object",
+      "value" : "uploadObject"
+    } ]
+  }, {
+    "id" : "downloadOperationProject",
+    "label" : "GCP project",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.project",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "downloadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "The project where the bucket is located.",
+    "type" : "String"
+  }, {
+    "id" : "downloadOperationBucket",
+    "label" : "Object Storage bucket",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.bucket",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "downloadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "A bucket acts as a directory that organizes a set of objects.",
+    "type" : "String"
+  }, {
+    "id" : "downloadOperationFileName",
+    "label" : "File name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "downloadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "Specify the name of the document to be downloaded.",
+    "type" : "String"
+  }, {
+    "id" : "downloadOperationAsFile",
+    "label" : "Return document as reference",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.asDocument",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "downloadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "If checked, a Camunda document is created and its reference is returned\nIf not checked, no document is created and the content is passed as is",
+    "type" : "Boolean"
+  }, {
+    "id" : "uploadOperationProject",
+    "label" : "GCP project",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.project",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "uploadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "The project where the bucket is located.",
+    "type" : "String"
+  }, {
+    "id" : "uploadOperationBucket",
+    "label" : "Object Storage bucket",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.bucket",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "uploadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "A bucket acts as a directory that organizes a set of objects.",
+    "type" : "String"
+  }, {
+    "id" : "uploadOperationDocument",
+    "label" : "Document",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.document",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "uploadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "Document to be uploaded to Google Cloud Storage.",
+    "type" : "String"
+  }, {
+    "id" : "uploadOperationFileName",
+    "label" : "Document file name",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "additionalProperties",
+    "binding" : {
+      "name" : "operation.fileName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operationDiscriminator",
+      "equals" : "uploadObject",
+      "type" : "simple"
+    },
+    "tooltip" : "By default, the file's metadata name is used unless a custom name is specified.",
+    "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.google.gcp.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMntmaWxsOiM2NjlkZjY7fS5jbHMtM3tmaWxsOiM0Mjg1ZjQ7fS5jbHMtNHtmaWxsOiNmZmY7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRTdG9yYWdlX0NvbG9yPC90aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxyZWN0IGNsYXNzPSJjbHMtMSIgeD0iMiIgeT0iNCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjciLz48cmVjdCBjbGFzcz0iY2xzLTIiIHg9IjIwIiB5PSI0IiB3aWR0aD0iMiIgaGVpZ2h0PSI3Ii8+PHBvbHlnb24gY2xhc3M9ImNscy0zIiBwb2ludHM9IjIyIDQgMjAgNCAyMCAxMSAyMiA0Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIyIiB5PSI0IiB3aWR0aD0iMiIgaGVpZ2h0PSI3Ii8+PHJlY3QgY2xhc3M9ImNscy00IiB4PSI2IiB5PSI3IiB3aWR0aD0iNiIgaGVpZ2h0PSIxIi8+PHJlY3QgY2xhc3M9ImNscy00IiB4PSIxNSIgeT0iNiIgd2lkdGg9IjMiIGhlaWdodD0iMyIgcng9IjEuNSIvPjxyZWN0IGNsYXNzPSJjbHMtMSIgeD0iMiIgeT0iMTMiIHdpZHRoPSIyMCIgaGVpZ2h0PSI3Ii8+PHJlY3QgY2xhc3M9ImNscy0yIiB4PSIyMCIgeT0iMTMiIHdpZHRoPSIyIiBoZWlnaHQ9IjciLz48cG9seWdvbiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iMjIgMTMgMjAgMTMgMjAgMjAgMjIgMTMiLz48cmVjdCBjbGFzcz0iY2xzLTIiIHg9IjIiIHk9IjEzIiB3aWR0aD0iMiIgaGVpZ2h0PSI3Ii8+PHJlY3QgY2xhc3M9ImNscy00IiB4PSI2IiB5PSIxNiIgd2lkdGg9IjYiIGhlaWdodD0iMSIvPjxyZWN0IGNsYXNzPSJjbHMtNCIgeD0iMTUiIHk9IjE1IiB3aWR0aD0iMyIgaGVpZ2h0PSIzIiByeD0iMS41Ii8+PC9nPjwvc3ZnPg=="
+  }
+}

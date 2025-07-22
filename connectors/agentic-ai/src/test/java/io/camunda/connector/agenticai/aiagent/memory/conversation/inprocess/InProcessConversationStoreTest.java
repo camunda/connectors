@@ -15,10 +15,12 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversati
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
 import java.util.List;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -33,8 +35,9 @@ class InProcessConversationStoreTest {
 
   private static final List<Message> TEST_MESSAGES = TestMessagesFixture.testMessages();
 
-  @Mock private OutboundConnectorContext context;
+  @Mock private AgentJobContext agentJobContext;
   @Mock private AgentRequest agentRequest;
+  private AgentExecutionContext executionContext;
 
   private final InProcessConversationStore store = new InProcessConversationStore();
 
@@ -42,7 +45,14 @@ class InProcessConversationStoreTest {
 
   @BeforeEach
   void setUp() {
+    executionContext = new AgentExecutionContext(agentJobContext, agentRequest);
     memory = new DefaultRuntimeMemory();
+  }
+
+  @Test
+  void storeTypeIsAlignedWithConfiguration() {
+    final var configuration = new InProcessMemoryStorageConfiguration();
+    assertThat(store.type()).isEqualTo(configuration.storeType()).isEqualTo("in-process");
   }
 
   @Test
@@ -50,8 +60,7 @@ class InProcessConversationStoreTest {
     final var agentContext = AgentContext.empty();
 
     store.executeInSession(
-        context,
-        agentRequest,
+        executionContext,
         agentContext,
         session -> {
           session.loadIntoRuntimeMemory(agentContext, memory);
@@ -69,8 +78,7 @@ class InProcessConversationStoreTest {
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
 
     store.executeInSession(
-        context,
-        agentRequest,
+        executionContext,
         agentContext,
         session -> {
           session.loadIntoRuntimeMemory(agentContext, memory);
@@ -88,8 +96,7 @@ class InProcessConversationStoreTest {
     assertThatThrownBy(
             () ->
                 store.executeInSession(
-                    context,
-                    agentRequest,
+                    executionContext,
                     agentContext,
                     session -> {
                       session.loadIntoRuntimeMemory(agentContext, memory);
@@ -107,8 +114,7 @@ class InProcessConversationStoreTest {
     final var updatedAgentContext =
         store
             .executeInSession(
-                context,
-                agentRequest,
+                executionContext,
                 agentContext,
                 session -> agentResponse(session.storeFromRuntimeMemory(agentContext, memory)))
             .context();
@@ -133,8 +139,7 @@ class InProcessConversationStoreTest {
     final var updatedAgentContext =
         store
             .executeInSession(
-                context,
-                agentRequest,
+                executionContext,
                 agentContext,
                 session -> {
                   session.loadIntoRuntimeMemory(agentContext, memory);

@@ -29,6 +29,7 @@ import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
+import io.camunda.connector.test.MapSecretProvider;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
@@ -49,7 +50,7 @@ import org.jetbrains.annotations.NotNull;
 public class InboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
-  protected SecretProvider secretProvider = secrets::get;
+  protected SecretProvider secretProvider = new MapSecretProvider(secrets);
   protected Map<String, Object> properties;
   protected InboundConnectorDefinition definition;
   protected ValidationProvider validationProvider;
@@ -227,7 +228,7 @@ public class InboundConnectorContextBuilder {
       this.activationTimestamp = System.currentTimeMillis();
       try {
         propertiesWithSecrets =
-            getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties));
+            getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties), null);
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }

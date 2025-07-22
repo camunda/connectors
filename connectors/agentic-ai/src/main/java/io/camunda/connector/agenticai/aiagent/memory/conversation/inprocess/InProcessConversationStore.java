@@ -9,15 +9,19 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSessionHandler;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
 public class InProcessConversationStore implements ConversationStore {
+  public static final String TYPE = "in-process";
+
+  @Override
+  public String type() {
+    return TYPE;
+  }
 
   @Override
   public <T> T executeInSession(
-      OutboundConnectorContext context,
-      AgentRequest request,
+      AgentExecutionContext executionContext,
       AgentContext agentContext,
       ConversationSessionHandler<T> sessionHandler) {
     return sessionHandler.handleSession(new InProcessConversationSession());

@@ -22,6 +22,9 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 
 public class ToolCallConverterImpl implements ToolCallConverter {
 
@@ -53,7 +56,11 @@ public class ToolCallConverterImpl implements ToolCallConverter {
   @Override
   public ToolCall asToolCall(ToolExecutionRequest toolExecutionRequest) {
     return asToolCall(
-        toolExecutionRequest.id(), toolExecutionRequest.name(), toolExecutionRequest.arguments());
+        Optional.ofNullable(toolExecutionRequest.id())
+            .filter(StringUtils::isNotBlank)
+            .orElse(UUID.randomUUID().toString()),
+        toolExecutionRequest.name(),
+        toolExecutionRequest.arguments());
   }
 
   private ToolCall asToolCall(String id, String name, String inputJson) {

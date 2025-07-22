@@ -9,13 +9,11 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
-import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.document.Document;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.reference.DocumentReference;
@@ -42,9 +40,8 @@ public class CamundaDocumentConversationSession implements ConversationSession {
   private final CamundaDocumentMemoryStorageConfiguration config;
   private final DocumentFactory documentFactory;
   private final CamundaDocumentStore documentStore;
-  private final ObjectMapper objectMapper;
-  private final ObjectWriter objectWriter;
-  private final JobContext jobContext;
+  private final CamundaDocumentConversationSerializer conversationSerializer;
+  private final AgentExecutionContext executionContext;
   private final int previousDocumentsRetentionSize;
 
   private CamundaDocumentConversationContext previousConversationContext;
@@ -53,16 +50,14 @@ public class CamundaDocumentConversationSession implements ConversationSession {
       CamundaDocumentMemoryStorageConfiguration config,
       DocumentFactory documentFactory,
       CamundaDocumentStore documentStore,
-      ObjectMapper objectMapper,
-      ObjectWriter objectWriter,
-      JobContext jobContext) {
+      CamundaDocumentConversationSerializer conversationSerializer,
+      AgentExecutionContext executionContext) {
     this(
         config,
         documentFactory,
         documentStore,
-        objectMapper,
-        objectWriter,
-        jobContext,
+        conversationSerializer,
+        executionContext,
         DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE);
   }
 
@@ -70,16 +65,14 @@ public class CamundaDocumentConversationSession implements ConversationSession {
       CamundaDocumentMemoryStorageConfiguration config,
       DocumentFactory documentFactory,
       CamundaDocumentStore documentStore,
-      ObjectMapper objectMapper,
-      ObjectWriter objectWriter,
-      JobContext jobContext,
+      CamundaDocumentConversationSerializer conversationSerializer,
+      AgentExecutionContext executionContext,
       int previousDocumentsRetentionSize) {
     this.config = config;
     this.documentFactory = documentFactory;
     this.documentStore = documentStore;
-    this.objectMapper = objectMapper;
-    this.objectWriter = objectWriter;
-    this.jobContext = jobContext;
+    this.conversationSerializer = conversationSerializer;
+    this.executionContext = executionContext;
     this.previousDocumentsRetentionSize = previousDocumentsRetentionSize;
   }
 
@@ -93,9 +86,7 @@ public class CamundaDocumentConversationSession implements ConversationSession {
 
     try {
       final var content =
-          objectMapper.readValue(
-              previousConversationContext.document().asInputStream(),
-              CamundaDocumentConversationContext.DocumentContent.class);
+          conversationSerializer.readDocumentContent(previousConversationContext.document());
       memory.addMessages(content.messages());
     } catch (IOException e) {
       throw new RuntimeException("Failed to load conversation from documentReference", e);
@@ -133,7 +124,7 @@ public class CamundaDocumentConversationSession implements ConversationSession {
 
     String serialized;
     try {
-      serialized = objectWriter.writeValueAsString(content);
+      serialized = conversationSerializer.writeDocumentContent(content);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize conversation", e);
     }
@@ -142,13 +133,14 @@ public class CamundaDocumentConversationSession implements ConversationSession {
     Optional.ofNullable(config.customProperties()).ifPresent(properties::putAll);
     properties.put("conversationId", conversationId);
 
+    final var jobContext = executionContext.jobContext();
     final var documentCreationRequestBuilder =
         DocumentCreationRequest.from(
                 new ByteArrayInputStream(serialized.getBytes(StandardCharsets.UTF_8)))
-            .processDefinitionId(jobContext.getBpmnProcessId())
-            .processInstanceKey(jobContext.getProcessInstanceKey())
+            .processDefinitionId(jobContext.bpmnProcessId())
+            .processInstanceKey(jobContext.processInstanceKey())
             .contentType("application/json")
-            .fileName("%s_conversation.json".formatted(jobContext.getElementId()))
+            .fileName("%s_conversation.json".formatted(jobContext.elementId()))
             .customProperties(properties);
 
     Optional.ofNullable(config.timeToLive()).ifPresent(documentCreationRequestBuilder::timeToLive);

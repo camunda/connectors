@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
@@ -18,7 +20,6 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -26,41 +27,43 @@ import org.springframework.util.CollectionUtils;
 
 public class AgentInitializerImpl implements AgentInitializer {
 
-  private final AdHocToolsSchemaResolver schemaResolver;
+  private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
+  private final AdHocToolsSchemaResolver toolsSchemaResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
 
   public AgentInitializerImpl(
-      AdHocToolsSchemaResolver schemaResolver, GatewayToolHandlerRegistry gatewayToolHandlers) {
-    this.schemaResolver = schemaResolver;
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      AdHocToolsSchemaResolver toolsSchemaResolver,
+      GatewayToolHandlerRegistry gatewayToolHandlers) {
+    this.toolElementsResolver = toolElementsResolver;
+    this.toolsSchemaResolver = toolsSchemaResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
   }
 
   @Override
-  public AgentInitializationResult initializeAgent(
-      OutboundConnectorContext context, AgentRequest request) {
-
+  public AgentInitializationResult initializeAgent(AgentExecutionContext executionContext) {
     AgentContext agentContext =
-        Optional.ofNullable(request.data().context()).orElseGet(AgentContext::empty);
+        Optional.ofNullable(executionContext.request().data().context())
+            .orElseGet(AgentContext::empty);
 
     List<ToolCallResult> toolCallResults =
-        Optional.ofNullable(request.data().tools())
+        Optional.ofNullable(executionContext.request().data().tools())
             .map(AgentRequest.AgentRequestData.ToolsConfiguration::toolCallResults)
             .orElseGet(Collections::emptyList);
 
     return switch (agentContext.state()) {
-      case INITIALIZING -> initiateToolDiscovery(context, request, agentContext, toolCallResults);
+      case INITIALIZING -> initiateToolDiscovery(executionContext, agentContext, toolCallResults);
       case TOOL_DISCOVERY -> handleToolDiscoveryResults(agentContext, toolCallResults);
       default -> new AgentContextInitializationResult(agentContext, toolCallResults);
     };
   }
 
   private AgentInitializationResult initiateToolDiscovery(
-      OutboundConnectorContext context,
-      AgentRequest request,
+      AgentExecutionContext executionContext,
       AgentContext agentContext,
       List<ToolCallResult> toolCallResults) {
     final var toolsContainerElementId =
-        Optional.ofNullable(request.data().tools())
+        Optional.ofNullable(executionContext.request().data().tools())
             .map(AgentRequest.AgentRequestData.ToolsConfiguration::containerElementId)
             .filter(id -> !id.isBlank())
             .orElse(null);
@@ -71,9 +74,11 @@ public class AgentInitializerImpl implements AgentInitializer {
           agentContext.withState(AgentState.READY), toolCallResults);
     }
 
-    final var adHocToolsSchema =
-        schemaResolver.resolveSchema(
-            context.getJobContext().getProcessDefinitionKey(), toolsContainerElementId);
+    final var toolElements =
+        toolElementsResolver.resolveToolElements(
+            executionContext.jobContext().processDefinitionKey(), toolsContainerElementId);
+
+    final var adHocToolsSchema = toolsSchemaResolver.resolveAdHocToolsSchema(toolElements);
 
     // add ad-hoc tool definitions to agent context
     agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());

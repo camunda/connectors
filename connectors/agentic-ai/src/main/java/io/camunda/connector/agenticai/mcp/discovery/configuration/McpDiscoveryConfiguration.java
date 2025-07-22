@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.mcp.discovery.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.adhoctoolsschema.resolver.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;

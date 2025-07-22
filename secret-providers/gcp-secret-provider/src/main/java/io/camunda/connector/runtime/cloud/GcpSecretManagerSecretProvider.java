@@ -29,6 +29,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Map;
 import java.util.Objects;
@@ -128,7 +129,7 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
   }
 
   @Override
-  public String getSecret(String name) {
+  public String getSecret(String name, SecretContext context) {
     try {
       return secretsCache.get(CACHE_KEY).get(name);
     } catch (ExecutionException e) {

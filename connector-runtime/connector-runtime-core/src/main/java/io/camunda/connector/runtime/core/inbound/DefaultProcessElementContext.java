@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.inbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.ProcessElementContext;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
@@ -67,7 +68,10 @@ public class DefaultProcessElementContext extends AbstractConnectorContext
     if (propertiesWithSecrets == null) {
       propertiesWithSecrets =
           InboundPropertyHandler.getPropertiesWithSecrets(
-              getSecretHandler(), objectMapper, properties);
+              getSecretHandler(),
+              objectMapper,
+              properties,
+              new SecretContext(connectorElement.tenantId()));
     }
     return propertiesWithSecrets;
   }

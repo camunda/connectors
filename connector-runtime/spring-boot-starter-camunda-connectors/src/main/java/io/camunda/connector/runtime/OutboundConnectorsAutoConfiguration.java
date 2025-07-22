@@ -65,6 +65,9 @@ public class OutboundConnectorsAutoConfiguration {
   @Value("${camunda.connector.secretprovider.environment.prefix:}")
   String environmentSecretProviderPrefix;
 
+  @Value("${camunda.connector.secretprovider.environment.tenantaware:false}")
+  boolean environmentSecretProviderTenantAware;
+
   @Value(
       "${camunda.connector.secretprovider.console.endpoint:https://cluster-api.cloud.camunda.io/secrets}")
   String consoleSecretsApiEndpoint;
@@ -105,7 +108,8 @@ public class OutboundConnectorsAutoConfiguration {
       havingValue = "true",
       matchIfMissing = true)
   public EnvironmentSecretProvider defaultSecretProvider(Environment environment) {
-    return new EnvironmentSecretProvider(environment, environmentSecretProviderPrefix);
+    return new EnvironmentSecretProvider(
+        environment, environmentSecretProviderPrefix, environmentSecretProviderTenantAware);
   }
 
   @Bean

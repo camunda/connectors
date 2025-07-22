@@ -16,13 +16,14 @@
  */
 package io.camunda.connector.runtime.secret.providers;
 
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 
 // note this is not defined as a Spring bean
 public class SpiSecretProvider implements SecretProvider {
 
   @Override
-  public String getSecret(String s) {
+  public String getSecret(String s, SecretContext context) {
     if ("SPI".equals(s)) {
       return "SPI";
     } else {

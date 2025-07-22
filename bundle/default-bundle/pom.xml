@@ -56,6 +56,10 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-google-gcs</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-rabbitmq</artifactId>
     </dependency>
     <dependency>
@@ -137,6 +141,10 @@
   <dependency>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-agentic-ai</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-azure-blobstorage</artifactId>
   </dependency>
   <dependency>
     <groupId>io.camunda.connector</groupId>

@@ -7,17 +7,17 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
 /**
  * Responsible for storing and loading conversation records to external systems and loading them
  * into runtime memory.
  */
 public interface ConversationStore {
+  String type();
+
   <T> T executeInSession(
-      OutboundConnectorContext context,
-      AgentRequest request,
+      AgentExecutionContext executionContext,
       AgentContext agentContext,
       ConversationSessionHandler<T> sessionHandler);
 }

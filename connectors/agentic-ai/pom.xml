@@ -70,11 +70,31 @@
     </dependency>
     <dependency>
       <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-azure-open-ai</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-bedrock</artifactId>
     </dependency>
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-open-ai</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-vertex-ai-gemini</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-identity</artifactId>
+      <scope>compile</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-resolver-dns-native-macos</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>

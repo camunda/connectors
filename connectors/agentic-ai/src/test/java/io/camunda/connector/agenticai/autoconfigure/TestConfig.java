@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
 import org.springframework.context.annotation.Bean;
 
@@ -23,6 +24,11 @@ class TestConfig {
   @Bean
   public CamundaClient camundaClient() {
     return mock(CamundaClient.class);
+  }
+
+  @Bean
+  public DocumentFactory documentFactory() {
+    return mock(DocumentFactory.class);
   }
 
   @Bean

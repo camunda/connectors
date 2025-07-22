@@ -7,43 +7,63 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSessionHandler;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
+import java.util.Optional;
 
 public class CamundaDocumentConversationStore implements ConversationStore {
 
-  private final CamundaDocumentMemoryStorageConfiguration config;
+  public static final String TYPE = "camunda-document";
+
+  private final DocumentFactory documentFactory;
   private final CamundaDocumentStore documentStore;
-  private final ObjectMapper objectMapper;
-  private final ObjectWriter objectWriter;
+  private final CamundaDocumentConversationSerializer conversationSerializer;
 
   public CamundaDocumentConversationStore(
-      CamundaDocumentMemoryStorageConfiguration config,
+      DocumentFactory documentFactory,
       CamundaDocumentStore documentStore,
       ObjectMapper objectMapper) {
-    this.config = config;
+    this.documentFactory = documentFactory;
     this.documentStore = documentStore;
-    this.objectMapper = objectMapper;
-    this.objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
+    this.conversationSerializer = new CamundaDocumentConversationSerializer(objectMapper);
+  }
+
+  @Override
+  public String type() {
+    return TYPE;
   }
 
   @Override
   public <T> T executeInSession(
-      OutboundConnectorContext context,
-      AgentRequest request,
+      AgentExecutionContext executionContext,
       AgentContext agentContext,
       ConversationSessionHandler<T> sessionHandler) {
-    return sessionHandler.handleSession(createSession(context));
-  }
+    final var config =
+        Optional.ofNullable(executionContext.request().data())
+            .map(AgentRequest.AgentRequestData::memory)
+            .map(AgentRequest.AgentRequestData.MemoryConfiguration::storage)
+            .orElse(null);
 
-  private CamundaDocumentConversationSession createSession(OutboundConnectorContext context) {
-    return new CamundaDocumentConversationSession(
-        config, context, documentStore, objectMapper, objectWriter, context.getJobContext());
+    if (!(config instanceof CamundaDocumentMemoryStorageConfiguration documentConfig)) {
+      throw new IllegalStateException(
+          "Expected memory storage configuration to be of type CamundaDocumentMemoryStorageConfiguration, but got: %s"
+              .formatted(config != null ? config.getClass().getName() : "null"));
+    }
+
+    final var session =
+        new CamundaDocumentConversationSession(
+            documentConfig,
+            documentFactory,
+            documentStore,
+            conversationSerializer,
+            executionContext);
+
+    return sessionHandler.handleSession(session);
   }
 }

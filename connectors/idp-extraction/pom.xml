@@ -68,6 +68,41 @@
       <artifactId>google-cloud-document-ai</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-ai-documentintelligence</artifactId>
+      <version>1.0.2</version>
+      <exclusions>
+        <exclusion>
+          <groupId>io.vertx</groupId>
+          <artifactId>vertx-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-ai-inference</artifactId>
+      <version>1.0.0-beta.5</version>
+      <exclusions>
+        <exclusion>
+          <groupId>io.vertx</groupId>
+          <artifactId>vertx-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-ai-openai</artifactId>
+      <version>1.0.0-beta.16</version>
+      <exclusions>
+        <exclusion>
+          <groupId>io.vertx</groupId>
+          <artifactId>vertx-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
   </dependencies>
 
   <build>

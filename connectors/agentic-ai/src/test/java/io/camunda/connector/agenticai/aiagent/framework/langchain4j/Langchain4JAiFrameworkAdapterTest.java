@@ -26,14 +26,16 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpe
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
@@ -101,6 +103,8 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
 
+  @Mock private AgentJobContext agentJobContext;
+
   private RuntimeMemory runtimeMemory;
   private Langchain4JAiFrameworkAdapter adapter;
 
@@ -128,7 +132,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void modelRequestContainsMessagesAndToolSpecifications() {
-    adapter.executeChatRequest(createRequest(), AGENT_CONTEXT, runtimeMemory);
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.messages()).containsExactlyElementsOf(L4J_MESSAGES);
@@ -137,7 +141,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void requestsTextResponseWhenConfigured() {
-    adapter.executeChatRequest(createRequest(), AGENT_CONTEXT, runtimeMemory);
+    adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.TEXT);
@@ -146,7 +150,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
   @Test
   void requestsTextResponseIfResponseConfigurationIsMissing() {
-    adapter.executeChatRequest(createRequest(null), AGENT_CONTEXT, runtimeMemory);
+    adapter.executeChatRequest(createExecutionContext(null), AGENT_CONTEXT, runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.TEXT);
@@ -156,7 +160,9 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void requestsTextResponseIfResponseFormatConfigurationIsMissing() {
     adapter.executeChatRequest(
-        createRequest(new ResponseConfiguration(null, false)), AGENT_CONTEXT, runtimeMemory);
+        createExecutionContext(new ResponseConfiguration(null, false)),
+        AGENT_CONTEXT,
+        runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.TEXT);
@@ -166,7 +172,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void requestsJsonResponseWhenConfigured() {
     adapter.executeChatRequest(
-        createRequest(
+        createExecutionContext(
             new ResponseConfiguration(new JsonResponseFormatConfiguration(null, null), false)),
         AGENT_CONTEXT,
         runtimeMemory);
@@ -185,7 +191,7 @@ class Langchain4JAiFrameworkAdapterTest {
     when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
 
     adapter.executeChatRequest(
-        createRequest(
+        createExecutionContext(
             new ResponseConfiguration(
                 new JsonResponseFormatConfiguration(schema, schemaName), false)),
         AGENT_CONTEXT,
@@ -208,7 +214,7 @@ class Langchain4JAiFrameworkAdapterTest {
     when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
 
     adapter.executeChatRequest(
-        createRequest(
+        createExecutionContext(
             new ResponseConfiguration(
                 new JsonResponseFormatConfiguration(schema, schemaName), false)),
         AGENT_CONTEXT,
@@ -224,7 +230,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void incrementsMetricsFromResponse() {
     final var adapterResponse =
-        adapter.executeChatRequest(createRequest(), AGENT_CONTEXT, runtimeMemory);
+        adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
     final var expectedMetrics =
         AGENT_CONTEXT
             .metrics()
@@ -244,21 +250,26 @@ class Langchain4JAiFrameworkAdapterTest {
     when(chatResponse.tokenUsage()).thenReturn(null);
 
     final var adapterResponse =
-        adapter.executeChatRequest(createRequest(), AGENT_CONTEXT, runtimeMemory);
+        adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
 
     assertThat(adapterResponse.agentContext())
         .usingRecursiveComparison()
         .isEqualTo(AGENT_CONTEXT.withMetrics(AGENT_CONTEXT.metrics().withModelCalls(6)));
   }
 
-  private AgentRequest createRequest() {
-    return createRequest(
+  private AgentExecutionContext createExecutionContext() {
+    return createExecutionContext(
         new ResponseConfiguration(new TextResponseFormatConfiguration(false), false));
   }
 
-  private AgentRequest createRequest(ResponseConfiguration responseConfiguration) {
-    return new AgentRequest(
-        new OpenAiProviderConfiguration(null),
-        new AgentRequestData(AGENT_CONTEXT, null, null, null, null, null, responseConfiguration));
+  private AgentExecutionContext createExecutionContext(
+      ResponseConfiguration responseConfiguration) {
+    final var agentRequest =
+        new AgentRequest(
+            new OpenAiProviderConfiguration(null),
+            new AgentRequestData(
+                AGENT_CONTEXT, null, null, null, null, null, responseConfiguration));
+
+    return new AgentExecutionContext(agentJobContext, agentRequest);
   }
 }

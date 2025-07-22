@@ -11,6 +11,8 @@ import static io.camunda.connector.agenticai.model.message.content.TextContent.t
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
@@ -27,6 +29,22 @@ import java.util.Map;
 public abstract class TestMessagesFixture {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  public static final List<AdHocToolElement> AD_HOC_TOOL_ELEMENTS =
+      List.of(
+          AdHocToolElement.builder()
+              .elementId("getWeather")
+              .elementName("Get Weather")
+              .documentation("Returns the current weather")
+              .parameters(
+                  List.of(
+                      AdHocToolElementParameter.builder().name("location").type("string").build()))
+              .build(),
+          AdHocToolElement.builder()
+              .elementId("getDateTime")
+              .elementName("Get DateTime")
+              .documentation("Returns the current time")
+              .build());
 
   public static final List<ToolDefinition> TOOL_DEFINITIONS =
       List.of(

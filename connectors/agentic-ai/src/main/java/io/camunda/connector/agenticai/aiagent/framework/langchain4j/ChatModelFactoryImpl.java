@@ -6,20 +6,28 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
+import com.azure.identity.ClientSecretCredentialBuilder;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
+import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.ProviderConfiguration.OpenAiProviderConfiguration;
+import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import java.net.URI;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -33,7 +41,11 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     return switch (providerConfiguration) {
       case AnthropicProviderConfiguration anthropic ->
           createAnthropicChatModelBuilder(anthropic).build();
+      case AzureOpenAiProviderConfiguration azureOpenAi ->
+          createAzureOpenAiChatModelBuilder(azureOpenAi).build();
       case BedrockProviderConfiguration bedrock -> createBedrockChatModelBuilder(bedrock).build();
+      case GoogleVertexAiProviderConfiguration vertexAi ->
+          createGoogleVertexAiChatModelBuilder(vertexAi).build();
       case OpenAiProviderConfiguration openai -> createOpenaiChatModelBuilder(openai).build();
     };
   }
@@ -57,6 +69,40 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
       Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
       Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
+    }
+
+    return builder;
+  }
+
+  protected AzureOpenAiChatModel.Builder createAzureOpenAiChatModelBuilder(
+      AzureOpenAiProviderConfiguration configuration) {
+    final var connection = configuration.azureOpenAi();
+    final var builder =
+        AzureOpenAiChatModel.builder()
+            .endpoint(connection.endpoint())
+            .deploymentName(configuration.azureOpenAi().model().deploymentName());
+
+    switch (connection.authentication()) {
+      case AzureApiKeyAuthentication azureApiKeyAuthentication ->
+          builder.apiKey(azureApiKeyAuthentication.apiKey());
+      case AzureClientCredentialsAuthentication auth -> {
+        ClientSecretCredentialBuilder clientSecretCredentialBuilder =
+            new ClientSecretCredentialBuilder()
+                .clientId(auth.clientId())
+                .clientSecret(auth.clientSecret())
+                .tenantId(auth.tenantId());
+        if (StringUtils.isNotBlank(auth.authorityHost())) {
+          clientSecretCredentialBuilder.authorityHost(auth.authorityHost());
+        }
+        builder.tokenCredential(clientSecretCredentialBuilder.build());
+      }
+    }
+
+    final var modelParameters = connection.model().parameters();
+    if (modelParameters != null) {
+      Optional.ofNullable(modelParameters.maxTokens()).ifPresent(builder::maxTokens);
+      Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
+      Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
     }
 
     return builder;
@@ -97,6 +143,26 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
 
       builder.defaultRequestParameters(requestParametersBuilder.build());
+    }
+
+    return builder;
+  }
+
+  protected VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder
+      createGoogleVertexAiChatModelBuilder(GoogleVertexAiProviderConfiguration vertexAi) {
+    final var connection = vertexAi.googleVertexAi();
+    final var builder =
+        VertexAiGeminiChatModel.builder()
+            .project(connection.projectId())
+            .location(connection.location())
+            .modelName(connection.model().model());
+
+    final var modelParameters = connection.model().parameters();
+    if (modelParameters != null) {
+      Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxOutputTokens);
+      Optional.ofNullable(modelParameters.temperature()).ifPresent(builder::temperature);
+      Optional.ofNullable(modelParameters.topP()).ifPresent(builder::topP);
+      Optional.ofNullable(modelParameters.topK()).ifPresent(builder::topK);
     }
 
     return builder;

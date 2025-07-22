@@ -16,6 +16,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.idp.extraction.caller.AzureAiFoundryCaller;
+import io.camunda.connector.idp.extraction.caller.AzureDocumentIntelligenceCaller;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.caller.VertexCaller;
@@ -41,6 +43,8 @@ public class UnstructuredServiceTest {
 
   @Mock private PollingTextractCaller pollingTextractCaller;
   @Mock private BedrockCaller bedrockCaller;
+  @Mock private AzureAiFoundryCaller azureAiFoundryCaller;
+  @Mock private AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller;
 
   private UnstructuredService unstructuredService;
 
@@ -61,7 +65,9 @@ public class UnstructuredServiceTest {
             pollingTextractCaller,
             bedrockCaller,
             vertexCaller,
-            objectMapper);
+            objectMapper,
+            azureAiFoundryCaller,
+            azureDocumentIntelligenceCaller);
   }
 
   @Test

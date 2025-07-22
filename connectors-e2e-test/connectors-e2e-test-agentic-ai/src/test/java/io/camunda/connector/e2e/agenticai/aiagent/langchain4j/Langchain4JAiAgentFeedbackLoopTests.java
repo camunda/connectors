@@ -71,7 +71,7 @@ public class Langchain4JAiAgentFeedbackLoopTests extends BaseLangchain4JAiAgentT
                 .hasResponseText(HAIKU_TEXT)
                 .hasNoResponseJson());
 
-    verify(schemaResolver, never()).resolveSchema(any(), any());
+    verify(toolsSchemaResolver, never()).resolveAdHocToolsSchema(any());
   }
 
   @Test

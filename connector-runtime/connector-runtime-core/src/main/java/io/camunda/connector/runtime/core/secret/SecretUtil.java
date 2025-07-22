@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import io.camunda.connector.api.secret.SecretContext;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -32,46 +33,47 @@ public class SecretUtil {
   private static final Pattern SECRET_PATTERN_PARENTHESES =
       Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
 
-  public static String replaceSecrets(String input, Function<String, String> secretReplacer) {
+  public static String replaceSecrets(
+      String input, SecretContext context, SecretReplacer secretReplacer) {
     if (input == null) {
       throw new IllegalStateException("input cant be null.");
     }
-    input = replaceSecretsWithParentheses(input, secretReplacer);
-    input = replaceSecretsWithoutParentheses(input, secretReplacer);
+    input = replaceSecretsWithParentheses(input, context, secretReplacer);
+    input = replaceSecretsWithoutParentheses(input, context, secretReplacer);
     return input;
   }
 
   private static String replaceSecretsWithParentheses(
-      String input, Function<String, String> secretReplacer) {
+      String input, SecretContext context, SecretReplacer secretReplacer) {
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_PARENTHESES.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
       input =
           replaceTokens(
               input,
               SECRET_PATTERN_PARENTHESES,
-              matcher -> resolveSecretValue(secretReplacer, matcher));
+              matcher -> resolveSecretValue(context, secretReplacer, matcher));
     }
     return input;
   }
 
   private static String replaceSecretsWithoutParentheses(
-      String input, Function<String, String> secretReplacer) {
+      String input, SecretContext context, SecretReplacer secretReplacer) {
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
       input =
           replaceTokens(
               input,
               SECRET_PATTERN_SECRETS,
-              matcher -> resolveSecretValue(secretReplacer, matcher));
+              matcher -> resolveSecretValue(context, secretReplacer, matcher));
     }
     return input;
   }
 
   private static String resolveSecretValue(
-      Function<String, String> secretReplacer, Matcher matcher) {
+      SecretContext context, SecretReplacer secretReplacer, Matcher matcher) {
     var secretName = matcher.group("secret").trim();
     if (!secretName.isBlank()) {
-      var result = secretReplacer.apply(secretName);
+      var result = secretReplacer.replaceSecrets(secretName, context);
       if (result != null) {
         return result;
       } else {
