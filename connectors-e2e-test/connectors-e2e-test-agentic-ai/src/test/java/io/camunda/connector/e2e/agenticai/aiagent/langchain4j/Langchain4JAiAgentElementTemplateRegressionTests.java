@@ -40,7 +40,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class Langchain4JAiAgentElementTemplateRegressionTests extends BaseLangchain4JAiAgentTests {
 
   @ParameterizedTest
-  @ValueSource(strings = {"ai-agent.bpmn", "ai-agent-8.8.0-alpha5.bpmn"})
+  @ValueSource(
+      strings = {"ai-agent.bpmn", "ai-agent-8.8.0-alpha5.bpmn", "ai-agent-8.8.0-alpha6.bpmn"})
   void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
     final var initialUserPrompt = "Explore some of your tools!";
     final var expectedConversation =
