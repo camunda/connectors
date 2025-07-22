@@ -30,7 +30,7 @@ import java.util.Optional;
 @ElementTemplate(
     name = "CSV Connector",
     id = "io.camunda.connectors.csv",
-    engineVersion = "^8.7",
+    engineVersion = "^8.8",
     icon = "icon.svg")
 public class CsvConnector implements OutboundConnectorProvider {
 

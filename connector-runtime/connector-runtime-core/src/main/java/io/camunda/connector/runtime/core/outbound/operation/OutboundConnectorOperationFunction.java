@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.core.outbound.operation;
 
+import static io.camunda.connector.runtime.core.Keywords.OPERATION_ID_KEYWORD;
+
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -35,7 +37,7 @@ public class OutboundConnectorOperationFunction implements OutboundConnectorFunc
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-    String operationId = context.getJobContext().getCustomHeaders().get("operation");
+    String operationId = context.getJobContext().getCustomHeaders().get(OPERATION_ID_KEYWORD);
     if (operationId == null) {
       throw new ConnectorInputException(
           "Operation ID is missing in the job context custom headers.");
