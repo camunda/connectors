@@ -148,11 +148,7 @@ public class GoogleDriveService {
 
       Drive drive = client.getDriveService();
       Drive.Files.Create createRequest =
-          drive
-              .files()
-              .create(fileMetaData, content)
-              .setSupportsAllDrives(true)
-              .setSupportsTeamDrives(true);
+          drive.files().create(fileMetaData, content).setSupportsAllDrives(true);
 
       if (document.metadata().getSize() > MAX_DIRECT_UPLOAD_FILE_SIZE_BYTES) {
         createRequest.getMediaHttpUploader().setProgressListener(new LoggerProgressListener());
@@ -171,13 +167,7 @@ public class GoogleDriveService {
     Drive drive = client.getDriveService();
     try {
       String fileId = resource.downloadData().fileId();
-      File fileMetaData =
-          drive
-              .files()
-              .get(fileId)
-              .setSupportsAllDrives(true)
-              .setSupportsTeamDrives(true)
-              .execute();
+      File fileMetaData = drive.files().get(fileId).setSupportsAllDrives(true).execute();
       try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
         drive.files().get(fileId).executeMediaAndDownloadTo(outputStream);
         return documentMapper.mapToDocument(outputStream.toByteArray(), fileMetaData);

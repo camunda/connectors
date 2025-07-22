@@ -50,6 +50,7 @@ class GoogleDriveClientTest {
     // Given
     Drive.Files.Create create = Mockito.mock(Drive.Files.Create.class);
     when(files.create(any(File.class))).thenReturn(create);
+    when(create.setSupportsAllDrives(true)).thenReturn(create);
     when(create.execute()).thenReturn(new File());
     // When
     File metadata = client.createWithMetadata(new File());
@@ -64,6 +65,7 @@ class GoogleDriveClientTest {
     // Given
     Drive.Files.Copy copy = Mockito.mock(Drive.Files.Copy.class);
     when(files.copy(eq(templateId), any(File.class))).thenReturn(copy);
+    when(copy.setSupportsAllDrives(true)).thenReturn(copy);
     when(copy.execute()).thenReturn(new File());
     // When
     File byTemplate = client.createWithTemplate(new File(), templateId);

@@ -27,12 +27,7 @@ public class GoogleDriveClient {
 
   public File createWithMetadata(final File fileMetadata) {
     try {
-      return driveService
-          .files()
-          .create(fileMetadata)
-          .setSupportsAllDrives(true)
-          .setSupportsTeamDrives(true)
-          .execute();
+      return driveService.files().create(fileMetadata).setSupportsAllDrives(true).execute();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -44,7 +39,6 @@ public class GoogleDriveClient {
           .files()
           .copy(templateId, fileMetaData)
           .setSupportsAllDrives(true)
-          .setSupportsTeamDrives(true)
           .execute();
     } catch (IOException e) {
       throw new RuntimeException(e);
