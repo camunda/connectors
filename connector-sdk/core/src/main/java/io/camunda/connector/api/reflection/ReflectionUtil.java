@@ -108,14 +108,17 @@ public class ReflectionUtil {
     }
   }
 
+  /**
+   * Returns the variable name from the given Variable annotation.
+   *
+   * @param variable the Variable annotation
+   * @return the variable name, or null if both name and value are blank
+   */
   public static String getVariableName(Variable variable) {
-    if (variable.name().isBlank()) {
+    if (!variable.name().isBlank()) {
       return variable.name();
     } else if (!variable.value().isBlank()) {
       return variable.value();
-    } else {
-      throw new IllegalStateException(
-          "Variable must have either 'name' or 'value' set. Variable: " + variable);
-    }
+    } else return "";
   }
 }

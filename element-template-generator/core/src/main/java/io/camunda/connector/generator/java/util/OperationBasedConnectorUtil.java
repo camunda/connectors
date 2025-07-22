@@ -157,13 +157,13 @@ public class OperationBasedConnectorUtil {
   }
 
   private static PropertyBinding mapBinding(PropertyBinding propertyBinding, Variable variable) {
-    String variablePath = getVariableName(variable);
-    if (!variablePath.isBlank()) {
+    String variableName = getVariableName(variable);
+    if (variableName.isBlank()) {
       if (propertyBinding instanceof PropertyBinding.ZeebeInput(String name)) {
-        return new PropertyBinding.ZeebeInput(concatenateVariablePathWithName(variablePath, name));
+        return new PropertyBinding.ZeebeInput(concatenateVariablePathWithName(variableName, name));
       } else if (propertyBinding instanceof PropertyBinding.ZeebeTaskHeader(String key)) {
         return new PropertyBinding.ZeebeTaskHeader(
-            concatenateVariablePathWithName(variablePath, key));
+            concatenateVariablePathWithName(variableName, key));
       } else {
         return propertyBinding;
       }

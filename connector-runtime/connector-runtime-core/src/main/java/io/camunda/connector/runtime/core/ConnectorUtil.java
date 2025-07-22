@@ -136,11 +136,10 @@ public final class ConnectorUtil {
                     Variable variable =
                         parameter.getAnnotation(io.camunda.connector.api.annotation.Variable.class);
                     String variableName = getVariableName(variable);
-                    if (variableName.isEmpty()) {
+                    if (variableName == null || variableName.isEmpty()) {
                       // When the variable name is empty, we assume that the variables are mapped
                       // from the root
                       for (Field declaredField : parameter.getType().getDeclaredFields()) {
-                        declaredField.setAccessible(true);
                         String fieldName = declaredField.getName();
                         variables.add(fieldName);
                       }
