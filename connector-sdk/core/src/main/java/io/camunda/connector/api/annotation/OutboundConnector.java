@@ -30,7 +30,7 @@ public @interface OutboundConnector {
   String name();
 
   /** Input variables the connector reads */
-  String[] inputVariables() default "";
+  String[] inputVariables() default {};
 
   /** Job / task type the connector registers for */
   String type();
