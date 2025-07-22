@@ -27,7 +27,7 @@ public @interface Operation {
   /**
    * Alias for the ID of the operation.
    *
-   * @return Alias for the ID of the operation
+   * @return ID of the operation
    */
   String value() default "";
 

@@ -24,9 +24,20 @@ import java.lang.annotation.Target;
 @Target(value = {ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Variable {
-  // TODO add a name property as an alias for the value
 
+  /**
+   * Alias for the name of the variable.
+   *
+   * @return name of the variable
+   */
   String value() default "";
+
+  /**
+   * Name of the variable.
+   *
+   * @return name of the variable
+   */
+  String name() default "";
 
   boolean required() default true;
 }

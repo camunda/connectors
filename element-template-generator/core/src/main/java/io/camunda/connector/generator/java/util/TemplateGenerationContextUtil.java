@@ -18,6 +18,7 @@ package io.camunda.connector.generator.java.util;
 
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.reflection.ReflectionUtil;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;

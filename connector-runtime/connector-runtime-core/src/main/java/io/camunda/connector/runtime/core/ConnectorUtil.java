@@ -16,10 +16,16 @@
  */
 package io.camunda.connector.runtime.core;
 
+import static io.camunda.connector.api.reflection.ReflectionUtil.getMethodsAnnotatedWith;
+import static io.camunda.connector.api.reflection.ReflectionUtil.getVariableName;
+
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.reflection.ReflectionUtil;
+import io.camunda.connector.api.reflection.ReflectionUtil.MethodWithAnnotation;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -28,6 +34,11 @@ import java.util.*;
 import java.util.Arrays;
 import java.util.Optional;
 
+/**
+ * Utility class for handling connector configurations and operations. Provides methods to retrieve
+ * outbound and inbound connector configurations, as well as to extract input variables from
+ * annotated methods.
+ */
 public final class ConnectorUtil {
 
   private ConnectorUtil() {}
@@ -102,8 +113,8 @@ public final class ConnectorUtil {
   }
 
   public static String[] getInputVariables(Class<?> cls, OutboundConnector annotation) {
-    List<ReflectionUtil.MethodWithAnnotation<Operation>> operations =
-        ReflectionUtil.getMethodsAnnotatedWith(cls, Operation.class);
+    List<MethodWithAnnotation<Operation>> operations =
+        getMethodsAnnotatedWith(cls, Operation.class);
     if (operations.isEmpty()) {
       return annotation.inputVariables();
     } else {
@@ -122,10 +133,9 @@ public final class ConnectorUtil {
                       p.getAnnotation(io.camunda.connector.api.annotation.Variable.class) != null)
               .forEach(
                   parameter -> {
-                    String variableName =
-                        parameter
-                            .getAnnotation(io.camunda.connector.api.annotation.Variable.class)
-                            .value();
+                    Variable variable =
+                        parameter.getAnnotation(io.camunda.connector.api.annotation.Variable.class);
+                    String variableName = getVariableName(variable);
                     if (variableName.isEmpty()) {
                       // When the variable name is empty, we assume that the variables are mapped
                       // from the root

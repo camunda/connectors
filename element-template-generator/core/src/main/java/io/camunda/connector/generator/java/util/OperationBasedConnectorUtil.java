@@ -16,8 +16,11 @@
  */
 package io.camunda.connector.generator.java.util;
 
+import static io.camunda.connector.api.reflection.ReflectionUtil.*;
+
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.Variable;
+import io.camunda.connector.api.reflection.ReflectionUtil;
 import io.camunda.connector.generator.dsl.*;
 import java.lang.reflect.Parameter;
 import java.util.List;
@@ -60,14 +63,6 @@ public class OperationBasedConnectorUtil {
         .feel(Property.FeelMode.disabled)
         .value(getOperationId(methods.getFirst().annotation()))
         .group("operation");
-  }
-
-  public static String getOperationName(Operation operation) {
-    return !operation.name().isBlank() ? operation.name() : operation.value();
-  }
-
-  public static String getOperationId(Operation operation) {
-    return !operation.id().isBlank() ? operation.id() : operation.value();
   }
 
   public static List<PropertyBuilder> getOperationProperties(
@@ -162,7 +157,7 @@ public class OperationBasedConnectorUtil {
   }
 
   private static PropertyBinding mapBinding(PropertyBinding propertyBinding, Variable variable) {
-    String variablePath = variable.value();
+    String variablePath = getVariableName(variable);
     if (!variablePath.isBlank()) {
       if (propertyBinding instanceof PropertyBinding.ZeebeInput(String name)) {
         return new PropertyBinding.ZeebeInput(concatenateVariablePathWithName(variablePath, name));

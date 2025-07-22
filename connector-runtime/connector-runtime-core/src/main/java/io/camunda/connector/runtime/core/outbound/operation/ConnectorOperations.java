@@ -16,11 +16,14 @@
  */
 package io.camunda.connector.runtime.core.outbound.operation;
 
+import static io.camunda.connector.api.reflection.ReflectionUtil.getMethodsAnnotatedWith;
+import static io.camunda.connector.api.reflection.ReflectionUtil.getVariableName;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.reflection.ReflectionUtil.MethodWithAnnotation;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.ReflectionUtil;
 import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.Context;
 import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.Variable;
 import java.lang.reflect.Method;
@@ -35,8 +38,8 @@ public record ConnectorOperations(Object connector, Map<String, OperationInvoker
   public static ConnectorOperations from(
       Object connector, ObjectMapper objectMapper, ValidationProvider validationProvider) {
     Map<String, OperationInvoker> operations =
-        ReflectionUtil.getMethodsAnnotatedWith(connector.getClass(), Operation.class).stream()
-            .map(ReflectionUtil.MethodWithAnnotation::method)
+        getMethodsAnnotatedWith(connector.getClass(), Operation.class).stream()
+            .map(MethodWithAnnotation::method)
             .map(method -> new OperationInvoker(objectMapper, validationProvider, map(method)))
             .collect(Collectors.toMap(invoker -> invoker.getDescriptor().id(), invoker -> invoker));
     if (operations.isEmpty()) {
@@ -67,7 +70,7 @@ public record ConnectorOperations(Object connector, Map<String, OperationInvoker
       io.camunda.connector.api.annotation.Variable variableAnnotation =
           parameter.getAnnotation(io.camunda.connector.api.annotation.Variable.class);
       return new Variable<>(
-          variableAnnotation.value(), parameter.getType(), variableAnnotation.required());
+          getVariableName(variableAnnotation), parameter.getType(), variableAnnotation.required());
     } else if (parameter.getType().equals(OutboundConnectorContext.class)) {
       return new Context();
     } else {

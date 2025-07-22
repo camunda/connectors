@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.java.util;
+package io.camunda.connector.api.reflection;
 
+import io.camunda.connector.api.annotation.Operation;
+import io.camunda.connector.api.annotation.Variable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -24,6 +26,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Utility class for reflection operations related to annotations and methods. Provides methods to
+ * retrieve annotations, fields, and methods with specific annotations.
+ *
+ * <p>This class is only intended for internal use within the connector SDK and should not be used
+ * by client code.
+ */
 public class ReflectionUtil {
 
   public static <T extends Annotation> T getRequiredAnnotation(
@@ -82,5 +91,31 @@ public class ReflectionUtil {
       klass = klass.getSuperclass();
     }
     return methods;
+  }
+
+  public static String getOperationName(Operation operation) {
+    return !operation.name().isBlank() ? operation.name() : getOperationId(operation);
+  }
+
+  public static String getOperationId(Operation operation) {
+    if (!operation.id().isBlank()) {
+      return operation.id();
+    } else if (!operation.value().isBlank()) {
+      return operation.value();
+    } else {
+      throw new IllegalStateException(
+          "Operation must have either 'id' or 'value' set. Operation: " + operation);
+    }
+  }
+
+  public static String getVariableName(Variable variable) {
+    if (variable.name().isBlank()) {
+      return variable.name();
+    } else if (!variable.value().isBlank()) {
+      return variable.value();
+    } else {
+      throw new IllegalStateException(
+          "Variable must have either 'name' or 'value' set. Variable: " + variable);
+    }
   }
 }
