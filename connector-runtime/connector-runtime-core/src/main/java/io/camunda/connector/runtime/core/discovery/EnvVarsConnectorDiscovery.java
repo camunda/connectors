@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.discovery;
 
-import static io.camunda.connector.runtime.core.discovery.EnvVarUtil.getConnectorEnvironmentVariable;
+import static io.camunda.connector.runtime.core.discovery.ConnectorEnvVars.getConnectorEnvironmentVariable;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;

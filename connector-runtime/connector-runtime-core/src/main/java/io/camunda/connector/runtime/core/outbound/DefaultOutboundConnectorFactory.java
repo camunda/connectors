@@ -22,6 +22,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
+import io.camunda.connector.runtime.core.config.ConnectorDirection;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.discovery.DisabledConnectorEnvVarsConfig;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
@@ -61,12 +62,14 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
     List<OutboundConnectorConfiguration> envVarConfigurations = new ArrayList<>();
     Stream<ServiceLoader.Provider<OutboundConnectorFunction>> spiFunctions = Stream.empty();
     Stream<ServiceLoader.Provider<OutboundConnectorProvider>> spiProviders = Stream.empty();
-    if (EnvVarsConnectorDiscovery.isOutboundConfigured()) {
-      envVarConfigurations.addAll(EnvVarsConnectorDiscovery.discoverOutbound());
-    } else {
-      // Load outbound connector functions from SPI
-      spiFunctions = SPIConnectorDiscovery.loadConnectorFunctions();
-      spiProviders = SPIConnectorDiscovery.loadConnectorProviders();
+    if (!DisabledConnectorEnvVarsConfig.isDiscoveryDisabled(ConnectorDirection.OUTBOUND)) {
+      if (EnvVarsConnectorDiscovery.isOutboundConfigured()) {
+        envVarConfigurations.addAll(EnvVarsConnectorDiscovery.discoverOutbound());
+      } else {
+        // Load outbound connector functions from SPI
+        spiFunctions = SPIConnectorDiscovery.loadConnectorFunctions();
+        spiProviders = SPIConnectorDiscovery.loadConnectorProviders();
+      }
     }
 
     Function<OutboundConnectorProvider, OutboundConnectorFunction> fromProviderToFunction =

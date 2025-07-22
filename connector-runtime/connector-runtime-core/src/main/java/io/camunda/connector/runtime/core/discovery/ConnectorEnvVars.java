@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.core.discovery;
 
 import java.util.Optional;
 
-public class EnvVarUtil {
+public class ConnectorEnvVars {
   static Optional<String> getConnectorEnvironmentVariable(final String name, final String detail) {
     return Optional.ofNullable(System.getenv().get("CONNECTOR_" + name + "_" + detail));
   }
