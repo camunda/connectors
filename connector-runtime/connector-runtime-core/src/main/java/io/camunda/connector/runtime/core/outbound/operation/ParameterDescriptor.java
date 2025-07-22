@@ -36,7 +36,7 @@ public sealed interface ParameterDescriptor {
       if (name.isEmpty()) {
         jsonPointer = JsonPointer.empty();
       } else {
-        jsonPointer = JsonPointer.compile("/" + name.replace(".", "/"));
+        jsonPointer = JsonPointer.compile("/" + name);
       }
     }
 

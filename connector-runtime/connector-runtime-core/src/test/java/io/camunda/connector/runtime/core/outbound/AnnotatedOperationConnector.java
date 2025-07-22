@@ -33,13 +33,13 @@ public class AnnotatedOperationConnector implements OutboundConnectorProvider {
       @Variable("myStringParam") String myStringParam,
       @Variable("myObjectParam") MyObjectParam myObjectParam,
       @Variable(value = "nullObjectParam", required = false) MyObjectParam nullObjectParam,
-      @Variable("deeply.nested.object") MyObjectParam deeplyNestedObject,
-      @Variable MyObjectParam nestedObjectWithoutName) {
+      @Variable MyObjectParam nestedObjectWithoutName,
+      OutboundConnectorContext context) {
     System.out.println("myStringParam: " + myStringParam);
     System.out.println("myObjectParam: " + myObjectParam);
     System.out.println("nullObjectParam: " + nullObjectParam);
-    System.out.println("deeplyNestedObject: " + deeplyNestedObject);
     System.out.println("nestedObjectWithoutName: " + nestedObjectWithoutName);
+    System.out.println("OutboundConnectorContext: " + context);
     return "Hello, " + myStringParam + "!";
   }
 
@@ -49,7 +49,7 @@ public class AnnotatedOperationConnector implements OutboundConnectorProvider {
     return context;
   }
 
-  record MyValidatingObject(@NotNull String name) {}
+  record MyValidatingObject(@NotNull String validatingName) {}
 
   @Operation(id = "myOperation3")
   public Object myThirdOperation(@Variable MyValidatingObject object) {

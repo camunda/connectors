@@ -113,37 +113,29 @@ public final class ConnectorUtil {
 
   public static Set<String> getInputVariables(
       List<ReflectionUtil.MethodWithAnnotation<Operation>> operations) {
-    Set<String> variables = new HashSet<String>();
+    Set<String> variables = new HashSet<>();
     operations.forEach(
         method -> {
-          method
-              .parameters()
+          method.parameters().stream()
+              .filter(
+                  (p) ->
+                      p.getAnnotation(io.camunda.connector.api.annotation.Variable.class) != null)
               .forEach(
                   parameter -> {
-                    if (parameter.getAnnotation(io.camunda.connector.api.annotation.Variable.class)
-                        != null) {
-                      String variableName =
-                          parameter
-                              .getAnnotation(io.camunda.connector.api.annotation.Variable.class)
-                              .value();
-                      if (variableName.isEmpty()) {
-                        // When the variable name is empty, we assume that the variables are mapped
-                        // from the root
-                        for (Field declaredField : parameter.getType().getDeclaredFields()) {
-                          declaredField.setAccessible(true);
-                          String fieldName = declaredField.getName();
-                          variables.add(fieldName);
-                        }
-                      } else {
-                        // If the variable name contains a dot, we take the part before the dot as
-                        // the variable name
-                        if (variableName.contains(".")) {
-                          String[] parts = variableName.split("\\.");
-                          variables.add(parts[0]);
-                        } else {
-                          variables.add(variableName);
-                        }
+                    String variableName =
+                        parameter
+                            .getAnnotation(io.camunda.connector.api.annotation.Variable.class)
+                            .value();
+                    if (variableName.isEmpty()) {
+                      // When the variable name is empty, we assume that the variables are mapped
+                      // from the root
+                      for (Field declaredField : parameter.getType().getDeclaredFields()) {
+                        declaredField.setAccessible(true);
+                        String fieldName = declaredField.getName();
+                        variables.add(fieldName);
                       }
+                    } else {
+                      variables.add(variableName);
                     }
                   });
         });

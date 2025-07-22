@@ -23,13 +23,18 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.ConnectorUtil;
+import io.camunda.connector.runtime.core.NoOpSecretProvider;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Map;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class AnnotatedOperationTests {
@@ -44,12 +49,11 @@ public class AnnotatedOperationTests {
 
   String json =
       """
-                    {
-                        "myStringParam": "World",
-                        "myObjectParam": {"name": "Test", "value": 42},
-                        "deeply": {"nested": {"object": {"name": "Nested", "value": 100}}}
-                    }
-                    """;
+        {
+          "myStringParam": "World",
+          "myObjectParam": {"name": "Test", "value": 42}
+        }
+      """;
 
   @Test
   public void shouldInvokeAnnotatedOperation() throws Exception {
@@ -76,9 +80,20 @@ public class AnnotatedOperationTests {
   public void shouldFailValidation() {
     assertThrows(
         ConnectorInputException.class,
-        () -> {
-          invoker.execute(createMockContext("{}", "myOperation3"));
-        });
+        () -> invoker.execute(createMockContext("{}", "myOperation3")));
+  }
+
+  @Test
+  public void testInputVariableResolution() {
+    var variables =
+        Arrays.stream(
+                ConnectorUtil.getInputVariables(
+                    AnnotatedOperationConnector.class,
+                    AnnotatedOperationConnector.class.getAnnotation(OutboundConnector.class)))
+            .toList();
+    Assertions.assertThatCollection(variables)
+        .containsExactlyInAnyOrder(
+            "myStringParam", "myObjectParam", "nullObjectParam", "name", "value", "validatingName");
   }
 
   JobHandlerContext createMockContext(String json, String operation) {
@@ -87,7 +102,7 @@ public class AnnotatedOperationTests {
     when(activatedJob.getVariables()).thenReturn(json);
     return new JobHandlerContext(
         activatedJob,
-        name -> "",
+        new NoOpSecretProvider(),
         validationProvider,
         null,
         ConnectorsObjectMapperSupplier.getCopy());
