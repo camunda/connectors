@@ -108,6 +108,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
         .forEach(content::add);
 
     if (content.isEmpty()) {
+      LOGGER.debug("Not adding user message as no user content was found to add.");
       return null;
     }
 
@@ -136,9 +137,12 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
         });
 
     if (!missingToolCalls.isEmpty()) {
-      LOGGER.debug(
-          "IDs {} were not found in tool call results. Returning without adding result message.",
-          missingToolCalls.stream().map(ToolCall::id).toList());
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
+            missingToolCalls.stream().map(ToolCall::id).toList());
+      }
+
       return null;
     }
 
