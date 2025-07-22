@@ -23,7 +23,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     id = "io.camunda.connectors.agenticai.mcp.client.v0",
     name = "MCP Client (experimental)",
     description =
-        "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations. Compatible with 8.8.0-alpha6 or later.",
+        "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations. Compatible with 8.8.0-alpha7 or later.",
     engineVersion = "^8.8",
     version = 0,
     inputDataClass = McpClientRequest.class,
