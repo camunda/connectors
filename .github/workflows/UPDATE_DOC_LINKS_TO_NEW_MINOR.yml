@@ -3,14 +3,10 @@ name: update_doc_links_to_new_minor
 on:
   workflow_dispatch:
     inputs:
-      from-version:
-        description: 'Previous latest minor version, e.g. 8.7'
-        type: string
-        required: true
-      to-version:
-        description: 'New latest minor version, e.g. 8.8'
-        type: string
-        required: true
+      tag_name:
+          description: 'Previous latest minor version, e.g. 8.7'
+          type: string
+          required: true
 
 jobs:
   version_bump_docs_links:
@@ -29,21 +25,41 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Determine if first minor release
+        id: version_check
+        env:
+          VERSION: ${{ inputs.tag_name }}  # e.g. "8.8.0"
+        run: |
+          if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.0$ ]]; then
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            current_minor="${major}.${minor}"
+            previous_minor="${major}.$((minor - 1))"
+          
+            echo "is_first_minor=true" >> $GITHUB_OUTPUT
+            echo "current_minor=${current_minor}" >> $GITHUB_OUTPUT
+            echo "previous_minor=${previous_minor}" >> $GITHUB_OUTPUT
+          else
+            echo "is_first_minor=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Collect connector template links
+        if: steps.version_check.outputs.is_first_minor == 'true'
         run: |
           chmod +x ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh
-          ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh ${{inputs.from-version}} ${{inputs.to-version}}
+          ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh ${{ steps.version_check.outputs.previous_minor }} ${{ steps.version_check.outputs.current_minor }}
         shell: bash
 
       - name: Create pull request to main branch
+        if: steps.version_check.outputs.is_first_minor == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: chore/bump-npm-package-version
-          commit-message: "ci: bump docs version from ${{inputs.from-version}} to ${{ inputs.to-version}}"
+          branch: chore/version-bump-docs-links
+          commit-message: "ci: bump docs version from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           base: main
-          title: "chore(docs-links): bump versions from ${{inputs.from-version}} to ${{ inputs.to-version}}"
+          title: "chore(docs-links): bump versions from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
           labels: "no milestone"
           body: |
             This bumps docs version of latest's element templates of a connector to latest minor version.

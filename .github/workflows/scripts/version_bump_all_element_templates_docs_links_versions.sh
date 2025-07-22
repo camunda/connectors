@@ -25,3 +25,10 @@ find . -type d -name "element-templates" | while read -r dir; do
     update_links_in_file "$file"
   done
 done
+
+find . -type f -name "*.java" | while read -r file; do
+  if grep -q "https://docs.camunda.io/docs/$FROM_VERSION/" "$file"; then
+    echo "Updating links in Java: $file"
+    update_links_in_file "$file"
+  fi
+done
