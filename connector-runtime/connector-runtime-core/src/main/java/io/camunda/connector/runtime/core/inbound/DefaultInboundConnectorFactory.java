@@ -104,7 +104,6 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
   }
 
   protected void loadConnectorConfigurations() {
-
     if (DisabledConnectorEnvVarsConfig.isDiscoveryDisabled(ConnectorDirection.INBOUND)) {
       configurations = new ArrayList<>();
       return;
