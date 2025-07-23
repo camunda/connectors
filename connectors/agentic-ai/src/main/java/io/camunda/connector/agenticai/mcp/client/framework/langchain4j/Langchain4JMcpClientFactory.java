@@ -14,13 +14,14 @@ import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> {
 
   @Override
   public McpClient createClient(String clientId, McpClientConfiguration config) {
-    final var transport = createTransport(config.stio() != null ? config.stio() : config.http());
+    final var transport = createTransport(config.stdio() != null ? config.stdio() : config.sse());
     final var builder = new DefaultMcpClient.Builder().key(clientId).transport(transport);
 
     Optional.ofNullable(config.initializationTimeout()).map(builder::initializationTimeout);
@@ -33,15 +34,20 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
   private McpTransport createTransport(
       McpClientConfigurationProperties.McpClientTransportConfiguration transportConfig) {
     return switch (transportConfig) {
-      case McpClientConfigurationProperties.StdioMcpClientTransportConfiguration stdio ->
-          new StdioMcpTransport.Builder()
-              .command(stdio.command())
-              .environment(stdio.env())
-              .logEvents(stdio.logEvents())
-              .build();
-      case McpClientConfigurationProperties.HttpMcpClientTransportConfiguration http ->
+      case McpClientConfigurationProperties.StdioMcpClientTransportConfiguration stdio -> {
+        final var commandParts = new ArrayList<String>();
+        commandParts.add(stdio.command());
+        commandParts.addAll(stdio.args());
+
+        yield new StdioMcpTransport.Builder()
+            .command(commandParts)
+            .environment(stdio.env())
+            .logEvents(stdio.logEvents())
+            .build();
+      }
+      case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration http ->
           new HttpMcpTransport.Builder()
-              .sseUrl(http.sseUrl())
+              .sseUrl(http.url())
               .timeout(http.timeout())
               .logRequests(http.logRequests())
               .logResponses(http.logResponses())

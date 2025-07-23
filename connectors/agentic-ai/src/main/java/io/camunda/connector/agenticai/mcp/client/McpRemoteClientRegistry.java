@@ -59,15 +59,15 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
   }
 
   private McpClientConfiguration createClientConfiguration(HttpConnectionConfiguration connection) {
-    final var httpTransportConfiguration =
-        new McpClientConfigurationProperties.HttpMcpClientTransportConfiguration(
+    final var sseTransportConfiguration =
+        new McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration(
             connection.sseUrl(),
             connection.headers(),
             connection.timeout(),
             clientConfig.logRequests(),
             clientConfig.logResponses());
 
-    return new McpClientConfiguration(true, null, httpTransportConfiguration, null, null, null);
+    return new McpClientConfiguration(true, null, sseTransportConfiguration, null, null, null);
   }
 
   @Override

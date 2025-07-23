@@ -25,6 +25,8 @@ public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData 
         @TemplateProperty(
                 group = "connection",
                 label = "SSE URL",
+                description =
+                    "SSE URL to connect to the MCP server. Typically ends with <code>/sse</code>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
