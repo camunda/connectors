@@ -1,13 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Ad-hoc tools schema",
-  "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v1-hybrid",
-  "description" : "Connector to fetch tools schema information from an ad-hoc sub-process. Compatible with 8.8.0-alpha7 or later.",
+  "name" : "Ad-hoc tools schema",
+  "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v1",
+  "description" : "Connector to fetch tools schema information from an ad-hoc sub-process. Compatible with 8.8.0-alpha6 or later.",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/",
-  "version" : 2,
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -20,9 +20,6 @@
     "camunda" : "^8.8"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "tools",
     "label" : "Available tools"
   }, {
@@ -39,14 +36,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda.agenticai:adhoctoolsschema:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "data.containerElementId",
     "label" : "Ad-hoc sub-process ID",
@@ -66,7 +61,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
