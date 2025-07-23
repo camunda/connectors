@@ -2,7 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid MCP Client (experimental)",
   "id" : "io.camunda.connectors.agenticai.mcp.client.v0-hybrid",
-  "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations. Compatible with 8.8.0-alpha6 or later.",
+  "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations. Compatible with 8.8.0-alpha7 or later.",
   "metadata" : {
     "keywords" : [ ]
   },

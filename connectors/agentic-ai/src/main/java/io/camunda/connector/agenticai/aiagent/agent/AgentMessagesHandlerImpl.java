@@ -6,10 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_IN_INVALID_STATE;
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT;
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS;
 import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static io.camunda.connector.agenticai.util.PromptUtils.resolveParameterizedPrompt;
@@ -19,11 +16,14 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
@@ -31,10 +31,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AgentMessagesHandlerImpl.class);
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
 
@@ -55,7 +62,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
   }
 
   @Override
-  public void addMessagesFromRequest(
+  public List<Message> addUserMessages(
       AgentContext agentContext,
       RuntimeMemory memory,
       UserPromptConfiguration userPrompt,
@@ -68,21 +75,24 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
           "Agent received tool call results, but the agent context was empty (no previous conversation). Is the context configured correctly?");
     }
 
-    switch (agentContext.state()) {
-      case READY -> addUserMessage(agentContext, memory, userPrompt);
+    final var lastChatMessage = memory.lastMessage().orElse(null);
 
-      case WAITING_FOR_TOOL_INPUT -> addToolCallResults(agentContext, memory, toolCallResults);
-
-      default ->
-          throw new ConnectorException(
-              ERROR_CODE_AGENT_IN_INVALID_STATE,
-              "Agent is in invalid state '%s', not ready to add user messages"
-                  .formatted(agentContext.state()));
+    List<Message> messages = new ArrayList<>();
+    if (lastChatMessage instanceof AssistantMessage assistantMessage
+        && assistantMessage.hasToolCalls()) {
+      messages.add(
+          createToolCallResultMessage(agentContext, assistantMessage.toolCalls(), toolCallResults));
+    } else {
+      messages.add(createUserPromptMessage(userPrompt));
     }
+
+    messages = messages.stream().filter(Objects::nonNull).toList();
+    messages.forEach(memory::addMessage);
+
+    return messages;
   }
 
-  private void addUserMessage(
-      AgentContext agentContext, RuntimeMemory memory, UserPromptConfiguration userPrompt) {
+  private UserMessage createUserPromptMessage(UserPromptConfiguration userPrompt) {
     final var content = new ArrayList<Content>();
 
     // add user prompt text
@@ -98,34 +108,51 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
         .forEach(content::add);
 
     if (content.isEmpty()) {
-      throw new ConnectorException(
-          ERROR_CODE_NO_USER_MESSAGE_CONTENT,
-          "Agent is in state %s but no user prompt (no text, no documents) to add."
-              .formatted(agentContext.state()));
+      LOGGER.debug("Not adding user message as no user content was found to add.");
+      return null;
     }
 
-    memory.addMessage(
-        UserMessage.builder()
-            .content(content)
-            .metadata(Map.of("timestamp", ZonedDateTime.now()))
-            .build());
+    return UserMessage.builder().content(content).metadata(defaultMessageMetadata()).build();
   }
 
-  private void addToolCallResults(
-      AgentContext agentContext, RuntimeMemory memory, List<ToolCallResult> toolCallResults) {
-    if (toolCallResults.isEmpty()) {
-      throw new ConnectorException(
-          ERROR_CODE_WAITING_FOR_TOOL_INPUT_EMPTY_RESULTS,
-          "Agent is waiting for tool input, but tool call results were empty. Is the tool feedback loop configured correctly?");
+  private ToolCallResultMessage createToolCallResultMessage(
+      AgentContext agentContext, List<ToolCall> toolCalls, List<ToolCallResult> toolCallResults) {
+    final var transformedToolCallResults =
+        gatewayToolHandlers.transformToolCallResults(agentContext, toolCallResults);
+    final var toolCallResultsById =
+        transformedToolCallResults.stream()
+            .collect(Collectors.toMap(ToolCallResult::id, Function.identity()));
+
+    final var missingToolCalls = new ArrayList<ToolCall>();
+    final var orderedToolCallResults = new ArrayList<ToolCallResult>();
+
+    toolCalls.forEach(
+        toolCall -> {
+          final var result = toolCallResultsById.get(toolCall.id());
+          if (result != null) {
+            orderedToolCallResults.add(result);
+          } else {
+            missingToolCalls.add(toolCall);
+          }
+        });
+
+    if (!missingToolCalls.isEmpty()) {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "Not adding tool call result message as tool call IDs {} were missing in tool call results.",
+            missingToolCalls.stream().map(ToolCall::id).toList());
+      }
+
+      return null;
     }
 
-    var transformedToolCallResults =
-        gatewayToolHandlers.transformToolCallResults(agentContext, toolCallResults);
+    return ToolCallResultMessage.builder()
+        .results(orderedToolCallResults)
+        .metadata(defaultMessageMetadata())
+        .build();
+  }
 
-    memory.addMessage(
-        ToolCallResultMessage.builder()
-            .results(transformedToolCallResults)
-            .metadata(Map.of("timestamp", ZonedDateTime.now()))
-            .build());
+  private Map<String, Object> defaultMessageMetadata() {
+    return Map.of("timestamp", ZonedDateTime.now());
   }
 }

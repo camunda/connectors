@@ -187,4 +187,15 @@ class MessageWindowRuntimeMemoryTest {
     assertThat(memory.filteredMessages()).hasSize(MAX_MESSAGES - 1);
     assertThat(memory.filteredMessages().get(1)).isEqualTo(messages.get(4));
   }
+
+  @Test
+  void returnsLastMessage() {
+    memory.addMessages(TEST_MESSAGES);
+    assertThat(memory.lastMessage()).isPresent().get().isEqualTo(TEST_MESSAGES.getLast());
+  }
+
+  @Test
+  void returnsEmptyLastMessageWhenNoMessages() {
+    assertThat(memory.lastMessage()).isEmpty();
+  }
 }

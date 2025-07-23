@@ -41,12 +41,12 @@ class AgentContextTest {
   @Test
   void withState() {
     final var initialContext = AgentContext.empty();
-    final var updatedContext = initialContext.withState(AgentState.WAITING_FOR_TOOL_INPUT);
+    final var updatedContext = initialContext.withState(AgentState.TOOL_DISCOVERY);
 
     assertThat(updatedContext).isNotEqualTo(initialContext);
     assertThat(initialContext.state()).isEqualTo(EMPTY_CONTEXT.state());
 
-    assertThat(updatedContext.state()).isEqualTo(AgentState.WAITING_FOR_TOOL_INPUT);
+    assertThat(updatedContext.state()).isEqualTo(AgentState.TOOL_DISCOVERY);
   }
 
   @Test

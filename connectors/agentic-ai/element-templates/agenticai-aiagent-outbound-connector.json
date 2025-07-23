@@ -2,12 +2,12 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "AI Agent",
   "id" : "io.camunda.connectors.agenticai.aiagent.v1",
-  "description" : "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha6 or later.",
+  "description" : "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha7 or later.",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -106,8 +106,9 @@
   }, {
     "id" : "provider.anthropic.endpoint",
     "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use a custom API endpoint",
+    "description" : "Optional custom API endpoint",
     "optional" : true,
+    "feel" : "optional",
     "group" : "provider",
     "binding" : {
       "name" : "provider.anthropic.endpoint",
@@ -118,7 +119,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "provider.anthropic.authentication.apiKey",
     "label" : "Anthropic API key",
@@ -161,8 +162,9 @@
   }, {
     "id" : "provider.bedrock.endpoint",
     "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use a custom API endpoint",
+    "description" : "Optional custom API endpoint",
     "optional" : true,
+    "feel" : "optional",
     "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.endpoint",
@@ -173,7 +175,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "provider.bedrock.authentication.type",
     "label" : "Authentication",
@@ -1255,7 +1257,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

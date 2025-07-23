@@ -7,10 +7,9 @@
 package io.camunda.connector.agenticai.mcp.client.configuration.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.HttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -33,9 +32,9 @@ class McpClientConfigurationValidatorTest {
 
   private static final StdioMcpClientTransportConfiguration STDIO_CONFIGURATION =
       new StdioMcpClientTransportConfiguration(
-          List.of("echo", "hello"), Collections.emptyMap(), false);
-  private static final HttpMcpClientTransportConfiguration HTTP_CONFIGURATION =
-      new HttpMcpClientTransportConfiguration(
+          "echo", List.of("hello"), Collections.emptyMap(), false);
+  private static final SseHttpMcpClientTransportConfiguration SSE_CONFIGURATION =
+      new SseHttpMcpClientTransportConfiguration(
           "http://localhost:1234/sse", Collections.emptyMap(), Duration.ofSeconds(5), false, false);
 
   @Autowired private Validator validator;
@@ -48,11 +47,11 @@ class McpClientConfigurationValidatorTest {
 
   @Test
   void validationFailsWhenBothTransportsConfigured() {
-    assertThat(validator.validate(createConfiguration(STDIO_CONFIGURATION, HTTP_CONFIGURATION)))
+    assertThat(validator.validate(createConfiguration(STDIO_CONFIGURATION, SSE_CONFIGURATION)))
         .isNotEmpty()
         .extracting(ConstraintViolation::getMessage)
         .containsExactly(
-            "The MCP client needs to be configured with a single transport (either STDIO or HTTP)");
+            "The MCP client needs to be configured with a single transport (either STDIO or SSE)");
   }
 
   @Test
@@ -61,22 +60,22 @@ class McpClientConfigurationValidatorTest {
         .isNotEmpty()
         .extracting(ConstraintViolation::getMessage)
         .containsExactly(
-            "The MCP client needs to be configured with a single transport (either STDIO or HTTP)");
+            "The MCP client needs to be configured with a single transport (either STDIO or SSE)");
   }
 
   static Stream<McpClientConfiguration> validConfigurations() {
     return Stream.of(
         createConfiguration(STDIO_CONFIGURATION, null),
-        createConfiguration(null, HTTP_CONFIGURATION));
+        createConfiguration(null, SSE_CONFIGURATION));
   }
 
   private static McpClientConfiguration createConfiguration(
       StdioMcpClientTransportConfiguration stdioConfig,
-      HttpMcpClientTransportConfiguration httpConfig) {
+      SseHttpMcpClientTransportConfiguration sseConfig) {
     return new McpClientConfiguration(
         true,
         stdioConfig,
-        httpConfig,
+        sseConfig,
         Duration.ofSeconds(1),
         Duration.ofSeconds(2),
         Duration.ofSeconds(3));

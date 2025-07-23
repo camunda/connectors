@@ -109,8 +109,7 @@ public record AgentResponse(
   @DataExample(id = "withToolCalls", feel = "=toolCalls")
   public static AgentResponse exampleResultWithToolCalls() {
     return AgentResponse.builder()
-        .context(
-            exampleResultWithTextResponse().context().withState(AgentState.WAITING_FOR_TOOL_INPUT))
+        .context(exampleResultWithTextResponse().context())
         .toolCalls(
             List.of(
                 ToolCallProcessVariable.from(

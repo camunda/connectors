@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -48,6 +49,7 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -225,7 +227,7 @@ class AgentRequestHandlerTest {
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
 
-    assertThat(response.context().state()).isEqualTo(AgentState.WAITING_FOR_TOOL_INPUT);
+    assertThat(response.context().state()).isEqualTo(AgentState.READY);
     assertThat(response.context().metrics()).isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
     assertThat(response.context().conversation())
         .isNotNull()
@@ -294,11 +296,31 @@ class AgentRequestHandlerTest {
         .isEqualTo(assistantMessage("This is the assistant message"));
   }
 
+  @Test
+  void throwsExceptionWhenNoUserMessageContent() {
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo("NO_USER_MESSAGE_CONTENT");
+              assertThat(e.getMessage())
+                  .isEqualTo(
+                      "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
+            });
+  }
+
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
+    mockUserPrompt(new UserPromptConfiguration("User message 30", Map.of(), List.of()), List.of());
+
     when(agentRequest.data().memory()).thenReturn(memoryConfiguration);
 
     final List<Message> previousMessages =
-        IntStream.range(0, 30)
+        IntStream.range(0, 29)
             .mapToObj(i -> userMessage("User message " + i))
             .collect(Collectors.toUnmodifiableList());
 
@@ -344,12 +366,13 @@ class AgentRequestHandlerTest {
     when(agentRequest.data().userPrompt()).thenReturn(userPromptConfiguration);
     doAnswer(
             i -> {
+              final var userMessage = userMessage(userPromptConfiguration.prompt());
               final var runtimeMemory = i.getArgument(1, RuntimeMemory.class);
-              runtimeMemory.addMessage(userMessage(userPromptConfiguration.prompt()));
-              return null;
+              runtimeMemory.addMessage(userMessage);
+              return List.of(userMessage);
             })
         .when(messagesHandler)
-        .addMessagesFromRequest(
+        .addUserMessages(
             any(AgentContext.class),
             any(RuntimeMemory.class),
             eq(userPromptConfiguration),

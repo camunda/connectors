@@ -20,8 +20,8 @@ import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.HttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import java.time.Duration;
 import java.util.List;
@@ -57,14 +57,41 @@ class Langchain4JMcpClientFactoryTest {
                   StdioMcpTransport.Builder.class,
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
                   (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
-            final var stdioConfig = createStdioMcpClientTransportConfiguration(logEvents);
+            final var stdioConfig =
+                createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"), logEvents);
             final var client =
                 factory.createClient(CLIENT_ID, createMcpClientConfiguration(stdioConfig, null));
 
             assertThat(client).isEqualTo(mcpClient);
 
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
-            verify(transportBuilder).command(stdioConfig.command());
+            verify(transportBuilder).command(List.of("command", "arg1", "arg2"));
+            verify(transportBuilder).environment(stdioConfig.env());
+            verify(transportBuilder).logEvents(stdioConfig.logEvents());
+
+            verifyMcpClientBuilder(
+                mockedMcpClientConstruction.constructed().getFirst(), stdioMcpTransport);
+          }
+        });
+  }
+
+  @Test
+  void createsStdioMcpClientWithoutArguments() {
+    withMockedMcpClientBuilder(
+        mockedMcpClientConstruction -> {
+          try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
+              mockConstruction(
+                  StdioMcpTransport.Builder.class,
+                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
+                  (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
+            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), false);
+            final var client =
+                factory.createClient(CLIENT_ID, createMcpClientConfiguration(stdioConfig, null));
+
+            assertThat(client).isEqualTo(mcpClient);
+
+            final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
+            verify(transportBuilder).command(List.of("command"));
             verify(transportBuilder).environment(stdioConfig.env());
             verify(transportBuilder).logEvents(stdioConfig.logEvents());
 
@@ -84,18 +111,18 @@ class Langchain4JMcpClientFactoryTest {
                   HttpMcpTransport.Builder.class,
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
                   (mock, context) -> doReturn(httpMcpTransport).when(mock).build())) {
-            final var httpConfig =
-                createHttpMcpClientTransportConfiguration(logRequests, logResponses);
+            final var sseConfig =
+                createSseHttpMcpClientTransportConfiguration(logRequests, logResponses);
             final var client =
-                factory.createClient(CLIENT_ID, createMcpClientConfiguration(null, httpConfig));
+                factory.createClient(CLIENT_ID, createMcpClientConfiguration(null, sseConfig));
 
             assertThat(client).isEqualTo(mcpClient);
 
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
-            verify(transportBuilder).sseUrl(httpConfig.sseUrl());
-            verify(transportBuilder).timeout(httpConfig.timeout());
-            verify(transportBuilder).logRequests(httpConfig.logRequests());
-            verify(transportBuilder).logResponses(httpConfig.logResponses());
+            verify(transportBuilder).sseUrl(sseConfig.url());
+            verify(transportBuilder).timeout(sseConfig.timeout());
+            verify(transportBuilder).logRequests(sseConfig.logRequests());
+            verify(transportBuilder).logResponses(sseConfig.logResponses());
 
             verifyMcpClientBuilder(
                 mockedMcpClientConstruction.constructed().getFirst(), httpMcpTransport);
@@ -117,11 +144,11 @@ class Langchain4JMcpClientFactoryTest {
                       HttpMcpTransport.Builder.class,
                       withSettings().defaultAnswer(CALLS_REAL_METHODS),
                       (mock, context) -> doReturn(httpMcpTransport).when(mock).build())) {
-            final var stdioConfig = createStdioMcpClientTransportConfiguration(true);
-            final var httpConfig = createHttpMcpClientTransportConfiguration(true, true);
+            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), true);
+            final var sseConfig = createSseHttpMcpClientTransportConfiguration(true, true);
             final var client =
                 factory.createClient(
-                    CLIENT_ID, createMcpClientConfiguration(stdioConfig, httpConfig));
+                    CLIENT_ID, createMcpClientConfiguration(stdioConfig, sseConfig));
 
             assertThat(client).isEqualTo(mcpClient);
 
@@ -143,7 +170,7 @@ class Langchain4JMcpClientFactoryTest {
                   StdioMcpTransport.Builder.class,
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
                   (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
-            final var stdioConfig = createStdioMcpClientTransportConfiguration(true);
+            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), true);
             final var client =
                 factory.createClient(
                     CLIENT_ID,
@@ -186,25 +213,25 @@ class Langchain4JMcpClientFactoryTest {
 
   private McpClientConfiguration createMcpClientConfiguration(
       StdioMcpClientTransportConfiguration stdioConfig,
-      HttpMcpClientTransportConfiguration httpConfig) {
+      SseHttpMcpClientTransportConfiguration sseConfig) {
     return new McpClientConfiguration(
         true,
         stdioConfig,
-        httpConfig,
+        sseConfig,
         Duration.ofSeconds(1),
         Duration.ofSeconds(2),
         Duration.ofSeconds(3));
   }
 
   private StdioMcpClientTransportConfiguration createStdioMcpClientTransportConfiguration(
-      boolean logEvents) {
+      List<String> args, boolean logEvents) {
     return new StdioMcpClientTransportConfiguration(
-        List.of("command", "arg1", "arg2"), Map.of("ENV_VAR", "value"), logEvents);
+        "command", args, Map.of("ENV_VAR", "value"), logEvents);
   }
 
-  private HttpMcpClientTransportConfiguration createHttpMcpClientTransportConfiguration(
+  private SseHttpMcpClientTransportConfiguration createSseHttpMcpClientTransportConfiguration(
       boolean logRequests, boolean logResponses) {
-    return new HttpMcpClientTransportConfiguration(
+    return new SseHttpMcpClientTransportConfiguration(
         "http://localhost:123456/sse",
         Map.of("Authorization", "Bearer token"),
         Duration.ofSeconds(15),

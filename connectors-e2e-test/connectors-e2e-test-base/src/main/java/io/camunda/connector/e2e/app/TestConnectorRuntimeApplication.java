@@ -22,11 +22,12 @@ import io.camunda.document.store.InMemoryDocumentStore;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {ElasticsearchRestClientAutoConfiguration.class})
 @ImportAutoConfiguration({
   io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
   io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,

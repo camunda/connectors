@@ -50,7 +50,7 @@ class AgentResponseHandlerTest {
 
   private static final AgentContext AGENT_CONTEXT =
       AgentContext.empty()
-          .withState(AgentState.WAITING_FOR_TOOL_INPUT)
+          .withState(AgentState.READY)
           .withMetrics(AgentMetrics.empty().withModelCalls(5));
 
   private static final List<ToolCallProcessVariable> TOOL_CALLS =

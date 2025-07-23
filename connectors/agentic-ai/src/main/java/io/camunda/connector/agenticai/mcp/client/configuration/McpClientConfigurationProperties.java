@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.autoconfigure.AiFramework;
 import io.camunda.connector.agenticai.mcp.client.configuration.validation.ValidMcpClientConfiguration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
@@ -29,23 +28,24 @@ public record McpClientConfigurationProperties(
   @ValidMcpClientConfiguration
   public record McpClientConfiguration(
       @DefaultValue("true") boolean enabled,
-      StdioMcpClientTransportConfiguration stio,
-      HttpMcpClientTransportConfiguration http,
+      StdioMcpClientTransportConfiguration stdio,
+      SseHttpMcpClientTransportConfiguration sse,
       Duration initializationTimeout,
       Duration toolExecutionTimeout,
       Duration reconnectInterval) {}
 
   public sealed interface McpClientTransportConfiguration
-      permits StdioMcpClientTransportConfiguration, HttpMcpClientTransportConfiguration {}
+      permits StdioMcpClientTransportConfiguration, SseHttpMcpClientTransportConfiguration {}
 
   public record StdioMcpClientTransportConfiguration(
-      @NotNull @NotEmpty List<String> command,
+      @NotBlank String command,
+      @NotNull @DefaultValue List<String> args,
       @NotNull @DefaultValue Map<String, String> env,
       @DefaultValue("true") boolean logEvents)
       implements McpClientTransportConfiguration {}
 
-  public record HttpMcpClientTransportConfiguration(
-      @NotBlank String sseUrl,
+  public record SseHttpMcpClientTransportConfiguration(
+      @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers, // TODO NOT SUPPORTED YET
       Duration timeout,
       @DefaultValue("false") boolean logRequests,
