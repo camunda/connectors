@@ -28,7 +28,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
     },
     documentationRef =
-        "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",
+        "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/box/",
     icon = "icon.svg")
 public class BoxFunction implements OutboundConnectorFunction {
 

@@ -173,7 +173,7 @@
       "equals" : "SYNC",
       "type" : "simple"
     },
-    "tooltip" : "<a href=\"https://docs.camunda.io/docs/8.7/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
+    "tooltip" : "<a href=\"https://docs.camunda.io/docs/8.8/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",

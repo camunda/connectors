@@ -32,7 +32,7 @@ public record TextractRequestData(
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "UPLOADED",
             tooltip =
-                "<a href=\"https://docs.camunda.io/docs/8.7/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
+                "<a href=\"https://docs.camunda.io/docs/8.8/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.executionType",
