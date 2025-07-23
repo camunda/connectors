@@ -30,72 +30,78 @@ import javax.annotation.Nullable;
 
 public class ExternalDocument implements Document {
 
-  private final DocumentMetadata metadata;
-  private final HttpURLConnection connection;
+  private final String url;
+  private final String name;
+  private transient DocumentMetadata metadata;
+  private transient HttpURLConnection connection;
 
-  public ExternalDocument(String url, @Nullable String name, HttpURLConnection connection) {
-    try {
-      if (connection == null) {
-        URL urlObj = new URL(url);
-        connection = (HttpURLConnection) urlObj.openConnection();
-        connection.setRequestMethod("GET");
-        connection.connect();
-        connection.getContentLengthLong();
-        connection.getContentType();
-      }
-      this.connection = connection;
-
-      metadata = createMetadata(name);
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to connect to external document URL: " + url, e);
-    }
+  public ExternalDocument(
+      String url, @Nullable String name, @Nullable HttpURLConnection connection) {
+    this.url = url;
+    this.name = name;
+    this.connection = connection;
   }
 
   public ExternalDocument(String url, @Nullable String name) {
     this(url, name, null);
   }
 
-  private DocumentMetadata createMetadata(@Nullable String name) {
-    return new DocumentMetadata() {
-      @Override
-      public String getContentType() {
-        return connection.getContentType();
+  private HttpURLConnection connection() {
+    try {
+      if (connection != null) {
+        return connection;
       }
-
-      @Override
-      public OffsetDateTime getExpiresAt() {
-        return null;
-      }
-
-      @Override
-      public Long getSize() {
-        return connection.getContentLengthLong();
-      }
-
-      @Override
-      public String getFileName() {
-        return name == null ? UUID.randomUUID().toString() : name;
-      }
-
-      @Override
-      public String getProcessDefinitionId() {
-        return "";
-      }
-
-      @Override
-      public Long getProcessInstanceKey() {
-        return 0L;
-      }
-
-      @Override
-      public Map<String, Object> getCustomProperties() {
-        return Map.of();
-      }
-    };
+      URL urlObj = new URL(url);
+      connection = (HttpURLConnection) urlObj.openConnection();
+      connection.setRequestMethod("GET");
+      return connection;
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to connect to external document URL: " + url, e);
+    }
   }
 
-  @Override
   public DocumentMetadata metadata() {
+    if (metadata != null) {
+      return metadata;
+    }
+    var metadata =
+        new DocumentMetadata() {
+          @Override
+          public String getContentType() {
+            return connection().getContentType();
+          }
+
+          @Override
+          public OffsetDateTime getExpiresAt() {
+            return null;
+          }
+
+          @Override
+          public Long getSize() {
+            return connection().getContentLengthLong();
+          }
+
+          @Override
+          public String getFileName() {
+            return name == null ? UUID.randomUUID().toString() : name;
+          }
+
+          @Override
+          public String getProcessDefinitionId() {
+            return "";
+          }
+
+          @Override
+          public Long getProcessInstanceKey() {
+            return 0L;
+          }
+
+          @Override
+          public Map<String, Object> getCustomProperties() {
+            return Map.of();
+          }
+        };
+    this.metadata = metadata;
     return metadata;
   }
 
@@ -107,10 +113,10 @@ public class ExternalDocument implements Document {
   @Override
   public InputStream asInputStream() {
     try {
-      return connection.getInputStream();
+      return connection().getInputStream();
     } catch (IOException e) {
       throw new RuntimeException(
-          "Failed to download external document: " + connection.getURL().toString(), e);
+          "Failed to download external document: " + connection().getURL().toString(), e);
     }
   }
 
@@ -130,6 +136,6 @@ public class ExternalDocument implements Document {
 
   @Override
   public String generateLink(DocumentLinkParameters parameters) {
-    return connection.getURL().toString();
+    return connection().getURL().toString();
   }
 }

@@ -106,7 +106,12 @@ class ExternalDocumentTest {
             })) {
 
       RuntimeException exception =
-          assertThrows(RuntimeException.class, () -> new ExternalDocument(mockUrl, "fail.txt"));
+          assertThrows(
+              RuntimeException.class,
+              () -> {
+                var d = new ExternalDocument(mockUrl, "fail.txt");
+                d.asBase64();
+              });
 
       assertTrue(exception.getMessage().contains("Failed to connect to external document URL"));
     }
