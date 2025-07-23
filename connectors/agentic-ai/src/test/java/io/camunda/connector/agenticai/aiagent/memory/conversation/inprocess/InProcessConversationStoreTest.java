@@ -16,9 +16,7 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemor
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.ArrayList;
@@ -35,9 +33,7 @@ class InProcessConversationStoreTest {
 
   private static final List<Message> TEST_MESSAGES = TestMessagesFixture.testMessages();
 
-  @Mock private AgentJobContext agentJobContext;
-  @Mock private AgentRequest agentRequest;
-  private AgentExecutionContext executionContext;
+  @Mock private AgentExecutionContext executionContext;
 
   private final InProcessConversationStore store = new InProcessConversationStore();
 
@@ -45,7 +41,6 @@ class InProcessConversationStoreTest {
 
   @BeforeEach
   void setUp() {
-    executionContext = new AgentExecutionContext(agentJobContext, agentRequest);
     memory = new DefaultRuntimeMemory();
   }
 

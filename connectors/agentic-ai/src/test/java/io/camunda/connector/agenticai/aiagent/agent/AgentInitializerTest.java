@@ -25,8 +25,9 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
@@ -96,7 +97,7 @@ class AgentInitializerTest {
               .build());
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private AgentJobContext agentJobContext;
+  private OutboundConnectorAgentJobContext agentJobContext;
 
   @Mock private ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   @Mock private AdHocToolsSchemaResolver toolsSchemaResolver;
@@ -434,6 +435,6 @@ class AgentInitializerTest {
             null,
             new AgentRequestData(agentContext, null, null, toolsConfiguration, null, null, null));
 
-    return new AgentExecutionContext(agentJobContext, agentRequest);
+    return new OutboundConnectorAgentExecutionContext(agentJobContext, agentRequest);
   }
 }

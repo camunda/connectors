@@ -33,12 +33,10 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
@@ -61,7 +59,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -89,12 +86,7 @@ class AgentRequestHandlerTest {
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private AgentResponseHandler responseHandler;
 
-  @Mock private AgentJobContext agentJobContext;
-
-  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private AgentRequest agentRequest;
-
-  private AgentExecutionContext agentExecutionContext;
+  @Mock private AgentExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<RuntimeMemory> runtimeMemoryCaptor;
 
@@ -102,7 +94,6 @@ class AgentRequestHandlerTest {
 
   @BeforeEach
   void setUp() {
-    agentExecutionContext = new AgentExecutionContext(agentJobContext, agentRequest);
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
@@ -317,7 +308,7 @@ class AgentRequestHandlerTest {
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
     mockUserPrompt(new UserPromptConfiguration("User message 30", Map.of(), List.of()), List.of());
 
-    when(agentRequest.data().memory()).thenReturn(memoryConfiguration);
+    when(agentExecutionContext.memory()).thenReturn(memoryConfiguration);
 
     final List<Message> previousMessages =
         IntStream.range(0, 29)
@@ -349,7 +340,7 @@ class AgentRequestHandlerTest {
   }
 
   private void mockSystemPrompt(SystemPromptConfiguration systemPromptConfiguration) {
-    when(agentRequest.data().systemPrompt()).thenReturn(systemPromptConfiguration);
+    when(agentExecutionContext.systemPrompt()).thenReturn(systemPromptConfiguration);
     doAnswer(
             i -> {
               final var runtimeMemory = i.getArgument(1, RuntimeMemory.class);
@@ -363,7 +354,7 @@ class AgentRequestHandlerTest {
 
   private void mockUserPrompt(
       UserPromptConfiguration userPromptConfiguration, List<ToolCallResult> toolCallResults) {
-    when(agentRequest.data().userPrompt()).thenReturn(userPromptConfiguration);
+    when(agentExecutionContext.userPrompt()).thenReturn(userPromptConfiguration);
     doAnswer(
             i -> {
               final var userMessage = userMessage(userPromptConfiguration.prompt());

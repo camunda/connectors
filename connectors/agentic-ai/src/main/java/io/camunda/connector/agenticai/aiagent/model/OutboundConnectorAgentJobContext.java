@@ -13,7 +13,7 @@ public class OutboundConnectorAgentJobContext implements AgentJobContext {
 
   private final OutboundConnectorContext context;
 
-  public OutboundConnectorAgentJobContext(OutboundConnectorContext context) {
+  public OutboundConnectorAgentJobContext(final OutboundConnectorContext context) {
     this.context = context;
   }
 

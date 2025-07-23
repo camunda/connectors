@@ -8,15 +8,13 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
@@ -40,7 +38,7 @@ class ConversationStoreRegistryTest {
   @Mock private ObjectMapper objectMapper;
   @Mock private DocumentFactory documentFactory;
   @Mock private CamundaDocumentStore documentStore;
-  @Mock private AgentJobContext agentJobContext;
+  @Mock private AgentExecutionContext executionContext;
 
   private InProcessConversationStore inProcessConversationStore;
   private CamundaDocumentConversationStore camundaDocumentConversationStore;
@@ -89,56 +87,49 @@ class ConversationStoreRegistryTest {
 
   @Test
   void createsInProcessConversationStore() {
-    final var store =
-        registry.getConversationStore(
-            new AgentExecutionContext(
-                agentJobContext, agentRequest(new InProcessMemoryStorageConfiguration())),
-            agentContext);
+    when(executionContext.memory())
+        .thenReturn(memoryConfiguration(new InProcessMemoryStorageConfiguration()));
+
+    final var store = registry.getConversationStore(executionContext, agentContext);
 
     assertThat(store).isEqualTo(inProcessConversationStore);
   }
 
   @Test
   void fallsBackToInProcessConversationStoreWhenNotConfigured() {
-    final var store =
-        registry.getConversationStore(
-            new AgentExecutionContext(agentJobContext, agentRequest(null)), agentContext);
+    when(executionContext.memory()).thenReturn(null);
+
+    final var store = registry.getConversationStore(executionContext, agentContext);
 
     assertThat(store).isEqualTo(inProcessConversationStore);
   }
 
   @Test
   void createsCamundaDocumentConversationStore() {
-    final var store =
-        registry.getConversationStore(
-            new AgentExecutionContext(
-                agentJobContext,
-                agentRequest(
-                    new CamundaDocumentMemoryStorageConfiguration(
-                        Duration.ofHours(1), Map.of("customKey", "customValue")))),
-            agentContext);
+    when(executionContext.memory())
+        .thenReturn(
+            memoryConfiguration(
+                new CamundaDocumentMemoryStorageConfiguration(
+                    Duration.ofHours(1), Map.of("customKey", "customValue"))));
+
+    final var store = registry.getConversationStore(executionContext, agentContext);
 
     assertThat(store).isEqualTo(camundaDocumentConversationStore);
   }
 
   @Test
   void throwsExceptionWhenNoStoreRegisteredForStorageType() {
+    when(executionContext.memory())
+        .thenReturn(memoryConfiguration(new InProcessMemoryStorageConfiguration()));
+
     final var registry = new ConversationStoreRegistryImpl();
-    assertThatThrownBy(
-            () ->
-                registry.getConversationStore(
-                    new AgentExecutionContext(
-                        agentJobContext, agentRequest(new InProcessMemoryStorageConfiguration())),
-                    agentContext))
+    assertThatThrownBy(() -> registry.getConversationStore(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining(
             "No conversation store registered for storage configuration type: in-process");
   }
 
-  private AgentRequest agentRequest(MemoryStorageConfiguration storageConfig) {
-    return new AgentRequest(
-        null,
-        new AgentRequestData(
-            null, null, null, null, new MemoryConfiguration(storageConfig, 10), null, null));
+  private MemoryConfiguration memoryConfiguration(MemoryStorageConfiguration storageConfig) {
+    return new MemoryConfiguration(storageConfig, 10);
   }
 }

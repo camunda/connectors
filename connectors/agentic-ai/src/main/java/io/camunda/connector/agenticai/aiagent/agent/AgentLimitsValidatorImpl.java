@@ -10,7 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.LimitsConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Optional;
 
@@ -20,13 +20,13 @@ public class AgentLimitsValidatorImpl implements AgentLimitsValidator {
   @Override
   public void validateConfiguredLimits(
       AgentExecutionContext executionContext, AgentContext agentContext) {
-    verifyMaxModelCalls(executionContext.request(), agentContext);
+    verifyMaxModelCalls(executionContext.limits(), agentContext);
   }
 
-  private void verifyMaxModelCalls(AgentRequest request, AgentContext agentContext) {
+  private void verifyMaxModelCalls(LimitsConfiguration limits, AgentContext agentContext) {
     final int maxModelCalls =
-        Optional.ofNullable(request.data().limits())
-            .map(AgentRequest.AgentRequestData.LimitsConfiguration::maxModelCalls)
+        Optional.ofNullable(limits)
+            .map(LimitsConfiguration::maxModelCalls)
             .orElse(DEFAULT_MAX_MODEL_CALLS);
     if (agentContext.metrics().modelCalls() >= maxModelCalls) {
       throw new ConnectorException(

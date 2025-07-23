@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemM
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -27,15 +28,11 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemor
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
@@ -102,8 +99,6 @@ class Langchain4JAiFrameworkAdapterTest {
   @Mock private ChatResponse chatResponse;
 
   @Captor private ArgumentCaptor<ChatRequest> chatRequestCaptor;
-
-  @Mock private AgentJobContext agentJobContext;
 
   private RuntimeMemory runtimeMemory;
   private Langchain4JAiFrameworkAdapter adapter;
@@ -264,12 +259,9 @@ class Langchain4JAiFrameworkAdapterTest {
 
   private AgentExecutionContext createExecutionContext(
       ResponseConfiguration responseConfiguration) {
-    final var agentRequest =
-        new AgentRequest(
-            new OpenAiProviderConfiguration(null),
-            new AgentRequestData(
-                AGENT_CONTEXT, null, null, null, null, null, responseConfiguration));
+    final var executionContext = mock(AgentExecutionContext.class);
+    when(executionContext.response()).thenReturn(responseConfiguration);
 
-    return new AgentExecutionContext(agentJobContext, agentRequest);
+    return executionContext;
   }
 }

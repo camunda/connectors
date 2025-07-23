@@ -11,7 +11,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSe
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
@@ -45,9 +45,8 @@ public class CamundaDocumentConversationStore implements ConversationStore {
       AgentContext agentContext,
       ConversationSessionHandler<T> sessionHandler) {
     final var config =
-        Optional.ofNullable(executionContext.request().data())
-            .map(AgentRequest.AgentRequestData::memory)
-            .map(AgentRequest.AgentRequestData.MemoryConfiguration::storage)
+        Optional.ofNullable(executionContext.memory())
+            .map(MemoryConfiguration::storage)
             .orElse(null);
 
     if (!(config instanceof CamundaDocumentMemoryStorageConfiguration documentConfig)) {

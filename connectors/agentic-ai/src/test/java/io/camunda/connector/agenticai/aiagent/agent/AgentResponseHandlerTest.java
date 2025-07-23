@@ -17,11 +17,9 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
@@ -41,7 +39,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -76,10 +73,7 @@ class AgentResponseHandlerTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AgentResponseHandler responseHandler = new AgentResponseHandlerImpl(objectMapper);
 
-  @Mock private AgentJobContext agentJobContext;
-
-  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private AgentRequest request;
+  @Mock private AgentExecutionContext executionContext;
 
   @Nested
   class Text {
@@ -88,10 +82,10 @@ class AgentResponseHandlerTest {
     @MethodSource("emptyAssistantMessages")
     void returnsEmptyResponseWhenAssistantMessageDoesNotContainText(
         AssistantMessage assistantMessage) {
-      when(request.data().response())
-          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(false), false));
-
-      final var response = createResponse(assistantMessage);
+      final var response =
+          createResponse(
+              new ResponseConfiguration(new TextResponseFormatConfiguration(false), false),
+              assistantMessage);
 
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isNull();
@@ -100,10 +94,10 @@ class AgentResponseHandlerTest {
 
     @Test
     void returnsTextResponseIfConfigured() {
-      when(request.data().response())
-          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(false), false));
-
-      final var response = createResponse(assistantMessage(HAIKU_TEXT));
+      final var response =
+          createResponse(
+              new ResponseConfiguration(new TextResponseFormatConfiguration(false), false),
+              assistantMessage(HAIKU_TEXT));
 
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
@@ -112,9 +106,7 @@ class AgentResponseHandlerTest {
 
     @Test
     void returnsTextResponseIfResponseConfigurationIsMissing() {
-      when(request.data().response()).thenReturn(null);
-
-      final var response = createResponse(assistantMessage(HAIKU_TEXT));
+      final var response = createResponse(null, assistantMessage(HAIKU_TEXT));
 
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
@@ -123,9 +115,8 @@ class AgentResponseHandlerTest {
 
     @Test
     void returnsTextResponseIfResponseFormatIsMissing() {
-      when(request.data().response()).thenReturn(new ResponseConfiguration(null, false));
-
-      final var response = createResponse(assistantMessage(HAIKU_TEXT));
+      final var response =
+          createResponse(new ResponseConfiguration(null, false), assistantMessage(HAIKU_TEXT));
 
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
@@ -134,10 +125,10 @@ class AgentResponseHandlerTest {
 
     @Test
     void triesToParseResponseTextAsJsonIfConfigured() {
-      when(request.data().response())
-          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(true), false));
-
-      final var response = createResponse(assistantMessage(HAIKU_JSON));
+      final var response =
+          createResponse(
+              new ResponseConfiguration(new TextResponseFormatConfiguration(true), false),
+              assistantMessage(HAIKU_JSON));
 
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isEqualTo(HAIKU_JSON);
@@ -146,10 +137,10 @@ class AgentResponseHandlerTest {
 
     @Test
     void returnsNullAsJsonObjectWhenParsingJsonFails() {
-      when(request.data().response())
-          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(true), false));
-
-      final var response = createResponse(assistantMessage(HAIKU_TEXT));
+      final var response =
+          createResponse(
+              new ResponseConfiguration(new TextResponseFormatConfiguration(true), false),
+              assistantMessage(HAIKU_TEXT));
 
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
@@ -158,11 +149,11 @@ class AgentResponseHandlerTest {
 
     @Test
     void returnsAssistantMessageIfConfigured() {
-      when(request.data().response())
-          .thenReturn(new ResponseConfiguration(new TextResponseFormatConfiguration(false), true));
-
       AssistantMessage assistantMessage = assistantMessage(HAIKU_TEXT);
-      final var response = createResponse(assistantMessage);
+      final var response =
+          createResponse(
+              new ResponseConfiguration(new TextResponseFormatConfiguration(false), true),
+              assistantMessage);
 
       assertThat(response.responseMessage()).isNotNull().isEqualTo(assistantMessage);
       assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
@@ -181,11 +172,10 @@ class AgentResponseHandlerTest {
 
     @Test
     void returnsParsedJsonResponse() {
-      when(request.data().response())
-          .thenReturn(
-              new ResponseConfiguration(new JsonResponseFormatConfiguration(null, null), false));
-
-      final var response = createResponse(assistantMessage(HAIKU_JSON));
+      final var response =
+          createResponse(
+              new ResponseConfiguration(new JsonResponseFormatConfiguration(null, null), false),
+              assistantMessage(HAIKU_JSON));
 
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isNull();
@@ -194,11 +184,12 @@ class AgentResponseHandlerTest {
 
     @Test
     void throwsExceptionWhenJsonParsingFails() {
-      when(request.data().response())
-          .thenReturn(
-              new ResponseConfiguration(new JsonResponseFormatConfiguration(null, null), false));
-
-      assertThatThrownBy(() -> createResponse(assistantMessage(HAIKU_TEXT)))
+      assertThatThrownBy(
+              () ->
+                  createResponse(
+                      new ResponseConfiguration(
+                          new JsonResponseFormatConfiguration(null, null), false),
+                      assistantMessage(HAIKU_TEXT)))
           .hasMessageStartingWith("Failed to parse response content as JSON")
           .isInstanceOfSatisfying(
               ConnectorException.class,
@@ -208,13 +199,13 @@ class AgentResponseHandlerTest {
     }
   }
 
-  private AgentResponse createResponse(AssistantMessage assistantMessage) {
+  private AgentResponse createResponse(
+      ResponseConfiguration responseConfiguration, AssistantMessage assistantMessage) {
+    when(executionContext.response()).thenReturn(responseConfiguration);
+
     final var response =
         responseHandler.createResponse(
-            new AgentExecutionContext(agentJobContext, request),
-            AGENT_CONTEXT,
-            assistantMessage,
-            TOOL_CALLS);
+            executionContext, AGENT_CONTEXT, assistantMessage, TOOL_CALLS);
 
     assertThat(response).isNotNull();
     assertThat(response.context()).isEqualTo(AGENT_CONTEXT);

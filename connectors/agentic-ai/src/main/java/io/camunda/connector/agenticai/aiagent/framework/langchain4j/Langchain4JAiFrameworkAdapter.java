@@ -19,7 +19,7 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import java.util.Optional;
@@ -49,11 +49,10 @@ public class Langchain4JAiFrameworkAdapter
       AgentExecutionContext executionContext,
       AgentContext agentContext,
       RuntimeMemory runtimeMemory) {
-    final var request = executionContext.request();
     final var messages = chatMessageConverter.map(runtimeMemory.filteredMessages());
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(agentContext.toolDefinitions());
-    final var responseFormat = createResponseFormat(request);
+    final var responseFormat = createResponseFormat(executionContext.response());
 
     final var chatRequest =
         ChatRequest.builder()
@@ -62,7 +61,7 @@ public class Langchain4JAiFrameworkAdapter
             .responseFormat(responseFormat)
             .build();
 
-    final ChatModel chatModel = chatModelFactory.createChatModel(request.provider());
+    final ChatModel chatModel = chatModelFactory.createChatModel(executionContext.provider());
     final ChatResponse chatResponse = chatModel.chat(chatRequest);
     final AssistantMessage assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse);
 
@@ -77,10 +76,9 @@ public class Langchain4JAiFrameworkAdapter
         updatedAgentContext, assistantMessage, chatResponse);
   }
 
-  private ResponseFormat createResponseFormat(AgentRequest request) {
+  private ResponseFormat createResponseFormat(ResponseConfiguration responseConfiguration) {
     final var builder = ResponseFormat.builder();
 
-    final var responseConfiguration = request.data().response();
     if (responseConfiguration != null
         && responseConfiguration.format() != null
         && responseConfiguration.format() instanceof JsonResponseFormatConfiguration jsonFormat) {

@@ -45,7 +45,7 @@ public class ConversationStoreRegistryImpl implements ConversationStoreRegistry 
   public ConversationStore getConversationStore(
       final AgentExecutionContext executionContext, final AgentContext agentContext) {
     final var storageConfig =
-        Optional.ofNullable(executionContext.request().data().memory())
+        Optional.ofNullable(executionContext.memory())
             .map(AgentRequest.AgentRequestData.MemoryConfiguration::storage)
             .orElseGet(InProcessMemoryStorageConfiguration::new);
 
