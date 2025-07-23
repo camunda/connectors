@@ -18,9 +18,10 @@ package io.camunda.connector.runtime.saas;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {ElasticsearchRestClientAutoConfiguration.class})
 @ComponentScan(basePackages = "io.camunda.connector")
 public class SaaSConnectorRuntimeApplication {
 
