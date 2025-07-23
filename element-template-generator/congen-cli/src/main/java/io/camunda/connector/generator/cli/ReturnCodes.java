@@ -19,7 +19,8 @@ package io.camunda.connector.generator.cli;
 public enum ReturnCodes {
   SUCCESS(0),
   GENERATION_FAILED(1),
-  INPUT_PREPARATION_FAILED(2);
+  INPUT_PREPARATION_FAILED(2),
+  JSON_SCHEMA_VALIDATION_FAILED(2);
 
   private final int code;
 
