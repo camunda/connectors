@@ -29,7 +29,7 @@ public record McpClientConfigurationProperties(
   @ValidMcpClientConfiguration
   public record McpClientConfiguration(
       @DefaultValue("true") boolean enabled,
-      StdioMcpClientTransportConfiguration stio,
+      StdioMcpClientTransportConfiguration stdio,
       HttpMcpClientTransportConfiguration http,
       Duration initializationTimeout,
       Duration toolExecutionTimeout,

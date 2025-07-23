@@ -15,7 +15,7 @@ camunda:
             # replace path to files to the directory you want the model to have access to
             # you can also add multiple paths, see https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem
             filesystem:
-              stio:
+              stdio:
                 command:
                   - 'npx'
                   - '-y'
@@ -24,7 +24,7 @@ camunda:
 
             # STDIO servers can be started in any runtime/language, e.g. as docker container        
             time:
-              stio:
+              stdio:
                 command:
                   - 'docker'
                   - 'run'
