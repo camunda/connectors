@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.Ad
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
+import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
@@ -61,7 +62,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentMessagesHandler.class,
           AgentResponseHandler.class,
           AgentRequestHandler.class,
-          AiAgentFunction.class);
+          AiAgentFunction.class,
+          AiAgentJobWorker.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
@@ -109,6 +111,19 @@ class AgenticAiConnectorsAutoConfigurationTest {
                       .toList());
               assertThat(context).doesNotHaveBean(AiAgentFunction.class);
               assertThat(context).doesNotHaveBean(AgentRequestHandler.class);
+            });
+  }
+
+  @Test
+  void whenAiAgentJobWorkerConnectorDisabled_thenNoAiAgentJobWorkerIsCreated() {
+    contextRunner
+        .withPropertyValues("camunda.connector.agenticai.aiagent.job-worker.enabled=false")
+        .run(
+            context -> {
+              assertHasAllBeansOf(
+                  context,
+                  ALL_BEANS.stream().filter(c -> !c.equals(AiAgentJobWorker.class)).toList());
+              assertThat(context).doesNotHaveBean(AiAgentJobWorker.class);
             });
   }
 
