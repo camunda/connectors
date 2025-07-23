@@ -16,8 +16,8 @@ camunda:
             # you can also add multiple paths, see https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem
             filesystem:
               stdio:
-                command:
-                  - 'npx'
+                command: npx
+                args:
                   - '-y'
                   - '@modelcontextprotocol/server-filesystem'
                   - '<path-to-files>'
@@ -25,8 +25,8 @@ camunda:
             # STDIO servers can be started in any runtime/language, e.g. as docker container        
             time:
               stdio:
-                command:
-                  - 'docker'
+                command: docker
+                args:
                   - 'run'
                   - '-i'
                   - '--rm'

@@ -33,7 +33,7 @@ class McpClientConfigurationValidatorTest {
 
   private static final StdioMcpClientTransportConfiguration STDIO_CONFIGURATION =
       new StdioMcpClientTransportConfiguration(
-          List.of("echo", "hello"), Collections.emptyMap(), false);
+          "echo", List.of("hello"), Collections.emptyMap(), false);
   private static final HttpMcpClientTransportConfiguration HTTP_CONFIGURATION =
       new HttpMcpClientTransportConfiguration(
           "http://localhost:1234/sse", Collections.emptyMap(), Duration.ofSeconds(5), false, false);

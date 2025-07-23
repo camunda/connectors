@@ -14,6 +14,7 @@ import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> {
@@ -33,12 +34,17 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
   private McpTransport createTransport(
       McpClientConfigurationProperties.McpClientTransportConfiguration transportConfig) {
     return switch (transportConfig) {
-      case McpClientConfigurationProperties.StdioMcpClientTransportConfiguration stdio ->
-          new StdioMcpTransport.Builder()
-              .command(stdio.command())
-              .environment(stdio.env())
-              .logEvents(stdio.logEvents())
-              .build();
+      case McpClientConfigurationProperties.StdioMcpClientTransportConfiguration stdio -> {
+        final var commandParts = new ArrayList<String>();
+        commandParts.add(stdio.command());
+        commandParts.addAll(stdio.args());
+
+        yield new StdioMcpTransport.Builder()
+            .command(commandParts)
+            .environment(stdio.env())
+            .logEvents(stdio.logEvents())
+            .build();
+      }
       case McpClientConfigurationProperties.HttpMcpClientTransportConfiguration http ->
           new HttpMcpTransport.Builder()
               .sseUrl(http.sseUrl())

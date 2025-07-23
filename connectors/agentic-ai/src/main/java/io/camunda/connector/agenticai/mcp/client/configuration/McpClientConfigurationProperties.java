@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.autoconfigure.AiFramework;
 import io.camunda.connector.agenticai.mcp.client.configuration.validation.ValidMcpClientConfiguration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
@@ -39,7 +38,8 @@ public record McpClientConfigurationProperties(
       permits StdioMcpClientTransportConfiguration, HttpMcpClientTransportConfiguration {}
 
   public record StdioMcpClientTransportConfiguration(
-      @NotNull @NotEmpty List<String> command,
+      @NotBlank String command,
+      @NotNull @DefaultValue List<String> args,
       @NotNull @DefaultValue Map<String, String> env,
       @DefaultValue("true") boolean logEvents)
       implements McpClientTransportConfiguration {}
