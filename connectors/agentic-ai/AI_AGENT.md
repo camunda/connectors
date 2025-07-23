@@ -180,7 +180,7 @@ leading to the following result
         "outputTokenCount" : 20
       }
     },
-    "state" : "WAITING_FOR_TOOL_INPUT",
+    "state" : "READY",
     "toolDefinitions" : [ {
       "description" : "A sample tool for demonstration purposes.",
       "inputSchema" : {

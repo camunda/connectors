@@ -6,21 +6,22 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
+
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Optional;
 
@@ -99,13 +100,21 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
     // validate configured limits
     limitsValidator.validateConfiguredLimits(executionContext, agentContext);
 
-    // update memory with system message + new user messages/tool call responses
+    // update memory with system message
     messagesHandler.addSystemMessage(agentContext, runtimeMemory, requestData.systemPrompt());
-    messagesHandler.addMessagesFromRequest(
-        agentContext, runtimeMemory, requestData.userPrompt(), toolCallResults);
+
+    // update memory with user messages/tool call responses
+    final var userMessages =
+        messagesHandler.addUserMessages(
+            agentContext, runtimeMemory, requestData.userPrompt(), toolCallResults);
+    if (userMessages.isEmpty()) {
+      throw new ConnectorException(
+          ERROR_CODE_NO_USER_MESSAGE_CONTENT,
+          "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
+    }
 
     // call framework with memory
-    AiFrameworkChatResponse<?> frameworkChatResponse =
+    final var frameworkChatResponse =
         framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
     agentContext = frameworkChatResponse.agentContext();
 
@@ -114,17 +123,13 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
 
     // apply potential gateway tool call transformations & map tool call to process
     // variable format
-    var toolCalls =
+    final var toolCalls =
         gatewayToolHandlers.transformToolCalls(agentContext, assistantMessage.toolCalls());
     final var processVariableToolCalls =
         toolCalls.stream().map(ToolCallProcessVariable::from).toList();
 
-    final var nextAgentState =
-        toolCalls.isEmpty() ? AgentState.READY : AgentState.WAITING_FOR_TOOL_INPUT;
-
-    // store memory to context and update the next agent state based on tool calls
-    agentContext =
-        session.storeFromRuntimeMemory(agentContext, runtimeMemory).withState(nextAgentState);
+    // store memory reference to context
+    agentContext = session.storeFromRuntimeMemory(agentContext, runtimeMemory);
 
     return responseHandler.createResponse(
         executionContext, agentContext, assistantMessage, processVariableToolCalls);

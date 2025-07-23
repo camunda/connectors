@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCo
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Runtime memory interface for storing and retrieving messages during agent execution.
@@ -31,6 +32,15 @@ public interface RuntimeMemory {
   /** Filtered message view which should be included in the LLM request. */
   default List<Message> filteredMessages() {
     return allMessages();
+  }
+
+  default Optional<Message> lastMessage() {
+    final var messages = allMessages();
+    if (messages.isEmpty()) {
+      return Optional.empty();
+    }
+
+    return Optional.ofNullable(messages.getLast());
   }
 
   void clear();
