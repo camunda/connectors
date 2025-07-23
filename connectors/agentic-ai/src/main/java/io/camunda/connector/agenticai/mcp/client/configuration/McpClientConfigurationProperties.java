@@ -29,13 +29,13 @@ public record McpClientConfigurationProperties(
   public record McpClientConfiguration(
       @DefaultValue("true") boolean enabled,
       StdioMcpClientTransportConfiguration stdio,
-      HttpMcpClientTransportConfiguration http,
+      SseHttpMcpClientTransportConfiguration sse,
       Duration initializationTimeout,
       Duration toolExecutionTimeout,
       Duration reconnectInterval) {}
 
   public sealed interface McpClientTransportConfiguration
-      permits StdioMcpClientTransportConfiguration, HttpMcpClientTransportConfiguration {}
+      permits StdioMcpClientTransportConfiguration, SseHttpMcpClientTransportConfiguration {}
 
   public record StdioMcpClientTransportConfiguration(
       @NotBlank String command,
@@ -44,8 +44,8 @@ public record McpClientConfigurationProperties(
       @DefaultValue("true") boolean logEvents)
       implements McpClientTransportConfiguration {}
 
-  public record HttpMcpClientTransportConfiguration(
-      @NotBlank String sseUrl,
+  public record SseHttpMcpClientTransportConfiguration(
+      @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers, // TODO NOT SUPPORTED YET
       Duration timeout,
       @DefaultValue("false") boolean logRequests,

@@ -63,6 +63,7 @@
   }, {
     "id" : "data.connection.sseUrl",
     "label" : "SSE URL",
+    "description" : "SSE URL to connect to the MCP server. Typically ends with <code>/sse</code>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

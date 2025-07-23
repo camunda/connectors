@@ -35,9 +35,9 @@ camunda:
             # Remote HTTP/SSE MCP server
             # start the OpenMemory MCP server first as documented on https://mem0.ai/openmemory-mcp
             openmemory:
-              http:
+              sse:
                 # replace with the URL returned by the OpenMemory MCP link UI
-                sse-url: http://localhost:8765/mcp/openmemory/sse/<your-client-id>
+                url: http://localhost:8765/mcp/openmemory/sse/<your-client-id>
 ```
 
 Make also sure to deploy all the form definitions from the [AI Agent Chat with tools example](../ai-agent-chat-with-tools).

@@ -16,9 +16,9 @@ public class McpClientConfigurationValidator
   @Override
   public boolean isValid(McpClientConfiguration config, ConstraintValidatorContext cxt) {
     var stdioConfigured = config.stdio() != null;
-    var httpConfigured = config.http() != null;
+    var sseConfigured = config.sse() != null;
 
     // make sure exactly one of the 2 transports is configured
-    return stdioConfigured ^ httpConfigured;
+    return stdioConfigured ^ sseConfigured;
   }
 }

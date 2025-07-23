@@ -21,7 +21,7 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
 
   @Override
   public McpClient createClient(String clientId, McpClientConfiguration config) {
-    final var transport = createTransport(config.stdio() != null ? config.stdio() : config.http());
+    final var transport = createTransport(config.stdio() != null ? config.stdio() : config.sse());
     final var builder = new DefaultMcpClient.Builder().key(clientId).transport(transport);
 
     Optional.ofNullable(config.initializationTimeout()).map(builder::initializationTimeout);
@@ -45,9 +45,9 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
             .logEvents(stdio.logEvents())
             .build();
       }
-      case McpClientConfigurationProperties.HttpMcpClientTransportConfiguration http ->
+      case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration http ->
           new HttpMcpTransport.Builder()
-              .sseUrl(http.sseUrl())
+              .sseUrl(http.url())
               .timeout(http.timeout())
               .logRequests(http.logRequests())
               .logResponses(http.logResponses())

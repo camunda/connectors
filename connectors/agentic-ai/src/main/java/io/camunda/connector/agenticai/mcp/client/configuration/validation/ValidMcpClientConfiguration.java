@@ -20,7 +20,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidMcpClientConfiguration {
   String message() default
-      "The MCP client needs to be configured with a single transport (either STDIO or HTTP)";
+      "The MCP client needs to be configured with a single transport (either STDIO or SSE)";
 
   Class<?>[] groups() default {};
 
