@@ -24,7 +24,6 @@ import com.networknt.schema.*;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.cli.GeneratorServiceLoader;
 import io.camunda.connector.generator.dsl.ElementTemplate;
-
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
@@ -39,7 +38,8 @@ public class Generate implements Callable<Integer> {
   static final JsonSchema jsonSchema =
       JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
           .getSchema(
-              URI.create("https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json"));
+              URI.create(
+                  "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json"));
 
   private static final ObjectMapper mapper = new ObjectMapper();
   @ParentCommand ConGen connectorGen;
