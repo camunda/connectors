@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -50,13 +50,14 @@ public class AiAgentJobWorker {
       },
       type = "io.camunda.agenticai:aiagent-subprocess:1",
       autoComplete = false)
-  public AgentResponse execute(final JobClient jobClient, final ActivatedJob job) {
+  public void execute(final JobClient jobClient, final ActivatedJob job) {
     // TODO JW check if we can validate the job kind
     final OutboundConnectorContext context =
         new JobHandlerContext(
             job, secretProvider, validationProvider, documentFactory, objectMapper);
     final var request = context.bindVariables(JobWorkerAgentRequest.class);
+    final var executionContext = new JobWorkerAgentExecutionContext(jobClient, job, request);
 
-    return null;
+    agentRequestHandler.handleRequest(executionContext);
   }
 }

@@ -9,7 +9,8 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest.OutboundConnectorAgentRequestData;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import jakarta.validation.Valid;
@@ -21,4 +22,12 @@ public record JobWorkerAgentRequest(
     @Valid AgentContext agentContext,
     List<ToolCallResult> toolCallResults,
     @Valid @NotNull ProviderConfiguration provider,
-    @Valid @NotNull OutboundConnectorAgentRequestData data) {}
+    @Valid @NotNull JobWorkerAgentRequestData data) {
+
+  public record JobWorkerAgentRequestData(
+      @Valid @NotNull SystemPromptConfiguration systemPrompt,
+      @Valid @NotNull UserPromptConfiguration userPrompt,
+      @Valid MemoryConfiguration memory,
+      @Valid LimitsConfiguration limits,
+      @Valid ResponseConfiguration response) {}
+}
