@@ -111,8 +111,9 @@
   }, {
     "id" : "provider.anthropic.endpoint",
     "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use a custom API endpoint",
+    "description" : "Optional custom API endpoint",
     "optional" : true,
+    "feel" : "optional",
     "group" : "provider",
     "binding" : {
       "name" : "provider.anthropic.endpoint",
@@ -123,7 +124,7 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "provider.anthropic.authentication.apiKey",
     "label" : "Anthropic API key",
@@ -166,8 +167,9 @@
   }, {
     "id" : "provider.bedrock.endpoint",
     "label" : "Endpoint",
-    "description" : "Specify endpoint if need to use a custom API endpoint",
+    "description" : "Optional custom API endpoint",
     "optional" : true,
+    "feel" : "optional",
     "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.endpoint",
@@ -178,7 +180,7 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "provider.bedrock.authentication.type",
     "label" : "Authentication",
