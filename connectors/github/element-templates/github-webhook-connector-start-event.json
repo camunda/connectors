@@ -6,6 +6,9 @@
   "engines": {
     "camunda": "^8.3"
   },
+  "deprecated": {
+    "message": "Migrate to GitHub Webhook Message Start Event Connector"
+  },
   "description": "Receive events from GitHub",
   "metadata": {
     "keywords": [

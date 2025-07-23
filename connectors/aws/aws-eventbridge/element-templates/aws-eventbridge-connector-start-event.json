@@ -9,6 +9,9 @@
     "id": "connectors",
     "name": "Connectors"
   },
+  "deprecated": {
+    "message": "Migrate to Amazon EventBridge Message Start Event Connector"
+  },
   "appliesTo": [
     "bpmn:StartEvent"
   ],

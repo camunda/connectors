@@ -15,6 +15,9 @@
   "appliesTo": [
     "bpmn:StartEvent"
   ],
+  "deprecated": {
+    "message": "Migrate to Twilio Message Start Event Connector"
+  },
   "elementType": {
     "value": "bpmn:StartEvent"
   },

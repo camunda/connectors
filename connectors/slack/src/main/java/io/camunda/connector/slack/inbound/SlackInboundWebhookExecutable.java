@@ -51,11 +51,6 @@ import org.slf4j.LoggerFactory;
     elementTypes = {
       @ConnectorElementType(
           appliesTo = BpmnType.START_EVENT,
-          elementType = BpmnType.START_EVENT,
-          templateIdOverride = "io.camunda.connectors.inbound.Slack.StartEvent.v1",
-          templateNameOverride = "Slack Webhook Start Event Connector"),
-      @ConnectorElementType(
-          appliesTo = BpmnType.START_EVENT,
           elementType = BpmnType.MESSAGE_START_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.Slack.MessageStartEvent.v1",
           templateNameOverride = "Slack Webhook Message Start Event Connector"),
