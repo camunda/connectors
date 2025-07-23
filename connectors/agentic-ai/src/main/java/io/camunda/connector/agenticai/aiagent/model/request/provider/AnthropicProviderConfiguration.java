@@ -26,9 +26,9 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
   public record AnthropicConnection(
       @TemplateProperty(
               group = "provider",
-              description = "Specify endpoint if need to use a custom API endpoint",
-              type = TemplateProperty.PropertyType.Hidden,
-              feel = Property.FeelMode.disabled,
+              description = "Optional custom API endpoint",
+              type = TemplateProperty.PropertyType.String,
+              feel = Property.FeelMode.optional,
               optional = true)
           String endpoint,
       @Valid @NotNull AnthropicAuthentication authentication,
