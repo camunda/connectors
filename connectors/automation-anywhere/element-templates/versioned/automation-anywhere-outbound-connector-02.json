@@ -3,6 +3,9 @@
   "name": "Automation Anywhere Outbound Connector",
   "id": "io.camunda.connectors.AutomationAnywhere",
   "description": "Manage work items in Automation Anywhere queues.",
+  "deprecated": {
+    "message": "This connector is replaced by the new Automation Anywhere connector (id = io.camunda.connectors.AutomationAnywhere.v1). Please use the new connector instead."
+  },
   "metadata": {
     "keywords": [
       "add work item to queue",
