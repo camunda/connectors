@@ -43,4 +43,10 @@ public record OpenSearchVectorStore(
     implements EmbeddingsVectorStore {
   @TemplateProperty(ignore = true)
   public static final String STORE_OPENSEARCH = "STORE_OPENSEARCH";
+
+  @Override
+  public String toString() {
+    return "OpenSearchVectorStore{baseUrl='%s', userName='%s', password='[REDACTED]', indexName='%s'}"
+        .formatted(baseUrl, userName, indexName);
+  }
 }

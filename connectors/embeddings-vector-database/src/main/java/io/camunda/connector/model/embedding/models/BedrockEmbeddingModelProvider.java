@@ -15,8 +15,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(label = "AWS Bedrock", id = BedrockEmbeddingModel.BEDROCK_MODEL_PROVIDER)
-public record BedrockEmbeddingModel(
+@TemplateSubType(label = "AWS Bedrock", id = BedrockEmbeddingModelProvider.BEDROCK_MODEL_PROVIDER)
+public record BedrockEmbeddingModelProvider(
     @NotBlank
         @TemplateProperty(
             group = "embeddingModel",
@@ -107,5 +107,11 @@ public record BedrockEmbeddingModel(
     } else {
       return modelName.getModelName();
     }
+  }
+
+  @Override
+  public String toString() {
+    return "BedrockEmbeddingModel{accessKey='[REDACTED]', secretKey='[REDACTED]', region='%s', modelName=%s, customModelName='%s', dimensions=%s, normalize=%s, maxRetries=%d}"
+        .formatted(region, modelName, customModelName, dimensions, normalize, maxRetries);
   }
 }

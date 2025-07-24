@@ -43,4 +43,10 @@ public record ElasticSearchVectorStore(
     implements EmbeddingsVectorStore {
   @TemplateProperty(ignore = true)
   public static final String STORE_ELASTICSEARCH = "STORE_ELASTICSEARCH";
+
+  @Override
+  public String toString() {
+    return "ElasticSearchVectorStore{baseUrl='%s', userName='%s', password='[REDACTED]', indexName='%s'}"
+        .formatted(baseUrl, userName, indexName);
+  }
 }

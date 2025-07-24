@@ -53,4 +53,10 @@ public record AmazonManagedOpenSearchVectorStore(
     implements EmbeddingsVectorStore {
   @TemplateProperty(ignore = true)
   public static final String STORE_AMAZON_MANAGED_OPENSEARCH = "STORE_AMAZON_MANAGED_OPENSEARCH";
+
+  @Override
+  public String toString() {
+    return "AmazonManagedOpenSearchVectorStore(accessKey=REDACTED, secretKey=REDACTED, serverUrl=%s, region=%s, indexName=%s)"
+        .formatted(serverUrl, region, indexName);
+  }
 }
