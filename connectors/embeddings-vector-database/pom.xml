@@ -33,19 +33,10 @@
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j</artifactId>
     </dependency>
-    
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-ollama</artifactId>
-    </dependency>
+
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-bedrock</artifactId>
-    </dependency>
-    
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-pgvector</artifactId>
     </dependency>
     <dependency>
       <groupId>dev.langchain4j</groupId>
@@ -81,8 +72,8 @@
             </files>
             <generateHybridTemplates>true</generateHybridTemplates>
           </connector>
-                            </connectors>
-                    <versionHistoryEnabled>true</versionHistoryEnabled>
+        </connectors>
+        <versionHistoryEnabled>true</versionHistoryEnabled>
       </configuration>
       </plugin>
     </plugins>

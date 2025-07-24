@@ -16,15 +16,15 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "modelProvider")
 @JsonSubTypes({
   @JsonSubTypes.Type(
-      value = BedrockEmbeddingModel.class,
-      name = BedrockEmbeddingModel.BEDROCK_MODEL_PROVIDER),
+      value = BedrockEmbeddingModelProvider.class,
+      name = BedrockEmbeddingModelProvider.BEDROCK_MODEL_PROVIDER),
 })
 @TemplateDiscriminatorProperty(
     name = "modelProvider",
     id = "modelProvider",
     group = "embeddingModel",
-    defaultValue = BedrockEmbeddingModel.BEDROCK_MODEL_PROVIDER,
+    defaultValue = BedrockEmbeddingModelProvider.BEDROCK_MODEL_PROVIDER,
     label = "Model provider",
     description = "Select embedding model provider")
 @TemplateSubType(label = "Model provider", id = "modelProvider")
-public sealed interface EmbeddingModelProvider permits BedrockEmbeddingModel {}
+public sealed interface EmbeddingModelProvider permits BedrockEmbeddingModelProvider {}

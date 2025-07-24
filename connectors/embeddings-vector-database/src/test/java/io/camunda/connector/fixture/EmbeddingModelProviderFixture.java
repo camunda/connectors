@@ -7,13 +7,13 @@
 package io.camunda.connector.fixture;
 
 import io.camunda.connector.model.embedding.models.BedrockDimensions;
-import io.camunda.connector.model.embedding.models.BedrockEmbeddingModel;
+import io.camunda.connector.model.embedding.models.BedrockEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.BedrockModels;
 
 public class EmbeddingModelProviderFixture {
 
-  public static BedrockEmbeddingModel createDefaultBedrockEmbeddingModel() {
-    return new BedrockEmbeddingModel(
+  public static BedrockEmbeddingModelProvider createDefaultBedrockEmbeddingModel() {
+    return new BedrockEmbeddingModelProvider(
         "ACCESS_KEY",
         "SECRET_KEY",
         "us-east-1",

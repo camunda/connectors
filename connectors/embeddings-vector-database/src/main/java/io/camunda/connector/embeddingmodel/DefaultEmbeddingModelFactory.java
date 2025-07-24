@@ -8,7 +8,7 @@ package io.camunda.connector.embeddingmodel;
 
 import dev.langchain4j.model.bedrock.BedrockTitanEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import io.camunda.connector.model.embedding.models.BedrockEmbeddingModel;
+import io.camunda.connector.model.embedding.models.BedrockEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.BedrockModels;
 import io.camunda.connector.model.embedding.models.EmbeddingModelProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -19,29 +19,30 @@ public class DefaultEmbeddingModelFactory {
 
   public EmbeddingModel initializeModel(EmbeddingModelProvider embeddingModelProvider) {
     return switch (embeddingModelProvider) {
-      case BedrockEmbeddingModel bedrockEmbeddingModel ->
-          initializeBedrockEmbeddingModel(bedrockEmbeddingModel);
+      case BedrockEmbeddingModelProvider bedrockEmbeddingModelProvider ->
+          initializeBedrockEmbeddingModel(bedrockEmbeddingModelProvider);
     };
   }
 
   private EmbeddingModel initializeBedrockEmbeddingModel(
-      BedrockEmbeddingModel bedrockEmbeddingModel) {
+      BedrockEmbeddingModelProvider bedrockEmbeddingModelProvider) {
     return BedrockTitanEmbeddingModel.builder()
-        .model(bedrockEmbeddingModel.resolveSelectedModelName())
+        .model(bedrockEmbeddingModelProvider.resolveSelectedModelName())
         .dimensions(
-            bedrockEmbeddingModel.modelName() == BedrockModels.TitanEmbedTextV2
-                ? bedrockEmbeddingModel.dimensions().getDimensions()
+            bedrockEmbeddingModelProvider.modelName() == BedrockModels.TitanEmbedTextV2
+                ? bedrockEmbeddingModelProvider.dimensions().getDimensions()
                 : null)
         .normalize(
-            bedrockEmbeddingModel.modelName() == BedrockModels.TitanEmbedTextV2
-                ? bedrockEmbeddingModel.normalize()
+            bedrockEmbeddingModelProvider.modelName() == BedrockModels.TitanEmbedTextV2
+                ? bedrockEmbeddingModelProvider.normalize()
                 : null)
-        .region(Region.of(bedrockEmbeddingModel.region()))
-        .maxRetries(bedrockEmbeddingModel.maxRetries())
+        .region(Region.of(bedrockEmbeddingModelProvider.region()))
+        .maxRetries(bedrockEmbeddingModelProvider.maxRetries())
         .credentialsProvider(
             StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(
-                    bedrockEmbeddingModel.accessKey(), bedrockEmbeddingModel.secretKey())))
+                    bedrockEmbeddingModelProvider.accessKey(),
+                    bedrockEmbeddingModelProvider.secretKey())))
         .build();
   }
 }

@@ -14,8 +14,7 @@ public enum BedrockModels {
   @DropdownItem(label = "amazon.titan-embed-text-v1")
   TitanEmbedTextV1("amazon.titan-embed-text-v1"),
   @DropdownItem(label = "amazon.titan-embed-text-v2:0")
-  TitanEmbedTextV2("amazon.titan-embed-text-v2:0"),
-  ;
+  TitanEmbedTextV2("amazon.titan-embed-text-v2:0");
 
   private final String modelName;
 
