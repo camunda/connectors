@@ -4,6 +4,7 @@
 # Custom rule for AI & IDP collaborators 
 /connectors/agentic-ai @camunda/connector-ai-i-idp-collaborators
 /connectors/idp-extraction @camunda/connector-ai-i-idp-collaborators
+/connectors/embeddings-vector-database @camunda/connector-ai-i-idp-collaborators
 /connectors-e2e-test/connectors-e2e-test-agentic-ai @camunda/connector-ai-i-idp-collaborators
 # These files are excluded so that Renovate can automatically merge dependency upgrades
 renovate.json5
