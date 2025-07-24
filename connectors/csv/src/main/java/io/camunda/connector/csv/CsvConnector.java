@@ -37,7 +37,7 @@ public class CsvConnector implements OutboundConnectorProvider {
   @Operation(id = "readCsv", name = "Read CSV")
   public ReadCsvResult readCsv(@Variable ReadCsvRequest request) {
     var rowType = Optional.ofNullable(request.rowType()).orElse(RowType.Object);
-    return switch (request.document()) {
+    return switch (request.data()) {
       case String csv -> readCsvRequest(new StringReader(csv), request.format(), rowType);
       case Document csv -> {
         try (InputStream csvInputStream = csv.asInputStream()) {
@@ -48,7 +48,7 @@ public class CsvConnector implements OutboundConnectorProvider {
       }
       default ->
           throw new IllegalArgumentException(
-              "Unsupported CSV document type: " + request.document().getClass().getSimpleName());
+              "Unsupported CSV data type: " + request.data().getClass().getSimpleName());
     };
   }
 

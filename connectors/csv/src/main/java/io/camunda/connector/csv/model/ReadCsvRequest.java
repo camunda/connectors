@@ -9,8 +9,7 @@ package io.camunda.connector.csv.model;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public record ReadCsvRequest(
-    @TemplateProperty(label = "CSV document", description = "CSV as document or text")
-        Object document,
+    @TemplateProperty(label = "Data", description = "CSV as a data or text") Object data,
     CsvFormat format,
     RowType rowType) {
   public enum RowType {

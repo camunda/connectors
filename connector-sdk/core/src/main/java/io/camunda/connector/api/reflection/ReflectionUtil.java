@@ -93,10 +93,23 @@ public class ReflectionUtil {
     return methods;
   }
 
+  /**
+   * Returns the operation name from the given Operation annotation. If the name is blank, it falls
+   * back to the operation ID.
+   *
+   * @param operation the {@link Operation} annotation
+   * @return the operation name or ID if the name is blank
+   */
   public static String getOperationName(Operation operation) {
     return !operation.name().isBlank() ? operation.name() : getOperationId(operation);
   }
 
+  /**
+   * Returns the operation ID from the given Operation annotation.
+   *
+   * @param operation the {@link Operation} annotation
+   * @return
+   */
   public static String getOperationId(Operation operation) {
     if (!operation.id().isBlank()) {
       return operation.id();
@@ -111,14 +124,12 @@ public class ReflectionUtil {
   /**
    * Returns the variable name from the given Variable annotation.
    *
-   * @param variable the Variable annotation
+   * @param variable the {@link Variable} annotation
    * @return the variable name, or null if both name and value are blank
    */
   public static String getVariableName(Variable variable) {
     if (!variable.name().isBlank()) {
       return variable.name();
-    } else if (!variable.value().isBlank()) {
-      return variable.value();
-    } else return "";
+    } else return variable.value();
   }
 }
