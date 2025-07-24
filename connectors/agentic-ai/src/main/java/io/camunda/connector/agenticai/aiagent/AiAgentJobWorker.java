@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
-import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -25,14 +25,14 @@ public class AiAgentJobWorker {
   private final ValidationProvider validationProvider;
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
-  private final AgentRequestHandler agentRequestHandler;
+  private final JobWorkerAgentRequestHandler agentRequestHandler;
 
   public AiAgentJobWorker(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      AgentRequestHandler agentRequestHandler) {
+      JobWorkerAgentRequestHandler agentRequestHandler) {
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;

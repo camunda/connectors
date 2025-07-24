@@ -66,7 +66,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AgentRequestHandlerTest {
+class OutboundConnectorAgentRequestHandlerTest {
 
   private static final AgentContext INITIAL_AGENT_CONTEXT =
       AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
@@ -85,12 +85,11 @@ class AgentRequestHandlerTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private AgentResponseHandler responseHandler;
-
   @Mock private OutboundConnectorAgentExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<RuntimeMemory> runtimeMemoryCaptor;
 
-  @InjectMocks private AgentRequestHandlerImpl requestHandler;
+  @InjectMocks private OutboundConnectorAgentRequestHandler requestHandler;
 
   @BeforeEach
   void setUp() {
