@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
@@ -23,11 +24,18 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProv
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import io.camunda.connector.api.error.ConnectorInputException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -35,6 +43,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class ChatModelFactoryImpl implements ChatModelFactory {
+
+  private static final Logger log = LoggerFactory.getLogger(ChatModelFactoryImpl.class);
 
   @Override
   public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
@@ -157,6 +167,12 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .location(connection.location())
             .modelName(connection.model().model());
 
+    if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+      ServiceAccountCredentials serviceAccountCredentials = createServiceAccountCredentials(sac);
+      builder.credentials(
+          serviceAccountCredentials.createScoped("https://www.googleapis.com/auth/cloud-platform"));
+    }
+
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
       Optional.ofNullable(modelParameters.maxOutputTokens()).ifPresent(builder::maxOutputTokens);
@@ -166,6 +182,18 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     }
 
     return builder;
+  }
+
+  private ServiceAccountCredentials createServiceAccountCredentials(
+      ServiceAccountCredentialsAuthentication sac) {
+    try {
+      return ServiceAccountCredentials.fromStream(
+          new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)));
+    } catch (IOException e) {
+      log.error("Failed to parse service account credentials", e);
+      throw new ConnectorInputException(
+          "Authentication failed for provided service account credentials", e);
+    }
   }
 
   protected OpenAiChatModel.OpenAiChatModelBuilder createOpenaiChatModelBuilder(

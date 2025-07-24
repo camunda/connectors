@@ -45,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProv
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
@@ -473,7 +474,10 @@ class ChatModelFactoryTest {
       final var providerConfig =
           new GoogleVertexAiProviderConfiguration(
               new GoogleVertexAiConnection(
-                  PROJECT_ID, LOCATION, new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
+                  PROJECT_ID,
+                  LOCATION,
+                  new ApplicationDefaultCredentialsAuthentication(),
+                  new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testGoogleVertexAiChatModelBuilder(
           providerConfig,
@@ -496,7 +500,10 @@ class ChatModelFactoryTest {
       final var providerConfig =
           new GoogleVertexAiProviderConfiguration(
               new GoogleVertexAiConnection(
-                  PROJECT_ID, LOCATION, new GoogleVertexAiModel(MODEL, modelParameters)));
+                  PROJECT_ID,
+                  LOCATION,
+                  new ApplicationDefaultCredentialsAuthentication(),
+                  new GoogleVertexAiModel(MODEL, modelParameters)));
 
       testGoogleVertexAiChatModelBuilder(
           providerConfig,

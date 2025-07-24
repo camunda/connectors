@@ -102,7 +102,7 @@
       "name" : "Azure OpenAI",
       "value" : "azureOpenAi"
     }, {
-      "name" : "Google Vertex AI (Hybrid/Self-Managed only)",
+      "name" : "Google Vertex AI",
       "value" : "google-vertex-ai"
     }, {
       "name" : "OpenAI",
@@ -463,6 +463,55 @@
       "property" : "provider.type",
       "equals" : "google-vertex-ai",
       "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleVertexAi.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Google Vertex AI authentication strategy.",
+    "value" : "serviceAccountCredentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleVertexAi.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Service account credentials",
+      "value" : "serviceAccountCredentials"
+    }, {
+      "name" : "Application default credentials (Hybrid/Self-Managed only)",
+      "value" : "applicationDefaultCredentials"
+    } ]
+  }, {
+    "id" : "provider.googleVertexAi.authentication.jsonKey",
+    "label" : "JSON key of the service account",
+    "description" : "This is the key of the service account in JSON format.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleVertexAi.authentication.jsonKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleVertexAi.authentication.type",
+        "equals" : "serviceAccountCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
