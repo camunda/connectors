@@ -12,6 +12,9 @@
     "id" : "connectors",
     "name" : "Connectors"
   },
+  "deprecated": {
+    "message": "Migrate to Webhook Message Start Event Connector"
+  },
   "appliesTo" : [ "bpmn:StartEvent" ],
   "elementType" : {
     "value" : "bpmn:StartEvent"

@@ -9,6 +9,9 @@
     "id": "connectors",
     "name": "Connectors"
   },
+  "deprecated": {
+    "message": "Migrate to Kafka Message Start Event Connector"
+  },
   "appliesTo": [
     "bpmn:StartEvent"
   ],
