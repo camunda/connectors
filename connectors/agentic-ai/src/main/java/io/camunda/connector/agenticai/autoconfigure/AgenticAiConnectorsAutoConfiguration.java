@@ -27,10 +27,10 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidatorImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerImpl;
-import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -186,26 +186,22 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
-  public AgentRequestHandler aiAgentRequestHandler(
+  public OutboundConnectorAgentRequestHandler aiAgentOutboundConnectorAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
-      AgentResponseHandler responseHandler,
-      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
-      MetricsRecorder metricsRecorder) {
-    return new AgentRequestHandlerImpl(
+      AgentResponseHandler responseHandler) {
+    return new OutboundConnectorAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
         limitsValidator,
         messagesHandler,
         gatewayToolHandlers,
         aiFrameworkAdapter,
-        responseHandler,
-        commandExceptionHandlingStrategy,
-        metricsRecorder);
+        responseHandler);
   }
 
   @Bean
@@ -215,11 +211,37 @@ public class AgenticAiConnectorsAutoConfiguration {
       matchIfMissing = true)
   public AiAgentFunction aiAgentFunction(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AgentRequestHandler agentRequestHandler) {
+      OutboundConnectorAgentRequestHandler agentRequestHandler) {
     return new AiAgentFunction(toolElementsResolver, agentRequestHandler);
   }
 
-  // TODO JW revisit registration, override type, config property, ...
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
+      matchIfMissing = true)
+  public JobWorkerAgentRequestHandler aiAgentJobWorkerAgentRequestHandler(
+      AgentInitializer agentInitializer,
+      ConversationStoreRegistry conversationStoreRegistry,
+      AgentLimitsValidator limitsValidator,
+      AgentMessagesHandler messagesHandler,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AiFrameworkAdapter<?> aiFrameworkAdapter,
+      AgentResponseHandler responseHandler,
+      CommandExceptionHandlingStrategy exceptionHandlingStrategy,
+      MetricsRecorder metricsRecorder) {
+    return new JobWorkerAgentRequestHandler(
+        agentInitializer,
+        conversationStoreRegistry,
+        limitsValidator,
+        messagesHandler,
+        gatewayToolHandlers,
+        aiFrameworkAdapter,
+        responseHandler,
+        exceptionHandlingStrategy,
+        metricsRecorder);
+  }
+
   @Bean
   @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
@@ -230,7 +252,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      AgentRequestHandler agentRequestHandler) {
+      JobWorkerAgentRequestHandler agentRequestHandler) {
     if (validationProvider == null) {
       validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
     }

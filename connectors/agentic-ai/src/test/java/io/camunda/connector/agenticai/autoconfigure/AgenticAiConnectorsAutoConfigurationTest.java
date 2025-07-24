@@ -22,8 +22,9 @@ import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
-import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
+import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
@@ -61,7 +62,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentLimitsValidator.class,
           AgentMessagesHandler.class,
           AgentResponseHandler.class,
-          AgentRequestHandler.class,
+          OutboundConnectorAgentRequestHandler.class,
+          JobWorkerAgentRequestHandler.class,
           AiAgentFunction.class,
           AiAgentJobWorker.class);
 
@@ -107,10 +109,13 @@ class AgenticAiConnectorsAutoConfigurationTest {
               assertHasAllBeansOf(
                   context,
                   ALL_BEANS.stream()
-                      .filter(notAnyOf(AiAgentFunction.class, AgentRequestHandler.class))
+                      .filter(
+                          notAnyOf(
+                              AiAgentFunction.class, OutboundConnectorAgentRequestHandler.class))
                       .toList());
-              assertThat(context).doesNotHaveBean(AiAgentFunction.class);
-              assertThat(context).doesNotHaveBean(AgentRequestHandler.class);
+              assertThat(context)
+                  .doesNotHaveBean(AiAgentFunction.class)
+                  .doesNotHaveBean(OutboundConnectorAgentRequestHandler.class);
             });
   }
 
@@ -122,8 +127,12 @@ class AgenticAiConnectorsAutoConfigurationTest {
             context -> {
               assertHasAllBeansOf(
                   context,
-                  ALL_BEANS.stream().filter(c -> !c.equals(AiAgentJobWorker.class)).toList());
-              assertThat(context).doesNotHaveBean(AiAgentJobWorker.class);
+                  ALL_BEANS.stream()
+                      .filter(notAnyOf(AiAgentJobWorker.class, JobWorkerAgentRequestHandler.class))
+                      .toList());
+              assertThat(context)
+                  .doesNotHaveBean(AiAgentJobWorker.class)
+                  .doesNotHaveBean(JobWorkerAgentRequestHandler.class);
             });
   }
 
