@@ -69,20 +69,4 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
           }
         });
   }
-
-  @Override
-  public void registerConfiguration(OutboundConnectorConfiguration configuration) {
-    var oldConfig = connectorConfigs.get(configuration.type());
-    if (oldConfig != null) {
-      LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
-      connectorConfigs.remove(oldConfig.type());
-    }
-    connectorConfigs.put(configuration.type(), configuration);
-  }
-
-  @Override
-  public void resetConfigurations() {
-    connectorConfigs.clear();
-    connectorInstanceCache.clear();
-  }
 }

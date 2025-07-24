@@ -63,14 +63,14 @@ public class OutboundConnectorRuntimeConfiguration {
                 f -> {
                   final OutboundConnector outboundConnector =
                       f.getClass().getAnnotation(OutboundConnector.class);
-                  return registerOutboundConnector(outboundConnector, f, env);
+                  return createConnectorConfiguration(outboundConnector, f, env);
                 })
             .collect(Collectors.toCollection(HashSet::new));
     config.addAll(OutboundConnectorDiscovery.loadConnectorConfigurations());
     return new DefaultOutboundConnectorFactory(config);
   }
 
-  private OutboundConnectorConfiguration registerOutboundConnector(
+  private OutboundConnectorConfiguration createConnectorConfiguration(
       OutboundConnector outboundConnector,
       OutboundConnectorFunction bean,
       Environment environment) {
