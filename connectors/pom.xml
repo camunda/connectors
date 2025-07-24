@@ -11,9 +11,9 @@
   </parent>
 
   <artifactId>connectors-parent</artifactId>
+  <name>OOTB Connector Parent</name>
   <packaging>pom</packaging>
 
-  <name>connectors-parent</name>
   <description>Parent POM for Connectors implementations</description>
   <inceptionYear>2022</inceptionYear>
 

@@ -4,9 +4,9 @@
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connectors-bundle-parent</artifactId>
-    <relativePath>../../pom.xml</relativePath>
+    <artifactId>connector-runtime-parent</artifactId>
     <version>8.8.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <name>connector-runtime-core</name>

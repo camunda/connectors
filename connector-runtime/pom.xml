@@ -1,0 +1,26 @@
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-bundle-parent</artifactId>
+    <version>8.8.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>connector-runtime-parent</artifactId>
+  <packaging>pom</packaging>
+
+  <name>Connector Runtime Parent</name>
+  <description>Connector Runtime root</description>
+  <inceptionYear>2022</inceptionYear>
+
+  <modules>
+    <module>connector-runtime-core</module>
+    <module>connector-runtime-spring</module>
+    <module>spring-boot-starter-camunda-connectors</module>
+    <module>connector-runtime-application</module>
+  </modules>
+</project>

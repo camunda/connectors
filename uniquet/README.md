@@ -15,7 +15,7 @@ To build `uniquet` locally:
 2. Use Maven to build the project:
 
 ```shell
-mvn install -pl element-template-generator/uniquet -am
+mvn install -pl uniquet -am
 ```
 
 This command will build the `uniquet` module along with all necessary dependencies.
