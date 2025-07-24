@@ -56,7 +56,7 @@ public record AmazonManagedOpenSearchVectorStore(
 
   @Override
   public String toString() {
-    return "AmazonManagedOpenSearchVectorStore(accessKey=REDACTED, secretKey=REDACTED, serverUrl=%s, region=%s, indexName=%s)"
+    return "AmazonManagedOpenSearchVectorStore(accessKey=[REDACTED], secretKey=[REDACTED], serverUrl='%s', region='%s', indexName='%s')"
         .formatted(serverUrl, region, indexName);
   }
 }
