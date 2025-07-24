@@ -16,12 +16,15 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
+import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,20 +36,99 @@ public class OutboundConnectorConfigurationRegistry {
   private final Map<String, OutboundConnectorConfiguration> configurations;
 
   public OutboundConnectorConfigurationRegistry(
-      List<OutboundConnectorConfiguration> initialConfigurations) {
-    configurations =
-        initialConfigurations.stream()
-            .collect(
-                Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
+      List<OutboundConnectorConfiguration> configs,
+      List<OutboundConnectorFunction> functions,
+      List<OutboundConnectorProvider> providers,
+      Function<String, String> propertyProvider) {
+
+    // Combine all configurations from different sources
+    Stream<OutboundConnectorConfiguration> allConfigs =
+        Stream.of(
+                OutboundConnectorDiscovery.loadConnectorConfigurations().stream(),
+                configs.stream(),
+                processFunctions(propertyProvider, functions).stream(),
+                processProviders(propertyProvider, providers).stream())
+            .flatMap(s -> s);
+
+    // Store configurations in map, with type as key (later entries override earlier ones)
+    this.configurations =
+        allConfigs.collect(
+            Collectors.toMap(
+                OutboundConnectorConfiguration::type,
+                config -> config,
+                (existing, replacement) -> {
+                  LOG.info("Overriding connector configuration {} with {}", existing, replacement);
+                  return replacement;
+                },
+                HashMap::new));
   }
 
-  /**
-   * Get all registered configurations
-   *
-   * @return List of all configurations
-   */
-  public List<OutboundConnectorConfiguration> getConfigurations() {
-    return new ArrayList<>(configurations.values());
+  private Collection<OutboundConnectorConfiguration> processProviders(
+      Function<String, String> propertyProvider, List<OutboundConnectorProvider> providers) {
+    return providers.stream()
+        .filter(p -> p.getClass().isAnnotationPresent(OutboundConnector.class))
+        .map(
+            p -> {
+              final OutboundConnector outboundConnector =
+                  p.getClass().getAnnotation(OutboundConnector.class);
+              return deriveConnectorConfig(outboundConnector, p, propertyProvider);
+            })
+        .collect(Collectors.toList());
+  }
+
+  List<OutboundConnectorConfiguration> processFunctions(
+      Function<String, String> propertyProvider, List<OutboundConnectorFunction> functions) {
+    return functions.stream()
+        .filter(f -> f.getClass().isAnnotationPresent(OutboundConnector.class))
+        .map(
+            f -> {
+              final OutboundConnector outboundConnector =
+                  f.getClass().getAnnotation(OutboundConnector.class);
+              return deriveConnectorConfig(outboundConnector, f, propertyProvider);
+            })
+        .collect(Collectors.toList());
+  }
+
+  private OutboundConnectorConfiguration deriveConnectorConfig(
+      OutboundConnector outboundConnector,
+      OutboundConnectorFunction function,
+      Function<String, String> propertyProvider) {
+    final var configurationOverrides =
+        new ConnectorConfigurationOverrides(outboundConnector.name(), propertyProvider);
+
+    OutboundConnectorConfiguration configuration =
+        new OutboundConnectorConfiguration(
+            outboundConnector.name(),
+            outboundConnector.inputVariables(),
+            configurationOverrides.typeOverride().orElse(outboundConnector.type()),
+            function.getClass(),
+            () -> function,
+            configurationOverrides.timeoutOverride().orElse(null));
+
+    return configuration;
+  }
+
+  private OutboundConnectorConfiguration deriveConnectorConfig(
+      OutboundConnector outboundConnector,
+      OutboundConnectorProvider provider,
+      Function<String, String> propertyProvider) {
+    final var configurationOverrides =
+        new ConnectorConfigurationOverrides(outboundConnector.name(), propertyProvider);
+
+    OutboundConnectorConfiguration configuration =
+        new OutboundConnectorConfiguration(
+            outboundConnector.name(),
+            outboundConnector.inputVariables(),
+            configurationOverrides.typeOverride().orElse(outboundConnector.type()),
+            provider.getClass(),
+            // No supplier function as instances are created via reflection
+            configurationOverrides.timeoutOverride().orElse(null));
+
+    return configuration;
+  }
+
+  public Map<String, OutboundConnectorConfiguration> getConfigurations() {
+    return configurations;
   }
 
   /**
@@ -57,19 +139,5 @@ public class OutboundConnectorConfigurationRegistry {
    */
   public Optional<OutboundConnectorConfiguration> getConfiguration(String type) {
     return Optional.ofNullable(configurations.get(type));
-  }
-
-  /**
-   * Register a new configuration. If a connector with the same type already exists, it will be
-   * overridden by the new configuration.
-   *
-   * @param configuration Configuration to register
-   */
-  public void registerConfiguration(OutboundConnectorConfiguration configuration) {
-    var oldConfig = configurations.get(configuration.type());
-    if (oldConfig != null) {
-      LOG.info("Connector " + oldConfig + " is overridden, new configuration " + configuration);
-    }
-    configurations.put(configuration.type(), configuration);
   }
 }

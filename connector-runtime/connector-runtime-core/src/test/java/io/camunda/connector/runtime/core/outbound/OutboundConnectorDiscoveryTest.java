@@ -18,24 +18,19 @@ package io.camunda.connector.runtime.core.outbound;
 
 import static io.camunda.connector.runtime.core.testutil.TestUtil.withEnvVars;
 
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class OutboundConnectorDiscoveryTest {
 
-  private static DefaultOutboundConnectorFactory getFactory() {
-    var configs = OutboundConnectorDiscovery.loadConnectorConfigurations();
-    var registry = new OutboundConnectorConfigurationRegistry(configs);
-    return new DefaultOutboundConnectorFactory(
-        registry,
-        ConnectorsObjectMapperSupplier.getCopy(),
-        ValidationUtil.discoverDefaultValidationProviderImplementation());
+  private static OutboundConnectorConfigurationRegistry getRegistry(
+      OutboundConnectorConfiguration... additionalConfigs) {
+    var configs = new ArrayList<>(OutboundConnectorDiscovery.loadConnectorConfigurations());
+    configs.addAll(Arrays.asList(additionalConfigs));
+    return new OutboundConnectorConfigurationRegistry(
+        configs, List.of(), List.of(), System::getenv);
   }
 
   @Test
@@ -66,8 +61,8 @@ public class OutboundConnectorDiscoveryTest {
         };
 
     // when
-    List<OutboundConnectorConfiguration> registrations =
-        withEnvVars(env, () -> getFactory().getConfigurations());
+    Map<String, OutboundConnectorConfiguration> registrations =
+        withEnvVars(env, () -> getRegistry().getConfigurations());
 
     // then
     Assertions.assertThat(registrations).hasSize(3);
@@ -110,7 +105,7 @@ public class OutboundConnectorDiscoveryTest {
         };
 
     // then
-    Assertions.assertThatThrownBy(() -> withEnvVars(env, () -> getFactory().getConfigurations()))
+    Assertions.assertThatThrownBy(() -> withEnvVars(env, () -> getRegistry().getConfigurations()))
         .hasMessage(
             "Type not specified: Please configure it via CONNECTOR_NOT_ANNOTATED_TYPE environment variable");
   }
@@ -126,7 +121,7 @@ public class OutboundConnectorDiscoveryTest {
         };
 
     // then
-    Assertions.assertThatThrownBy(() -> withEnvVars(env, () -> getFactory().getConfigurations()))
+    Assertions.assertThatThrownBy(() -> withEnvVars(env, () -> getRegistry().getConfigurations()))
         .hasMessage("Failed to load io.camunda.connector.runtime.jobworker.impl.outbound.NotFound");
   }
 
@@ -134,7 +129,7 @@ public class OutboundConnectorDiscoveryTest {
   public void shouldConfigureViaSPI() {
 
     // when
-    List<OutboundConnectorConfiguration> registrations = getFactory().getConfigurations();
+    var registrations = getRegistry().getConfigurations();
 
     // then
     Assertions.assertThat(registrations).hasSize(1);
@@ -151,26 +146,16 @@ public class OutboundConnectorDiscoveryTest {
   @Test
   public void shouldOverrideWhenRegisteredManually() {
 
-    // given SPI configuration
-    var configs = OutboundConnectorDiscovery.loadConnectorConfigurations();
-    var registry = new OutboundConnectorConfigurationRegistry(configs);
-
-    // when
-    registry.registerConfiguration(
-        new OutboundConnectorConfiguration(
-            "ANNOTATED",
-            new String[] {"foo", "bar"},
-            "io.camunda:annotated",
-            NotAnnotatedFunction.class));
-
-    var factory =
-        new DefaultOutboundConnectorFactory(
-            registry,
-            ConnectorsObjectMapperSupplier.getCopy(),
-            ValidationUtil.discoverDefaultValidationProviderImplementation());
-
+    // given SPI configuration and manual registration
+    var registry =
+        getRegistry(
+            new OutboundConnectorConfiguration(
+                "ANNOTATED",
+                new String[] {"foo", "bar"},
+                "io.camunda:annotated",
+                NotAnnotatedFunction.class));
     // then
-    var registrations = factory.getConfigurations();
+    var registrations = registry.getConfigurations();
     Assertions.assertThat(registrations).hasSize(1);
     assertRegistration(
         registrations,
@@ -182,20 +167,23 @@ public class OutboundConnectorDiscoveryTest {
   }
 
   private static void assertRegistration(
-      List<OutboundConnectorConfiguration> registrations,
+      Map<String, OutboundConnectorConfiguration> registrations,
       String name,
       String type,
       String[] inputVariables,
       String functionCls,
       Long timeout) {
 
-    Assertions.assertThatList(registrations)
-        .anyMatch(
-            registration ->
-                (registration.name().equals(name)
-                    && registration.type().equals(type)
-                    && Arrays.equals(registration.inputVariables(), inputVariables)
-                    && registration.connectorClass().getName().equals(functionCls)
-                    && Objects.equals(registration.timeout(), timeout)));
+    Assertions.assertThat(registrations).containsKey(type);
+    OutboundConnectorConfiguration config = registrations.get(type);
+    Assertions.assertThat(config)
+        .satisfies(
+            s -> {
+              Assertions.assertThat(s.name()).isEqualTo(name);
+              Assertions.assertThat(s.type()).isEqualTo(type);
+              Assertions.assertThat(s.inputVariables()).containsExactly(inputVariables);
+              Assertions.assertThat(s.connectorClass().getName()).isEqualTo(functionCls);
+              Assertions.assertThat(s.timeout()).isEqualTo(timeout);
+            });
   }
 }

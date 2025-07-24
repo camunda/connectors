@@ -17,49 +17,36 @@
 package io.camunda.connector.runtime.outbound.lifecycle;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorConfigurationRegistry;
+import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
+import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-@ExtendWith(MockitoExtension.class)
-class OutboundConnectorAnnotationProcessorTest {
-
-  @Mock private CamundaClient camundaClient;
-  @Mock private OutboundConnectorManager outboundConnectorManager;
-  @Mock private OutboundConnectorConfigurationRegistry configurationRegistry;
-
-  @Captor private ArgumentCaptor<OutboundConnectorConfiguration> registeredConfigurationCaptor;
+class OutboundRegistryTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
-          .withBean(CamundaClient.class, () -> camundaClient)
-          .withBean(OutboundConnectorManager.class, () -> outboundConnectorManager)
-          .withBean(OutboundConnectorConfigurationRegistry.class, () -> configurationRegistry)
           .withUserConfiguration(TestConfig.class, AnnotatedFunction.class);
 
   private static class TestConfig {
     @Bean
-    public OutboundConnectorAnnotationProcessor annotationProcessor(
+    public OutboundConnectorConfigurationRegistry outboundRegistry(
         Environment environment,
-        OutboundConnectorManager manager,
-        OutboundConnectorConfigurationRegistry configurationRegistry) {
-      return new OutboundConnectorAnnotationProcessor(environment, manager, configurationRegistry);
+        List<OutboundConnectorConfiguration> configs,
+        List<OutboundConnectorFunction> functions) {
+      return (new OutboundConnectorRuntimeConfiguration())
+          .outboundConnectorConfigurationRegistry(environment, configs, functions, List.of());
     }
   }
 
@@ -122,12 +109,19 @@ class OutboundConnectorAnnotationProcessorTest {
       ThrowingConsumer<OutboundConnectorConfiguration> configurationAssertions) {
     configuredContextRunner.run(
         context -> {
-          context.getBean(OutboundConnectorAnnotationProcessor.class).onStart(camundaClient);
-
-          verify(configurationRegistry)
-              .registerConfiguration(registeredConfigurationCaptor.capture());
-
-          assertThat(registeredConfigurationCaptor.getValue()).satisfies(configurationAssertions);
+          var outboundConnectorRegistry =
+              context.getBean(OutboundConnectorConfigurationRegistry.class);
+          Assertions.assertThatStream(
+                  outboundConnectorRegistry.getConfigurations().values().stream())
+              .anyMatch(
+                  e -> {
+                    try {
+                      configurationAssertions.accept(e);
+                      return true;
+                    } catch (Exception ex) {
+                      return false;
+                    }
+                  });
         });
   }
 }

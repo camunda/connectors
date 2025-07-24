@@ -26,17 +26,14 @@ import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultOutboundConnectorFactory.class);
-
   private final ObjectMapper objectMapper;
   private final ValidationProvider validationProvider;
-  private final OutboundConnectorConfigurationRegistry configurationRegistry;
+  private final Map<String, OutboundConnectorConfiguration> configurations;
 
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache;
@@ -45,7 +42,7 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
       OutboundConnectorConfigurationRegistry configurationRegistry,
       ObjectMapper objectMapper,
       ValidationProvider validationProvider) {
-    this.configurationRegistry = configurationRegistry;
+    this.configurations = configurationRegistry.getConfigurations();
     this.objectMapper = objectMapper;
     this.validationProvider = validationProvider;
     this.connectorInstanceCache = new ConcurrentHashMap<>();
@@ -53,13 +50,12 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
 
   @Override
   public List<OutboundConnectorConfiguration> getConfigurations() {
-    return configurationRegistry.getConfigurations();
+    return List.copyOf(configurations.values());
   }
 
   @Override
   public OutboundConnectorFunction getInstance(String type) {
-    return configurationRegistry
-        .getConfiguration(type)
+    return Optional.ofNullable(configurations.get(type))
         .map(this::createCachedInstance)
         .orElseThrow(
             () -> new RuntimeException("Outbound connector \"" + type + "\" is not registered"));

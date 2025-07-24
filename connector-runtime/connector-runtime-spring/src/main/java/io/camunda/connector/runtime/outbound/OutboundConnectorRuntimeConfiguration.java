@@ -18,7 +18,10 @@ package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorConfigurationRegistry;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
@@ -35,6 +38,8 @@ import io.camunda.document.store.CamundaDocumentStoreImpl;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -43,9 +48,13 @@ import org.springframework.core.env.Environment;
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
-  public OutboundConnectorConfigurationRegistry outboundConnectorConfigurationRegistry() {
-    var configs = OutboundConnectorDiscovery.loadConnectorConfigurations();
-    return new OutboundConnectorConfigurationRegistry(configs);
+  public OutboundConnectorConfigurationRegistry outboundConnectorConfigurationRegistry(
+      Environment environment,
+      List<OutboundConnectorConfiguration> configurations,
+      List<OutboundConnectorFunction> functions,
+      List<OutboundConnectorProvider> providers) {
+    return new OutboundConnectorConfigurationRegistry(
+            configurations, functions, providers, environment::getProperty);
   }
 
   @Bean
@@ -95,10 +104,8 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public OutboundConnectorAnnotationProcessor annotationProcessor(
-      Environment environment,
-      OutboundConnectorManager manager,
-      OutboundConnectorConfigurationRegistry configurationRegistry) {
-    return new OutboundConnectorAnnotationProcessor(environment, manager, configurationRegistry);
+      OutboundConnectorManager manager) {
+    return new OutboundConnectorAnnotationProcessor(manager);
   }
 
   @Bean
