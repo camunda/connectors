@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
@@ -19,9 +21,25 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-public record OutboundConnectorAgentExecutionContext(
-    OutboundConnectorAgentJobContext jobContext, AgentRequest request)
-    implements AgentExecutionContext {
+public class OutboundConnectorAgentExecutionContext implements AgentExecutionContext {
+
+  private final OutboundConnectorAgentJobContext jobContext;
+  private final AgentRequest request;
+  private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
+
+  public OutboundConnectorAgentExecutionContext(
+      OutboundConnectorAgentJobContext jobContext,
+      AgentRequest request,
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
+    this.jobContext = jobContext;
+    this.request = request;
+    this.toolElementsResolver = toolElementsResolver;
+  }
+
+  @Override
+  public AgentJobContext jobContext() {
+    return jobContext;
+  }
 
   @Override
   public AgentContext initialAgentContext() {
@@ -33,6 +51,22 @@ public record OutboundConnectorAgentExecutionContext(
     return Optional.ofNullable(request.data().tools())
         .map(ToolsConfiguration::toolCallResults)
         .orElseGet(Collections::emptyList);
+  }
+
+  @Override
+  public List<AdHocToolElement> toolElements() {
+    final var toolsContainerElementId =
+        Optional.ofNullable(request.data().tools())
+            .map(ToolsConfiguration::containerElementId)
+            .filter(id -> !id.isBlank())
+            .orElse(null);
+
+    if (toolsContainerElementId == null) {
+      return Collections.emptyList();
+    }
+
+    return toolElementsResolver.resolveToolElements(
+        jobContext.processDefinitionKey(), toolsContainerElementId);
   }
 
   @Override

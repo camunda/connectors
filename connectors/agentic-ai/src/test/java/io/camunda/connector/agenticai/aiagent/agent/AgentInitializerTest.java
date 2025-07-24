@@ -435,6 +435,7 @@ class AgentInitializerTest {
             null,
             new AgentRequestData(agentContext, null, null, toolsConfiguration, null, null, null));
 
-    return new OutboundConnectorAgentExecutionContext(agentJobContext, agentRequest);
+    return new OutboundConnectorAgentExecutionContext(
+        agentJobContext, agentRequest, toolElementsResolver);
   }
 }

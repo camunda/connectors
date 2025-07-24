@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
@@ -24,6 +25,8 @@ public interface AgentExecutionContext {
 
   /** Initial tool call results read from input variables, before further processing. */
   List<ToolCallResult> initialToolCallResults();
+
+  List<AdHocToolElement> toolElements();
 
   ProviderConfiguration provider();
 
