@@ -59,7 +59,7 @@ class OutboundConnectorAnnotationProcessorTest {
         Environment environment,
         OutboundConnectorManager manager,
         OutboundConnectorFactory factory) {
-      return new OutboundConnectorAnnotationProcessor(environment, manager, factory);
+      return new OutboundConnectorAnnotationProcessor(manager);
     }
   }
 

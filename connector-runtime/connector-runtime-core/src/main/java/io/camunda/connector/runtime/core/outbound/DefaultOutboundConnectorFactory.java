@@ -19,11 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -38,7 +34,8 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache;
 
-  public DefaultOutboundConnectorFactory(List<OutboundConnectorConfiguration> configurations) {
+  public DefaultOutboundConnectorFactory(
+      Collection<OutboundConnectorConfiguration> configurations) {
     connectorConfigs =
         configurations.stream()
             .collect(
