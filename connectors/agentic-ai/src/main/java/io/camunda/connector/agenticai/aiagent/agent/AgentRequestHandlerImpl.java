@@ -99,12 +99,17 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
     limitsValidator.validateConfiguredLimits(executionContext, agentContext);
 
     // update memory with system message
-    messagesHandler.addSystemMessage(agentContext, runtimeMemory, executionContext.systemPrompt());
+    messagesHandler.addSystemMessage(
+        executionContext, agentContext, runtimeMemory, executionContext.systemPrompt());
 
     // update memory with user messages/tool call responses
     final var userMessages =
         messagesHandler.addUserMessages(
-            agentContext, runtimeMemory, executionContext.userPrompt(), toolCallResults);
+            executionContext,
+            agentContext,
+            runtimeMemory,
+            executionContext.userPrompt(),
+            toolCallResults);
     if (userMessages.isEmpty()) {
       throw new ConnectorException(
           ERROR_CODE_NO_USER_MESSAGE_CONTENT,

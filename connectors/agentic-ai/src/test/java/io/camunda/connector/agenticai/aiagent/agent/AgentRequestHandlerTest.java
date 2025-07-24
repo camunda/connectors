@@ -343,13 +343,16 @@ class AgentRequestHandlerTest {
     when(agentExecutionContext.systemPrompt()).thenReturn(systemPromptConfiguration);
     doAnswer(
             i -> {
-              final var runtimeMemory = i.getArgument(1, RuntimeMemory.class);
+              final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(systemMessage(systemPromptConfiguration.prompt()));
               return null;
             })
         .when(messagesHandler)
         .addSystemMessage(
-            any(AgentContext.class), any(RuntimeMemory.class), eq(systemPromptConfiguration));
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            any(RuntimeMemory.class),
+            eq(systemPromptConfiguration));
   }
 
   private void mockUserPrompt(
@@ -358,12 +361,13 @@ class AgentRequestHandlerTest {
     doAnswer(
             i -> {
               final var userMessage = userMessage(userPromptConfiguration.prompt());
-              final var runtimeMemory = i.getArgument(1, RuntimeMemory.class);
+              final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
               runtimeMemory.addMessage(userMessage);
               return List.of(userMessage);
             })
         .when(messagesHandler)
         .addUserMessages(
+            eq(agentExecutionContext),
             any(AgentContext.class),
             any(RuntimeMemory.class),
             eq(userPromptConfiguration),

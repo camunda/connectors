@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.util.PromptUtils.resolveParameteriz
 
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -51,7 +52,10 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
   @Override
   public void addSystemMessage(
-      AgentContext agentContext, RuntimeMemory memory, SystemPromptConfiguration systemPrompt) {
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      RuntimeMemory memory,
+      SystemPromptConfiguration systemPrompt) {
     final var systemPromptText =
         resolveParameterizedPrompt(systemPrompt.prompt(), systemPrompt.parameters());
     if (StringUtils.isNotBlank(systemPromptText)) {
@@ -63,6 +67,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
   @Override
   public List<Message> addUserMessages(
+      AgentExecutionContext executionContext,
       AgentContext agentContext,
       RuntimeMemory memory,
       UserPromptConfiguration userPrompt,
