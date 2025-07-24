@@ -17,12 +17,19 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntim
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.spring.client.jobhandling.CommandWrapper;
+import io.camunda.spring.client.metrics.MetricsRecorder;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class AgentRequestHandlerImpl implements AgentRequestHandler {
@@ -36,6 +43,8 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AiFrameworkAdapter<?> framework;
   private final AgentResponseHandler responseHandler;
+  private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
+  private final MetricsRecorder metricsRecorder;
 
   public AgentRequestHandlerImpl(
       AgentInitializer agentInitializer,
@@ -44,7 +53,9 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
-      AgentResponseHandler responseHandler) {
+      AgentResponseHandler responseHandler,
+      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
+      MetricsRecorder metricsRecorder) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.limitsValidator = limitsValidator;
@@ -52,6 +63,8 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.framework = framework;
     this.responseHandler = responseHandler;
+    this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
+    this.metricsRecorder = metricsRecorder;
   }
 
   @Override
@@ -75,10 +88,69 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
       final List<ToolCallResult> toolCallResults) {
     final var conversationStore =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
-    return conversationStore.executeInSession(
-        executionContext,
-        agentContext,
-        session -> handleRequest(executionContext, agentContext, toolCallResults, session));
+    final var agentResponse =
+        conversationStore.executeInSession(
+            executionContext,
+            agentContext,
+            session -> handleRequest(executionContext, agentContext, toolCallResults, session));
+
+    if (executionContext instanceof JobWorkerAgentExecutionContext jwCtx) {
+      var completeCommand = jwCtx.jobClient().newCompleteCommand(jwCtx.job());
+
+      if (agentResponse == null) {
+        // no-op, wait for next job to add user messages
+        new CommandWrapper(
+                completeCommand, jwCtx.job(), commandExceptionHandlingStrategy, metricsRecorder, 3)
+            .executeAsync();
+      } else {
+        boolean isCompletionConditionFulfilled = agentResponse.toolCalls().isEmpty();
+        boolean isCancelRemainingInstances = false; // TODO JW check events for interruptions
+
+        final var variables = new LinkedHashMap<String, Object>();
+        variables.put("agentContext", agentResponse.context());
+        Optional.ofNullable(agentResponse.responseText())
+            .ifPresent(responseText -> variables.put("responseText", responseText));
+        Optional.ofNullable(agentResponse.responseJson())
+            .ifPresent(responseJson -> variables.put("responseJson", responseJson));
+        Optional.ofNullable(agentResponse.responseMessage())
+            .ifPresent(responseMessage -> variables.put("responseMessage", responseMessage));
+
+        completeCommand = completeCommand.variables(variables);
+        completeCommand.withResult(
+            result -> {
+              var ahsp = result.forAdHocSubProcess();
+              // TODO JW set completion condition
+              // TODO JW set cancel remaining instances
+
+              for (ToolCallProcessVariable toolCall : agentResponse.toolCalls()) {
+                // TODO JW check if we want to expose variables without "toolCall.*" prefix as we're
+                // in direct control of variables
+                ahsp =
+                    ahsp.activateElement(toolCall.metadata().id())
+                        .variables(
+                            Map.of(
+                                "_meta", toolCall.metadata(),
+                                "toolCall", toolCall.arguments()));
+              }
+
+              return ahsp;
+            });
+
+        new CommandWrapper(
+                completeCommand,
+                jwCtx.job(),
+                ((command, throwable) -> {
+                  conversationStore.compensateFailedJobCompletion(
+                      executionContext, agentResponse.context(), throwable);
+                  commandExceptionHandlingStrategy.handleCommandError(command, throwable);
+                }),
+                metricsRecorder,
+                3)
+            .executeAsync();
+      }
+    }
+
+    return agentResponse;
   }
 
   private AgentResponse handleRequest(
@@ -111,9 +183,17 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
             executionContext.userPrompt(),
             toolCallResults);
     if (userMessages.isEmpty()) {
-      throw new ConnectorException(
-          ERROR_CODE_NO_USER_MESSAGE_CONTENT,
-          "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
+      // TODO JW abstract this into execution context specific handlers
+      if (executionContext instanceof OutboundConnectorAgentExecutionContext) {
+        throw new ConnectorException(
+            ERROR_CODE_NO_USER_MESSAGE_CONTENT,
+            "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
+      } else if (executionContext instanceof JobWorkerAgentExecutionContext) {
+        return null;
+      } else {
+        throw new IllegalStateException(
+            "Unsupported AgentExecutionContext type: %s".formatted(executionContext.getClass()));
+      }
     }
 
     // call framework with memory

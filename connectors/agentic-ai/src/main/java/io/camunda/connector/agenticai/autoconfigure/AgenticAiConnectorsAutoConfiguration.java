@@ -49,6 +49,8 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.spring.client.metrics.MetricsRecorder;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -187,7 +189,9 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
-      AgentResponseHandler responseHandler) {
+      AgentResponseHandler responseHandler,
+      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
+      MetricsRecorder metricsRecorder) {
     return new AgentRequestHandlerImpl(
         agentInitializer,
         conversationStoreRegistry,
@@ -195,7 +199,9 @@ public class AgenticAiConnectorsAutoConfiguration {
         messagesHandler,
         gatewayToolHandlers,
         aiFrameworkAdapter,
-        responseHandler);
+        responseHandler,
+        commandExceptionHandlingStrategy,
+        metricsRecorder);
   }
 
   @Bean
