@@ -13,25 +13,17 @@
   <artifactId>connectors-bundle-parent</artifactId>
   <packaging>pom</packaging>
 
-  <name>connectors</name>
+  <name>Connectors root</name>
   <description>Root POM for Connectors</description>
   <inceptionYear>2022</inceptionYear>
 
   <modules>
     <module>parent</module>
     <module>connector-sdk</module>
-    <module>element-template-generator/core</module>
-    <module>element-template-generator/maven-plugin</module>
-    <module>element-template-generator/http-dsl</module>
-    <module>element-template-generator/openapi-parser</module>
-    <module>element-template-generator/postman-collections-parser</module>
-    <module>element-template-generator/congen-cli</module>
-    <module>element-template-generator/uniquet</module>
+    <module>element-template-generator</module>
+    <module>uniquet</module>
     <module>secret-providers/gcp-secret-provider</module>
-    <module>connector-runtime/connector-runtime-core</module>
-    <module>connector-runtime/connector-runtime-spring</module>
-    <module>connector-runtime/spring-boot-starter-camunda-connectors</module>
-    <module>connector-runtime/connector-runtime-application</module>
+    <module>connector-runtime</module>
     <module>connectors</module>
     <module>bundle</module>
   </modules>

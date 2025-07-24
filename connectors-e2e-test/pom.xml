@@ -10,7 +10,7 @@
     </parent>
 
     <description>Parent POM for Connectors e2e tests</description>
-    <name>connectors-e2e-test-parent</name>
+    <name>Connectors E2E Tests Parent</name>
     <artifactId>connectors-e2e-test-parent</artifactId>
     <packaging>pom</packaging>
 
