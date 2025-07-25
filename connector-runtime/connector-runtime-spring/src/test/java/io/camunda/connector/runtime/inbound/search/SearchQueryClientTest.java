@@ -27,7 +27,6 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.stream.IntStream;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,7 +97,7 @@ public class SearchQueryClientTest {
               BpmnModelInstance modelInstance;
               modelInstance =
                   Bpmn.createExecutableProcess(processId)
-                      .startEvent(RandomStringUtils.insecure().nextAlphanumeric(5))
+                      .startEvent("StartEvent" + i)
                       .endEvent()
                       .done();
               camundaClient
