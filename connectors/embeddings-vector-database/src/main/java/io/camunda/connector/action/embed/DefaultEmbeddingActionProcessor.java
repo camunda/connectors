@@ -39,7 +39,8 @@ public class DefaultEmbeddingActionProcessor implements EmbeddingActionProcessor
 
   @Override
   public List<String> embed(EmbeddingsVectorDBRequest request) {
-    EmbeddingModel model = embeddingModelProvider.initializeModel(request.embeddingModelProvider());
+    EmbeddingModel model =
+        embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider());
     EmbeddingStore<TextSegment> store =
         embeddingStoreProvider.initializeVectorStore(request.vectorStore(), model);
 

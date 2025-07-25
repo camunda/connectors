@@ -44,7 +44,8 @@ public class DefaultRetrievingActionProcessor implements RetrievingActionProcess
       final EmbeddingsVectorDBRequest request, final DocumentFactory documentFactory) {
     final var retrieveRequest =
         (RetrieveDocumentOperation) request.vectorDatabaseConnectorOperation();
-    EmbeddingModel model = embeddingModelProvider.initializeModel(request.embeddingModelProvider());
+    EmbeddingModel model =
+        embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider());
     EmbeddingStore<TextSegment> store =
         embeddingStoreProvider.initializeVectorStore(request.vectorStore(), model);
 

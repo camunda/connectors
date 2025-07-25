@@ -10,7 +10,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
-import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "modelProvider")
@@ -18,6 +17,9 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
   @JsonSubTypes.Type(
       value = BedrockEmbeddingModelProvider.class,
       name = BedrockEmbeddingModelProvider.BEDROCK_MODEL_PROVIDER),
+  @JsonSubTypes.Type(
+      value = OpenAiEmbeddingModelProvider.class,
+      name = OpenAiEmbeddingModelProvider.OPEN_AI_MODEL_PROVIDER)
 })
 @TemplateDiscriminatorProperty(
     name = "modelProvider",
@@ -26,5 +28,5 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     defaultValue = BedrockEmbeddingModelProvider.BEDROCK_MODEL_PROVIDER,
     label = "Model provider",
     description = "Select embedding model provider")
-@TemplateSubType(label = "Model provider", id = "modelProvider")
-public sealed interface EmbeddingModelProvider permits BedrockEmbeddingModelProvider {}
+public sealed interface EmbeddingModelProvider
+    permits BedrockEmbeddingModelProvider, OpenAiEmbeddingModelProvider {}

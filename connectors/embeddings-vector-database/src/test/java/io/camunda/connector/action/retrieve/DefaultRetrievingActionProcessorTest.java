@@ -36,7 +36,7 @@ class DefaultRetrievingActionProcessorTest {
 
     final var embeddingModelProvider = Mockito.mock(DefaultEmbeddingModelFactory.class);
     final var model = Mockito.mock(EmbeddingModel.class);
-    Mockito.when(embeddingModelProvider.initializeModel(request.embeddingModelProvider()))
+    Mockito.when(embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider()))
         .thenReturn(model);
     Mockito.when(
             model.embed(
