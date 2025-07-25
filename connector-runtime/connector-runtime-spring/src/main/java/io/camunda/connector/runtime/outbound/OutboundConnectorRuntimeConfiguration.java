@@ -38,9 +38,8 @@ import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.lang.invoke.MethodHandles;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,18 +54,18 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public OutboundConnectorFactory outboundConnectorFactory(
-      Environment env, Set<OutboundConnectorFunction> functions) {
-    Set<OutboundConnectorConfiguration> config =
-        functions.stream()
-            .filter(f -> f.getClass().isAnnotationPresent(OutboundConnector.class))
-            .map(
-                f -> {
-                  final OutboundConnector outboundConnector =
-                      f.getClass().getAnnotation(OutboundConnector.class);
-                  return createConnectorConfiguration(outboundConnector, f, env);
-                })
-            .collect(Collectors.toCollection(HashSet::new));
-    config.addAll(OutboundConnectorDiscovery.loadConnectorConfigurations());
+      Environment env, List<OutboundConnectorFunction> functions) {
+    List<OutboundConnectorConfiguration> config =
+        new ArrayList<>(OutboundConnectorDiscovery.loadConnectorConfigurations());
+    functions.stream()
+        .filter(f -> f.getClass().isAnnotationPresent(OutboundConnector.class))
+        .map(
+            f -> {
+              final OutboundConnector outboundConnector =
+                  f.getClass().getAnnotation(OutboundConnector.class);
+              return createConnectorConfiguration(outboundConnector, f, env);
+            })
+        .forEach(config::add);
     return new DefaultOutboundConnectorFactory(config);
   }
 

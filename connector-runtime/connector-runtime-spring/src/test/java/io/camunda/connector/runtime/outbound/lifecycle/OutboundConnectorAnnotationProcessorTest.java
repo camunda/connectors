@@ -18,40 +18,31 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
+import java.util.List;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-@ExtendWith(MockitoExtension.class)
 class OutboundConnectorAnnotationProcessorTest {
-
-  @Mock private CamundaClient camundaClient;
-  @Mock private OutboundConnectorManager outboundConnectorManager;
-  @Mock private OutboundConnectorFactory outboundConnectorFactory;
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
-          .withBean(CamundaClient.class, () -> camundaClient)
-          .withBean(OutboundConnectorManager.class, () -> outboundConnectorManager)
-          .withBean(OutboundConnectorFactory.class, () -> outboundConnectorFactory)
           .withUserConfiguration(TestConfig.class, AnnotatedFunction.class);
 
   private static class TestConfig {
     @Bean
-    public OutboundConnectorAnnotationProcessor annotationProcessor(
-        OutboundConnectorManager manager) {
-      return new OutboundConnectorAnnotationProcessor(manager);
+    public OutboundConnectorFactory annotationProcessor(
+        Environment env, List<OutboundConnectorFunction> functions) {
+      return (new OutboundConnectorRuntimeConfiguration()).outboundConnectorFactory(env, functions);
     }
   }
 
@@ -114,7 +105,7 @@ class OutboundConnectorAnnotationProcessorTest {
       ThrowingConsumer<OutboundConnectorConfiguration> configurationAssertions) {
     configuredContextRunner.run(
         context -> {
-          context.getBean(OutboundConnectorAnnotationProcessor.class).onStart(camundaClient);
+          var outboundConnectorFactory = context.getBean(OutboundConnectorFactory.class);
           assertThat(
                   outboundConnectorFactory.getConfigurations().stream()
                       .anyMatch(

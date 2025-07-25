@@ -34,12 +34,20 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache;
 
-  public DefaultOutboundConnectorFactory(
-      Collection<OutboundConnectorConfiguration> configurations) {
+  /**
+   * @param configurations List of {@link OutboundConnectorConfiguration} that will be used to
+   *     create {@link OutboundConnectorFunction} instances. As there can only be one instance per
+   *     {@link OutboundConnectorConfiguration#type()}, later entries with the same type will
+   *     override earlier ones.
+   */
+  public DefaultOutboundConnectorFactory(List<OutboundConnectorConfiguration> configurations) {
     connectorConfigs =
         configurations.stream()
             .collect(
-                Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
+                Collectors.toConcurrentMap(
+                    OutboundConnectorConfiguration::type,
+                    config -> config,
+                    (present, newEntry) -> newEntry));
     connectorInstanceCache = new ConcurrentHashMap<>();
   }
 
