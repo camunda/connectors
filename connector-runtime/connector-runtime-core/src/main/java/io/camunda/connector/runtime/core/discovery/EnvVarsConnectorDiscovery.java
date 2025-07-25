@@ -23,11 +23,8 @@ import io.camunda.connector.runtime.core.ConnectorUtil;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -43,36 +40,13 @@ public class EnvVarsConnectorDiscovery {
   public static final Pattern INBOUND_CONNECTOR_EXECUTABLE_PATTERN =
       Pattern.compile("^CONNECTOR_(.*)_EXECUTABLE$");
 
-  private static Map<String, String> hardwiredEnvironmentVariables;
-
-  public static void addHardwiredEnvironmentVariable(String key, String value) {
-    if (hardwiredEnvironmentVariables == null) {
-      hardwiredEnvironmentVariables = new ConcurrentHashMap<>();
-    }
-    hardwiredEnvironmentVariables.put(key, value);
-  }
-
-  public static void clearHardwiredEnvironmentVariable() {
-    hardwiredEnvironmentVariables = null;
-  }
-
-  public static Map<String, String> getEnvironmentVariables() {
-    if (hardwiredEnvironmentVariables != null) {
-      HashMap<String, String> result = new HashMap<>();
-      result.putAll(System.getenv());
-      result.putAll(hardwiredEnvironmentVariables);
-      return result;
-    }
-    return System.getenv();
-  }
-
   public static boolean isInboundConfigured() {
-    return getEnvironmentVariables().entrySet().stream()
+    return System.getenv().entrySet().stream()
         .anyMatch(entry -> INBOUND_CONNECTOR_EXECUTABLE_PATTERN.matcher(entry.getKey()).matches());
   }
 
   public static boolean isOutboundConfigured() {
-    return getEnvironmentVariables().entrySet().stream()
+    return System.getenv().entrySet().stream()
         .anyMatch(entry -> OUTBOUND_CONNECTOR_FUNCTION_PATTERN.matcher(entry.getKey()).matches());
   }
 
@@ -90,7 +64,7 @@ public class EnvVarsConnectorDiscovery {
 
   private static Stream<String> matchEnvVars(Pattern pattern) {
     // match env vars against the provided pattern and return list of matching values
-    return getEnvironmentVariables().keySet().stream()
+    return System.getenv().keySet().stream()
         .map(pattern::matcher)
         .filter(Matcher::matches)
         .map(match -> match.group(1));
@@ -176,7 +150,7 @@ public class EnvVarsConnectorDiscovery {
   }
 
   private static Optional<String> getEnv(final String name, final String detail) {
-    return Optional.ofNullable(getEnvironmentVariables().get("CONNECTOR_" + name + "_" + detail));
+    return Optional.ofNullable(System.getenv().get("CONNECTOR_" + name + "_" + detail));
   }
 
   private static RuntimeException loadFailed(String s, Exception e) {
