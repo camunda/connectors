@@ -28,6 +28,7 @@ public record JdbcRequest(
                   value = "MSSQL"),
               @TemplateProperty.DropdownPropertyChoice(label = "MySQL", value = "MYSQL"),
               @TemplateProperty.DropdownPropertyChoice(label = "PostgreSQL", value = "POSTGRESQL"),
+              @TemplateProperty.DropdownPropertyChoice(label = "Oracle", value = "ORACLE"),
             })
         SupportedDatabase database,
     @Valid @NotNull JdbcConnection connection,

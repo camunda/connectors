@@ -7,7 +7,7 @@
     "keywords" : [ "relational", "database" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql",
-  "version" : 3,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -73,9 +73,6 @@
     }, {
       "name" : "PostgreSQL",
       "value" : "POSTGRESQL"
-    }, {
-      "name" : "Oracle",
-      "value" : "ORACLE"
     } ]
   }, {
     "id" : "connection.authType",
@@ -282,7 +279,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
