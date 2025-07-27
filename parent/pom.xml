@@ -78,7 +78,7 @@ limitations under the License.</license.inlineheader>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.18.0</version.mockito>
-    <version.junit-jupiter>5.13.3</version.junit-jupiter>
+    <version.junit-jupiter>5.13.4</version.junit-jupiter>
     <version.assertj>3.27.3</version.assertj>
     <version.jackson-bom>2.19.2</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.19.2</version.jackson-datatype-jsr310>
@@ -86,14 +86,14 @@ limitations under the License.</license.inlineheader>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
 
-    <version.spring-boot>3.5.3</version.spring-boot>
+    <version.spring-boot>3.5.4</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>5.13.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.18</version.logback>
 
     <version.aws-java-sdk>1.12.788</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.32.4</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.32.9</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.788</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.32.4</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.32.9</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.3.0</version.aws-lambda-java-core>
 
@@ -104,7 +104,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>1.45.2</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20250701-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20250723-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.37.1</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20250325-2.0.0</version.google-api-services-docs>
@@ -124,11 +124,11 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>3.9.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.46.0</version.microsoft-graph>
-    <version.azure-identity>1.16.2</version.azure-identity>
+    <version.microsoft-graph>6.47.0</version.microsoft-graph>
+    <version.azure-identity>1.16.3</version.azure-identity>
 
     <version.bouncycastle>1.81</version.bouncycastle>
-    <version.box-sdk>4.16.2</version.box-sdk>
+    <version.box-sdk>4.16.3</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
@@ -139,7 +139,7 @@ limitations under the License.</license.inlineheader>
     <version.json-path>2.9.0</version.json-path>
 
     <version.snappy-java>1.1.10.8</version.snappy-java>
-    <version.commons-codec>1.18.0</version.commons-codec>
+    <version.commons-codec>1.19.0</version.commons-codec>
     <version.guava>33.4.8-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
 
@@ -156,7 +156,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.0</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.3</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.46.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>2.46.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.4.2</plugin.version.maven-jar-plugin>
   </properties>
 
@@ -480,7 +480,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.13.1</version>
+        <version>1.14.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
