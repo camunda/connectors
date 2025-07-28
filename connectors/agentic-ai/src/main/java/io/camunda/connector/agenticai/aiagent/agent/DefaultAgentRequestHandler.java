@@ -59,7 +59,8 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
     return switch (agentInitializationResult) {
       // directly return agent response if needed (e.g. tool discovery tool calls before calling the
       // LLM)
-      case AgentResponseInitializationResult(AgentResponse agentResponse) -> agentResponse;
+      case AgentResponseInitializationResult(AgentResponse agentResponse) ->
+          completeJob(executionContext, agentResponse, null);
 
       case AgentContextInitializationResult(
               AgentContext agentContext,
@@ -141,6 +142,7 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
 
   protected abstract void handleMissingUserMessages(C executionContext, AgentContext agentContext);
 
+  /** Handles job completion if needed. Agent response and conversation store may be null. */
   protected abstract AgentResponse completeJob(
       final C executionContext,
       final AgentResponse agentResponse,
