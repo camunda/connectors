@@ -10,5 +10,5 @@ public sealed interface WriteCsvResult permits WriteCsvResult.Document, WriteCsv
 
   record Document(io.camunda.document.Document document) implements WriteCsvResult {}
 
-  record Value(String csv) implements WriteCsvResult {}
+  record Value(String content) implements WriteCsvResult {}
 }

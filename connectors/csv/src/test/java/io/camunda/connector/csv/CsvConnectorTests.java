@@ -106,7 +106,7 @@ public class CsvConnectorTests {
     var result = (WriteCsvResult.Value) connector.writeCsv(request, context);
     assertNotNull(result);
     assertEquals(
-        "name,role\r\nSimon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.csv());
+        "name,role\r\nSimon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.content());
   }
 
   @Test
@@ -121,7 +121,7 @@ public class CsvConnectorTests {
             new CsvFormat(",", true, asList("name", "role")));
     var result = (WriteCsvResult.Value) connector.writeCsv(request, context);
     assertNotNull(result);
-    assertEquals("Simon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.csv());
+    assertEquals("Simon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.content());
   }
 
   @Test
@@ -137,6 +137,6 @@ public class CsvConnectorTests {
     var result = (WriteCsvResult.Value) connector.writeCsv(request, context);
     assertNotNull(result);
     assertEquals(
-        "name,role\r\nSimon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.csv());
+        "name,role\r\nSimon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.content());
   }
 }
