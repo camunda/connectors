@@ -8,4 +8,4 @@ package io.camunda.connector.csv.model;
 
 import java.util.List;
 
-public record CreateCsvRequest(List<?> data, boolean createDocument, CsvFormat format) {}
+public record WriteCsvRequest(List<?> data, boolean createDocument, CsvFormat format) {}

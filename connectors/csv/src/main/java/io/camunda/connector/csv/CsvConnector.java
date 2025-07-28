@@ -53,15 +53,15 @@ public class CsvConnector implements OutboundConnectorProvider {
   }
 
   @Operation(id = "writeCsv", name = "Write CSV")
-  public Object writeCsv(@Variable CreateCsvRequest request, OutboundConnectorContext context) {
+  public Object writeCsv(@Variable WriteCsvRequest request, OutboundConnectorContext context) {
     var csv = createCsvRequest(request.data(), request.format());
     if (request.createDocument()) {
       var documentCreationRequest =
           DocumentCreationRequest.from(csv.getBytes()).contentType("text/csv").build();
       var document = context.create(documentCreationRequest);
-      return new CreateCsvResult.Document(document);
+      return new WriteCsvResult.Document(document);
     } else {
-      return new CreateCsvResult.Value(csv);
+      return new WriteCsvResult.Value(csv);
     }
   }
 }

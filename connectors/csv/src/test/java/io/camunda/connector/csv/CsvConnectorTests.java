@@ -96,14 +96,14 @@ public class CsvConnectorTests {
   public void testWriteCsv() {
     var context = OutboundConnectorContextBuilder.create().build();
     var request =
-        new CreateCsvRequest(
+        new WriteCsvRequest(
             asList(
                 asList("name", "role"),
                 asList("Simon", "Engineering Manager"),
                 asList("Mathias", "Backend Engineer")),
             false,
             new CsvFormat(",", true, asList("name", "role")));
-    var result = (CreateCsvResult.Value) connector.writeCsv(request, context);
+    var result = (WriteCsvResult.Value) connector.writeCsv(request, context);
     assertNotNull(result);
     assertEquals(
         "name,role\r\nSimon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.csv());

@@ -6,12 +6,21 @@
  */
 package io.camunda.connector.csv.model;
 
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public record ReadCsvRequest(
-    @TemplateProperty(label = "Data", description = "CSV as a data or text") Object data,
+    @TemplateProperty(
+            label = "Data",
+            tooltip = "CSV as a document or text",
+            feel = Property.FeelMode.optional)
+        Object data,
     CsvFormat format,
-    RowType rowType) {
+    @TemplateProperty(
+            label = "Row Type",
+            tooltip = "Type of the row in the CSV file, either Object or Array",
+            defaultValue = "Object")
+        RowType rowType) {
   public enum RowType {
     Object,
     Array

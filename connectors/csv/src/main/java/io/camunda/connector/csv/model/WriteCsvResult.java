@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.csv.model;
 
-public sealed interface CreateCsvResult permits CreateCsvResult.Document, CreateCsvResult.Value {
+public sealed interface WriteCsvResult permits WriteCsvResult.Document, WriteCsvResult.Value {
 
-  record Document(io.camunda.document.Document document) implements CreateCsvResult {}
+  record Document(io.camunda.document.Document document) implements WriteCsvResult {}
 
-  record Value(String csv) implements CreateCsvResult {}
+  record Value(String csv) implements WriteCsvResult {}
 }

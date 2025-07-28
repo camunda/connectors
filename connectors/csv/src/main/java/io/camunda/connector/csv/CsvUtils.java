@@ -43,7 +43,7 @@ public class CsvUtils {
         if (record instanceof List<?> listValues) {
           printer.printRecord(listValues);
         } else if (record instanceof Map<?, ?> mapValues) {
-          printer.printRecord(mapValues);
+          printer.printRecord(mapValues.values());
         } else {
           throw new IllegalArgumentException(
               "Unsupported record type: " + record.getClass().getSimpleName());
@@ -57,7 +57,7 @@ public class CsvUtils {
 
   static CSVFormat buildFrom(CsvFormat format, ReadCsvRequest.RowType rowType) {
     CSVFormat.Builder builder =
-        CSVFormat.Builder.create().setSkipHeaderRecord(skipHeaderRecord(format));
+        CSVFormat.Builder.create().setSkipHeaderRecord(format.skipHeaderRecord());
     if (format.delimiter() != null) {
       builder.setDelimiter(format.delimiter().trim());
     }
@@ -65,7 +65,7 @@ public class CsvUtils {
       String[] headers = format.headers().toArray(new String[format.headers().size()]);
       builder.setHeader(headers);
     } else {
-      if (isObjectTypeRow(rowType) && !skipHeaderRecord(format)) {
+      if (isObjectTypeRow(rowType) && !format.skipHeaderRecord()) {
         throw new IllegalArgumentException(
             "Headers must be defined when 'skipHeaderRecord' is true and row type is Object.");
       }
@@ -80,9 +80,5 @@ public class CsvUtils {
 
   private static boolean headersDefined(CsvFormat format) {
     return format.headers() != null && !format.headers().isEmpty();
-  }
-
-  private static boolean skipHeaderRecord(CsvFormat format) {
-    return format.skipHeaderRecord() != null && format.skipHeaderRecord();
   }
 }

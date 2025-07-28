@@ -61,7 +61,6 @@
   }, {
     "id" : "readCsv:data",
     "label" : "Data",
-    "description" : "CSV as a data or text",
     "optional" : false,
     "feel" : "optional",
     "group" : "operation",
@@ -76,10 +75,13 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "CSV as a document or text",
     "type" : "String"
   }, {
     "id" : "readCsv:format.delimiter",
     "label" : "Delimiter",
+    "optional" : false,
+    "value" : ",",
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
@@ -93,10 +95,14 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "CSV column delimiter",
     "type" : "String"
   }, {
     "id" : "readCsv:format.skipHeaderRecord",
-    "label" : "Skip header record",
+    "label" : "Skip Header Record",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "format.skipHeaderRecord",
@@ -109,10 +115,12 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Skips the first row to be not included in the final records.",
     "type" : "Boolean"
   }, {
     "id" : "readCsv:format.headers",
     "label" : "Headers",
+    "optional" : false,
     "feel" : "required",
     "group" : "operation",
     "binding" : {
@@ -126,10 +134,13 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Mapping of the columns if not included in the CSV itself in the first row.",
     "type" : "String"
   }, {
     "id" : "readCsv:rowType",
-    "label" : "Row type",
+    "label" : "Row Type",
+    "optional" : false,
+    "value" : "Object",
     "group" : "operation",
     "binding" : {
       "name" : "rowType",
@@ -142,6 +153,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Type of the row in the CSV file, either Object or Array",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Object",
@@ -186,6 +198,8 @@
   }, {
     "id" : "writeCsv:format.delimiter",
     "label" : "Delimiter",
+    "optional" : false,
+    "value" : ",",
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
@@ -199,10 +213,14 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "CSV column delimiter",
     "type" : "String"
   }, {
     "id" : "writeCsv:format.skipHeaderRecord",
-    "label" : "Skip header record",
+    "label" : "Skip Header Record",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "format.skipHeaderRecord",
@@ -215,10 +233,12 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Skips the first row to be not included in the final records.",
     "type" : "Boolean"
   }, {
     "id" : "writeCsv:format.headers",
     "label" : "Headers",
+    "optional" : false,
     "feel" : "required",
     "group" : "operation",
     "binding" : {
@@ -232,6 +252,7 @@
         "type" : "simple"
       } ]
     },
+    "tooltip" : "Mapping of the columns if not included in the CSV itself in the first row.",
     "type" : "String"
   }, {
     "id" : "version",
