@@ -16,17 +16,17 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AGENT_RESPONSE_VARIABLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_ELEMENT_TEMPLATE_PROPERTIES;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
-import io.camunda.process.test.impl.assertions.CamundaDataSource;
+import io.camunda.process.test.api.CamundaAssert;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -34,6 +34,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.assertj.core.api.ThrowingConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -73,27 +74,18 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
     return deployModel(updatedModel).createInstance(variables);
   }
 
-  protected AgentResponse getAgentResponse(ZeebeTest zeebeTest) throws JsonProcessingException {
-    final var agentVariableSearchResult =
-        new CamundaDataSource(camundaClient)
-                .findGlobalVariablesByProcessInstanceKey(
-                    zeebeTest.getProcessInstanceEvent().getProcessInstanceKey())
-                .stream()
-                .filter(variable -> variable.getName().equals("agent"))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Agent variable 'agent' not found"));
-
-    if (agentVariableSearchResult.isTruncated()) {
-      final var agentVariable =
-          camundaClient
-              .newVariableGetRequest(agentVariableSearchResult.getVariableKey())
-              .send()
-              .join();
-
-      return objectMapper.readValue(agentVariable.getValue(), AgentResponse.class);
-    }
-
-    return objectMapper.readValue(agentVariableSearchResult.getValue(), AgentResponse.class);
+  protected void assertAgentResponse(
+      ZeebeTest zeebeTest, ThrowingConsumer<AgentResponse> assertions) {
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasVariableSatisfies(
+            AGENT_RESPONSE_VARIABLE,
+            Map.class,
+            agentResponseMap -> {
+              // read with the connectors OM to include document deserialization support
+              final var agentResponse =
+                  objectMapper.convertValue(agentResponseMap, AgentResponse.class);
+              assertions.accept(agentResponse);
+            });
   }
 
   protected Resource testFileResource(String filename) {

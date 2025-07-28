@@ -173,12 +173,14 @@ abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
 
     assertLastChatRequest(1, testSetup.getLeft(), assertToolSpecifications);
 
-    final var agentResponse = getAgentResponse(testSetup.getRight());
-    AgentResponseAssert.assertThat(agentResponse)
-        .isReady()
-        .hasNoToolCalls()
-        .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
-        .satisfies(agentResponseAssertions);
+    assertAgentResponse(
+        testSetup.getRight(),
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+                .satisfies(agentResponseAssertions));
 
     assertThat(jobWorkerCounter.get()).isEqualTo(1);
 
@@ -249,12 +251,14 @@ abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
 
     assertLastChatRequest(3, testSetup.getLeft(), assertToolSpecifications);
 
-    final var agentResponse = getAgentResponse(testSetup.getRight());
-    AgentResponseAssert.assertThat(agentResponse)
-        .isReady()
-        .hasNoToolCalls()
-        .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
-        .satisfies(agentResponseAssertions);
+    assertAgentResponse(
+        testSetup.getRight(),
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+                .satisfies(agentResponseAssertions));
 
     assertThat(jobWorkerCounter.get()).isEqualTo(2);
 
