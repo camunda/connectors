@@ -23,6 +23,9 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
   @JsonSubTypes.Type(
       value = AmazonManagedOpenSearchVectorStore.class,
       name = AmazonManagedOpenSearchVectorStore.STORE_AMAZON_MANAGED_OPENSEARCH),
+  @JsonSubTypes.Type(
+      value = AzureCosmosDbNoSqlVectorStore.class,
+      name = AzureCosmosDbNoSqlVectorStore.STORE_AZURE_COSMOS_DB_NO_SQL)
 })
 @TemplateDiscriminatorProperty(
     name = "storeType",
@@ -32,4 +35,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     label = "Embeddings store",
     description = "Select embedding store")
 public sealed interface EmbeddingsVectorStore
-    permits AmazonManagedOpenSearchVectorStore, ElasticSearchVectorStore, OpenSearchVectorStore {}
+    permits AmazonManagedOpenSearchVectorStore,
+        AzureCosmosDbNoSqlVectorStore,
+        ElasticSearchVectorStore,
+        OpenSearchVectorStore {}

@@ -503,6 +503,9 @@
       "name" : "Amazon Managed OpenSearch",
       "value" : "STORE_AMAZON_MANAGED_OPENSEARCH"
     }, {
+      "name" : "Azure Cosmos DB NoSQL",
+      "value" : "STORE_AZURE_COSMOS_DB_NO_SQL"
+    }, {
       "name" : "Elasticsearch",
       "value" : "STORE_ELASTICSEARCH"
     }, {
@@ -609,6 +612,311 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "vectorStore.azureCosmosDbNoSql.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify Azure Cosmos DB endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Azure OpenAI authentication strategy.",
+    "value" : "apiKey",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Client credentials",
+      "value" : "clientCredentials"
+    } ]
+  }, {
+    "id" : "vectorStore.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorStore.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "ID of a Microsoft Entra application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorStore.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Secret of a Microsoft Entra application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorStore.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.authentication.tenantId",
+    "label" : "Tenant ID",
+    "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.authentication.tenantId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorStore.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.authentication.authorityHost",
+    "label" : "Authority host",
+    "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.authentication.authorityHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorStore.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.azureCosmosDbNoSql.databaseName",
+    "label" : "Database name",
+    "description" : "Specify the name of the Azure Cosmos DB NoSQL database.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.databaseName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.azureCosmosDbNoSql.containerName",
+    "label" : "Container name",
+    "description" : "Specify the name of the Azure Cosmos DB NoSQL container.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.containerName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "vectorStore.azureCosmosDbNoSql.consistencyLevel",
+    "label" : "Consistency level",
+    "description" : "Specify the consistency level for the Azure Cosmos DB NoSQL store.",
+    "optional" : false,
+    "value" : "EVENTUAL",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.consistencyLevel",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Strong",
+      "value" : "STRONG"
+    }, {
+      "name" : "Bounded Staleness",
+      "value" : "BOUNDED_STALENESS"
+    }, {
+      "name" : "Session",
+      "value" : "SESSION"
+    }, {
+      "name" : "Consistent Prefix",
+      "value" : "CONSISTENT_PREFIX"
+    }, {
+      "name" : "Eventual",
+      "value" : "EVENTUAL"
+    } ]
+  }, {
+    "id" : "vectorStore.azureCosmosDbNoSql.distanceFunction",
+    "label" : "Distance function",
+    "description" : "The metric used to compute distance/similarity. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "value" : "COSINE",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.distanceFunction",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Euclidean",
+      "value" : "EUCLIDEAN"
+    }, {
+      "name" : "Cosine",
+      "value" : "COSINE"
+    }, {
+      "name" : "Dot Product",
+      "value" : "DOT_PRODUCT"
+    } ]
+  }, {
+    "id" : "vectorStore.azureCosmosDbNoSql.vectorIndexType",
+    "label" : "Vector index type",
+    "description" : "The type of vector index type to use. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "value" : "FLAT",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.vectorIndexType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Flat",
+      "value" : "FLAT"
+    }, {
+      "name" : "Quantized Flat",
+      "value" : "QUANTIZED_FLAT"
+    }, {
+      "name" : "DiskANN",
+      "value" : "DISK_ANN"
+    } ]
   }, {
     "id" : "vectorStore.embeddingsStore.elasticsearch.baseUrl",
     "label" : "Base URL",
