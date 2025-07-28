@@ -27,9 +27,7 @@ public class OutboundConnectorDiscoveryTest {
 
   private static DefaultOutboundConnectorFactory getFactory(
       OutboundConnectorConfiguration... configurations) {
-    var configs = new ArrayList<>(OutboundConnectorDiscovery.loadConnectorConfigurations());
-    configs.addAll(Arrays.asList(configurations));
-    return new DefaultOutboundConnectorFactory(configs);
+    return new DefaultOutboundConnectorFactory(List.of(configurations));
   }
 
   @Test

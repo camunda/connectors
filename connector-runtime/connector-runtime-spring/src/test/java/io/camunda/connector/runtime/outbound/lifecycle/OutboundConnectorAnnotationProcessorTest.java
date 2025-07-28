@@ -25,6 +25,7 @@ import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -40,7 +41,7 @@ class OutboundConnectorAnnotationProcessorTest {
 
   private static class TestConfig {
     @Bean
-    public OutboundConnectorFactory annotationProcessor(
+    public OutboundConnectorFactory outboundFactory(
         Environment env, List<OutboundConnectorFunction> functions) {
       return (new OutboundConnectorRuntimeConfiguration()).outboundConnectorFactory(env, functions);
     }
@@ -106,18 +107,16 @@ class OutboundConnectorAnnotationProcessorTest {
     configuredContextRunner.run(
         context -> {
           var outboundConnectorFactory = context.getBean(OutboundConnectorFactory.class);
-          assertThat(
-                  outboundConnectorFactory.getConfigurations().stream()
-                      .anyMatch(
-                          e -> {
-                            try {
-                              configurationAssertions.accept(e);
-                              return true;
-                            } catch (Exception ex) {
-                              return false;
-                            }
-                          }))
-              .isTrue();
+          Assertions.assertThatList(outboundConnectorFactory.getConfigurations())
+              .anyMatch(
+                  e -> {
+                    try {
+                      configurationAssertions.accept(e);
+                      return true;
+                    } catch (Exception ex) {
+                      return false;
+                    }
+                  });
         });
   }
 }
