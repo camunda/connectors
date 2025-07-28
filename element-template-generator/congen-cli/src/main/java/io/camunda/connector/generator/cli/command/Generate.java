@@ -16,16 +16,17 @@
  */
 package io.camunda.connector.generator.cli.command;
 
-import static io.camunda.connector.generator.cli.ReturnCodes.GENERATION_FAILED;
-import static io.camunda.connector.generator.cli.ReturnCodes.INPUT_PREPARATION_FAILED;
-import static io.camunda.connector.generator.cli.ReturnCodes.SUCCESS;
+import static io.camunda.connector.generator.cli.ReturnCodes.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.*;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.cli.GeneratorServiceLoader;
 import io.camunda.connector.generator.dsl.ElementTemplate;
+import java.net.URI;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -34,6 +35,13 @@ import picocli.CommandLine.ParentCommand;
 @Command(name = "generate")
 public class Generate implements Callable<Integer> {
 
+  static final JsonSchema jsonSchema =
+      JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
+          .getSchema(
+              URI.create(
+                  "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json"));
+
+  private static final ObjectMapper mapper = new ObjectMapper();
   @ParentCommand ConGen connectorGen;
 
   @Parameters(index = "0", description = "name of the generator to invoke")
@@ -45,44 +53,6 @@ public class Generate implements Callable<Integer> {
           "parameters to be passed to the generator (at least the generation source)."
               + " Refer to the documentation of the specific generator module for details.")
   List<String> params;
-
-  private static final ObjectMapper mapper = new ObjectMapper();
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public Integer call() {
-    CliCompatibleTemplateGenerator<Object> generator =
-        (CliCompatibleTemplateGenerator<Object>) loadGenerator(generatorName);
-    Object input;
-    try {
-      input = generator.prepareInput(params);
-    } catch (Exception e) {
-      System.err.println("Error while preparing input data: " + e.getMessage());
-      return INPUT_PREPARATION_FAILED.getCode();
-    }
-    List<ElementTemplate> templates;
-    try {
-      templates =
-          (List<ElementTemplate>) generator.generate(input, connectorGen.generatorConfiguration());
-    } catch (Exception e) {
-      System.err.println("Generation failed: " + e.getMessage());
-      return GENERATION_FAILED.getCode();
-    }
-    try {
-      String resultString;
-      if (templates.size() == 1) {
-        resultString =
-            mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates.getFirst());
-      } else {
-        resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates);
-      }
-      System.out.println(resultString);
-      return SUCCESS.getCode();
-    } catch (JsonProcessingException e) {
-      System.err.println("Failed to serialize the result: " + e.getMessage());
-      return GENERATION_FAILED.getCode();
-    }
-  }
 
   static CliCompatibleTemplateGenerator<?> loadGenerator(String name) {
     var generators = GeneratorServiceLoader.loadGenerators();
@@ -98,5 +68,48 @@ public class Generate implements Callable<Integer> {
               + String.join(", ", generators.keySet()));
     }
     return generator;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public Integer call() {
+    CliCompatibleTemplateGenerator<Object> generator =
+        (CliCompatibleTemplateGenerator<Object>) loadGenerator(generatorName);
+    Object input;
+    try {
+      input = generator.prepareInput(params);
+    } catch (Exception e) {
+      System.err.println("Error while preparing input data: " + e.getMessage());
+      return INPUT_PREPARATION_FAILED.getCode();
+    }
+    List<ElementTemplate> templates;
+    try {
+      templates = generator.generate(input, connectorGen.generatorConfiguration());
+    } catch (Exception e) {
+      System.err.println("Generation failed: " + e.getMessage());
+      return GENERATION_FAILED.getCode();
+    }
+    try {
+      String resultString;
+      if (templates.size() == 1) {
+        resultString =
+            mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates.getFirst());
+      } else {
+        resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates);
+      }
+      Set<ValidationMessage> errors = jsonSchema.validate(resultString, InputFormat.JSON);
+      if (!errors.isEmpty()) {
+        System.err.println("Validation failed:");
+        for (ValidationMessage error : errors) {
+          System.err.println(error.getMessage());
+        }
+        return JSON_SCHEMA_VALIDATION_FAILED.getCode();
+      }
+      System.out.println(resultString);
+      return SUCCESS.getCode();
+    } catch (JsonProcessingException e) {
+      System.err.println("Failed to serialize the result: " + e.getMessage());
+      return GENERATION_FAILED.getCode();
+    }
   }
 }
