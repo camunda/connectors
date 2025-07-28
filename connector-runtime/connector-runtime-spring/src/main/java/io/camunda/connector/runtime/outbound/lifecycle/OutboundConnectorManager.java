@@ -27,6 +27,7 @@ import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
 import io.camunda.document.factory.DocumentFactory;
+import io.camunda.spring.client.annotation.processor.CamundaClientLifecycleAware;
 import io.camunda.spring.client.annotation.value.JobWorkerValue;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
@@ -38,7 +39,7 @@ import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OutboundConnectorManager {
+public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(OutboundConnectorManager.class);
   private final JobWorkerManager jobWorkerManager;
@@ -69,7 +70,8 @@ public class OutboundConnectorManager {
     this.outboundMetrics = outboundMetrics;
   }
 
-  public void start(final CamundaClient client) {
+  @Override
+  public void onStart(final CamundaClient client) {
     // Currently, existing Spring beans have a higher priority
     // One result is that you will not disable Spring Bean Connectors by providing environment
     // variables for a specific connector
@@ -80,7 +82,8 @@ public class OutboundConnectorManager {
     outboundConnectors.forEach(connector -> openWorkerForOutboundConnector(client, connector));
   }
 
-  public void stop() {
+  @Override
+  public void onStop(CamundaClient client) {
     jobWorkerManager.closeAllOpenWorkers();
   }
 

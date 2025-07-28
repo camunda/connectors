@@ -24,12 +24,10 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorConfigurationRegistry;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
-import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
@@ -38,7 +36,6 @@ import io.camunda.document.store.CamundaDocumentStoreImpl;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.ArrayList;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,7 +51,7 @@ public class OutboundConnectorRuntimeConfiguration {
       List<OutboundConnectorFunction> functions,
       List<OutboundConnectorProvider> providers) {
     return new OutboundConnectorConfigurationRegistry(
-            configurations, functions, providers, environment::getProperty);
+        configurations, functions, providers, environment::getProperty);
   }
 
   @Bean
@@ -100,12 +97,6 @@ public class OutboundConnectorRuntimeConfiguration {
         documentFactory,
         objectMapper,
         outboundMetrics);
-  }
-
-  @Bean
-  public OutboundConnectorAnnotationProcessor annotationProcessor(
-      OutboundConnectorManager manager) {
-    return new OutboundConnectorAnnotationProcessor(manager);
   }
 
   @Bean
