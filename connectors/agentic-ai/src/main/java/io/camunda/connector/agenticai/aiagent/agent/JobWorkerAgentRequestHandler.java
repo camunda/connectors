@@ -29,7 +29,7 @@ public class JobWorkerAgentRequestHandler
 
   private static final int MAX_ZEEBE_COMMAND_RETRIES = 3;
 
-  private final CommandExceptionHandlingStrategy exceptionHandlingStrategy;
+  private final CommandExceptionHandlingStrategy defaultExceptionHandlingStrategy;
   private final MetricsRecorder metricsRecorder;
 
   public JobWorkerAgentRequestHandler(
@@ -40,7 +40,7 @@ public class JobWorkerAgentRequestHandler
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
       AgentResponseHandler responseHandler,
-      CommandExceptionHandlingStrategy exceptionHandlingStrategy,
+      CommandExceptionHandlingStrategy defaultExceptionHandlingStrategy,
       MetricsRecorder metricsRecorder) {
     super(
         agentInitializer,
@@ -51,7 +51,7 @@ public class JobWorkerAgentRequestHandler
         framework,
         responseHandler);
 
-    this.exceptionHandlingStrategy = exceptionHandlingStrategy;
+    this.defaultExceptionHandlingStrategy = defaultExceptionHandlingStrategy;
     this.metricsRecorder = metricsRecorder;
   }
 
@@ -79,7 +79,9 @@ public class JobWorkerAgentRequestHandler
     // no-op (do not activate elements, do not complete agent process) -> wait for next job to add
     // user messages
     executeCommandAsync(
-        executionContext, prepareCompleteCommand(executionContext), exceptionHandlingStrategy);
+        executionContext,
+        prepareCompleteCommand(executionContext),
+        defaultExceptionHandlingStrategy);
   }
 
   private void completeAsyncWithResponse(
@@ -126,12 +128,7 @@ public class JobWorkerAgentRequestHandler
     executeCommandAsync(
         executionContext,
         completeCommand,
-        ((command, throwable) -> {
-          // allow storage to compensate for failed job completion
-          conversationStore.compensateFailedJobCompletion(
-              executionContext, agentResponse.context(), throwable);
-          exceptionHandlingStrategy.handleCommandError(command, throwable);
-        }));
+        exceptionHandlingStrategy(executionContext, agentResponse, conversationStore));
   }
 
   private void executeCommandAsync(
@@ -145,6 +142,24 @@ public class JobWorkerAgentRequestHandler
             metricsRecorder,
             MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
+  }
+
+  private CommandExceptionHandlingStrategy exceptionHandlingStrategy(
+      JobWorkerAgentExecutionContext executionContext,
+      AgentResponse agentResponse,
+      ConversationStore conversationStore) {
+    // conversationStore may be null if agent did not reach a state where it
+    // interacted with the store (initialization only)
+    if (conversationStore == null || agentResponse == null) {
+      return defaultExceptionHandlingStrategy;
+    } else {
+      return (command, throwable) -> {
+        // allow storage to compensate for failed job completion
+        conversationStore.compensateFailedJobCompletion(
+            executionContext, agentResponse.context(), throwable);
+        defaultExceptionHandlingStrategy.handleCommandError(command, throwable);
+      };
+    }
   }
 
   private CompleteJobCommandStep1 prepareCompleteCommand(
