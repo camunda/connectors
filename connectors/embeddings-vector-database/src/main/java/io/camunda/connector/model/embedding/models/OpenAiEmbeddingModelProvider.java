@@ -60,7 +60,7 @@ public record OpenAiEmbeddingModelProvider(
             group = "embeddingModel",
             id = "openAiDimensions",
             label = "Embedding dimensions",
-            description = "Max segment size in chars",
+            description = "The size of the vector used to represent data",
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Number,
             optional = true)

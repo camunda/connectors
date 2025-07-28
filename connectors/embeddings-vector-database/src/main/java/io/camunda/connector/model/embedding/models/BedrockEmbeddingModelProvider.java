@@ -66,7 +66,7 @@ public record BedrockEmbeddingModelProvider(
             group = "embeddingModel",
             id = "bedrockDimensions",
             label = "Embedding dimensions",
-            description = "Max segment size in chars",
+            description = "The size of the vector used to represent data",
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),

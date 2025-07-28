@@ -268,7 +268,7 @@
   }, {
     "id" : "embeddingModelProvider.bedrockDimensions",
     "label" : "Embedding dimensions",
-    "description" : "Max segment size in chars",
+    "description" : "The size of the vector used to represent data",
     "optional" : false,
     "value" : "D1024",
     "constraints" : {
@@ -422,7 +422,7 @@
   }, {
     "id" : "embeddingModelProvider.openAiDimensions",
     "label" : "Embedding dimensions",
-    "description" : "Max segment size in chars",
+    "description" : "The size of the vector used to represent data",
     "optional" : true,
     "feel" : "required",
     "group" : "embeddingModel",
