@@ -108,4 +108,35 @@ public class CsvConnectorTests {
     assertEquals(
         "name,role\r\nSimon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.csv());
   }
+
+  @Test
+  public void testWriteObjects() {
+    var context = OutboundConnectorContextBuilder.create().build();
+    var request =
+        new WriteCsvRequest(
+            asList(
+                Map.of("name", "Simon", "role", "Engineering Manager"),
+                Map.of("name", "Mathias", "role", "Backend Engineer")),
+            false,
+            new CsvFormat(",", true, asList("name", "role")));
+    var result = (WriteCsvResult.Value) connector.writeCsv(request, context);
+    assertNotNull(result);
+    assertEquals("Simon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.csv());
+  }
+
+  @Test
+  public void testWriteObjectsAndAddHeaders() {
+    var context = OutboundConnectorContextBuilder.create().build();
+    var request =
+        new WriteCsvRequest(
+            asList(
+                Map.of("name", "Simon", "role", "Engineering Manager"),
+                Map.of("name", "Mathias", "role", "Backend Engineer")),
+            false,
+            new CsvFormat(",", false, asList("name", "role")));
+    var result = (WriteCsvResult.Value) connector.writeCsv(request, context);
+    assertNotNull(result);
+    assertEquals(
+        "name,role\r\nSimon,Engineering Manager\r\nMathias,Backend Engineer\r\n", result.csv());
+  }
 }

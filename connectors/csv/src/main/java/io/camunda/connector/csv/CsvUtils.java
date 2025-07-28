@@ -43,7 +43,8 @@ public class CsvUtils {
         if (record instanceof List<?> listValues) {
           printer.printRecord(listValues);
         } else if (record instanceof Map<?, ?> mapValues) {
-          printer.printRecord(mapValues.values());
+          var row = format.headers().stream().map(mapValues::get).toList();
+          printer.printRecord(row);
         } else {
           throw new IllegalArgumentException(
               "Unsupported record type: " + record.getClass().getSimpleName());
