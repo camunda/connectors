@@ -25,6 +25,13 @@
       <artifactId>picocli</artifactId>
       <version>${version.picocli}</version>
     </dependency>
+
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+      <version>1.5.8</version>
+    </dependency>
+
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-core</artifactId>
