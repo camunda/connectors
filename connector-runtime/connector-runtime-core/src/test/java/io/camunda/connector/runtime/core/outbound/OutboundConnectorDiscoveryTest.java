@@ -19,17 +19,15 @@ package io.camunda.connector.runtime.core.outbound;
 import static io.camunda.connector.runtime.core.testutil.TestUtil.withEnvVars;
 
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class OutboundConnectorDiscoveryTest {
 
-  private static DefaultOutboundConnectorFactory getFactory() {
-    return new DefaultOutboundConnectorFactory(
-        OutboundConnectorDiscovery.loadConnectorConfigurations());
+  private static DefaultOutboundConnectorFactory getFactory(
+      OutboundConnectorConfiguration... configurations) {
+    return new DefaultOutboundConnectorFactory(List.of(configurations));
   }
 
   @Test
@@ -145,16 +143,14 @@ public class OutboundConnectorDiscoveryTest {
   @Test
   public void shouldOverrideWhenRegisteredManually() {
 
-    // given SPI configuration
-    DefaultOutboundConnectorFactory factory = getFactory();
-
-    // when
-    factory.registerConfiguration(
-        new OutboundConnectorConfiguration(
-            "ANNOTATED",
-            new String[] {"foo", "bar"},
-            "io.camunda:annotated",
-            NotAnnotatedFunction.class));
+    // given SPI configuration and manual registration
+    DefaultOutboundConnectorFactory factory =
+        getFactory(
+            new OutboundConnectorConfiguration(
+                "ANNOTATED",
+                new String[] {"foo", "bar"},
+                "io.camunda:annotated",
+                NotAnnotatedFunction.class));
 
     // then
     var registrations = factory.getConfigurations();
