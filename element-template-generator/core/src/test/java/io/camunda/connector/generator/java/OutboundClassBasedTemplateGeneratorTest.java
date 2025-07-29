@@ -45,6 +45,8 @@ import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
+import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
+import io.camunda.connector.generator.java.example.outbound.SingleOperationAnnotatedConnector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -986,6 +988,54 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var icon = template.icon();
 
       assertThat(icon.contents()).isEqualTo(expectedIconString);
+    }
+  }
+
+  @Nested
+  class OperationAnnotated {
+
+    @Test
+    void operationAnnotated() {
+      var template = generator.generate(OperationAnnotatedConnector.class).getFirst();
+      assertThat(template.id()).isNotNull();
+      assertThat(template.id()).isEqualTo(OperationAnnotatedConnector.ID);
+      assertThat(template.name()).isEqualTo(OperationAnnotatedConnector.NAME);
+
+      DropdownProperty operationProperty =
+          (DropdownProperty) getPropertyById("operation", template);
+      assertThat(operationProperty.getChoices()).isNotNull();
+      assertThat(operationProperty.getValue()).isEqualTo("operation-1");
+      assertThat(operationProperty.getChoices())
+          .containsExactlyInAnyOrder(
+              new DropdownChoice("Operation 1", "operation-1"),
+              new DropdownChoice("Operation 2", "operation-2"),
+              new DropdownChoice("Operation 3", "operation-3"));
+
+      var propOp1P1 = getPropertyById("operation-1:p1", template);
+      assertThat(propOp1P1.getCondition()).isNotNull();
+
+      // Verify that the referenced operation property is properly prefixed
+      var propOp1P2 = getPropertyById("operation-1:param2", template);
+      assertThat(propOp1P2.getCondition()).isInstanceOf(AllMatch.class);
+      assertThat(((AllMatch) propOp1P2.getCondition()).allMatch())
+          .containsExactlyInAnyOrder(
+              new Equals("operation-1:p1", "myValue"), new Equals("operation", "operation-1"));
+
+      var propOp3P1 = getPropertyById("operation-3:p1", template);
+      assertThat(propOp3P1).isNotNull();
+      var propOp3P2 = getPropertyById("operation-3:param2", template);
+      assertThat(propOp3P2).isNotNull();
+    }
+
+    @Test
+    void singleOperationAnnotated() {
+      var template = generator.generate(SingleOperationAnnotatedConnector.class).getFirst();
+      assertThat(template.id()).isNotNull();
+      assertThat(template.id()).isEqualTo(SingleOperationAnnotatedConnector.ID);
+      assertThat(template.name()).isEqualTo(SingleOperationAnnotatedConnector.NAME);
+
+      HiddenProperty operationProperty = (HiddenProperty) getPropertyById("operation", template);
+      assertThat(operationProperty.getValue()).isEqualTo("operation-1");
     }
   }
 }

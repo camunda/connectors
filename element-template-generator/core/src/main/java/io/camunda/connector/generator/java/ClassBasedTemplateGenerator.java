@@ -16,8 +16,15 @@
  */
 package io.camunda.connector.generator.java;
 
+import static io.camunda.connector.generator.java.util.OperationBasedConnectorUtil.*;
 import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
 
+import io.camunda.connector.api.annotation.Operation;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
+import io.camunda.connector.api.reflection.ReflectionUtil;
+import io.camunda.connector.api.reflection.ReflectionUtil.MethodWithAnnotation;
 import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -26,15 +33,9 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeatu
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.connector.generator.java.util.ReflectionUtil;
-import io.camunda.connector.generator.java.util.TemplateGenerationContext;
+import io.camunda.connector.generator.java.util.*;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
-import io.camunda.connector.generator.java.util.TemplateGenerationContextUtil;
-import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
@@ -99,9 +100,24 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     var connectorInput = template.inputDataClass();
     var context = TemplateGenerationContextUtil.createContext(connectorDefinition, configuration);
 
-    List<PropertyBuilder> properties =
-        new ArrayList<>(
-            TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context));
+    List<PropertyBuilder> properties;
+    if (OutboundConnectorFunction.class.isAssignableFrom(connectorDefinition)
+        || InboundConnectorExecutable.class.isAssignableFrom(connectorDefinition)) {
+      properties =
+          new ArrayList<>(
+              TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context));
+    } else if (OutboundConnectorProvider.class.isAssignableFrom(connectorDefinition)) {
+      List<MethodWithAnnotation<Operation>> methods =
+          ReflectionUtil.getMethodsAnnotatedWith(connectorDefinition, Operation.class);
+      properties = new ArrayList<>(List.of(createOperationsProperty(methods)));
+      properties.addAll(getOperationProperties(methods, context));
+    } else {
+      throw new IllegalArgumentException(
+          "Connector class "
+              + connectorDefinition.getName()
+              + " must implement OutboundConnectorFunction, InboundConnectorExecutable or OutboundConnectorProvider");
+    }
+
     Arrays.stream(template.extensionProperties())
         .map(
             extensionProperty ->
@@ -112,9 +128,9 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
 
     var groupsDefinedInProperties =
         new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
-    var manuallyDefinedGroups = Arrays.asList(template.propertyGroups());
 
     final List<PropertyGroup> mergedGroups = new ArrayList<>();
+    var manuallyDefinedGroups = Arrays.asList(template.propertyGroups());
 
     if (!manuallyDefinedGroups.isEmpty()) {
       for (ElementTemplate.PropertyGroup group : manuallyDefinedGroups) {

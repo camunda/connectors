@@ -28,6 +28,7 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
 import io.camunda.document.Document;
@@ -53,7 +54,8 @@ public class InboundConnectorContextBuilder {
   protected SecretProvider secretProvider = new MapSecretProvider(secrets);
   protected Map<String, Object> properties;
   protected InboundConnectorDefinition definition;
-  protected ValidationProvider validationProvider;
+  protected ValidationProvider validationProvider =
+      ValidationUtil.discoverDefaultValidationProviderImplementation();
   protected CorrelationResult result;
   protected DocumentFactory documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);

@@ -18,9 +18,11 @@ package io.camunda.connector.runtime.core.discovery;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.runtime.core.ConnectorUtil;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
@@ -28,14 +30,32 @@ import java.util.stream.Collectors;
 /** Static functionality for SPI (auto) discovery */
 public class SPIConnectorDiscovery {
 
+  /** Discovers all outbound connectors by loading the {@link OutboundConnectorFunction} */
   public static List<OutboundConnectorConfiguration> discoverOutbound() {
+    List<OutboundConnectorConfiguration> outboundConnectors =
+        new ArrayList<>(loadConnectorConfigurations());
+    outboundConnectors.addAll(loadConnectorProviders());
+    return outboundConnectors;
+  }
+
+  private static List<OutboundConnectorConfiguration> loadConnectorConfigurations() {
     return ServiceLoader.load(OutboundConnectorFunction.class).stream()
         .map(
             functionProvider -> {
               Class<? extends OutboundConnectorFunction> cls = functionProvider.type();
               return ConnectorUtil.getRequiredOutboundConnectorConfiguration(cls);
             })
-        .collect(Collectors.toList());
+        .toList();
+  }
+
+  private static List<OutboundConnectorConfiguration> loadConnectorProviders() {
+    return ServiceLoader.load(OutboundConnectorProvider.class).stream()
+        .map(
+            functionProvider -> {
+              Class<? extends OutboundConnectorProvider> cls = functionProvider.type();
+              return ConnectorUtil.getRequiredOutboundConnectorConfiguration(cls);
+            })
+        .toList();
   }
 
   public static List<InboundConnectorConfiguration> discoverInbound() {

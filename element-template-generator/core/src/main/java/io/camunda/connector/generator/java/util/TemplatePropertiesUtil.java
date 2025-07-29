@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.java.util;
 
-import static io.camunda.connector.generator.java.util.ReflectionUtil.getAllFields;
+import static io.camunda.connector.api.reflection.ReflectionUtil.getAllFields;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.generator.dsl.*;
@@ -70,6 +70,12 @@ public class TemplatePropertiesUtil {
    */
   public static List<PropertyBuilder> extractTemplatePropertiesFromType(
       Class<?> type, TemplateGenerationContext context) {
+
+    if (type == Void.class) {
+      // If the type is Void, return an empty list
+      return Collections.emptyList();
+    }
+
     if (type.isSealed()) {
       return handleSealedType(type, context);
     }

@@ -127,6 +127,8 @@ public class Keywords {
 
   public static final String DEDUPLICATION_ID_KEYWORD = "deduplicationId";
 
+  public static final String OPERATION_ID_KEYWORD = "operation";
+
   /**
    * Properties that are handled by the connector runtime and should not be passed to the inbound
    * connector along with the properties defined by the connector.
