@@ -21,7 +21,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorConfigurationRegistry;
 import io.camunda.spring.client.annotation.processor.AbstractCamundaAnnotationProcessor;
 import io.camunda.spring.client.bean.BeanInfo;
 import io.camunda.spring.client.bean.ClassInfo;
@@ -38,15 +38,15 @@ public class OutboundConnectorAnnotationProcessor extends AbstractCamundaAnnotat
 
   private final Environment environment;
   private final OutboundConnectorManager outboundConnectorManager;
-  private final OutboundConnectorFactory outboundConnectorFactory;
+  private final OutboundConnectorConfigurationRegistry configurationRegistry;
 
   public OutboundConnectorAnnotationProcessor(
       Environment environment,
       final OutboundConnectorManager outboundConnectorManager,
-      final OutboundConnectorFactory outboundConnectorFactory) {
+      final OutboundConnectorConfigurationRegistry configurationRegistry) {
     this.environment = environment;
     this.outboundConnectorManager = outboundConnectorManager;
-    this.outboundConnectorFactory = outboundConnectorFactory;
+    this.configurationRegistry = configurationRegistry;
   }
 
   @Override
@@ -77,7 +77,7 @@ public class OutboundConnectorAnnotationProcessor extends AbstractCamundaAnnotat
             configurationOverrides.timeoutOverride().orElse(null));
     LOGGER.info(
         "Configuring outbound connector {} of bean '{}'", configuration, beanInfo.getBeanName());
-    outboundConnectorFactory.registerConfiguration(configuration);
+    configurationRegistry.registerConfiguration(configuration);
     return configuration;
   }
 

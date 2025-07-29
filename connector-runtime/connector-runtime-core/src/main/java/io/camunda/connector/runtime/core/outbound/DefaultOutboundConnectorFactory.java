@@ -24,12 +24,9 @@ import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,33 +36,30 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
 
   private final ObjectMapper objectMapper;
   private final ValidationProvider validationProvider;
-
-  private final Map<String, OutboundConnectorConfiguration> connectorConfigs;
+  private final OutboundConnectorConfigurationRegistry configurationRegistry;
 
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache;
 
   public DefaultOutboundConnectorFactory(
-      List<OutboundConnectorConfiguration> configurations,
+      OutboundConnectorConfigurationRegistry configurationRegistry,
       ObjectMapper objectMapper,
       ValidationProvider validationProvider) {
-    connectorConfigs =
-        configurations.stream()
-            .collect(
-                Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
+    this.configurationRegistry = configurationRegistry;
     this.objectMapper = objectMapper;
-    connectorInstanceCache = new ConcurrentHashMap<>();
     this.validationProvider = validationProvider;
+    this.connectorInstanceCache = new ConcurrentHashMap<>();
   }
 
   @Override
   public List<OutboundConnectorConfiguration> getConfigurations() {
-    return new ArrayList<>(connectorConfigs.values());
+    return configurationRegistry.getConfigurations();
   }
 
   @Override
   public OutboundConnectorFunction getInstance(String type) {
-    return Optional.ofNullable(connectorConfigs.get(type))
+    return configurationRegistry
+        .getConfiguration(type)
         .map(this::createCachedInstance)
         .orElseThrow(
             () -> new RuntimeException("Outbound connector \"" + type + "\" is not registered"));
@@ -100,21 +94,5 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
     } else {
       return ConnectorHelper.instantiateConnector(config.connectorClass());
     }
-  }
-
-  @Override
-  public void registerConfiguration(OutboundConnectorConfiguration configuration) {
-    var oldConfig = connectorConfigs.get(configuration.type());
-    if (oldConfig != null) {
-      LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
-      connectorConfigs.remove(oldConfig.type());
-    }
-    connectorConfigs.put(configuration.type(), configuration);
-  }
-
-  @Override
-  public void resetConfigurations() {
-    connectorConfigs.clear();
-    connectorInstanceCache.clear();
   }
 }

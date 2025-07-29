@@ -24,7 +24,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorConfigurationRegistry;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,7 +42,7 @@ class OutboundConnectorAnnotationProcessorTest {
 
   @Mock private CamundaClient camundaClient;
   @Mock private OutboundConnectorManager outboundConnectorManager;
-  @Mock private OutboundConnectorFactory outboundConnectorFactory;
+  @Mock private OutboundConnectorConfigurationRegistry configurationRegistry;
 
   @Captor private ArgumentCaptor<OutboundConnectorConfiguration> registeredConfigurationCaptor;
 
@@ -50,7 +50,7 @@ class OutboundConnectorAnnotationProcessorTest {
       new ApplicationContextRunner()
           .withBean(CamundaClient.class, () -> camundaClient)
           .withBean(OutboundConnectorManager.class, () -> outboundConnectorManager)
-          .withBean(OutboundConnectorFactory.class, () -> outboundConnectorFactory)
+          .withBean(OutboundConnectorConfigurationRegistry.class, () -> configurationRegistry)
           .withUserConfiguration(TestConfig.class, AnnotatedFunction.class);
 
   private static class TestConfig {
@@ -58,8 +58,8 @@ class OutboundConnectorAnnotationProcessorTest {
     public OutboundConnectorAnnotationProcessor annotationProcessor(
         Environment environment,
         OutboundConnectorManager manager,
-        OutboundConnectorFactory factory) {
-      return new OutboundConnectorAnnotationProcessor(environment, manager, factory);
+        OutboundConnectorConfigurationRegistry configurationRegistry) {
+      return new OutboundConnectorAnnotationProcessor(environment, manager, configurationRegistry);
     }
   }
 
@@ -124,7 +124,7 @@ class OutboundConnectorAnnotationProcessorTest {
         context -> {
           context.getBean(OutboundConnectorAnnotationProcessor.class).onStart(camundaClient);
 
-          verify(outboundConnectorFactory)
+          verify(configurationRegistry)
               .registerConfiguration(registeredConfigurationCaptor.capture());
 
           assertThat(registeredConfigurationCaptor.getValue()).satisfies(configurationAssertions);

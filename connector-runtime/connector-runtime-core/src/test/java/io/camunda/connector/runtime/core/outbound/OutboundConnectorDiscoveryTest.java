@@ -30,8 +30,10 @@ import org.junit.jupiter.api.Test;
 public class OutboundConnectorDiscoveryTest {
 
   private static DefaultOutboundConnectorFactory getFactory() {
+    var configs = OutboundConnectorDiscovery.loadConnectorConfigurations();
+    var registry = new OutboundConnectorConfigurationRegistry(configs);
     return new DefaultOutboundConnectorFactory(
-        OutboundConnectorDiscovery.loadConnectorConfigurations(),
+        registry,
         ConnectorsObjectMapperSupplier.getCopy(),
         ValidationUtil.discoverDefaultValidationProviderImplementation());
   }
@@ -150,15 +152,22 @@ public class OutboundConnectorDiscoveryTest {
   public void shouldOverrideWhenRegisteredManually() {
 
     // given SPI configuration
-    DefaultOutboundConnectorFactory factory = getFactory();
+    var configs = OutboundConnectorDiscovery.loadConnectorConfigurations();
+    var registry = new OutboundConnectorConfigurationRegistry(configs);
 
     // when
-    factory.registerConfiguration(
+    registry.registerConfiguration(
         new OutboundConnectorConfiguration(
             "ANNOTATED",
             new String[] {"foo", "bar"},
             "io.camunda:annotated",
             NotAnnotatedFunction.class));
+
+    var factory =
+        new DefaultOutboundConnectorFactory(
+            registry,
+            ConnectorsObjectMapperSupplier.getCopy(),
+            ValidationUtil.discoverDefaultValidationProviderImplementation());
 
     // then
     var registrations = factory.getConfigurations();

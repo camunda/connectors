@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorConfigurationRegistry;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -42,10 +43,18 @@ import org.springframework.core.env.Environment;
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
-  public OutboundConnectorFactory outboundConnectorFactory(
-      ObjectMapper objectMapper, ValidationProvider validationProvider) {
+  public OutboundConnectorConfigurationRegistry outboundConnectorConfigurationRegistry() {
     var configs = OutboundConnectorDiscovery.loadConnectorConfigurations();
-    return new DefaultOutboundConnectorFactory(configs, objectMapper, validationProvider);
+    return new OutboundConnectorConfigurationRegistry(configs);
+  }
+
+  @Bean
+  public OutboundConnectorFactory outboundConnectorFactory(
+      OutboundConnectorConfigurationRegistry configurationRegistry,
+      ObjectMapper objectMapper,
+      ValidationProvider validationProvider) {
+    return new DefaultOutboundConnectorFactory(
+        configurationRegistry, objectMapper, validationProvider);
   }
 
   @Bean
@@ -86,8 +95,10 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public OutboundConnectorAnnotationProcessor annotationProcessor(
-      Environment environment, OutboundConnectorManager manager, OutboundConnectorFactory factory) {
-    return new OutboundConnectorAnnotationProcessor(environment, manager, factory);
+      Environment environment,
+      OutboundConnectorManager manager,
+      OutboundConnectorConfigurationRegistry configurationRegistry) {
+    return new OutboundConnectorAnnotationProcessor(environment, manager, configurationRegistry);
   }
 
   @Bean
