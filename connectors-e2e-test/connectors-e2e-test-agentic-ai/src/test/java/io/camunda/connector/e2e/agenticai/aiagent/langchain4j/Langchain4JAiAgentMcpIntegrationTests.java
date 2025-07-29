@@ -217,14 +217,16 @@ public class Langchain4JAiAgentMcpIntegrationTests extends BaseLangchain4JAiAgen
 
     assertLastChatRequest(3, expectedConversation);
 
-    final var agentResponse = getAgentResponse(zeebeTest);
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
-    AgentResponseAssert.assertThat(agentResponse)
-        .isReady()
-        .hasNoToolCalls()
-        .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
-        .hasResponseMessageText(expectedResponseText)
-        .hasResponseText(expectedResponseText);
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+                .hasResponseMessageText(expectedResponseText)
+                .hasResponseText(expectedResponseText));
 
     assertThat(jobWorkerCounter.get()).isEqualTo(2);
 

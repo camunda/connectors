@@ -98,14 +98,16 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
 
     assertLastChatRequest(1, expectedConversation);
 
-    final var agentResponse = getAgentResponse(zeebeTest);
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
-    AgentResponseAssert.assertThat(agentResponse)
-        .isReady()
-        .hasNoToolCalls()
-        .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
-        .hasResponseMessageText(expectedResponseText)
-        .hasResponseText(expectedResponseText);
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+                .hasResponseMessageText(expectedResponseText)
+                .hasResponseText(expectedResponseText));
 
     assertThat(jobWorkerCounter.get()).isEqualTo(1);
   }
@@ -153,14 +155,16 @@ public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JA
 
     assertLastChatRequest(1, expectedConversation);
 
-    final var agentResponse = getAgentResponse(zeebeTest);
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
-    AgentResponseAssert.assertThat(agentResponse)
-        .isReady()
-        .hasNoToolCalls()
-        .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
-        .hasResponseMessageText(expectedResponseText)
-        .hasResponseText(expectedResponseText);
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
+                .hasResponseMessageText(expectedResponseText)
+                .hasResponseText(expectedResponseText));
 
     assertThat(jobWorkerCounter.get()).isEqualTo(1);
   }

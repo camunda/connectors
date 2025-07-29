@@ -117,14 +117,16 @@ public class Langchain4JAiAgentFeedbackLoopTests extends BaseLangchain4JAiAgentT
 
     assertLastChatRequest(2, expectedConversation);
 
-    final var agentResponse = getAgentResponse(zeebeTest);
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
-    AgentResponseAssert.assertThat(agentResponse)
-        .isReady()
-        .hasNoToolCalls()
-        .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)))
-        .hasResponseMessageText(expectedResponseText)
-        .hasResponseText(expectedResponseText);
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)))
+                .hasResponseMessageText(expectedResponseText)
+                .hasResponseText(expectedResponseText));
 
     assertThat(jobWorkerCounter.get()).isEqualTo(2);
   }

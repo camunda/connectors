@@ -28,6 +28,8 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.SystemMessage;
+import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.test.SlowTest;
 import java.util.Map;
@@ -91,20 +93,23 @@ public class Langchain4JAiAgentLimitsTests extends BaseLangchain4JAiAgentTests {
                       .formatted(expectedMaxModelCalls));
         });
 
-    final var agentResponse = getAgentResponse(zeebeTest);
-    assertThat(agentResponse.context().metrics().modelCalls()).isEqualTo(expectedMaxModelCalls);
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          assertThat(agentResponse.context().metrics().modelCalls())
+              .isEqualTo(expectedMaxModelCalls);
 
-    final var conversationMessages =
-        ((InProcessConversationContext) agentResponse.context().conversation()).messages();
-    assertThat(conversationMessages)
-        .filteredOn(
-            msg -> msg instanceof io.camunda.connector.agenticai.model.message.SystemMessage)
-        .hasSize(1);
-    assertThat(conversationMessages)
-        .filteredOn(msg -> msg instanceof AssistantMessage)
-        .hasSize(expectedMaxModelCalls);
-    assertThat(conversationMessages)
-        .filteredOn(msg -> msg instanceof io.camunda.connector.agenticai.model.message.UserMessage)
-        .hasSize(expectedMaxModelCalls);
+          final var conversationMessages =
+              ((InProcessConversationContext) agentResponse.context().conversation()).messages();
+          assertThat(conversationMessages)
+              .filteredOn(msg -> msg instanceof SystemMessage)
+              .hasSize(1);
+          assertThat(conversationMessages)
+              .filteredOn(msg -> msg instanceof AssistantMessage)
+              .hasSize(expectedMaxModelCalls);
+          assertThat(conversationMessages)
+              .filteredOn(msg -> msg instanceof UserMessage)
+              .hasSize(expectedMaxModelCalls);
+        });
   }
 }

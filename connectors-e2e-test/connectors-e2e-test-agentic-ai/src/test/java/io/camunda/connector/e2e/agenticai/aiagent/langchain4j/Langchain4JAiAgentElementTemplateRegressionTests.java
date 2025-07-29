@@ -110,15 +110,17 @@ public class Langchain4JAiAgentElementTemplateRegressionTests extends BaseLangch
 
     assertLastChatRequest(3, expectedConversation, false);
 
-    final var agentResponse = getAgentResponse(zeebeTest);
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
-    AgentResponseAssert.assertThat(agentResponse)
-        .isReady()
-        .hasNoToolCalls()
-        .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
-        .hasResponseText(expectedResponseText)
-        .hasNoResponseMessage()
-        .hasNoResponseJson();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasNoToolCalls()
+                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
+                .hasResponseText(expectedResponseText)
+                .hasNoResponseMessage()
+                .hasNoResponseJson());
 
     assertThat(jobWorkerCounter.get()).isEqualTo(2);
   }

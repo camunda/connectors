@@ -30,6 +30,7 @@ public interface AiAgentTestFixtures {
   String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
 
+  String AGENT_RESPONSE_VARIABLE = "agent";
   String AI_AGENT_TASK_ID = "AI_Agent";
   Map<String, String> AI_AGENT_ELEMENT_TEMPLATE_PROPERTIES =
       Map.ofEntries(
