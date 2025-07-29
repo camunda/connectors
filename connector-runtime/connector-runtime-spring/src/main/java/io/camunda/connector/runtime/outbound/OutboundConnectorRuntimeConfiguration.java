@@ -18,12 +18,13 @@ package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
+import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
@@ -32,10 +33,6 @@ import io.camunda.document.store.CamundaDocumentStoreImpl;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.lang.invoke.MethodHandles;
-import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,13 +40,11 @@ import org.springframework.core.env.Environment;
 
 @Configuration
 public class OutboundConnectorRuntimeConfiguration {
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
   @Bean
-  public OutboundConnectorFactory outboundConnectorFactory(
-      Environment env, List<OutboundConnectorFunction> functions) {
-    return new DefaultOutboundConnectorFactory(functions, env::getProperty);
+  public OutboundConnectorFactory outboundConnectorFactory() {
+    return new DefaultOutboundConnectorFactory(
+        OutboundConnectorDiscovery.loadConnectorConfigurations());
   }
 
   @Bean
@@ -81,6 +76,12 @@ public class OutboundConnectorRuntimeConfiguration {
         documentFactory,
         objectMapper,
         outboundMetrics);
+  }
+
+  @Bean
+  public OutboundConnectorAnnotationProcessor annotationProcessor(
+      Environment environment, OutboundConnectorManager manager, OutboundConnectorFactory factory) {
+    return new OutboundConnectorAnnotationProcessor(environment, manager, factory);
   }
 
   @Bean

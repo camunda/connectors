@@ -16,81 +16,34 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
-import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(DefaultOutboundConnectorFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultOutboundConnectorFactory.class);
 
   private final Map<String, OutboundConnectorConfiguration> connectorConfigs;
 
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache;
 
-  public DefaultOutboundConnectorFactory(
-      List<OutboundConnectorFunction> functions, Function<String, String> propertySource) {
-    // Once we are on Java 22+ we can assign this to a temporary variable before the constructor
-    // call
-    this(
-        functions.stream()
-            .filter(f -> f.getClass().isAnnotationPresent(OutboundConnector.class))
-            .map(
-                f -> {
-                  final OutboundConnector outboundConnector =
-                      f.getClass().getAnnotation(OutboundConnector.class);
-                  return createConnectorConfiguration(outboundConnector, f, propertySource);
-                })
-            .toList());
-  }
-
-  /**
-   * @param configurations List of {@link OutboundConnectorConfiguration} that will be used to
-   *     create {@link OutboundConnectorFunction} instances. As there can only be one instance per
-   *     {@link OutboundConnectorConfiguration#type()}, later entries with the same type will
-   *     override earlier ones.
-   */
   public DefaultOutboundConnectorFactory(List<OutboundConnectorConfiguration> configurations) {
-    List<OutboundConnectorConfiguration> configs =
-        new ArrayList<>(OutboundConnectorDiscovery.loadConnectorConfigurations());
-    configs.addAll(configurations);
     connectorConfigs =
-        configs.stream()
+        configurations.stream()
             .collect(
-                Collectors.toConcurrentMap(
-                    OutboundConnectorConfiguration::type,
-                    config -> config,
-                    (present, newEntry) -> newEntry));
+                Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
     connectorInstanceCache = new ConcurrentHashMap<>();
-  }
-
-  private static OutboundConnectorConfiguration createConnectorConfiguration(
-      OutboundConnector outboundConnector,
-      OutboundConnectorFunction bean,
-      Function<String, String> propertySource) {
-    final var configurationOverrides =
-        new ConnectorConfigurationOverrides(outboundConnector.name(), propertySource);
-
-    OutboundConnectorConfiguration configuration =
-        new OutboundConnectorConfiguration(
-            outboundConnector.name(),
-            outboundConnector.inputVariables(),
-            configurationOverrides.typeOverride().orElse(outboundConnector.type()),
-            bean.getClass(),
-            () -> bean,
-            configurationOverrides.timeoutOverride().orElse(null));
-    LOGGER.info("Configuring outbound connector {}", configuration);
-    return configuration;
   }
 
   @Override
@@ -118,5 +71,21 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
             return ConnectorHelper.instantiateConnector(c.connectorClass());
           }
         });
+  }
+
+  @Override
+  public void registerConfiguration(OutboundConnectorConfiguration configuration) {
+    var oldConfig = connectorConfigs.get(configuration.type());
+    if (oldConfig != null) {
+      LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
+      connectorConfigs.remove(oldConfig.type());
+    }
+    connectorConfigs.put(configuration.type(), configuration);
+  }
+
+  @Override
+  public void resetConfigurations() {
+    connectorConfigs.clear();
+    connectorInstanceCache.clear();
   }
 }
