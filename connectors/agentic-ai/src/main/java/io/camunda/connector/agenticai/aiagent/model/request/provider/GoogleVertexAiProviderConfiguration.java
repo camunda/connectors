@@ -76,11 +76,13 @@ public record GoogleVertexAiProviderConfiguration(
   public sealed interface GoogleVertexAiAuthentication {
     @TemplateSubType(id = "serviceAccountCredentials", label = "Service account credentials")
     record ServiceAccountCredentialsAuthentication(
-        @TemplateProperty(
+        @NotBlank
+            @TemplateProperty(
                 group = "provider",
                 label = "JSON key of the service account",
-                description = "This is the key of the service account in JSON format.")
-            @NotBlank
+                description = "This is the key of the service account in JSON format.",
+                feel = Property.FeelMode.optional,
+                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String jsonKey)
         implements GoogleVertexAiAuthentication {
       @Override

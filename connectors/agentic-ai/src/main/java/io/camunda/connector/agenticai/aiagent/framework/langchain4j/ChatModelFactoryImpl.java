@@ -44,7 +44,7 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class ChatModelFactoryImpl implements ChatModelFactory {
 
-  private static final Logger log = LoggerFactory.getLogger(ChatModelFactoryImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelFactoryImpl.class);
 
   @Override
   public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
@@ -168,9 +168,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .modelName(connection.model().model());
 
     if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
-      ServiceAccountCredentials serviceAccountCredentials = createServiceAccountCredentials(sac);
-      builder.credentials(
-          serviceAccountCredentials.createScoped("https://www.googleapis.com/auth/cloud-platform"));
+      builder.credentials(createGoogleServiceAccountCredentials(sac));
     }
 
     final var modelParameters = connection.model().parameters();
@@ -184,13 +182,13 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     return builder;
   }
 
-  private ServiceAccountCredentials createServiceAccountCredentials(
+  private ServiceAccountCredentials createGoogleServiceAccountCredentials(
       ServiceAccountCredentialsAuthentication sac) {
     try {
       return ServiceAccountCredentials.fromStream(
           new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)));
     } catch (IOException e) {
-      log.error("Failed to parse service account credentials", e);
+      LOGGER.error("Failed to parse service account credentials", e);
       throw new ConnectorInputException(
           "Authentication failed for provided service account credentials", e);
     }

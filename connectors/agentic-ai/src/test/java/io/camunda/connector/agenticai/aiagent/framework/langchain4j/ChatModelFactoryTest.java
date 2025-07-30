@@ -11,13 +11,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredential;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuilder;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
@@ -46,6 +51,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProv
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
@@ -67,7 +73,6 @@ import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
@@ -160,7 +165,7 @@ class ChatModelFactoryTest {
       doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
 
       try (MockedStatic<AnthropicChatModel> chatModelMock =
-          Mockito.mockStatic(AnthropicChatModel.class, Answers.CALLS_REAL_METHODS)) {
+          mockStatic(AnthropicChatModel.class, Answers.CALLS_REAL_METHODS)) {
         chatModelMock.when(AnthropicChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
@@ -269,7 +274,7 @@ class ChatModelFactoryTest {
       doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
 
       try (MockedStatic<AzureOpenAiChatModel> chatModelMock =
-          Mockito.mockStatic(AzureOpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+          mockStatic(AzureOpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
         chatModelMock.when(AzureOpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
@@ -432,9 +437,9 @@ class ChatModelFactoryTest {
       doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
 
       try (MockedStatic<BedrockRuntimeClient> clientMock =
-              Mockito.mockStatic(BedrockRuntimeClient.class, Answers.CALLS_REAL_METHODS);
+              mockStatic(BedrockRuntimeClient.class, Answers.CALLS_REAL_METHODS);
           MockedStatic<BedrockChatModel> chatModelMock =
-              Mockito.mockStatic(BedrockChatModel.class, Answers.CALLS_REAL_METHODS)) {
+              mockStatic(BedrockChatModel.class, Answers.CALLS_REAL_METHODS)) {
         clientMock.when(BedrockRuntimeClient::builder).thenReturn(clientBuilder);
         chatModelMock.when(BedrockChatModel::builder).thenReturn(chatModelBuilder);
 
@@ -515,6 +520,40 @@ class ChatModelFactoryTest {
           });
     }
 
+    @Test
+    void createsGoogleVertexAiChatModelWithServiceAccountCredential() {
+      final var providerConfig =
+          new GoogleVertexAiProviderConfiguration(
+              new GoogleVertexAiConnection(
+                  PROJECT_ID,
+                  LOCATION,
+                  new ServiceAccountCredentialsAuthentication("{}"),
+                  new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      try (final var staticMockedSac = mockStatic(ServiceAccountCredentials.class)) {
+        final var mockedSac = mock(ServiceAccountCredentials.class);
+        when(mockedSac.createScoped(anyString())).thenReturn(mockedSac);
+        staticMockedSac
+            .when(() -> ServiceAccountCredentials.fromStream(any()))
+            .thenReturn(mockedSac);
+
+        testGoogleVertexAiChatModelBuilder(
+            providerConfig,
+            (builder) -> {
+              verify(builder).location(LOCATION);
+              verify(builder).project(PROJECT_ID);
+              verify(builder).credentials(mockedSac);
+              verify(builder).modelName(MODEL);
+              verify(builder).maxOutputTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
+              verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
+              verify(builder).topP(DEFAULT_MODEL_PARAMETERS.topP());
+              verify(builder).topK(DEFAULT_MODEL_PARAMETERS.topK());
+            });
+
+        staticMockedSac.verify(() -> ServiceAccountCredentials.fromStream(any()));
+      }
+    }
+
     private void testGoogleVertexAiChatModelBuilder(
         GoogleVertexAiProviderConfiguration providerConfig,
         ThrowingConsumer<VertexAiGeminiChatModelBuilder> builderAssertions) {
@@ -523,7 +562,7 @@ class ChatModelFactoryTest {
       doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
 
       try (MockedStatic<VertexAiGeminiChatModel> chatModelMock =
-          Mockito.mockStatic(VertexAiGeminiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+          mockStatic(VertexAiGeminiChatModel.class, Answers.CALLS_REAL_METHODS)) {
         chatModelMock.when(VertexAiGeminiChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
@@ -658,7 +697,7 @@ class ChatModelFactoryTest {
       doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
 
       try (MockedStatic<OpenAiChatModel> chatModelMock =
-          Mockito.mockStatic(OpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+          mockStatic(OpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
         chatModelMock.when(OpenAiChatModel::builder).thenReturn(chatModelBuilder);
 
         final var chatModel = chatModelFactory.createChatModel(providerConfig);
