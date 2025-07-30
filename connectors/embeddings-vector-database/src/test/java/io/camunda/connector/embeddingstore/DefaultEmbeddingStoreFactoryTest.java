@@ -18,7 +18,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosVectorDataType;
@@ -91,7 +90,7 @@ class DefaultEmbeddingStoreFactoryTest {
               new AzureApiKeyAuthentication("api-key"),
               "database-name",
               "container-name",
-              AzureCosmosDbNoSqlVectorStore.CosmosConsistencyLevel.STRONG,
+              AzureCosmosDbNoSqlVectorStore.ConsistencyLevel.STRONG,
               AzureCosmosDbNoSqlVectorStore.DistanceFunction.COSINE,
               AzureCosmosDbNoSqlVectorStore.IndexType.FLAT);
 
@@ -111,7 +110,7 @@ class DefaultEmbeddingStoreFactoryTest {
                   "client-id", "client-secret", "tenant-id", authorityHost),
               "database-name",
               "container-name",
-              AzureCosmosDbNoSqlVectorStore.CosmosConsistencyLevel.STRONG,
+              AzureCosmosDbNoSqlVectorStore.ConsistencyLevel.STRONG,
               AzureCosmosDbNoSqlVectorStore.DistanceFunction.COSINE,
               AzureCosmosDbNoSqlVectorStore.IndexType.FLAT);
 
@@ -145,7 +144,7 @@ class DefaultEmbeddingStoreFactoryTest {
           assertThat(embeddingPolicyCaptor.getValue().getVectorEmbeddings().size()).isEqualTo(1);
           var embedding = embeddingPolicyCaptor.getValue().getVectorEmbeddings().getFirst();
           assertThat(embedding.getPath())
-              .isEqualTo(DefaultEmbeddingStoreFactory.AZURE_COSMOS_DB_VECTOR_EMBEDDING_PATH);
+              .isEqualTo(AzureCosmosDbNoSqlVectorStoreFactory.VECTOR_EMBEDDING_PATH);
           assertThat(embedding.getDataType()).isEqualTo(CosmosVectorDataType.FLOAT32);
           assertThat(embedding.getEmbeddingDimensions()).isEqualTo(mockModel.dimension());
           assertThat(embedding.getDistanceFunction())
@@ -158,8 +157,7 @@ class DefaultEmbeddingStoreFactoryTest {
                         assertThat(vectorIndexes).hasSize(1);
                         var vectorIndex = vectorIndexes.getFirst();
                         assertThat(vectorIndex.getPath())
-                            .isEqualTo(
-                                DefaultEmbeddingStoreFactory.AZURE_COSMOS_DB_VECTOR_EMBEDDING_PATH);
+                            .isEqualTo(AzureCosmosDbNoSqlVectorStoreFactory.VECTOR_EMBEDDING_PATH);
                         assertThat(vectorIndex.getType())
                             .isEqualTo(CosmosVectorIndexType.FLAT.toString());
                       }));
@@ -171,7 +169,7 @@ class DefaultEmbeddingStoreFactoryTest {
           var containerProperties = containerPropertiesCaptor.getValue();
           assertThat(containerProperties.getId()).isEqualTo(vectorStore.containerName());
           assertThat(containerProperties.getPartitionKeyDefinition().getPaths())
-              .containsExactly(DefaultEmbeddingStoreFactory.AZURE_COSMOS_DB_PARTITION_KEY_PATH);
+              .containsExactly(AzureCosmosDbNoSqlVectorStoreFactory.PARTITION_KEY_PATH);
           assertThat(containerProperties.getIndexingPolicy().getIndexingMode())
               .isEqualTo(IndexingMode.CONSISTENT);
           assertThat(containerProperties.getIndexingPolicy().getIncludedPaths())
@@ -184,7 +182,7 @@ class DefaultEmbeddingStoreFactoryTest {
     private static void verifyCosmosClientBuilder(
         AzureCosmosDbNoSqlVectorStore vectorStore, CosmosClientBuilder cosmosClientBuilder) {
       verify(cosmosClientBuilder).endpoint(vectorStore.endpoint());
-      verify(cosmosClientBuilder).consistencyLevel(ConsistencyLevel.STRONG);
+      verify(cosmosClientBuilder).consistencyLevel(com.azure.cosmos.ConsistencyLevel.STRONG);
       verify(cosmosClientBuilder).contentResponseOnWriteEnabled(true);
       switch (vectorStore.authentication()) {
         case AzureApiKeyAuthentication(String apiKey) -> {

@@ -57,7 +57,7 @@ public record AzureCosmosDbNoSqlVectorStore(
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "EVENTUAL",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        AzureCosmosDbNoSqlVectorStore.CosmosConsistencyLevel consistencyLevel,
+        ConsistencyLevel consistencyLevel,
     @NotBlank
         @TemplateProperty(
             group = "embeddingsStore",
@@ -169,7 +169,7 @@ public record AzureCosmosDbNoSqlVectorStore(
     }
   }
 
-  public enum CosmosConsistencyLevel {
+  public enum ConsistencyLevel {
     @DropdownItem(label = "Strong")
     STRONG,
     @DropdownItem(label = "Bounded Staleness")
