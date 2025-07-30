@@ -8,8 +8,11 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
 import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -18,7 +21,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI (Hybrid/Self-Managed only)")
+@TemplateSubType(id = GOOGLE_VERTEX_AI_ID, label = "Google Vertex AI")
 public record GoogleVertexAiProviderConfiguration(
     @Valid @NotNull GoogleVertexAiConnection googleVertexAi) implements ProviderConfiguration {
 
@@ -44,12 +47,54 @@ public record GoogleVertexAiProviderConfiguration(
               feel = Property.FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String location,
+      @Valid @NotNull GoogleVertexAiAuthentication authentication,
       @Valid @NotNull GoogleVertexAiProviderConfiguration.GoogleVertexAiModel model) {
 
     @AssertFalse(message = "Google Vertex AI is not supported on SaaS")
     public boolean isUsedInSaaS() {
-      return ConnectorUtils.isSaaS();
+      return ConnectorUtils.isSaaS()
+          && authentication
+              instanceof GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
     }
+  }
+
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes({
+    @JsonSubTypes.Type(
+        value = GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication.class,
+        name = "serviceAccountCredentials"),
+    @JsonSubTypes.Type(
+        value = GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication.class,
+        name = "applicationDefaultCredentials"),
+  })
+  @TemplateDiscriminatorProperty(
+      label = "Authentication",
+      group = "provider",
+      name = "type",
+      defaultValue = "serviceAccountCredentials",
+      description = "Specify the Google Vertex AI authentication strategy.")
+  public sealed interface GoogleVertexAiAuthentication {
+    @TemplateSubType(id = "serviceAccountCredentials", label = "Service account credentials")
+    record ServiceAccountCredentialsAuthentication(
+        @NotBlank
+            @TemplateProperty(
+                group = "provider",
+                label = "JSON key of the service account",
+                description = "This is the key of the service account in JSON format.",
+                feel = Property.FeelMode.optional,
+                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+            String jsonKey)
+        implements GoogleVertexAiAuthentication {
+      @Override
+      public String toString() {
+        return "ServiceAccountCredentialsAuthentication{jsonKey=[REDACTED]}";
+      }
+    }
+
+    @TemplateSubType(
+        id = "applicationDefaultCredentials",
+        label = "Application default credentials (Hybrid/Self-Managed only)")
+    record ApplicationDefaultCredentialsAuthentication() implements GoogleVertexAiAuthentication {}
   }
 
   public record GoogleVertexAiModel(

@@ -113,6 +113,8 @@ class ProviderConfigurationTest {
       return new GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection(
           "my-project-id",
           "us-central1",
+          new GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication
+              .ApplicationDefaultCredentialsAuthentication(),
           new GoogleVertexAiProviderConfiguration.GoogleVertexAiModel(
               "gemini-1.5-flash",
               new GoogleVertexAiProviderConfiguration.GoogleVertexAiModel
