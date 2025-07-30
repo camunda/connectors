@@ -30,7 +30,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @Import(ValidationAutoConfiguration.class)
-class AgentRequestTest {
+class OutboundConnectorAgentRequestTest {
 
   @Autowired private Validator validator;
 
@@ -105,7 +105,7 @@ class AgentRequestTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.aiagent.model.request.AgentRequestTest#invalidPromptParameters")
+        "io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestTest#invalidPromptParameters")
     void throwsValidationErrorOnInvalidSystemPromptParameterKeys(Map<String, Object> parameters) {
       final var systemPrompt =
           new SystemPromptConfiguration("You are a helpful assistant named {{name}}", parameters);
@@ -188,7 +188,7 @@ class AgentRequestTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.aiagent.model.request.AgentRequestTest#invalidPromptParameters")
+        "io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequestTest#invalidPromptParameters")
     void throwsValidationErrorOnInvalidUserPromptParameterKeys(Map<String, Object> parameters) {
       final var userPrompt =
           new UserPromptConfiguration("Tell me a story about {{name}}", parameters, List.of());

@@ -17,10 +17,11 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-public record AgentRequest(
-    @Valid @NotNull ProviderConfiguration provider, @Valid @NotNull AgentRequestData data) {
+public record OutboundConnectorAgentRequest(
+    @Valid @NotNull ProviderConfiguration provider,
+    @Valid @NotNull OutboundConnectorAgentRequestData data) {
 
-  public record AgentRequestData(
+  public record OutboundConnectorAgentRequestData(
       @FEEL
           @TemplateProperty(
               label = "Agent context",
