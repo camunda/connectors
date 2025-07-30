@@ -72,16 +72,13 @@ public class CreateCommandDummy
     return this;
   }
 
-  public CreateProcessInstanceCommandStep3 suspendAfterElement(String elementId) {
-    return null;
-  }
-
   public CreateProcessInstanceWithResultCommandStep1 withResult() {
-    return null;
+    throw new UnsupportedOperationException(
+        "This method is not supported in the dummy implementation.");
   }
 
   public FinalCommandStep<ProcessInstanceEvent> requestTimeout(Duration requestTimeout) {
-    return null;
+    return this;
   }
 
   @Override
