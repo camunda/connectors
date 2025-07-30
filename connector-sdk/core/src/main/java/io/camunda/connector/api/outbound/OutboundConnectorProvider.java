@@ -16,5 +16,8 @@
  */
 package io.camunda.connector.api.outbound;
 
-/** Marker interface for outbound connectors based on methods annotated with {@link @Operation}. */
+/**
+ * Marker interface for outbound connectors based on methods annotated with {@link
+ * io.camunda.connector.api.annotation.Operation}.
+ */
 public interface OutboundConnectorProvider {}
