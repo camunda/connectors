@@ -14,6 +14,7 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
 import io.camunda.connector.model.embedding.vector.store.ElasticSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.EmbeddingsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
@@ -30,6 +31,9 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 
 public class DefaultEmbeddingStoreFactory {
 
+  private AzureCosmosDbNoSqlVectorStoreFactory azureCosmosDbNoSqlVectorStoreFactory =
+      new AzureCosmosDbNoSqlVectorStoreFactory();
+
   public EmbeddingStore<TextSegment> initializeVectorStore(
       EmbeddingsVectorStore embeddingsVectorStore, EmbeddingModel model) {
     return switch (embeddingsVectorStore) {
@@ -39,6 +43,9 @@ public class DefaultEmbeddingStoreFactory {
           initializeOpenSearchVectorStore(openSearchVectorStore);
       case AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore ->
           initializeAmazonManagedOpenSearchVectorStore(amazonManagedOpenSearchVectorStore);
+      case AzureCosmosDbNoSqlVectorStore azureCosmosDbNoSqlVectorStore ->
+          azureCosmosDbNoSqlVectorStoreFactory.createEmbeddingStore(
+              azureCosmosDbNoSqlVectorStore, model);
     };
   }
 
