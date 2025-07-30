@@ -34,6 +34,7 @@
     <module>connector-runtime/connector-runtime-application</module>
     <module>connectors</module>
     <module>bundle</module>
+    <module>http-client</module>
   </modules>
 
   <profiles>

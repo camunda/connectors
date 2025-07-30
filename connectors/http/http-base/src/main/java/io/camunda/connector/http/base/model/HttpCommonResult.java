@@ -1,29 +1,12 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
 package io.camunda.connector.http.base.model;
 
-import io.camunda.client.api.response.DocumentMetadata;
-import io.camunda.connector.generator.java.annotation.DataExample;
-import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
-import io.camunda.document.reference.CamundaDocumentReferenceImpl;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.InMemoryDocumentStore;
-import java.time.OffsetDateTime;
 import java.util.Map;
 
 public record HttpCommonResult(
@@ -42,54 +25,23 @@ public record HttpCommonResult(
     this(status, headers, body, null, null);
   }
 
-  @DataExample(id = "basic", feel = "= body.order.id")
-  public static HttpCommonResult exampleResult() {
-    Map<String, Object> headers = Map.of("Content-Type", "application/json");
-    DocumentReference.CamundaDocumentReference documentReference =
-        new CamundaDocumentReferenceImpl(
-            "theStoreId",
-            "977c5cbf-0f19-4a76-a8e1-60902216a07b",
-            "hash",
-            new DocumentMetadata() {
-              @Override
-              public String getContentType() {
-                return "application/pdf";
-              }
+  public int status() {
+    return status;
+  }
 
-              @Override
-              public OffsetDateTime getExpiresAt() {
-                return null;
-              }
+  public Map<String, Object> headers() {
+    return headers;
+  }
 
-              @Override
-              public Long getSize() {
-                return 516554L;
-              }
+  public Object body() {
+    return body;
+  }
 
-              @Override
-              public String getFileName() {
-                return "theFileName.pdf";
-              }
+  public String reason() {
+    return reason;
+  }
 
-              @Override
-              public String getProcessDefinitionId() {
-                return "";
-              }
-
-              @Override
-              public Long getProcessInstanceKey() {
-                return 0L;
-              }
-
-              @Override
-              public Map<String, Object> getCustomProperties() {
-                return Map.of("key", "value");
-              }
-            });
-    CamundaDocument doc =
-        new CamundaDocument(
-            documentReference.getMetadata(), documentReference, InMemoryDocumentStore.INSTANCE);
-    var body = Map.of("order", Map.of("id", "123", "total", "100.00€"));
-    return new HttpCommonResult(200, headers, body, doc);
+  public Document document() {
+    return document;
   }
 }

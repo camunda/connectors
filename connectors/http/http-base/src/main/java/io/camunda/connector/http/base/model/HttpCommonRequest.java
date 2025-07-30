@@ -1,18 +1,8 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
 package io.camunda.connector.http.base.model;
 
@@ -129,51 +119,20 @@ public class HttpCommonRequest {
       tooltip = "Null values will not be sent")
   private boolean ignoreNullValues;
 
-  public Object getBody() {
-    return body;
+  // write getters for all attributes of this class
+  public HttpMethod getMethod() {
+    return method;
   }
 
-  public void setBody(final Object body) {
-    this.body = body;
-  }
-
-  public boolean hasHeaders() {
-    return headers != null;
-  }
-
-  public boolean hasBody() {
-    return body != null;
-  }
-
-  public boolean hasQueryParameters() {
-    return queryParameters != null;
-  }
-
-  public Map<String, String> getQueryParameters() {
-    return queryParameters;
-  }
-
-  public void setQueryParameters(Map<String, String> queryParameters) {
-    this.queryParameters = queryParameters;
-  }
-
-  public boolean getSkipEncoding() {
-    return Objects.equals(skipEncoding, "true");
-  }
-
-  public void setSkipEncoding(final String skipEncoding) {
-    this.skipEncoding = skipEncoding;
-  }
-
-  public boolean hasAuthentication() {
-    return authentication != null;
+  public void setMethod(final HttpMethod method) {
+    this.method = method;
   }
 
   public String getUrl() {
     return url;
   }
 
-  public void setUrl(String url) {
+  public void setUrl(final String url) {
     this.url = url;
   }
 
@@ -181,29 +140,20 @@ public class HttpCommonRequest {
     return authentication;
   }
 
-  public void setAuthentication(Authentication authentication) {
+  public void setAuthentication(final Authentication authentication) {
     this.authentication = authentication;
   }
 
-  public HttpMethod getMethod() {
-    return method;
-  }
-
-  public void setMethod(HttpMethod method) {
-    this.method = method;
-  }
-
   public Integer getConnectionTimeoutInSeconds() {
-    return Optional.ofNullable(connectionTimeoutInSeconds).orElse(DEFAULT_TIMEOUT);
+    return connectionTimeoutInSeconds != null ? connectionTimeoutInSeconds : DEFAULT_TIMEOUT;
   }
 
-  public void setConnectionTimeoutInSeconds(Integer connectionTimeoutInSeconds) {
+  public void setConnectionTimeoutInSeconds(final Integer connectionTimeoutInSeconds) {
     this.connectionTimeoutInSeconds = connectionTimeoutInSeconds;
   }
 
   public Integer getReadTimeoutInSeconds() {
-    return Optional.ofNullable(readTimeoutInSeconds)
-        .orElse(connectionTimeoutInSeconds != null ? connectionTimeoutInSeconds : DEFAULT_TIMEOUT);
+    return readTimeoutInSeconds != null ? readTimeoutInSeconds : DEFAULT_TIMEOUT;
   }
 
   public void setReadTimeoutInSeconds(final Integer readTimeoutInSeconds) {
@@ -225,77 +175,43 @@ public class HttpCommonRequest {
     this.headers = headers;
   }
 
+  public Object getBody() {
+    return body;
+  }
+
+  public void setBody(final Object body) {
+    this.body = body;
+  }
+
+  public Map<String, String> getQueryParameters() {
+    return queryParameters;
+  }
+
+  public void setQueryParameters(final Map<String, String> queryParameters) {
+    this.queryParameters = queryParameters;
+  }
+
   public boolean isStoreResponse() {
     return storeResponse;
   }
 
-  public void setStoreResponse(boolean storeResponse) {
+  public void setStoreResponse(final boolean storeResponse) {
     this.storeResponse = storeResponse;
   }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    HttpCommonRequest that = (HttpCommonRequest) o;
-    return url.equals(that.url)
-        && method.equals(that.method)
-        && Objects.equals(authentication, that.authentication)
-        && Objects.equals(connectionTimeoutInSeconds, that.connectionTimeoutInSeconds)
-        && Objects.equals(readTimeoutInSeconds, that.readTimeoutInSeconds)
-        && Objects.equals(headers, that.headers)
-        && Objects.equals(body, that.body)
-        && Objects.equals(queryParameters, that.queryParameters)
-        && storeResponse == that.storeResponse;
+  public String getSkipEncoding() {
+    return skipEncoding;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        url,
-        method,
-        authentication,
-        connectionTimeoutInSeconds,
-        readTimeoutInSeconds,
-        headers,
-        body,
-        queryParameters,
-        storeResponse);
-  }
-
-  @Override
-  public String toString() {
-    return "HttpRequest{"
-        + "url='"
-        + url
-        + '\''
-        + ", method='"
-        + method
-        + '\''
-        + ", authentication="
-        + authentication
-        + ", connectionTimeoutInSeconds='"
-        + connectionTimeoutInSeconds
-        + '\''
-        + ", headers="
-        + headers
-        + '\''
-        + ", readTimeoutInSeconds='"
-        + readTimeoutInSeconds
-        + ", body="
-        + body
-        + ", queryParameters="
-        + queryParameters
-        + ", storeResponse="
-        + storeResponse
-        + '}';
+  public void setSkipEncoding(final String skipEncoding) {
+    this.skipEncoding = skipEncoding;
   }
 
   public boolean isIgnoreNullValues() {
     return ignoreNullValues;
   }
 
-  public void setIgnoreNullValues(boolean ignoreNullValues) {
+  public void setIgnoreNullValues(final boolean ignoreNullValues) {
     this.ignoreNullValues = ignoreNullValues;
   }
 }

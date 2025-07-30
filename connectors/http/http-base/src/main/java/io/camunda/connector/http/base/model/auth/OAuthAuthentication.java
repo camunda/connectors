@@ -1,18 +1,8 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
 package io.camunda.connector.http.base.model.auth;
 
@@ -21,14 +11,13 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import io.camunda.connector.http.base.authentication.OAuthConstants;
+import io.camunda.connector.http.client.authentication.OAuthConstants;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
 
-@TemplateSubType(id = OAuthAuthentication.TYPE, label = "OAuth 2.0")
+@TemplateSubType(
+    id = io.camunda.connector.http.client.model.auth.OAuthAuthentication.TYPE,
+    label = "OAuth 2.0")
 public record OAuthAuthentication(
     @FEEL
         @NotEmpty
@@ -89,37 +78,4 @@ public record OAuthAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String GRANT_TYPE = "client_credentials";
-
-  public Map<String, String> getDataForAuthRequestBody() {
-    Map<String, String> data = new HashMap<>();
-    data.put(OAuthConstants.GRANT_TYPE, GRANT_TYPE);
-    data.put(OAuthConstants.AUDIENCE, this.audience());
-    if (StringUtils.isNotBlank(this.scopes())) {
-      data.put(OAuthConstants.SCOPE, this.scopes());
-    }
-
-    return data;
-  }
-
-  @Override
-  public String toString() {
-    return "OAuthAuthentication{"
-        + "oauthTokenEndpoint='"
-        + oauthTokenEndpoint
-        + "'"
-        + ", clientId='"
-        + clientId
-        + "'"
-        + ", clientSecret=[REDACTED]"
-        + ", audience='"
-        + audience
-        + "'"
-        + ", clientAuthentication='"
-        + clientAuthentication
-        + "'"
-        + ", scopes='"
-        + scopes
-        + "'"
-        + "}";
-  }
 }

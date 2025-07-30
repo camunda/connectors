@@ -67,6 +67,11 @@ public class CreateCommandDummy
     return this;
   }
 
+  @Override
+  public CreateProcessInstanceCommandStep3 terminateAfterElement(String elementId) {
+    return null;
+  }
+
   public CreateProcessInstanceCommandStep3 suspendAfterElement(String elementId) {
     return null;
   }
