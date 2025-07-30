@@ -26,6 +26,7 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
   private final OutboundConnectorAgentJobContext jobContext;
   private final AgentRequest request;
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
+  private List<AdHocToolElement> toolElements;
 
   public OutboundConnectorAgentExecutionContext(
       OutboundConnectorAgentJobContext jobContext,
@@ -55,6 +56,14 @@ public class OutboundConnectorAgentExecutionContext implements AgentExecutionCon
 
   @Override
   public List<AdHocToolElement> toolElements() {
+    if (toolElements != null) {
+      return toolElements;
+    }
+
+    return toolElements = resolveToolElements();
+  }
+
+  private List<AdHocToolElement> resolveToolElements() {
     final var toolsContainerElementId =
         Optional.ofNullable(request.data().tools())
             .map(ToolsConfiguration::containerElementId)
