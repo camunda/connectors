@@ -22,12 +22,13 @@ jq -r '
 
   # Transform properties
   .properties = (.properties |
-    # Remove tool-specific and error handling properties
+    # Remove tool-specific, error handling properties, and resultExpression
     map(select(.id != "data.tools.containerElementId" and
                .id != "data.tools.toolCallResults" and
                .id != "errorExpression" and
                .id != "retryCount" and
-               .id != "retryBackoff")) |
+               .id != "retryBackoff" and
+               .id != "resultExpression")) |
 
     # Update specific property values and bindings
     map(
@@ -36,19 +37,27 @@ jq -r '
       elif .id == "resultVariable" then
         .binding = {source: "=agent", type: "zeebe:output"} |
         .value = "agent"
-      elif .id == "resultExpression" then
-        # Reconstruct the entire resultExpression object with correct property order
-        {
-          id: .id,
-          label: .label,
-          description: "Expression to define how to map the Agent response into the result variable",
-          feel: "required",
-          value: "={\n  responseMessage: response.responseMessage,\n  responseText: response.responseText,\n  responseJson: response.responseJson\n}",
-          group: .group,
-          binding: .binding,
-          type: .type
+      else . end
+    ) |
+
+    # Add the new includeAgentContext property after includeAssistantMessage
+    map(
+      if .id == "data.response.includeAssistantMessage" then
+        ., {
+          "id": "data.response.includeAgentContext",
+          "label": "Include agent context",
+          "description": "Include the agent context as part of the result object.",
+          "optional": true,
+          "feel": "static",
+          "group": "response",
+          "binding": {
+            "name": "data.response.includeAgentContext",
+            "type": "zeebe:input"
+          },
+          "tooltip": "Use this option if you need to re-inject the previous agent context into a future agent execution, for example when modeling a user feedback loop between an agent and a user task.",
+          "type": "Boolean"
         }
       else . end
-    )
+    ) | flatten
   )
 ' "$SOURCE_FILE"

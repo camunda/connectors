@@ -1396,6 +1396,20 @@
       "type": "Boolean"
     },
     {
+      "id": "data.response.includeAgentContext",
+      "label": "Include agent context",
+      "description": "Include the agent context as part of the result object.",
+      "optional": true,
+      "feel": "static",
+      "group": "response",
+      "binding": {
+        "name": "data.response.includeAgentContext",
+        "type": "zeebe:input"
+      },
+      "tooltip": "Use this option if you need to re-inject the previous agent context into a future agent execution, for example when modeling a user feedback loop between an agent and a user task.",
+      "type": "Boolean"
+    },
+    {
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
@@ -1430,19 +1444,6 @@
         "type": "zeebe:output"
       },
       "type": "String"
-    },
-    {
-      "id": "resultExpression",
-      "label": "Result expression",
-      "description": "Expression to define how to map the Agent response into the result variable",
-      "feel": "required",
-      "value": "={\n  responseMessage: response.responseMessage,\n  responseText: response.responseText,\n  responseJson: response.responseJson\n}",
-      "group": "output",
-      "binding": {
-        "key": "resultExpression",
-        "type": "zeebe:taskHeader"
-      },
-      "type": "Text"
     }
   ],
   "icon": {
