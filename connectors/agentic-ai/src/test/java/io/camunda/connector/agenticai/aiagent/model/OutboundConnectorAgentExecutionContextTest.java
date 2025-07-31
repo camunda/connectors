@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -51,7 +50,7 @@ class OutboundConnectorAgentExecutionContextTest {
 
   @ParameterizedTest
   @MethodSource("missingToolCallResults")
-  void returnsEmptyInitialToolCallResultsWhenToolsConfigurationIsMissing(
+  void returnsEmptyInitialToolCallResultsWhenToolCallResultsAreMissing(
       ToolsConfiguration toolsConfiguration) {
     when(agentRequest.data().tools()).thenReturn(toolsConfiguration);
 
@@ -59,8 +58,8 @@ class OutboundConnectorAgentExecutionContextTest {
   }
 
   @ParameterizedTest
-  @MethodSource("missingToolElements")
-  void returnsEmptyToolElementsWhenToolsConfigurationIsMissing(
+  @MethodSource("missingToolElementId")
+  void returnsEmptyToolElementsWhenToolElementIdIsNotConfigured(
       ToolsConfiguration toolsConfiguration) {
     when(agentRequest.data().tools()).thenReturn(toolsConfiguration);
 
@@ -105,7 +104,7 @@ class OutboundConnectorAgentExecutionContextTest {
         new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
   }
 
-  static Stream<ToolsConfiguration> missingToolElements() {
+  static Stream<ToolsConfiguration> missingToolElementId() {
     return Stream.of(
         null,
         new ToolsConfiguration(null, List.of()),
