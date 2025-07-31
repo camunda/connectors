@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientException;
 import io.camunda.client.api.command.CompleteJobCommandStep1;
@@ -20,19 +19,16 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
-import io.camunda.connector.runtime.core.ConnectorHelper;
-import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.CommandWrapper;
 import io.camunda.spring.client.metrics.MetricsRecorder;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -133,7 +129,9 @@ public class JobWorkerAgentRequestHandler
 
     final var variables = new LinkedHashMap<String, Object>();
     if (completionConditionFulfilled) {
-      variables.putAll(createCompletionVariables(executionContext, agentResponse));
+      variables.put(
+          AiAgentJobWorker.AGENT_RESPONSE_VARIABLE,
+          createAgentResponseVariable(executionContext, agentResponse));
     } else {
       variables.put(AiAgentJobWorker.AGENT_CONTEXT_VARIABLE, agentResponse.context());
 
@@ -173,28 +171,19 @@ public class JobWorkerAgentRequestHandler
         exceptionHandlingStrategy(executionContext, agentResponse, conversationStore));
   }
 
-  private Map<String, Object> createCompletionVariables(
+  private JobWorkerAgentResponse createAgentResponseVariable(
       JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
-    final var resultExpression =
-        executionContext.job().getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD);
+    var builder =
+        JobWorkerAgentResponse.builder()
+            .responseText(agentResponse.responseText())
+            .responseJson(agentResponse.responseJson())
+            .responseMessage(agentResponse.responseMessage());
 
-    // no result expression -> return whole agent response
-    if (StringUtils.isBlank(resultExpression)) {
-      return Map.of(AiAgentJobWorker.AGENT_RESPONSE_VARIABLE, agentResponse);
+    if (executionContext.response().includeAgentContext() == true) {
+      builder = builder.context(agentResponse.context());
     }
 
-    // evaluate result expression and set result as agent response variable
-    final var outputVariables =
-        ConnectorHelper.createOutputVariables(
-            new JobWorkerAgentResponse(
-                agentResponse.context(),
-                agentResponse.responseMessage(),
-                agentResponse.responseText(),
-                agentResponse.responseJson()),
-            null,
-            resultExpression);
-
-    return Map.of(AiAgentJobWorker.AGENT_RESPONSE_VARIABLE, outputVariables);
+    return builder.build();
   }
 
   private void executeCommandAsync(
@@ -232,11 +221,4 @@ public class JobWorkerAgentRequestHandler
       JobWorkerAgentExecutionContext executionContext) {
     return executionContext.jobClient().newCompleteCommand(executionContext.job());
   }
-
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  private record JobWorkerAgentResponse(
-      AgentContext context,
-      AssistantMessage responseMessage,
-      String responseText,
-      Object responseJson) {}
 }
