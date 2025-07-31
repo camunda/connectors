@@ -86,12 +86,10 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
       AgentContext agentContext,
       List<ToolCallResult> toolCallResults,
       ConversationSession session) {
-    final var requestData = executionContext.request().data();
-
     // set up memory and load from context if available
     final var runtimeMemory =
         new MessageWindowRuntimeMemory(
-            Optional.ofNullable(requestData.memory())
+            Optional.ofNullable(executionContext.memory())
                 .map(MemoryConfiguration::contextWindowSize)
                 .orElse(DEFAULT_CONTEXT_WINDOW_SIZE));
 
@@ -101,12 +99,17 @@ public class AgentRequestHandlerImpl implements AgentRequestHandler {
     limitsValidator.validateConfiguredLimits(executionContext, agentContext);
 
     // update memory with system message
-    messagesHandler.addSystemMessage(agentContext, runtimeMemory, requestData.systemPrompt());
+    messagesHandler.addSystemMessage(
+        executionContext, agentContext, runtimeMemory, executionContext.systemPrompt());
 
     // update memory with user messages/tool call responses
     final var userMessages =
         messagesHandler.addUserMessages(
-            agentContext, runtimeMemory, requestData.userPrompt(), toolCallResults);
+            executionContext,
+            agentContext,
+            runtimeMemory,
+            executionContext.userPrompt(),
+            toolCallResults);
     if (userMessages.isEmpty()) {
       throw new ConnectorException(
           ERROR_CODE_NO_USER_MESSAGE_CONTENT,

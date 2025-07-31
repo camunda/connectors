@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
@@ -14,13 +15,13 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.util.CollectionUtils;
@@ -43,13 +44,10 @@ public class AgentInitializerImpl implements AgentInitializer {
   @Override
   public AgentInitializationResult initializeAgent(AgentExecutionContext executionContext) {
     AgentContext agentContext =
-        Optional.ofNullable(executionContext.request().data().context())
-            .orElseGet(AgentContext::empty);
+        Optional.ofNullable(executionContext.initialAgentContext()).orElseGet(AgentContext::empty);
 
     List<ToolCallResult> toolCallResults =
-        Optional.ofNullable(executionContext.request().data().tools())
-            .map(AgentRequest.AgentRequestData.ToolsConfiguration::toolCallResults)
-            .orElseGet(Collections::emptyList);
+        Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
 
     return switch (agentContext.state()) {
       case INITIALIZING -> initiateToolDiscovery(executionContext, agentContext, toolCallResults);
@@ -62,9 +60,24 @@ public class AgentInitializerImpl implements AgentInitializer {
       AgentExecutionContext executionContext,
       AgentContext agentContext,
       List<ToolCallResult> toolCallResults) {
+    return switch (executionContext) {
+      case OutboundConnectorAgentExecutionContext outboundConnectorExecutionContext ->
+          initiateToolDiscoveryViaProcessDefinition(
+              outboundConnectorExecutionContext, agentContext, toolCallResults);
+
+      default ->
+          throw new IllegalStateException(
+              "Unsupported job context implementation: " + executionContext.jobContext());
+    };
+  }
+
+  private AgentInitializationResult initiateToolDiscoveryViaProcessDefinition(
+      OutboundConnectorAgentExecutionContext executionContext,
+      AgentContext agentContext,
+      List<ToolCallResult> toolCallResults) {
     final var toolsContainerElementId =
-        Optional.ofNullable(executionContext.request().data().tools())
-            .map(AgentRequest.AgentRequestData.ToolsConfiguration::containerElementId)
+        Optional.ofNullable(executionContext.tools())
+            .map(ToolsConfiguration::containerElementId)
             .filter(id -> !id.isBlank())
             .orElse(null);
 
@@ -78,6 +91,13 @@ public class AgentInitializerImpl implements AgentInitializer {
         toolElementsResolver.resolveToolElements(
             executionContext.jobContext().processDefinitionKey(), toolsContainerElementId);
 
+    return initiateToolDiscoveryFromAdHocToolsSchema(agentContext, toolCallResults, toolElements);
+  }
+
+  private AgentInitializationResult initiateToolDiscoveryFromAdHocToolsSchema(
+      AgentContext agentContext,
+      List<ToolCallResult> toolCallResults,
+      List<AdHocToolElement> toolElements) {
     final var adHocToolsSchema = toolsSchemaResolver.resolveAdHocToolsSchema(toolElements);
 
     // add ad-hoc tool definitions to agent context

@@ -23,9 +23,7 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemor
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
@@ -74,28 +72,23 @@ class CamundaDocumentConversationStoreTest {
   @Mock private CamundaDocumentStore documentStore;
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
-  private CamundaDocumentConversationStore store;
-
-  @Mock private AgentJobContext agentJobContext;
-
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private AgentRequest agentRequest;
-
   private AgentExecutionContext executionContext;
+
+  private CamundaDocumentConversationStore store;
   private RuntimeMemory memory;
 
   @Captor private ArgumentCaptor<DocumentCreationRequest> documentCreationRequestCaptor;
 
   @BeforeEach
   void setUp() {
-    when(agentRequest.data().memory())
+    when(executionContext.memory())
         .thenReturn(
             new MemoryConfiguration(
                 new CamundaDocumentMemoryStorageConfiguration(
                     Duration.ofHours(1), Map.of("customKey", "customValue")),
                 20));
 
-    executionContext = new AgentExecutionContext(agentJobContext, agentRequest);
     store = new CamundaDocumentConversationStore(documentFactory, documentStore, objectMapper);
 
     memory = new DefaultRuntimeMemory();
@@ -111,7 +104,7 @@ class CamundaDocumentConversationStoreTest {
   @Test
   void throwsExceptionForMissingConfiguration() {
     final var agentContext = AgentContext.empty();
-    when(agentRequest.data().memory()).thenReturn(new MemoryConfiguration(null, 20));
+    when(executionContext.memory()).thenReturn(new MemoryConfiguration(null, 20));
 
     assertThatThrownBy(
             () ->
@@ -130,7 +123,7 @@ class CamundaDocumentConversationStoreTest {
   @Test
   void throwsExceptionForUnsupportedConfiguration() {
     final var agentContext = AgentContext.empty();
-    when(agentRequest.data().memory())
+    when(executionContext.memory())
         .thenReturn(
             new MemoryConfiguration(
                 new MemoryStorageConfiguration.InProcessMemoryStorageConfiguration(), 20));
@@ -422,9 +415,9 @@ class CamundaDocumentConversationStoreTest {
   }
 
   private void mockJobContext() {
-    when(agentJobContext.bpmnProcessId()).thenReturn(BPMN_PROCESS_ID);
-    when(agentJobContext.processInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
-    when(agentJobContext.elementId()).thenReturn(ELEMENT_ID);
+    when(executionContext.jobContext().bpmnProcessId()).thenReturn(BPMN_PROCESS_ID);
+    when(executionContext.jobContext().processInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
+    when(executionContext.jobContext().elementId()).thenReturn(ELEMENT_ID);
   }
 
   private InputStream documentContentAsInputStream(DocumentContent documentContent)

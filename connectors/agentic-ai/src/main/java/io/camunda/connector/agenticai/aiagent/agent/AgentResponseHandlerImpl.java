@@ -49,8 +49,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
     // default to text content only if not configured
     final var responseConfiguration =
-        Optional.ofNullable(executionContext.request().data().response())
-            .orElse(DEFAULT_RESPONSE_CONFIGURATION);
+        Optional.ofNullable(executionContext.response()).orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {

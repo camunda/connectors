@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -28,10 +29,14 @@ import java.util.List;
 public interface AgentMessagesHandler {
   /** Adds the system message to the agent's memory. */
   void addSystemMessage(
-      AgentContext agentContext, RuntimeMemory memory, SystemPromptConfiguration systemPrompt);
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      RuntimeMemory memory,
+      SystemPromptConfiguration systemPrompt);
 
   /** Adds user and tool call results messages to the agent's memory. Returns the added messages. */
   List<Message> addUserMessages(
+      AgentExecutionContext executionContext,
       AgentContext agentContext,
       RuntimeMemory memory,
       UserPromptConfiguration userPrompt,

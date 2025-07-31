@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversati
 import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
@@ -55,6 +56,7 @@ class AgentMessagesHandlerTest {
 
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
+  @Mock private AgentExecutionContext executionContext;
   private AgentMessagesHandler messagesHandler;
   private RuntimeMemory runtimeMemory;
 
@@ -72,7 +74,8 @@ class AgentMessagesHandlerTest {
     void addsSystemMessageWithEmptyParameters(Map<String, Object> parameters) {
       final var systemPrompt =
           new SystemPromptConfiguration("You are a helpful assistant.", parameters);
-      messagesHandler.addSystemMessage(AgentContext.empty(), runtimeMemory, systemPrompt);
+      messagesHandler.addSystemMessage(
+          executionContext, AgentContext.empty(), runtimeMemory, systemPrompt);
 
       assertThat(runtimeMemory.allMessages())
           .hasSize(1)
@@ -84,7 +87,8 @@ class AgentMessagesHandlerTest {
       final var systemPrompt =
           new SystemPromptConfiguration(
               "You are a helpful assistant named {{name}}.", Map.of("name", "Johnny"));
-      messagesHandler.addSystemMessage(AgentContext.empty(), runtimeMemory, systemPrompt);
+      messagesHandler.addSystemMessage(
+          executionContext, AgentContext.empty(), runtimeMemory, systemPrompt);
 
       assertThat(runtimeMemory.allMessages())
           .hasSize(1)
@@ -96,7 +100,8 @@ class AgentMessagesHandlerTest {
     @ValueSource(strings = {" "})
     void doesNotAddSystemMessageWhenPromptIsEmpty(String prompt) {
       final var systemPrompt = new SystemPromptConfiguration(prompt, Map.of("name", "Johnny"));
-      messagesHandler.addSystemMessage(AgentContext.empty(), runtimeMemory, systemPrompt);
+      messagesHandler.addSystemMessage(
+          executionContext, AgentContext.empty(), runtimeMemory, systemPrompt);
 
       verifyNoInteractions(runtimeMemory);
       assertThat(runtimeMemory.allMessages()).isEmpty();
@@ -121,6 +126,7 @@ class AgentMessagesHandlerTest {
       assertThatThrownBy(
               () ->
                   messagesHandler.addUserMessages(
+                      executionContext,
                       AgentContext.empty(),
                       runtimeMemory,
                       userPromptWithDocuments,
@@ -177,6 +183,7 @@ class AgentMessagesHandlerTest {
       private UserMessage assertUserMessageAdded() {
         final var addedMessages =
             messagesHandler.addUserMessages(
+                executionContext,
                 AGENT_CONTEXT,
                 runtimeMemory,
                 new UserPromptConfiguration("Tell me a story", Map.of(), List.of()),
@@ -203,6 +210,7 @@ class AgentMessagesHandlerTest {
       void addsUserPromptWithParameters() {
         final var addedMessages =
             messagesHandler.addUserMessages(
+                executionContext,
                 AGENT_CONTEXT,
                 runtimeMemory,
                 new UserPromptConfiguration(
@@ -230,6 +238,7 @@ class AgentMessagesHandlerTest {
       void addsDocumentsToUserMessage() {
         final var addedMessages =
             messagesHandler.addUserMessages(
+                executionContext,
                 AGENT_CONTEXT,
                 runtimeMemory,
                 new UserPromptConfiguration(null, Map.of(), documents),
@@ -254,6 +263,7 @@ class AgentMessagesHandlerTest {
       void addsBothUserPromptAndDocuments() {
         final var addedMessages =
             messagesHandler.addUserMessages(
+                executionContext,
                 AGENT_CONTEXT,
                 runtimeMemory,
                 new UserPromptConfiguration("Tell me a story", Map.of(), documents),
@@ -281,7 +291,8 @@ class AgentMessagesHandlerTest {
       void returnsNoMessageWhenNoUserMessageContentToAdd(String prompt) {
         final var userPrompt = new UserPromptConfiguration(prompt, Map.of(), List.of());
         final var addedUserMessages =
-            messagesHandler.addUserMessages(AGENT_CONTEXT, runtimeMemory, userPrompt, List.of());
+            messagesHandler.addUserMessages(
+                executionContext, AGENT_CONTEXT, runtimeMemory, userPrompt, List.of());
 
         assertThat(addedUserMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).isEmpty();
@@ -307,7 +318,11 @@ class AgentMessagesHandlerTest {
 
         final var addedMessages =
             messagesHandler.addUserMessages(
-                AGENT_CONTEXT, runtimeMemory, userPromptWithDocuments, TOOL_CALL_RESULTS);
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                TOOL_CALL_RESULTS);
 
         assertThat(addedMessages)
             .hasSize(1)
@@ -338,7 +353,11 @@ class AgentMessagesHandlerTest {
 
         final var addedMessages =
             messagesHandler.addUserMessages(
-                AGENT_CONTEXT, runtimeMemory, userPromptWithDocuments, reversedToolCallResults);
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                reversedToolCallResults);
 
         assertThat(addedMessages)
             .hasSize(1)
@@ -380,7 +399,11 @@ class AgentMessagesHandlerTest {
 
         final var addedMessages =
             messagesHandler.addUserMessages(
-                AGENT_CONTEXT, runtimeMemory, userPromptWithDocuments, TOOL_CALL_RESULTS);
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                TOOL_CALL_RESULTS);
 
         assertThat(addedMessages)
             .hasSize(1)
@@ -411,7 +434,11 @@ class AgentMessagesHandlerTest {
 
         final var addedMessages =
             messagesHandler.addUserMessages(
-                AGENT_CONTEXT, runtimeMemory, userPromptWithDocuments, toolCallResults);
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                toolCallResults);
         assertThat(addedMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
       }
@@ -429,7 +456,11 @@ class AgentMessagesHandlerTest {
 
         final var addedMessages =
             messagesHandler.addUserMessages(
-                AGENT_CONTEXT, runtimeMemory, userPromptWithDocuments, toolCallResults);
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                toolCallResults);
         assertThat(addedMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
       }
