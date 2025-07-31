@@ -30,9 +30,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
@@ -155,7 +156,7 @@ class Langchain4JAiFrameworkAdapterTest {
   @Test
   void requestsTextResponseIfResponseFormatConfigurationIsMissing() {
     adapter.executeChatRequest(
-        createExecutionContext(new ResponseConfiguration(null, false)),
+        createExecutionContext(new OutboundConnectorResponseConfiguration(null, false)),
         AGENT_CONTEXT,
         runtimeMemory);
 
@@ -168,7 +169,8 @@ class Langchain4JAiFrameworkAdapterTest {
   void requestsJsonResponseWhenConfigured() {
     adapter.executeChatRequest(
         createExecutionContext(
-            new ResponseConfiguration(new JsonResponseFormatConfiguration(null, null), false)),
+            new OutboundConnectorResponseConfiguration(
+                new JsonResponseFormatConfiguration(null, null), false)),
         AGENT_CONTEXT,
         runtimeMemory);
 
@@ -187,7 +189,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
     adapter.executeChatRequest(
         createExecutionContext(
-            new ResponseConfiguration(
+            new OutboundConnectorResponseConfiguration(
                 new JsonResponseFormatConfiguration(schema, schemaName), false)),
         AGENT_CONTEXT,
         runtimeMemory);
@@ -210,7 +212,7 @@ class Langchain4JAiFrameworkAdapterTest {
 
     adapter.executeChatRequest(
         createExecutionContext(
-            new ResponseConfiguration(
+            new OutboundConnectorResponseConfiguration(
                 new JsonResponseFormatConfiguration(schema, schemaName), false)),
         AGENT_CONTEXT,
         runtimeMemory);
@@ -254,7 +256,8 @@ class Langchain4JAiFrameworkAdapterTest {
 
   private AgentExecutionContext createExecutionContext() {
     return createExecutionContext(
-        new ResponseConfiguration(new TextResponseFormatConfiguration(false), false));
+        new OutboundConnectorResponseConfiguration(
+            new TextResponseFormatConfiguration(false), false));
   }
 
   private AgentExecutionContext createExecutionContext(
