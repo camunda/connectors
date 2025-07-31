@@ -499,8 +499,8 @@
       "type": "String"
     },
     {
-      "id": "provider.googleVertexAi.location",
-      "label": "Location",
+      "id": "provider.googleVertexAi.region",
+      "label": "Region",
       "description": "Specify the region where AI inference should take place",
       "optional": false,
       "constraints": {
@@ -509,7 +509,7 @@
       "feel": "optional",
       "group": "provider",
       "binding": {
-        "name": "provider.googleVertexAi.location",
+        "name": "provider.googleVertexAi.region",
         "type": "zeebe:input"
       },
       "condition": {
