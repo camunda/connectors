@@ -31,7 +31,7 @@ public class UrlEncoder {
       }
       return new GenericUrl(requestUrl).toURI();
     } catch (Exception e) {
-      LOG.error("Failed to parse URL {}, defaulting to requestUrl", requestUrl, e);
+      LOG.error("Failed to parse URL, defaulting to requestUrl", e);
       return URI.create(requestUrl);
     }
   }
