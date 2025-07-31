@@ -194,7 +194,8 @@ public class ConnectorJobHandler implements JobHandler {
           "Exception while completing job: {} for tenant: {}, message: {}",
           job.getKey(),
           job.getTenantId(),
-          errorResult.exception().getMessage());
+          errorResult.exception().getMessage(),
+          errorResult.exception());
       failJob(jobClient, job, errorResult);
     }
   }
