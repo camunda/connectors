@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
@@ -113,8 +114,9 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
             runtimeMemory,
             executionContext.userPrompt(),
             toolCallResults);
-    if (userMessages.isEmpty()) {
-      handleMissingUserMessages(executionContext, agentContext);
+
+    // check if we're actually able to call the model, abort early otherwise
+    if (!modelCallPrerequisitesFulfilled(executionContext, agentContext, userMessages)) {
       return null;
     }
 
@@ -140,7 +142,8 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
         executionContext, agentContext, assistantMessage, processVariableToolCalls);
   }
 
-  protected abstract void handleMissingUserMessages(C executionContext, AgentContext agentContext);
+  protected abstract boolean modelCallPrerequisitesFulfilled(
+      C executionContext, AgentContext agentContext, List<Message> addedUserMessages);
 
   /** Handles job completion if needed. Agent response and conversation store may be null. */
   protected abstract AgentResponse completeJob(
