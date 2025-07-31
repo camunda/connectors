@@ -8,13 +8,13 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.LimitsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.Collections;
@@ -24,13 +24,13 @@ import java.util.Optional;
 public class OutboundConnectorAgentExecutionContext implements AgentExecutionContext {
 
   private final OutboundConnectorAgentJobContext jobContext;
-  private final AgentRequest request;
+  private final OutboundConnectorAgentRequest request;
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private List<AdHocToolElement> toolElements;
 
   public OutboundConnectorAgentExecutionContext(
       OutboundConnectorAgentJobContext jobContext,
-      AgentRequest request,
+      OutboundConnectorAgentRequest request,
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
     this.jobContext = jobContext;
     this.request = request;

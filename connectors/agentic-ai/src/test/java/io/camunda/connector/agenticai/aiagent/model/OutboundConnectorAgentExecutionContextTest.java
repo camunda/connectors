@@ -14,8 +14,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +36,7 @@ class OutboundConnectorAgentExecutionContextTest {
   private OutboundConnectorAgentJobContext jobContext;
 
   @Mock(answer = RETURNS_DEEP_STUBS)
-  private AgentRequest agentRequest;
+  private OutboundConnectorAgentRequest agentRequest;
 
   @Mock private ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
 
