@@ -90,10 +90,13 @@ public class OutboundConnectorManager {
     zeebeWorkerValue.setName(connector.name());
     zeebeWorkerValue.setType(connector.type());
     zeebeWorkerValue.setFetchVariables(Arrays.asList(connector.inputVariables()));
+
     if (connector.timeout() != null) {
       zeebeWorkerValue.setTimeout(Duration.ofMillis(connector.timeout()));
     }
-    zeebeWorkerValue.setAutoComplete(true);
+
+    // The runtime will handle the completion of the job
+    zeebeWorkerValue.setAutoComplete(false);
 
     OutboundConnectorFunction connectorFunction = connectorFactory.getInstance(connector.type());
     LOG.trace("Opening worker for connector {}", connector.name());

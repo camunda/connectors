@@ -79,7 +79,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
       super.handle(client, job);
     } catch (Exception e) {
       connectorsOutboundMetrics.increaseFailure(job);
-      LOGGER.warn("Failed to handle job: {}", job);
+      LOGGER.warn("Failed to handle job: {} of type: {}", job.getKey(), job.getType());
     }
   }
 

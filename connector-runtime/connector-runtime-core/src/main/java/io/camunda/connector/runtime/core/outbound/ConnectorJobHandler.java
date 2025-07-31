@@ -121,7 +121,11 @@ public class ConnectorJobHandler implements JobHandler {
 
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
-    LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
+    LOGGER.info(
+        "Received job: {} of type: {} for tenant: {}",
+        job.getKey(),
+        job.getType(),
+        job.getTenantId());
     ConnectorResult result = getConnectorResult(job);
     processFinalResult(client, job, result);
   }
