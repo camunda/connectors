@@ -24,6 +24,7 @@ import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.reflection.ReflectionUtil;
 import io.camunda.connector.api.reflection.ReflectionUtil.MethodWithAnnotation;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
@@ -44,24 +45,23 @@ public final class ConnectorUtil {
   private ConnectorUtil() {}
 
   public static Optional<OutboundConnectorConfiguration> getOutboundConnectorConfiguration(
-      Class<?> cls) {
+      Class<? extends OutboundConnectorFunction> cls) {
     return Optional.ofNullable(cls.getAnnotation(OutboundConnector.class))
         .map(
             annotation -> {
               final var configurationOverrides =
                   new ConnectorConfigurationOverrides(annotation.name(), System::getenv);
-
               return new OutboundConnectorConfiguration(
                   annotation.name(),
                   getInputVariables(cls, annotation),
                   configurationOverrides.typeOverride().orElse(annotation.type()),
-                  cls,
+                  () -> ConnectorHelper.instantiateConnector(cls),
                   configurationOverrides.timeoutOverride().orElse(null));
             });
   }
 
   public static OutboundConnectorConfiguration getRequiredOutboundConnectorConfiguration(
-      Class<?> cls) {
+      Class<? extends OutboundConnectorFunction> cls) {
     return getOutboundConnectorConfiguration(cls)
         .orElseThrow(
             () ->

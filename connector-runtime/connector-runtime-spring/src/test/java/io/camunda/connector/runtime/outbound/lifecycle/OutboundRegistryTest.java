@@ -18,11 +18,14 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorConfigurationRegistry;
+import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import java.util.List;
 import org.assertj.core.api.Assertions;
@@ -41,12 +44,17 @@ class OutboundRegistryTest {
 
   private static class TestConfig {
     @Bean
-    public OutboundConnectorConfigurationRegistry outboundRegistry(
+    public DefaultOutboundConnectorFactory outboundFactory(
         Environment environment,
-        List<OutboundConnectorConfiguration> configs,
-        List<OutboundConnectorFunction> functions) {
+        List<OutboundConnectorFunction> functions,
+        List<OutboundConnectorProvider> providers) {
       return (new OutboundConnectorRuntimeConfiguration())
-          .outboundConnectorConfigurationRegistry(environment, configs, functions, List.of());
+          .outboundConnectorConfigurationRegistry(
+              new ObjectMapper(),
+              ValidationUtil.discoverDefaultValidationProviderImplementation(),
+              environment,
+              functions,
+              providers);
     }
   }
 
@@ -59,7 +67,7 @@ class OutboundRegistryTest {
           assertThat(config.type()).isEqualTo("io.camunda:annotated");
           assertThat(config.inputVariables()).isEqualTo(new String[] {"a", "b"});
           assertThat(config.timeout()).isNull();
-          assertThat(config.customInstanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
+          assertThat(config.instanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
         });
   }
 
@@ -72,7 +80,7 @@ class OutboundRegistryTest {
           assertThat(config.type()).isEqualTo("io.camunda:overridden");
           assertThat(config.inputVariables()).isEqualTo(new String[] {"a", "b"});
           assertThat(config.timeout()).isNull();
-          assertThat(config.customInstanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
+          assertThat(config.instanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
         });
   }
 
@@ -85,7 +93,7 @@ class OutboundRegistryTest {
           assertThat(config.type()).isEqualTo("io.camunda:annotated");
           assertThat(config.inputVariables()).isEqualTo(new String[] {"a", "b"});
           assertThat(config.timeout()).isEqualTo(123456L);
-          assertThat(config.customInstanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
+          assertThat(config.instanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
         });
   }
 
@@ -100,7 +108,7 @@ class OutboundRegistryTest {
           assertThat(config.type()).isEqualTo("io.camunda:overridden");
           assertThat(config.inputVariables()).isEqualTo(new String[] {"a", "b"});
           assertThat(config.timeout()).isEqualTo(123456L);
-          assertThat(config.customInstanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
+          assertThat(config.instanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
         });
   }
 
@@ -109,10 +117,8 @@ class OutboundRegistryTest {
       ThrowingConsumer<OutboundConnectorConfiguration> configurationAssertions) {
     configuredContextRunner.run(
         context -> {
-          var outboundConnectorRegistry =
-              context.getBean(OutboundConnectorConfigurationRegistry.class);
-          Assertions.assertThatStream(
-                  outboundConnectorRegistry.getConfigurations().values().stream())
+          var outboundConnectorRegistry = context.getBean(DefaultOutboundConnectorFactory.class);
+          Assertions.assertThatStream(outboundConnectorRegistry.getConfigurations().stream())
               .anyMatch(
                   e -> {
                     try {

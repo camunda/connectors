@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.discovery;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.ConnectorUtil;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -115,7 +116,7 @@ public class EnvVarsConnectorDiscovery {
           getEnv(name, "TYPE")
               .or(() -> annotationConfig.map(OutboundConnectorConfiguration::type))
               .orElseThrow(() -> envMissing("Type not specified", name, "TYPE")),
-          cls,
+          () -> ConnectorHelper.instantiateConnector(cls),
           getEnv(name, "TIMEOUT")
               .map(Long::parseLong)
               .or(() -> annotationConfig.map(OutboundConnectorConfiguration::timeout))

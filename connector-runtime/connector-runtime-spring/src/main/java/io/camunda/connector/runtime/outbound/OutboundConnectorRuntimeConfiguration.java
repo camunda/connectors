@@ -21,9 +21,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorConfigurationRegistry;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
@@ -45,22 +43,15 @@ import org.springframework.core.env.Environment;
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
-  public OutboundConnectorConfigurationRegistry outboundConnectorConfigurationRegistry(
+  public DefaultOutboundConnectorFactory outboundConnectorConfigurationRegistry(
+      ObjectMapper mapper,
+      ValidationProvider validationProvider,
       Environment environment,
-      List<OutboundConnectorConfiguration> configurations,
       List<OutboundConnectorFunction> functions,
       List<OutboundConnectorProvider> providers) {
-    return new OutboundConnectorConfigurationRegistry(
-        configurations, functions, providers, environment::getProperty);
-  }
 
-  @Bean
-  public OutboundConnectorFactory outboundConnectorFactory(
-      OutboundConnectorConfigurationRegistry configurationRegistry,
-      ObjectMapper objectMapper,
-      ValidationProvider validationProvider) {
     return new DefaultOutboundConnectorFactory(
-        configurationRegistry, objectMapper, validationProvider);
+        mapper, validationProvider, functions, providers, environment::getProperty);
   }
 
   @Bean

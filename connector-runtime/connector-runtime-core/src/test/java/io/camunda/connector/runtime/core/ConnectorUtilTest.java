@@ -27,6 +27,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Optional;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,13 +44,12 @@ public class ConnectorUtilTest {
     public void shouldRetrieveConnectorConfiguration() {
 
       // when
-      Optional<OutboundConnectorConfiguration> configuration =
-          ConnectorUtil.getOutboundConnectorConfiguration(AnnotatedFunction.class);
+      OutboundConnectorConfiguration configuration =
+          ConnectorUtil.getRequiredOutboundConnectorConfiguration(AnnotatedFunction.class);
 
       // then
       assertThat(configuration)
-          .isPresent()
-          .hasValueSatisfying(
+          .satisfies(
               config -> {
                 assertThat(config.name()).isEqualTo("ANNOTATED");
                 assertThat(config.type()).isEqualTo("io.camunda.Annotated");
@@ -62,11 +62,9 @@ public class ConnectorUtilTest {
     public void shouldHandleMissingConnectorConfiguration() {
 
       // when
-      Optional<OutboundConnectorConfiguration> configuration =
-          ConnectorUtil.getOutboundConnectorConfiguration(UnannotatedFunction.class);
-
-      // then
-      assertThat(configuration).isNotPresent();
+      Assertions.assertThrows(
+          RuntimeException.class,
+          () -> ConnectorUtil.getRequiredOutboundConnectorConfiguration(UnannotatedFunction.class));
     }
 
     @Test
