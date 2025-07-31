@@ -46,5 +46,5 @@ public record OutboundConnectorAgentRequest(
       @Valid ToolsConfiguration tools,
       @Valid MemoryConfiguration memory,
       @Valid LimitsConfiguration limits,
-      @Valid ResponseConfiguration response) {}
+      @Valid OutboundConnectorResponseConfiguration response) {}
 }

@@ -15,9 +15,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponseBuilder;
+import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
@@ -32,7 +33,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentResponseHandlerImpl.class);
   private static final ResponseConfiguration DEFAULT_RESPONSE_CONFIGURATION =
-      new ResponseConfiguration(new TextResponseFormatConfiguration(false), false);
+      new OutboundConnectorResponseConfiguration(new TextResponseFormatConfiguration(false), false);
 
   private final ObjectMapper objectMapper;
 

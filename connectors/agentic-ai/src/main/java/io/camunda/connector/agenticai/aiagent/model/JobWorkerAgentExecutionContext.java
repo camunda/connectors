@@ -10,6 +10,7 @@ import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
+import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -79,7 +80,7 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   }
 
   @Override
-  public ResponseConfiguration response() {
+  public JobWorkerResponseConfiguration response() {
     return request.data().response();
   }
 
