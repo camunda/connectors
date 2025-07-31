@@ -15,7 +15,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.List;
+import org.springframework.util.CollectionUtils;
 
 public class OutboundConnectorAgentRequestHandler
     extends DefaultAgentRequestHandler<OutboundConnectorAgentExecutionContext> {
@@ -39,11 +42,17 @@ public class OutboundConnectorAgentRequestHandler
   }
 
   @Override
-  protected void handleMissingUserMessages(
-      OutboundConnectorAgentExecutionContext executionContext, AgentContext agentContext) {
-    throw new ConnectorException(
-        ERROR_CODE_NO_USER_MESSAGE_CONTENT,
-        "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
+  protected boolean modelCallPrerequisitesFulfilled(
+      OutboundConnectorAgentExecutionContext executionContext,
+      AgentContext agentContext,
+      List<Message> addedUserMessages) {
+    if (CollectionUtils.isEmpty(addedUserMessages)) {
+      throw new ConnectorException(
+          ERROR_CODE_NO_USER_MESSAGE_CONTENT,
+          "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
+    }
+
+    return true;
   }
 
   @Override
