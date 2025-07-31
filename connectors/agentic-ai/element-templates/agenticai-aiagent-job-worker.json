@@ -86,6 +86,14 @@
       "type": "Hidden"
     },
     {
+      "id": "toolCallResults",
+      "binding": {
+        "name": "toolCallResults",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden"
+    },
+    {
       "id": "provider.type",
       "label": "Provider",
       "description": "Specify the LLM provider to use.",
@@ -1155,18 +1163,14 @@
       "type": "String"
     },
     {
-      "id": "data.agentContext",
+      "id": "agentContext",
       "label": "Agent context",
-      "description": "Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
-      "optional": false,
-      "value": "=agent.context",
-      "constraints": {
-        "notEmpty": true
-      },
+      "description": "Initial agent context from previous interactions. Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
+      "optional": true,
       "feel": "required",
       "group": "memory",
       "binding": {
-        "name": "data.context",
+        "name": "agentContext",
         "type": "zeebe:input"
       },
       "tooltip": "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",

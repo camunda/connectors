@@ -37,6 +37,30 @@ jq -r '
       elif .id == "resultVariable" then
         .binding = {source: "=agent", type: "zeebe:output"} |
         .value = "agent"
+      elif .id == "data.agentContext" then
+        # Transform agent context property
+        .id = "agentContext" |
+        .description = "Initial agent context from previous interactions. Avoid reusing context variables across agents to prevent issues with stale data or tool access." |
+        .optional = true |
+        .feel = "required" |
+        .binding.name = "agentContext" |
+        del(.value) |
+        del(.constraints)
+      else . end
+    ) |
+
+    # Add new hidden properties after the first hidden property (type)
+    map(
+      if .binding.property == "type" then
+        .,
+        {
+          "id": "toolCallResults",
+          "binding": {
+            "name": "toolCallResults",
+            "type": "zeebe:input"
+          },
+          "type": "Hidden"
+        }
       else . end
     ) |
 
