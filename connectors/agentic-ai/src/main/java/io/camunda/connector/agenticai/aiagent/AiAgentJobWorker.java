@@ -55,7 +55,7 @@ public class AiAgentJobWorker {
         PROVIDER_VARIABLE,
         DATA_VARIABLE
       },
-      type = "io.camunda.agenticai:aiagent-subprocess:1",
+      type = "io.camunda.agenticai:aiagent-job-worker:1",
       autoComplete = false)
   public void execute(final JobClient jobClient, final ActivatedJob job) {
     // TODO JW check if we can validate the job kind
