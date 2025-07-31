@@ -127,10 +127,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInitializer aiAgentInitializer(
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       AdHocToolsSchemaResolver toolsSchemaResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInitializerImpl(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
+    return new AgentInitializerImpl(toolsSchemaResolver, gatewayToolHandlers);
   }
 
   @Bean
@@ -199,7 +198,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.enabled",
       matchIfMissing = true)
-  public AiAgentFunction aiAgentFunction(AgentRequestHandler agentRequestHandler) {
-    return new AiAgentFunction(agentRequestHandler);
+  public AiAgentFunction aiAgentFunction(
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      AgentRequestHandler agentRequestHandler) {
+    return new AiAgentFunction(toolElementsResolver, agentRequestHandler);
   }
 }

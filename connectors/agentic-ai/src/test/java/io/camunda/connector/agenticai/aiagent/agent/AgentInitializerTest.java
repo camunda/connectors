@@ -12,13 +12,11 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DE
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
@@ -26,11 +24,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentJobContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentRequest.AgentRequestData.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -50,8 +43,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -59,10 +50,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AgentInitializerTest {
 
-  private static final Long PROCESS_DEFINITION_KEY = 123456789L;
-  private static final String CONTAINER_ELEMENT_ID = "test-container-element-id";
-
-  public static final List<AdHocToolElement> AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS =
+  private static final List<AdHocToolElement> AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS =
       Stream.concat(
               AD_HOC_TOOL_ELEMENTS.stream(),
               Stream.of(
@@ -96,18 +84,11 @@ class AgentInitializerTest {
               .description("Some other gateway type.")
               .build());
 
-  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private OutboundConnectorAgentJobContext agentJobContext;
-
-  @Mock private ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   @Mock private AdHocToolsSchemaResolver toolsSchemaResolver;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
-  @BeforeEach
-  void setUp() {
-    lenient().when(agentJobContext.processDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
-  }
+  @Mock private AgentExecutionContext executionContext;
 
   @Nested
   class WithAlreadyInitializedState {
@@ -120,10 +101,10 @@ class AgentInitializerTest {
     void returnsAgentContextAndToolCallResultsFromRequest(AgentState agentState) {
       final var agentContext =
           AgentContext.empty().withState(agentState).withProperty("hello", "world");
-      final var result =
-          agentInitializer.initializeAgent(
-              executionContext(
-                  agentContext, new ToolsConfiguration(CONTAINER_ELEMENT_ID, TOOL_CALL_RESULTS)));
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+      when(executionContext.initialToolCallResults()).thenReturn(TOOL_CALL_RESULTS);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -133,41 +114,42 @@ class AgentInitializerTest {
                 assertThat(res.toolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
               });
 
-      verifyNoInteractions(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
+      verifyNoInteractions(toolsSchemaResolver, gatewayToolHandlers);
     }
 
     @Test
-    void handlesNullToolsConfiguration() {
-      final var agentContext = AgentContext.empty().withState(AgentState.READY);
-      final var result = agentInitializer.initializeAgent(executionContext(agentContext, null));
+    void handlesNullInitialAgentContext() {
+      final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
           .isInstanceOfSatisfying(
               AgentContextInitializationResult.class,
               res -> {
-                assertThat(res.agentContext()).usingRecursiveComparison().isEqualTo(agentContext);
-                assertThat(res.toolCallResults()).isNotNull().isEmpty();
+                assertThat(res.agentContext())
+                    .usingRecursiveComparison()
+                    .isEqualTo(AgentContext.empty().withState(AgentState.READY));
+                assertThat(res.toolCallResults()).isEmpty();
               });
 
-      verifyNoInteractions(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
+      verifyNoInteractions(toolsSchemaResolver, gatewayToolHandlers);
     }
 
     @Test
-    void handlesNullToolCallResultsConfiguration() {
+    void handlesNullInitialToolCallResults() {
       final var agentContext = AgentContext.empty().withState(AgentState.READY);
-      final var result =
-          agentInitializer.initializeAgent(
-              executionContext(agentContext, new ToolsConfiguration(CONTAINER_ELEMENT_ID, null)));
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
           .isInstanceOfSatisfying(
               AgentContextInitializationResult.class,
               res -> {
                 assertThat(res.agentContext()).isEqualTo(agentContext);
-                assertThat(res.toolCallResults()).isNotNull().isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
 
-      verifyNoInteractions(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
+      verifyNoInteractions(toolsSchemaResolver, gatewayToolHandlers);
     }
   }
 
@@ -177,14 +159,14 @@ class AgentInitializerTest {
     private static final AgentContext AGENT_CONTEXT =
         AgentContext.empty().withProperty("hello", "world");
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {" "})
-    void noToolDiscoveryWhenNoContainerElementIdIsConfigured(String containerElementId) {
-      final var result =
-          agentInitializer.initializeAgent(
-              executionContext(
-                  AGENT_CONTEXT, new ToolsConfiguration(containerElementId, List.of())));
+    @BeforeEach
+    void setUp() {
+      when(executionContext.initialAgentContext()).thenReturn(AGENT_CONTEXT);
+    }
+
+    @Test
+    void noToolDiscoveryWhenNoToolElementsExist() {
+      final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -193,10 +175,10 @@ class AgentInitializerTest {
                 assertThat(res.agentContext())
                     .usingRecursiveComparison()
                     .isEqualTo(AGENT_CONTEXT.withState(AgentState.READY));
-                assertThat(res.toolCallResults()).isNotNull().isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
 
-      verifyNoInteractions(toolElementsResolver, toolsSchemaResolver, gatewayToolHandlers);
+      verifyNoInteractions(toolsSchemaResolver, gatewayToolHandlers);
     }
 
     @ParameterizedTest
@@ -204,15 +186,11 @@ class AgentInitializerTest {
     void
         whenNoGatewayToolsResolved_returnsUpdatedAgentContextIncludingToolDefinitionsWithoutGatewayDiscovery(
             List<GatewayToolDefinition> gatewayToolDefinitions) {
-      when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
-          .thenReturn(AD_HOC_TOOL_ELEMENTS);
+      when(executionContext.toolElements()).thenReturn(AD_HOC_TOOL_ELEMENTS);
       when(toolsSchemaResolver.resolveAdHocToolsSchema(AD_HOC_TOOL_ELEMENTS))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, gatewayToolDefinitions));
 
-      final var result =
-          agentInitializer.initializeAgent(
-              executionContext(
-                  AGENT_CONTEXT, new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of())));
+      final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -224,7 +202,7 @@ class AgentInitializerTest {
                         AGENT_CONTEXT
                             .withState(AgentState.READY)
                             .withToolDefinitions(TOOL_DEFINITIONS));
-                assertThat(res.toolCallResults()).isNotNull().isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(gatewayToolHandlers);
@@ -234,7 +212,7 @@ class AgentInitializerTest {
     @NullAndEmptySource
     void whenNoToolDiscoveryToolCallsReturned_returnsUpdatedAgentContextIncludingToolDefinitions(
         List<ToolCall> toolDiscoveryToolCalls) {
-      when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+      when(executionContext.toolElements())
           .thenReturn(AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS);
       when(toolsSchemaResolver.resolveAdHocToolsSchema(
               AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS))
@@ -249,10 +227,7 @@ class AgentInitializerTest {
                           .withProperty("mcpClients", List.of("AnMcpClient")),
                       toolDiscoveryToolCalls));
 
-      final var result =
-          agentInitializer.initializeAgent(
-              executionContext(
-                  AGENT_CONTEXT, new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of())));
+      final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -265,7 +240,7 @@ class AgentInitializerTest {
                             .withState(AgentState.READY)
                             .withToolDefinitions(TOOL_DEFINITIONS)
                             .withProperty("mcpClients", List.of("AnMcpClient")));
-                assertThat(res.toolCallResults()).isNotNull().isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
     }
 
@@ -279,7 +254,7 @@ class AgentInitializerTest {
                   .arguments(Map.of("method", "tools/list"))
                   .build());
 
-      when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+      when(executionContext.toolElements())
           .thenReturn(AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS);
       when(toolsSchemaResolver.resolveAdHocToolsSchema(
               AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS))
@@ -294,10 +269,7 @@ class AgentInitializerTest {
                           .withProperty("mcpClients", List.of("AnMcpClient")),
                       toolDiscoveryToolCalls));
 
-      final var result =
-          agentInitializer.initializeAgent(
-              executionContext(
-                  AGENT_CONTEXT, new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of())));
+      final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -346,8 +318,16 @@ class AgentInitializerTest {
                 .content(Map.of("toolDefinitions", RESOLVED_GATEWAY_TOOL_DEFINITIONS))
                 .build());
 
+    @BeforeEach
+    void setUp() {
+      when(executionContext.initialAgentContext()).thenReturn(AGENT_CONTEXT);
+    }
+
     @Test
     void handlesToolDiscoveryResults() {
+      when(executionContext.initialToolCallResults())
+          .thenReturn(GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS);
+
       final var expectedToolDefinitions = new ArrayList<>(TOOL_DEFINITIONS);
       expectedToolDefinitions.addAll(RESOLVED_GATEWAY_TOOL_DEFINITIONS);
 
@@ -361,12 +341,7 @@ class AgentInitializerTest {
                           .withProperty("discovered", true),
                       List.of()));
 
-      final var result =
-          agentInitializer.initializeAgent(
-              executionContext(
-                  AGENT_CONTEXT,
-                  new ToolsConfiguration(
-                      CONTAINER_ELEMENT_ID, GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS)));
+      final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -382,7 +357,7 @@ class AgentInitializerTest {
                             .withProperty("discovered", true));
 
                 // filtered out by the gateway tool handler
-                assertThat(res.toolCallResults()).isNotNull().isEmpty();
+                assertThat(res.toolCallResults()).isEmpty();
               });
     }
 
@@ -394,6 +369,8 @@ class AgentInitializerTest {
       final var mergedToolCallResults = new ArrayList<>(TOOL_CALL_RESULTS);
       mergedToolCallResults.addAll(GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS);
 
+      when(executionContext.initialToolCallResults()).thenReturn(mergedToolCallResults);
+
       when(gatewayToolHandlers.handleToolDiscoveryResults(
               any(AgentContext.class), eq(mergedToolCallResults)))
           .thenAnswer(
@@ -404,11 +381,7 @@ class AgentInitializerTest {
                           .withProperty("discovered", true),
                       TOOL_CALL_RESULTS));
 
-      final var result =
-          agentInitializer.initializeAgent(
-              executionContext(
-                  AGENT_CONTEXT,
-                  new ToolsConfiguration(CONTAINER_ELEMENT_ID, mergedToolCallResults)));
+      final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
           .isInstanceOfSatisfying(
@@ -426,15 +399,5 @@ class AgentInitializerTest {
                 assertThat(res.toolCallResults()).containsExactlyElementsOf(TOOL_CALL_RESULTS);
               });
     }
-  }
-
-  private AgentExecutionContext executionContext(
-      AgentContext agentContext, ToolsConfiguration toolsConfiguration) {
-    final var agentRequest =
-        new AgentRequest(
-            null,
-            new AgentRequestData(agentContext, null, null, toolsConfiguration, null, null, null));
-
-    return new OutboundConnectorAgentExecutionContext(agentJobContext, agentRequest);
   }
 }

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
@@ -74,9 +75,13 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     },
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {
+  private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentRequestHandler agentRequestHandler;
 
-  public AiAgentFunction(AgentRequestHandler agentRequestHandler) {
+  public AiAgentFunction(
+      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
+      AgentRequestHandler agentRequestHandler) {
+    this.toolElementsResolver = toolElementsResolver;
     this.agentRequestHandler = agentRequestHandler;
   }
 
@@ -85,7 +90,7 @@ public class AiAgentFunction implements OutboundConnectorFunction {
     final AgentRequest request = context.bindVariables(AgentRequest.class);
     final OutboundConnectorAgentExecutionContext executionContext =
         new OutboundConnectorAgentExecutionContext(
-            new OutboundConnectorAgentJobContext(context), request);
+            new OutboundConnectorAgentJobContext(context), request, toolElementsResolver);
 
     return agentRequestHandler.handleRequest(executionContext);
   }
