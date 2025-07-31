@@ -6,14 +6,19 @@
  */
 package io.camunda.connector.embeddingmodel;
 
+import com.azure.identity.ClientSecretCredentialBuilder;
+import dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel;
 import dev.langchain4j.model.bedrock.BedrockTitanEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider;
+import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider.AzureAuthentication;
 import io.camunda.connector.model.embedding.models.BedrockEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.BedrockModels;
 import io.camunda.connector.model.embedding.models.EmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.OpenAiEmbeddingModelProvider;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -24,7 +29,40 @@ public class DefaultEmbeddingModelFactory {
     return switch (embeddingModelProvider) {
       case BedrockEmbeddingModelProvider bedrock -> createBedrockEmbeddingModel(bedrock);
       case OpenAiEmbeddingModelProvider openAi -> createOpenAiEmbeddingModel(openAi);
+      case AzureOpenAiEmbeddingModelProvider azureOpenAi ->
+          createAzureOpenAiEmbeddingModel(azureOpenAi);
     };
+  }
+
+  private EmbeddingModel createAzureOpenAiEmbeddingModel(
+      AzureOpenAiEmbeddingModelProvider azureOpenAiEmbeddingModelProvider) {
+    AzureOpenAiEmbeddingModel.Builder builder =
+        AzureOpenAiEmbeddingModel.builder()
+            .endpoint(azureOpenAiEmbeddingModelProvider.endpoint())
+            .deploymentName(azureOpenAiEmbeddingModelProvider.deploymentName());
+
+    Optional.ofNullable(azureOpenAiEmbeddingModelProvider.dimensions())
+        .ifPresent(builder::dimensions);
+    Optional.ofNullable(azureOpenAiEmbeddingModelProvider.maxRetries())
+        .ifPresent(builder::maxRetries);
+    Optional.ofNullable(azureOpenAiEmbeddingModelProvider.customHeaders())
+        .ifPresent(builder::customHeaders);
+
+    switch (azureOpenAiEmbeddingModelProvider.authentication()) {
+      case AzureAuthentication.AzureApiKeyAuthentication apiKey -> builder.apiKey(apiKey.apiKey());
+      case AzureAuthentication.AzureClientCredentialsAuthentication auth -> {
+        ClientSecretCredentialBuilder clientSecretCredentialBuilder =
+            new ClientSecretCredentialBuilder()
+                .clientId(auth.clientId())
+                .clientSecret(auth.clientSecret())
+                .tenantId(auth.tenantId());
+        if (StringUtils.isNotBlank(auth.authorityHost())) {
+          clientSecretCredentialBuilder.authorityHost(auth.authorityHost());
+        }
+        builder.tokenCredential(clientSecretCredentialBuilder.build());
+      }
+    }
+    return builder.build();
   }
 
   private EmbeddingModel createBedrockEmbeddingModel(

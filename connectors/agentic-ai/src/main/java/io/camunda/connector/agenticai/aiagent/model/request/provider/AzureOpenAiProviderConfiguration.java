@@ -114,7 +114,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
 
       @Override
       public String toString() {
-        return "AzureClientCredentialsAuthentication{clientId=%s, clientSecret=[REDACTED]}, tenantId=%s, authorityHost=%s}"
+        return "AzureClientCredentialsAuthentication{clientId=%s, clientSecret=[REDACTED], tenantId=%s, authorityHost=%s}"
             .formatted(clientId, tenantId, authorityHost);
       }
     }
