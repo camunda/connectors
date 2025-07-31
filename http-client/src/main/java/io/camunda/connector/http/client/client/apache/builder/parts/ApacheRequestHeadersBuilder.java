@@ -36,7 +36,7 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
 
     var hasContentTypeHeader =
         headers.entrySet().stream().anyMatch(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE));
-    if (request.getMethod().supportsBody && !hasContentTypeHeader) {
+    if (request.getMethod().supportsBody && request.hasBody() && !hasContentTypeHeader) {
       // default content type
       builder.addHeader(CONTENT_TYPE, APPLICATION_JSON.getMimeType());
     }
