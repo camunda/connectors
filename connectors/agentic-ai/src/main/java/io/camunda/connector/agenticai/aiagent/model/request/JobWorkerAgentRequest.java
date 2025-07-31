@@ -29,5 +29,5 @@ public record JobWorkerAgentRequest(
       @Valid @NotNull UserPromptConfiguration userPrompt,
       @Valid MemoryConfiguration memory,
       @Valid LimitsConfiguration limits,
-      @Valid ResponseConfiguration response) {}
+      @Valid JobWorkerResponseConfiguration response) {}
 }
