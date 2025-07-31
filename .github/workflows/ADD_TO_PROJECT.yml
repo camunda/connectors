@@ -58,7 +58,7 @@ jobs:
   add-quality-board:
     name: Add issue to quality board project if its a bug
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'bug') || contains(github.event.issue.type.*.name, 'bug')
+    if: contains(github.event.issue.labels.*.name, 'bug') || contains(github.event.issue.type.*.name, 'bug') || contains(github.event.pull_request.labels.*.name, 'bug')
     steps:
       - uses: actions/add-to-project@v1.0.2
         with:
