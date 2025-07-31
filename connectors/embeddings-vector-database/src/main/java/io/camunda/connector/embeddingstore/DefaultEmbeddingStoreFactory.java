@@ -14,10 +14,12 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
 import io.camunda.connector.model.embedding.vector.store.ElasticSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.EmbeddingsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
+import io.camunda.connector.model.operation.VectorDatabaseConnectorOperation;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -31,11 +33,12 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 
 public class DefaultEmbeddingStoreFactory {
 
-  private AzureCosmosDbNoSqlVectorStoreFactory azureCosmosDbNoSqlVectorStoreFactory =
-      new AzureCosmosDbNoSqlVectorStoreFactory();
+  private final AzureVectorStoreFactory azureVectorStoreFactory = new AzureVectorStoreFactory();
 
   public EmbeddingStore<TextSegment> initializeVectorStore(
-      EmbeddingsVectorStore embeddingsVectorStore, EmbeddingModel model) {
+      EmbeddingsVectorStore embeddingsVectorStore,
+      EmbeddingModel model,
+      VectorDatabaseConnectorOperation operation) {
     return switch (embeddingsVectorStore) {
       case ElasticSearchVectorStore elasticSearchVectorStore ->
           initializeElasticSearchVectorStore(elasticSearchVectorStore);
@@ -44,8 +47,11 @@ public class DefaultEmbeddingStoreFactory {
       case AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore ->
           initializeAmazonManagedOpenSearchVectorStore(amazonManagedOpenSearchVectorStore);
       case AzureCosmosDbNoSqlVectorStore azureCosmosDbNoSqlVectorStore ->
-          azureCosmosDbNoSqlVectorStoreFactory.createEmbeddingStore(
+          azureVectorStoreFactory.createCosmosDbNoSqlVectorStore(
               azureCosmosDbNoSqlVectorStore, model);
+      case AzureAiSearchVectorStore azureAiSearchVectorStore ->
+          azureVectorStoreFactory.createAiSearchVectorStore(
+              azureAiSearchVectorStore, model, operation);
     };
   }
 
