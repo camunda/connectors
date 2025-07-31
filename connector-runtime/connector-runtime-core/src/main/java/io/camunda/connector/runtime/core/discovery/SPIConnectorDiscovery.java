@@ -42,7 +42,7 @@ public class SPIConnectorDiscovery {
         .map(
             functionProvider -> {
               Class<? extends InboundConnectorExecutable> cls = functionProvider.type();
-              return ConnectorUtil.getRequiredInboundConnectorConfiguration(cls);
+              return ConnectorUtil.getInboundConnectorConfiguration(cls);
             })
         .collect(Collectors.toList());
   }

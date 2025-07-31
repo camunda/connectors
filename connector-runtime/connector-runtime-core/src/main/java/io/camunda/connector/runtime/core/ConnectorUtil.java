@@ -33,7 +33,6 @@ import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.Arrays;
-import java.util.Optional;
 
 /**
  * Utility class for handling connector configurations and operations. Provides methods to retrieve
@@ -44,60 +43,43 @@ public final class ConnectorUtil {
 
   private ConnectorUtil() {}
 
-  public static Optional<OutboundConnectorConfiguration> getOutboundConnectorConfiguration(
+  public static OutboundConnectorConfiguration getOutboundConnectorConfiguration(
       Class<? extends OutboundConnectorFunction> cls) {
-    return Optional.ofNullable(cls.getAnnotation(OutboundConnector.class))
-        .map(
-            annotation -> {
-              final var configurationOverrides =
-                  new ConnectorConfigurationOverrides(annotation.name(), System::getenv);
-              return new OutboundConnectorConfiguration(
-                  annotation.name(),
-                  getInputVariables(cls, annotation),
-                  configurationOverrides.typeOverride().orElse(annotation.type()),
-                  () -> ConnectorHelper.instantiateConnector(cls),
-                  configurationOverrides.timeoutOverride().orElse(null));
-            });
+
+    OutboundConnector annotation = cls.getAnnotation(OutboundConnector.class);
+    if (annotation == null) {
+      throw new RuntimeException(
+          String.format(
+              "OutboundConnectorFunction %s is missing @OutboundConnector annotation", cls));
+    }
+    final var configurationOverrides =
+        new ConnectorConfigurationOverrides(annotation.name(), System::getenv);
+    return new OutboundConnectorConfiguration(
+        annotation.name(),
+        getInputVariables(cls, annotation),
+        configurationOverrides.typeOverride().orElse(annotation.type()),
+        () -> ConnectorHelper.instantiateConnector(cls),
+        configurationOverrides.timeoutOverride().orElse(null));
   }
 
-  public static OutboundConnectorConfiguration getRequiredOutboundConnectorConfiguration(
-      Class<? extends OutboundConnectorFunction> cls) {
-    return getOutboundConnectorConfiguration(cls)
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format(
-                        "OutboundConnectorFunction %s is missing @OutboundConnector annotation",
-                        cls)));
-  }
-
-  public static Optional<InboundConnectorConfiguration> getInboundConnectorConfiguration(
+  public static InboundConnectorConfiguration getInboundConnectorConfiguration(
       Class<? extends InboundConnectorExecutable> cls) {
-    return Optional.ofNullable(cls.getAnnotation(InboundConnector.class))
-        .map(
-            annotation -> {
-              final var configurationOverrides =
-                  new ConnectorConfigurationOverrides(annotation.name(), System::getenv);
-              final var deduplicationProperties =
-                  Arrays.asList(annotation.deduplicationProperties());
 
-              return new InboundConnectorConfiguration(
-                  annotation.name(),
-                  configurationOverrides.typeOverride().orElse(annotation.type()),
-                  cls,
-                  deduplicationProperties);
-            });
-  }
+    InboundConnector annotation = cls.getAnnotation(InboundConnector.class);
+    if (annotation == null) {
+      throw new RuntimeException(
+          String.format(
+              "InboundConnectorExecutable %s is missing @InboundConnector annotation", cls));
+    }
+    final var configurationOverrides =
+        new ConnectorConfigurationOverrides(annotation.name(), System::getenv);
+    final var deduplicationProperties = Arrays.asList(annotation.deduplicationProperties());
 
-  public static InboundConnectorConfiguration getRequiredInboundConnectorConfiguration(
-      Class<? extends InboundConnectorExecutable> cls) {
-    return getInboundConnectorConfiguration(cls)
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format(
-                        "InboundConnectorExecutable %s is missing @InboundConnector annotation",
-                        cls)));
+    return new InboundConnectorConfiguration(
+        annotation.name(),
+        configurationOverrides.typeOverride().orElse(annotation.type()),
+        cls,
+        deduplicationProperties);
   }
 
   private static String toNormalizedConnectorName(final String connectorName) {
