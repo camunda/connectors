@@ -26,6 +26,7 @@
     <module>connector-runtime</module>
     <module>connectors</module>
     <module>bundle</module>
+    <module>http-client</module>
   </modules>
 
   <profiles>
