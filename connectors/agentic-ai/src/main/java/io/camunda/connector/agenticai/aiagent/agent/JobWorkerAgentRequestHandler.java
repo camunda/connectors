@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.client.api.command.CompleteJobCommandStep1;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.response.CompleteJobResponse;
+import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -22,7 +23,6 @@ import io.camunda.spring.client.jobhandling.CommandWrapper;
 import io.camunda.spring.client.metrics.MetricsRecorder;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 
 public class JobWorkerAgentRequestHandler
     extends DefaultAgentRequestHandler<JobWorkerAgentExecutionContext> {
@@ -93,37 +93,37 @@ public class JobWorkerAgentRequestHandler
 
     // TODO JW check variable names
     final var variables = new LinkedHashMap<String, Object>();
-    variables.put("agentContext", agentResponse.context());
-    Optional.ofNullable(agentResponse.responseText())
-        .ifPresent(responseText -> variables.put("responseText", responseText));
-    Optional.ofNullable(agentResponse.responseJson())
-        .ifPresent(responseJson -> variables.put("responseJson", responseJson));
-    Optional.ofNullable(agentResponse.responseMessage())
-        .ifPresent(responseMessage -> variables.put("responseMessage", responseMessage));
+    if (completionConditionFulfilled) {
+      variables.put(AiAgentJobWorker.AGENT_RESPONSE_VARIABLE, agentResponse);
+    } else {
+      variables.put(AiAgentJobWorker.AGENT_CONTEXT_VARIABLE, agentResponse.context());
+    }
 
-    var completeCommand = prepareCompleteCommand(executionContext);
-    completeCommand = completeCommand.variables(variables);
-    completeCommand.withResult(
-        result -> {
-          var ahsp =
-              result
-                  .forAdHocSubProcess()
-                  .completionConditionFulfilled(completionConditionFulfilled)
-                  .cancelRemainingInstances(cancelRemainingInstances);
+    final var completeCommand =
+        prepareCompleteCommand(executionContext)
+            .variables(variables)
+            .withResult(
+                result -> {
+                  var adHocSubProcess =
+                      result
+                          .forAdHocSubProcess()
+                          .completionConditionFulfilled(completionConditionFulfilled)
+                          .cancelRemainingInstances(cancelRemainingInstances);
 
-          for (ToolCallProcessVariable toolCall : agentResponse.toolCalls()) {
-            // TODO JW check if we want to expose variables without "toolCall.*" prefix as we're
-            // in direct control of variables
-            ahsp =
-                ahsp.activateElement(toolCall.metadata().id())
-                    .variables(
-                        Map.of(
-                            "_meta", toolCall.metadata(),
-                            "toolCall", toolCall.arguments()));
-          }
+                  for (ToolCallProcessVariable toolCall : agentResponse.toolCalls()) {
+                    // TODO JW check if we want to expose variables without "toolCall.*" prefix as
+                    // we're in direct control of variables
+                    adHocSubProcess =
+                        adHocSubProcess
+                            .activateElement(toolCall.metadata().id())
+                            .variables(
+                                Map.of(
+                                    "_meta", toolCall.metadata(),
+                                    "toolCall", toolCall.arguments()));
+                  }
 
-          return ahsp;
-        });
+                  return adHocSubProcess;
+                });
 
     executeCommandAsync(
         executionContext,
