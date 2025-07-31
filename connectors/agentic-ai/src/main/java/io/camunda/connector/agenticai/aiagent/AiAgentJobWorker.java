@@ -21,6 +21,13 @@ import io.camunda.spring.client.annotation.JobWorker;
 
 public class AiAgentJobWorker {
 
+  public static final String AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE = "adHocSubProcessElements";
+  public static final String AGENT_CONTEXT_VARIABLE = "agentContext";
+  public static final String AGENT_RESPONSE_VARIABLE = "agent";
+  public static final String TOOL_CALL_RESULTS_VARIABLE = "toolCallResults";
+  public static final String PROVIDER_VARIABLE = "provider";
+  public static final String DATA_VARIABLE = "data";
+
   private final SecretProvider secretProvider;
   private final ValidationProvider validationProvider;
   private final DocumentFactory documentFactory;
@@ -42,11 +49,11 @@ public class AiAgentJobWorker {
 
   @JobWorker(
       fetchVariables = {
-        "adHocSubProcessElements",
-        "agentContext",
-        "toolCallResults",
-        "provider",
-        "data"
+        AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
+        AGENT_CONTEXT_VARIABLE,
+        TOOL_CALL_RESULTS_VARIABLE,
+        PROVIDER_VARIABLE,
+        DATA_VARIABLE
       },
       type = "io.camunda.agenticai:aiagent-subprocess:1",
       autoComplete = false)
