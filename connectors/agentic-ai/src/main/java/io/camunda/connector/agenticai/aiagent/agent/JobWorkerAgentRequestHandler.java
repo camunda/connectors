@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.camunda.client.api.command.CompleteJobCommandStep1;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.response.CompleteJobResponse;
@@ -17,12 +18,16 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.runtime.core.ConnectorHelper;
+import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.CommandWrapper;
 import io.camunda.spring.client.metrics.MetricsRecorder;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
 public class JobWorkerAgentRequestHandler
     extends DefaultAgentRequestHandler<JobWorkerAgentExecutionContext> {
@@ -91,10 +96,9 @@ public class JobWorkerAgentRequestHandler
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
     boolean cancelRemainingInstances = false; // TODO JW check events for interruptions
 
-    // TODO JW check variable names
     final var variables = new LinkedHashMap<String, Object>();
     if (completionConditionFulfilled) {
-      variables.put(AiAgentJobWorker.AGENT_RESPONSE_VARIABLE, agentResponse);
+      variables.putAll(createCompletionVariables(executionContext, agentResponse));
     } else {
       variables.put(AiAgentJobWorker.AGENT_CONTEXT_VARIABLE, agentResponse.context());
     }
@@ -129,6 +133,30 @@ public class JobWorkerAgentRequestHandler
         executionContext,
         completeCommand,
         exceptionHandlingStrategy(executionContext, agentResponse, conversationStore));
+  }
+
+  private Map<String, Object> createCompletionVariables(
+      JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
+    final var resultExpression =
+        executionContext.job().getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD);
+
+    // no result expression -> return whole agent response
+    if (StringUtils.isBlank(resultExpression)) {
+      return Map.of(AiAgentJobWorker.AGENT_RESPONSE_VARIABLE, agentResponse);
+    }
+
+    // evaluate result expression and set result as agent response variable
+    final var outputVariables =
+        ConnectorHelper.createOutputVariables(
+            new JobWorkerAgentResponse(
+                agentResponse.context(),
+                agentResponse.responseMessage(),
+                agentResponse.responseText(),
+                agentResponse.responseJson()),
+            null,
+            resultExpression);
+
+    return Map.of(AiAgentJobWorker.AGENT_RESPONSE_VARIABLE, outputVariables);
   }
 
   private void executeCommandAsync(
@@ -166,4 +194,11 @@ public class JobWorkerAgentRequestHandler
       JobWorkerAgentExecutionContext executionContext) {
     return executionContext.jobClient().newCompleteCommand(executionContext.job());
   }
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  private record JobWorkerAgentResponse(
+      AgentContext context,
+      AssistantMessage responseMessage,
+      String responseText,
+      Object responseJson) {}
 }
