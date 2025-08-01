@@ -22,7 +22,9 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
+import io.camunda.connector.runtime.core.config.ConnectorDirection;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.discovery.DisabledConnectorEnvVarsConfig;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
@@ -44,6 +46,9 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache = new ConcurrentHashMap<>();
 
+  private final DisabledConnectorEnvVarsConfig disbabledConnectorEnvVarsConfig =
+      new DisabledConnectorEnvVarsConfig();
+
   private final Function<String, String> propertyProvider;
 
   public DefaultOutboundConnectorFactory(
@@ -57,12 +62,14 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
     List<OutboundConnectorConfiguration> envVarConfigurations = new ArrayList<>();
     Stream<ServiceLoader.Provider<OutboundConnectorFunction>> spiFunctions = Stream.empty();
     Stream<ServiceLoader.Provider<OutboundConnectorProvider>> spiProviders = Stream.empty();
-    if (EnvVarsConnectorDiscovery.isOutboundConfigured()) {
-      envVarConfigurations.addAll(EnvVarsConnectorDiscovery.discoverOutbound());
-    } else {
-      // Load outbound connector functions from SPI
-      spiFunctions = SPIConnectorDiscovery.loadConnectorFunctions();
-      spiProviders = SPIConnectorDiscovery.loadConnectorProviders();
+    if (!DisabledConnectorEnvVarsConfig.isDiscoveryDisabled(ConnectorDirection.OUTBOUND)) {
+      if (EnvVarsConnectorDiscovery.isOutboundConfigured()) {
+        envVarConfigurations.addAll(EnvVarsConnectorDiscovery.discoverOutbound());
+      } else {
+        // Load outbound connector functions from SPI
+        spiFunctions = SPIConnectorDiscovery.loadConnectorFunctions();
+        spiProviders = SPIConnectorDiscovery.loadConnectorProviders();
+      }
     }
 
     Function<OutboundConnectorProvider, OutboundConnectorFunction> fromProviderToFunction =
@@ -97,19 +104,21 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
     // 5. Env vars discovered configurations
     allConfigs.addAll(envVarConfigurations);
 
+    // Filter out disabled connectors
+    Stream<OutboundConnectorConfiguration> filteredConfigs =
+        allConfigs.stream()
+            .filter(config -> !disbabledConnectorEnvVarsConfig.isConnectorDisabled(config));
     // Store configurations in map, with type as key (later entries override earlier ones)
     this.configurations =
-        allConfigs.stream()
-            .collect(
-                Collectors.toMap(
-                    OutboundConnectorConfiguration::type,
-                    config -> config,
-                    (existing, replacement) -> {
-                      LOG.warn(
-                          "Overriding connector configuration {} with {}", existing, replacement);
-                      return replacement;
-                    },
-                    HashMap::new));
+        filteredConfigs.collect(
+            Collectors.toMap(
+                OutboundConnectorConfiguration::type,
+                config -> config,
+                (existing, replacement) -> {
+                  LOG.warn("Overriding connector configuration {} with {}", existing, replacement);
+                  return replacement;
+                },
+                HashMap::new));
   }
 
   private <T> List<OutboundConnectorConfiguration> toConfigurations(

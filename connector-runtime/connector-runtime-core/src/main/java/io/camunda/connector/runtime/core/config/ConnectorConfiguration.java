@@ -17,4 +17,8 @@
 package io.camunda.connector.runtime.core.config;
 
 public sealed interface ConnectorConfiguration
-    permits InboundConnectorConfiguration, OutboundConnectorConfiguration {}
+    permits InboundConnectorConfiguration, OutboundConnectorConfiguration {
+  String type();
+
+  ConnectorDirection direction();
+}

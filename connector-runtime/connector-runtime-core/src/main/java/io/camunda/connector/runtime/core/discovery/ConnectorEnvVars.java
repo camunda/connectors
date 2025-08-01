@@ -14,20 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app;
+package io.camunda.connector.runtime.core.discovery;
 
-import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import java.util.Optional;
 
-@OutboundConnector(
-    name = "TEST",
-    type = "io.camunda:test-outbound:1",
-    inputVariables = {})
-public class TestOutboundConnector implements OutboundConnectorFunction {
-
-  @Override
-  public Object execute(OutboundConnectorContext context) {
-    return null;
+public class ConnectorEnvVars {
+  static Optional<String> getConnectorEnvironmentVariable(final String name, final String detail) {
+    return Optional.ofNullable(System.getenv().get("CONNECTOR_" + name + "_" + detail));
   }
 }
