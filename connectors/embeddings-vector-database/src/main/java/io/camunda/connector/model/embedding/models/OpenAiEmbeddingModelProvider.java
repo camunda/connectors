@@ -60,7 +60,8 @@ public record OpenAiEmbeddingModelProvider(
             group = "embeddingModel",
             id = "openAiDimensions",
             label = "Embedding dimensions",
-            description = "The size of the vector used to represent data",
+            description =
+                "The size of the vector used to represent data. If not specified, the default model dimensions is used. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Number,
             optional = true)
