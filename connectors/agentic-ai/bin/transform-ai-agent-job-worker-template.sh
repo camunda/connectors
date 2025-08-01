@@ -60,6 +60,22 @@ jq -r '
             "type": "zeebe:input"
           },
           "type": "Hidden"
+        },
+        {
+          "binding": {
+            "property": "outputCollection",
+            "type": "zeebe:adHoc"
+          },
+          "value": "toolCallResults",
+          "type": "Hidden"
+        },
+        {
+          "binding": {
+            "property": "outputElement",
+            "type": "zeebe:adHoc"
+          },
+          "value": "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult\n}",
+          "type": "Hidden"
         }
       else . end
     ) |
