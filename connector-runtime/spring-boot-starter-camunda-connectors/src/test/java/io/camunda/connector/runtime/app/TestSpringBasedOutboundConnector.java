@@ -25,7 +25,7 @@ import org.springframework.core.env.Environment;
 
 @OutboundConnector(
     name = "TEST_SPRING",
-    type = "org:test-spring:1",
+    type = "io.camunda:test-outbound-spring:1",
     inputVariables = {})
 public class TestSpringBasedOutboundConnector implements OutboundConnectorFunction {
 

@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.core.discovery;
 
+import static io.camunda.connector.runtime.core.discovery.ConnectorEnvVars.getConnectorEnvironmentVariable;
+
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
@@ -23,11 +25,8 @@ import io.camunda.connector.runtime.core.ConnectorUtil;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -43,37 +42,12 @@ public class EnvVarsConnectorDiscovery {
   public static final Pattern INBOUND_CONNECTOR_EXECUTABLE_PATTERN =
       Pattern.compile("^CONNECTOR_(.*)_EXECUTABLE$");
 
-  private static Map<String, String> hardwiredEnvironmentVariables;
-
-  public static void addHardwiredEnvironmentVariable(String key, String value) {
-    if (hardwiredEnvironmentVariables == null) {
-      hardwiredEnvironmentVariables = new ConcurrentHashMap<>();
-    }
-    hardwiredEnvironmentVariables.put(key, value);
-  }
-
-  public static void clearHardwiredEnvironmentVariable() {
-    hardwiredEnvironmentVariables = null;
-  }
-
-  public static Map<String, String> getEnvironmentVariables() {
-    if (hardwiredEnvironmentVariables != null) {
-      HashMap<String, String> result = new HashMap<>();
-      result.putAll(System.getenv());
-      result.putAll(hardwiredEnvironmentVariables);
-      return result;
-    }
-    return System.getenv();
-  }
-
   public static boolean isInboundConfigured() {
-    return getEnvironmentVariables().entrySet().stream()
-        .anyMatch(entry -> INBOUND_CONNECTOR_EXECUTABLE_PATTERN.matcher(entry.getKey()).matches());
+    return !discoverInbound().isEmpty();
   }
 
   public static boolean isOutboundConfigured() {
-    return getEnvironmentVariables().entrySet().stream()
-        .anyMatch(entry -> OUTBOUND_CONNECTOR_FUNCTION_PATTERN.matcher(entry.getKey()).matches());
+    return !discoverOutbound().isEmpty();
   }
 
   public static List<OutboundConnectorConfiguration> discoverOutbound() {
@@ -90,7 +64,7 @@ public class EnvVarsConnectorDiscovery {
 
   private static Stream<String> matchEnvVars(Pattern pattern) {
     // match env vars against the provided pattern and return list of matching values
-    return getEnvironmentVariables().keySet().stream()
+    return System.getenv().keySet().stream()
         .map(pattern::matcher)
         .filter(Matcher::matches)
         .map(match -> match.group(1));
@@ -100,7 +74,7 @@ public class EnvVarsConnectorDiscovery {
   private static OutboundConnectorConfiguration loadOutboundConfiguration(String name) {
 
     var functionFqdn =
-        getEnv(name, "FUNCTION")
+        getConnectorEnvironmentVariable(name, "FUNCTION")
             .orElseThrow(() -> envMissing("No function specified", name, "FUNCTION"));
 
     try {
@@ -115,15 +89,15 @@ public class EnvVarsConnectorDiscovery {
       var annotationConfig = tmpAnnotationConfig;
       return new OutboundConnectorConfiguration(
           name,
-          getEnv(name, "INPUT_VARIABLES")
+          getConnectorEnvironmentVariable(name, "INPUT_VARIABLES")
               .map(variables -> variables.split(","))
               .or(() -> annotationConfig.map(OutboundConnectorConfiguration::inputVariables))
               .orElseThrow(() -> envMissing("Variables not specified", name, "INPUT_VARIABLES")),
-          getEnv(name, "TYPE")
+          getConnectorEnvironmentVariable(name, "TYPE")
               .or(() -> annotationConfig.map(OutboundConnectorConfiguration::type))
               .orElseThrow(() -> envMissing("Type not specified", name, "TYPE")),
           () -> ConnectorHelper.instantiateConnector(cls),
-          getEnv(name, "TIMEOUT")
+          getConnectorEnvironmentVariable(name, "TIMEOUT")
               .map(Long::parseLong)
               .or(() -> annotationConfig.map(OutboundConnectorConfiguration::timeout))
               .orElse(null));
@@ -137,7 +111,7 @@ public class EnvVarsConnectorDiscovery {
   private static InboundConnectorConfiguration loadInboundConfiguration(String name) {
 
     var executableFqdn =
-        getEnv(name, "EXECUTABLE")
+        getConnectorEnvironmentVariable(name, "EXECUTABLE")
             .orElseThrow(() -> envMissing("No executable specified", name, "EXECUTABLE"));
 
     try {
@@ -153,11 +127,11 @@ public class EnvVarsConnectorDiscovery {
 
       return new InboundConnectorConfiguration(
           name,
-          getEnv(name, "TYPE")
+          getConnectorEnvironmentVariable(name, "TYPE")
               .or(() -> annotationConfig.map(InboundConnectorConfiguration::type))
               .orElseThrow(() -> envMissing("Type not specified", name, "TYPE")),
           cls,
-          getEnv(name, "DEDUPLICATION_PROPERTIES")
+          getConnectorEnvironmentVariable(name, "DEDUPLICATION_PROPERTIES")
               .map(properties -> properties.split(","))
               .map(Arrays::asList)
               .or(
@@ -173,10 +147,6 @@ public class EnvVarsConnectorDiscovery {
     } catch (ClassNotFoundException | ClassCastException e) {
       throw loadFailed("Failed to load " + executableFqdn, e);
     }
-  }
-
-  private static Optional<String> getEnv(final String name, final String detail) {
-    return Optional.ofNullable(getEnvironmentVariables().get("CONNECTOR_" + name + "_" + detail));
   }
 
   private static RuntimeException loadFailed(String s, Exception e) {

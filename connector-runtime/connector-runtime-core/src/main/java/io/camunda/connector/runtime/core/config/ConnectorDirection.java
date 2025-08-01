@@ -14,20 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app;
+package io.camunda.connector.runtime.core.config;
 
-import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-
-@OutboundConnector(
-    name = "TEST",
-    type = "io.camunda:test-outbound:1",
-    inputVariables = {})
-public class TestOutboundConnector implements OutboundConnectorFunction {
-
-  @Override
-  public Object execute(OutboundConnectorContext context) {
-    return null;
-  }
+public enum ConnectorDirection {
+  INBOUND,
+  OUTBOUND;
 }

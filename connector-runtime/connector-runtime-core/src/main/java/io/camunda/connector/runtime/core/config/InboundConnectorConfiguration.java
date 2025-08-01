@@ -35,4 +35,9 @@ public record InboundConnectorConfiguration(
       List<String> deduplicationProperties) {
     this(name, type, connectorClass, null, deduplicationProperties);
   }
+
+  @Override
+  public ConnectorDirection direction() {
+    return ConnectorDirection.INBOUND;
+  }
 }
