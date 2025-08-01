@@ -17,49 +17,44 @@
 package io.camunda.connector.runtime.outbound.lifecycle;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
 
-import io.camunda.client.CamundaClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
+import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-@ExtendWith(MockitoExtension.class)
-class OutboundConnectorAnnotationProcessorTest {
-
-  @Mock private CamundaClient camundaClient;
-  @Mock private OutboundConnectorManager outboundConnectorManager;
-  @Mock private OutboundConnectorFactory outboundConnectorFactory;
-
-  @Captor private ArgumentCaptor<OutboundConnectorConfiguration> registeredConfigurationCaptor;
+class OutboundRegistryTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
-          .withBean(CamundaClient.class, () -> camundaClient)
-          .withBean(OutboundConnectorManager.class, () -> outboundConnectorManager)
-          .withBean(OutboundConnectorFactory.class, () -> outboundConnectorFactory)
           .withUserConfiguration(TestConfig.class, AnnotatedFunction.class);
 
   private static class TestConfig {
     @Bean
-    public OutboundConnectorAnnotationProcessor annotationProcessor(
+    public DefaultOutboundConnectorFactory outboundFactory(
         Environment environment,
-        OutboundConnectorManager manager,
-        OutboundConnectorFactory factory) {
-      return new OutboundConnectorAnnotationProcessor(environment, manager, factory);
+        List<OutboundConnectorFunction> functions,
+        List<OutboundConnectorProvider> providers) {
+      return (new OutboundConnectorRuntimeConfiguration())
+          .outboundConnectorConfigurationRegistry(
+              new ObjectMapper(),
+              ValidationUtil.discoverDefaultValidationProviderImplementation(),
+              environment,
+              functions,
+              providers);
     }
   }
 
@@ -72,7 +67,7 @@ class OutboundConnectorAnnotationProcessorTest {
           assertThat(config.type()).isEqualTo("io.camunda:annotated");
           assertThat(config.inputVariables()).isEqualTo(new String[] {"a", "b"});
           assertThat(config.timeout()).isNull();
-          assertThat(config.customInstanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
+          assertThat(config.instanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
         });
   }
 
@@ -85,7 +80,7 @@ class OutboundConnectorAnnotationProcessorTest {
           assertThat(config.type()).isEqualTo("io.camunda:overridden");
           assertThat(config.inputVariables()).isEqualTo(new String[] {"a", "b"});
           assertThat(config.timeout()).isNull();
-          assertThat(config.customInstanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
+          assertThat(config.instanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
         });
   }
 
@@ -98,7 +93,7 @@ class OutboundConnectorAnnotationProcessorTest {
           assertThat(config.type()).isEqualTo("io.camunda:annotated");
           assertThat(config.inputVariables()).isEqualTo(new String[] {"a", "b"});
           assertThat(config.timeout()).isEqualTo(123456L);
-          assertThat(config.customInstanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
+          assertThat(config.instanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
         });
   }
 
@@ -113,7 +108,7 @@ class OutboundConnectorAnnotationProcessorTest {
           assertThat(config.type()).isEqualTo("io.camunda:overridden");
           assertThat(config.inputVariables()).isEqualTo(new String[] {"a", "b"});
           assertThat(config.timeout()).isEqualTo(123456L);
-          assertThat(config.customInstanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
+          assertThat(config.instanceSupplier().get()).isInstanceOf(AnnotatedFunction.class);
         });
   }
 
@@ -122,12 +117,17 @@ class OutboundConnectorAnnotationProcessorTest {
       ThrowingConsumer<OutboundConnectorConfiguration> configurationAssertions) {
     configuredContextRunner.run(
         context -> {
-          context.getBean(OutboundConnectorAnnotationProcessor.class).onStart(camundaClient);
-
-          verify(outboundConnectorFactory)
-              .registerConfiguration(registeredConfigurationCaptor.capture());
-
-          assertThat(registeredConfigurationCaptor.getValue()).satisfies(configurationAssertions);
+          var outboundConnectorRegistry = context.getBean(DefaultOutboundConnectorFactory.class);
+          Assertions.assertThatStream(outboundConnectorRegistry.getConfigurations().stream())
+              .anyMatch(
+                  e -> {
+                    try {
+                      configurationAssertions.accept(e);
+                      return true;
+                    } catch (Exception ex) {
+                      return false;
+                    }
+                  });
         });
   }
 }

@@ -23,4 +23,13 @@ import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 
 public interface InboundConnectorFactory
     extends ConnectorFactory<
-        InboundConnectorExecutable<InboundConnectorContext>, InboundConnectorConfiguration> {}
+        InboundConnectorExecutable<InboundConnectorContext>, InboundConnectorConfiguration> {
+
+  /**
+   * Dynamically register a new Connector configuration. If a connector with the same type already
+   * exists, it will be overridden by the new configuration.
+   *
+   * @param configuration Configuration to register
+   */
+  void registerConfiguration(InboundConnectorConfiguration configuration);
+}

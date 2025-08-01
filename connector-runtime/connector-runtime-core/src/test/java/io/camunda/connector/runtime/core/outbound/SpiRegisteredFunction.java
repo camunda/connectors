@@ -24,7 +24,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
     name = "ANNOTATED",
     inputVariables = {"a", "b"},
     type = "io.camunda:annotated")
-public class AnnotatedFunction implements OutboundConnectorFunction {
+public class SpiRegisteredFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
