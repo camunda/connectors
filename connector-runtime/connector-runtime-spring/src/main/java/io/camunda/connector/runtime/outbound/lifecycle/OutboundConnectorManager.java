@@ -77,7 +77,6 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     // variables for a specific connector
     Set<OutboundConnectorConfiguration> outboundConnectors =
         new TreeSet<>(new OutboundConnectorConfigurationComparator());
-
     outboundConnectors.addAll(connectorFactory.getConfigurations());
     outboundConnectors.forEach(connector -> openWorkerForOutboundConnector(client, connector));
   }

@@ -34,4 +34,9 @@ public record OutboundConnectorConfiguration(
       Supplier<OutboundConnectorFunction> instance) {
     this(name, inputVariables, type, instance, null);
   }
+
+  @Override
+  public ConnectorDirection direction() {
+    return ConnectorDirection.OUTBOUND;
+  }
 }
