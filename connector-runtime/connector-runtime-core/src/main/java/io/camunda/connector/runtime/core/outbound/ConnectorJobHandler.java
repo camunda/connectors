@@ -191,9 +191,8 @@ public class ConnectorJobHandler implements JobHandler {
       // Handle Java error, e.g. ConnectorException
       // these errors won't be handled ConnectorHelper.examineErrorExpression
       LOGGER.error(
-          "Exception while completing job: {} for tenant: {}, message: {}",
-          job.getKey(),
-          job.getTenantId(),
+          "Exception while completing job: {}, message: {}",
+          JobForLog.from(job),
           errorResult.exception().getMessage(),
           errorResult.exception());
       failJob(jobClient, job, errorResult);
@@ -236,5 +235,27 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
     prepareThrowBpmnErrorCommand(client, job, value).send().join();
+  }
+
+  record JobForLog(
+      Long key,
+      Map<String, String> customHeaders,
+      String tenantId,
+      String bpmnProcessId,
+      String type,
+      Long processDefinitionKey,
+      Integer processDefinitionVersion,
+      Long processInstanceKey) {
+    public static JobForLog from(ActivatedJob job) {
+      return new JobForLog(
+          job.getKey(),
+          job.getCustomHeaders(),
+          job.getTenantId(),
+          job.getBpmnProcessId(),
+          job.getType(),
+          job.getProcessDefinitionKey(),
+          job.getProcessDefinitionVersion(),
+          job.getProcessInstanceKey());
+    }
   }
 }
