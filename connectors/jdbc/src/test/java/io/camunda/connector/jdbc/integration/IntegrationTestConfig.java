@@ -13,6 +13,7 @@ import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.containers.MariaDBContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.oracle.OracleContainer;
 
 record IntegrationTestConfig(
     SupportedDatabase database,
@@ -30,7 +31,8 @@ record IntegrationTestConfig(
       MySQLContainer mySqlServer,
       MSSQLServerContainer msSqlServer,
       PostgreSQLContainer postgreServer,
-      MariaDBContainer mariaDbContainer) {
+      MariaDBContainer mariaDbContainer,
+      OracleContainer oracleContainer) {
     return List.of(
         new IntegrationTestConfig(
             SupportedDatabase.MSSQL,
@@ -75,6 +77,17 @@ record IntegrationTestConfig(
             mariaDbContainer.getPassword(),
             mariaDbContainer.getDatabaseName(),
             null,
-            List.of("JSON")));
+            List.of("JSON")),
+        new IntegrationTestConfig(
+            SupportedDatabase.ORACLE,
+            oracleContainer.getJdbcUrl(),
+            oracleContainer.getHost(),
+            String.valueOf(oracleContainer.getMappedPort(1521)),
+            "root",
+            oracleContainer.getUsername(),
+            oracleContainer.getPassword(),
+            oracleContainer.getDatabaseName(),
+            null,
+            List.of("CLOB", "VARCHAR2")));
   }
 }

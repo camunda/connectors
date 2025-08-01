@@ -7,7 +7,7 @@
     "keywords" : [ "relational", "database" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql",
-  "version" : 3,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -51,7 +51,6 @@
   }, {
     "id" : "database",
     "label" : "Select a database",
-    "description" : "Select the database you want to connect to. If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/sql/#database\">Learn how to set it up.</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -74,9 +73,6 @@
     }, {
       "name" : "PostgreSQL",
       "value" : "POSTGRESQL"
-    }, {
-      "name" : "Oracle",
-      "value" : "ORACLE"
     } ]
   }, {
     "id" : "connection.authType",
@@ -283,7 +279,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

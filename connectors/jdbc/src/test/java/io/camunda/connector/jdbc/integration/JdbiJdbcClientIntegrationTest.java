@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.test.SlowTest;
 import java.sql.SQLException;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.containers.MariaDBContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.oracle.OracleContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +45,8 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
   static final PostgreSQLContainer postgreServer = new PostgreSQLContainer<>("postgres:9.6.12");
   static final MariaDBContainer mariaDbServer =
       new MariaDBContainer<>(DockerImageName.parse("mariadb:11.3.2"));
+  static final OracleContainer oracleServer =
+      new OracleContainer("gvenzl/oracle-free:23-slim-faststart");
 
   static List<IntegrationTestConfig> sqlServersConfig;
 
@@ -62,8 +66,11 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     mySqlServer.start();
     postgreServer.start();
     mariaDbServer.start();
+    oracleServer.start();
+
     sqlServersConfig =
-        IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer, mariaDbServer);
+        IntegrationTestConfig.from(
+            mySqlServer, msSqlServer, postgreServer, mariaDbServer, oracleServer);
 
     for (IntegrationTestConfig config : sqlServersConfig) {
       createEmployeeTable(config);
@@ -76,6 +83,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     mySqlServer.stop();
     postgreServer.stop();
     mariaDbServer.stop();
+    oracleServer.stop();
   }
 
   @BeforeEach
@@ -134,6 +142,10 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
     public void shouldCreateDatabase_whenCreateTableQuery(IntegrationTestConfig config)
         throws SQLException {
+      if (config.database() == SupportedDatabase.ORACLE) {
+        // Oracle does not support CREATE DATABASE
+        return;
+      }
       createDatabaseAndAssertSuccess(config, "mydb");
       createTableAndAssertSuccess(
           new IntegrationTestConfig(
@@ -195,6 +207,10 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
     public void shouldThrowConnectorException_whenIsModifyingIsFalseWhileCreatingDatabaseInDb(
         IntegrationTestConfig config) throws SQLException {
+      if (config.database() == SupportedDatabase.ORACLE) {
+        // Oracle does not support CREATE DATABASE
+        return;
+      }
       createDatabaseAndAssertThrows(config, "mydb");
       cleanUpDatabase(config, "mydb");
     }
@@ -254,6 +270,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
 
     @Nested
     class DeleteTests {
+
       @ParameterizedTest
       @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
       public void shouldDeleteData_whenDeleteQueryWithNamedParameters(IntegrationTestConfig config)
@@ -281,6 +298,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
 
     @Nested
     class UpdateTests {
+
       @ParameterizedTest
       @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
       public void shouldUpdateData_whenUpdateQueryWithNamedParameters(IntegrationTestConfig config)
@@ -308,6 +326,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
 
     @Nested
     class InsertTests {
+
       @ParameterizedTest
       @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
       public void shouldInsertData_whenInsertQueryWithNamedParameters(IntegrationTestConfig config)
@@ -335,6 +354,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
 
     @Nested
     class SelectTests {
+
       @ParameterizedTest
       @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
       public void shouldReturnResultList_whenSelectQueryWithNamedParameters(

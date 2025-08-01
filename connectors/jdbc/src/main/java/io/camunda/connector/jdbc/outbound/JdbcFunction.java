@@ -23,7 +23,7 @@ import io.camunda.connector.jdbc.model.response.JdbcResponse;
     engineVersion = "^8.6",
     id = "io.camunda.connectors.Jdbc.v1",
     name = "SQL Database Connector",
-    version = 2,
+    version = 3,
     description =
         "Read and write data from a Camunda process directly to a SQL database (e.g., Microsoft SQL Server, MySQL, PostgreSQL)",
     metadata = @ElementTemplate.Metadata(keywords = {"relational", "database"}),

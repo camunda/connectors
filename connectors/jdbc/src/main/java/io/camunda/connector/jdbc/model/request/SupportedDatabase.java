@@ -10,7 +10,8 @@ public enum SupportedDatabase {
   MARIADB("org.mariadb.jdbc.Driver", "jdbc:mariadb://"),
   MSSQL("com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver://"),
   MYSQL("org.mariadb.jdbc.Driver", "jdbc:mysql://"),
-  POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql://");
+  POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql://"),
+  ORACLE("oracle.jdbc.OracleDriver", "jdbc:oracle:thin:@//");
 
   private final String driverClassName;
 

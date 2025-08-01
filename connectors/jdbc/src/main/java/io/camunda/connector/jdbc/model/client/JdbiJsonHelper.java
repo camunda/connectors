@@ -27,7 +27,9 @@ public class JdbiJsonHelper {
           "PostgreSQL",
           Set.of("json", "jsonb"),
           "MariaDB",
-          Set.of("JSON"));
+          Set.of("JSON"),
+          "Oracle",
+          Set.of("CLOB", "VARCHAR2"));
 
   public static ResultIterable<Map<String, Object>> mapToParsedMap(
       String databaseProductName, Query query) {
