@@ -23,26 +23,15 @@ public record OutboundConnectorConfiguration(
     String name,
     String[] inputVariables,
     String type,
-    Class<?> connectorClass,
-    Supplier<OutboundConnectorFunction> customInstanceSupplier,
+    Supplier<OutboundConnectorFunction> instanceSupplier,
     Long timeout)
     implements ConnectorConfiguration {
-  public OutboundConnectorConfiguration(
-      String name, String[] inputVariables, String type, Class<?> connectorClass, Long timeout) {
-    this(name, inputVariables, type, connectorClass, null, timeout);
-  }
-
-  public OutboundConnectorConfiguration(
-      String name, String[] inputVariables, String type, Class<?> connectorClass) {
-    this(name, inputVariables, type, connectorClass, null, null);
-  }
 
   public OutboundConnectorConfiguration(
       String name,
       String[] inputVariables,
       String type,
-      Class<?> connectorClass,
-      Supplier<OutboundConnectorFunction> customInstanceSupplier) {
-    this(name, inputVariables, type, connectorClass, customInstanceSupplier, null);
+      Supplier<OutboundConnectorFunction> instance) {
+    this(name, inputVariables, type, instance, null);
   }
 }

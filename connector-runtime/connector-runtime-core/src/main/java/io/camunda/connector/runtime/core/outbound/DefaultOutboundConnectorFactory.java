@@ -17,19 +17,22 @@
 package io.camunda.connector.runtime.core.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.ConnectorHelper;
+import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
+import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,84 +40,138 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultOutboundConnectorFactory.class);
 
-  private final ObjectMapper objectMapper;
-  private final ValidationProvider validationProvider;
-
-  private final Map<String, OutboundConnectorConfiguration> connectorConfigs;
-
+  private final Map<String, OutboundConnectorConfiguration> configurations;
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
-      connectorInstanceCache;
+      connectorInstanceCache = new ConcurrentHashMap<>();
+
+  private final Function<String, String> propertyProvider;
 
   public DefaultOutboundConnectorFactory(
-      List<OutboundConnectorConfiguration> configurations,
       ObjectMapper objectMapper,
-      ValidationProvider validationProvider) {
-    connectorConfigs =
-        configurations.stream()
+      ValidationProvider validationProvider,
+      List<OutboundConnectorFunction> constructorFunctions,
+      List<OutboundConnectorProvider> constructorProviders,
+      Function<String, String> propertyProvider) {
+    this.propertyProvider = propertyProvider;
+
+    List<OutboundConnectorConfiguration> envVarConfigurations = new ArrayList<>();
+    Stream<ServiceLoader.Provider<OutboundConnectorFunction>> spiFunctions = Stream.empty();
+    Stream<ServiceLoader.Provider<OutboundConnectorProvider>> spiProviders = Stream.empty();
+    if (EnvVarsConnectorDiscovery.isOutboundConfigured()) {
+      envVarConfigurations.addAll(EnvVarsConnectorDiscovery.discoverOutbound());
+    } else {
+      // Load outbound connector functions from SPI
+      spiFunctions = SPIConnectorDiscovery.loadConnectorFunctions();
+      spiProviders = SPIConnectorDiscovery.loadConnectorProviders();
+    }
+
+    Function<OutboundConnectorProvider, OutboundConnectorFunction> fromProviderToFunction =
+        p -> {
+          ConnectorOperations connectorOperations =
+              ConnectorOperations.from(p, objectMapper, validationProvider);
+          return new OutboundConnectorOperationFunction(connectorOperations);
+        };
+
+    // Combine all configurations from different sources from least to most important
+    List<OutboundConnectorConfiguration> allConfigs = new ArrayList<>();
+
+    // 1. SPI discovered functions
+    allConfigs.addAll(
+        toConfigurations(spiFunctions, ServiceLoader.Provider::type, ServiceLoader.Provider::get));
+
+    // 2. SPI discovered providers
+    allConfigs.addAll(
+        toConfigurations(
+            spiProviders,
+            ServiceLoader.Provider::type,
+            spiProviderOfConnectorProvider ->
+                fromProviderToFunction.apply(spiProviderOfConnectorProvider.get())));
+
+    // 3. Constructor supplied functions
+    allConfigs.addAll(
+        toConfigurations(constructorFunctions.stream(), outboundFunction -> outboundFunction));
+
+    // 4. Constructor supplied providers
+    allConfigs.addAll(toConfigurations(constructorProviders.stream(), fromProviderToFunction));
+
+    // 5. Env vars discovered configurations
+    allConfigs.addAll(envVarConfigurations);
+
+    // Store configurations in map, with type as key (later entries override earlier ones)
+    this.configurations =
+        allConfigs.stream()
             .collect(
-                Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
-    this.objectMapper = objectMapper;
-    connectorInstanceCache = new ConcurrentHashMap<>();
-    this.validationProvider = validationProvider;
+                Collectors.toMap(
+                    OutboundConnectorConfiguration::type,
+                    config -> config,
+                    (existing, replacement) -> {
+                      LOG.warn(
+                          "Overriding connector configuration {} with {}", existing, replacement);
+                      return replacement;
+                    },
+                    HashMap::new));
+  }
+
+  private <T> List<OutboundConnectorConfiguration> toConfigurations(
+      Stream<T> elements, Function<T, OutboundConnectorFunction> instanceProvider) {
+    return toConfigurations(elements, T::getClass, instanceProvider);
+  }
+
+  private <T> List<OutboundConnectorConfiguration> toConfigurations(
+      Stream<T> elements,
+      Function<T, Class<?>> typeProvider,
+      Function<T, OutboundConnectorFunction> instanceProvider) {
+    return elements
+        .filter(e -> typeProvider.apply(e).isAnnotationPresent(OutboundConnector.class))
+        .map(
+            e -> {
+              final OutboundConnector outboundConnector =
+                  typeProvider.apply(e).getAnnotation(OutboundConnector.class);
+              return toConfiguration(outboundConnector, () -> instanceProvider.apply(e));
+            })
+        .collect(Collectors.toList());
+  }
+
+  private OutboundConnectorConfiguration toConfiguration(
+      OutboundConnector outboundConnector, Supplier<OutboundConnectorFunction> instanceProvider) {
+    final var configurationOverrides =
+        new ConnectorConfigurationOverrides(outboundConnector.name(), this.propertyProvider);
+
+    return new OutboundConnectorConfiguration(
+        outboundConnector.name(),
+        outboundConnector.inputVariables(),
+        configurationOverrides.typeOverride().orElse(outboundConnector.type()),
+        instanceProvider,
+        configurationOverrides.timeoutOverride().orElse(null));
   }
 
   @Override
-  public List<OutboundConnectorConfiguration> getConfigurations() {
-    return new ArrayList<>(connectorConfigs.values());
+  public Collection<OutboundConnectorConfiguration> getConfigurations() {
+    return configurations.values();
   }
 
   @Override
   public OutboundConnectorFunction getInstance(String type) {
-    return Optional.ofNullable(connectorConfigs.get(type))
-        .map(this::createCachedInstance)
+
+    return this.getConfiguration(type)
+        .map(this::getCachedInstance)
         .orElseThrow(
             () -> new RuntimeException("Outbound connector \"" + type + "\" is not registered"));
   }
 
-  private OutboundConnectorFunction createCachedInstance(OutboundConnectorConfiguration config) {
-    return connectorInstanceCache.computeIfAbsent(config, this::createFunctionInstance);
+  private OutboundConnectorFunction getCachedInstance(
+      OutboundConnectorConfiguration configuration) {
+    return connectorInstanceCache.computeIfAbsent(
+        configuration, config -> config.instanceSupplier().get());
   }
 
-  private OutboundConnectorFunction createFunctionInstance(OutboundConnectorConfiguration config) {
-    var instance = createConnectorInstance(config);
-    switch (instance) {
-      case OutboundConnectorFunction function -> {
-        return function;
-      }
-      case OutboundConnectorProvider provider -> {
-        ConnectorOperations connectorOperations =
-            ConnectorOperations.from(provider, objectMapper, validationProvider);
-        return new OutboundConnectorOperationFunction(connectorOperations);
-      }
-      default ->
-          throw new IllegalArgumentException(
-              "Connector class "
-                  + instance.getClass().getName()
-                  + " does not implement OutboundConnectorFunction or OutboundConnectorProvider");
-    }
-  }
-
-  private static Object createConnectorInstance(OutboundConnectorConfiguration config) {
-    if (config.customInstanceSupplier() != null) {
-      return config.customInstanceSupplier().get();
-    } else {
-      return ConnectorHelper.instantiateConnector(config.connectorClass());
-    }
-  }
-
-  @Override
-  public void registerConfiguration(OutboundConnectorConfiguration configuration) {
-    var oldConfig = connectorConfigs.get(configuration.type());
-    if (oldConfig != null) {
-      LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
-      connectorConfigs.remove(oldConfig.type());
-    }
-    connectorConfigs.put(configuration.type(), configuration);
-  }
-
-  @Override
-  public void resetConfigurations() {
-    connectorConfigs.clear();
-    connectorInstanceCache.clear();
+  /**
+   * Get configuration by type
+   *
+   * @param type Connector type
+   * @return Optional configuration
+   */
+  public Optional<OutboundConnectorConfiguration> getConfiguration(String type) {
+    return Optional.ofNullable(configurations.get(type));
   }
 }
