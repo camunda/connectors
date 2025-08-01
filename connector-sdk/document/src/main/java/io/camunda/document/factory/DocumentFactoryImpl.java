@@ -18,6 +18,7 @@ package io.camunda.document.factory;
 
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.Document;
+import io.camunda.document.ExternalDocument;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import io.camunda.document.reference.DocumentReference.ExternalDocumentReference;
@@ -41,9 +42,9 @@ public class DocumentFactoryImpl implements DocumentFactory {
       return new CamundaDocument(
           camundaDocumentReference.getMetadata(), camundaDocumentReference, documentStore);
     }
-    if (reference instanceof ExternalDocumentReference ignored) {
-      throw new IllegalArgumentException(
-          "External document references are not yet supported: " + reference.getClass());
+    if (reference instanceof ExternalDocumentReference externalDocumentReference) {
+      return new ExternalDocument(
+          externalDocumentReference.url(), externalDocumentReference.name());
     }
     throw new IllegalArgumentException("Unknown document reference type: " + reference.getClass());
   }
