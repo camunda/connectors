@@ -16,19 +16,18 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
-import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
-import java.util.List;
+import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
-public class OutboundConnectorDiscovery {
-  public static List<OutboundConnectorConfiguration> loadConnectorConfigurations() {
-    List<OutboundConnectorConfiguration> configurations;
-    if (EnvVarsConnectorDiscovery.isOutboundConfigured()) {
-      configurations = EnvVarsConnectorDiscovery.discoverOutbound();
-    } else {
-      configurations = SPIConnectorDiscovery.discoverOutbound();
-    }
-    return configurations;
+@OutboundConnector(
+    name = "NOT_ANNOTATED",
+    inputVariables = {"foo", "bar"},
+    type = "io.camunda:annotated")
+public class NotSpiRegisteredFunction implements OutboundConnectorFunction {
+
+  @Override
+  public Object execute(OutboundConnectorContext context) throws Exception {
+    return null;
   }
 }

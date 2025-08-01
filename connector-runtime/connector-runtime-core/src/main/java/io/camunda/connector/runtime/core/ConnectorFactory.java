@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.core;
 
 import io.camunda.connector.runtime.core.config.ConnectorConfiguration;
-import java.util.List;
+import java.util.Collection;
 
 /**
  * Connector factory stores all available Connector configurations and creates Connector instances
@@ -32,7 +32,7 @@ public interface ConnectorFactory<T, C extends ConnectorConfiguration> {
    *
    * @return List of available configurations
    */
-  List<C> getConfigurations();
+  Collection<C> getConfigurations();
 
   /**
    * Create a Connector instance by type
@@ -41,15 +41,4 @@ public interface ConnectorFactory<T, C extends ConnectorConfiguration> {
    * @return Connector instance
    */
   T getInstance(String type);
-
-  /**
-   * Dynamically register a new Connector configuration. If a connector with the same type already
-   * exists, it will be overridden by the new configuration.
-   *
-   * @param configuration Configuration to register
-   */
-  void registerConfiguration(C configuration);
-
-  /** Reload all connectors from classpath and reset all manually registered connectors */
-  void resetConfigurations();
 }

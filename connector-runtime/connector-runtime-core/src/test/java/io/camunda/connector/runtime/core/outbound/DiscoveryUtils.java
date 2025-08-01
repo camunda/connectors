@@ -16,13 +16,21 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import java.util.Arrays;
+import java.util.List;
 
-public class NotAnnotatedFunction implements OutboundConnectorFunction {
+public class DiscoveryUtils {
+  private DiscoveryUtils() {}
 
-  @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
-    return null;
+  static OutboundConnectorFactory getFactory(OutboundConnectorFunction... functions) {
+    return new DefaultOutboundConnectorFactory(
+        ConnectorsObjectMapperSupplier.getCopy(),
+        ValidationUtil.discoverDefaultValidationProviderImplementation(),
+        Arrays.asList(functions),
+        List.of(),
+        System::getenv);
   }
 }

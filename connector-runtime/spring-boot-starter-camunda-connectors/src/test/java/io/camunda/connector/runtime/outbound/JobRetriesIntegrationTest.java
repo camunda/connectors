@@ -228,15 +228,12 @@ public class JobRetriesIntegrationTest {
           .thenReturn(
               Arrays.asList(
                   new OutboundConnectorConfiguration(
-                      testConnectorType,
-                      new String[0],
-                      testConnectorType,
-                      OutboundConnectorFunction.class),
+                      testConnectorType, new String[0], testConnectorType, () -> function),
                   new OutboundConnectorConfiguration(
                       testRetryConnectorType,
                       new String[0],
                       testRetryConnectorType,
-                      OutboundConnectorFunction.class)));
+                      () -> retryFunction)));
       when(mock.getInstance(testConnectorType)).thenReturn(function);
       when(mock.getInstance(testRetryConnectorType)).thenReturn(retryFunction);
       return mock;

@@ -93,11 +93,6 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
     configurations.add(configuration);
   }
 
-  @Override
-  public void resetConfigurations() {
-    loadConnectorConfigurations();
-  }
-
   protected void loadConnectorConfigurations() {
     if (EnvVarsConnectorDiscovery.isInboundConfigured()) {
       configurations = EnvVarsConnectorDiscovery.discoverInbound();
