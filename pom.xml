@@ -10,6 +10,10 @@
     <relativePath>parent/pom.xml</relativePath>
   </parent>
 
+  <properties>
+    <deploymentName>${project.groupId}:${project.artifactId}:${project.version}</deploymentName>
+  </properties>
+
   <artifactId>connectors-bundle-parent</artifactId>
   <packaging>pom</packaging>
 
