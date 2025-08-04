@@ -36,7 +36,7 @@ public class OutboundConnectorOperationFunction implements OutboundConnectorFunc
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
+  public Object execute(OutboundConnectorContext context) {
     String operationId = context.getJobContext().getCustomHeaders().get(OPERATION_ID_KEYWORD);
     if (operationId == null) {
       throw new ConnectorInputException(

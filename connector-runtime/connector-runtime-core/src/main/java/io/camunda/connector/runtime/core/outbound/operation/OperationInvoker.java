@@ -25,6 +25,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import java.io.IOException;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,8 @@ public class OperationInvoker {
               }
               yield resolveVariableValue(variable, jobVariables);
             }
+            case ParameterDescriptor.Header<?> header ->
+                resolveHeaderValue(header, context.getJobContext().getCustomHeaders());
           };
     }
     return invokeMethod(connectorInstance, args);
@@ -71,6 +74,25 @@ public class OperationInvoker {
           "Required variable '"
               + variableDescriptor.getName()
               + "' is missing in the job variables.");
+    }
+    if (value != null) {
+      validationProvider.validate(value);
+    }
+    return value;
+  }
+
+  private Object resolveHeaderValue(
+      ParameterDescriptor.Header<?> headerDescriptor, Map<String, String> headers) {
+    String rawValue = headers.get(headerDescriptor.getName());
+    Object value;
+    try {
+      value = objectMapper.convertValue(rawValue, headerDescriptor.getType());
+    } catch (Throwable e) {
+      throw new RuntimeException(e);
+    }
+    if (headerDescriptor.isRequired() && value == null) {
+      throw new ConnectorInputException(
+          "Required variable '" + headerDescriptor.getName() + "' is missing in the job headers.");
     }
     if (value != null) {
       validationProvider.validate(value);
