@@ -56,4 +56,29 @@ public sealed interface ParameterDescriptor {
       return required;
     }
   }
+
+  final class Header<T> implements ParameterDescriptor {
+
+    private final String name;
+    private final Class<T> type;
+    private final boolean required;
+
+    public Header(String name, Class<T> type, boolean required) {
+      this.name = name;
+      this.type = type;
+      this.required = required;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public Class<T> getType() {
+      return type;
+    }
+
+    public boolean isRequired() {
+      return required;
+    }
+  }
 }

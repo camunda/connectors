@@ -16,10 +16,10 @@
  */
 package io.camunda.connector.runtime.core.outbound.operation;
 
-import static io.camunda.connector.api.reflection.ReflectionUtil.getMethodsAnnotatedWith;
-import static io.camunda.connector.api.reflection.ReflectionUtil.getVariableName;
+import static io.camunda.connector.api.reflection.ReflectionUtil.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.reflection.ReflectionUtil.MethodWithAnnotation;
@@ -73,6 +73,11 @@ public record ConnectorOperations(Object connector, Map<String, OperationInvoker
           getVariableName(variableAnnotation), parameter.getType(), variableAnnotation.required());
     } else if (parameter.getType().equals(OutboundConnectorContext.class)) {
       return new Context();
+    } else if (parameter.isAnnotationPresent(Header.class)) {
+      io.camunda.connector.api.annotation.Header headerAnnotation =
+          parameter.getAnnotation(io.camunda.connector.api.annotation.Header.class);
+      return new ParameterDescriptor.Header<>(
+          getHeaderName(headerAnnotation), parameter.getType(), headerAnnotation.required());
     } else {
       throw new IllegalArgumentException("Unsupported parameter type: " + parameter.getType());
     }

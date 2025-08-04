@@ -16,8 +16,7 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +32,7 @@ import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -84,7 +84,31 @@ public class AnnotatedOperationTests {
   }
 
   @Test
-  public void testInputVariableResolution() {
+  public void testHeaderVariableResolution() {
+    var result =
+        invoker.execute(createMockContext(json, "myOperation4", Map.of("myHeader", "myValue")));
+    assert "myValue".equals(result);
+  }
+
+  @Test
+  public void testHeaderVariableResolutionWithComplexType() {
+    var result =
+        invoker.execute(
+            createMockContext("{\"x\": 10}", "myOperation5", Map.of("myFeelFunction", "=x+2")));
+    assertEquals(12L, result);
+  }
+
+  @Test
+  public void shouldThrowExceptionForMissingRequiredHeader() {
+    assertThrows(
+        ConnectorInputException.class,
+        () -> {
+          invoker.execute(createMockContext("{}", "myOperation4"));
+        });
+  }
+
+  @Test
+  public void testJobActivationVariable() {
     var variables =
         Arrays.stream(
                 ConnectorUtil.getInputVariables(
@@ -97,8 +121,20 @@ public class AnnotatedOperationTests {
   }
 
   JobHandlerContext createMockContext(String json, String operation) {
+    return this.createMockContext(json, operation, null);
+  }
+
+  JobHandlerContext createMockContext(String json, String operation, Map<String, String> headers) {
     var activatedJob = mock(ActivatedJob.class);
-    when(activatedJob.getCustomHeaders()).thenReturn(Map.of("operation", operation));
+    var operationHeader = Map.of("operation", operation);
+    Map<String, String> customHeaders;
+    if (headers == null) {
+      customHeaders = operationHeader;
+    } else {
+      customHeaders = new HashMap<>(headers);
+      customHeaders.putAll(operationHeader);
+    }
+    when(activatedJob.getCustomHeaders()).thenReturn(customHeaders);
     when(activatedJob.getVariables()).thenReturn(json);
     return new JobHandlerContext(
         activatedJob,
