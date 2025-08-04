@@ -23,6 +23,7 @@ import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.reflection.ReflectionUtil;
 import io.camunda.connector.generator.dsl.*;
 import java.lang.reflect.Parameter;
+import java.util.Comparator;
 import java.util.List;
 
 public class OperationBasedConnectorUtil {
@@ -41,6 +42,7 @@ public class OperationBasedConnectorUtil {
     if (methods.size() == 1) {
       operationsProperty = HiddenProperty.builder();
     } else {
+      methods.sort(Comparator.comparing(o -> getOperationName(o.annotation())));
       operationsProperty =
           new DropdownProperty.DropdownPropertyBuilder()
               .choices(
