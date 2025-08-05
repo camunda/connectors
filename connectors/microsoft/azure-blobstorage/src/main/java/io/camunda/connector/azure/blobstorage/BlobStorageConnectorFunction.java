@@ -44,7 +44,7 @@ import java.util.function.Function;
               "upload file to azure blob storage"
             }),
     documentationRef =
-        "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blobstorage/",
+        "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
     icon = "icon.svg")
 public class BlobStorageConnectorFunction implements OutboundConnectorFunction {
 
