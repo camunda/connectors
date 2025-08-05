@@ -208,16 +208,42 @@ The following json structure will be returned by the Connector and can be
 used in the result expression.
 
 ```json
-
+{
+  "body" : {
+    "order" : {
+      "id" : "123",
+      "total" : "100.00€"
+    }
+  },
+  "document" : {
+    "contentHash" : "hash",
+    "documentId" : "977c5cbf-0f19-4a76-a8e1-60902216a07b",
+    "metadata" : {
+      "contentType" : "application/pdf",
+      "customProperties" : {
+        "key" : "value"
+      },
+      "fileName" : "theFileName.pdf",
+      "processInstanceKey" : 0,
+      "size" : 516554
+    },
+    "storeId" : "theStoreId",
+    "camunda.document.type" : "camunda"
+  },
+  "headers" : {
+    "Content-Type" : "application/json"
+  },
+  "status" : 200
+}
 ```
 
 The body can be accessed via FEEL:
 ```json
-
+= body.order.id
 ```
 leading to the following result
 ```json
-
+"123"
 ```
 
 
