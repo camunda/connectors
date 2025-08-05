@@ -90,8 +90,7 @@ public class SecretUtil {
     if (!secretName.isBlank()) {
       var result = secretReplacer.replaceSecrets(secretName, context);
       if (result != null) {
-        if (isValidJson(result))
-          return new String(encoder.quoteAsString(result));
+        if (isValidJson(result)) return new String(encoder.quoteAsString(result));
         return result;
       } else {
         return matcher.group();

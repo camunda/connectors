@@ -85,7 +85,8 @@ class JobHandlerContextTest {
     String json = "{ \"value\": \"{{secrets.FOO}}\" }";
     when(activatedJob.getVariables()).thenReturn(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \"secret\"}");
-    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value).isEqualTo("{\"key\": \"secret\"}");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("{\"key\": \"secret\"}");
   }
 
   @Test
