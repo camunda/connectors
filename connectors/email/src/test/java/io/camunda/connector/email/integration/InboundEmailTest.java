@@ -13,6 +13,7 @@ import static org.mockito.Mockito.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
@@ -91,7 +92,13 @@ public class InboundEmailTest extends BaseEmailTest {
                 emailInboundConnectorProperties.data().pollingWaitTime(),
                 emailInboundConnectorProperties.data().pollingConfig()));
 
-    doNothing().when(inboundConnectorContext).log(any());
+    doNothing().when(inboundConnectorContext).log(any(Activity.class));
+    when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
+        .thenReturn(emailInboundConnectorProperties1);
+    when(inboundConnectorContext.correlate(any()))
+        .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null));
+    when(inboundConnectorContext.canActivate(any()))
+        .thenReturn(new ActivationCheckResult.Success.CanActivate(null));
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties1);
     when(inboundConnectorContext.correlate(any()))
@@ -129,7 +136,7 @@ public class InboundEmailTest extends BaseEmailTest {
                 Duration.of(2, ChronoUnit.SECONDS),
                 new PollUnseen(HandlingStrategy.READ, "")));
 
-    doNothing().when(inboundConnectorContext).log(any());
+    doNothing().when(inboundConnectorContext).log(any(Activity.class));
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties);
     when(inboundConnectorContext.correlate(any()))
@@ -171,7 +178,7 @@ public class InboundEmailTest extends BaseEmailTest {
                 Duration.of(2, ChronoUnit.SECONDS),
                 new PollUnseen(HandlingStrategy.READ, "")));
 
-    doNothing().when(inboundConnectorContext).log(any());
+    doNothing().when(inboundConnectorContext).log(any(Activity.class));
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties);
     when(inboundConnectorContext.correlate(any()))
@@ -213,7 +220,7 @@ public class InboundEmailTest extends BaseEmailTest {
                 Duration.of(2, ChronoUnit.SECONDS),
                 new PollUnseen(HandlingStrategy.READ, "")));
 
-    doNothing().when(inboundConnectorContext).log(any());
+    doNothing().when(inboundConnectorContext).log(any(Activity.class));
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties);
     when(inboundConnectorContext.correlate(any()))

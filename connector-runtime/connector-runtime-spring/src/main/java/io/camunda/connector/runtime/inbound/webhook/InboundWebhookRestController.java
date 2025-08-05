@@ -153,10 +153,13 @@ public class InboundWebhookRestController {
       if (response == null) {
         // when verification was skipped
         // Step 2: trigger and correlate
-        connector.context().log(
-            Activity.level(Severity.INFO)
-                .tag(payload.method())
-                .message("Url: " + payload.requestURL()));
+        connector
+            .context()
+            .log(
+                Activity.newBuilder()
+                    .withSeverity(Severity.INFO)
+                    .withCustomTag(payload.method())
+                    .withMessage("URL: " + payload.requestURL()));
 
         var webhookResult = connectorHook.triggerWebhook(payload);
         // create documents if the connector is activable
@@ -168,11 +171,13 @@ public class InboundWebhookRestController {
         response = buildResponse(webhookResult, documents, correlationResult);
       }
     } catch (Exception e) {
-      connector.context().log(
-          Activity
-              .level(Severity.ERROR)
-              .tag(payload.method())
-              .messageWithException("Webhook failed", e));
+      connector
+          .context()
+          .log(
+              Activity.newBuilder()
+                  .withSeverity(Severity.ERROR)
+                  .withCustomTag(payload.method())
+                  .withMessage("Webhook processing failed", e));
       response = buildErrorResponse(e);
     }
     return response;
@@ -198,14 +203,18 @@ public class InboundWebhookRestController {
   }
 
   protected ResponseEntity<?> verify(
-      WebhookConnectorExecutable connectorHook, WebhookProcessingPayload payload,
+      WebhookConnectorExecutable connectorHook,
+      WebhookProcessingPayload payload,
       InboundConnectorReportingContext context) {
     WebhookHttpResponse verificationResponse = connectorHook.verify(payload);
     ResponseEntity<?> response = null;
     if (verificationResponse != null) {
       response = toResponseEntity(verificationResponse);
-      context.log(Activity.level(Severity.INFO).tag(payload.method())
-          .message("Successfully handled a verification request"));
+      context.log(
+          Activity.newBuilder()
+              .withSeverity(Severity.INFO)
+              .withCustomTag(payload.method())
+              .withMessage("Successfully handled a verification request"));
     }
     return response;
   }

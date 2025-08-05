@@ -147,7 +147,17 @@ public interface InboundConnectorContext extends DocumentFactory {
    * <p>This method can be called as often as needed and the internal state of the inbound Connector
    * implementation requires it.
    *
-   * <p>Note: this method will not trigger application error logs no matter what severity is supplied.
+   * <p>Note: this method will not trigger application ERROR logs no matter what severity is
+   * supplied.
    */
   void log(Activity activity);
+
+  /**
+   * Shortcut method to create an {@link ActivityBuilder} and log the activity.
+   *
+   * @see InboundConnectorContext#log(Activity)
+   */
+  default void log(ActivityBuilder activityBuilder) {
+    log(activityBuilder.build());
+  }
 }

@@ -15,8 +15,6 @@ import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.polling.model.PollingIntervalInput;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
     engineVersion = "^8.3",
