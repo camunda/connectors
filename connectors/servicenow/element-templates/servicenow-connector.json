@@ -1,0 +1,760 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "ServiceNow Outbound Connector",
+  "id": "cc249279-09d1-479c-a8f7-de31fc781605",
+  "version": 1753694059635,
+  "description": "Query a ServiceNow tenant for data",
+  "metadata": {
+    "keywords": []
+  },
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "sn",
+      "label": "ServiceNow"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "endpoint",
+      "label": "HTTP endpoint"
+    },
+    {
+      "id": "timeout",
+      "label": "Connection timeout"
+    },
+    {
+      "id": "payload",
+      "label": "Payload"
+    },
+    {
+      "id": "output",
+      "label": "Output mapping"
+    },
+    {
+      "id": "error",
+      "label": "Error handling"
+    },
+    {
+      "id": "retries",
+      "label": "Retries"
+    }
+  ],
+  "properties": [
+    {
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "property": "type",
+        "type": "zeebe:taskDefinition"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "tenant",
+      "label": "Tenant name",
+      "optional": false,
+      "feel": "optional",
+      "group": "sn",
+      "binding": {
+        "name": "tenant",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "type": "String"
+    },
+    {
+      "id": "requestTarget",
+      "label": "Data target",
+      "value": "sc_req_item",
+      "group": "sn",
+      "binding": {
+        "name": "requestTarget",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Configuration Item [cmdb_ci]",
+          "value": "cmdb_ci"
+        },
+        {
+          "name": "Requested Item [sc_req_item]",
+          "value": "sc_req_item"
+        },
+        {
+          "name": "Change Request [change_request]",
+          "value": "change_request"
+        },
+        {
+          "name": "Service Catalog Request [sc_request]",
+          "value": "sc_request"
+        },
+        {
+          "name": "Service Catalog Task [sc_task]",
+          "value": "sc_task"
+        },
+        {
+          "name": "User [sys_user]",
+          "value": "sys_user"
+        },
+        {
+          "name": "User Group [sys_user_group]",
+          "value": "sys_user_group"
+        },
+        {
+          "name": "Progress State [state]",
+          "value": "state"
+        },
+        {
+          "name": "Assignment Group [assignment_group]",
+          "value": "assignment_group"
+        },
+        {
+          "name": "Scheduled Start [scheduled_start]",
+          "value": "scheduled_start"
+        },
+        {
+          "name": "Backout Plan [backout_plan]",
+          "value": "backout_plan"
+        },
+        {
+          "name": "Incident [incident]",
+          "value": "incident"
+        },
+        {
+          "name": "Problem [problem]",
+          "value": "problem"
+        },
+        {
+          "name": "Work notes/Comments [sys_journal_field]",
+          "value": "sys_journal_field"
+        },
+        {
+          "name": "Other",
+          "value": "__custom"
+        }
+      ]
+    },
+    {
+      "id": "customRequestTarget",
+      "label": "Enter custom table name",
+      "description": "Specify your own ServiceNow table name.",
+      "type": "String",
+      "group": "sn",
+      "binding": {
+        "name": "customRequestTarget",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "requestTarget",
+        "equals": "__custom"
+      }
+    },
+    {
+      "id": "sysparm_query",
+      "label": "Query parameters (sysparm_query)",
+      "description": "Separate multiple conditions with '^' (Ex: active=true^priority=1)",
+      "optional": true,
+      "feel": "optional",
+      "group": "sn",
+      "binding": {
+        "name": "sysparm_query",
+        "type": "zeebe:input"
+      },
+      "type": "String",
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^(?!.*&).*$",
+          "message": "invalid: use '^' instead of '&'"
+        }
+      }
+    },
+    {
+      "id": "sysparm_fields",
+      "label": "Fields to return (sysparm_fields)",
+      "description": "Comma-separated field names (Ex: sys_id, number, short_description)",
+      "optional": true,
+      "feel": "optional",
+      "group": "sn",
+      "binding": {
+        "name": "sysparm_fields",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "sysparm_limit",
+      "label": "Result limit (sysparm_limit)",
+      "description": "The maximum number of records to return (Ex: 10)",
+      "optional": true,
+      "feel": "optional",
+      "group": "sn",
+      "binding": {
+        "name": "sysparm_limit",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.type",
+      "label": "Type",
+      "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+      "value": "basic",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.type",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden",
+      "choices": [
+        {
+          "name": "API key",
+          "value": "apiKey"
+        },
+        {
+          "name": "Basic",
+          "value": "basic"
+        },
+        {
+          "name": "Bearer token",
+          "value": "bearer"
+        },
+        {
+          "name": "None",
+          "value": "noAuth"
+        },
+        {
+          "name": "OAuth 2.0",
+          "value": "oauth-client-credentials-flow"
+        }
+      ]
+    },
+    {
+      "id": "authentication.apiKeyLocation",
+      "label": "Api key location",
+      "description": "Choose type: Send API key in header or as query parameter.",
+      "optional": false,
+      "value": "headers",
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.apiKeyLocation",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "apiKey",
+        "type": "simple"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Headers",
+          "value": "headers"
+        },
+        {
+          "name": "Query parameters",
+          "value": "query"
+        }
+      ]
+    },
+    {
+      "id": "authentication.name",
+      "label": "API key name",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.name",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "apiKey",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.value",
+      "label": "API key value",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.value",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "apiKey",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.username",
+      "label": "Username",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.username",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "basic",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.password",
+      "label": "Password",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.password",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "basic",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.token",
+      "label": "Bearer token",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.token",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "bearer",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.oauthTokenEndpoint",
+      "label": "OAuth 2.0 token endpoint",
+      "description": "The OAuth token endpoint",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
+          "message": "Must be a http(s) URL"
+        }
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.oauthTokenEndpoint",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "oauth-client-credentials-flow",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.clientId",
+      "label": "Client ID",
+      "description": "Your application's client ID from the OAuth client",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.clientId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "oauth-client-credentials-flow",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.clientSecret",
+      "label": "Client secret",
+      "description": "Your application's client secret from the OAuth client",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.clientSecret",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "oauth-client-credentials-flow",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.audience",
+      "label": "Audience",
+      "description": "The unique identifier of the target API you want to access",
+      "optional": true,
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.audience",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "oauth-client-credentials-flow",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.clientAuthentication",
+      "label": "Client authentication",
+      "description": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.clientAuthentication",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "oauth-client-credentials-flow",
+        "type": "simple"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Send client credentials in body",
+          "value": "credentialsBody"
+        },
+        {
+          "name": "Send as Basic Auth header",
+          "value": "basicAuthHeader"
+        }
+      ]
+    },
+    {
+      "id": "authentication.scopes",
+      "label": "Scopes",
+      "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+      "optional": true,
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.scopes",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "oauth-client-credentials-flow",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "method",
+      "label": "Method",
+      "optional": false,
+      "value": "GET",
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "endpoint",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden",
+      "choices": [
+        {
+          "name": "POST",
+          "value": "POST"
+        },
+        {
+          "name": "GET",
+          "value": "GET"
+        },
+        {
+          "name": "DELETE",
+          "value": "DELETE"
+        },
+        {
+          "name": "PATCH",
+          "value": "PATCH"
+        },
+        {
+          "name": "PUT",
+          "value": "PUT"
+        }
+      ]
+    },
+    {
+      "id": "url",
+      "label": "URL",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|(http://|https://|secrets|\\{\\{).*$)",
+          "message": "Must be a http(s) URL"
+        }
+      },
+      "group": "endpoint",
+      "binding": {
+        "name": "url",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden",
+      "value": "=\"https://\" + tenant + \".service-now.com/api/now/table/\" + (if requestTarget = \"__custom\" then customRequestTarget else requestTarget)"
+    },
+    {
+      "id": "headers",
+      "label": "Headers",
+      "description": "Map of HTTP headers to add to the request",
+      "optional": true,
+      "group": "endpoint",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "queryParameters",
+      "label": "Query parameters",
+      "description": "Map of query parameters to add to the request URL",
+      "optional": true,
+      "group": "endpoint",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden",
+      "value": "={ \"sysparm_query\": if sysparm_query != null then replace(sysparm_query, \" \", \"\") else null , \"sysparm_fields\": if sysparm_fields != null then replace(sysparm_fields, \" \", \"\") else null , \"sysparm_limit\": if sysparm_limit != null then sysparm_limit else null }"
+    },
+    {
+      "id": "storeResponse",
+      "label": "Store response",
+      "description": "Store the response as a document in the document store",
+      "optional": false,
+      "value": "=false",
+      "group": "endpoint",
+      "binding": {
+        "name": "storeResponse",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "skipEncoding",
+      "label": "Skip URL encoding",
+      "description": "Skip the default URL decoding and encoding behavior",
+      "optional": true,
+      "value": true,
+      "group": "endpoint",
+      "binding": {
+        "name": "skipEncoding",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "connectionTimeoutInSeconds",
+      "label": "Connection timeout in seconds",
+      "description": "Defines the connection timeout in seconds, or 0 for an infinite timeout",
+      "optional": false,
+      "value": "=20",
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^\\d+$",
+          "message": "Must be a number"
+        }
+      },
+      "feel": "static",
+      "group": "timeout",
+      "binding": {
+        "name": "connectionTimeoutInSeconds",
+        "type": "zeebe:input"
+      },
+      "type": "Number"
+    },
+    {
+      "id": "readTimeoutInSeconds",
+      "label": "Read timeout in seconds",
+      "description": "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
+      "optional": false,
+      "value": "=20",
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^\\d+$",
+          "message": "Must be a number"
+        }
+      },
+      "feel": "static",
+      "group": "timeout",
+      "binding": {
+        "name": "readTimeoutInSeconds",
+        "type": "zeebe:input"
+      },
+      "type": "Number"
+    },
+    {
+      "id": "body",
+      "label": "Request body",
+      "description": "Payload to send with the request",
+      "optional": true,
+      "feel": "optional",
+      "group": "payload",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "POST",
+          "PUT",
+          "PATCH"
+        ],
+        "type": "simple"
+      },
+      "type": "Text"
+    },
+    {
+      "id": "ignoreNullValues",
+      "label": "Ignore null values",
+      "optional": false,
+      "value": "=false",
+      "group": "payload",
+      "binding": {
+        "name": "ignoreNullValues",
+        "type": "zeebe:input"
+      },
+      "tooltip": "Null values will not be sent",
+      "type": "Hidden"
+    },
+    {
+      "id": "resultVariable",
+      "label": "Result variable",
+      "description": "Name of variable to store the response in",
+      "group": "output",
+      "binding": {
+        "key": "resultVariable",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "String",
+      "value": "snQueryResult"
+    },
+    {
+      "id": "resultExpression",
+      "label": "Result expression",
+      "description": "Expression to map the response into process variables",
+      "feel": "required",
+      "group": "output",
+      "binding": {
+        "key": "resultExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
+    },
+    {
+      "id": "errorExpression",
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "feel": "required",
+      "group": "error",
+      "binding": {
+        "key": "errorExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
+    },
+    {
+      "id": "retryCount",
+      "label": "Retries",
+      "description": "Number of retries",
+      "value": "3",
+      "feel": "optional",
+      "group": "retries",
+      "binding": {
+        "property": "retries",
+        "type": "zeebe:taskDefinition"
+      },
+      "type": "String"
+    },
+    {
+      "id": "retryBackoff",
+      "label": "Retry backoff",
+      "description": "ISO-8601 duration to wait between retries",
+      "value": "PT0S",
+      "group": "retries",
+      "binding": {
+        "key": "retryBackoff",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "String"
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjAxIiBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6bXVsdGlwbHkiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yNTUuOTkzIDQwOS4zODhDMTgxLjU4OCA0MDkuMzg4IDEzMC42NTQgMzUzLjI5MiAxMzAuNjU0IDI4My45MDhDMTMwLjY1NCAyMTQuNDkxIDE4MS41ODggMTU3LjQ1NSAyNTUuOTkzIDE1Ny40NTVDMzMwLjQ0IDE1Ny40NTUgMzgxLjMzMyAyMTQuNDkxIDM4MS4zMzMgMjgzLjkwOEMzODEuMzMzIDM1My4yOTIgMzMwLjQ0IDQwOS4zODggMjU1Ljk5MyA0MDkuMzg4Wk0yNTcuNDU5IDMxLjQ5NjdDMTIwLjA4OSAzMC43MDE5IDYuNDc1NDUgMTQzLjI0NCA1LjMxNTA5IDI4MS4yOTZDNC43MjQ3NCAzNTQuMzc0IDM1LjA5NzggNDIwLjM1MSA4NC4wNTY4IDQ2Ni43NDJDMTAxLjg2OSA0ODMuNjA1IDEyOS4zOTIgNDg1LjI0NSAxNDguNjkxIDQ3MC4xNjZDMTc3LjIzMiA0NDcuODU4IDIxMy44NzQgNDM0LjU3IDI1NS45OTMgNDM0LjU3QzI5OC4xMTIgNDM0LjU3IDMzNC43NTUgNDQ3Ljg2NiAzNjMuMjk2IDQ3MC4xNjZDMzgyLjc3OCA0ODUuMzcyIDQxMC40MDMgNDgzLjQyMiA0MjguMzE3IDQ2Ni4zNzZDNDc2LjU2NCA0MjAuNDYzIDUwNi42OTIgMzU1LjQ1NyA1MDYuNjkyIDI4My40MjJDNTA2LjY5MiAxNDQuNzg4IDM5NS4yMTYgMzIuMjkzNiAyNTcuNDU5IDMxLjQ5NjdaIiBmaWxsPSIjNkFDNjNGIi8+Cjwvc3ZnPgo="
+  }
+}
