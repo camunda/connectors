@@ -16,6 +16,9 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.secret.SecretContext;
 import java.util.List;
 import java.util.Objects;
@@ -26,6 +29,9 @@ import java.util.stream.Stream;
 
 /** Utility class to replace secrets in strings. */
 public class SecretUtil {
+
+  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
   private static final Pattern SECRET_PATTERN_SECRETS =
       Pattern.compile("secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
@@ -69,12 +75,23 @@ public class SecretUtil {
     return input;
   }
 
+  public static boolean isValidJson(String jsonString) {
+    try {
+      objectMapper.readTree(jsonString);
+      return true;
+    } catch (JsonProcessingException e) {
+      return false;
+    }
+  }
+
   private static String resolveSecretValue(
       SecretContext context, SecretReplacer secretReplacer, Matcher matcher) {
     var secretName = matcher.group("secret").trim();
     if (!secretName.isBlank()) {
       var result = secretReplacer.replaceSecrets(secretName, context);
       if (result != null) {
+        if (isValidJson(result))
+          return new String(encoder.quoteAsString(result));
         return result;
       } else {
         return matcher.group();

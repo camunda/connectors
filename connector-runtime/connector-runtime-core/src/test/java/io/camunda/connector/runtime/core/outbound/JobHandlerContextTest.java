@@ -28,6 +28,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
+import io.camunda.connector.runtime.core.testutil.classexample.TestClassString;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -77,6 +78,14 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
     assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(1);
+  }
+
+  @Test
+  void bindVariables_successJsonSecretAreEscaped() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \"secret\"}");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value).isEqualTo("{\"key\": \"secret\"}");
   }
 
   @Test
