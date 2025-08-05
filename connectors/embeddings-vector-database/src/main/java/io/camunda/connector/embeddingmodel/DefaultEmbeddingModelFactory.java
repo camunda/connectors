@@ -7,23 +7,35 @@
 package io.camunda.connector.embeddingmodel;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel;
 import dev.langchain4j.model.bedrock.BedrockTitanEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.vertexai.VertexAiEmbeddingModel;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider.AzureAuthentication;
 import io.camunda.connector.model.embedding.models.BedrockEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.BedrockModels;
 import io.camunda.connector.model.embedding.models.EmbeddingModelProvider;
+import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider;
+import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.model.embedding.models.OpenAiEmbeddingModelProvider;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 
 public class DefaultEmbeddingModelFactory {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultEmbeddingModelFactory.class);
 
   public EmbeddingModel createEmbeddingModel(EmbeddingModelProvider embeddingModelProvider) {
     return switch (embeddingModelProvider) {
@@ -31,6 +43,7 @@ public class DefaultEmbeddingModelFactory {
       case OpenAiEmbeddingModelProvider openAi -> createOpenAiEmbeddingModel(openAi);
       case AzureOpenAiEmbeddingModelProvider azureOpenAi ->
           createAzureOpenAiEmbeddingModel(azureOpenAi);
+      case GoogleVertexAiEmbeddingModelProvider vertexAi -> createVertexAiEmbeddingModel(vertexAi);
     };
   }
 
@@ -104,5 +117,41 @@ public class DefaultEmbeddingModelFactory {
     Optional.ofNullable(openAiEmbeddingModelProvider.maxRetries()).ifPresent(builder::maxRetries);
 
     return builder.build();
+  }
+
+  private EmbeddingModel createVertexAiEmbeddingModel(
+      GoogleVertexAiEmbeddingModelProvider provider) {
+    final var publisher =
+        StringUtils.isNotBlank(provider.publisher())
+            ? provider.publisher()
+            : GoogleVertexAiEmbeddingModelProvider.VERTEX_AI_DEFAULT_PUBLISHER;
+    VertexAiEmbeddingModel.Builder builder =
+        VertexAiEmbeddingModel.builder()
+            .project(provider.projectId())
+            .location(provider.region())
+            .publisher(publisher)
+            .modelName(provider.modelName())
+            .outputDimensionality(provider.dimensions())
+            .taskType(VertexAiEmbeddingModel.TaskType.RETRIEVAL_DOCUMENT);
+
+    if (provider.vertexAiAuthentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+      builder.credentials(createGoogleServiceAccountCredentials(sac));
+    }
+
+    Optional.ofNullable(provider.maxRetries()).ifPresent(builder::maxRetries);
+
+    return builder.build();
+  }
+
+  private ServiceAccountCredentials createGoogleServiceAccountCredentials(
+      ServiceAccountCredentialsAuthentication sac) {
+    try {
+      return ServiceAccountCredentials.fromStream(
+          new ByteArrayInputStream(sac.jsonKey().getBytes(StandardCharsets.UTF_8)));
+    } catch (IOException e) {
+      LOGGER.error("Failed to parse service account credentials", e);
+      throw new ConnectorInputException(
+          "Authentication failed for provided service account credentials", e);
+    }
   }
 }
