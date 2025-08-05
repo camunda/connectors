@@ -468,7 +468,7 @@ class ChatModelFactoryTest {
   class GoogleVertexAiChatModelFactoryTest {
 
     private static final String PROJECT_ID = "projectId";
-    private static final String LOCATION = "us-central1";
+    private static final String REGION = "us-central1";
     private static final String MODEL = "gemini-2.5-pro";
 
     private static final GoogleVertexAiModelParameters DEFAULT_MODEL_PARAMETERS =
@@ -480,14 +480,14 @@ class ChatModelFactoryTest {
           new GoogleVertexAiProviderConfiguration(
               new GoogleVertexAiConnection(
                   PROJECT_ID,
-                  LOCATION,
+                  REGION,
                   new ApplicationDefaultCredentialsAuthentication(),
                   new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testGoogleVertexAiChatModelBuilder(
           providerConfig,
           (builder) -> {
-            verify(builder).location(LOCATION);
+            verify(builder).location(REGION);
             verify(builder).project(PROJECT_ID);
             verify(builder).modelName(MODEL);
             verify(builder).maxOutputTokens(DEFAULT_MODEL_PARAMETERS.maxOutputTokens());
@@ -506,7 +506,7 @@ class ChatModelFactoryTest {
           new GoogleVertexAiProviderConfiguration(
               new GoogleVertexAiConnection(
                   PROJECT_ID,
-                  LOCATION,
+                  REGION,
                   new ApplicationDefaultCredentialsAuthentication(),
                   new GoogleVertexAiModel(MODEL, modelParameters)));
 
@@ -526,7 +526,7 @@ class ChatModelFactoryTest {
           new GoogleVertexAiProviderConfiguration(
               new GoogleVertexAiConnection(
                   PROJECT_ID,
-                  LOCATION,
+                  REGION,
                   new ServiceAccountCredentialsAuthentication("{}"),
                   new GoogleVertexAiModel(MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -540,7 +540,7 @@ class ChatModelFactoryTest {
         testGoogleVertexAiChatModelBuilder(
             providerConfig,
             (builder) -> {
-              verify(builder).location(LOCATION);
+              verify(builder).location(REGION);
               verify(builder).project(PROJECT_ID);
               verify(builder).credentials(mockedSac);
               verify(builder).modelName(MODEL);

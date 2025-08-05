@@ -41,12 +41,12 @@ public record GoogleVertexAiProviderConfiguration(
       @NotBlank
           @TemplateProperty(
               group = "provider",
-              label = "Location",
+              label = "Region",
               description = "Specify the region where AI inference should take place",
               type = TemplateProperty.PropertyType.String,
               feel = Property.FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          String location,
+          String region,
       @Valid @NotNull GoogleVertexAiAuthentication authentication,
       @Valid @NotNull GoogleVertexAiProviderConfiguration.GoogleVertexAiModel model) {
 
