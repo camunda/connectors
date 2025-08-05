@@ -7,25 +7,33 @@
 package io.camunda.connector.embeddingmodel;
 
 import static io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider.AzureAuthentication.*;
+import static io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.VERTEX_AI_DEFAULT_PUBLISHER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.azure.core.credential.TokenCredential;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel;
 import dev.langchain4j.model.bedrock.BedrockTitanEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.vertexai.VertexAiEmbeddingModel;
 import io.camunda.connector.fixture.EmbeddingModelProviderFixture;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider.AzureAuthentication;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider.AzureAuthentication.AzureApiKeyAuthentication;
+import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider;
+import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.model.embedding.models.OpenAiEmbeddingModelProvider;
 import java.util.Map;
 import org.assertj.core.api.ThrowingConsumer;
@@ -213,6 +221,106 @@ class DefaultEmbeddingModelFactoryTest {
             verify(builder, never()).apiKey(anyString());
           }
         }
+
+        builderAssertions.accept(builder);
+      }
+    }
+  }
+
+  @Nested
+  class GoogleVertexAiEmbeddingModelTests {
+    private static final String PROJECT_ID = "test-project-id";
+    private static final String REGION = "us-central1";
+    private static final String MODEL_NAME = "test-model";
+    private static final Integer DIMENSIONS = 768;
+    private static final String PUBLISHER = "publisher-name";
+    private static final Integer MAX_RETRIES = 5;
+
+    @Test
+    void createVertexAiEmbeddingModel() {
+      var provider =
+          new GoogleVertexAiEmbeddingModelProvider(
+              PROJECT_ID,
+              REGION,
+              new ApplicationDefaultCredentialsAuthentication(),
+              MODEL_NAME,
+              DIMENSIONS,
+              PUBLISHER,
+              MAX_RETRIES);
+      testVertexAiEmbeddingModelBuilder(
+          provider,
+          (builder) -> {
+            verify(builder).publisher(PUBLISHER);
+            verify(builder).outputDimensionality(DIMENSIONS);
+            verify(builder).maxRetries(MAX_RETRIES);
+            verify(builder, never()).credentials(any());
+          });
+    }
+
+    @Test
+    void createVertexAiEmbeddingModelWithServiceAccountCredentials() {
+      var provider =
+          new GoogleVertexAiEmbeddingModelProvider(
+              PROJECT_ID,
+              REGION,
+              new ServiceAccountCredentialsAuthentication("{}"),
+              MODEL_NAME,
+              DIMENSIONS,
+              PUBLISHER,
+              MAX_RETRIES);
+      try (final var staticMockedSac = mockStatic(ServiceAccountCredentials.class)) {
+        final var mockedSac = mock(ServiceAccountCredentials.class);
+        when(mockedSac.createScoped(anyString())).thenReturn(mockedSac);
+        staticMockedSac
+            .when(() -> ServiceAccountCredentials.fromStream(any()))
+            .thenReturn(mockedSac);
+
+        testVertexAiEmbeddingModelBuilder(
+            provider,
+            (builder) -> {
+              verify(builder).publisher(PUBLISHER);
+              verify(builder).outputDimensionality(DIMENSIONS);
+              verify(builder).maxRetries(MAX_RETRIES);
+              verify(builder).credentials(mockedSac);
+            });
+
+        staticMockedSac.verify(() -> ServiceAccountCredentials.fromStream(any()));
+      }
+    }
+
+    @Test
+    void createVertexAiEmbeddingModelWithMandatoryParametersOnly() {
+      var provider =
+          new GoogleVertexAiEmbeddingModelProvider(
+              PROJECT_ID,
+              REGION,
+              new ApplicationDefaultCredentialsAuthentication(),
+              MODEL_NAME,
+              DIMENSIONS,
+              null,
+              null);
+
+      testVertexAiEmbeddingModelBuilder(
+          provider,
+          (builder) -> {
+            verify(builder).publisher(VERTEX_AI_DEFAULT_PUBLISHER);
+            verify(builder, never()).maxRetries(anyInt());
+          });
+    }
+
+    private void testVertexAiEmbeddingModelBuilder(
+        GoogleVertexAiEmbeddingModelProvider provider,
+        ThrowingConsumer<VertexAiEmbeddingModel.Builder> builderAssertions) {
+      var builder = spy(VertexAiEmbeddingModel.builder());
+      try (var modelMock = mockStatic(VertexAiEmbeddingModel.class, Answers.CALLS_REAL_METHODS)) {
+        modelMock.when(VertexAiEmbeddingModel::builder).thenReturn(builder);
+        EmbeddingModel embeddingModel = factory.createEmbeddingModel(provider);
+        assertThat(embeddingModel).isInstanceOf(VertexAiEmbeddingModel.class);
+
+        verify(builder).project(PROJECT_ID);
+        verify(builder).location(REGION);
+        verify(builder).modelName(MODEL_NAME);
+        verify(builder).outputDimensionality(DIMENSIONS);
 
         builderAssertions.accept(builder);
       }
