@@ -17,6 +17,7 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.InvalidInput;
@@ -161,7 +162,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
 
     // Then
     verify(spyContext, times(0)).cancel(cause);
-    verify(spyContext, times(1)).log(any());
+    verify(spyContext, times(1)).log(any(Activity.class));
   }
 
   @Test
