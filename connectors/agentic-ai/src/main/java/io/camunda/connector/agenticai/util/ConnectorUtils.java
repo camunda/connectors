@@ -7,9 +7,12 @@
 package io.camunda.connector.agenticai.util;
 
 public final class ConnectorUtils {
+
+  public static final String CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE = "CAMUNDA_CONNECTOR_RUNTIME_SAAS";
+
   private ConnectorUtils() {}
 
   public static boolean isSaaS() {
-    return System.getenv().containsKey("CAMUNDA_CONNECTOR_RUNTIME_SAAS");
+    return System.getenv().containsKey(CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE);
   }
 }

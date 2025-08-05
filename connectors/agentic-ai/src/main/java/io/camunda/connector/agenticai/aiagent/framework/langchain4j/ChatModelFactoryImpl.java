@@ -164,7 +164,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         VertexAiGeminiChatModel.builder()
             .project(connection.projectId())
-            .location(connection.location())
+            .location(connection.region())
             .modelName(connection.model().model());
 
     if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {

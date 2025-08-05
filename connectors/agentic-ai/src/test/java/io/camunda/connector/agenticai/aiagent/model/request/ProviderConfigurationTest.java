@@ -11,7 +11,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
+import io.camunda.connector.agenticai.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +40,7 @@ class ProviderConfigurationTest {
 
   @BeforeEach
   void setUp() {
-    environment.set("CAMUNDA_CONNECTOR_RUNTIME_SAAS", null);
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, null);
   }
 
   @Nested
@@ -43,8 +48,7 @@ class ProviderConfigurationTest {
 
     @Test
     void validationShouldFail_WhenSaaSAndDefaultCredentialChainUsed() {
-      environment.set("CAMUNDA_CONNECTOR_RUNTIME_SAAS", "true");
-
+      simulateSaaSEnvironment();
       final var connection =
           createConnection(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
       assertThat(validator.validate(connection))
@@ -62,8 +66,7 @@ class ProviderConfigurationTest {
 
     @Test
     void validationShouldSucceed_WhenSaaSAndNotDefaultCredentialChainUsed() {
-      environment.set("CAMUNDA_CONNECTOR_RUNTIME_SAAS", "true");
-
+      simulateSaaSEnvironment();
       final var connection =
           createConnection(
               new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
@@ -95,30 +98,53 @@ class ProviderConfigurationTest {
 
     @Test
     void validationShouldSucceed_WhenNotSaaS() {
-      final var connection = createConnection();
+      final var connection = createConnectionWithApplicationDefaultCredentials();
       assertThat(validator.validate(connection)).isEmpty();
     }
 
     @Test
     void validationShouldFail_WhenSaaS() {
-      environment.set("CAMUNDA_CONNECTOR_RUNTIME_SAAS", "true");
-      final var connection = createConnection();
+      simulateSaaSEnvironment();
+      final var connection = createConnectionWithApplicationDefaultCredentials();
       assertThat(validator.validate(connection))
           .hasSize(1)
           .extracting(ConstraintViolation::getMessage)
           .containsExactly("Google Vertex AI is not supported on SaaS");
     }
 
-    private static GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection createConnection() {
-      return new GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection(
+    @Test
+    void validationShouldSucceed_WhenSaaSAndServiceAccountCredentialsUsed() {
+      simulateSaaSEnvironment();
+      final var connection = createConnectionWithServiceAccountCredentials();
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @Test
+    void validationShouldSucceed_WhenNotSaaSAndServiceAccountCredentialsUsed() {
+      final var connection = createConnectionWithServiceAccountCredentials();
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    private static GoogleVertexAiConnection createConnectionWithApplicationDefaultCredentials() {
+      return new GoogleVertexAiConnection(
           "my-project-id",
           "us-central1",
-          new GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication
-              .ApplicationDefaultCredentialsAuthentication(),
-          new GoogleVertexAiProviderConfiguration.GoogleVertexAiModel(
-              "gemini-1.5-flash",
-              new GoogleVertexAiProviderConfiguration.GoogleVertexAiModel
-                  .GoogleVertexAiModelParameters(null, null, null, null)));
+          new ApplicationDefaultCredentialsAuthentication(),
+          new GoogleVertexAiModel(
+              "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
     }
+
+    private static GoogleVertexAiConnection createConnectionWithServiceAccountCredentials() {
+      return new GoogleVertexAiConnection(
+          "my-project-id",
+          "us-central1",
+          new ServiceAccountCredentialsAuthentication("{}"),
+          new GoogleVertexAiModel(
+              "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+    }
+  }
+
+  private void simulateSaaSEnvironment() {
+    environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
   }
 }
