@@ -16,6 +16,10 @@
  */
 package io.camunda.connector.api.inbound;
 
+/**
+ * Severity levels for inbound connector activity logs. Note: This does not translate 1:1 to SLF4J
+ * levels.
+ */
 public enum Severity {
   DEBUG,
   INFO,

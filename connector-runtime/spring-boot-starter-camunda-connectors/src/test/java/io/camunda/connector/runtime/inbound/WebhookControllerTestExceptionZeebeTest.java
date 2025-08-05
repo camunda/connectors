@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
@@ -31,7 +30,9 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
@@ -244,10 +245,13 @@ class WebhookControllerTestExceptionZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
 
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     return controller.inbound(
         "myPath", new HashMap<>(), "{}".getBytes(), new HashMap<>(), new MockHttpServletRequest());

@@ -19,11 +19,11 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -67,7 +67,7 @@ class DefaultInboundConnectorContextFactoryTest {
             newConnector,
             cancellationCallback,
             ExecutableWithInboundContext.class,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -79,7 +79,7 @@ class DefaultInboundConnectorContextFactoryTest {
             newConnector,
             cancellationCallback,
             ExecutableWithEmptyParameterizedType.class,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -92,7 +92,7 @@ class DefaultInboundConnectorContextFactoryTest {
             newConnector,
             cancellationCallback,
             ExecutableWithIntermediate.class,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
 
     assertThat(result).isExactlyInstanceOf(InboundIntermediateConnectorContextImpl.class);
   }

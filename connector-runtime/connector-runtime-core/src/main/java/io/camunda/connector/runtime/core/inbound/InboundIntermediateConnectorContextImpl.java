@@ -27,7 +27,6 @@ import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -140,11 +139,6 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public void log(Activity log) {
     inboundContext.log(log);
-  }
-
-  @Override
-  public Queue<Activity> getLogs() {
-    return inboundContext.getLogs();
   }
 
   @Override

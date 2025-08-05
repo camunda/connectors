@@ -20,77 +20,43 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.Objects;
 
-// We avoid using a record here to ensure backward compatibility when adding new fields
-public class Activity {
-    private final Severity severity;
-    private final String tag;
-    private final OffsetDateTime timestamp;
-    private final String message;
-    private final Map<String, Object> data;
+public record Activity(
+    Severity severity,
+    String tag,
+    OffsetDateTime timestamp,
+    String message,
+    Map<String, Object> data,
+    Health healthChange) {
 
-  public Activity(Severity severity, String tag, OffsetDateTime timestamp, String message,
-      Map<String, Object> data) {
-    this.severity = severity;
-    this.tag = tag;
-    this.timestamp = timestamp;
-    this.message = message;
-    this.data = data;
+  /** Creates a new builder for an {@link Activity} instance. */
+  public static ActivityBuilder newBuilder() {
+    return new ActivityBuilder();
   }
 
-  public Severity severity() {
-    return severity;
-  }
-
-  public String tag() {
-    return tag;
-  }
-
-  public OffsetDateTime timestamp() {
-    return timestamp;
-  }
-
-  public String message() {
-    return message;
-  }
-
-  public Map<String, Object> data() {
-    return data;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    Activity activity = (Activity) o;
-    return severity == activity.severity && Objects.equals(tag, activity.tag)
-        && Objects.equals(timestamp, activity.timestamp) && Objects.equals(
-        message, activity.message) && Objects.equals(data, activity.data);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(severity, tag, timestamp, message, data);
-  }
-
-  @Override
-  public String toString() {
-    return "Activity{" +
-        "severity=" + severity +
-        ", tag='" + tag + '\'' +
-        ", timestamp=" + timestamp +
-        ", message='" + message + '\'' +
-        ", data=" + data +
-        '}';
-  }
-
+  /**
+   * Pseudo-builder for creating {@link Activity} instances.
+   *
+   * <p>Do not use this class. If you are using this class, please switch to {@link ActivityBuilder}
+   * instead.
+   *
+   * @see Activity#newBuilder()
+   */
+  @Deprecated(forRemoval = true, since = "8.8")
   public static BuilderStep level(Severity severity) {
     return new BuilderStep(severity);
   }
 
   // Before builder
+  /**
+   * Pseudo-builder for creating {@link Activity} instances.
+   *
+   * <p>Do not use this class. If you are using this class, please switch to {@link ActivityBuilder}
+   * instead.
+   *
+   * @see Activity#newBuilder()
+   */
+  @Deprecated(forRemoval = true, since = "8.8")
   public static final class BuilderStep {
 
     private final Severity severity;
@@ -104,9 +70,15 @@ public class Activity {
     }
   }
 
-  // todo: add a real builder
-  // (not a real) Builder
-  @Deprecated
+  /**
+   * Pseudo-builder for creating {@link Activity} instances.
+   *
+   * <p>Do not use this class. If you are using this class, please switch to {@link ActivityBuilder}
+   * instead.
+   *
+   * @see Activity#newBuilder()
+   */
+  @Deprecated(forRemoval = true, since = "8.8")
   public static final class Builder {
 
     Severity severity;
@@ -121,20 +93,20 @@ public class Activity {
     }
 
     public Activity message(String message) {
-      return new Activity(severity, tag, timestamp, message, data);
+      return new Activity(severity, tag, timestamp, message, data, null);
     }
 
     public Activity messageWithException(String message, Throwable exception) {
-      return new Activity(severity, tag, timestamp, buildMessage(message, exception), data);
+      return new Activity(severity, tag, timestamp, buildMessage(message, exception), data, null);
     }
 
     public Activity messageWithData(String message, Map<String, Object> data) {
-      return new Activity(severity, tag, timestamp, message, data);
+      return new Activity(severity, tag, timestamp, message, data, null);
     }
 
     public Activity messageWithExceptionAndData(
         String message, Throwable exception, Map<String, Object> data) {
-      return new Activity(severity, tag, timestamp, buildMessage(message, exception), data);
+      return new Activity(severity, tag, timestamp, buildMessage(message, exception), data, null);
     }
 
     private String buildMessage(String message, Throwable exception) {

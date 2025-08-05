@@ -17,10 +17,8 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.*;
-import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.InvalidInput;
@@ -30,11 +28,14 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogEntry;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -47,7 +48,6 @@ import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -69,8 +69,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final Long activationTimestamp;
   private Health health = Health.unknown();
   private Map<String, Object> propertiesWithSecrets;
-
-  private static final String CORRELATION_LOG_TAG = "correlation";
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -101,7 +99,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      EvictingQueue<Activity> logs) {
+      ActivityLogWriter logs) {
     this(
         secretProvider,
         validationProvider,
@@ -131,71 +129,100 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private CorrelationResult correlateWithResultInternal(CorrelationRequest correlationRequest) {
     try {
-      var result = correlationHandler.correlate(connectorDetails.connectorElements(),
-          correlationRequest);
-      log(result);
+      var result =
+          correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
+      logCorrelationResult(result);
       return result;
     } catch (ConnectorInputException connectorInputException) {
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
     } catch (FeelEngineWrapperException feelEngineWrapperException) {
       log(
-          Activity.level(Severity.ERROR)
-              .tag("error")
-              .message(feelEngineWrapperException.getMessage()));
+          Activity.newBuilder()
+              .withSeverity(Severity.ERROR)
+              .withMessage(
+                  "Failed to evaluate FEEL expression: "
+                      + feelEngineWrapperException.getMessage()));
       return new CorrelationResult.Failure.Other(feelEngineWrapperException);
     } catch (Exception exception) {
       log(
-          Activity.level(Severity.ERROR)
-              .tag("error")
-              .message("Failed to correlate inbound event " + exception.getMessage()));
+          Activity.newBuilder()
+              .withSeverity(Severity.ERROR)
+              .withMessage("Failed to correlate inbound event: " + exception.getMessage()));
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
     }
   }
 
-  private void log(CorrelationResult correlationResult) {
+  private void logCorrelationResult(CorrelationResult correlationResult) {
     switch (correlationResult) {
       case Success success:
-        log(success);
+        logCorrelationResult(success);
         break;
       case Failure failure:
-        log(failure);
+        logCorrelationResult(failure);
         break;
     }
   }
 
-  private void log(Success success) {
+  private void logCorrelationResult(Success success) {
     switch (success) {
-      case ProcessInstanceCreated ignored:
-        Activity.level(Severity.INFO).tag(CORRELATION_LOG_TAG).message("Process instance created");
+      case ProcessInstanceCreated processInstanceCreated:
+        logRuntime(
+            Activity.newBuilder()
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Process instance created")
+                .withData(
+                    Map.of("processInstanceKey", processInstanceCreated.processInstanceKey())));
         break;
-      case MessagePublished ignored:
-        Activity.level(Severity.INFO).tag(CORRELATION_LOG_TAG).message("Message published");
+      case MessagePublished messagePublished:
+        logRuntime(
+            Activity.newBuilder()
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Message published")
+                .withData(Map.of("messageKey", messagePublished.messageKey())));
         break;
       case MessageAlreadyCorrelated ignored:
-        Activity.level(Severity.WARNING).tag(CORRELATION_LOG_TAG).message("Duplicate message");
+        logRuntime(
+            Activity.newBuilder()
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Message already correlated"));
         break;
     }
   }
 
-  private void log(Failure failure) {
+  private void logCorrelationResult(Failure failure) {
     switch (failure) {
       case ActivationConditionNotMet ignored:
-        Activity.level(Severity.WARNING).tag(CORRELATION_LOG_TAG)
-            .message("Activation condition not met");
+        logRuntime(
+            Activity.newBuilder()
+                .withSeverity(Severity.WARNING)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Activation condition not met"));
         break;
       case InvalidInput ignored:
-        Activity.level(Severity.ERROR).tag(CORRELATION_LOG_TAG)
-            .message("Invalid input: " + failure.message());
+        logRuntime(
+            Activity.newBuilder()
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Invalid input: " + failure.message()));
         break;
       case ZeebeClientStatus ignored:
-        Activity.level(Severity.ERROR).tag(CORRELATION_LOG_TAG)
-            .message("Zeebe client status error: " + failure.message());
+        logRuntime(
+            Activity.newBuilder()
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Zeebe client status error: " + failure.message()));
         break;
       case Other ignored:
-        Activity.level(Severity.ERROR).tag(CORRELATION_LOG_TAG)
-            .message("Error: " + failure.message());
+        logRuntime(
+            Activity.newBuilder()
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Other error: " + failure.message()));
         break;
     }
   }
@@ -235,6 +262,13 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public void reportHealth(Health health) {
     this.health = health;
+    var activityLog = Activity.newBuilder().andReportHealth(health).build();
+    // append the activity log to store the health status change history
+    activityLogWriter.log(
+        new ActivityLogEntry(
+            ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
+            ActivitySource.CONNECTOR,
+            activityLog));
   }
 
   @Override
@@ -244,12 +278,22 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
-    activityLogWriter.log();
+    if (log.healthChange() != null) {
+      this.health = log.healthChange();
+    }
+    activityLogWriter.log(
+        new ActivityLogEntry(
+            ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
+            ActivitySource.CONNECTOR,
+            log));
   }
 
-  @Override
-  public Queue<Activity> getLogs() {
-    return this.logs;
+  private void logRuntime(ActivityBuilder log) {
+    activityLogWriter.log(
+        new ActivityLogEntry(
+            ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
+            ActivitySource.RUNTIME,
+            log.build()));
   }
 
   @Override

@@ -43,8 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import org.jetbrains.annotations.NotNull;
 
 /** Test helper class for creating an {@link InboundConnectorContext} with a fluent API. */
@@ -352,11 +350,6 @@ public class InboundConnectorContextBuilder {
 
     @Override
     public void log(Activity activity) {}
-
-    @Override
-    public Queue<Activity> getLogs() {
-      return new ConcurrentLinkedQueue<>();
-    }
 
     @Override
     public List<InboundConnectorElement> connectorElements() {

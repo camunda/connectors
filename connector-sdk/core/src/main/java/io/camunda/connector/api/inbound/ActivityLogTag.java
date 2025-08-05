@@ -14,9 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.inbound.activitylog;
+package io.camunda.connector.api.inbound;
 
-public enum ActivitySource {
-  RUNTIME,
-  CONNECTOR
+/**
+ * Common tags that can be used in activity logs when logging activities inside an inbound
+ * connector.
+ */
+public enum ActivityLogTag {
+
+  /** A log tag for entries related to the lifecycle of the event consumer (managed by the */
+  CONSUMER("Consumer"),
+  /**
+   * A log tag for entries related to message/event processing. For example, use this tag to log
+   * that an incoming event was processed by the connector.
+   */
+  MESSAGE("Message"),
+
+  CORRELATION("Correlation"),
+
+  LIFECYCLE("Lifecycle");
+
+  private final String tag;
+
+  ActivityLogTag(String tag) {
+    this.tag = tag;
+  }
+
+  /**
+   * Returns the string representation of the tag.
+   *
+   * @return the tag as a string
+   */
+  public String getTag() {
+    return tag;
+  }
 }
