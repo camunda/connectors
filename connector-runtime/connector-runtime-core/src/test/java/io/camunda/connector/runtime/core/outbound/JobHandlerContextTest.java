@@ -90,6 +90,24 @@ class JobHandlerContextTest {
   }
 
   @Test
+  void bindVariables_successJsonSecretAreEscapedAndCarriageReturnRemoved() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \n\"secret\"}");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("{\"key\": \"secret\"}");
+  }
+
+  @Test
+  void bindVariables_successJsonSecretAreEscapedAndNullByteRemoved() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \0\"secret\"}");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("{\"key\": \"secret\"}");
+  }
+
+  @Test
   void bindVariables_secretIsNotAvailable() {
     String json = "{ \"integer\": {{secrets.FOO2}} }";
     when(activatedJob.getVariables()).thenReturn(json);
