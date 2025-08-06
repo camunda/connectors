@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
-import static io.camunda.connector.runtime.inbound.WebhookControllerPlainJavaTests.webhookDefinition;
+import static io.camunda.connector.runtime.inbound.WebhookConnectorRegistryTest.webhookDefinition;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -63,7 +63,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class WebhookControllerTestExceptionZeebeTests {
+class WebhookControllerTestExceptionZeebeTest {
 
   @Autowired private WebhookConnectorRegistry webhookConnectorRegistry;
 

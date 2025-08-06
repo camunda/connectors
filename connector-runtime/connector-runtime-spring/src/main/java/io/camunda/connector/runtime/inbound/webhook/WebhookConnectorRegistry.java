@@ -18,9 +18,7 @@ package io.camunda.connector.runtime.inbound.webhook;
 
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +28,8 @@ public class WebhookConnectorRegistry {
 
   private final Map<String, RegisteredExecutable.Activated> activeEndpointsByContext =
       new HashMap<>();
+
+  private final WebhookWaitingQueue waitingQueue = new WebhookWaitingQueue();
 
   public Optional<RegisteredExecutable.Activated> getWebhookConnectorByContextPath(String context) {
     return Optional.ofNullable(activeEndpointsByContext.get(context));
@@ -51,31 +51,10 @@ public class WebhookConnectorRegistry {
     }
 
     WebhookConnectorValidationUtil.logIfWebhookPathDeprecated(connector, context);
-
-    var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
-    checkIfEndpointExists(existingEndpoint, context);
-  }
-
-  private void checkIfEndpointExists(
-      RegisteredExecutable.Activated existingEndpoint, String context) {
-    if (existingEndpoint != null) {
-      Map<String, String> elementIdsByProcessId =
-          existingEndpoint.context().getDefinition().elements().stream()
-              .collect(
-                  HashMap::new,
-                  (map, element) -> map.put(element.bpmnProcessId(), element.elementId()),
-                  HashMap::putAll);
-      var logMessage =
-          "Context: "
-              + context
-              + " already in use by: "
-              + elementIdsByProcessId.entrySet().stream()
-                  .map(e -> "process " + e.getKey() + "(" + e.getValue() + ")")
-                  .reduce((a, b) -> a + ", " + b)
-                  .orElse("");
-      LOG.debug(logMessage);
-      throw new RuntimeException(logMessage);
-    }
+    Optional.ofNullable(activeEndpointsByContext.putIfAbsent(context, connector))
+        .ifPresent(
+            existingExecutable ->
+                waitingQueue.markAsDownAndAdd(context, connector, existingExecutable));
   }
 
   public void deregister(RegisteredExecutable.Activated connector) {
@@ -99,7 +78,18 @@ public class WebhookConnectorRegistry {
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
-    activeEndpointsByContext.remove(context);
+    var nextConnector = waitingQueue.activateNext(context);
+    if (nextConnector.isPresent()) {
+      LOG.debug(
+          "Next enqueued connector activated for context: {}, replacing the current one with: {}",
+          context,
+          nextConnector.get().context().getDefinition());
+      activeEndpointsByContext.put(context, nextConnector.get());
+    } else {
+      LOG.debug(
+          "No connectors found in the queue for context: {}, the context will be removed", context);
+      activeEndpointsByContext.remove(context);
+    }
   }
 
   public void reset() {

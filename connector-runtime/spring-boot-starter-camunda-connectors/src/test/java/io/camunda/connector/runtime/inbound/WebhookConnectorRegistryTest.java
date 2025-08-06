@@ -28,6 +28,7 @@ import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -55,20 +56,42 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class WebhookControllerPlainJavaTests {
+public class WebhookConnectorRegistryTest {
 
   private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Test
-  public void multipleWebhooksOnSameContextPathAreNotSupported() {
+  public void multipleWebhooksOnSameContextPathAreQueued() {
     WebhookConnectorRegistry webhookConnectorRegistry = new WebhookConnectorRegistry();
     var connectorA = buildConnector(webhookDefinition("processA", 1, "myPath"));
     webhookConnectorRegistry.register(connectorA);
 
     var connectorB = buildConnector(webhookDefinition("processA", 1, "myPath"));
-    assertThrowsExactly(
-        RuntimeException.class, () -> webhookConnectorRegistry.register(connectorB));
+    // connectorA is registered, but connectorB is queued
+    webhookConnectorRegistry.register(connectorB);
+
+    // connectorB should be the active connector now
+    webhookConnectorRegistry.deregister(connectorA);
+
+    assertFalse(webhookConnectorRegistry.isRegistered(connectorA));
+    assertTrue(webhookConnectorRegistry.isRegistered(connectorB));
+    assertThat(connectorB.context().getHealth()).isEqualTo(Health.up());
+  }
+
+  @Test
+  public void multipleWebhooksOnSameContextPathAreSupported() {
+    WebhookConnectorRegistry webhookConnectorRegistry = new WebhookConnectorRegistry();
+    var connectorA = buildConnector(webhookDefinition("processA", 1, "myPath"));
+    webhookConnectorRegistry.register(connectorA);
+
+    var connectorB = buildConnector(webhookDefinition("processA", 1, "myPath"));
+    webhookConnectorRegistry.register(connectorB);
     assertFalse(webhookConnectorRegistry.isRegistered(connectorB));
+    assertThat(connectorB.context().getHealth())
+        .isEqualTo(
+            Health.down(
+                new IllegalStateException(
+                    "Context: myPath already in use by: process processA(testElement)")));
   }
 
   @Test
