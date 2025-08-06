@@ -148,6 +148,10 @@
           "value": "^(?!.*&).*$",
           "message": "invalid: use '^' instead of '&'"
         }
+      },
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": ["read"]
       }
     },
     {
@@ -161,7 +165,11 @@
         "name": "sysparm_fields",
         "type": "zeebe:input"
       },
-      "type": "String"
+      "type": "String",
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": ["read"]
+      }
     },
     {
       "id": "sysparm_limit",
@@ -174,7 +182,11 @@
         "name": "sysparm_limit",
         "type": "zeebe:input"
       },
-      "type": "String"
+      "type": "String",
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": ["read"]
+      }
     },
     {
       "id": "authentication.type",
