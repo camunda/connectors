@@ -124,7 +124,7 @@ limitations under the License.</license.inlineheader>
     <version.commons-io>2.20.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
-    <version.kafka-clients>4.0.0</version.kafka-clients>
+    <version.kafka-clients>8.0.0-ce</version.kafka-clients>
 
     <version.microsoft-graph>6.47.0</version.microsoft-graph>
     <version.azure-identity>1.16.3</version.azure-identity>
