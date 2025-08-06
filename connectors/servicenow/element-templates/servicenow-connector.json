@@ -1,13 +1,13 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "ServiceNow Outbound Connector",
-  "id": "cc249279-09d1-479c-a8f7-de31fc781605",
-  "version": 1753694059635,
-  "description": "Query a ServiceNow tenant for data",
+  "id": "io.camunda.connectors.ServiceNow.v1",
+  "version": 1,
+  "description": "Interact with ServiceNow tenant",
   "metadata": {
     "keywords": []
   },
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/servicenow/?servicenow=outbound",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -77,77 +77,43 @@
       "type": "String"
     },
     {
-      "id": "requestTarget",
-      "label": "Data target",
-      "value": "sc_req_item",
+      "id": "operationGroup",
+      "label": "Operation group",
       "group": "sn",
-      "binding": {
-        "name": "requestTarget",
-        "type": "zeebe:input"
-      },
+      "description": "Choose operation group",
       "type": "Dropdown",
+      "value": "read",
       "choices": [
-        {
-          "name": "Configuration Item [cmdb_ci]",
-          "value": "cmdb_ci"
-        },
-        {
-          "name": "Requested Item [sc_req_item]",
-          "value": "sc_req_item"
-        },
-        {
-          "name": "Change Request [change_request]",
-          "value": "change_request"
-        },
-        {
-          "name": "Service Catalog Request [sc_request]",
-          "value": "sc_request"
-        },
-        {
-          "name": "Service Catalog Task [sc_task]",
-          "value": "sc_task"
-        },
-        {
-          "name": "User [sys_user]",
-          "value": "sys_user"
-        },
-        {
-          "name": "User Group [sys_user_group]",
-          "value": "sys_user_group"
-        },
-        {
-          "name": "Progress State [state]",
-          "value": "state"
-        },
-        {
-          "name": "Assignment Group [assignment_group]",
-          "value": "assignment_group"
-        },
-        {
-          "name": "Scheduled Start [scheduled_start]",
-          "value": "scheduled_start"
-        },
-        {
-          "name": "Backout Plan [backout_plan]",
-          "value": "backout_plan"
-        },
-        {
-          "name": "Incident [incident]",
-          "value": "incident"
-        },
-        {
-          "name": "Problem [problem]",
-          "value": "problem"
-        },
-        {
-          "name": "Work notes/Comments [sys_journal_field]",
-          "value": "sys_journal_field"
-        },
-        {
-          "name": "Other",
-          "value": "__custom"
-        }
-      ]
+        { "name": "Read", "value": "read" }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationGroup"
+      }
+    },
+    {
+      "id": "readOperationType",
+      "label": "Operation type",
+      "group": "sn",
+      "type": "Dropdown",
+      "value": "sc_req_item",
+      "choices": [
+        { "name": "Configuration Item [cmdb_ci]", "value": "cmdb_ci" },
+        { "name": "Requested Item [sc_req_item]", "value": "sc_req_item" },
+        { "name": "Change Request [change_request]", "value": "change_request" },
+        { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
+        { "name": "Service Catalog Task [sc_task]", "value": "sc_task" },
+        { "name": "Incident [incident]", "value": "incident" },
+        { "name": "Other", "value": "__custom" }
+      ],
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": ["read"]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
     },
     {
       "id": "customRequestTarget",
@@ -160,7 +126,7 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "requestTarget",
+        "property": "readOperationType",
         "equals": "__custom"
       }
     },
