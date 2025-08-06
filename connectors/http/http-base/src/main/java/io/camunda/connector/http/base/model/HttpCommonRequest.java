@@ -34,7 +34,7 @@ public class HttpCommonRequest {
   @FEEL
   @NotBlank
   @Pattern(regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)", message = "Must be a http(s) URL")
-  @TemplateProperty(group = "endpoint", label = "URL")
+  @TemplateProperty(group = "endpoint", label = "URL", feel = FeelMode.optional)
   private String url;
 
   @Valid private Authentication authentication;

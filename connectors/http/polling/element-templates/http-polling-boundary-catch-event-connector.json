@@ -394,6 +394,7 @@
         "message" : "Must be a http(s) URL"
       }
     },
+    "feel" : "optional",
     "group" : "endpoint",
     "binding" : {
       "name" : "url",

@@ -12,7 +12,7 @@
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:IntermediateCatchEvent" ],
+  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
   "elementType" : {
     "value" : "bpmn:IntermediateCatchEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
@@ -394,6 +394,7 @@
         "message" : "Must be a http(s) URL"
       }
     },
+    "feel" : "optional",
     "group" : "endpoint",
     "binding" : {
       "name" : "url",
