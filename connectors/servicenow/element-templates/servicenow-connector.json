@@ -1,4 +1,5 @@
 {
+  "let": "try",
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "ServiceNow Outbound Connector",
   "id": "io.camunda.connectors.ServiceNow.v1",
@@ -22,6 +23,10 @@
     {
       "id": "sn",
       "label": "ServiceNow"
+    },
+    {
+      "id": "input",
+      "label": "Input"
     },
     {
       "id": "authentication",
@@ -78,13 +83,16 @@
     },
     {
       "id": "operationGroup",
-      "label": "Operation group",
+      "label": "What do you want to do?",
       "group": "sn",
-      "description": "Choose operation group",
+      "description": "Choose interaction type",
       "type": "Dropdown",
       "value": "read",
       "choices": [
-        { "name": "Read", "value": "read" }
+        { "name": "Read", "value": "read" },
+        { "name": "Create", "value": "create" },
+        { "name": "Update", "value": "update" },
+        { "name": "Delete", "value": "delete" }
       ],
       "binding": {
         "type": "zeebe:input",
@@ -92,8 +100,61 @@
       }
     },
     {
+      "id": "updateOperationType",
+      "label": "target table",
+      "description": "table to update a record in",
+      "group": "sn",
+      "type": "Dropdown",
+      "value": "incident",
+      "choices": [
+        { "name": "Configuration Item [cmdb_ci]", "value": "cmdb_ci" },
+        { "name": "Request Item [sc_req_item]", "value": "sc_req_item" },
+        { "name": "Change Request [change_request]", "value": "change_request" },
+        { "name": "Change Task [change_task]", "value": "change_task" },
+        { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
+        { "name": "Service Catalog Task [sc_task]", "value": "sc_task" },
+        { "name": "Incident [incident]", "value": "incident" },
+        { "name": "Other", "value": "__custom" }
+      ],
+      "condition": {
+        "property": "operationGroup",
+        "equals": "update"
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "targetTable"
+      }
+    },
+    {
+      "id": "createOperationType",
+      "label": "target table",
+      "description": "table to create a record in",
+      "group": "sn",
+      "type": "Dropdown",
+      "value": "incident",
+      "choices": [
+        { "name": "Configuration Item [cmdb_ci]", "value": "cmdb_ci" },
+        { "name": "Request Item [sc_req_item]", "value": "sc_req_item" },
+        { "name": "Change Request [change_request]", "value": "change_request" },
+        { "name": "Change Task [change_task]", "value": "change_task" },
+        { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
+        { "name": "Service Catalog Task [sc_task]", "value": "sc_task" },
+        { "name": "Incident [incident]", "value": "incident" },
+        { "name": "Other", "value": "__custom" }
+      ],
+      "condition": {
+        "property": "operationGroup",
+        "equals": "create"
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "targetTable"
+      }
+    },
+    {
       "id": "readOperationType",
-      "label": "Operation type",
+      "label": "target table",
+      "description": "table to read from",
       "group": "sn",
       "type": "Dropdown",
       "value": "sc_req_item",
@@ -108,14 +169,15 @@
       ],
       "condition": {
         "property": "operationGroup",
-        "oneOf": ["read"]
+        "equals": "read"
       },
       "binding": {
         "type": "zeebe:input",
-        "name": "operationType"
+        "name": "targetTable"
       }
     },
     {
+      "//": "used for all operation types",
       "id": "customRequestTarget",
       "label": "Enter custom table name",
       "description": "Specify your own ServiceNow table name.",
@@ -136,7 +198,7 @@
       "description": "Separate multiple conditions with '^' (Ex: active=true^priority=1)",
       "optional": true,
       "feel": "optional",
-      "group": "sn",
+      "group": "input",
       "binding": {
         "name": "sysparm_query",
         "type": "zeebe:input"
@@ -160,7 +222,7 @@
       "description": "Comma-separated field names (Ex: sys_id, number, short_description)",
       "optional": true,
       "feel": "optional",
-      "group": "sn",
+      "group": "input",
       "binding": {
         "name": "sysparm_fields",
         "type": "zeebe:input"
@@ -177,7 +239,7 @@
       "description": "The maximum number of records to return (Ex: 10)",
       "optional": true,
       "feel": "optional",
-      "group": "sn",
+      "group": "input",
       "binding": {
         "name": "sysparm_limit",
         "type": "zeebe:input"
@@ -188,6 +250,102 @@
         "oneOf": ["read"]
       }
     },
+
+    {
+      "id": "urgency",
+      "label": "Urgency",
+      "description": "how time-sensitive is this?",
+      "value": "2",
+      "group": "input",
+      "binding": {
+        "name": "urgency",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "High",
+          "value": "1"
+        },
+        {
+          "name": "Medium",
+          "value": "2"
+        },
+        {
+          "name": "Low",
+          "value": "3"
+        }
+      ],
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": ["create", "update"]
+      }
+    },
+    {
+      "id": "impact",
+      "label": "Impact",
+      "description": "impact on business and/or organization",
+      "value": "2",
+      "group": "input",
+      "binding": {
+        "name": "impact",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "High",
+          "value": "1"
+        },
+        {
+          "name": "Medium",
+          "value": "2"
+        },
+        {
+          "name": "Low",
+          "value": "3"
+        }
+      ],
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": ["create", "update"]
+      }
+    },
+    {
+      "id": "short_description",
+      "label": "Short description",
+      "group": "input",
+      "type": "Text",
+      "feel": "optional",
+      "binding": {
+        "name": "short_description",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": ["create", "update"]
+      }
+    },
+    {
+      "id": "description",
+      "label": "Description",
+      "group": "input",
+      "type": "Text",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "name": "description",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": ["create", "update"]
+      }
+    },
+
     {
       "id": "authentication.type",
       "label": "Type",
