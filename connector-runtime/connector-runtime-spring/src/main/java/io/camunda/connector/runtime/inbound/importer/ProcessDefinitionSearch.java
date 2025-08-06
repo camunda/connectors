@@ -54,7 +54,7 @@ public class ProcessDefinitionSearch {
       processDefinitionResult = searchQueryClient.queryProcessDefinitions(paginationIndex);
       String newPaginationIdx = processDefinitionResult.page().endCursor();
 
-      LOG.debug(
+      LOG.trace(
           "A page of {} process definitions has been fetched, continuing...",
           processDefinitionResult.items().size());
 
