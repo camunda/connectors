@@ -83,7 +83,10 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
               }
 
               properties.put(parameterName, propertySchema);
-              required.add(parameterName);
+
+              if (isParameterRequired(element, parameter)) {
+                required.add(parameterName);
+              }
             });
 
     Map<String, Object> inputSchema = new LinkedHashMap<>();
@@ -120,5 +123,26 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
     }
 
     return parameterNameWithoutNamespace;
+  }
+
+  private boolean isParameterRequired(
+      AdHocToolElement element, AdHocToolElementParameter parameter) {
+    if (parameter.options() == null) {
+      return true;
+    }
+
+    Object requiredValue = parameter.options().get("required");
+    if (requiredValue == null) {
+      return true;
+    }
+
+    if (requiredValue instanceof Boolean) {
+      return (Boolean) requiredValue;
+    }
+
+    throw new AdHocToolSchemaGenerationException(
+        "Failed to generate ad-hoc tool schema for element '%s'. Parameter '%s' 'required' option must be a boolean value, but was: %s"
+            .formatted(
+                element.elementId(), parameter.name(), requiredValue.getClass().getSimpleName()));
   }
 }
