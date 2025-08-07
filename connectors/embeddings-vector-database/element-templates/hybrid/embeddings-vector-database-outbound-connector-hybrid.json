@@ -943,7 +943,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.accessKey",
+      "name" : "vectorStore.amazonManagedOpensearch.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -963,7 +963,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.secretKey",
+      "name" : "vectorStore.amazonManagedOpensearch.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -983,7 +983,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.serverUrl",
+      "name" : "vectorStore.amazonManagedOpensearch.serverUrl",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1003,7 +1003,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.region",
+      "name" : "vectorStore.amazonManagedOpensearch.region",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1023,7 +1023,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.indexName",
+      "name" : "vectorStore.amazonManagedOpensearch.indexName",
       "type" : "zeebe:input"
     },
     "condition" : {

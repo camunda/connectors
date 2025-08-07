@@ -88,19 +88,21 @@ public class DefaultEmbeddingStoreFactory {
 
   private EmbeddingStore<TextSegment> initializeAmazonManagedOpenSearchVectorStore(
       AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore) {
+    final var amazonManagedOpenSearch =
+        amazonManagedOpenSearchVectorStore.amazonManagedOpensearch();
     return OpenSearchEmbeddingStore.builder()
         .serviceName("es") // for managed AWS OS
-        .serverUrl(amazonManagedOpenSearchVectorStore.serverUrl())
-        .region(amazonManagedOpenSearchVectorStore.region())
+        .serverUrl(amazonManagedOpenSearch.serverUrl())
+        .region(amazonManagedOpenSearch.region())
         .options(
             AwsSdk2TransportOptions.builder()
                 .setCredentials(
                     StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(
-                            amazonManagedOpenSearchVectorStore.accessKey(),
-                            amazonManagedOpenSearchVectorStore.secretKey())))
+                            amazonManagedOpenSearch.accessKey(),
+                            amazonManagedOpenSearch.secretKey())))
                 .build())
-        .indexName(amazonManagedOpenSearchVectorStore.indexName())
+        .indexName(amazonManagedOpenSearch.indexName())
         .build();
   }
 }

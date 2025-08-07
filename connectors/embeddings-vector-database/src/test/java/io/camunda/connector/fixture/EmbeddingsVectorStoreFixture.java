@@ -24,6 +24,7 @@ public class EmbeddingsVectorStoreFixture {
 
   public static AmazonManagedOpenSearchVectorStore createAmazonManagedOpenVectorStore() {
     return new AmazonManagedOpenSearchVectorStore(
-        "ACCESS_KEY", "SECRET_KEY", "https://opensearch.aws", "us-east-1", "embeddings_idx");
+        new AmazonManagedOpenSearchVectorStore.Configuration(
+            "ACCESS_KEY", "SECRET_KEY", "https://opensearch.aws", "us-east-1", "embeddings_idx"));
   }
 }
