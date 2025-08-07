@@ -124,7 +124,7 @@ public class FeelExpressionParameterExtractorImpl implements FeelExpressionParam
               .formatted(valueRef));
     }
 
-    return valueRef.names().last();
+    return String.join(".", CollectionConverters.asJava(valueRef.names()));
   }
 
   private String evaluateToString(Exp exp, String parameterName) {
