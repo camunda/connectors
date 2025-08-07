@@ -168,6 +168,19 @@
       "value" : "Array"
     } ]
   }, {
+    "id" : "readCsv:mapper",
+    "label" : "Record mapping",
+    "description" : "",
+    "value" : "",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "key" : "mapper",
+      "type" : "zeebe:taskHeader"
+    },
+    "tooltip" : "",
+    "type" : "String"
+  }, {
     "id" : "writeCsv:data",
     "label" : "Data",
     "feel" : "required",
