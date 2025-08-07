@@ -100,6 +100,7 @@ public class HttpCommonRequest {
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       defaultValue = "false",
       description = "Store the response as a document in the document store")
+  @FEEL
   private boolean storeResponse;
 
   @TemplateProperty(
