@@ -83,9 +83,9 @@
     },
     {
       "id": "operationGroup",
-      "label": "What do you want to do?",
+      "label": "Operation",
       "group": "sn",
-      "description": "Choose interaction type",
+      "description": "Choose operation type",
       "type": "Dropdown",
       "value": "read",
       "choices": [
