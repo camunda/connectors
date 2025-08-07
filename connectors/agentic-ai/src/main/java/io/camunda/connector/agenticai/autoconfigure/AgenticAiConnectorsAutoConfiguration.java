@@ -12,8 +12,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractorImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGeneratorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
@@ -66,8 +66,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FeelExpressionParameterExtractor aiAgentAdHocFeelExpressionParameterExtractor() {
-    return new FeelExpressionParameterExtractorImpl();
+  public AdHocToolElementParameterExtractor aiAgentAdHocToolElementParameterExtractor() {
+    return new AdHocToolElementParameterExtractorImpl();
   }
 
   @Bean
@@ -89,7 +89,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   public ProcessDefinitionAdHocToolElementsResolver aiAgentProcessDefinitionToolElementsResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
-      FeelExpressionParameterExtractor parameterExtractor) {
+      AdHocToolElementParameterExtractor parameterExtractor) {
 
     final var resolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(

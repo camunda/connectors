@@ -22,8 +22,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementPar
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest.AdHocToolsSchemaRequestData;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractionException;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractionException;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerationException;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolverImpl;
@@ -63,7 +63,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private CamundaClient camundaClient;
 
-  @Mock private FeelExpressionParameterExtractor parameterExtractor;
+  @Mock private AdHocToolElementParameterExtractor parameterExtractor;
   @Mock private AdHocToolSchemaGenerator schemaGenerator;
 
   private AdHocToolsSchemaFunction function;
@@ -280,7 +280,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn(bpmnXml);
 
-    doThrow(new FeelExpressionParameterExtractionException("I can't handle the fromAi function."))
+    doThrow(new AdHocToolElementParameterExtractionException("I can't handle the fromAi function."))
         .when(parameterExtractor)
         .extractParameters("fromAi(toolCall.inputParameter, \"An input parameter\")");
 
@@ -304,7 +304,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
         .thenReturn(bpmnXml);
 
     when(parameterExtractor.extractParameters(any())).thenReturn(Collections.emptyList());
-    doThrow(new FeelExpressionParameterExtractionException("I can't handle the fromAi function."))
+    doThrow(new AdHocToolElementParameterExtractionException("I can't handle the fromAi function."))
         .when(parameterExtractor)
         .extractParameters("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
