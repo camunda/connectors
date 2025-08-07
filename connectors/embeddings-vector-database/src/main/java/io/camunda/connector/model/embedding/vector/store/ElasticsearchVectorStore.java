@@ -12,8 +12,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(label = "Elasticsearch", id = ElasticSearchVectorStore.ELASTICSEARCH_STORE)
-public record ElasticSearchVectorStore(@Valid @NotNull Configuration elasticSearch)
+@TemplateSubType(label = "Elasticsearch", id = ElasticsearchVectorStore.ELASTICSEARCH_STORE)
+public record ElasticsearchVectorStore(@Valid @NotNull Configuration elasticsearch)
     implements EmbeddingsVectorStore {
 
   @TemplateProperty(ignore = true)

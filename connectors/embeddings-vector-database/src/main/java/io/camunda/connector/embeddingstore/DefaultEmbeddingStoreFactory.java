@@ -16,7 +16,7 @@ import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
-import io.camunda.connector.model.embedding.vector.store.ElasticSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.ElasticsearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.EmbeddingsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
 import io.camunda.connector.model.operation.VectorDatabaseConnectorOperation;
@@ -40,8 +40,8 @@ public class DefaultEmbeddingStoreFactory {
       EmbeddingModel model,
       VectorDatabaseConnectorOperation operation) {
     return switch (embeddingsVectorStore) {
-      case ElasticSearchVectorStore elasticSearchVectorStore ->
-          initializeElasticSearchVectorStore(elasticSearchVectorStore);
+      case ElasticsearchVectorStore elasticsearchVectorStore ->
+          initializeElasticsearchVectorStore(elasticsearchVectorStore);
       case OpenSearchVectorStore openSearchVectorStore ->
           initializeOpenSearchVectorStore(openSearchVectorStore);
       case AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore ->
@@ -55,24 +55,24 @@ public class DefaultEmbeddingStoreFactory {
     };
   }
 
-  private EmbeddingStore<TextSegment> initializeElasticSearchVectorStore(
-      ElasticSearchVectorStore elasticSearchVectorStore) {
-    final var elasticSearch = elasticSearchVectorStore.elasticSearch();
+  private EmbeddingStore<TextSegment> initializeElasticsearchVectorStore(
+      ElasticsearchVectorStore elasticsearchVectorStore) {
+    final var elasticsearch = elasticsearchVectorStore.elasticsearch();
     RestClientBuilder restClientBuilder =
-        RestClient.builder(HttpHost.create(elasticSearch.baseUrl()));
+        RestClient.builder(HttpHost.create(elasticsearch.baseUrl()));
 
-    if (!isNullOrBlank(elasticSearch.userName())) {
+    if (!isNullOrBlank(elasticsearch.userName())) {
       CredentialsProvider provider = new BasicCredentialsProvider();
       provider.setCredentials(
           AuthScope.ANY,
-          new UsernamePasswordCredentials(elasticSearch.userName(), elasticSearch.password()));
+          new UsernamePasswordCredentials(elasticsearch.userName(), elasticsearch.password()));
       restClientBuilder.setHttpClientConfigCallback(
           httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(provider));
     }
 
     return ElasticsearchEmbeddingStore.builder()
         .restClient(restClientBuilder.build())
-        .indexName(elasticSearch.indexName())
+        .indexName(elasticsearch.indexName())
         .build();
   }
 

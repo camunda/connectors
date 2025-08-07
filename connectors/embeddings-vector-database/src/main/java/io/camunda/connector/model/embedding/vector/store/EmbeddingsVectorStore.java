@@ -15,8 +15,8 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "storeType")
 @JsonSubTypes({
   @JsonSubTypes.Type(
-      value = ElasticSearchVectorStore.class,
-      name = ElasticSearchVectorStore.ELASTICSEARCH_STORE),
+      value = ElasticsearchVectorStore.class,
+      name = ElasticsearchVectorStore.ELASTICSEARCH_STORE),
   @JsonSubTypes.Type(
       value = OpenSearchVectorStore.class,
       name = OpenSearchVectorStore.OPEN_SEARCH_STORE),
@@ -34,12 +34,12 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     name = "storeType",
     id = "vectorStore",
     group = "embeddingsStore",
-    defaultValue = ElasticSearchVectorStore.ELASTICSEARCH_STORE,
+    defaultValue = ElasticsearchVectorStore.ELASTICSEARCH_STORE,
     label = "Embeddings store",
     description = "Select embedding store")
 public sealed interface EmbeddingsVectorStore
     permits AmazonManagedOpenSearchVectorStore,
         AzureAiSearchVectorStore,
         AzureCosmosDbNoSqlVectorStore,
-        ElasticSearchVectorStore,
+        ElasticsearchVectorStore,
         OpenSearchVectorStore {}

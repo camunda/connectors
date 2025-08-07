@@ -1522,7 +1522,7 @@
       "value" : "DISK_ANN"
     } ]
   }, {
-    "id" : "vectorStore.elasticSearch.baseUrl",
+    "id" : "vectorStore.elasticsearch.baseUrl",
     "label" : "Base URL",
     "description" : "Elasticsearch base URL, i.e. http(s)://host:port",
     "optional" : false,
@@ -1532,7 +1532,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.elasticSearch.baseUrl",
+      "name" : "vectorStore.elasticsearch.baseUrl",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1542,7 +1542,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.elasticSearch.userName",
+    "id" : "vectorStore.elasticsearch.userName",
     "label" : "Username",
     "description" : "Elasticsearch username",
     "optional" : false,
@@ -1552,7 +1552,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.elasticSearch.userName",
+      "name" : "vectorStore.elasticsearch.userName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1562,7 +1562,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.elasticSearch.password",
+    "id" : "vectorStore.elasticsearch.password",
     "label" : "Password",
     "description" : "Elasticsearch password",
     "optional" : false,
@@ -1572,7 +1572,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.elasticSearch.password",
+      "name" : "vectorStore.elasticsearch.password",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1582,7 +1582,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.elasticSearch.indexName",
+    "id" : "vectorStore.elasticsearch.indexName",
     "label" : "Index name",
     "description" : "Elasticsearch index",
     "optional" : false,
@@ -1592,7 +1592,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.elasticSearch.indexName",
+      "name" : "vectorStore.elasticsearch.indexName",
       "type" : "zeebe:input"
     },
     "condition" : {

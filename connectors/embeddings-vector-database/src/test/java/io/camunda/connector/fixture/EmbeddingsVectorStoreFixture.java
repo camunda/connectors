@@ -7,14 +7,14 @@
 package io.camunda.connector.fixture;
 
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
-import io.camunda.connector.model.embedding.vector.store.ElasticSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.ElasticsearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
 
 public class EmbeddingsVectorStoreFixture {
 
-  public static ElasticSearchVectorStore createElasticSearchVectorStore() {
-    return new ElasticSearchVectorStore(
-        new ElasticSearchVectorStore.Configuration(
+  public static ElasticsearchVectorStore createElasticsearchVectorStore() {
+    return new ElasticsearchVectorStore(
+        new ElasticsearchVectorStore.Configuration(
             "https://elastic.local:9200", "elastic", "changeme", "embeddings_idx"));
   }
 
