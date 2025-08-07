@@ -16,12 +16,12 @@ import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(
     label = "Azure Cosmos DB NoSQL",
-    id = AzureCosmosDbNoSqlVectorStore.STORE_AZURE_COSMOS_DB_NO_SQL)
+    id = AzureCosmosDbNoSqlVectorStore.AZURE_COSMOS_DB_NO_SQL_STORE)
 public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureCosmosDbNoSql)
     implements EmbeddingsVectorStore {
 
   @TemplateProperty(ignore = true)
-  public static final String STORE_AZURE_COSMOS_DB_NO_SQL = "STORE_AZURE_COSMOS_DB_NO_SQL";
+  public static final String AZURE_COSMOS_DB_NO_SQL_STORE = "azureCosmosDbNoSqlStore";
 
   public record Configuration(
       @NotBlank

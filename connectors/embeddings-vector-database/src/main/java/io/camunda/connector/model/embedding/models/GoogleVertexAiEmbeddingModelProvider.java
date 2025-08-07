@@ -25,7 +25,7 @@ public record GoogleVertexAiEmbeddingModelProvider(@Valid @NotNull Configuration
     implements EmbeddingModelProvider {
 
   @TemplateProperty(ignore = true)
-  public static final String VERTEX_AI_MODEL_PROVIDER = "VERTEX_AI_MODEL_PROVIDER";
+  public static final String VERTEX_AI_MODEL_PROVIDER = "vertexAiModelProvider";
 
   @TemplateProperty(ignore = true)
   public static final String VERTEX_AI_DEFAULT_PUBLISHER = "google";

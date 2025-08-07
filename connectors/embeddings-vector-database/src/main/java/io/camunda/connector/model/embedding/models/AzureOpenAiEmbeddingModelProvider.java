@@ -26,7 +26,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
     implements EmbeddingModelProvider {
 
   @TemplateProperty(ignore = true)
-  public static final String AZURE_OPEN_AI_MODEL_PROVIDER = "AZURE_OPEN_AI_MODEL_PROVIDER";
+  public static final String AZURE_OPEN_AI_MODEL_PROVIDER = "azureOpenAiModelProvider";
 
   public record Configuration(
       @NotBlank

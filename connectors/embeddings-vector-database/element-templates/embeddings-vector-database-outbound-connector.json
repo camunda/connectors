@@ -136,7 +136,7 @@
     "id" : "embeddingModelProvider.modelProvider",
     "label" : "Model provider",
     "description" : "Select embedding model provider",
-    "value" : "BEDROCK_MODEL_PROVIDER",
+    "value" : "bedrockModelProvider",
     "group" : "embeddingModel",
     "binding" : {
       "name" : "embeddingModelProvider.modelProvider",
@@ -145,16 +145,16 @@
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Azure OpenAI",
-      "value" : "AZURE_OPEN_AI_MODEL_PROVIDER"
+      "value" : "azureOpenAiModelProvider"
     }, {
       "name" : "AWS Bedrock",
-      "value" : "BEDROCK_MODEL_PROVIDER"
+      "value" : "bedrockModelProvider"
     }, {
       "name" : "Google Vertex AI",
-      "value" : "VERTEX_AI_MODEL_PROVIDER"
+      "value" : "vertexAiModelProvider"
     }, {
       "name" : "OpenAI",
-      "value" : "OPEN_AI_MODEL_PROVIDER"
+      "value" : "openAiModelProvider"
     } ]
   }, {
     "id" : "embeddingModelProvider.azureOpenAi.endpoint",
@@ -172,7 +172,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+      "equals" : "azureOpenAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -188,7 +188,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+      "equals" : "azureOpenAiModelProvider",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -219,7 +219,7 @@
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+        "equals" : "azureOpenAiModelProvider",
         "type" : "simple"
       } ]
     },
@@ -245,7 +245,7 @@
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+        "equals" : "azureOpenAiModelProvider",
         "type" : "simple"
       } ]
     },
@@ -271,7 +271,7 @@
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+        "equals" : "azureOpenAiModelProvider",
         "type" : "simple"
       } ]
     },
@@ -297,7 +297,7 @@
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+        "equals" : "azureOpenAiModelProvider",
         "type" : "simple"
       } ]
     },
@@ -320,7 +320,7 @@
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+        "equals" : "azureOpenAiModelProvider",
         "type" : "simple"
       } ]
     },
@@ -341,7 +341,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+      "equals" : "azureOpenAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -358,7 +358,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+      "equals" : "azureOpenAiModelProvider",
       "type" : "simple"
     },
     "type" : "Number"
@@ -376,7 +376,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+      "equals" : "azureOpenAiModelProvider",
       "type" : "simple"
     },
     "type" : "Number"
@@ -393,7 +393,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "AZURE_OPEN_AI_MODEL_PROVIDER",
+      "equals" : "azureOpenAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -413,7 +413,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "BEDROCK_MODEL_PROVIDER",
+      "equals" : "bedrockModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -433,7 +433,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "BEDROCK_MODEL_PROVIDER",
+      "equals" : "bedrockModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -453,7 +453,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "BEDROCK_MODEL_PROVIDER",
+      "equals" : "bedrockModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -473,7 +473,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "BEDROCK_MODEL_PROVIDER",
+      "equals" : "bedrockModelProvider",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -507,7 +507,7 @@
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "BEDROCK_MODEL_PROVIDER",
+        "equals" : "bedrockModelProvider",
         "type" : "simple"
       } ]
     },
@@ -533,7 +533,7 @@
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "BEDROCK_MODEL_PROVIDER",
+        "equals" : "bedrockModelProvider",
         "type" : "simple"
       } ]
     },
@@ -570,7 +570,7 @@
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "BEDROCK_MODEL_PROVIDER",
+        "equals" : "bedrockModelProvider",
         "type" : "simple"
       } ]
     },
@@ -589,7 +589,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "BEDROCK_MODEL_PROVIDER",
+      "equals" : "bedrockModelProvider",
       "type" : "simple"
     },
     "type" : "Number"
@@ -609,7 +609,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "VERTEX_AI_MODEL_PROVIDER",
+      "equals" : "vertexAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -629,7 +629,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "VERTEX_AI_MODEL_PROVIDER",
+      "equals" : "vertexAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -645,7 +645,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "VERTEX_AI_MODEL_PROVIDER",
+      "equals" : "vertexAiModelProvider",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -677,7 +677,7 @@
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
-        "equals" : "VERTEX_AI_MODEL_PROVIDER",
+        "equals" : "vertexAiModelProvider",
         "type" : "simple"
       } ]
     },
@@ -698,7 +698,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "VERTEX_AI_MODEL_PROVIDER",
+      "equals" : "vertexAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -718,7 +718,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "VERTEX_AI_MODEL_PROVIDER",
+      "equals" : "vertexAiModelProvider",
       "type" : "simple"
     },
     "type" : "Number"
@@ -736,7 +736,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "VERTEX_AI_MODEL_PROVIDER",
+      "equals" : "vertexAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -754,7 +754,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "VERTEX_AI_MODEL_PROVIDER",
+      "equals" : "vertexAiModelProvider",
       "type" : "simple"
     },
     "type" : "Number"
@@ -773,7 +773,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OPEN_AI_MODEL_PROVIDER",
+      "equals" : "openAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -793,7 +793,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OPEN_AI_MODEL_PROVIDER",
+      "equals" : "openAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -810,7 +810,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OPEN_AI_MODEL_PROVIDER",
+      "equals" : "openAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -827,7 +827,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OPEN_AI_MODEL_PROVIDER",
+      "equals" : "openAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -844,7 +844,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OPEN_AI_MODEL_PROVIDER",
+      "equals" : "openAiModelProvider",
       "type" : "simple"
     },
     "type" : "Number"
@@ -862,7 +862,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OPEN_AI_MODEL_PROVIDER",
+      "equals" : "openAiModelProvider",
       "type" : "simple"
     },
     "type" : "Number"
@@ -879,7 +879,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OPEN_AI_MODEL_PROVIDER",
+      "equals" : "openAiModelProvider",
       "type" : "simple"
     },
     "type" : "String"
@@ -895,7 +895,7 @@
     },
     "condition" : {
       "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "OPEN_AI_MODEL_PROVIDER",
+      "equals" : "openAiModelProvider",
       "type" : "simple"
     },
     "tooltip" : "Base URL of OpenAI API. The default is 'https://api.openai.com/v1/'",
@@ -904,7 +904,7 @@
     "id" : "vectorStore.vectorStore",
     "label" : "Embeddings store",
     "description" : "Select embedding store",
-    "value" : "STORE_ELASTICSEARCH",
+    "value" : "elasticsearchStore",
     "group" : "embeddingsStore",
     "binding" : {
       "name" : "vectorStore.storeType",
@@ -913,19 +913,19 @@
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Amazon Managed OpenSearch",
-      "value" : "STORE_AMAZON_MANAGED_OPENSEARCH"
+      "value" : "amazonManagedOpenSearchStore"
     }, {
       "name" : "Azure AI Search",
-      "value" : "STORE_AZURE_AI_SEARCH"
+      "value" : "azureAiSearchStore"
     }, {
       "name" : "Azure Cosmos DB NoSQL",
-      "value" : "STORE_AZURE_COSMOS_DB_NO_SQL"
+      "value" : "azureCosmosDbNoSqlStore"
     }, {
       "name" : "Elasticsearch",
-      "value" : "STORE_ELASTICSEARCH"
+      "value" : "elasticsearchStore"
     }, {
       "name" : "OpenSearch",
-      "value" : "STORE_OPENSEARCH"
+      "value" : "openSearchStore"
     } ]
   }, {
     "id" : "vectorStore.amazonManagedOpensearch.accessKey",
@@ -943,7 +943,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AMAZON_MANAGED_OPENSEARCH",
+      "equals" : "amazonManagedOpenSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -963,7 +963,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AMAZON_MANAGED_OPENSEARCH",
+      "equals" : "amazonManagedOpenSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -983,7 +983,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AMAZON_MANAGED_OPENSEARCH",
+      "equals" : "amazonManagedOpenSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1003,7 +1003,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AMAZON_MANAGED_OPENSEARCH",
+      "equals" : "amazonManagedOpenSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1023,7 +1023,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AMAZON_MANAGED_OPENSEARCH",
+      "equals" : "amazonManagedOpenSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1043,7 +1043,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_AI_SEARCH",
+      "equals" : "azureAiSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1059,7 +1059,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_AI_SEARCH",
+      "equals" : "azureAiSearchStore",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -1090,7 +1090,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_AI_SEARCH",
+        "equals" : "azureAiSearchStore",
         "type" : "simple"
       } ]
     },
@@ -1116,7 +1116,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_AI_SEARCH",
+        "equals" : "azureAiSearchStore",
         "type" : "simple"
       } ]
     },
@@ -1142,7 +1142,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_AI_SEARCH",
+        "equals" : "azureAiSearchStore",
         "type" : "simple"
       } ]
     },
@@ -1168,7 +1168,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_AI_SEARCH",
+        "equals" : "azureAiSearchStore",
         "type" : "simple"
       } ]
     },
@@ -1191,7 +1191,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_AI_SEARCH",
+        "equals" : "azureAiSearchStore",
         "type" : "simple"
       } ]
     },
@@ -1212,7 +1212,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_AI_SEARCH",
+      "equals" : "azureAiSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1232,7 +1232,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "equals" : "azureCosmosDbNoSqlStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1248,7 +1248,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "equals" : "azureCosmosDbNoSqlStore",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -1279,7 +1279,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "equals" : "azureCosmosDbNoSqlStore",
         "type" : "simple"
       } ]
     },
@@ -1305,7 +1305,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "equals" : "azureCosmosDbNoSqlStore",
         "type" : "simple"
       } ]
     },
@@ -1331,7 +1331,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "equals" : "azureCosmosDbNoSqlStore",
         "type" : "simple"
       } ]
     },
@@ -1357,7 +1357,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "equals" : "azureCosmosDbNoSqlStore",
         "type" : "simple"
       } ]
     },
@@ -1380,7 +1380,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
-        "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+        "equals" : "azureCosmosDbNoSqlStore",
         "type" : "simple"
       } ]
     },
@@ -1401,7 +1401,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "equals" : "azureCosmosDbNoSqlStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1421,7 +1421,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "equals" : "azureCosmosDbNoSqlStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1441,7 +1441,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "equals" : "azureCosmosDbNoSqlStore",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -1477,7 +1477,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "equals" : "azureCosmosDbNoSqlStore",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -1507,7 +1507,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_AZURE_COSMOS_DB_NO_SQL",
+      "equals" : "azureCosmosDbNoSqlStore",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -1537,7 +1537,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_ELASTICSEARCH",
+      "equals" : "elasticsearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1557,7 +1557,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_ELASTICSEARCH",
+      "equals" : "elasticsearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1577,7 +1577,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_ELASTICSEARCH",
+      "equals" : "elasticsearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1597,7 +1597,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_ELASTICSEARCH",
+      "equals" : "elasticsearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1617,7 +1617,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_OPENSEARCH",
+      "equals" : "openSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1637,7 +1637,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_OPENSEARCH",
+      "equals" : "openSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1657,7 +1657,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_OPENSEARCH",
+      "equals" : "openSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1677,7 +1677,7 @@
     },
     "condition" : {
       "property" : "vectorStore.vectorStore",
-      "equals" : "STORE_OPENSEARCH",
+      "equals" : "openSearchStore",
       "type" : "simple"
     },
     "type" : "String"
@@ -1761,7 +1761,7 @@
   }, {
     "id" : "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
     "label" : "Document splitting strategy",
-    "value" : "DOCUMENT_SPLITTER_RECURSIVE",
+    "value" : "documentSplitterRecursive",
     "group" : "document",
     "binding" : {
       "name" : "vectorDatabaseConnectorOperation.documentSplitter.splitterType",
@@ -1775,10 +1775,10 @@
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Recursive",
-      "value" : "DOCUMENT_SPLITTER_RECURSIVE"
+      "value" : "documentSplitterRecursive"
     }, {
       "name" : "Do not split",
-      "value" : "DOCUMENT_SPLITTER_NONE"
+      "value" : "documentSplitterNone"
     } ]
   }, {
     "id" : "vectorDatabaseConnectorOperation.documentSplitter.document.splitter.recursive.maxSegmentSizeInChars",
@@ -1798,7 +1798,7 @@
     "condition" : {
       "allMatch" : [ {
         "property" : "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
-        "equals" : "DOCUMENT_SPLITTER_RECURSIVE",
+        "equals" : "documentSplitterRecursive",
         "type" : "simple"
       }, {
         "property" : "vectorDatabaseConnectorOperation.operationType",
@@ -1825,7 +1825,7 @@
     "condition" : {
       "allMatch" : [ {
         "property" : "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
-        "equals" : "DOCUMENT_SPLITTER_RECURSIVE",
+        "equals" : "documentSplitterRecursive",
         "type" : "simple"
       }, {
         "property" : "vectorDatabaseConnectorOperation.operationType",

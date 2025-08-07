@@ -22,7 +22,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
     implements EmbeddingModelProvider {
 
   @TemplateProperty(ignore = true)
-  public static final String BEDROCK_MODEL_PROVIDER = "BEDROCK_MODEL_PROVIDER";
+  public static final String BEDROCK_MODEL_PROVIDER = "bedrockModelProvider";
 
   public record Configuration(
       @NotBlank

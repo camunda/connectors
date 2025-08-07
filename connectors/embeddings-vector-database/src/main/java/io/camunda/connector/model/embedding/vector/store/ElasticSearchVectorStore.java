@@ -12,12 +12,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(label = "Elasticsearch", id = ElasticSearchVectorStore.STORE_ELASTICSEARCH)
+@TemplateSubType(label = "Elasticsearch", id = ElasticSearchVectorStore.ELASTICSEARCH_STORE)
 public record ElasticSearchVectorStore(@Valid @NotNull Configuration elasticSearch)
     implements EmbeddingsVectorStore {
 
   @TemplateProperty(ignore = true)
-  public static final String STORE_ELASTICSEARCH = "STORE_ELASTICSEARCH";
+  public static final String ELASTICSEARCH_STORE = "elasticsearchStore";
 
   public record Configuration(
       @NotBlank

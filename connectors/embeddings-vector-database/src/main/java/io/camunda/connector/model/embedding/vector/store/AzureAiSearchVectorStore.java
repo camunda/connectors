@@ -13,12 +13,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(label = "Azure AI Search", id = AzureAiSearchVectorStore.STORE_AZURE_AI_SEARCH)
+@TemplateSubType(label = "Azure AI Search", id = AzureAiSearchVectorStore.AZURE_AI_SEARCH_STORE)
 public record AzureAiSearchVectorStore(@Valid @NotNull Configuration aiSearch)
     implements EmbeddingsVectorStore {
 
   @TemplateProperty(ignore = true)
-  public static final String STORE_AZURE_AI_SEARCH = "STORE_AZURE_AI_SEARCH";
+  public static final String AZURE_AI_SEARCH_STORE = "azureAiSearchStore";
 
   public record Configuration(
       @NotBlank

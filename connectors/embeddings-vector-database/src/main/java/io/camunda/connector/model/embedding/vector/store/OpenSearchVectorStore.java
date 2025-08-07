@@ -12,12 +12,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(label = "OpenSearch", id = OpenSearchVectorStore.STORE_OPENSEARCH)
+@TemplateSubType(label = "OpenSearch", id = OpenSearchVectorStore.OPEN_SEARCH_STORE)
 public record OpenSearchVectorStore(@Valid @NotNull Configuration openSearch)
     implements EmbeddingsVectorStore {
 
   @TemplateProperty(ignore = true)
-  public static final String STORE_OPENSEARCH = "STORE_OPENSEARCH";
+  public static final String OPEN_SEARCH_STORE = "openSearchStore";
 
   public record Configuration(
       @NotBlank

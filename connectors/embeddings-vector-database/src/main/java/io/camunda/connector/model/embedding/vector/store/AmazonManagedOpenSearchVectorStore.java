@@ -14,12 +14,12 @@ import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(
     label = "Amazon Managed OpenSearch",
-    id = AmazonManagedOpenSearchVectorStore.STORE_AMAZON_MANAGED_OPENSEARCH)
+    id = AmazonManagedOpenSearchVectorStore.AMAZON_MANAGED_OPENSEARCH_STORE)
 public record AmazonManagedOpenSearchVectorStore(
     @Valid @NotNull Configuration amazonManagedOpensearch) implements EmbeddingsVectorStore {
 
   @TemplateProperty(ignore = true)
-  public static final String STORE_AMAZON_MANAGED_OPENSEARCH = "STORE_AMAZON_MANAGED_OPENSEARCH";
+  public static final String AMAZON_MANAGED_OPENSEARCH_STORE = "amazonManagedOpenSearchStore";
 
   public record Configuration(
       @NotBlank
