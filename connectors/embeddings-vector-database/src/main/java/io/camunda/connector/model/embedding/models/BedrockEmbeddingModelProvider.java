@@ -108,7 +108,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
 
     @Override
     public String toString() {
-      return "Configuration{accessKey='[REDACTED]', secretKey='[REDACTED]', region='%s', modelName='%s', customModelName='%s', dimensions=%s, normalize=%s, maxRetries=%d}"
+      return "BedrockEmbeddingModelProvider.Configuration{accessKey='[REDACTED]', secretKey='[REDACTED]', region='%s', modelName='%s', customModelName='%s', dimensions=%s, normalize=%s, maxRetries=%d}"
           .formatted(region, modelName, customModelName, dimensions, normalize, maxRetries);
     }
   }

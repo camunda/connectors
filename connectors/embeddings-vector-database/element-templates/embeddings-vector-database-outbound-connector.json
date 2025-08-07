@@ -759,7 +759,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.openAiApiKey",
+    "id" : "embeddingModelProvider.openAi.apiKey",
     "label" : "OpenAI API key",
     "optional" : false,
     "constraints" : {
@@ -768,7 +768,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.apiKey",
+      "name" : "embeddingModelProvider.openAi.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -778,7 +778,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiModelName",
+    "id" : "embeddingModelProvider.openAi.modelName",
     "label" : "Model name",
     "description" : "Specify the model name. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -788,7 +788,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.modelName",
+      "name" : "embeddingModelProvider.openAi.modelName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -798,14 +798,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiOrganizationId",
+    "id" : "embeddingModelProvider.openAi.organizationId",
     "label" : "Organization ID",
     "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.organizationId",
+      "name" : "embeddingModelProvider.openAi.organizationId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -815,14 +815,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiProjectId",
+    "id" : "embeddingModelProvider.openAi.projectId",
     "label" : "Project ID",
     "description" : "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.projectId",
+      "name" : "embeddingModelProvider.openAi.projectId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -832,14 +832,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiDimensions",
+    "id" : "embeddingModelProvider.openAi.dimensions",
     "label" : "Embedding dimensions",
     "description" : "The size of the vector used to represent data. If not specified, the default model dimensions are used. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.dimensions",
+      "name" : "embeddingModelProvider.openAi.dimensions",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -849,7 +849,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.openAiMaxRetries",
+    "id" : "embeddingModelProvider.openAi.maxRetries",
     "label" : "Max retries",
     "description" : "Max retries",
     "optional" : true,
@@ -857,7 +857,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.maxRetries",
+      "name" : "embeddingModelProvider.openAi.maxRetries",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -867,14 +867,14 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.openAiCustomHeaders",
+    "id" : "embeddingModelProvider.openAi.customHeaders",
     "label" : "Custom headers",
     "description" : "Map of custom HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.customHeaders",
+      "name" : "embeddingModelProvider.openAi.customHeaders",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -884,13 +884,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiBaseUrl",
+    "id" : "embeddingModelProvider.openAi.baseUrl",
     "label" : "Custom base URL",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.baseUrl",
+      "name" : "embeddingModelProvider.openAi.baseUrl",
       "type" : "zeebe:input"
     },
     "condition" : {

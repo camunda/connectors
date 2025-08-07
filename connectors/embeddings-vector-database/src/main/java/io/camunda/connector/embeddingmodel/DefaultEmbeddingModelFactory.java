@@ -97,19 +97,16 @@ public class DefaultEmbeddingModelFactory {
 
   private EmbeddingModel createOpenAiEmbeddingModel(
       OpenAiEmbeddingModelProvider openAiEmbeddingModelProvider) {
+    final var openAi = openAiEmbeddingModelProvider.openAi();
     OpenAiEmbeddingModel.OpenAiEmbeddingModelBuilder builder =
-        OpenAiEmbeddingModel.builder()
-            .apiKey(openAiEmbeddingModelProvider.apiKey())
-            .modelName(openAiEmbeddingModelProvider.modelName());
+        OpenAiEmbeddingModel.builder().apiKey(openAi.apiKey()).modelName(openAi.modelName());
 
-    Optional.ofNullable(openAiEmbeddingModelProvider.organizationId())
-        .ifPresent(builder::organizationId);
-    Optional.ofNullable(openAiEmbeddingModelProvider.projectId()).ifPresent(builder::projectId);
-    Optional.ofNullable(openAiEmbeddingModelProvider.baseUrl()).ifPresent(builder::baseUrl);
-    Optional.ofNullable(openAiEmbeddingModelProvider.customHeaders())
-        .ifPresent(builder::customHeaders);
-    Optional.ofNullable(openAiEmbeddingModelProvider.dimensions()).ifPresent(builder::dimensions);
-    Optional.ofNullable(openAiEmbeddingModelProvider.maxRetries()).ifPresent(builder::maxRetries);
+    Optional.ofNullable(openAi.organizationId()).ifPresent(builder::organizationId);
+    Optional.ofNullable(openAi.projectId()).ifPresent(builder::projectId);
+    Optional.ofNullable(openAi.baseUrl()).ifPresent(builder::baseUrl);
+    Optional.ofNullable(openAi.customHeaders()).ifPresent(builder::customHeaders);
+    Optional.ofNullable(openAi.dimensions()).ifPresent(builder::dimensions);
+    Optional.ofNullable(openAi.maxRetries()).ifPresent(builder::maxRetries);
 
     return builder.build();
   }

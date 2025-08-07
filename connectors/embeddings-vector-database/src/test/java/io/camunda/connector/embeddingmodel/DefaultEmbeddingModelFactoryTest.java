@@ -71,24 +71,25 @@ class DefaultEmbeddingModelFactoryTest {
     void createOpenAiEmbeddingModelWithAllParameters() {
       OpenAiEmbeddingModelProvider provider =
           new OpenAiEmbeddingModelProvider(
-              OPEN_AI_API_KEY,
-              OPEN_AI_MODEL_NAME,
-              "test-org-id",
-              "test-project-id",
-              1536,
-              5,
-              Map.of("X-Test-Header", "value"),
-              "https://custom.openai.com/v1/");
+              new OpenAiEmbeddingModelProvider.Configuration(
+                  OPEN_AI_API_KEY,
+                  OPEN_AI_MODEL_NAME,
+                  "test-org-id",
+                  "test-project-id",
+                  1536,
+                  5,
+                  Map.of("X-Test-Header", "value"),
+                  "https://custom.openai.com/v1/"));
 
       testOpenAiEmbeddingModelBuilder(
           provider,
           (builder) -> {
-            verify(builder).organizationId(provider.organizationId());
-            verify(builder).projectId(provider.projectId());
-            verify(builder).dimensions(provider.dimensions());
-            verify(builder).maxRetries(provider.maxRetries());
-            verify(builder).customHeaders(provider.customHeaders());
-            verify(builder).baseUrl(provider.baseUrl());
+            verify(builder).organizationId(provider.openAi().organizationId());
+            verify(builder).projectId(provider.openAi().projectId());
+            verify(builder).dimensions(provider.openAi().dimensions());
+            verify(builder).maxRetries(provider.openAi().maxRetries());
+            verify(builder).customHeaders(provider.openAi().customHeaders());
+            verify(builder).baseUrl(provider.openAi().baseUrl());
           });
     }
 
@@ -96,7 +97,8 @@ class DefaultEmbeddingModelFactoryTest {
     void createOpenAiEmbeddingModelWithoutOptionalParameters() {
       OpenAiEmbeddingModelProvider provider =
           new OpenAiEmbeddingModelProvider(
-              OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null);
+              new OpenAiEmbeddingModelProvider.Configuration(
+                  OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
 
       testOpenAiEmbeddingModelBuilder(
           provider,
