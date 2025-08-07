@@ -63,7 +63,7 @@ public class InboundDiscoveryDisablingTest {
                   () -> {
                     InboundConnectorFactory registry = new DefaultInboundConnectorFactory();
                     Assertions.assertThrows(
-                        NoSuchElementException.class,
+                        RuntimeException.class,
                         () -> registry.getInstance("io.camunda:annotated"),
                         "Named inbound connector should not be available when disabled");
                     registry.registerConfiguration(

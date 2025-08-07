@@ -140,20 +140,12 @@ public class OutboundConnectorDiscoveryTest {
   }
 
   @Test
-  public void shouldOverrideWhenRegisteredManually() {
-
-    // given SPI configuration and manual registration
-    var registry = DiscoveryUtils.getFactory(new NotSpiRegisteredFunction());
-    // then
-    var registrations = registry.getConfigurations();
-    Assertions.assertThat(registrations).hasSize(1);
-    assertRegistration(
-        registrations,
-        "NOT_ANNOTATED",
-        "io.camunda:annotated",
-        new String[] {"foo", "bar"},
-        NotSpiRegisteredFunction.class.getName(),
-        null);
+  public void shouldThrowWhenRegisteredManually() {
+    // given conflicting SPI configuration and manual registration
+    Assertions.assertThatThrownBy(() -> DiscoveryUtils.getFactory(new SpiRegisteredFunction()))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining(
+            "Duplicate outbound connector registration for type: io.camunda:annotated.");
   }
 
   @Test
