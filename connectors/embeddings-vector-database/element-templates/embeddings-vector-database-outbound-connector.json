@@ -1048,13 +1048,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.aiSearchAuthentication.type",
+    "id" : "vectorStore.azureAiSearchAuthentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure OpenAI authentication strategy.",
     "value" : "apiKey",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.aiSearchAuthentication.type",
+      "name" : "vectorStore.azureAiSearchAuthentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1071,7 +1071,7 @@
       "value" : "clientCredentials"
     } ]
   }, {
-    "id" : "vectorStore.aiSearchAuthentication.apiKey",
+    "id" : "vectorStore.azureAiSearchAuthentication.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -1080,12 +1080,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.aiSearchAuthentication.apiKey",
+      "name" : "vectorStore.azureAiSearchAuthentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.aiSearchAuthentication.type",
+        "property" : "vectorStore.azureAiSearchAuthentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
@@ -1096,7 +1096,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.aiSearchAuthentication.clientId",
+    "id" : "vectorStore.azureAiSearchAuthentication.clientId",
     "label" : "Client ID",
     "description" : "ID of a Microsoft Entra application",
     "optional" : false,
@@ -1106,12 +1106,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.aiSearchAuthentication.clientId",
+      "name" : "vectorStore.azureAiSearchAuthentication.clientId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.aiSearchAuthentication.type",
+        "property" : "vectorStore.azureAiSearchAuthentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1122,7 +1122,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.aiSearchAuthentication.clientSecret",
+    "id" : "vectorStore.azureAiSearchAuthentication.clientSecret",
     "label" : "Client secret",
     "description" : "Secret of a Microsoft Entra application",
     "optional" : false,
@@ -1132,12 +1132,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.aiSearchAuthentication.clientSecret",
+      "name" : "vectorStore.azureAiSearchAuthentication.clientSecret",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.aiSearchAuthentication.type",
+        "property" : "vectorStore.azureAiSearchAuthentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1148,7 +1148,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.aiSearchAuthentication.tenantId",
+    "id" : "vectorStore.azureAiSearchAuthentication.tenantId",
     "label" : "Tenant ID",
     "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -1158,12 +1158,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.aiSearchAuthentication.tenantId",
+      "name" : "vectorStore.azureAiSearchAuthentication.tenantId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.aiSearchAuthentication.type",
+        "property" : "vectorStore.azureAiSearchAuthentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1174,19 +1174,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.aiSearchAuthentication.authorityHost",
+    "id" : "vectorStore.azureAiSearchAuthentication.authorityHost",
     "label" : "Authority host",
     "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.aiSearchAuthentication.authorityHost",
+      "name" : "vectorStore.azureAiSearchAuthentication.authorityHost",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.aiSearchAuthentication.type",
+        "property" : "vectorStore.azureAiSearchAuthentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1197,7 +1197,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.indexName",
+    "id" : "vectorStore.azureAiSearch.indexName",
     "label" : "Index name",
     "description" : "The name of the search index. When storing embeddings this index is created or updated automatically.",
     "optional" : false,
@@ -1237,13 +1237,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.cosmosDbAuthentication.type",
+    "id" : "vectorStore.azureCosmosDbAuthentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure OpenAI authentication strategy.",
     "value" : "apiKey",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.cosmosDbAuthentication.type",
+      "name" : "vectorStore.azureCosmosDbAuthentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1260,7 +1260,7 @@
       "value" : "clientCredentials"
     } ]
   }, {
-    "id" : "vectorStore.cosmosDbAuthentication.apiKey",
+    "id" : "vectorStore.azureCosmosDbAuthentication.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -1269,12 +1269,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.cosmosDbAuthentication.apiKey",
+      "name" : "vectorStore.azureCosmosDbAuthentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.cosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbAuthentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
@@ -1285,7 +1285,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.cosmosDbAuthentication.clientId",
+    "id" : "vectorStore.azureCosmosDbAuthentication.clientId",
     "label" : "Client ID",
     "description" : "ID of a Microsoft Entra application",
     "optional" : false,
@@ -1295,12 +1295,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.cosmosDbAuthentication.clientId",
+      "name" : "vectorStore.azureCosmosDbAuthentication.clientId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.cosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbAuthentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1311,7 +1311,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.cosmosDbAuthentication.clientSecret",
+    "id" : "vectorStore.azureCosmosDbAuthentication.clientSecret",
     "label" : "Client secret",
     "description" : "Secret of a Microsoft Entra application",
     "optional" : false,
@@ -1321,12 +1321,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.cosmosDbAuthentication.clientSecret",
+      "name" : "vectorStore.azureCosmosDbAuthentication.clientSecret",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.cosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbAuthentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1337,7 +1337,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.cosmosDbAuthentication.tenantId",
+    "id" : "vectorStore.azureCosmosDbAuthentication.tenantId",
     "label" : "Tenant ID",
     "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -1347,12 +1347,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.cosmosDbAuthentication.tenantId",
+      "name" : "vectorStore.azureCosmosDbAuthentication.tenantId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.cosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbAuthentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1363,19 +1363,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.cosmosDbAuthentication.authorityHost",
+    "id" : "vectorStore.azureCosmosDbAuthentication.authorityHost",
     "label" : "Authority host",
     "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.cosmosDbAuthentication.authorityHost",
+      "name" : "vectorStore.azureCosmosDbAuthentication.authorityHost",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.cosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbAuthentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1386,7 +1386,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.databaseName",
+    "id" : "vectorStore.azureCosmosDbNoSql.databaseName",
     "label" : "Database name",
     "description" : "Specify the name of the Azure Cosmos DB NoSQL database.",
     "optional" : false,
@@ -1406,7 +1406,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.containerName",
+    "id" : "vectorStore.azureCosmosDbNoSql.containerName",
     "label" : "Container name",
     "description" : "Specify the name of the Azure Cosmos DB NoSQL container.",
     "optional" : false,
@@ -1426,7 +1426,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.consistencyLevel",
+    "id" : "vectorStore.azureCosmosDbNoSql.consistencyLevel",
     "label" : "Consistency level",
     "description" : "Specify the consistency level for the Azure Cosmos DB NoSQL store.",
     "optional" : false,
@@ -1462,7 +1462,7 @@
       "value" : "EVENTUAL"
     } ]
   }, {
-    "id" : "vectorStore.distanceFunction",
+    "id" : "vectorStore.azureCosmosDbNoSql.distanceFunction",
     "label" : "Distance function",
     "description" : "The metric used to compute distance/similarity. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -1492,7 +1492,7 @@
       "value" : "DOT_PRODUCT"
     } ]
   }, {
-    "id" : "vectorStore.vectorIndexType",
+    "id" : "vectorStore.azureCosmosDbNoSql.vectorIndexType",
     "label" : "Vector index type",
     "description" : "The type of vector index type to use. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
     "optional" : false,

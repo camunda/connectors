@@ -188,7 +188,7 @@ class DefaultEmbeddingStoreFactoryTest {
       verify(cosmosClientBuilder).endpoint(vectorStore.endpoint());
       verify(cosmosClientBuilder).consistencyLevel(com.azure.cosmos.ConsistencyLevel.STRONG);
       verify(cosmosClientBuilder).contentResponseOnWriteEnabled(true);
-      switch (vectorStore.cosmosDbAuthentication()) {
+      switch (vectorStore.azureCosmosDbAuthentication()) {
         case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
           verify(cosmosClientBuilder).key(apiKey);
           verify(cosmosClientBuilder, never()).credential(any(TokenCredential.class));
@@ -262,7 +262,7 @@ class DefaultEmbeddingStoreFactoryTest {
         verify(builder).dimensions(mockModel.dimension());
         verify(builder).createOrUpdateIndex(operation instanceof EmbedDocumentOperation);
 
-        switch (azureAiSearchVectorStore.aiSearchAuthentication()) {
+        switch (azureAiSearchVectorStore.azureAiSearchAuthentication()) {
           case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
             verify(builder).apiKey(apiKey);
             verify(builder, never()).tokenCredential(any(TokenCredential.class));

@@ -50,7 +50,7 @@ public class AzureVectorStoreFactory {
             .dimensions(model.dimension())
             .createOrUpdateIndex(operation instanceof EmbedDocumentOperation);
 
-    switch (azureAiSearchVectorStore.aiSearchAuthentication()) {
+    switch (azureAiSearchVectorStore.azureAiSearchAuthentication()) {
       case AzureAuthentication.AzureApiKeyAuthentication apiKey ->
           embeddingStoreBuilder.apiKey(apiKey.apiKey());
       case AzureAuthentication.AzureClientCredentialsAuthentication auth -> {
@@ -70,7 +70,7 @@ public class AzureVectorStoreFactory {
         mapConsistencyLevel(azureCosmosDbNoSqlVectorStore.consistencyLevel()));
     cosmosClientBuilder.contentResponseOnWriteEnabled(true);
 
-    switch (azureCosmosDbNoSqlVectorStore.cosmosDbAuthentication()) {
+    switch (azureCosmosDbNoSqlVectorStore.azureCosmosDbAuthentication()) {
       case AzureAuthentication.AzureApiKeyAuthentication apiKey ->
           cosmosClientBuilder.key(apiKey.apiKey());
       case AzureAuthentication.AzureClientCredentialsAuthentication auth ->

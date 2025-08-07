@@ -24,11 +24,12 @@ public record AzureAiSearchVectorStore(
                 "Specify Azure AI Search endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/search/\" target=\"_blank\">documentation</a>.",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String endpoint,
-    @Valid @NotNull AzureAuthentication aiSearchAuthentication,
+    @Valid @NotNull AzureAuthentication azureAiSearchAuthentication,
     @NotBlank
         @TemplateProperty(
             group = "embeddingsStore",
             label = "Index name",
+            id = "azureAiSearch.indexName",
             description =
                 "The name of the search index. When storing embeddings this index is created or updated automatically.",
             feel = Property.FeelMode.optional,

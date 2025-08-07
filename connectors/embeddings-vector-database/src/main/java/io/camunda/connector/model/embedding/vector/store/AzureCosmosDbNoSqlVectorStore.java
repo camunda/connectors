@@ -27,10 +27,11 @@ public record AzureCosmosDbNoSqlVectorStore(
                 "Specify Azure Cosmos DB endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/\" target=\"_blank\">documentation</a>.",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String endpoint,
-    @Valid @NotNull AzureAuthentication cosmosDbAuthentication,
+    @Valid @NotNull AzureAuthentication azureCosmosDbAuthentication,
     @NotBlank
         @TemplateProperty(
             group = "embeddingsStore",
+            id = "azureCosmosDbNoSql.databaseName",
             label = "Database name",
             description = "Specify the name of the Azure Cosmos DB NoSQL database.",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -38,6 +39,7 @@ public record AzureCosmosDbNoSqlVectorStore(
     @NotBlank
         @TemplateProperty(
             group = "embeddingsStore",
+            id = "azureCosmosDbNoSql.containerName",
             label = "Container name",
             description = "Specify the name of the Azure Cosmos DB NoSQL container.",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -45,6 +47,7 @@ public record AzureCosmosDbNoSqlVectorStore(
     @NotBlank
         @TemplateProperty(
             group = "embeddingsStore",
+            id = "azureCosmosDbNoSql.consistencyLevel",
             label = "Consistency level",
             description = "Specify the consistency level for the Azure Cosmos DB NoSQL store.",
             feel = Property.FeelMode.required,
@@ -55,6 +58,7 @@ public record AzureCosmosDbNoSqlVectorStore(
     @NotBlank
         @TemplateProperty(
             group = "embeddingsStore",
+            id = "azureCosmosDbNoSql.distanceFunction",
             label = "Distance function",
             description =
                 "The metric used to compute distance/similarity. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
@@ -66,6 +70,7 @@ public record AzureCosmosDbNoSqlVectorStore(
     @NotBlank
         @TemplateProperty(
             group = "embeddingsStore",
+            id = "azureCosmosDbNoSql.vectorIndexType",
             label = "Vector index type",
             description =
                 "The type of vector index type to use. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
