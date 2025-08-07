@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -222,6 +223,175 @@ class AdHocToolSchemaGeneratorTest {
         .isInstanceOf(AdHocToolSchemaGenerationException.class)
         .hasMessage(
             "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter name 'param.subparam' with removed namespace 'toolCall.' is not a leaf reference (must not contain dots).");
+  }
+
+  @Test
+  void excludesParameterFromRequiredListWhenOptionsRequiredIsFalse() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.param1", "Required param", "string", null, null),
+                new AdHocToolElementParameter(
+                    "toolCall.param2",
+                    "Optional param",
+                    "string",
+                    null,
+                    Map.of("required", false))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "param1": {
+              "type": "string",
+              "description": "Required param"
+            },
+            "param2": {
+              "type": "string",
+              "description": "Optional param"
+            }
+          },
+          "required": ["param1"]
+        }
+        """);
+  }
+
+  @Test
+  void includesParameterInRequiredListWhenOptionsRequiredIsTrue() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.param1",
+                    "Required param",
+                    "string",
+                    null,
+                    Map.of("required", true))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "param1": {
+              "type": "string",
+              "description": "Required param"
+            }
+          },
+          "required": ["param1"]
+        }
+        """);
+  }
+
+  @Test
+  void throwsExceptionWhenOptionsRequiredIsStringValue() {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.param1",
+                    "Required param",
+                    "string",
+                    null,
+                    Map.of("required", "true"))));
+
+    assertThatThrownBy(() -> generator.generateToolSchema(element))
+        .isInstanceOf(AdHocToolSchemaGenerationException.class)
+        .hasMessage(
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter 'toolCall.param1' 'required' option must be a boolean value, but was: String");
+  }
+
+  @Test
+  void throwsExceptionWhenOptionsRequiredIsIntegerValue() {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.param1", "Required param", "string", null, Map.of("required", 1))));
+
+    assertThatThrownBy(() -> generator.generateToolSchema(element))
+        .isInstanceOf(AdHocToolSchemaGenerationException.class)
+        .hasMessage(
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter 'toolCall.param1' 'required' option must be a boolean value, but was: Integer");
+  }
+
+  @Test
+  void treatsParameterAsRequiredWhenOptionsRequiredIsExplicitlyNull() throws Exception {
+    Map<String, Object> options = new HashMap<>();
+    options.put("required", null);
+
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.param1", "Required param", "string", null, options)));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "param1": {
+              "type": "string",
+              "description": "Required param"
+            }
+          },
+          "required": ["param1"]
+        }
+        """);
+  }
+
+  @Test
+  void handlesRequiredAndOptionalParametersTogether() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.requiredParam",
+                    "A required parameter",
+                    "string",
+                    null,
+                    Map.of("required", true)),
+                new AdHocToolElementParameter(
+                    "toolCall.optionalParam",
+                    "An optional parameter",
+                    "number",
+                    null,
+                    Map.of("required", false)),
+                new AdHocToolElementParameter(
+                    "toolCall.defaultRequiredParam",
+                    "A parameter with default required behavior",
+                    "string",
+                    null,
+                    null)));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "requiredParam": {
+              "type": "string",
+              "description": "A required parameter"
+            },
+            "optionalParam": {
+              "type": "number",
+              "description": "An optional parameter"
+            },
+            "defaultRequiredParam": {
+              "type": "string",
+              "description": "A parameter with default required behavior"
+            }
+          },
+          "required": ["requiredParam", "defaultRequiredParam"]
+        }
+        """);
   }
 
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)
