@@ -57,22 +57,22 @@ public class DefaultEmbeddingStoreFactory {
 
   private EmbeddingStore<TextSegment> initializeElasticSearchVectorStore(
       ElasticSearchVectorStore elasticSearchVectorStore) {
+    final var elasticSearch = elasticSearchVectorStore.elasticSearch();
     RestClientBuilder restClientBuilder =
-        RestClient.builder(HttpHost.create(elasticSearchVectorStore.baseUrl()));
+        RestClient.builder(HttpHost.create(elasticSearch.baseUrl()));
 
-    if (!isNullOrBlank(elasticSearchVectorStore.userName())) {
+    if (!isNullOrBlank(elasticSearch.userName())) {
       CredentialsProvider provider = new BasicCredentialsProvider();
       provider.setCredentials(
           AuthScope.ANY,
-          new UsernamePasswordCredentials(
-              elasticSearchVectorStore.userName(), elasticSearchVectorStore.password()));
+          new UsernamePasswordCredentials(elasticSearch.userName(), elasticSearch.password()));
       restClientBuilder.setHttpClientConfigCallback(
           httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(provider));
     }
 
     return ElasticsearchEmbeddingStore.builder()
         .restClient(restClientBuilder.build())
-        .indexName(elasticSearchVectorStore.indexName())
+        .indexName(elasticSearch.indexName())
         .build();
   }
 

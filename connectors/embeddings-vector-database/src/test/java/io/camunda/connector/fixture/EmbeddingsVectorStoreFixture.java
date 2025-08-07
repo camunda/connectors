@@ -14,7 +14,8 @@ public class EmbeddingsVectorStoreFixture {
 
   public static ElasticSearchVectorStore createElasticSearchVectorStore() {
     return new ElasticSearchVectorStore(
-        "https://elastic.local:9200", "elastic", "changeme", "embeddings_idx");
+        new ElasticSearchVectorStore.Configuration(
+            "https://elastic.local:9200", "elastic", "changeme", "embeddings_idx"));
   }
 
   public static OpenSearchVectorStore createOpenSearchVectorStore() {
