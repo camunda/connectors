@@ -78,7 +78,7 @@ public class SecretUtil {
     if (!secretName.isBlank()) {
       var result = secretReplacer.replaceSecrets(secretName, context);
       if (result != null) {
-        return new String(encoder.quoteAsString(result.replaceAll("\\u0000", "")));
+        return new String(encoder.quoteAsString(result));
       } else {
         return matcher.group();
       }
