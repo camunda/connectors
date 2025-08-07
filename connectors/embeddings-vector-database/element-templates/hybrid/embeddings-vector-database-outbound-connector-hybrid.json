@@ -599,7 +599,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.projectId",
+    "id" : "embeddingModelProvider.googleVertexAi.projectId",
     "label" : "Project ID",
     "description" : "Google Cloud project ID",
     "optional" : false,
@@ -609,7 +609,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.projectId",
+      "name" : "embeddingModelProvider.googleVertexAi.projectId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -619,7 +619,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.region",
+    "id" : "embeddingModelProvider.googleVertexAi.region",
     "label" : "Region",
     "description" : "Google Cloud region for Vertex AI",
     "optional" : false,
@@ -629,7 +629,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.region",
+      "name" : "embeddingModelProvider.googleVertexAi.region",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -639,13 +639,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.vertexAiAuthentication.type",
+    "id" : "embeddingModelProvider.googleVertexAi.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Google Vertex AI authentication strategy.",
     "value" : "serviceAccountCredentials",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.vertexAiAuthentication.type",
+      "name" : "embeddingModelProvider.googleVertexAi.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -662,7 +662,7 @@
       "value" : "applicationDefaultCredentials"
     } ]
   }, {
-    "id" : "embeddingModelProvider.vertexAiAuthentication.jsonKey",
+    "id" : "embeddingModelProvider.googleVertexAi.authentication.jsonKey",
     "label" : "JSON key of the service account",
     "description" : "This is the key of the service account in JSON format.",
     "optional" : false,
@@ -672,12 +672,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.vertexAiAuthentication.jsonKey",
+      "name" : "embeddingModelProvider.googleVertexAi.authentication.jsonKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.vertexAiAuthentication.type",
+        "property" : "embeddingModelProvider.googleVertexAi.authentication.type",
         "equals" : "serviceAccountCredentials",
         "type" : "simple"
       }, {
@@ -688,7 +688,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.vertexAiModelName",
+    "id" : "embeddingModelProvider.googleVertexAi.modelName",
     "label" : "Model name",
     "description" : "Vertex AI embedding model name",
     "optional" : false,
@@ -698,7 +698,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.modelName",
+      "name" : "embeddingModelProvider.googleVertexAi.modelName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -708,7 +708,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.vertexAiDimensions",
+    "id" : "embeddingModelProvider.googleVertexAi.dimensions",
     "label" : "Embedding dimensions",
     "description" : "The size of the vector used to represent data. Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -718,7 +718,7 @@
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.dimensions",
+      "name" : "embeddingModelProvider.googleVertexAi.dimensions",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -728,7 +728,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.publisher",
+    "id" : "embeddingModelProvider.googleVertexAi.publisher",
     "label" : "Publisher",
     "description" : "The publisher of the Vertex AI model (e.g., 'google', 'third-party'). Optional.",
     "optional" : true,
@@ -736,7 +736,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.publisher",
+      "name" : "embeddingModelProvider.googleVertexAi.publisher",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -746,7 +746,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.vertexAiMaxRetries",
+    "id" : "embeddingModelProvider.googleVertexAi.maxRetries",
     "label" : "Max retries",
     "description" : "Max retries",
     "optional" : true,
@@ -754,7 +754,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.maxRetries",
+      "name" : "embeddingModelProvider.googleVertexAi.maxRetries",
       "type" : "zeebe:input"
     },
     "condition" : {

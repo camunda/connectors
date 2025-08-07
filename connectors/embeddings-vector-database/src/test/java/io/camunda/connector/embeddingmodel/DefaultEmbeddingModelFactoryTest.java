@@ -243,13 +243,14 @@ class DefaultEmbeddingModelFactoryTest {
     void createVertexAiEmbeddingModel() {
       var provider =
           new GoogleVertexAiEmbeddingModelProvider(
-              PROJECT_ID,
-              REGION,
-              new ApplicationDefaultCredentialsAuthentication(),
-              MODEL_NAME,
-              DIMENSIONS,
-              PUBLISHER,
-              MAX_RETRIES);
+              new GoogleVertexAiEmbeddingModelProvider.Configuration(
+                  PROJECT_ID,
+                  REGION,
+                  new ApplicationDefaultCredentialsAuthentication(),
+                  MODEL_NAME,
+                  DIMENSIONS,
+                  PUBLISHER,
+                  MAX_RETRIES));
       testVertexAiEmbeddingModelBuilder(
           provider,
           (builder) -> {
@@ -264,13 +265,14 @@ class DefaultEmbeddingModelFactoryTest {
     void createVertexAiEmbeddingModelWithServiceAccountCredentials() {
       var provider =
           new GoogleVertexAiEmbeddingModelProvider(
-              PROJECT_ID,
-              REGION,
-              new ServiceAccountCredentialsAuthentication("{}"),
-              MODEL_NAME,
-              DIMENSIONS,
-              PUBLISHER,
-              MAX_RETRIES);
+              new GoogleVertexAiEmbeddingModelProvider.Configuration(
+                  PROJECT_ID,
+                  REGION,
+                  new ServiceAccountCredentialsAuthentication("{}"),
+                  MODEL_NAME,
+                  DIMENSIONS,
+                  PUBLISHER,
+                  MAX_RETRIES));
       try (final var staticMockedSac = mockStatic(ServiceAccountCredentials.class)) {
         final var mockedSac = mock(ServiceAccountCredentials.class);
         when(mockedSac.createScoped(anyString())).thenReturn(mockedSac);
@@ -295,13 +297,14 @@ class DefaultEmbeddingModelFactoryTest {
     void createVertexAiEmbeddingModelWithMandatoryParametersOnly() {
       var provider =
           new GoogleVertexAiEmbeddingModelProvider(
-              PROJECT_ID,
-              REGION,
-              new ApplicationDefaultCredentialsAuthentication(),
-              MODEL_NAME,
-              DIMENSIONS,
-              null,
-              null);
+              new GoogleVertexAiEmbeddingModelProvider.Configuration(
+                  PROJECT_ID,
+                  REGION,
+                  new ApplicationDefaultCredentialsAuthentication(),
+                  MODEL_NAME,
+                  DIMENSIONS,
+                  null,
+                  null));
 
       testVertexAiEmbeddingModelBuilder(
           provider,

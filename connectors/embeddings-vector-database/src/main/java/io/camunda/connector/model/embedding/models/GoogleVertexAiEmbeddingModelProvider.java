@@ -21,72 +21,73 @@ import jakarta.validation.constraints.Positive;
 @TemplateSubType(
     label = "Google Vertex AI",
     id = GoogleVertexAiEmbeddingModelProvider.VERTEX_AI_MODEL_PROVIDER)
-public record GoogleVertexAiEmbeddingModelProvider(
-    @NotBlank
-        @TemplateProperty(
-            group = "embeddingModel",
-            label = "Project ID",
-            description = "Google Cloud project ID",
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        String projectId,
-    @NotBlank
-        @TemplateProperty(
-            group = "embeddingModel",
-            label = "Region",
-            description = "Google Cloud region for Vertex AI",
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        String region,
-    @Valid @NotNull GoogleVertexAiAuthentication vertexAiAuthentication,
-    @NotBlank
-        @TemplateProperty(
-            group = "embeddingModel",
-            label = "Model name",
-            id = "vertexAiModelName",
-            description = "Vertex AI embedding model name",
-            feel = Property.FeelMode.optional,
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        String modelName,
-    @NotNull
-        @Positive
-        @TemplateProperty(
-            group = "embeddingModel",
-            label = "Embedding dimensions",
-            id = "vertexAiDimensions",
-            description =
-                "The size of the vector used to represent data. Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings\" target=\"_blank\">documentation</a>.",
-            feel = Property.FeelMode.required,
-            type = TemplateProperty.PropertyType.Number,
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        Integer dimensions,
-    @TemplateProperty(
-            group = "embeddingModel",
-            label = "Publisher",
-            description =
-                "The publisher of the Vertex AI model (e.g., 'google', 'third-party'). Optional.",
-            defaultValue = VERTEX_AI_DEFAULT_PUBLISHER,
-            optional = true)
-        String publisher,
-    @TemplateProperty(
-            group = "embeddingModel",
-            label = "Max retries",
-            id = "vertexAiMaxRetries",
-            description = "Max retries",
-            defaultValueType = TemplateProperty.DefaultValueType.Number,
-            defaultValue = "3",
-            optional = true)
-        Integer maxRetries)
+public record GoogleVertexAiEmbeddingModelProvider(@Valid @NotNull Configuration googleVertexAi)
     implements EmbeddingModelProvider {
+
   @TemplateProperty(ignore = true)
   public static final String VERTEX_AI_MODEL_PROVIDER = "VERTEX_AI_MODEL_PROVIDER";
 
   @TemplateProperty(ignore = true)
   public static final String VERTEX_AI_DEFAULT_PUBLISHER = "google";
 
-  @AssertFalse(message = "Google Vertex AI is not supported on SaaS")
-  public boolean isUsedInSaaS() {
-    return System.getenv().containsKey("CAMUNDA_CONNECTOR_RUNTIME_SAAS")
-        && vertexAiAuthentication
-            instanceof GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+  public record Configuration(
+      @NotBlank
+          @TemplateProperty(
+              group = "embeddingModel",
+              label = "Project ID",
+              description = "Google Cloud project ID",
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          String projectId,
+      @NotBlank
+          @TemplateProperty(
+              group = "embeddingModel",
+              label = "Region",
+              description = "Google Cloud region for Vertex AI",
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          String region,
+      @Valid @NotNull GoogleVertexAiAuthentication authentication,
+      @NotBlank
+          @TemplateProperty(
+              group = "embeddingModel",
+              label = "Model name",
+              description = "Vertex AI embedding model name",
+              feel = Property.FeelMode.optional,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          String modelName,
+      @NotNull
+          @Positive
+          @TemplateProperty(
+              group = "embeddingModel",
+              label = "Embedding dimensions",
+              description =
+                  "The size of the vector used to represent data. Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings\" target=\"_blank\">documentation</a>.",
+              feel = Property.FeelMode.required,
+              type = TemplateProperty.PropertyType.Number,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          Integer dimensions,
+      @TemplateProperty(
+              group = "embeddingModel",
+              label = "Publisher",
+              description =
+                  "The publisher of the Vertex AI model (e.g., 'google', 'third-party'). Optional.",
+              defaultValue = VERTEX_AI_DEFAULT_PUBLISHER,
+              optional = true)
+          String publisher,
+      @TemplateProperty(
+              group = "embeddingModel",
+              label = "Max retries",
+              description = "Max retries",
+              defaultValueType = TemplateProperty.DefaultValueType.Number,
+              defaultValue = "3",
+              optional = true)
+          Integer maxRetries) {
+
+    @AssertFalse(message = "Google application default credentials is not supported on SaaS")
+    public boolean isApplicationDefaultCredentialsUsedInSaaS() {
+      return System.getenv().containsKey("CAMUNDA_CONNECTOR_RUNTIME_SAAS")
+          && authentication()
+              instanceof GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+    }
   }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

@@ -116,24 +116,25 @@ public class DefaultEmbeddingModelFactory {
 
   private EmbeddingModel createVertexAiEmbeddingModel(
       GoogleVertexAiEmbeddingModelProvider provider) {
+    final var googleVertexAi = provider.googleVertexAi();
     final var publisher =
-        StringUtils.isNotBlank(provider.publisher())
-            ? provider.publisher()
+        StringUtils.isNotBlank(googleVertexAi.publisher())
+            ? googleVertexAi.publisher()
             : GoogleVertexAiEmbeddingModelProvider.VERTEX_AI_DEFAULT_PUBLISHER;
     VertexAiEmbeddingModel.Builder builder =
         VertexAiEmbeddingModel.builder()
-            .project(provider.projectId())
-            .location(provider.region())
+            .project(googleVertexAi.projectId())
+            .location(googleVertexAi.region())
             .publisher(publisher)
-            .modelName(provider.modelName())
-            .outputDimensionality(provider.dimensions())
+            .modelName(googleVertexAi.modelName())
+            .outputDimensionality(googleVertexAi.dimensions())
             .taskType(VertexAiEmbeddingModel.TaskType.RETRIEVAL_DOCUMENT);
 
-    if (provider.vertexAiAuthentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+    if (googleVertexAi.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
       builder.credentials(createGoogleServiceAccountCredentials(sac));
     }
 
-    Optional.ofNullable(provider.maxRetries()).ifPresent(builder::maxRetries);
+    Optional.ofNullable(googleVertexAi.maxRetries()).ifPresent(builder::maxRetries);
 
     return builder.build();
   }
