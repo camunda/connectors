@@ -45,7 +45,9 @@ class DefaultRetrievingActionProcessorTest {
 
     final var embeddingStoreProvider = Mockito.mock(DefaultEmbeddingStoreFactory.class);
     final var store = Mockito.mock(EmbeddingStore.class);
-    Mockito.when(embeddingStoreProvider.initializeVectorStore(request.vectorStore(), model))
+    Mockito.when(
+            embeddingStoreProvider.initializeVectorStore(
+                request.vectorStore(), model, request.vectorDatabaseConnectorOperation()))
         .thenReturn(store);
     final var embeddingSearchResult = Mockito.mock(EmbeddingSearchResult.class);
     Mockito.when(store.search(ArgumentMatchers.any())).thenReturn(embeddingSearchResult);

@@ -47,7 +47,7 @@ public class DefaultRetrievingActionProcessor implements RetrievingActionProcess
     EmbeddingModel model =
         embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider());
     EmbeddingStore<TextSegment> store =
-        embeddingStoreProvider.initializeVectorStore(request.vectorStore(), model);
+        embeddingStoreProvider.initializeVectorStore(request.vectorStore(), model, retrieveRequest);
 
     Embedding queryEmbedding = model.embed(retrieveRequest.query()).content();
     EmbeddingSearchRequest embeddingSearchRequest =
