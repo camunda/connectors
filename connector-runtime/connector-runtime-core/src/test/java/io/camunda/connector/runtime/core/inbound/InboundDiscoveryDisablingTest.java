@@ -21,7 +21,6 @@ import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables
 
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import java.util.List;
-import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +35,7 @@ public class InboundDiscoveryDisablingTest {
                   () -> {
                     InboundConnectorFactory registry = new DefaultInboundConnectorFactory();
                     Assertions.assertThrows(
-                        NoSuchElementException.class,
+                        RuntimeException.class,
                         () -> registry.getInstance("io.camunda:annotated"),
                         "Inbound connector should not be available when discovery is disabled");
                     registry.registerConfiguration(
