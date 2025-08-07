@@ -140,7 +140,7 @@ public class OutboundConnectorDiscoveryTest {
   }
 
   @Test
-  public void shouldThrowWhenRegisteredManually() {
+  public void shouldThrowOnDuplicateRegistration() {
     // given conflicting SPI configuration and manual registration
     Assertions.assertThatThrownBy(() -> DiscoveryUtils.getFactory(new SpiRegisteredFunction()))
         .isInstanceOf(RuntimeException.class)

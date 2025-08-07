@@ -131,7 +131,7 @@ public class InboundConnectorDiscoveryTest {
   }
 
   @Test
-  public void shouldOverrideWhenRegisteredManually() {
+  public void shouldThrowOnDuplicateRegistration() {
 
     // given SPI configuration
     DefaultInboundConnectorFactory factory = getFactory();
