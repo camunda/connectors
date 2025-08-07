@@ -29,7 +29,7 @@ class AdHocToolSchemaGeneratorTest {
         createToolElement(
             List.of(
                 new AdHocToolElementParameter(
-                    "param1",
+                    "toolCall.param1",
                     null,
                     null,
                     Map.of("description", "A nice description", "type", "string"))));
@@ -56,7 +56,7 @@ class AdHocToolSchemaGeneratorTest {
         createToolElement(
             List.of(
                 new AdHocToolElementParameter(
-                    "param1",
+                    "toolCall.param1",
                     "Overridden description",
                     "number",
                     Map.of("description", "A nice description", "type", "string"))));
@@ -80,7 +80,8 @@ class AdHocToolSchemaGeneratorTest {
   @Test
   void defaultsToStringType() throws Exception {
     final var element =
-        createToolElement(List.of(new AdHocToolElementParameter("param1", "A nice description")));
+        createToolElement(
+            List.of(new AdHocToolElementParameter("toolCall.param1", "A nice description")));
 
     assertJsonSchema(
         element,
@@ -104,7 +105,10 @@ class AdHocToolSchemaGeneratorTest {
         createToolElement(
             List.of(
                 new AdHocToolElementParameter(
-                    "param1", "A nice description", null, Map.of("enum", List.of("A", "B", "C")))));
+                    "toolCall.param1",
+                    "A nice description",
+                    null,
+                    Map.of("enum", List.of("A", "B", "C")))));
 
     assertJsonSchema(
         element,
@@ -128,10 +132,10 @@ class AdHocToolSchemaGeneratorTest {
     final var element =
         createToolElement(
             List.of(
-                new AdHocToolElementParameter("param1", "The first param"),
-                new AdHocToolElementParameter("param2", "The second param", "number"),
+                new AdHocToolElementParameter("toolCall.param1", "The first param"),
+                new AdHocToolElementParameter("toolCall.param2", "The second param", "number"),
                 new AdHocToolElementParameter(
-                    "param3",
+                    "toolCall.param3",
                     "The third param",
                     "string",
                     Map.of("enum", List.of("A", "B", "C")))));
@@ -164,12 +168,12 @@ class AdHocToolSchemaGeneratorTest {
   @Test
   void throwsExceptionWhenRestrictedParamNameIsUsed() {
     final var element =
-        createToolElement(List.of(new AdHocToolElementParameter("_meta", "string")));
+        createToolElement(List.of(new AdHocToolElementParameter("toolCall._meta", "string")));
 
     assertThatThrownBy(() -> generator.generateToolSchema(element))
         .isInstanceOf(AdHocToolSchemaGenerationException.class)
         .hasMessage(
-            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter name '_meta' is restricted and cannot be used.");
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter name 'toolCall._meta' is restricted and cannot be used.");
   }
 
   @Test
@@ -177,13 +181,47 @@ class AdHocToolSchemaGeneratorTest {
     final var element =
         createToolElement(
             List.of(
-                new AdHocToolElementParameter("param1", "string"),
-                new AdHocToolElementParameter("param1", "string")));
+                new AdHocToolElementParameter("toolCall.param1", "string"),
+                new AdHocToolElementParameter("toolCall.param1", "string")));
 
     assertThatThrownBy(() -> generator.generateToolSchema(element))
         .isInstanceOf(AdHocToolSchemaGenerationException.class)
         .hasMessage(
-            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Duplicate parameter name 'param1'.");
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Duplicate parameter name 'toolCall.param1'.");
+  }
+
+  @Test
+  void throwsExceptionWhenParameterNameDoesNotStartWithExpectedNamespace() {
+    final var element =
+        createToolElement(List.of(new AdHocToolElementParameter("param1", "string")));
+
+    assertThatThrownBy(() -> generator.generateToolSchema(element))
+        .isInstanceOf(AdHocToolSchemaGenerationException.class)
+        .hasMessage(
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter name 'param1' is not part of expected namespace 'toolCall.'.");
+  }
+
+  @Test
+  void throwsExceptionWhenParameterNameIsEmptyAfterRemovingNamespace() {
+    final var element =
+        createToolElement(List.of(new AdHocToolElementParameter("toolCall.", "string")));
+
+    assertThatThrownBy(() -> generator.generateToolSchema(element))
+        .isInstanceOf(AdHocToolSchemaGenerationException.class)
+        .hasMessage(
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter name 'toolCall.' is empty after removing the expected namespace 'toolCall.'.");
+  }
+
+  @Test
+  void throwsExceptionWhenParameterNameContainsDotsAfterRemovingNamespace() {
+    final var element =
+        createToolElement(
+            List.of(new AdHocToolElementParameter("toolCall.param.subparam", "string")));
+
+    assertThatThrownBy(() -> generator.generateToolSchema(element))
+        .isInstanceOf(AdHocToolSchemaGenerationException.class)
+        .hasMessage(
+            "Failed to generate ad-hoc tool schema for element 'Test_Tool'. Parameter name 'param.subparam' with removed namespace 'toolCall.' is not a leaf reference (must not contain dots).");
   }
 
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)

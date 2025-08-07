@@ -14,6 +14,7 @@ import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_OBJECT;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_STRING;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,15 +24,19 @@ import org.apache.commons.lang3.StringUtils;
 
 public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
 
+  public static final String DEFAULT_EXPECTED_PARAMETER_NAMESPACE = "toolCall.";
   public static final List<String> DEFAULT_RESTRICTED_PARAM_NAMES = List.of("_meta");
 
+  private final String expectedParameterNamespace;
   private final List<String> restrictedParamNames;
 
   public AdHocToolSchemaGeneratorImpl() {
-    this(DEFAULT_RESTRICTED_PARAM_NAMES);
+    this(DEFAULT_EXPECTED_PARAMETER_NAMESPACE, DEFAULT_RESTRICTED_PARAM_NAMES);
   }
 
-  public AdHocToolSchemaGeneratorImpl(List<String> restrictedParamNames) {
+  public AdHocToolSchemaGeneratorImpl(
+      String expectedParameterNamespace, List<String> restrictedParamNames) {
+    this.expectedParameterNamespace = expectedParameterNamespace;
     this.restrictedParamNames = restrictedParamNames;
   }
 
@@ -44,13 +49,15 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
         .parameters()
         .forEach(
             parameter -> {
-              if (restrictedParamNames.contains(parameter.name())) {
+              final var parameterName = parameterName(element, parameter);
+
+              if (restrictedParamNames.contains(parameterName)) {
                 throw new AdHocToolSchemaGenerationException(
                     "Failed to generate ad-hoc tool schema for element '%s'. Parameter name '%s' is restricted and cannot be used."
                         .formatted(element.elementId(), parameter.name()));
               }
 
-              if (properties.containsKey(parameter.name())) {
+              if (properties.containsKey(parameterName)) {
                 throw new AdHocToolSchemaGenerationException(
                     "Failed to generate ad-hoc tool schema for element '%s'. Duplicate parameter name '%s'."
                         .formatted(element.elementId(), parameter.name()));
@@ -75,8 +82,8 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
                 propertySchema.put(PROPERTY_DESCRIPTION, parameter.description());
               }
 
-              properties.put(parameter.name(), propertySchema);
-              required.add(parameter.name());
+              properties.put(parameterName, propertySchema);
+              required.add(parameterName);
             });
 
     Map<String, Object> inputSchema = new LinkedHashMap<>();
@@ -85,5 +92,33 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
     inputSchema.put(PROPERTY_REQUIRED, required);
 
     return inputSchema;
+  }
+
+  private String parameterName(AdHocToolElement element, AdHocToolElementParameter parameter) {
+    final var parameterName = parameter.name();
+    if (StringUtils.isBlank(parameterName)
+        || !parameterName.startsWith(expectedParameterNamespace)) {
+      throw new AdHocToolSchemaGenerationException(
+          "Failed to generate ad-hoc tool schema for element '%s'. Parameter name '%s' is not part of expected namespace '%s'."
+              .formatted(element.elementId(), parameter.name(), expectedParameterNamespace));
+    }
+
+    final var parameterNameWithoutNamespace =
+        parameterName.substring(expectedParameterNamespace.length());
+
+    if (StringUtils.isBlank(parameterNameWithoutNamespace)) {
+      throw new AdHocToolSchemaGenerationException(
+          "Failed to generate ad-hoc tool schema for element '%s'. Parameter name '%s' is empty after removing the expected namespace '%s'."
+              .formatted(element.elementId(), parameter.name(), expectedParameterNamespace));
+    }
+
+    if (parameterNameWithoutNamespace.contains(".")) {
+      throw new AdHocToolSchemaGenerationException(
+          "Failed to generate ad-hoc tool schema for element '%s'. Parameter name '%s' with removed namespace '%s' is not a leaf reference (must not contain dots)."
+              .formatted(
+                  element.elementId(), parameterNameWithoutNamespace, expectedParameterNamespace));
+    }
+
+    return parameterNameWithoutNamespace;
   }
 }
