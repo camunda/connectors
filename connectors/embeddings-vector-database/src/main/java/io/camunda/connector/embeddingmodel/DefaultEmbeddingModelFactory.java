@@ -80,23 +80,20 @@ public class DefaultEmbeddingModelFactory {
 
   private EmbeddingModel createBedrockEmbeddingModel(
       BedrockEmbeddingModelProvider bedrockEmbeddingModelProvider) {
+    final var bedrock = bedrockEmbeddingModelProvider.bedrock();
     return BedrockTitanEmbeddingModel.builder()
-        .model(bedrockEmbeddingModelProvider.resolveSelectedModelName())
+        .model(bedrock.resolveSelectedModelName())
         .dimensions(
-            bedrockEmbeddingModelProvider.modelName() == BedrockModels.TitanEmbedTextV2
-                ? bedrockEmbeddingModelProvider.dimensions().getDimensions()
+            bedrock.modelName() == BedrockModels.TitanEmbedTextV2
+                ? bedrock.dimensions().getDimensions()
                 : null)
         .normalize(
-            bedrockEmbeddingModelProvider.modelName() == BedrockModels.TitanEmbedTextV2
-                ? bedrockEmbeddingModelProvider.normalize()
-                : null)
-        .region(Region.of(bedrockEmbeddingModelProvider.region()))
-        .maxRetries(bedrockEmbeddingModelProvider.maxRetries())
+            bedrock.modelName() == BedrockModels.TitanEmbedTextV2 ? bedrock.normalize() : null)
+        .region(Region.of(bedrock.region()))
+        .maxRetries(bedrock.maxRetries())
         .credentialsProvider(
             StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(
-                    bedrockEmbeddingModelProvider.accessKey(),
-                    bedrockEmbeddingModelProvider.secretKey())))
+                AwsBasicCredentials.create(bedrock.accessKey(), bedrock.secretKey())))
         .build();
   }
 

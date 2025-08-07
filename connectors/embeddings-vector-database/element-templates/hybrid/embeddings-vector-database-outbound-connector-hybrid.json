@@ -403,7 +403,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.bedrockAccessKey",
+    "id" : "embeddingModelProvider.bedrock.accessKey",
     "label" : "Access key",
     "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
@@ -413,7 +413,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.accessKey",
+      "name" : "embeddingModelProvider.bedrock.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -423,7 +423,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.bedrockSecretKey",
+    "id" : "embeddingModelProvider.bedrock.secretKey",
     "label" : "Secret key",
     "description" : "Provide a secret key associated with the access key",
     "optional" : false,
@@ -433,7 +433,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.secretKey",
+      "name" : "embeddingModelProvider.bedrock.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -443,7 +443,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.bedrockRegion",
+    "id" : "embeddingModelProvider.bedrock.region",
     "label" : "Region",
     "description" : "AWS Bedrock region",
     "optional" : false,
@@ -453,7 +453,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.region",
+      "name" : "embeddingModelProvider.bedrock.region",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -463,7 +463,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.modelName",
+    "id" : "embeddingModelProvider.bedrock.modelName",
     "label" : "Model name",
     "description" : "Bedrock model name or identifier",
     "optional" : false,
@@ -473,7 +473,7 @@
     },
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.modelName",
+      "name" : "embeddingModelProvider.bedrock.modelName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -493,7 +493,7 @@
       "value" : "TitanEmbedTextV2"
     } ]
   }, {
-    "id" : "embeddingModelProvider.bedrockCustomModelName",
+    "id" : "embeddingModelProvider.bedrock.customModelName",
     "label" : "Custom model name",
     "optional" : false,
     "constraints" : {
@@ -502,7 +502,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.customModelName",
+      "name" : "embeddingModelProvider.bedrock.customModelName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -518,7 +518,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.bedrockDimensions",
+    "id" : "embeddingModelProvider.bedrock.dimensions",
     "label" : "Embedding dimensions",
     "description" : "The size of the vector used to represent data",
     "optional" : false,
@@ -528,7 +528,7 @@
     },
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.dimensions",
+      "name" : "embeddingModelProvider.bedrock.dimensions",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -554,7 +554,7 @@
       "value" : "D1024"
     } ]
   }, {
-    "id" : "embeddingModelProvider.bedrockNormalize",
+    "id" : "embeddingModelProvider.bedrock.normalize",
     "label" : "Normalize",
     "description" : "Normalize vector",
     "optional" : false,
@@ -565,7 +565,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.normalize",
+      "name" : "embeddingModelProvider.bedrock.normalize",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -581,7 +581,7 @@
     },
     "type" : "Boolean"
   }, {
-    "id" : "embeddingModelProvider.bedrockMaxRetries",
+    "id" : "embeddingModelProvider.bedrock.maxRetries",
     "label" : "Max retries",
     "description" : "Max retries",
     "optional" : false,
@@ -589,7 +589,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.maxRetries",
+      "name" : "embeddingModelProvider.bedrock.maxRetries",
       "type" : "zeebe:input"
     },
     "condition" : {
