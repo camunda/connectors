@@ -83,16 +83,16 @@ public class OperationInvoker {
 
   private Object resolveHeaderValue(
       ParameterDescriptor.Header<?> headerDescriptor, Map<String, String> headers) {
-    String rawValue = headers.get(headerDescriptor.getName());
+    String rawValue = headers.get(headerDescriptor.name());
     Object value;
     try {
-      value = objectMapper.convertValue(rawValue, headerDescriptor.getType());
+      value = objectMapper.convertValue(rawValue, headerDescriptor.type());
     } catch (Throwable e) {
       throw new RuntimeException(e);
     }
-    if (headerDescriptor.isRequired() && value == null) {
+    if (headerDescriptor.required() && value == null) {
       throw new ConnectorInputException(
-          "Required variable '" + headerDescriptor.getName() + "' is missing in the job headers.");
+          "Required header '" + headerDescriptor.name() + "' is missing in the job headers.");
     }
     if (value != null) {
       validationProvider.validate(value);
