@@ -91,13 +91,14 @@ class DefaultEmbeddingStoreFactoryTest {
       when(mockModel.dimension()).thenReturn(512);
       final var azureCosmosDbNoSqlVectorStore =
           new AzureCosmosDbNoSqlVectorStore(
-              "https://example.documents.azure.com:443/",
-              new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
-              "database-name",
-              "container-name",
-              AzureCosmosDbNoSqlVectorStore.ConsistencyLevel.STRONG,
-              AzureCosmosDbNoSqlVectorStore.DistanceFunction.COSINE,
-              AzureCosmosDbNoSqlVectorStore.IndexType.FLAT);
+              new AzureCosmosDbNoSqlVectorStore.Configuration(
+                  "https://example.documents.azure.com:443/",
+                  new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
+                  "database-name",
+                  "container-name",
+                  AzureCosmosDbNoSqlVectorStore.ConsistencyLevel.STRONG,
+                  AzureCosmosDbNoSqlVectorStore.DistanceFunction.COSINE,
+                  AzureCosmosDbNoSqlVectorStore.IndexType.FLAT));
 
       testAzureCosmosDbNoSqlEmbeddingStoreCreation(azureCosmosDbNoSqlVectorStore, mockModel);
     }
@@ -110,14 +111,15 @@ class DefaultEmbeddingStoreFactoryTest {
       when(mockModel.dimension()).thenReturn(512);
       final var azureCosmosDbNoSqlVectorStore =
           new AzureCosmosDbNoSqlVectorStore(
-              "https://example.documents.azure.com:443/",
-              new AzureAuthentication.AzureClientCredentialsAuthentication(
-                  "client-id", "client-secret", "tenant-id", authorityHost),
-              "database-name",
-              "container-name",
-              AzureCosmosDbNoSqlVectorStore.ConsistencyLevel.STRONG,
-              AzureCosmosDbNoSqlVectorStore.DistanceFunction.COSINE,
-              AzureCosmosDbNoSqlVectorStore.IndexType.FLAT);
+              new AzureCosmosDbNoSqlVectorStore.Configuration(
+                  "https://example.documents.azure.com:443/",
+                  new AzureAuthentication.AzureClientCredentialsAuthentication(
+                      "client-id", "client-secret", "tenant-id", authorityHost),
+                  "database-name",
+                  "container-name",
+                  AzureCosmosDbNoSqlVectorStore.ConsistencyLevel.STRONG,
+                  AzureCosmosDbNoSqlVectorStore.DistanceFunction.COSINE,
+                  AzureCosmosDbNoSqlVectorStore.IndexType.FLAT));
 
       testAzureCosmosDbNoSqlEmbeddingStoreCreation(azureCosmosDbNoSqlVectorStore, mockModel);
     }
@@ -141,8 +143,8 @@ class DefaultEmbeddingStoreFactoryTest {
           verifyCosmosClientBuilder(vectorStore, cosmosClientBuilder);
 
           verify(builder).cosmosClient(any());
-          verify(builder).databaseName(vectorStore.databaseName());
-          verify(builder).containerName(vectorStore.containerName());
+          verify(builder).databaseName(vectorStore.azureCosmosDbNoSql().databaseName());
+          verify(builder).containerName(vectorStore.azureCosmosDbNoSql().containerName());
 
           verify(builder).cosmosVectorEmbeddingPolicy(embeddingPolicyCaptor.capture());
           assertThat(embeddingPolicyCaptor.getValue().getVectorEmbeddings().size()).isEqualTo(1);
@@ -171,7 +173,8 @@ class DefaultEmbeddingStoreFactoryTest {
           verify(builder).containerProperties(containerPropertiesCaptor.capture());
 
           var containerProperties = containerPropertiesCaptor.getValue();
-          assertThat(containerProperties.getId()).isEqualTo(vectorStore.containerName());
+          assertThat(containerProperties.getId())
+              .isEqualTo(vectorStore.azureCosmosDbNoSql().containerName());
           assertThat(containerProperties.getPartitionKeyDefinition().getPaths())
               .containsExactly(AzureVectorStoreFactory.COSMOS_DB_PARTITION_KEY_PATH);
           assertThat(containerProperties.getIndexingPolicy().getIndexingMode())
@@ -185,10 +188,10 @@ class DefaultEmbeddingStoreFactoryTest {
 
     private static void verifyCosmosClientBuilder(
         AzureCosmosDbNoSqlVectorStore vectorStore, CosmosClientBuilder cosmosClientBuilder) {
-      verify(cosmosClientBuilder).endpoint(vectorStore.endpoint());
+      verify(cosmosClientBuilder).endpoint(vectorStore.azureCosmosDbNoSql().endpoint());
       verify(cosmosClientBuilder).consistencyLevel(com.azure.cosmos.ConsistencyLevel.STRONG);
       verify(cosmosClientBuilder).contentResponseOnWriteEnabled(true);
-      switch (vectorStore.azureCosmosDbAuthentication()) {
+      switch (vectorStore.azureCosmosDbNoSql().authentication()) {
         case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
           verify(cosmosClientBuilder).key(apiKey);
           verify(cosmosClientBuilder, never()).credential(any(TokenCredential.class));
