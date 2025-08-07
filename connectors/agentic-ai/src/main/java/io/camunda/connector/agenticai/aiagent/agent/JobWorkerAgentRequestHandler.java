@@ -151,15 +151,10 @@ public class JobWorkerAgentRequestHandler
                           .cancelRemainingInstances(cancelRemainingInstances);
 
                   for (ToolCallProcessVariable toolCall : agentResponse.toolCalls()) {
-                    // TODO JW check if we want to expose variables without "toolCall.*" prefix as
-                    // we're in direct control of variables
                     adHocSubProcess =
                         adHocSubProcess
-                            .activateElement(toolCall.metadata().id())
-                            .variables(
-                                Map.of(
-                                    "_meta", toolCall.metadata(),
-                                    "toolCall", toolCall.arguments()));
+                            .activateElement(toolCall.metadata().name())
+                            .variables(Map.of(AiAgentJobWorker.TOOL_CALL_VARIABLE, toolCall));
                   }
 
                   return adHocSubProcess;
