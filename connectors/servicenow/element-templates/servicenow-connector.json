@@ -89,8 +89,8 @@
       "type": "Dropdown",
       "value": "read",
       "choices": [
-        { "name": "Read", "value": "read" },
         { "name": "Create", "value": "create" },
+        { "name": "Read", "value": "read" },
         { "name": "Update", "value": "update" },
         { "name": "Delete", "value": "delete" }
       ],
@@ -101,7 +101,7 @@
     },
     {
       "id": "updateOperationType",
-      "label": "target table",
+      "label": "Target table",
       "description": "table to update a record in",
       "group": "sn",
       "type": "Dropdown",
@@ -113,7 +113,7 @@
         { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
         { "name": "Service Catalog Task [sc_task]", "value": "sc_task" },
         { "name": "Incident [incident]", "value": "incident" },
-        { "name": "Other", "value": "__custom" }
+        { "name": "Other - type a table name", "value": "__custom" }
       ],
       "condition": {
         "property": "operationGroup",
@@ -138,7 +138,7 @@
         { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
         { "name": "Service Catalog Task [sc_task]", "value": "sc_task" },
         { "name": "Incident [incident]", "value": "incident" },
-        { "name": "Other", "value": "__custom" }
+        { "name": "Other - type a table name", "value": "__custom" }
       ],
       "condition": {
         "property": "operationGroup",
@@ -162,7 +162,7 @@
         { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
         { "name": "Service Catalog Task [sc_task]", "value": "sc_task" },
         { "name": "Incident [incident]", "value": "incident" },
-        { "name": "Other", "value": "__custom" }
+        { "name": "Other - type a table name", "value": "__custom" }
       ],
       "condition": {
         "property": "operationGroup",
@@ -176,8 +176,8 @@
     {
       "//": "used for all operation types",
       "id": "customRequestTarget",
-      "label": "Enter custom table name",
-      "description": "Specify your own ServiceNow table name.",
+      "label": "Enter table name",
+      "description": "Type the exact ServiceNow table name (case-sensitive)",
       "type": "String",
       "group": "sn",
       "binding": {
