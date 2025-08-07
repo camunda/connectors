@@ -138,19 +138,20 @@ class DefaultEmbeddingModelFactoryTest {
     void createAzureOpenAiEmbeddingModelWithAllParameters() {
       AzureOpenAiEmbeddingModelProvider provider =
           new AzureOpenAiEmbeddingModelProvider(
-              AZURE_OPENAI_ENDPOINT,
-              new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
-              AZURE_OPENAI_DEPLOYMENT_NAME,
-              1536,
-              5,
-              Map.of("X-Test-Header", "value"));
+              new AzureOpenAiEmbeddingModelProvider.Configuration(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
+                  AZURE_OPENAI_DEPLOYMENT_NAME,
+                  1536,
+                  5,
+                  Map.of("X-Test-Header", "value")));
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
           (builder) -> {
-            verify(builder).dimensions(provider.dimensions());
-            verify(builder).maxRetries(provider.maxRetries());
-            verify(builder).customHeaders(provider.customHeaders());
+            verify(builder).dimensions(provider.azureOpenAi().dimensions());
+            verify(builder).maxRetries(provider.azureOpenAi().maxRetries());
+            verify(builder).customHeaders(provider.azureOpenAi().customHeaders());
           });
     }
 
@@ -158,12 +159,13 @@ class DefaultEmbeddingModelFactoryTest {
     void createAzureOpenAiEmbeddingModelWithoutOptionalParameters() {
       AzureOpenAiEmbeddingModelProvider provider =
           new AzureOpenAiEmbeddingModelProvider(
-              AZURE_OPENAI_ENDPOINT,
-              new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
-              AZURE_OPENAI_DEPLOYMENT_NAME,
-              null,
-              null,
-              null);
+              new AzureOpenAiEmbeddingModelProvider.Configuration(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
+                  AZURE_OPENAI_DEPLOYMENT_NAME,
+                  null,
+                  null,
+                  null));
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
@@ -180,20 +182,21 @@ class DefaultEmbeddingModelFactoryTest {
     void createAzureOpenAiEmbeddingModelWithClientCredentials(String authorityHost) {
       AzureOpenAiEmbeddingModelProvider provider =
           new AzureOpenAiEmbeddingModelProvider(
-              AZURE_OPENAI_ENDPOINT,
-              new AzureClientCredentialsAuthentication(
-                  "client-id", "client-secret", "tenant-id", authorityHost),
-              AZURE_OPENAI_DEPLOYMENT_NAME,
-              1536,
-              5,
-              Map.of("X-Test-Header", "value"));
+              new AzureOpenAiEmbeddingModelProvider.Configuration(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureClientCredentialsAuthentication(
+                      "client-id", "client-secret", "tenant-id", authorityHost),
+                  AZURE_OPENAI_DEPLOYMENT_NAME,
+                  1536,
+                  5,
+                  Map.of("X-Test-Header", "value")));
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
           (builder) -> {
-            verify(builder).dimensions(provider.dimensions());
-            verify(builder).maxRetries(provider.maxRetries());
-            verify(builder).customHeaders(provider.customHeaders());
+            verify(builder).dimensions(provider.azureOpenAi().dimensions());
+            verify(builder).maxRetries(provider.azureOpenAi().maxRetries());
+            verify(builder).customHeaders(provider.azureOpenAi().customHeaders());
           });
     }
 
@@ -211,7 +214,7 @@ class DefaultEmbeddingModelFactoryTest {
         verify(builder).endpoint(AZURE_OPENAI_ENDPOINT);
         verify(builder).deploymentName(AZURE_OPENAI_DEPLOYMENT_NAME);
 
-        switch (provider.authentication()) {
+        switch (provider.azureOpenAi().authentication()) {
           case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
             verify(builder).apiKey(apiKey);
             verify(builder, never()).tokenCredential(any(TokenCredential.class));

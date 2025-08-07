@@ -49,19 +49,17 @@ public class DefaultEmbeddingModelFactory {
 
   private EmbeddingModel createAzureOpenAiEmbeddingModel(
       AzureOpenAiEmbeddingModelProvider azureOpenAiEmbeddingModelProvider) {
+    final var azureOpenAi = azureOpenAiEmbeddingModelProvider.azureOpenAi();
     AzureOpenAiEmbeddingModel.Builder builder =
         AzureOpenAiEmbeddingModel.builder()
-            .endpoint(azureOpenAiEmbeddingModelProvider.endpoint())
-            .deploymentName(azureOpenAiEmbeddingModelProvider.deploymentName());
+            .endpoint(azureOpenAi.endpoint())
+            .deploymentName(azureOpenAi.deploymentName());
 
-    Optional.ofNullable(azureOpenAiEmbeddingModelProvider.dimensions())
-        .ifPresent(builder::dimensions);
-    Optional.ofNullable(azureOpenAiEmbeddingModelProvider.maxRetries())
-        .ifPresent(builder::maxRetries);
-    Optional.ofNullable(azureOpenAiEmbeddingModelProvider.customHeaders())
-        .ifPresent(builder::customHeaders);
+    Optional.ofNullable(azureOpenAi.dimensions()).ifPresent(builder::dimensions);
+    Optional.ofNullable(azureOpenAi.maxRetries()).ifPresent(builder::maxRetries);
+    Optional.ofNullable(azureOpenAi.customHeaders()).ifPresent(builder::customHeaders);
 
-    switch (azureOpenAiEmbeddingModelProvider.authentication()) {
+    switch (azureOpenAi.authentication()) {
       case AzureAuthentication.AzureApiKeyAuthentication apiKey -> builder.apiKey(apiKey.apiKey());
       case AzureAuthentication.AzureClientCredentialsAuthentication auth -> {
         ClientSecretCredentialBuilder clientSecretCredentialBuilder =

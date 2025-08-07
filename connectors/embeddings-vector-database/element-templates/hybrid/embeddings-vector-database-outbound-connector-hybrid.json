@@ -162,7 +162,7 @@
       "value" : "OPEN_AI_MODEL_PROVIDER"
     } ]
   }, {
-    "id" : "embeddingModelProvider.endpoint",
+    "id" : "embeddingModelProvider.azureOpenAi.endpoint",
     "label" : "Endpoint",
     "description" : "Specify Azure OpenAI endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -172,7 +172,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.endpoint",
+      "name" : "embeddingModelProvider.azureOpenAi.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -182,13 +182,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.type",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure OpenAI authentication strategy.",
     "value" : "apiKey",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.type",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -205,7 +205,7 @@
       "value" : "clientCredentials"
     } ]
   }, {
-    "id" : "embeddingModelProvider.authentication.apiKey",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -214,12 +214,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.apiKey",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
@@ -230,7 +230,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.clientId",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.clientId",
     "label" : "Client ID",
     "description" : "ID of a Microsoft Entra application",
     "optional" : false,
@@ -240,12 +240,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.clientId",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.clientId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -256,7 +256,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.clientSecret",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.clientSecret",
     "label" : "Client secret",
     "description" : "Secret of a Microsoft Entra application",
     "optional" : false,
@@ -266,12 +266,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.clientSecret",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.clientSecret",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -282,7 +282,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.tenantId",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.tenantId",
     "label" : "Tenant ID",
     "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -292,12 +292,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.tenantId",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.tenantId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -308,19 +308,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.authorityHost",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.authorityHost",
     "label" : "Authority host",
     "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.authorityHost",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.authorityHost",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -331,7 +331,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.deploymentName",
+    "id" : "embeddingModelProvider.azureOpenAi.deploymentName",
     "label" : "Model deployment name",
     "description" : "Specify the model deployment name. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -341,7 +341,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.deploymentName",
+      "name" : "embeddingModelProvider.azureOpenAi.deploymentName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -351,14 +351,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.dimensions",
+    "id" : "embeddingModelProvider.azureOpenAi.dimensions",
     "label" : "Embedding dimensions",
     "description" : "The size of the vector used to represent data. If not specified, the default model dimensions are used. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.dimensions",
+      "name" : "embeddingModelProvider.azureOpenAi.dimensions",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -368,7 +368,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.maxRetries",
+    "id" : "embeddingModelProvider.azureOpenAi.maxRetries",
     "label" : "Max retries",
     "description" : "Max retries",
     "optional" : true,
@@ -376,7 +376,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.maxRetries",
+      "name" : "embeddingModelProvider.azureOpenAi.maxRetries",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -386,14 +386,14 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.customHeaders",
+    "id" : "embeddingModelProvider.azureOpenAi.customHeaders",
     "label" : "Custom headers",
     "description" : "Map of custom HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.customHeaders",
+      "name" : "embeddingModelProvider.azureOpenAi.customHeaders",
       "type" : "zeebe:input"
     },
     "condition" : {
