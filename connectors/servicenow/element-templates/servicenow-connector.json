@@ -4,7 +4,7 @@
   "name": "ServiceNow Outbound Connector",
   "id": "io.camunda.connectors.ServiceNow.v1",
   "version": 1,
-  "description": "Interact with ServiceNow tenant",
+  "description": "Interact with ServiceNow instance",
   "metadata": {
     "keywords": []
   },
@@ -67,13 +67,13 @@
       "type": "Hidden"
     },
     {
-      "id": "tenant",
-      "label": "Tenant name",
+      "id": "instance",
+      "label": "Instance name",
       "optional": false,
       "feel": "optional",
       "group": "sn",
       "binding": {
-        "name": "tenant",
+        "name": "instance",
         "type": "zeebe:input"
       },
       "constraints": {
@@ -107,7 +107,6 @@
       "type": "Dropdown",
       "value": "incident",
       "choices": [
-        { "name": "Configuration Item [cmdb_ci]", "value": "cmdb_ci" },
         { "name": "Request Item [sc_req_item]", "value": "sc_req_item" },
         { "name": "Change Request [change_request]", "value": "change_request" },
         { "name": "Change Task [change_task]", "value": "change_task" },
@@ -133,7 +132,6 @@
       "type": "Dropdown",
       "value": "incident",
       "choices": [
-        { "name": "Configuration Item [cmdb_ci]", "value": "cmdb_ci" },
         { "name": "Request Item [sc_req_item]", "value": "sc_req_item" },
         { "name": "Change Request [change_request]", "value": "change_request" },
         { "name": "Change Task [change_task]", "value": "change_task" },
@@ -159,7 +157,6 @@
       "type": "Dropdown",
       "value": "sc_req_item",
       "choices": [
-        { "name": "Configuration Item [cmdb_ci]", "value": "cmdb_ci" },
         { "name": "Requested Item [sc_req_item]", "value": "sc_req_item" },
         { "name": "Change Request [change_request]", "value": "change_request" },
         { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
@@ -698,7 +695,7 @@
         "type": "zeebe:input"
       },
       "type": "Hidden",
-      "value": "=\"https://\" + tenant + \".service-now.com/api/now/table/\" + (if requestTarget = \"__custom\" then customRequestTarget else requestTarget)"
+      "value": "=\"https://\" + instance + \".service-now.com/api/now/table/\" + (if requestTarget = \"__custom\" then customRequestTarget else requestTarget)"
     },
     {
       "id": "headers",
