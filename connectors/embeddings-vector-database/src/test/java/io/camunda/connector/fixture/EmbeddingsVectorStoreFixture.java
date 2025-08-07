@@ -14,16 +14,19 @@ public class EmbeddingsVectorStoreFixture {
 
   public static ElasticSearchVectorStore createElasticSearchVectorStore() {
     return new ElasticSearchVectorStore(
-        "https://elastic.local:9200", "elastic", "changeme", "embeddings_idx");
+        new ElasticSearchVectorStore.Configuration(
+            "https://elastic.local:9200", "elastic", "changeme", "embeddings_idx"));
   }
 
   public static OpenSearchVectorStore createOpenSearchVectorStore() {
     return new OpenSearchVectorStore(
-        "https://opensearch.local:9200", "opensearch", "changeme", "embeddings_idx");
+        new OpenSearchVectorStore.Configuration(
+            "https://opensearch.local:9200", "opensearch", "changeme", "embeddings_idx"));
   }
 
   public static AmazonManagedOpenSearchVectorStore createAmazonManagedOpenVectorStore() {
     return new AmazonManagedOpenSearchVectorStore(
-        "ACCESS_KEY", "SECRET_KEY", "https://opensearch.aws", "us-east-1", "embeddings_idx");
+        new AmazonManagedOpenSearchVectorStore.Configuration(
+            "ACCESS_KEY", "SECRET_KEY", "https://opensearch.aws", "us-east-1", "embeddings_idx"));
   }
 }

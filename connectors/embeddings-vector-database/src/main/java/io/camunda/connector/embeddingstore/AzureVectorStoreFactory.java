@@ -43,14 +43,15 @@ public class AzureVectorStoreFactory {
       AzureAiSearchVectorStore azureAiSearchVectorStore,
       EmbeddingModel model,
       VectorDatabaseConnectorOperation operation) {
+    final var aiSearch = azureAiSearchVectorStore.aiSearch();
     final var embeddingStoreBuilder =
         AzureAiSearchEmbeddingStore.builder()
-            .endpoint(azureAiSearchVectorStore.endpoint())
-            .indexName(azureAiSearchVectorStore.indexName())
+            .endpoint(aiSearch.endpoint())
+            .indexName(aiSearch.indexName())
             .dimensions(model.dimension())
             .createOrUpdateIndex(operation instanceof EmbedDocumentOperation);
 
-    switch (azureAiSearchVectorStore.azureAiSearchAuthentication()) {
+    switch (aiSearch.authentication()) {
       case AzureAuthentication.AzureApiKeyAuthentication apiKey ->
           embeddingStoreBuilder.apiKey(apiKey.apiKey());
       case AzureAuthentication.AzureClientCredentialsAuthentication auth -> {
@@ -64,13 +65,13 @@ public class AzureVectorStoreFactory {
   public EmbeddingStore<TextSegment> createCosmosDbNoSqlVectorStore(
       AzureCosmosDbNoSqlVectorStore azureCosmosDbNoSqlVectorStore, EmbeddingModel model) {
 
+    final var cosmosDbNoSql = azureCosmosDbNoSqlVectorStore.azureCosmosDbNoSql();
     final var cosmosClientBuilder = new CosmosClientBuilder();
-    cosmosClientBuilder.endpoint(azureCosmosDbNoSqlVectorStore.endpoint());
-    cosmosClientBuilder.consistencyLevel(
-        mapConsistencyLevel(azureCosmosDbNoSqlVectorStore.consistencyLevel()));
+    cosmosClientBuilder.endpoint(cosmosDbNoSql.endpoint());
+    cosmosClientBuilder.consistencyLevel(mapConsistencyLevel(cosmosDbNoSql.consistencyLevel()));
     cosmosClientBuilder.contentResponseOnWriteEnabled(true);
 
-    switch (azureCosmosDbNoSqlVectorStore.azureCosmosDbAuthentication()) {
+    switch (cosmosDbNoSql.authentication()) {
       case AzureAuthentication.AzureApiKeyAuthentication apiKey ->
           cosmosClientBuilder.key(apiKey.apiKey());
       case AzureAuthentication.AzureClientCredentialsAuthentication auth ->
@@ -81,22 +82,19 @@ public class AzureVectorStoreFactory {
     embedding.setPath(COSMOS_DB_VECTOR_EMBEDDING_PATH);
     embedding.setDataType(CosmosVectorDataType.FLOAT32);
     embedding.setEmbeddingDimensions(model.dimension());
-    embedding.setDistanceFunction(
-        mapDistanceFunction(azureCosmosDbNoSqlVectorStore.distanceFunction()));
+    embedding.setDistanceFunction(mapDistanceFunction(cosmosDbNoSql.distanceFunction()));
     final var embeddingPolicy = new CosmosVectorEmbeddingPolicy();
     embeddingPolicy.setCosmosVectorEmbeddings(List.of(embedding));
 
     final var vectorIndexSpec = new CosmosVectorIndexSpec();
     vectorIndexSpec.setPath(COSMOS_DB_VECTOR_EMBEDDING_PATH);
-    vectorIndexSpec.setType(
-        mapIndexType(azureCosmosDbNoSqlVectorStore.vectorIndexType()).toString());
+    vectorIndexSpec.setType(mapIndexType(cosmosDbNoSql.vectorIndexType()).toString());
 
     final var partitionKeyDef = new PartitionKeyDefinition();
     partitionKeyDef.setPaths(List.of(COSMOS_DB_PARTITION_KEY_PATH));
 
     final var containerProperties =
-        new CosmosContainerProperties(
-            azureCosmosDbNoSqlVectorStore.containerName(), partitionKeyDef);
+        new CosmosContainerProperties(cosmosDbNoSql.containerName(), partitionKeyDef);
     final var indexingPolicy = new IndexingPolicy();
     indexingPolicy.setIndexingMode(IndexingMode.CONSISTENT);
     indexingPolicy.setIncludedPaths(List.of(new IncludedPath("/*")));
@@ -104,8 +102,8 @@ public class AzureVectorStoreFactory {
 
     return AzureCosmosDbNoSqlEmbeddingStore.builder()
         .cosmosClient(cosmosClientBuilder.buildClient())
-        .databaseName(azureCosmosDbNoSqlVectorStore.databaseName())
-        .containerName(azureCosmosDbNoSqlVectorStore.containerName())
+        .databaseName(cosmosDbNoSql.databaseName())
+        .containerName(cosmosDbNoSql.containerName())
         .cosmosVectorEmbeddingPolicy(embeddingPolicy)
         .cosmosVectorIndexes(List.of(vectorIndexSpec))
         .containerProperties(containerProperties)

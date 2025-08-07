@@ -14,13 +14,14 @@ public class EmbeddingModelProviderFixture {
 
   public static BedrockEmbeddingModelProvider createDefaultBedrockEmbeddingModel() {
     return new BedrockEmbeddingModelProvider(
-        "ACCESS_KEY",
-        "SECRET_KEY",
-        "us-east-1",
-        BedrockModels.TitanEmbedTextV2,
-        null,
-        BedrockDimensions.D1024,
-        false,
-        3);
+        new BedrockEmbeddingModelProvider.Configuration(
+            "ACCESS_KEY",
+            "SECRET_KEY",
+            "us-east-1",
+            BedrockModels.TitanEmbedTextV2,
+            null,
+            BedrockDimensions.D1024,
+            false,
+            3));
   }
 }

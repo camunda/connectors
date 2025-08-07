@@ -49,19 +49,17 @@ public class DefaultEmbeddingModelFactory {
 
   private EmbeddingModel createAzureOpenAiEmbeddingModel(
       AzureOpenAiEmbeddingModelProvider azureOpenAiEmbeddingModelProvider) {
+    final var azureOpenAi = azureOpenAiEmbeddingModelProvider.azureOpenAi();
     AzureOpenAiEmbeddingModel.Builder builder =
         AzureOpenAiEmbeddingModel.builder()
-            .endpoint(azureOpenAiEmbeddingModelProvider.endpoint())
-            .deploymentName(azureOpenAiEmbeddingModelProvider.deploymentName());
+            .endpoint(azureOpenAi.endpoint())
+            .deploymentName(azureOpenAi.deploymentName());
 
-    Optional.ofNullable(azureOpenAiEmbeddingModelProvider.dimensions())
-        .ifPresent(builder::dimensions);
-    Optional.ofNullable(azureOpenAiEmbeddingModelProvider.maxRetries())
-        .ifPresent(builder::maxRetries);
-    Optional.ofNullable(azureOpenAiEmbeddingModelProvider.customHeaders())
-        .ifPresent(builder::customHeaders);
+    Optional.ofNullable(azureOpenAi.dimensions()).ifPresent(builder::dimensions);
+    Optional.ofNullable(azureOpenAi.maxRetries()).ifPresent(builder::maxRetries);
+    Optional.ofNullable(azureOpenAi.customHeaders()).ifPresent(builder::customHeaders);
 
-    switch (azureOpenAiEmbeddingModelProvider.authentication()) {
+    switch (azureOpenAi.authentication()) {
       case AzureAuthentication.AzureApiKeyAuthentication apiKey -> builder.apiKey(apiKey.apiKey());
       case AzureAuthentication.AzureClientCredentialsAuthentication auth -> {
         ClientSecretCredentialBuilder clientSecretCredentialBuilder =
@@ -80,65 +78,60 @@ public class DefaultEmbeddingModelFactory {
 
   private EmbeddingModel createBedrockEmbeddingModel(
       BedrockEmbeddingModelProvider bedrockEmbeddingModelProvider) {
+    final var bedrock = bedrockEmbeddingModelProvider.bedrock();
     return BedrockTitanEmbeddingModel.builder()
-        .model(bedrockEmbeddingModelProvider.resolveSelectedModelName())
+        .model(bedrock.resolveSelectedModelName())
         .dimensions(
-            bedrockEmbeddingModelProvider.modelName() == BedrockModels.TitanEmbedTextV2
-                ? bedrockEmbeddingModelProvider.dimensions().getDimensions()
+            bedrock.modelName() == BedrockModels.TitanEmbedTextV2
+                ? bedrock.dimensions().getDimensions()
                 : null)
         .normalize(
-            bedrockEmbeddingModelProvider.modelName() == BedrockModels.TitanEmbedTextV2
-                ? bedrockEmbeddingModelProvider.normalize()
-                : null)
-        .region(Region.of(bedrockEmbeddingModelProvider.region()))
-        .maxRetries(bedrockEmbeddingModelProvider.maxRetries())
+            bedrock.modelName() == BedrockModels.TitanEmbedTextV2 ? bedrock.normalize() : null)
+        .region(Region.of(bedrock.region()))
+        .maxRetries(bedrock.maxRetries())
         .credentialsProvider(
             StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(
-                    bedrockEmbeddingModelProvider.accessKey(),
-                    bedrockEmbeddingModelProvider.secretKey())))
+                AwsBasicCredentials.create(bedrock.accessKey(), bedrock.secretKey())))
         .build();
   }
 
   private EmbeddingModel createOpenAiEmbeddingModel(
       OpenAiEmbeddingModelProvider openAiEmbeddingModelProvider) {
+    final var openAi = openAiEmbeddingModelProvider.openAi();
     OpenAiEmbeddingModel.OpenAiEmbeddingModelBuilder builder =
-        OpenAiEmbeddingModel.builder()
-            .apiKey(openAiEmbeddingModelProvider.apiKey())
-            .modelName(openAiEmbeddingModelProvider.modelName());
+        OpenAiEmbeddingModel.builder().apiKey(openAi.apiKey()).modelName(openAi.modelName());
 
-    Optional.ofNullable(openAiEmbeddingModelProvider.organizationId())
-        .ifPresent(builder::organizationId);
-    Optional.ofNullable(openAiEmbeddingModelProvider.projectId()).ifPresent(builder::projectId);
-    Optional.ofNullable(openAiEmbeddingModelProvider.baseUrl()).ifPresent(builder::baseUrl);
-    Optional.ofNullable(openAiEmbeddingModelProvider.customHeaders())
-        .ifPresent(builder::customHeaders);
-    Optional.ofNullable(openAiEmbeddingModelProvider.dimensions()).ifPresent(builder::dimensions);
-    Optional.ofNullable(openAiEmbeddingModelProvider.maxRetries()).ifPresent(builder::maxRetries);
+    Optional.ofNullable(openAi.organizationId()).ifPresent(builder::organizationId);
+    Optional.ofNullable(openAi.projectId()).ifPresent(builder::projectId);
+    Optional.ofNullable(openAi.baseUrl()).ifPresent(builder::baseUrl);
+    Optional.ofNullable(openAi.customHeaders()).ifPresent(builder::customHeaders);
+    Optional.ofNullable(openAi.dimensions()).ifPresent(builder::dimensions);
+    Optional.ofNullable(openAi.maxRetries()).ifPresent(builder::maxRetries);
 
     return builder.build();
   }
 
   private EmbeddingModel createVertexAiEmbeddingModel(
       GoogleVertexAiEmbeddingModelProvider provider) {
+    final var googleVertexAi = provider.googleVertexAi();
     final var publisher =
-        StringUtils.isNotBlank(provider.publisher())
-            ? provider.publisher()
+        StringUtils.isNotBlank(googleVertexAi.publisher())
+            ? googleVertexAi.publisher()
             : GoogleVertexAiEmbeddingModelProvider.VERTEX_AI_DEFAULT_PUBLISHER;
     VertexAiEmbeddingModel.Builder builder =
         VertexAiEmbeddingModel.builder()
-            .project(provider.projectId())
-            .location(provider.region())
+            .project(googleVertexAi.projectId())
+            .location(googleVertexAi.region())
             .publisher(publisher)
-            .modelName(provider.modelName())
-            .outputDimensionality(provider.dimensions())
+            .modelName(googleVertexAi.modelName())
+            .outputDimensionality(googleVertexAi.dimensions())
             .taskType(VertexAiEmbeddingModel.TaskType.RETRIEVAL_DOCUMENT);
 
-    if (provider.vertexAiAuthentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+    if (googleVertexAi.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
       builder.credentials(createGoogleServiceAccountCredentials(sac));
     }
 
-    Optional.ofNullable(provider.maxRetries()).ifPresent(builder::maxRetries);
+    Optional.ofNullable(googleVertexAi.maxRetries()).ifPresent(builder::maxRetries);
 
     return builder.build();
   }

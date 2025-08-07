@@ -43,7 +43,7 @@ class GoogleVertexAiEmbeddingModelProviderTest {
     assertThat(violations)
         .hasSize(1)
         .extracting(ConstraintViolation::getMessage)
-        .containsExactly("Google Vertex AI is not supported on SaaS");
+        .containsExactly("Google application default credentials is not supported on SaaS");
   }
 
   @Test
@@ -70,23 +70,25 @@ class GoogleVertexAiEmbeddingModelProviderTest {
 
   private GoogleVertexAiEmbeddingModelProvider createProviderWithDefaultCredentials() {
     return new GoogleVertexAiEmbeddingModelProvider(
-        "my-project-id",
-        "us-central1",
-        new GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication(),
-        "embedding-model",
-        768,
-        "google",
-        3);
+        new GoogleVertexAiEmbeddingModelProvider.Configuration(
+            "my-project-id",
+            "us-central1",
+            new GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication(),
+            "embedding-model",
+            768,
+            "google",
+            3));
   }
 
   private GoogleVertexAiEmbeddingModelProvider createProviderWithServiceAccountCredentials() {
     return new GoogleVertexAiEmbeddingModelProvider(
-        "my-project-id",
-        "us-central1",
-        new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication("{}"),
-        "embedding-model",
-        768,
-        "google",
-        3);
+        new GoogleVertexAiEmbeddingModelProvider.Configuration(
+            "my-project-id",
+            "us-central1",
+            new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication("{}"),
+            "embedding-model",
+            768,
+            "google",
+            3));
   }
 }

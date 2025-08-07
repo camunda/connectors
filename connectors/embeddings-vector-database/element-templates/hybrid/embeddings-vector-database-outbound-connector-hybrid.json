@@ -162,7 +162,7 @@
       "value" : "OPEN_AI_MODEL_PROVIDER"
     } ]
   }, {
-    "id" : "embeddingModelProvider.endpoint",
+    "id" : "embeddingModelProvider.azureOpenAi.endpoint",
     "label" : "Endpoint",
     "description" : "Specify Azure OpenAI endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -172,7 +172,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.endpoint",
+      "name" : "embeddingModelProvider.azureOpenAi.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -182,13 +182,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.type",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure OpenAI authentication strategy.",
     "value" : "apiKey",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.type",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -205,7 +205,7 @@
       "value" : "clientCredentials"
     } ]
   }, {
-    "id" : "embeddingModelProvider.authentication.apiKey",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -214,12 +214,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.apiKey",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
@@ -230,7 +230,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.clientId",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.clientId",
     "label" : "Client ID",
     "description" : "ID of a Microsoft Entra application",
     "optional" : false,
@@ -240,12 +240,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.clientId",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.clientId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -256,7 +256,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.clientSecret",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.clientSecret",
     "label" : "Client secret",
     "description" : "Secret of a Microsoft Entra application",
     "optional" : false,
@@ -266,12 +266,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.clientSecret",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.clientSecret",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -282,7 +282,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.tenantId",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.tenantId",
     "label" : "Tenant ID",
     "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -292,12 +292,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.tenantId",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.tenantId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -308,19 +308,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.authentication.authorityHost",
+    "id" : "embeddingModelProvider.azureOpenAi.authentication.authorityHost",
     "label" : "Authority host",
     "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.authentication.authorityHost",
+      "name" : "embeddingModelProvider.azureOpenAi.authentication.authorityHost",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.authentication.type",
+        "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -331,7 +331,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.deploymentName",
+    "id" : "embeddingModelProvider.azureOpenAi.deploymentName",
     "label" : "Model deployment name",
     "description" : "Specify the model deployment name. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -341,7 +341,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.deploymentName",
+      "name" : "embeddingModelProvider.azureOpenAi.deploymentName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -351,14 +351,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.dimensions",
+    "id" : "embeddingModelProvider.azureOpenAi.dimensions",
     "label" : "Embedding dimensions",
     "description" : "The size of the vector used to represent data. If not specified, the default model dimensions are used. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.dimensions",
+      "name" : "embeddingModelProvider.azureOpenAi.dimensions",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -368,7 +368,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.maxRetries",
+    "id" : "embeddingModelProvider.azureOpenAi.maxRetries",
     "label" : "Max retries",
     "description" : "Max retries",
     "optional" : true,
@@ -376,7 +376,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.maxRetries",
+      "name" : "embeddingModelProvider.azureOpenAi.maxRetries",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -386,14 +386,14 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.customHeaders",
+    "id" : "embeddingModelProvider.azureOpenAi.customHeaders",
     "label" : "Custom headers",
     "description" : "Map of custom HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.customHeaders",
+      "name" : "embeddingModelProvider.azureOpenAi.customHeaders",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -403,7 +403,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.bedrockAccessKey",
+    "id" : "embeddingModelProvider.bedrock.accessKey",
     "label" : "Access key",
     "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
@@ -413,7 +413,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.accessKey",
+      "name" : "embeddingModelProvider.bedrock.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -423,7 +423,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.bedrockSecretKey",
+    "id" : "embeddingModelProvider.bedrock.secretKey",
     "label" : "Secret key",
     "description" : "Provide a secret key associated with the access key",
     "optional" : false,
@@ -433,7 +433,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.secretKey",
+      "name" : "embeddingModelProvider.bedrock.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -443,7 +443,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.bedrockRegion",
+    "id" : "embeddingModelProvider.bedrock.region",
     "label" : "Region",
     "description" : "AWS Bedrock region",
     "optional" : false,
@@ -453,7 +453,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.region",
+      "name" : "embeddingModelProvider.bedrock.region",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -463,7 +463,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.modelName",
+    "id" : "embeddingModelProvider.bedrock.modelName",
     "label" : "Model name",
     "description" : "Bedrock model name or identifier",
     "optional" : false,
@@ -473,7 +473,7 @@
     },
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.modelName",
+      "name" : "embeddingModelProvider.bedrock.modelName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -493,7 +493,7 @@
       "value" : "TitanEmbedTextV2"
     } ]
   }, {
-    "id" : "embeddingModelProvider.bedrockCustomModelName",
+    "id" : "embeddingModelProvider.bedrock.customModelName",
     "label" : "Custom model name",
     "optional" : false,
     "constraints" : {
@@ -502,7 +502,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.customModelName",
+      "name" : "embeddingModelProvider.bedrock.customModelName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -518,7 +518,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.bedrockDimensions",
+    "id" : "embeddingModelProvider.bedrock.dimensions",
     "label" : "Embedding dimensions",
     "description" : "The size of the vector used to represent data",
     "optional" : false,
@@ -528,7 +528,7 @@
     },
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.dimensions",
+      "name" : "embeddingModelProvider.bedrock.dimensions",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -554,7 +554,7 @@
       "value" : "D1024"
     } ]
   }, {
-    "id" : "embeddingModelProvider.bedrockNormalize",
+    "id" : "embeddingModelProvider.bedrock.normalize",
     "label" : "Normalize",
     "description" : "Normalize vector",
     "optional" : false,
@@ -565,7 +565,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.normalize",
+      "name" : "embeddingModelProvider.bedrock.normalize",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -581,7 +581,7 @@
     },
     "type" : "Boolean"
   }, {
-    "id" : "embeddingModelProvider.bedrockMaxRetries",
+    "id" : "embeddingModelProvider.bedrock.maxRetries",
     "label" : "Max retries",
     "description" : "Max retries",
     "optional" : false,
@@ -589,7 +589,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.maxRetries",
+      "name" : "embeddingModelProvider.bedrock.maxRetries",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -599,7 +599,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.projectId",
+    "id" : "embeddingModelProvider.googleVertexAi.projectId",
     "label" : "Project ID",
     "description" : "Google Cloud project ID",
     "optional" : false,
@@ -609,7 +609,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.projectId",
+      "name" : "embeddingModelProvider.googleVertexAi.projectId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -619,7 +619,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.region",
+    "id" : "embeddingModelProvider.googleVertexAi.region",
     "label" : "Region",
     "description" : "Google Cloud region for Vertex AI",
     "optional" : false,
@@ -629,7 +629,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.region",
+      "name" : "embeddingModelProvider.googleVertexAi.region",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -639,13 +639,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.vertexAiAuthentication.type",
+    "id" : "embeddingModelProvider.googleVertexAi.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Google Vertex AI authentication strategy.",
     "value" : "serviceAccountCredentials",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.vertexAiAuthentication.type",
+      "name" : "embeddingModelProvider.googleVertexAi.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -662,7 +662,7 @@
       "value" : "applicationDefaultCredentials"
     } ]
   }, {
-    "id" : "embeddingModelProvider.vertexAiAuthentication.jsonKey",
+    "id" : "embeddingModelProvider.googleVertexAi.authentication.jsonKey",
     "label" : "JSON key of the service account",
     "description" : "This is the key of the service account in JSON format.",
     "optional" : false,
@@ -672,12 +672,12 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.vertexAiAuthentication.jsonKey",
+      "name" : "embeddingModelProvider.googleVertexAi.authentication.jsonKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.vertexAiAuthentication.type",
+        "property" : "embeddingModelProvider.googleVertexAi.authentication.type",
         "equals" : "serviceAccountCredentials",
         "type" : "simple"
       }, {
@@ -688,7 +688,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.vertexAiModelName",
+    "id" : "embeddingModelProvider.googleVertexAi.modelName",
     "label" : "Model name",
     "description" : "Vertex AI embedding model name",
     "optional" : false,
@@ -698,7 +698,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.modelName",
+      "name" : "embeddingModelProvider.googleVertexAi.modelName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -708,7 +708,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.vertexAiDimensions",
+    "id" : "embeddingModelProvider.googleVertexAi.dimensions",
     "label" : "Embedding dimensions",
     "description" : "The size of the vector used to represent data. Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -718,7 +718,7 @@
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.dimensions",
+      "name" : "embeddingModelProvider.googleVertexAi.dimensions",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -728,7 +728,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.publisher",
+    "id" : "embeddingModelProvider.googleVertexAi.publisher",
     "label" : "Publisher",
     "description" : "The publisher of the Vertex AI model (e.g., 'google', 'third-party'). Optional.",
     "optional" : true,
@@ -736,7 +736,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.publisher",
+      "name" : "embeddingModelProvider.googleVertexAi.publisher",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -746,7 +746,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.vertexAiMaxRetries",
+    "id" : "embeddingModelProvider.googleVertexAi.maxRetries",
     "label" : "Max retries",
     "description" : "Max retries",
     "optional" : true,
@@ -754,7 +754,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.maxRetries",
+      "name" : "embeddingModelProvider.googleVertexAi.maxRetries",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -764,7 +764,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.openAiApiKey",
+    "id" : "embeddingModelProvider.openAi.apiKey",
     "label" : "OpenAI API key",
     "optional" : false,
     "constraints" : {
@@ -773,7 +773,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.apiKey",
+      "name" : "embeddingModelProvider.openAi.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -783,7 +783,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiModelName",
+    "id" : "embeddingModelProvider.openAi.modelName",
     "label" : "Model name",
     "description" : "Specify the model name. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -793,7 +793,7 @@
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.modelName",
+      "name" : "embeddingModelProvider.openAi.modelName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -803,14 +803,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiOrganizationId",
+    "id" : "embeddingModelProvider.openAi.organizationId",
     "label" : "Organization ID",
     "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.organizationId",
+      "name" : "embeddingModelProvider.openAi.organizationId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -820,14 +820,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiProjectId",
+    "id" : "embeddingModelProvider.openAi.projectId",
     "label" : "Project ID",
     "description" : "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.projectId",
+      "name" : "embeddingModelProvider.openAi.projectId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -837,14 +837,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiDimensions",
+    "id" : "embeddingModelProvider.openAi.dimensions",
     "label" : "Embedding dimensions",
     "description" : "The size of the vector used to represent data. If not specified, the default model dimensions are used. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
     "optional" : true,
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.dimensions",
+      "name" : "embeddingModelProvider.openAi.dimensions",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -854,7 +854,7 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.openAiMaxRetries",
+    "id" : "embeddingModelProvider.openAi.maxRetries",
     "label" : "Max retries",
     "description" : "Max retries",
     "optional" : true,
@@ -862,7 +862,7 @@
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.maxRetries",
+      "name" : "embeddingModelProvider.openAi.maxRetries",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -872,14 +872,14 @@
     },
     "type" : "Number"
   }, {
-    "id" : "embeddingModelProvider.openAiCustomHeaders",
+    "id" : "embeddingModelProvider.openAi.customHeaders",
     "label" : "Custom headers",
     "description" : "Map of custom HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.customHeaders",
+      "name" : "embeddingModelProvider.openAi.customHeaders",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -889,13 +889,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "embeddingModelProvider.openAiBaseUrl",
+    "id" : "embeddingModelProvider.openAi.baseUrl",
     "label" : "Custom base URL",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingModel",
     "binding" : {
-      "name" : "embeddingModelProvider.baseUrl",
+      "name" : "embeddingModelProvider.openAi.baseUrl",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -943,7 +943,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.accessKey",
+      "name" : "vectorStore.amazonManagedOpensearch.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -963,7 +963,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.secretKey",
+      "name" : "vectorStore.amazonManagedOpensearch.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -983,7 +983,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.serverUrl",
+      "name" : "vectorStore.amazonManagedOpensearch.serverUrl",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1003,7 +1003,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.region",
+      "name" : "vectorStore.amazonManagedOpensearch.region",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1023,7 +1023,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.indexName",
+      "name" : "vectorStore.amazonManagedOpensearch.indexName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1033,7 +1033,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearch.endpoint",
+    "id" : "vectorStore.aiSearch.endpoint",
     "label" : "Endpoint",
     "description" : "Specify Azure AI Search endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/search/\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -1043,7 +1043,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.endpoint",
+      "name" : "vectorStore.aiSearch.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1053,13 +1053,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.type",
+    "id" : "vectorStore.aiSearch.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure OpenAI authentication strategy.",
     "value" : "apiKey",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.type",
+      "name" : "vectorStore.aiSearch.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1076,7 +1076,7 @@
       "value" : "clientCredentials"
     } ]
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.apiKey",
+    "id" : "vectorStore.aiSearch.authentication.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -1085,12 +1085,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.apiKey",
+      "name" : "vectorStore.aiSearch.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
@@ -1101,7 +1101,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.clientId",
+    "id" : "vectorStore.aiSearch.authentication.clientId",
     "label" : "Client ID",
     "description" : "ID of a Microsoft Entra application",
     "optional" : false,
@@ -1111,12 +1111,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.clientId",
+      "name" : "vectorStore.aiSearch.authentication.clientId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1127,7 +1127,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.clientSecret",
+    "id" : "vectorStore.aiSearch.authentication.clientSecret",
     "label" : "Client secret",
     "description" : "Secret of a Microsoft Entra application",
     "optional" : false,
@@ -1137,12 +1137,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.clientSecret",
+      "name" : "vectorStore.aiSearch.authentication.clientSecret",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1153,7 +1153,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.tenantId",
+    "id" : "vectorStore.aiSearch.authentication.tenantId",
     "label" : "Tenant ID",
     "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -1163,12 +1163,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.tenantId",
+      "name" : "vectorStore.aiSearch.authentication.tenantId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1179,19 +1179,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.authorityHost",
+    "id" : "vectorStore.aiSearch.authentication.authorityHost",
     "label" : "Authority host",
     "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.authorityHost",
+      "name" : "vectorStore.aiSearch.authentication.authorityHost",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1202,7 +1202,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearch.indexName",
+    "id" : "vectorStore.aiSearch.indexName",
     "label" : "Index name",
     "description" : "The name of the search index. When storing embeddings this index is created or updated automatically.",
     "optional" : false,
@@ -1212,7 +1212,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.indexName",
+      "name" : "vectorStore.aiSearch.indexName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1232,7 +1232,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.endpoint",
+      "name" : "vectorStore.azureCosmosDbNoSql.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1242,13 +1242,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureCosmosDbAuthentication.type",
+    "id" : "vectorStore.azureCosmosDbNoSql.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure OpenAI authentication strategy.",
     "value" : "apiKey",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureCosmosDbAuthentication.type",
+      "name" : "vectorStore.azureCosmosDbNoSql.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1265,7 +1265,7 @@
       "value" : "clientCredentials"
     } ]
   }, {
-    "id" : "vectorStore.azureCosmosDbAuthentication.apiKey",
+    "id" : "vectorStore.azureCosmosDbNoSql.authentication.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -1274,12 +1274,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureCosmosDbAuthentication.apiKey",
+      "name" : "vectorStore.azureCosmosDbNoSql.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureCosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
@@ -1290,7 +1290,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureCosmosDbAuthentication.clientId",
+    "id" : "vectorStore.azureCosmosDbNoSql.authentication.clientId",
     "label" : "Client ID",
     "description" : "ID of a Microsoft Entra application",
     "optional" : false,
@@ -1300,12 +1300,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureCosmosDbAuthentication.clientId",
+      "name" : "vectorStore.azureCosmosDbNoSql.authentication.clientId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureCosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1316,7 +1316,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureCosmosDbAuthentication.clientSecret",
+    "id" : "vectorStore.azureCosmosDbNoSql.authentication.clientSecret",
     "label" : "Client secret",
     "description" : "Secret of a Microsoft Entra application",
     "optional" : false,
@@ -1326,12 +1326,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureCosmosDbAuthentication.clientSecret",
+      "name" : "vectorStore.azureCosmosDbNoSql.authentication.clientSecret",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureCosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1342,7 +1342,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureCosmosDbAuthentication.tenantId",
+    "id" : "vectorStore.azureCosmosDbNoSql.authentication.tenantId",
     "label" : "Tenant ID",
     "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -1352,12 +1352,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureCosmosDbAuthentication.tenantId",
+      "name" : "vectorStore.azureCosmosDbNoSql.authentication.tenantId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureCosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1368,19 +1368,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureCosmosDbAuthentication.authorityHost",
+    "id" : "vectorStore.azureCosmosDbNoSql.authentication.authorityHost",
     "label" : "Authority host",
     "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureCosmosDbAuthentication.authorityHost",
+      "name" : "vectorStore.azureCosmosDbNoSql.authentication.authorityHost",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureCosmosDbAuthentication.type",
+        "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1401,7 +1401,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.databaseName",
+      "name" : "vectorStore.azureCosmosDbNoSql.databaseName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1421,7 +1421,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.containerName",
+      "name" : "vectorStore.azureCosmosDbNoSql.containerName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1441,7 +1441,7 @@
     },
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.consistencyLevel",
+      "name" : "vectorStore.azureCosmosDbNoSql.consistencyLevel",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1477,7 +1477,7 @@
     },
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.distanceFunction",
+      "name" : "vectorStore.azureCosmosDbNoSql.distanceFunction",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1507,7 +1507,7 @@
     },
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.vectorIndexType",
+      "name" : "vectorStore.azureCosmosDbNoSql.vectorIndexType",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1527,7 +1527,7 @@
       "value" : "DISK_ANN"
     } ]
   }, {
-    "id" : "vectorStore.embeddingsStore.elasticsearch.baseUrl",
+    "id" : "vectorStore.elasticSearch.baseUrl",
     "label" : "Base URL",
     "description" : "Elasticsearch base URL, i.e. http(s)://host:port",
     "optional" : false,
@@ -1537,7 +1537,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.baseUrl",
+      "name" : "vectorStore.elasticSearch.baseUrl",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1547,7 +1547,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.elasticsearch.username",
+    "id" : "vectorStore.elasticSearch.userName",
     "label" : "Username",
     "description" : "Elasticsearch username",
     "optional" : false,
@@ -1557,7 +1557,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.userName",
+      "name" : "vectorStore.elasticSearch.userName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1567,7 +1567,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.elasticsearch.password",
+    "id" : "vectorStore.elasticSearch.password",
     "label" : "Password",
     "description" : "Elasticsearch password",
     "optional" : false,
@@ -1577,7 +1577,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.password",
+      "name" : "vectorStore.elasticSearch.password",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1587,7 +1587,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.elasticsearch.indexName",
+    "id" : "vectorStore.elasticSearch.indexName",
     "label" : "Index name",
     "description" : "Elasticsearch index",
     "optional" : false,
@@ -1597,7 +1597,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.indexName",
+      "name" : "vectorStore.elasticSearch.indexName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1607,7 +1607,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.opensearch.baseUrl",
+    "id" : "vectorStore.openSearch.baseUrl",
     "label" : "Base URL",
     "description" : "OpenSearch base URL, i.e. http(s)://host:port",
     "optional" : false,
@@ -1617,7 +1617,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.baseUrl",
+      "name" : "vectorStore.openSearch.baseUrl",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1627,7 +1627,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.opensearch.username",
+    "id" : "vectorStore.openSearch.userName",
     "label" : "Username",
     "description" : "OpenSearch username",
     "optional" : false,
@@ -1637,7 +1637,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.userName",
+      "name" : "vectorStore.openSearch.userName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1647,7 +1647,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.opensearch.password",
+    "id" : "vectorStore.openSearch.password",
     "label" : "Password",
     "description" : "OpenSearch password",
     "optional" : false,
@@ -1657,7 +1657,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.password",
+      "name" : "vectorStore.openSearch.password",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1667,7 +1667,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.opensearch.indexName",
+    "id" : "vectorStore.openSearch.indexName",
     "label" : "Index name",
     "description" : "OpenSearch index",
     "optional" : false,
@@ -1677,7 +1677,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.indexName",
+      "name" : "vectorStore.openSearch.indexName",
       "type" : "zeebe:input"
     },
     "condition" : {

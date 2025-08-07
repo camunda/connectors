@@ -71,24 +71,25 @@ class DefaultEmbeddingModelFactoryTest {
     void createOpenAiEmbeddingModelWithAllParameters() {
       OpenAiEmbeddingModelProvider provider =
           new OpenAiEmbeddingModelProvider(
-              OPEN_AI_API_KEY,
-              OPEN_AI_MODEL_NAME,
-              "test-org-id",
-              "test-project-id",
-              1536,
-              5,
-              Map.of("X-Test-Header", "value"),
-              "https://custom.openai.com/v1/");
+              new OpenAiEmbeddingModelProvider.Configuration(
+                  OPEN_AI_API_KEY,
+                  OPEN_AI_MODEL_NAME,
+                  "test-org-id",
+                  "test-project-id",
+                  1536,
+                  5,
+                  Map.of("X-Test-Header", "value"),
+                  "https://custom.openai.com/v1/"));
 
       testOpenAiEmbeddingModelBuilder(
           provider,
           (builder) -> {
-            verify(builder).organizationId(provider.organizationId());
-            verify(builder).projectId(provider.projectId());
-            verify(builder).dimensions(provider.dimensions());
-            verify(builder).maxRetries(provider.maxRetries());
-            verify(builder).customHeaders(provider.customHeaders());
-            verify(builder).baseUrl(provider.baseUrl());
+            verify(builder).organizationId(provider.openAi().organizationId());
+            verify(builder).projectId(provider.openAi().projectId());
+            verify(builder).dimensions(provider.openAi().dimensions());
+            verify(builder).maxRetries(provider.openAi().maxRetries());
+            verify(builder).customHeaders(provider.openAi().customHeaders());
+            verify(builder).baseUrl(provider.openAi().baseUrl());
           });
     }
 
@@ -96,7 +97,8 @@ class DefaultEmbeddingModelFactoryTest {
     void createOpenAiEmbeddingModelWithoutOptionalParameters() {
       OpenAiEmbeddingModelProvider provider =
           new OpenAiEmbeddingModelProvider(
-              OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null);
+              new OpenAiEmbeddingModelProvider.Configuration(
+                  OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
 
       testOpenAiEmbeddingModelBuilder(
           provider,
@@ -138,19 +140,20 @@ class DefaultEmbeddingModelFactoryTest {
     void createAzureOpenAiEmbeddingModelWithAllParameters() {
       AzureOpenAiEmbeddingModelProvider provider =
           new AzureOpenAiEmbeddingModelProvider(
-              AZURE_OPENAI_ENDPOINT,
-              new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
-              AZURE_OPENAI_DEPLOYMENT_NAME,
-              1536,
-              5,
-              Map.of("X-Test-Header", "value"));
+              new AzureOpenAiEmbeddingModelProvider.Configuration(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
+                  AZURE_OPENAI_DEPLOYMENT_NAME,
+                  1536,
+                  5,
+                  Map.of("X-Test-Header", "value")));
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
           (builder) -> {
-            verify(builder).dimensions(provider.dimensions());
-            verify(builder).maxRetries(provider.maxRetries());
-            verify(builder).customHeaders(provider.customHeaders());
+            verify(builder).dimensions(provider.azureOpenAi().dimensions());
+            verify(builder).maxRetries(provider.azureOpenAi().maxRetries());
+            verify(builder).customHeaders(provider.azureOpenAi().customHeaders());
           });
     }
 
@@ -158,12 +161,13 @@ class DefaultEmbeddingModelFactoryTest {
     void createAzureOpenAiEmbeddingModelWithoutOptionalParameters() {
       AzureOpenAiEmbeddingModelProvider provider =
           new AzureOpenAiEmbeddingModelProvider(
-              AZURE_OPENAI_ENDPOINT,
-              new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
-              AZURE_OPENAI_DEPLOYMENT_NAME,
-              null,
-              null,
-              null);
+              new AzureOpenAiEmbeddingModelProvider.Configuration(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
+                  AZURE_OPENAI_DEPLOYMENT_NAME,
+                  null,
+                  null,
+                  null));
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
@@ -180,20 +184,21 @@ class DefaultEmbeddingModelFactoryTest {
     void createAzureOpenAiEmbeddingModelWithClientCredentials(String authorityHost) {
       AzureOpenAiEmbeddingModelProvider provider =
           new AzureOpenAiEmbeddingModelProvider(
-              AZURE_OPENAI_ENDPOINT,
-              new AzureClientCredentialsAuthentication(
-                  "client-id", "client-secret", "tenant-id", authorityHost),
-              AZURE_OPENAI_DEPLOYMENT_NAME,
-              1536,
-              5,
-              Map.of("X-Test-Header", "value"));
+              new AzureOpenAiEmbeddingModelProvider.Configuration(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureClientCredentialsAuthentication(
+                      "client-id", "client-secret", "tenant-id", authorityHost),
+                  AZURE_OPENAI_DEPLOYMENT_NAME,
+                  1536,
+                  5,
+                  Map.of("X-Test-Header", "value")));
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
           (builder) -> {
-            verify(builder).dimensions(provider.dimensions());
-            verify(builder).maxRetries(provider.maxRetries());
-            verify(builder).customHeaders(provider.customHeaders());
+            verify(builder).dimensions(provider.azureOpenAi().dimensions());
+            verify(builder).maxRetries(provider.azureOpenAi().maxRetries());
+            verify(builder).customHeaders(provider.azureOpenAi().customHeaders());
           });
     }
 
@@ -211,7 +216,7 @@ class DefaultEmbeddingModelFactoryTest {
         verify(builder).endpoint(AZURE_OPENAI_ENDPOINT);
         verify(builder).deploymentName(AZURE_OPENAI_DEPLOYMENT_NAME);
 
-        switch (provider.authentication()) {
+        switch (provider.azureOpenAi().authentication()) {
           case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
             verify(builder).apiKey(apiKey);
             verify(builder, never()).tokenCredential(any(TokenCredential.class));
@@ -240,13 +245,14 @@ class DefaultEmbeddingModelFactoryTest {
     void createVertexAiEmbeddingModel() {
       var provider =
           new GoogleVertexAiEmbeddingModelProvider(
-              PROJECT_ID,
-              REGION,
-              new ApplicationDefaultCredentialsAuthentication(),
-              MODEL_NAME,
-              DIMENSIONS,
-              PUBLISHER,
-              MAX_RETRIES);
+              new GoogleVertexAiEmbeddingModelProvider.Configuration(
+                  PROJECT_ID,
+                  REGION,
+                  new ApplicationDefaultCredentialsAuthentication(),
+                  MODEL_NAME,
+                  DIMENSIONS,
+                  PUBLISHER,
+                  MAX_RETRIES));
       testVertexAiEmbeddingModelBuilder(
           provider,
           (builder) -> {
@@ -261,13 +267,14 @@ class DefaultEmbeddingModelFactoryTest {
     void createVertexAiEmbeddingModelWithServiceAccountCredentials() {
       var provider =
           new GoogleVertexAiEmbeddingModelProvider(
-              PROJECT_ID,
-              REGION,
-              new ServiceAccountCredentialsAuthentication("{}"),
-              MODEL_NAME,
-              DIMENSIONS,
-              PUBLISHER,
-              MAX_RETRIES);
+              new GoogleVertexAiEmbeddingModelProvider.Configuration(
+                  PROJECT_ID,
+                  REGION,
+                  new ServiceAccountCredentialsAuthentication("{}"),
+                  MODEL_NAME,
+                  DIMENSIONS,
+                  PUBLISHER,
+                  MAX_RETRIES));
       try (final var staticMockedSac = mockStatic(ServiceAccountCredentials.class)) {
         final var mockedSac = mock(ServiceAccountCredentials.class);
         when(mockedSac.createScoped(anyString())).thenReturn(mockedSac);
@@ -292,13 +299,14 @@ class DefaultEmbeddingModelFactoryTest {
     void createVertexAiEmbeddingModelWithMandatoryParametersOnly() {
       var provider =
           new GoogleVertexAiEmbeddingModelProvider(
-              PROJECT_ID,
-              REGION,
-              new ApplicationDefaultCredentialsAuthentication(),
-              MODEL_NAME,
-              DIMENSIONS,
-              null,
-              null);
+              new GoogleVertexAiEmbeddingModelProvider.Configuration(
+                  PROJECT_ID,
+                  REGION,
+                  new ApplicationDefaultCredentialsAuthentication(),
+                  MODEL_NAME,
+                  DIMENSIONS,
+                  null,
+                  null));
 
       testVertexAiEmbeddingModelBuilder(
           provider,
