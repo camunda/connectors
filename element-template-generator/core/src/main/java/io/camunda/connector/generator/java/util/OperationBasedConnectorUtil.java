@@ -31,6 +31,7 @@ import java.util.List;
 public class OperationBasedConnectorUtil {
 
   public static String OPERATION_PROPERTY_ID = "operation";
+  public static String OPERATION_GROUP_ID = "operation";
   public static String OPERATION_TASK_HEADER_KEY = OPERATION_PROPERTY_ID;
   public static String OPERATION_PROPERTY_SEPARATOR = ":";
   public static String VARIABLE_PATH_SEPARATOR = ".";
@@ -116,11 +117,14 @@ public class OperationBasedConnectorUtil {
     if (templateProperty != null) {
       builder
           .id(
-              templateProperty.id() != null
+              !templateProperty.id().isBlank()
                   ? concatenateOperationIdAndPropertyId(
                       getOperationId(operation), templateProperty.id())
                   : id)
+          .group(
+              !templateProperty.group().isBlank() ? templateProperty.group() : OPERATION_GROUP_ID)
           .label(templateProperty.label())
+          .tooltip(templateProperty.tooltip())
           .description(templateProperty.description())
           .value(templateProperty.defaultValue())
           .feel(templateProperty.feel());
@@ -138,16 +142,7 @@ public class OperationBasedConnectorUtil {
         .id(concatenateOperationIdAndPropertyId(getOperationId(operation), property.getId()))
         .binding(mapBinding(property.getBinding(), variable))
         .condition(mapCondition(property.getCondition(), operation))
-        .group("operation");
-  }
-
-  private static PropertyBuilder mapProperty(
-      PropertyBuilder property, Operation operation, Header header) {
-    return property
-        .id(concatenateOperationIdAndPropertyId(getOperationId(operation), property.getId()))
-        .binding(property.getBinding())
-        .condition(mapCondition(property.getCondition(), operation))
-        .group("operation");
+        .group(OPERATION_GROUP_ID);
   }
 
   private static PropertyCondition mapCondition(PropertyCondition condition, Operation operation) {

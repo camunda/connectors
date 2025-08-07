@@ -14,6 +14,7 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
@@ -21,16 +22,35 @@ import org.apache.commons.csv.CSVRecord;
 public class CsvUtils {
 
   static ReadCsvResult readCsvRequest(
-      Reader csvReader, CsvFormat format, ReadCsvRequest.RowType rowType) {
+      Reader csvReader,
+      CsvFormat format,
+      ReadCsvRequest.RowType rowType,
+      Function<Map<String, Object>, Object> mapper) {
     try {
       var csvFormat = CsvUtils.buildFrom(format, rowType);
       var csvParser = csvFormat.parse(csvReader);
-      return switch (rowType) {
-        case Object -> new ReadCsvResult.Objects(csvParser.stream().map(CSVRecord::toMap).toList());
-        case Array -> new ReadCsvResult.Arrays(csvParser.stream().map(CSVRecord::toList).toList());
-      };
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      return new ReadCsvResult(
+          csvParser.stream()
+              .map(record -> mapToRowType(record, rowType))
+              .map(row -> mapRecord(row, mapper))
+              .toList());
+    } catch (Throwable e) {
+      throw new RuntimeException("Error reading CSV data", e);
+    }
+  }
+
+  private static Object mapToRowType(CSVRecord record, ReadCsvRequest.RowType rowType) {
+    return switch (rowType) {
+      case Object -> record.toMap();
+      case Array -> record.toList();
+    };
+  }
+
+  private static Object mapRecord(Object record, Function<Map<String, Object>, Object> mapper) {
+    if (mapper != null) {
+      return mapper.apply(Map.of("record", record));
+    } else {
+      return record;
     }
   }
 
