@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.inbound;
 import static io.camunda.connector.runtime.core.testutil.TestUtil.withEnvVars;
 
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import java.util.Collection;
 import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ public class InboundConnectorDiscoveryTest {
         };
 
     // when
-    List<InboundConnectorConfiguration> registrations =
+    Collection<InboundConnectorConfiguration> registrations =
         withEnvVars(env, () -> getFactory().getConfigurations());
 
     // then
@@ -120,7 +121,7 @@ public class InboundConnectorDiscoveryTest {
   public void shouldConfigureViaSPI() {
 
     // when
-    List<InboundConnectorConfiguration> registrations = getFactory().getConfigurations();
+    Collection<InboundConnectorConfiguration> registrations = getFactory().getConfigurations();
 
     // then
     Assertions.assertThat(registrations).hasSize(1);
@@ -135,16 +136,18 @@ public class InboundConnectorDiscoveryTest {
     // given SPI configuration
     DefaultInboundConnectorFactory factory = getFactory();
 
-    // when
-    factory.registerConfiguration(
-        new InboundConnectorConfiguration(
-            "ANNOTATED", "io.camunda:annotated", NotAnnotatedExecutable.class, List.of()));
-
     // then
-    var registrations = factory.getConfigurations();
-    Assertions.assertThat(registrations).hasSize(1);
-    assertRegistration(
-        registrations, "ANNOTATED", "io.camunda:annotated", NotAnnotatedExecutable.class.getName());
+    Assertions.assertThatThrownBy(
+            () ->
+                factory.registerConfiguration(
+                    new InboundConnectorConfiguration(
+                        "ANNOTATED",
+                        "io.camunda:annotated",
+                        NotAnnotatedExecutable.class,
+                        List.of())))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining(
+            "Duplicate inbound connector registration for type: io.camunda:annotated.");
   }
 
   @Test
@@ -153,7 +156,7 @@ public class InboundConnectorDiscoveryTest {
     var env = new Object[] {"CONNECTOR_INBOUND_DISABLED", "io.camunda:annotated"};
 
     // when
-    List<InboundConnectorConfiguration> registrations =
+    Collection<InboundConnectorConfiguration> registrations =
         withEnvVars(env, () -> getFactory().getConfigurations());
 
     // then
@@ -161,7 +164,7 @@ public class InboundConnectorDiscoveryTest {
   }
 
   private static void assertRegistration(
-      List<InboundConnectorConfiguration> registrations,
+      Collection<InboundConnectorConfiguration> registrations,
       String name,
       String type,
       String functionCls) {
@@ -170,13 +173,13 @@ public class InboundConnectorDiscoveryTest {
   }
 
   private static void assertRegistration(
-      List<InboundConnectorConfiguration> registrations,
+      Collection<InboundConnectorConfiguration> registrations,
       String name,
       String type,
       String functionCls,
       List<String> deduplicationProperties) {
 
-    Assertions.assertThatList(registrations)
+    Assertions.assertThatCollection(registrations)
         .anyMatch(
             registration ->
                 (registration.name().equals(name)
