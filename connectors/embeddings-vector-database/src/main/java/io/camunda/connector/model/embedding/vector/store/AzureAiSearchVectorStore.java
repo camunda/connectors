@@ -14,29 +14,29 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(label = "Azure AI Search", id = AzureAiSearchVectorStore.STORE_AZURE_AI_SEARCH)
-public record AzureAiSearchVectorStore(
-    @NotBlank
-        @TemplateProperty(
-            group = "embeddingsStore",
-            label = "Endpoint",
-            id = "azureAiSearch.endpoint",
-            description =
-                "Specify Azure AI Search endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/search/\" target=\"_blank\">documentation</a>.",
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        String endpoint,
-    @Valid @NotNull AzureAuthentication azureAiSearchAuthentication,
-    @NotBlank
-        @TemplateProperty(
-            group = "embeddingsStore",
-            label = "Index name",
-            id = "azureAiSearch.indexName",
-            description =
-                "The name of the search index. When storing embeddings this index is created or updated automatically.",
-            feel = Property.FeelMode.optional,
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        String indexName)
+public record AzureAiSearchVectorStore(@Valid @NotNull Configuration aiSearch)
     implements EmbeddingsVectorStore {
 
   @TemplateProperty(ignore = true)
   public static final String STORE_AZURE_AI_SEARCH = "STORE_AZURE_AI_SEARCH";
+
+  public record Configuration(
+      @NotBlank
+          @TemplateProperty(
+              group = "embeddingsStore",
+              label = "Endpoint",
+              description =
+                  "Specify Azure AI Search endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/search/\" target=\"_blank\">documentation</a>.",
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          String endpoint,
+      @Valid @NotNull AzureAuthentication authentication,
+      @NotBlank
+          @TemplateProperty(
+              group = "embeddingsStore",
+              label = "Index name",
+              description =
+                  "The name of the search index. When storing embeddings this index is created or updated automatically.",
+              feel = Property.FeelMode.optional,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          String indexName) {}
 }

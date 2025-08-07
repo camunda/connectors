@@ -43,14 +43,15 @@ public class AzureVectorStoreFactory {
       AzureAiSearchVectorStore azureAiSearchVectorStore,
       EmbeddingModel model,
       VectorDatabaseConnectorOperation operation) {
+    final var aiSearch = azureAiSearchVectorStore.aiSearch();
     final var embeddingStoreBuilder =
         AzureAiSearchEmbeddingStore.builder()
-            .endpoint(azureAiSearchVectorStore.endpoint())
-            .indexName(azureAiSearchVectorStore.indexName())
+            .endpoint(aiSearch.endpoint())
+            .indexName(aiSearch.indexName())
             .dimensions(model.dimension())
             .createOrUpdateIndex(operation instanceof EmbedDocumentOperation);
 
-    switch (azureAiSearchVectorStore.azureAiSearchAuthentication()) {
+    switch (aiSearch.authentication()) {
       case AzureAuthentication.AzureApiKeyAuthentication apiKey ->
           embeddingStoreBuilder.apiKey(apiKey.apiKey());
       case AzureAuthentication.AzureClientCredentialsAuthentication auth -> {

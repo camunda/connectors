@@ -205,9 +205,10 @@ class DefaultEmbeddingStoreFactoryTest {
   class AzureAiSearchVectorStoreTests {
     private final AzureAiSearchVectorStore azureAiSearchVectorStore =
         new AzureAiSearchVectorStore(
-            "https://your-search-service.search.windows.net",
-            new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
-            "searchindex");
+            new AzureAiSearchVectorStore.Configuration(
+                "https://your-search-service.search.windows.net",
+                new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
+                "searchindex"));
 
     private final EmbeddingModel model = mock(EmbeddingModel.class);
 
@@ -234,10 +235,11 @@ class DefaultEmbeddingStoreFactoryTest {
     void createsAzureAiSearchVectorStoreWithClientCredentials(String authorityHost) {
       AzureAiSearchVectorStore azureAiSearchVectorStore =
           new AzureAiSearchVectorStore(
-              "https://your-search-service.search.windows.net",
-              new AzureAuthentication.AzureClientCredentialsAuthentication(
-                  "client-id", "client-secret", "tenant-id", authorityHost),
-              "searchindex");
+              new AzureAiSearchVectorStore.Configuration(
+                  "https://your-search-service.search.windows.net",
+                  new AzureAuthentication.AzureClientCredentialsAuthentication(
+                      "client-id", "client-secret", "tenant-id", authorityHost),
+                  "searchindex"));
       testAzureAiSearchEmbeddingStoreCreation(
           azureAiSearchVectorStore, model, mock(EmbedDocumentOperation.class));
     }
@@ -257,12 +259,12 @@ class DefaultEmbeddingStoreFactoryTest {
             azureAiSearchVectorStore, mockModel, mock(EmbedDocumentOperation.class));
         verify(builder).build();
 
-        verify(builder).endpoint(azureAiSearchVectorStore.endpoint());
-        verify(builder).indexName(azureAiSearchVectorStore.indexName());
+        verify(builder).endpoint(azureAiSearchVectorStore.aiSearch().endpoint());
+        verify(builder).indexName(azureAiSearchVectorStore.aiSearch().indexName());
         verify(builder).dimensions(mockModel.dimension());
         verify(builder).createOrUpdateIndex(operation instanceof EmbedDocumentOperation);
 
-        switch (azureAiSearchVectorStore.azureAiSearchAuthentication()) {
+        switch (azureAiSearchVectorStore.aiSearch().authentication()) {
           case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
             verify(builder).apiKey(apiKey);
             verify(builder, never()).tokenCredential(any(TokenCredential.class));

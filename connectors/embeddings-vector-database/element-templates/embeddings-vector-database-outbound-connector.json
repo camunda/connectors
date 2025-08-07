@@ -1028,7 +1028,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearch.endpoint",
+    "id" : "vectorStore.aiSearch.endpoint",
     "label" : "Endpoint",
     "description" : "Specify Azure AI Search endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/search/\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -1038,7 +1038,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.endpoint",
+      "name" : "vectorStore.aiSearch.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1048,13 +1048,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.type",
+    "id" : "vectorStore.aiSearch.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure OpenAI authentication strategy.",
     "value" : "apiKey",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.type",
+      "name" : "vectorStore.aiSearch.authentication.type",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1071,7 +1071,7 @@
       "value" : "clientCredentials"
     } ]
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.apiKey",
+    "id" : "vectorStore.aiSearch.authentication.apiKey",
     "label" : "API key",
     "optional" : false,
     "constraints" : {
@@ -1080,12 +1080,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.apiKey",
+      "name" : "vectorStore.aiSearch.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
       }, {
@@ -1096,7 +1096,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.clientId",
+    "id" : "vectorStore.aiSearch.authentication.clientId",
     "label" : "Client ID",
     "description" : "ID of a Microsoft Entra application",
     "optional" : false,
@@ -1106,12 +1106,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.clientId",
+      "name" : "vectorStore.aiSearch.authentication.clientId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1122,7 +1122,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.clientSecret",
+    "id" : "vectorStore.aiSearch.authentication.clientSecret",
     "label" : "Client secret",
     "description" : "Secret of a Microsoft Entra application",
     "optional" : false,
@@ -1132,12 +1132,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.clientSecret",
+      "name" : "vectorStore.aiSearch.authentication.clientSecret",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1148,7 +1148,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.tenantId",
+    "id" : "vectorStore.aiSearch.authentication.tenantId",
     "label" : "Tenant ID",
     "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
     "optional" : false,
@@ -1158,12 +1158,12 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.tenantId",
+      "name" : "vectorStore.aiSearch.authentication.tenantId",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1174,19 +1174,19 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearchAuthentication.authorityHost",
+    "id" : "vectorStore.aiSearch.authentication.authorityHost",
     "label" : "Authority host",
     "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
     "optional" : true,
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.azureAiSearchAuthentication.authorityHost",
+      "name" : "vectorStore.aiSearch.authentication.authorityHost",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "vectorStore.azureAiSearchAuthentication.type",
+        "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
@@ -1197,7 +1197,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.azureAiSearch.indexName",
+    "id" : "vectorStore.aiSearch.indexName",
     "label" : "Index name",
     "description" : "The name of the search index. When storing embeddings this index is created or updated automatically.",
     "optional" : false,
@@ -1207,7 +1207,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.indexName",
+      "name" : "vectorStore.aiSearch.indexName",
       "type" : "zeebe:input"
     },
     "condition" : {
