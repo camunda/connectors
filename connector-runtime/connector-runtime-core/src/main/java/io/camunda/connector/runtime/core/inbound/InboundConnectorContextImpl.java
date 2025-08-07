@@ -157,15 +157,15 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private void logCorrelationResult(CorrelationResult correlationResult) {
     switch (correlationResult) {
       case Success success:
-        logCorrelationResult(success);
+        logCorrelationSuccess(success);
         break;
       case Failure failure:
-        logCorrelationResult(failure);
+        logCorrelationFailure(failure);
         break;
     }
   }
 
-  private void logCorrelationResult(Success success) {
+  private void logCorrelationSuccess(Success success) {
     switch (success) {
       case ProcessInstanceCreated processInstanceCreated:
         logRuntime(
@@ -194,7 +194,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     }
   }
 
-  private void logCorrelationResult(Failure failure) {
+  private void logCorrelationFailure(Failure failure) {
     switch (failure) {
       case ActivationConditionNotMet ignored:
         logRuntime(
