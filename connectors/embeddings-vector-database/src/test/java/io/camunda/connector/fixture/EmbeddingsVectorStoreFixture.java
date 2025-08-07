@@ -20,7 +20,8 @@ public class EmbeddingsVectorStoreFixture {
 
   public static OpenSearchVectorStore createOpenSearchVectorStore() {
     return new OpenSearchVectorStore(
-        "https://opensearch.local:9200", "opensearch", "changeme", "embeddings_idx");
+        new OpenSearchVectorStore.Configuration(
+            "https://opensearch.local:9200", "opensearch", "changeme", "embeddings_idx"));
   }
 
   public static AmazonManagedOpenSearchVectorStore createAmazonManagedOpenVectorStore() {

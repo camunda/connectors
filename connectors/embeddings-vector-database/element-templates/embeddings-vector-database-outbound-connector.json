@@ -1602,7 +1602,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.opensearch.baseUrl",
+    "id" : "vectorStore.openSearch.baseUrl",
     "label" : "Base URL",
     "description" : "OpenSearch base URL, i.e. http(s)://host:port",
     "optional" : false,
@@ -1612,7 +1612,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.baseUrl",
+      "name" : "vectorStore.openSearch.baseUrl",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1622,7 +1622,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.opensearch.username",
+    "id" : "vectorStore.openSearch.userName",
     "label" : "Username",
     "description" : "OpenSearch username",
     "optional" : false,
@@ -1632,7 +1632,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.userName",
+      "name" : "vectorStore.openSearch.userName",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1642,7 +1642,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.opensearch.password",
+    "id" : "vectorStore.openSearch.password",
     "label" : "Password",
     "description" : "OpenSearch password",
     "optional" : false,
@@ -1652,7 +1652,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.password",
+      "name" : "vectorStore.openSearch.password",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1662,7 +1662,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.embeddingsStore.opensearch.indexName",
+    "id" : "vectorStore.openSearch.indexName",
     "label" : "Index name",
     "description" : "OpenSearch index",
     "optional" : false,
@@ -1672,7 +1672,7 @@
     "feel" : "optional",
     "group" : "embeddingsStore",
     "binding" : {
-      "name" : "vectorStore.indexName",
+      "name" : "vectorStore.openSearch.indexName",
       "type" : "zeebe:input"
     },
     "condition" : {

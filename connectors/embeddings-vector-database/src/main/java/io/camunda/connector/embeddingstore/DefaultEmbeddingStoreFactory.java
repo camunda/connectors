@@ -78,11 +78,12 @@ public class DefaultEmbeddingStoreFactory {
 
   private EmbeddingStore<TextSegment> initializeOpenSearchVectorStore(
       OpenSearchVectorStore openSearchVectorStore) {
+    final var openSearch = openSearchVectorStore.openSearch();
     return OpenSearchEmbeddingStore.builder()
-        .serverUrl(openSearchVectorStore.baseUrl())
-        .userName(openSearchVectorStore.userName())
-        .password(openSearchVectorStore.password())
-        .indexName(openSearchVectorStore.indexName())
+        .serverUrl(openSearch.baseUrl())
+        .userName(openSearch.userName())
+        .password(openSearch.password())
+        .indexName(openSearch.indexName())
         .build();
   }
 
