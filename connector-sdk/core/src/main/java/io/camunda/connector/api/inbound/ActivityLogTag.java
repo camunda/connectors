@@ -17,12 +17,35 @@
 package io.camunda.connector.api.inbound;
 
 /**
- * Severity levels for inbound connector activity logs. Note: This does not translate 1:1 to SLF4J
- * levels.
+ * Common tags that can be used in activity logs when logging activities inside an inbound
+ * connector.
  */
-public enum Severity {
-  DEBUG,
-  INFO,
-  WARNING,
-  ERROR
+public enum ActivityLogTag {
+
+  /** A log tag for entries related to the lifecycle of the event consumer (managed by the */
+  CONSUMER("Consumer"),
+  /**
+   * A log tag for entries related to message/event processing. For example, use this tag to log
+   * that an incoming event was processed by the connector.
+   */
+  MESSAGE("Message"),
+
+  CORRELATION("Correlation"),
+
+  LIFECYCLE("Lifecycle");
+
+  private final String tag;
+
+  ActivityLogTag(String tag) {
+    this.tag = tag;
+  }
+
+  /**
+   * Returns the string representation of the tag.
+   *
+   * @return the tag as a string
+   */
+  public String getTag() {
+    return tag;
+  }
 }

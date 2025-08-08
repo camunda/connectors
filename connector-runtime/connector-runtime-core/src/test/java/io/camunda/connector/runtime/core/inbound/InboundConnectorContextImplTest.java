@@ -20,13 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -52,7 +52,7 @@ class InboundConnectorContextImplTest {
             null,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
     // when and then
     RuntimeException exception =
         assertThrows(
@@ -73,7 +73,7 @@ class InboundConnectorContextImplTest {
             null,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -98,7 +98,7 @@ class InboundConnectorContextImplTest {
             null,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -155,7 +155,7 @@ class InboundConnectorContextImplTest {
             null,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -176,7 +176,7 @@ class InboundConnectorContextImplTest {
             null,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
 
     // when
     Map<String, Object> properties = inboundConnectorContext.getProperties();

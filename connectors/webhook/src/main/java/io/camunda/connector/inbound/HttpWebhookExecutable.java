@@ -10,10 +10,8 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
@@ -107,20 +105,11 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload) {
     LOGGER.trace("Triggered webhook with context {} and payload {}", props.context(), payload);
 
-    this.context.log(
-        Activity.level(Severity.INFO)
-            .tag(payload.method())
-            .message("Url: " + payload.requestURL()));
-
     validateHttpMethod(payload);
     verifySignature(payload);
 
     var authResult = authChecker.checkAuthorization(payload);
     if (authResult instanceof Failure failureResult) {
-      context.log(
-          Activity.level(Severity.ERROR)
-              .tag(ERROR_ACTIVITY_LOG_TAG)
-              .message("Authorization check failed: " + failureResult.getMessage()));
       throw failureResult.toException();
     }
 
@@ -131,10 +120,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private void validateHttpMethod(WebhookProcessingPayload payload) {
     if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
         && !payload.method().equalsIgnoreCase(props.method())) {
-      context.log(
-          Activity.level(Severity.ERROR)
-              .tag(ERROR_ACTIVITY_LOG_TAG)
-              .message("HTTP method '" + props.method() + "' is not supported"));
       throw new WebhookConnectorException(
           HttpResponseStatus.METHOD_NOT_ALLOWED.code(),
           "Method " + payload.method() + " not supported");
@@ -169,10 +154,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private void verifySignature(WebhookProcessingPayload payload) {
     if (!webhookSignatureIsValid(payload)) {
-      context.log(
-          Activity.level(Severity.ERROR)
-              .tag(ERROR_ACTIVITY_LOG_TAG)
-              .message("HMAC signature is invalid"));
       throw new WebhookSecurityException(
           HttpResponseStatus.UNAUTHORIZED.code(),
           Reason.INVALID_SIGNATURE,

@@ -27,6 +27,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
@@ -66,6 +67,9 @@ import org.springframework.core.env.Environment;
 public class InboundConnectorRuntimeConfiguration {
   @Value("${camunda.connector.inbound.message.ttl:PT1H}")
   private Duration messageTtl;
+
+  @Value("${camunda.connector.inbound.log.size:100}")
+  private int activityLogSize;
 
   @Bean
   public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor(
@@ -115,16 +119,23 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  public ActivityLogRegistry activityLogRegistry() {
+    return new ActivityLogRegistry(activityLogSize);
+  }
+
+  @Bean
   public BatchExecutableProcessor batchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
       InboundConnectorContextFactory connectorContextFactory,
       ConnectorsInboundMetrics connectorsInboundMetrics,
-      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry,
+      ActivityLogRegistry activityLogRegistry) {
     return new BatchExecutableProcessor(
         connectorFactory,
         connectorContextFactory,
         connectorsInboundMetrics,
-        webhookConnectorRegistry);
+        webhookConnectorRegistry,
+        activityLogRegistry);
   }
 
   @Bean
@@ -136,8 +147,10 @@ public class InboundConnectorRuntimeConfiguration {
   @ConditionalOnMissingBean
   public InboundExecutableRegistry inboundExecutableRegistry(
       InboundConnectorFactory inboundConnectorFactory,
-      BatchExecutableProcessor batchExecutableProcessor) {
-    return new InboundExecutableRegistryImpl(inboundConnectorFactory, batchExecutableProcessor);
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
+    return new InboundExecutableRegistryImpl(
+        inboundConnectorFactory, batchExecutableProcessor, activityLogRegistry);
   }
 
   @Bean

@@ -49,11 +49,9 @@ public class ProcessInstancesFetcherTask implements Runnable {
   public void run() {
     try {
       List<ProcessInstanceContext> processInstanceContexts = context.getProcessInstanceContexts();
-      if (processInstanceContexts != null) {
-        removeInactiveTasks(processInstanceContexts);
-        processInstanceContexts.forEach(this::scheduleRequest);
-        context.reportHealth(Health.up("Process instances", processInstanceContexts.size()));
-      }
+      removeInactiveTasks(processInstanceContexts);
+      processInstanceContexts.forEach(this::scheduleRequest);
+      context.reportHealth(Health.up("Process instances", processInstanceContexts.size()));
     } catch (Exception e) {
       LOGGER.error("An error occurred: {}", e.getMessage(), e);
       context.reportHealth(Health.down(e));
