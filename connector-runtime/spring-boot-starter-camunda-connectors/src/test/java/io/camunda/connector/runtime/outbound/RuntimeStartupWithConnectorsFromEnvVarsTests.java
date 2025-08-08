@@ -16,9 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.test.SlowTest;
@@ -71,10 +69,19 @@ class RuntimeStartupWithConnectorsFromEnvVarsTests {
       return;
     }
     // Make sure the environment variables are used INSTEAD of SPI (which would load TEST)
-    assertFalse(jobWorkerManager.findJobWorkerConfigByName("TEST").isPresent());
+    assertFalse(
+        jobWorkerManager.getJobWorkers().values().stream()
+            .anyMatch(v -> "TEST".equals(v.getName())));
 
-    Optional<JobWorkerValue> testConnector = jobWorkerManager.findJobWorkerConfigByName("TEST2");
+    Optional<JobWorkerValue> testConnector =
+        jobWorkerManager.getJobWorkers().values().stream()
+            .filter(v -> "TEST2".equals(v.getName()))
+            .findFirst();
     assertTrue(testConnector.isPresent());
+    assertTrue(
+        jobWorkerManager.getJobWorkers().values().stream()
+            .anyMatch(v -> "TEST2".equals(v.getName())));
+
     assertEquals("non-default-TEST-task-type", testConnector.get().getType());
   }
 }
