@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound;
 
-import static io.camunda.connector.runtime.inbound.WebhookControllerPlainJavaTests.buildConnector;
-import static io.camunda.connector.runtime.inbound.WebhookControllerPlainJavaTests.webhookDefinition;
+import static io.camunda.connector.runtime.inbound.WebhookConnectorRegistryTest.buildConnector;
+import static io.camunda.connector.runtime.inbound.WebhookConnectorRegistryTest.webhookDefinition;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
@@ -40,7 +40,7 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class WebhookControllerLogTest {
+public class WebhookConnectorRegistryLogTest {
   @Captor ArgumentCaptor<Activity> activityCaptor;
 
   private static Stream<Arguments> invalidCases() {
@@ -107,7 +107,7 @@ public class WebhookControllerLogTest {
 
   private static void assertWebhookRegistered(
       String webhookPath, WebhookConnectorRegistry webhook, RegisteredExecutable processA1) {
-    var existingConnector = webhook.getWebhookConnectorByContextPath(webhookPath);
+    var existingConnector = webhook.getActiveWebhook(webhookPath);
     assertTrue(existingConnector.isPresent());
     assertEquals(processA1, existingConnector.get());
   }

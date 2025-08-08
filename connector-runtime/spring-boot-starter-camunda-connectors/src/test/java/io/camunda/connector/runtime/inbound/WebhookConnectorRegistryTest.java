@@ -28,6 +28,7 @@ import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -55,20 +56,42 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class WebhookControllerPlainJavaTests {
+public class WebhookConnectorRegistryTest {
 
   private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Test
-  public void multipleWebhooksOnSameContextPathAreNotSupported() {
+  public void multipleWebhooksOnSameContextPathAreQueued() {
+    WebhookConnectorRegistry webhookConnectorRegistry = new WebhookConnectorRegistry();
+    var connectorA = buildConnector(webhookDefinition("processA", 1, "myPath"));
+    webhookConnectorRegistry.register(connectorA);
+
+    var connectorB = buildConnector(webhookDefinition("processB", 1, "myPath"));
+    // connectorA is registered, but connectorB is queued
+    webhookConnectorRegistry.register(connectorB);
+
+    // connectorB should be the active connector now
+    webhookConnectorRegistry.deregister(connectorA);
+
+    assertFalse(isRegistered(webhookConnectorRegistry, connectorA));
+    assertTrue(isRegistered(webhookConnectorRegistry, connectorB));
+    assertThat(connectorB.context().getHealth()).isEqualTo(Health.up());
+  }
+
+  @Test
+  public void multipleWebhooksOnSameContextPathAreSupported() {
     WebhookConnectorRegistry webhookConnectorRegistry = new WebhookConnectorRegistry();
     var connectorA = buildConnector(webhookDefinition("processA", 1, "myPath"));
     webhookConnectorRegistry.register(connectorA);
 
     var connectorB = buildConnector(webhookDefinition("processA", 1, "myPath"));
-    assertThrowsExactly(
-        RuntimeException.class, () -> webhookConnectorRegistry.register(connectorB));
-    assertFalse(webhookConnectorRegistry.isRegistered(connectorB));
+    webhookConnectorRegistry.register(connectorB);
+    assertTrue(isRegistered(webhookConnectorRegistry, connectorB));
+    assertThat(connectorB.context().getHealth())
+        .isEqualTo(
+            Health.down(
+                new IllegalStateException(
+                    "Context: myPath already in use by: process processA(testElement)")));
   }
 
   @Test
@@ -91,18 +114,18 @@ public class WebhookControllerPlainJavaTests {
     var processB1Copy = buildConnector(webhookDefinition("processB", 1, "myPath2"));
     webhook.deregister(processB1Copy);
 
-    var connectorForPath1 = webhook.getWebhookConnectorByContextPath("myPath");
+    var connectorForPath1 = webhook.getActiveWebhook("myPath");
 
     assertTrue(connectorForPath1.isPresent(), "A2 context is present");
-    assertTrue(webhook.isRegistered(processA2), "A2 is registered");
-    assertFalse(webhook.isRegistered(processA1), "A1 is not registered");
-    assertFalse(webhook.isRegistered(processB1), "B1 is not registered");
+    assertTrue(isRegistered(webhook, processA2), "A2 is registered");
+    assertFalse(isRegistered(webhook, processA1), "A1 is not registered");
+    assertFalse(isRegistered(webhook, processB1), "B1 is not registered");
     assertEquals(
         2,
         connectorForPath1.get().context().getDefinition().elements().getFirst().version(),
         "The newest one");
 
-    var connectorForPath2 = webhook.getWebhookConnectorByContextPath("myPath2");
+    var connectorForPath2 = webhook.getActiveWebhook("myPath2");
     assertTrue(connectorForPath2.isEmpty(), "No one - as it was deleted.");
   }
 
@@ -118,8 +141,8 @@ public class WebhookControllerPlainJavaTests {
     webhook.deregister(processA1);
 
     // then
-    assertFalse(webhook.getWebhookConnectorByContextPath("myPath").isPresent());
-    assertFalse(webhook.isRegistered(processA1));
+    assertFalse(webhook.getActiveWebhook("myPath").isPresent());
+    assertFalse(isRegistered(webhook, processA1));
   }
 
   @Test
@@ -135,8 +158,8 @@ public class WebhookControllerPlainJavaTests {
 
     // then
     assertThrowsExactly(RuntimeException.class, () -> webhook.deregister(processA2));
-    assertFalse(webhook.isRegistered(processA2));
-    assertTrue(webhook.isRegistered(processA1));
+    assertFalse(isRegistered(webhook, processA2));
+    assertTrue(isRegistered(webhook, processA1));
   }
 
   private static long nextProcessDefinitionKey = 0L;
@@ -164,6 +187,7 @@ public class WebhookControllerPlainJavaTests {
             mapper,
             EvictingQueue.create(10));
 
+    context.reportHealth(Health.up());
     return spy(context);
   }
 
@@ -172,7 +196,7 @@ public class WebhookControllerPlainJavaTests {
     var details =
         InboundConnectorDetails.of(
             bpmnProcessId + version + path,
-            List.of(webhookElement(++nextProcessDefinitionKey, bpmnProcessId, version, path)));
+            List.of(webhookElement(1, bpmnProcessId, version, path)));
     assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
     return (ValidInboundConnectorDetails) details;
   }
@@ -192,5 +216,12 @@ public class WebhookControllerPlainJavaTests {
     public String getSecret(String name, SecretContext context) {
       return null;
     }
+  }
+
+  private boolean isRegistered(
+      WebhookConnectorRegistry registry, RegisteredExecutable.Activated connector) {
+    return registry.getExecutablesByContext().values().stream()
+        .flatMap(executables -> executables.getExecutables().stream())
+        .anyMatch(e -> e.equals(connector));
   }
 }

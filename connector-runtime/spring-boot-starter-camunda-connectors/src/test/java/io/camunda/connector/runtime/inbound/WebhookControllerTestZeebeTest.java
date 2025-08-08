@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
-import static io.camunda.connector.runtime.inbound.WebhookControllerPlainJavaTests.webhookDefinition;
+import static io.camunda.connector.runtime.inbound.WebhookConnectorRegistryTest.webhookDefinition;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -73,7 +73,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 @SlowTest
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class WebhookControllerTestZeebeTests {
+class WebhookControllerTestZeebeTest {
 
   @Autowired private WebhookConnectorRegistry webhookConnectorRegistry;
 
