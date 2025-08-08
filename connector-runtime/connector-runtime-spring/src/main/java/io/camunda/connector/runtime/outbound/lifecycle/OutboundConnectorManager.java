@@ -18,20 +18,16 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.worker.JobHandler;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
-import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.spring.client.annotation.processor.CamundaClientLifecycleAware;
 import io.camunda.spring.client.annotation.value.JobWorkerValue;
-import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
-import io.camunda.spring.client.metrics.DefaultNoopMetricsRecorder;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
@@ -44,7 +40,6 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   private static final Logger LOG = LoggerFactory.getLogger(OutboundConnectorManager.class);
   private final JobWorkerManager jobWorkerManager;
   private final OutboundConnectorFactory connectorFactory;
-  private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
   private final SecretProviderAggregator secretProviderAggregator;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
@@ -54,7 +49,6 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
-      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
@@ -62,7 +56,6 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
       ConnectorsOutboundMetrics outboundMetrics) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
-    this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.secretProviderAggregator = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
@@ -83,7 +76,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 
   @Override
   public void onStop(CamundaClient client) {
-    jobWorkerManager.closeAllOpenWorkers();
+    jobWorkerManager.closeAllJobWorkers(this);
   }
 
   private void openWorkerForOutboundConnector(
@@ -102,18 +95,14 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 
     OutboundConnectorFunction connectorFunction = connectorFactory.getInstance(connector.type());
     LOG.trace("Opening worker for connector {}", connector.name());
-
-    JobHandler connectorJobHandler =
-        new SpringConnectorJobHandler(
+    zeebeWorkerValue.setJobHandlerFactory(
+        new OutboundConnectorJobHandlerFactory(
             outboundMetrics,
-            commandExceptionHandlingStrategy,
             secretProviderAggregator,
             validationProvider,
             documentFactory,
             objectMapper,
-            connectorFunction,
-            new DefaultNoopMetricsRecorder());
-
-    jobWorkerManager.openWorker(client, zeebeWorkerValue, connectorJobHandler);
+            connectorFunction));
+    jobWorkerManager.createJobWorker(client, zeebeWorkerValue, this);
   }
 }

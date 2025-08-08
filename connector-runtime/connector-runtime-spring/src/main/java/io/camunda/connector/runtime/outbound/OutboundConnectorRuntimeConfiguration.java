@@ -31,7 +31,6 @@ import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.CamundaDocumentStoreImpl;
-import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
@@ -73,7 +72,6 @@ public class OutboundConnectorRuntimeConfiguration {
   public OutboundConnectorManager outboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
-      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
       ConnectorsOutboundMetrics outboundMetrics,
@@ -82,7 +80,6 @@ public class OutboundConnectorRuntimeConfiguration {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
-        commandExceptionHandlingStrategy,
         secretProviderAggregator,
         validationProvider,
         documentFactory,
