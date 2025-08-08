@@ -27,7 +27,7 @@ import jakarta.validation.constraints.NotNull;
     group = "embeddingsStore",
     name = "type",
     defaultValue = "apiKey",
-    description = "Specify the Azure OpenAI authentication strategy.")
+    description = "Specify the Azure authentication strategy.")
 public sealed interface AzureAuthentication {
   @TemplateSubType(id = "apiKey", label = "API key")
   record AzureApiKeyAuthentication(

@@ -1050,7 +1050,7 @@
   }, {
     "id" : "vectorStore.aiSearch.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the Azure OpenAI authentication strategy.",
+    "description" : "Specify the Azure authentication strategy.",
     "value" : "apiKey",
     "group" : "embeddingsStore",
     "binding" : {
@@ -1239,7 +1239,7 @@
   }, {
     "id" : "vectorStore.azureCosmosDbNoSql.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the Azure OpenAI authentication strategy.",
+    "description" : "Specify the Azure authentication strategy.",
     "value" : "apiKey",
     "group" : "embeddingsStore",
     "binding" : {
