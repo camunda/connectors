@@ -12,8 +12,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractor;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractorImpl;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGeneratorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
@@ -45,6 +45,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientCo
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -66,8 +67,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public FeelExpressionParameterExtractor aiAgentAdHocFeelExpressionParameterExtractor() {
-    return new FeelExpressionParameterExtractorImpl();
+  public AdHocToolElementParameterExtractor aiAgentAdHocToolElementParameterExtractor() {
+    return new AdHocToolElementParameterExtractorImpl(new TaggedParameterExtractor());
   }
 
   @Bean
@@ -89,7 +90,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   public ProcessDefinitionAdHocToolElementsResolver aiAgentProcessDefinitionToolElementsResolver(
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
-      FeelExpressionParameterExtractor parameterExtractor) {
+      AdHocToolElementParameterExtractor parameterExtractor) {
 
     final var resolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
