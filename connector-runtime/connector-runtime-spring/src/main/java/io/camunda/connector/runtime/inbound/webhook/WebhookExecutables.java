@@ -36,7 +36,7 @@ public class WebhookExecutables {
     this.context = context;
   }
 
-  List<RegisteredExecutable.Activated> getExecutables() {
+  public List<RegisteredExecutable.Activated> getExecutables() {
     return executables;
   }
 
@@ -65,7 +65,7 @@ public class WebhookExecutables {
         e -> {
           // "next" is now the active connector for the context
           markAsUp(e);
-          updateWaitingConnectorsErrorMessage();
+          updateDownConnectorsErrorMessage();
         });
 
     return firstDownExecutable;
@@ -141,16 +141,18 @@ public class WebhookExecutables {
    *
    * @see #getActiveWebhook()
    */
-  private void updateWaitingConnectorsErrorMessage() {
+  private void updateDownConnectorsErrorMessage() {
     if (executables.isEmpty()) {
       return;
     }
 
-    executables.forEach(
-        connector ->
-            connector
-                .context()
-                .reportHealth(Health.down(new IllegalStateException(createErrorMessage()))));
+    executables.stream()
+        .filter(e -> e.context().getHealth().getStatus() == Health.Status.DOWN)
+        .forEach(
+            connector ->
+                connector
+                    .context()
+                    .reportHealth(Health.down(new IllegalStateException(createErrorMessage()))));
   }
 
   private String createErrorMessage() {
