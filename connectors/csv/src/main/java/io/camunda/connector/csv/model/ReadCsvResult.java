@@ -7,11 +7,5 @@
 package io.camunda.connector.csv.model;
 
 import java.util.List;
-import java.util.Map;
 
-public sealed interface ReadCsvResult permits ReadCsvResult.Objects, ReadCsvResult.Arrays {
-
-  record Objects(List<Map<String, String>> records) implements ReadCsvResult {}
-
-  record Arrays(List<List<String>> records) implements ReadCsvResult {}
-}
+public record ReadCsvResult(List<?> records) {}

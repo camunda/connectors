@@ -1025,6 +1025,14 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(propOp3P1).isNotNull();
       var propOp3P2 = getPropertyById("operation-3:param2", template);
       assertThat(propOp3P2).isNotNull();
+
+      StringProperty propOp3Header =
+          (StringProperty) getPropertyById("operation-3:myHeader", template);
+      assertThat(propOp3Header.getBinding()).isInstanceOf(PropertyBinding.ZeebeTaskHeader.class);
+      assertThat(((ZeebeTaskHeader) propOp3Header.getBinding()).key()).isEqualTo("test-header");
+      assertThat(propOp3Header.getLabel()).isEqualTo("My Header");
+      assertThat(propOp3Header.getFeel()).isEqualTo(FeelMode.optional);
+      assertThat(propOp3Header.getValue()).isEqualTo("my-default-value");
     }
 
     @Test

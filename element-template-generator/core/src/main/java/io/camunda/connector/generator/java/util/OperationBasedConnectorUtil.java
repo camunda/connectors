@@ -18,10 +18,12 @@ package io.camunda.connector.generator.java.util;
 
 import static io.camunda.connector.api.reflection.ReflectionUtil.*;
 
+import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.reflection.ReflectionUtil;
 import io.camunda.connector.generator.dsl.*;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.lang.reflect.Parameter;
 import java.util.Comparator;
 import java.util.List;
@@ -29,6 +31,7 @@ import java.util.List;
 public class OperationBasedConnectorUtil {
 
   public static String OPERATION_PROPERTY_ID = "operation";
+  public static String OPERATION_GROUP_ID = "operation";
   public static String OPERATION_TASK_HEADER_KEY = OPERATION_PROPERTY_ID;
   public static String OPERATION_PROPERTY_SEPARATOR = ":";
   public static String VARIABLE_PATH_SEPARATOR = ".";
@@ -77,21 +80,56 @@ public class OperationBasedConnectorUtil {
       ReflectionUtil.MethodWithAnnotation<Operation> method, TemplateGenerationContext context) {
     Operation operation = method.annotation();
     List<Parameter> parameters =
-        method.parameters().stream().filter(p -> p.isAnnotationPresent(Variable.class)).toList();
+        method.parameters().stream()
+            .filter(
+                p ->
+                    !p.isSynthetic()
+                        && (p.isAnnotationPresent(Variable.class)
+                            || p.isAnnotationPresent(Header.class)))
+            .toList();
 
     return parameters.stream()
         .map(
             parameter -> {
               Variable variable = parameter.getAnnotation(Variable.class);
-              List<PropertyBuilder> properties =
-                  TemplatePropertiesUtil.extractTemplatePropertiesFromType(
-                      parameter.getType(), context);
-              return properties.stream()
-                  .map(property -> mapProperty(property, operation, variable))
-                  .toList();
+              if (variable != null) {
+                List<PropertyBuilder> properties =
+                    TemplatePropertiesUtil.extractTemplatePropertiesFromType(
+                        parameter.getType(), context);
+                return properties.stream()
+                    .map(property -> mapProperty(property, operation, variable))
+                    .toList();
+              } else {
+                return List.of(buildHeaderProperty(operation, parameter));
+              }
             })
         .flatMap(List::stream)
         .toList();
+  }
+
+  private static PropertyBuilder buildHeaderProperty(Operation operation, Parameter parameter) {
+    Header header = parameter.getAnnotation(Header.class);
+    String headerName = getHeaderName(header);
+    TemplateProperty templateProperty = parameter.getAnnotation(TemplateProperty.class);
+    String id = concatenateOperationIdAndPropertyId(getOperationId(operation), headerName);
+    var builder =
+        StringProperty.builder().binding(new PropertyBinding.ZeebeTaskHeader(headerName)).id(id);
+    if (templateProperty != null) {
+      builder
+          .id(
+              !templateProperty.id().isBlank()
+                  ? concatenateOperationIdAndPropertyId(
+                      getOperationId(operation), templateProperty.id())
+                  : id)
+          .group(
+              !templateProperty.group().isBlank() ? templateProperty.group() : OPERATION_GROUP_ID)
+          .label(templateProperty.label())
+          .tooltip(templateProperty.tooltip())
+          .description(templateProperty.description())
+          .value(templateProperty.defaultValue())
+          .feel(templateProperty.feel());
+    }
+    return builder;
   }
 
   public static String concatenateOperationIdAndPropertyId(String operationId, String propertyId) {
@@ -104,7 +142,7 @@ public class OperationBasedConnectorUtil {
         .id(concatenateOperationIdAndPropertyId(getOperationId(operation), property.getId()))
         .binding(mapBinding(property.getBinding(), variable))
         .condition(mapCondition(property.getCondition(), operation))
-        .group("operation");
+        .group(OPERATION_GROUP_ID);
   }
 
   private static PropertyCondition mapCondition(PropertyCondition condition, Operation operation) {

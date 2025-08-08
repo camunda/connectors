@@ -16,12 +16,14 @@
  */
 package io.camunda.connector.generator.java.example.outbound;
 
+import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
@@ -55,7 +57,15 @@ public class OperationAnnotatedConnector implements OutboundConnectorProvider {
   record Operation3Request(@TemplateProperty(id = "p1") String param1, @FEEL String param2) {}
 
   @Operation(name = "Operation 3", id = "operation-3")
-  public String operation3(@Variable("mydata") Operation3Request request) {
+  public String operation3(
+      @Variable("mydata") Operation3Request request,
+      @Header("test-header")
+          @TemplateProperty(
+              id = "myHeader",
+              label = "My Header",
+              defaultValue = "my-default-value",
+              feel = Property.FeelMode.optional)
+          String myHeader) {
     return "Operation 3 executed: " + request;
   }
 }
