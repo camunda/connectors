@@ -61,7 +61,7 @@ public class CsvConnectorTests {
     var mapper =
         (Function<Map<String, Object>, Object>)
             context -> {
-              Map<String, String> record = (Map<String, String>) context.get("record");
+              var record = (Map<String, String>) context.get("record");
               return Map.of(
                   "product", record.get("name"), "price", Integer.parseInt(record.get("price")));
             };
@@ -72,6 +72,29 @@ public class CsvConnectorTests {
     assertEquals(3, records.size());
     assertThat(records).contains(Map.of("product", "Monitor", "price", 200));
     assertThat(records).contains(Map.of("product", "Macbook", "price", 1200));
+    assertThat(records).contains(Map.of("product", "Mouse", "price", 10));
+  }
+
+  @Test
+  public void testReadCsvWithFilteringMapper() {
+    var request = new ReadCsvRequest(productsCsv, new CsvFormat(",", true, null), RowType.Object);
+    var mapper =
+        (Function<Map<String, Object>, Object>)
+            context -> {
+              var record = (Map<String, String>) context.get("record");
+              var price = Integer.parseInt(record.get("price"));
+              if (price > 1000) {
+                return null; // Filter out products with price > 1000
+              } else {
+                return Map.of("product", record.get("name"), "price", price);
+              }
+            };
+    ReadCsvResult result = connector.readCsv(request, mapper);
+
+    var records = toList(result);
+    assertNotNull(records);
+    assertEquals(2, records.size());
+    assertThat(records).contains(Map.of("product", "Monitor", "price", 200));
     assertThat(records).contains(Map.of("product", "Mouse", "price", 10));
   }
 

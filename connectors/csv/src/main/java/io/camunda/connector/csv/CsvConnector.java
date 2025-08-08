@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.csv;
 
-import static io.camunda.connector.csv.CsvUtils.createCsvRequest;
+import static io.camunda.connector.csv.CsvUtils.createCsv;
 import static io.camunda.connector.csv.CsvUtils.readCsvRequest;
 
 import io.camunda.connector.api.annotation.Header;
@@ -64,7 +64,7 @@ public class CsvConnector implements OutboundConnectorProvider {
 
   @Operation(id = "writeCsv", name = "Write CSV")
   public Object writeCsv(@Variable WriteCsvRequest request, OutboundConnectorContext context) {
-    var csv = createCsvRequest(request.data(), request.format());
+    var csv = createCsv(request.data(), request.format());
     if (request.createDocument()) {
       var documentCreationRequest =
           DocumentCreationRequest.from(csv.getBytes()).contentType("text/csv").build();
