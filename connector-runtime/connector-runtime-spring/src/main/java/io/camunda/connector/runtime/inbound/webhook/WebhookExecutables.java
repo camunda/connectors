@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound.webhook;
 
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import java.util.*;
@@ -39,9 +40,21 @@ public class WebhookExecutables {
     return executables;
   }
 
-  public Optional<RegisteredExecutable.Activated> activateNext() {
-    // Remove the active connector from the queue
-    executables.removeFirst();
+  public void deregister(RegisteredExecutable.Activated connector) {
+    tryGetExecutableForDefinition(connector.context().getDefinition())
+        .ifPresentOrElse(
+            executables::remove,
+            () -> {
+              throw new RuntimeException(
+                  "Cannot deregister connector with definition: "
+                      + connector.context().getDefinition()
+                      + " as it is not registered for context: "
+                      + context);
+            });
+  }
+
+  public Optional<RegisteredExecutable.Activated> tryActivateNext() {
+    ensureNoUpExecutablesRunning();
 
     var firstDownExecutable =
         executables.stream()
@@ -56,6 +69,16 @@ public class WebhookExecutables {
         });
 
     return firstDownExecutable;
+  }
+
+  private void ensureNoUpExecutablesRunning() {
+    if (executables.stream()
+        .anyMatch(e -> e.context().getHealth().getStatus() == Health.Status.UP)) {
+      throw new IllegalStateException(
+          "Cannot activate next inbound hook on context: "
+              + context
+              + " as it already has an active connector");
+    }
   }
 
   public RegisteredExecutable.Activated getActiveWebhook() {
@@ -144,5 +167,12 @@ public class WebhookExecutables {
             .map(e -> "process " + e.getKey() + "(" + e.getValue() + ")")
             .reduce((a, b) -> a + ", " + b)
             .orElse("");
+  }
+
+  private Optional<RegisteredExecutable.Activated> tryGetExecutableForDefinition(
+      InboundConnectorDefinition definition) {
+    return executables.stream()
+        .filter(e -> e.context().getDefinition().equals(definition))
+        .findFirst();
   }
 }
