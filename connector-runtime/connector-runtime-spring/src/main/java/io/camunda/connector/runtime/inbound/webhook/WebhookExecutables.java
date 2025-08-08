@@ -40,6 +40,12 @@ public class WebhookExecutables {
     return executables;
   }
 
+  /**
+   * Deregisters a connector for the given context. If the connector is not registered for the
+   * context, it throws a RuntimeException.
+   *
+   * @throws RuntimeException if the connector is not registered for the context.
+   */
   public void deregister(RegisteredExecutable.Activated connector) {
     tryGetExecutableForDefinition(connector.context().getDefinition())
         .ifPresentOrElse(
@@ -53,6 +59,12 @@ public class WebhookExecutables {
             });
   }
 
+  /**
+   * Tries to activate the next connector in the queue. It also updates the health status of the
+   * active connector (to UP) and all other connectors in the queue (error message).
+   *
+   * @throws IllegalStateException if there is already an active connector for the context.
+   */
   public Optional<RegisteredExecutable.Activated> tryActivateNext() {
     ensureNoUpExecutablesRunning();
 
@@ -100,8 +112,7 @@ public class WebhookExecutables {
   }
 
   public void markAsDownAndAdd(RegisteredExecutable.Activated connector) {
-    markAsDownAndLogActivity(context, connector, createErrorMessage());
-
+    markAsDownAndLogActivity(context, connector);
     executables.add(connector);
   }
 
@@ -111,8 +122,7 @@ public class WebhookExecutables {
    * Health will be updated to UP later if this executable gets activated (meaning the context
    * becomes available and this connector is the first in the queue).
    */
-  private void markAsDownAndLogActivity(
-      String context, RegisteredExecutable.Activated connector, String errorMessage) {
+  private void markAsDownAndLogActivity(String context, RegisteredExecutable.Activated connector) {
     connector
         .context()
         .log(
@@ -122,7 +132,7 @@ public class WebhookExecutables {
                     "Webhook path \""
                         + context
                         + "\" is already in use. Connector registered in standby and will be activated when the path becomes available."));
-    connector.context().reportHealth(Health.down(new IllegalStateException(errorMessage)));
+    connector.context().reportHealth(Health.down(new IllegalStateException(createErrorMessage())));
   }
 
   private void markAsUp(RegisteredExecutable.Activated next) {
