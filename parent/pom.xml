@@ -312,6 +312,12 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>zeebe-feel-tagged-parameters</artifactId>
+        <version>${version.camunda}</version>
+      </dependency>
+
+      <dependency>
         <groupId>org.camunda.feel</groupId>
         <artifactId>feel-engine</artifactId>
         <version>${version.feel-engine}</version>

@@ -12,7 +12,6 @@ import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperti
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -135,7 +134,7 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
     if (source.startsWith("=")) {
       try {
         return parameterExtractor.extractParameters(source.substring(1));
-      } catch (AdHocToolElementParameterExtractionException e) {
+      } catch (Exception e) {
         final var mappingType =
             switch (mapping) {
               case ZeebeInput ignored -> "input";

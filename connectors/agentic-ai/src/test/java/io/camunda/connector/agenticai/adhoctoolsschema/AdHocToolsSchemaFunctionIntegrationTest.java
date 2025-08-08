@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementPar
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest.AdHocToolsSchemaRequestData;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractionException;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerationException;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
@@ -280,7 +279,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn(bpmnXml);
 
-    doThrow(new AdHocToolElementParameterExtractionException("I can't handle the fromAi function."))
+    doThrow(new IllegalArgumentException("I can't handle the fromAi function."))
         .when(parameterExtractor)
         .extractParameters("fromAi(toolCall.inputParameter, \"An input parameter\")");
 
@@ -304,7 +303,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
         .thenReturn(bpmnXml);
 
     when(parameterExtractor.extractParameters(any())).thenReturn(Collections.emptyList());
-    doThrow(new AdHocToolElementParameterExtractionException("I can't handle the fromAi function."))
+    doThrow(new IllegalArgumentException("I can't handle the fromAi function."))
         .when(parameterExtractor)
         .extractParameters("fromAi(toolCall.outputParameter, \"An output parameter\")");
 

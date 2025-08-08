@@ -45,6 +45,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientCo
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -67,7 +68,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AdHocToolElementParameterExtractor aiAgentAdHocToolElementParameterExtractor() {
-    return new AdHocToolElementParameterExtractorImpl();
+    return new AdHocToolElementParameterExtractorImpl(new TaggedParameterExtractor());
   }
 
   @Bean
