@@ -14,17 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.intrinsic.functions;
 
-import io.camunda.client.api.response.DocumentReferenceResponse;
+import io.camunda.document.ExternalDocument;
+import io.camunda.intrinsic.IntrinsicFunction;
+import io.camunda.intrinsic.IntrinsicFunctionProvider;
+import javax.annotation.Nullable;
 
-public interface DocumentReference {
-
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
-
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
-
-    String name();
+public class DocumentFunction implements IntrinsicFunctionProvider {
+  @IntrinsicFunction(name = "document")
+  public ExternalDocument execute(String url, @Nullable String name) {
+    return new ExternalDocument(url, name);
   }
 }
