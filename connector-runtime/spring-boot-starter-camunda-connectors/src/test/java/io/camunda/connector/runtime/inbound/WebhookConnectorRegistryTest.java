@@ -73,8 +73,8 @@ public class WebhookConnectorRegistryTest {
     // connectorB should be the active connector now
     webhookConnectorRegistry.deregister(connectorA);
 
-    assertFalse(webhookConnectorRegistry.isRegistered(connectorA));
-    assertTrue(webhookConnectorRegistry.isRegistered(connectorB));
+    assertFalse(isRegistered(webhookConnectorRegistry, connectorA));
+    assertTrue(isRegistered(webhookConnectorRegistry, connectorB));
     assertThat(connectorB.context().getHealth()).isEqualTo(Health.up());
   }
 
@@ -86,7 +86,7 @@ public class WebhookConnectorRegistryTest {
 
     var connectorB = buildConnector(webhookDefinition("processA", 1, "myPath"));
     webhookConnectorRegistry.register(connectorB);
-    assertFalse(webhookConnectorRegistry.isRegistered(connectorB));
+    assertFalse(isRegistered(webhookConnectorRegistry, connectorB));
     assertThat(connectorB.context().getHealth())
         .isEqualTo(
             Health.down(
@@ -114,18 +114,18 @@ public class WebhookConnectorRegistryTest {
     var processB1Copy = buildConnector(webhookDefinition("processB", 1, "myPath2"));
     webhook.deregister(processB1Copy);
 
-    var connectorForPath1 = webhook.getWebhookConnectorByContextPath("myPath");
+    var connectorForPath1 = webhook.getActiveWebhook("myPath");
 
     assertTrue(connectorForPath1.isPresent(), "A2 context is present");
-    assertTrue(webhook.isRegistered(processA2), "A2 is registered");
-    assertFalse(webhook.isRegistered(processA1), "A1 is not registered");
-    assertFalse(webhook.isRegistered(processB1), "B1 is not registered");
+    assertTrue(isRegistered(webhook, processA2), "A2 is registered");
+    assertFalse(isRegistered(webhook, processA1), "A1 is not registered");
+    assertFalse(isRegistered(webhook, processB1), "B1 is not registered");
     assertEquals(
         2,
         connectorForPath1.get().context().getDefinition().elements().getFirst().version(),
         "The newest one");
 
-    var connectorForPath2 = webhook.getWebhookConnectorByContextPath("myPath2");
+    var connectorForPath2 = webhook.getActiveWebhook("myPath2");
     assertTrue(connectorForPath2.isEmpty(), "No one - as it was deleted.");
   }
 
@@ -141,8 +141,8 @@ public class WebhookConnectorRegistryTest {
     webhook.deregister(processA1);
 
     // then
-    assertFalse(webhook.getWebhookConnectorByContextPath("myPath").isPresent());
-    assertFalse(webhook.isRegistered(processA1));
+    assertFalse(webhook.getActiveWebhook("myPath").isPresent());
+    assertFalse(isRegistered(webhook, processA1));
   }
 
   @Test
@@ -158,8 +158,8 @@ public class WebhookConnectorRegistryTest {
 
     // then
     assertThrowsExactly(RuntimeException.class, () -> webhook.deregister(processA2));
-    assertFalse(webhook.isRegistered(processA2));
-    assertTrue(webhook.isRegistered(processA1));
+    assertFalse(isRegistered(webhook, processA2));
+    assertTrue(isRegistered(webhook, processA1));
   }
 
   private static long nextProcessDefinitionKey = 0L;
@@ -215,5 +215,11 @@ public class WebhookConnectorRegistryTest {
     public String getSecret(String name, SecretContext context) {
       return null;
     }
+  }
+
+  private boolean isRegistered(
+      WebhookConnectorRegistry registry, RegisteredExecutable.Activated connector) {
+    return registry.getExecutablesByContext().values().stream()
+        .anyMatch(executables -> executables.getActiveWebhook().equals(connector));
   }
 }

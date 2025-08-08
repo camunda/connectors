@@ -26,47 +26,37 @@ public class WebhookConnectorRegistry {
 
   private final Logger LOG = LoggerFactory.getLogger(WebhookConnectorRegistry.class);
 
-  private final Map<String, RegisteredExecutable.Activated> activeEndpointsByContext =
-      new HashMap<>();
+  private final Map<String, WebhookExecutables> executablesByContext = new HashMap<>();
 
-  private final WebhookWaitingQueue waitingQueue = new WebhookWaitingQueue();
-
-  public Optional<RegisteredExecutable.Activated> getWebhookConnectorByContextPath(String context) {
-    return Optional.ofNullable(activeEndpointsByContext.get(context));
+  public Optional<RegisteredExecutable.Activated> getActiveWebhook(String context) {
+    return Optional.ofNullable(executablesByContext.get(context))
+        .map(WebhookExecutables::getActiveWebhook);
   }
 
-  public boolean isRegistered(RegisteredExecutable.Activated connector) {
-    var context = connector.context().bindProperties(CommonWebhookProperties.class).getContext();
-    return activeEndpointsByContext.containsKey(context)
-        && activeEndpointsByContext.get(context) == connector;
+  public Map<String, WebhookExecutables> getExecutablesByContext() {
+    return executablesByContext;
   }
 
   public void register(RegisteredExecutable.Activated connector) {
-    var properties = connector.context().bindProperties(CommonWebhookProperties.class);
-    var context = properties.getContext();
-    if (context == null) {
-      var logMessage = "Webhook path not provided";
-      LOG.debug(logMessage);
-      throw new RuntimeException(logMessage);
-    }
+    var context = getContext(connector);
 
     WebhookConnectorValidationUtil.logIfWebhookPathDeprecated(connector, context);
-    Optional.ofNullable(activeEndpointsByContext.putIfAbsent(context, connector))
-        .ifPresent(
-            existingExecutable ->
-                waitingQueue.markAsDownAndAdd(context, connector, existingExecutable));
+    Optional.ofNullable(
+            executablesByContext.putIfAbsent(context, new WebhookExecutables(connector, context)))
+        .ifPresent(existingExecutables -> existingExecutables.markAsDownAndAdd(connector));
   }
 
   public void deregister(RegisteredExecutable.Activated connector) {
-    var context = connector.context().bindProperties(CommonWebhookProperties.class).getContext();
-    var registeredConnector = activeEndpointsByContext.get(context);
-    if (registeredConnector == null) {
+    var context = getContext(connector);
+    var executables = executablesByContext.get(context);
+    if (executables == null) {
       var logMessage = "Context: " + context + " is not registered. Cannot deregister.";
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
     var requesterDeduplicationId = connector.context().getDefinition().deduplicationId();
-    var registeredDeduplicationId = registeredConnector.context().getDefinition().deduplicationId();
+    var registeredDeduplicationId =
+        executables.getActiveWebhook().context().getDefinition().deduplicationId();
 
     if (!registeredDeduplicationId.equals(requesterDeduplicationId)) {
       var logMessage =
@@ -78,21 +68,24 @@ public class WebhookConnectorRegistry {
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
-    var nextConnector = waitingQueue.activateNext(context);
-    if (nextConnector.isPresent()) {
-      LOG.debug(
-          "Next enqueued connector activated for context: {}, replacing the current one with: {}",
-          context,
-          nextConnector.get().context().getDefinition());
-      activeEndpointsByContext.put(context, nextConnector.get());
-    } else {
-      LOG.debug(
-          "No connectors found in the queue for context: {}, the context will be removed", context);
-      activeEndpointsByContext.remove(context);
+    var nextConnector = executables.activateNext();
+    if (nextConnector.isEmpty()) {
+      executablesByContext.remove(context);
     }
   }
 
   public void reset() {
-    activeEndpointsByContext.clear();
+    executablesByContext.clear();
+  }
+
+  private String getContext(RegisteredExecutable.Activated connector) {
+    var properties = connector.context().bindProperties(CommonWebhookProperties.class);
+    var context = properties.getContext();
+    if (context == null) {
+      var logMessage = "Webhook path not provided";
+      LOG.debug(logMessage);
+      throw new RuntimeException(logMessage);
+    }
+    return context;
   }
 }

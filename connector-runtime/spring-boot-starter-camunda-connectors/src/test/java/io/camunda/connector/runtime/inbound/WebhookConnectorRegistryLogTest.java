@@ -107,7 +107,7 @@ public class WebhookConnectorRegistryLogTest {
 
   private static void assertWebhookRegistered(
       String webhookPath, WebhookConnectorRegistry webhook, RegisteredExecutable processA1) {
-    var existingConnector = webhook.getWebhookConnectorByContextPath(webhookPath);
+    var existingConnector = webhook.getActiveWebhook(webhookPath);
     assertTrue(existingConnector.isPresent());
     assertEquals(processA1, existingConnector.get());
   }
