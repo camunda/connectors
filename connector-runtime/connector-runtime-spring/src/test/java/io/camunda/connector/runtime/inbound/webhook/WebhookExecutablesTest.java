@@ -59,13 +59,13 @@ public class WebhookExecutablesTest {
   }
 
   @Test
-  void testActivateNextConnector() {}
+  void testTryActivateNextConnector() {}
 
   @Test
   void testHealthStatusUpdates() {}
 
   @Test
-  void testActivateNextOnEmptyQueue() {}
+  void testTryActivateNextOnEmptyQueue() {}
 
   @Test
   void testQueueCleanupAfterActivation() {}

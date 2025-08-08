@@ -54,21 +54,10 @@ public class WebhookConnectorRegistry {
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
-    var requesterDeduplicationId = connector.context().getDefinition().deduplicationId();
-    var registeredDeduplicationId =
-        executables.getActiveWebhook().context().getDefinition().deduplicationId();
 
-    if (!registeredDeduplicationId.equals(requesterDeduplicationId)) {
-      var logMessage =
-          "Context: "
-              + context
-              + " is not registered by the connector with deduplication ID: "
-              + requesterDeduplicationId
-              + ". Cannot deregister.";
-      LOG.debug(logMessage);
-      throw new RuntimeException(logMessage);
-    }
-    var nextConnector = executables.activateNext();
+    executables.deregister(connector);
+    var nextConnector = executables.tryActivateNext();
+
     if (nextConnector.isEmpty()) {
       executablesByContext.remove(context);
     }
