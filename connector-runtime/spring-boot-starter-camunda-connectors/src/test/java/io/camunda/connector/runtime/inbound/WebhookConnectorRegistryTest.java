@@ -66,7 +66,7 @@ public class WebhookConnectorRegistryTest {
     var connectorA = buildConnector(webhookDefinition("processA", 1, "myPath"));
     webhookConnectorRegistry.register(connectorA);
 
-    var connectorB = buildConnector(webhookDefinition("processA", 1, "myPath"));
+    var connectorB = buildConnector(webhookDefinition("processB", 1, "myPath"));
     // connectorA is registered, but connectorB is queued
     webhookConnectorRegistry.register(connectorB);
 
@@ -86,7 +86,7 @@ public class WebhookConnectorRegistryTest {
 
     var connectorB = buildConnector(webhookDefinition("processA", 1, "myPath"));
     webhookConnectorRegistry.register(connectorB);
-    assertFalse(isRegistered(webhookConnectorRegistry, connectorB));
+    assertTrue(isRegistered(webhookConnectorRegistry, connectorB));
     assertThat(connectorB.context().getHealth())
         .isEqualTo(
             Health.down(
@@ -187,6 +187,7 @@ public class WebhookConnectorRegistryTest {
             mapper,
             EvictingQueue.create(10));
 
+    context.reportHealth(Health.up());
     return spy(context);
   }
 
@@ -195,7 +196,7 @@ public class WebhookConnectorRegistryTest {
     var details =
         InboundConnectorDetails.of(
             bpmnProcessId + version + path,
-            List.of(webhookElement(++nextProcessDefinitionKey, bpmnProcessId, version, path)));
+            List.of(webhookElement(1, bpmnProcessId, version, path)));
     assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
     return (ValidInboundConnectorDetails) details;
   }
@@ -220,6 +221,19 @@ public class WebhookConnectorRegistryTest {
   private boolean isRegistered(
       WebhookConnectorRegistry registry, RegisteredExecutable.Activated connector) {
     return registry.getExecutablesByContext().values().stream()
-        .anyMatch(executables -> executables.getActiveWebhook().equals(connector));
+        .flatMap(executables -> executables.getExecutables().stream())
+        .anyMatch(e -> e.equals(connector));
+  }
+
+  private RegisteredExecutable.Activated findRegistered(
+      WebhookConnectorRegistry registry, RegisteredExecutable.Activated connector) {
+    return registry.getExecutablesByContext().values().stream()
+        .flatMap(executables -> executables.getExecutables().stream())
+        .filter(executable -> executable.equals(connector))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    "Connector not found in registry: " + connector.context().getDefinition()));
   }
 }
