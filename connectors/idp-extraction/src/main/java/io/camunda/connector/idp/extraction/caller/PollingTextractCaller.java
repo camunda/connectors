@@ -87,108 +87,181 @@ public class PollingTextractCaller {
       S3AsyncClient s3AsyncClient,
       TextractProcessType processType)
       throws Exception {
-
     S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
-
     LOGGER.debug("Starting polling task for {} with document: {}", processType, s3Object.name());
-
-    String jobId;
+    List<Block> allBlocks;
     if (processType == TextractProcessType.DOCUMENT_ANALYSIS) {
-      List<FeatureType> featureTypes = new ArrayList<>();
-      featureTypes.add(FeatureType.FORMS);
-      featureTypes.add(FeatureType.TABLES);
-
-      final StartDocumentAnalysisRequest startDocumentAnalysisRequest =
-          StartDocumentAnalysisRequest.builder()
-              .featureTypes(featureTypes)
-              .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
-              .build();
-
-      jobId = textractClient.startDocumentAnalysis(startDocumentAnalysisRequest).jobId();
+      allBlocks = processDocumentAnalysis(s3Object, textractClient);
     } else {
-      final StartDocumentTextDetectionRequest startDocumentTextDetectionRequest =
-          StartDocumentTextDetectionRequest.builder()
-              .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
-              .build();
-
-      jobId = textractClient.startDocumentTextDetection(startDocumentTextDetectionRequest).jobId();
+      allBlocks = processTextDetection(s3Object, textractClient);
     }
+    AwsS3Util.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
+    return allBlocks;
+  }
+
+  private List<Block> processDocumentAnalysis(S3Object s3Object, TextractClient textractClient)
+      throws Exception {
+    List<FeatureType> featureTypes = new ArrayList<>();
+    featureTypes.add(FeatureType.FORMS);
+    featureTypes.add(FeatureType.TABLES);
+
+    final StartDocumentAnalysisRequest startDocumentAnalysisRequest =
+        StartDocumentAnalysisRequest.builder()
+            .featureTypes(featureTypes)
+            .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
+            .build();
+
+    String jobId = textractClient.startDocumentAnalysis(startDocumentAnalysisRequest).jobId();
 
     List<Block> allBlocks;
     try (ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor()) {
-      Object firstTask =
-          processType == TextractProcessType.DOCUMENT_ANALYSIS
-              ? prepareTextractAnalysisTask(jobId, textractClient)
-              : prepareTextractTextDetectionTask(jobId, textractClient);
+      TextractAnalysisTask firstTask = prepareTextractAnalysisTask(jobId, textractClient);
+      GetDocumentAnalysisResponse firstDocumentResult =
+          executeAnalysisTask(firstTask, 0, executorService);
 
-      Object firstDocumentResult =
-          processType == TextractProcessType.DOCUMENT_ANALYSIS
-              ? executeAnalysisTask((TextractAnalysisTask) firstTask, 0, executorService)
-              : executeTextDetectionTask((TextractTextDetectionTask) firstTask, 0, executorService);
-
-      List<Block> blocks =
-          processType == TextractProcessType.DOCUMENT_ANALYSIS
-              ? ((GetDocumentAnalysisResponse) firstDocumentResult).blocks()
-              : ((GetDocumentTextDetectionResponse) firstDocumentResult).blocks();
-
-      JobStatus jobStatus =
-          processType == TextractProcessType.DOCUMENT_ANALYSIS
-              ? ((GetDocumentAnalysisResponse) firstDocumentResult).jobStatus()
-              : ((GetDocumentTextDetectionResponse) firstDocumentResult).jobStatus();
+      List<Block> blocks = firstDocumentResult.blocks();
+      JobStatus jobStatus = firstDocumentResult.jobStatus();
+      String nextToken = firstDocumentResult.nextToken();
 
       allBlocks = new ArrayList<>(blocks);
-      boolean isAnalysisFinished = jobStatus.equals(JobStatus.SUCCEEDED);
+      boolean isAnalysisFinished = jobStatus.equals(JobStatus.SUCCEEDED) && nextToken == null;
+      String currentNextToken = nextToken;
+
+      LOGGER.debug(
+          "Document Analysis - Initial status: jobStatus={}, nextToken={}, isAnalysisFinished={}, blocks count={}",
+          jobStatus,
+          nextToken,
+          isAnalysisFinished,
+          blocks.size());
 
       while (!isAnalysisFinished) {
-        Object nextTask =
-            processType == TextractProcessType.DOCUMENT_ANALYSIS
-                ? prepareTextractAnalysisTask(jobId, textractClient)
-                : prepareTextractTextDetectionTask(jobId, textractClient);
+        TextractAnalysisTask nextTask =
+            prepareTextractAnalysisTask(jobId, textractClient, currentNextToken);
+        GetDocumentAnalysisResponse nextDocumentResult =
+            executeAnalysisTask(nextTask, DELAY_BETWEEN_POLLING, executorService);
 
-        Object nextDocumentResult =
-            processType == TextractProcessType.DOCUMENT_ANALYSIS
-                ? executeAnalysisTask(
-                    (TextractAnalysisTask) nextTask, DELAY_BETWEEN_POLLING, executorService)
-                : executeTextDetectionTask(
-                    (TextractTextDetectionTask) nextTask, DELAY_BETWEEN_POLLING, executorService);
-
-        JobStatus newJobStatus =
-            processType == TextractProcessType.DOCUMENT_ANALYSIS
-                ? ((GetDocumentAnalysisResponse) nextDocumentResult).jobStatus()
-                : ((GetDocumentTextDetectionResponse) nextDocumentResult).jobStatus();
-
-        List<Block> nextBlocks =
-            processType == TextractProcessType.DOCUMENT_ANALYSIS
-                ? ((GetDocumentAnalysisResponse) nextDocumentResult).blocks()
-                : ((GetDocumentTextDetectionResponse) nextDocumentResult).blocks();
-
-        String statusMessage =
-            processType == TextractProcessType.DOCUMENT_ANALYSIS
-                ? ((GetDocumentAnalysisResponse) nextDocumentResult).statusMessage()
-                : ((GetDocumentTextDetectionResponse) nextDocumentResult).statusMessage();
+        JobStatus newJobStatus = nextDocumentResult.jobStatus();
+        List<Block> nextBlocks = nextDocumentResult.blocks();
+        String statusMessage = nextDocumentResult.statusMessage();
+        String newNextToken = nextDocumentResult.nextToken();
 
         switch (newJobStatus) {
           case SUCCEEDED -> {
-            isAnalysisFinished = true;
             allBlocks.addAll(nextBlocks);
+            isAnalysisFinished = newNextToken == null;
+            currentNextToken = newNextToken;
+            LOGGER.debug(
+                "Document Analysis - Status SUCCEEDED: nextToken={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
+                newNextToken,
+                isAnalysisFinished,
+                nextBlocks.size(),
+                allBlocks.size());
           }
           case FAILED -> throw new ConnectorException(statusMessage);
-          default -> allBlocks.addAll(nextBlocks);
+          default -> {
+            allBlocks.addAll(nextBlocks);
+            currentNextToken = newNextToken;
+            LOGGER.debug(
+                "Document Analysis - Status {}: nextToken={}, new blocks count={}, total blocks count={}",
+                newJobStatus,
+                newNextToken,
+                nextBlocks.size(),
+                allBlocks.size());
+          }
         }
       }
     }
 
-    AwsS3Util.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
+    return allBlocks;
+  }
+
+  private List<Block> processTextDetection(S3Object s3Object, TextractClient textractClient)
+      throws Exception {
+    final StartDocumentTextDetectionRequest startDocumentTextDetectionRequest =
+        StartDocumentTextDetectionRequest.builder()
+            .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
+            .build();
+
+    String jobId =
+        textractClient.startDocumentTextDetection(startDocumentTextDetectionRequest).jobId();
+
+    List<Block> allBlocks;
+    try (ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor()) {
+      TextractTextDetectionTask firstTask = prepareTextractTextDetectionTask(jobId, textractClient);
+      GetDocumentTextDetectionResponse firstDocumentResult =
+          executeTextDetectionTask(firstTask, 0, executorService);
+
+      List<Block> blocks = firstDocumentResult.blocks();
+      JobStatus jobStatus = firstDocumentResult.jobStatus();
+      String nextToken = firstDocumentResult.nextToken();
+
+      allBlocks = new ArrayList<>(blocks);
+      boolean isAnalysisFinished = jobStatus.equals(JobStatus.SUCCEEDED) && nextToken == null;
+      String currentNextToken = nextToken;
+
+      LOGGER.debug(
+          "Text Detection - Initial status: jobStatus={}, nextToken={}, isAnalysisFinished={}, blocks count={}",
+          jobStatus,
+          nextToken,
+          isAnalysisFinished,
+          blocks.size());
+
+      while (!isAnalysisFinished) {
+        TextractTextDetectionTask nextTask =
+            prepareTextractTextDetectionTask(jobId, textractClient, currentNextToken);
+        GetDocumentTextDetectionResponse nextDocumentResult =
+            executeTextDetectionTask(nextTask, DELAY_BETWEEN_POLLING, executorService);
+
+        JobStatus newJobStatus = nextDocumentResult.jobStatus();
+        List<Block> nextBlocks = nextDocumentResult.blocks();
+        String statusMessage = nextDocumentResult.statusMessage();
+        String newNextToken = nextDocumentResult.nextToken();
+
+        switch (newJobStatus) {
+          case SUCCEEDED -> {
+            allBlocks.addAll(nextBlocks);
+            isAnalysisFinished = newNextToken == null;
+            currentNextToken = newNextToken;
+            LOGGER.debug(
+                "Text Detection - Status SUCCEEDED: nextToken={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
+                newNextToken,
+                isAnalysisFinished,
+                nextBlocks.size(),
+                allBlocks.size());
+          }
+          case FAILED -> throw new ConnectorException(statusMessage);
+          default -> {
+            allBlocks.addAll(nextBlocks);
+            currentNextToken = newNextToken;
+            LOGGER.debug(
+                "Text Detection - Status {}: nextToken={}, new blocks count={}, total blocks count={}",
+                newJobStatus,
+                newNextToken,
+                nextBlocks.size(),
+                allBlocks.size());
+          }
+        }
+      }
+    }
 
     return allBlocks;
   }
 
   private TextractAnalysisTask prepareTextractAnalysisTask(
       String jobId, TextractClient textractClient) {
-    GetDocumentAnalysisRequest documentAnalysisRequest =
-        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+    return prepareTextractAnalysisTask(jobId, textractClient, null);
+  }
 
-    return new TextractAnalysisTask(documentAnalysisRequest, textractClient);
+  private TextractAnalysisTask prepareTextractAnalysisTask(
+      String jobId, TextractClient textractClient, String nextToken) {
+    GetDocumentAnalysisRequest.Builder requestBuilder =
+        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT);
+
+    if (nextToken != null) {
+      requestBuilder.nextToken(nextToken);
+    }
+
+    return new TextractAnalysisTask(requestBuilder.build(), textractClient);
   }
 
   private GetDocumentAnalysisResponse executeAnalysisTask(
@@ -201,10 +274,19 @@ public class PollingTextractCaller {
 
   private TextractTextDetectionTask prepareTextractTextDetectionTask(
       String jobId, TextractClient textractClient) {
-    GetDocumentTextDetectionRequest documentTextDetectionRequest =
-        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+    return prepareTextractTextDetectionTask(jobId, textractClient, null);
+  }
 
-    return new TextractTextDetectionTask(documentTextDetectionRequest, textractClient);
+  private TextractTextDetectionTask prepareTextractTextDetectionTask(
+      String jobId, TextractClient textractClient, String nextToken) {
+    GetDocumentTextDetectionRequest.Builder requestBuilder =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT);
+
+    if (nextToken != null) {
+      requestBuilder.nextToken(nextToken);
+    }
+
+    return new TextractTextDetectionTask(requestBuilder.build(), textractClient);
   }
 
   private GetDocumentTextDetectionResponse executeTextDetectionTask(
