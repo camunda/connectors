@@ -49,7 +49,7 @@
     "id" : "operation",
     "label" : "Operation",
     "description" : "The operation to execute",
-    "value" : "readCsv",
+    "value" : "writeCsv",
     "group" : "operation",
     "binding" : {
       "key" : "operation",
@@ -57,12 +57,104 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Read CSV",
-      "value" : "readCsv"
-    }, {
       "name" : "Write CSV",
       "value" : "writeCsv"
+    }, {
+      "name" : "Read CSV",
+      "value" : "readCsv"
     } ]
+  }, {
+    "id" : "writeCsv:data",
+    "label" : "Data",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "writeCsv:createDocument",
+    "label" : "Create document",
+    "group" : "operation",
+    "binding" : {
+      "name" : "createDocument",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "writeCsv:format.delimiter",
+    "label" : "Delimiter",
+    "optional" : false,
+    "value" : ",",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.delimiter",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "CSV column delimiter",
+    "type" : "String"
+  }, {
+    "id" : "writeCsv:format.skipHeaderRecord",
+    "label" : "Skip Header Record",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.skipHeaderRecord",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Skips the first row to be not included in the final records.",
+    "type" : "Boolean"
+  }, {
+    "id" : "writeCsv:format.headers",
+    "label" : "Headers",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Mapping of the columns if not included in the CSV itself in the first row.",
+    "type" : "String"
   }, {
     "id" : "readCsv:data",
     "label" : "Data",
@@ -167,98 +259,6 @@
       "name" : "Array",
       "value" : "Array"
     } ]
-  }, {
-    "id" : "writeCsv:data",
-    "label" : "Data",
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "writeCsv",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "writeCsv:createDocument",
-    "label" : "Create document",
-    "group" : "operation",
-    "binding" : {
-      "name" : "createDocument",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "writeCsv",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Boolean"
-  }, {
-    "id" : "writeCsv:format.delimiter",
-    "label" : "Delimiter",
-    "optional" : false,
-    "value" : ",",
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "format.delimiter",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "writeCsv",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "CSV column delimiter",
-    "type" : "String"
-  }, {
-    "id" : "writeCsv:format.skipHeaderRecord",
-    "label" : "Skip Header Record",
-    "optional" : false,
-    "value" : true,
-    "feel" : "static",
-    "group" : "operation",
-    "binding" : {
-      "name" : "format.skipHeaderRecord",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "writeCsv",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Skips the first row to be not included in the final records.",
-    "type" : "Boolean"
-  }, {
-    "id" : "writeCsv:format.headers",
-    "label" : "Headers",
-    "optional" : false,
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "format.headers",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "writeCsv",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "Mapping of the columns if not included in the CSV itself in the first row.",
-    "type" : "String"
   }, {
     "id" : "version",
     "label" : "Version",
