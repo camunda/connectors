@@ -224,16 +224,4 @@ public class WebhookConnectorRegistryTest {
         .flatMap(executables -> executables.getExecutables().stream())
         .anyMatch(e -> e.equals(connector));
   }
-
-  private RegisteredExecutable.Activated findRegistered(
-      WebhookConnectorRegistry registry, RegisteredExecutable.Activated connector) {
-    return registry.getExecutablesByContext().values().stream()
-        .flatMap(executables -> executables.getExecutables().stream())
-        .filter(executable -> executable.equals(connector))
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    "Connector not found in registry: " + connector.context().getDefinition()));
-  }
 }
