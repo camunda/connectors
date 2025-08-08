@@ -14,6 +14,7 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -33,6 +34,7 @@ public class CsvUtils {
           csvParser.stream()
               .map(record -> mapToRowType(record, rowType))
               .map(row -> mapRecord(row, mapper))
+              .filter(Objects::nonNull)
               .toList());
     } catch (Throwable e) {
       throw new RuntimeException("Error reading CSV data", e);
@@ -54,7 +56,7 @@ public class CsvUtils {
     }
   }
 
-  static String createCsvRequest(List<?> data, CsvFormat format) {
+  static String createCsv(List<?> data, CsvFormat format) {
     var csvFormat = CsvUtils.buildFrom(format, null);
     var stringWriter = new StringWriter();
     try {
@@ -83,7 +85,7 @@ public class CsvUtils {
       builder.setDelimiter(format.delimiter().trim());
     }
     if (headersDefined(format)) {
-      String[] headers = format.headers().toArray(new String[format.headers().size()]);
+      String[] headers = format.headers().toArray(new String[0]);
       builder.setHeader(headers);
     } else {
       if (isObjectTypeRow(rowType) && !format.skipHeaderRecord()) {
