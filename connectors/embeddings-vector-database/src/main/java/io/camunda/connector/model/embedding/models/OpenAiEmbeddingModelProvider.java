@@ -21,7 +21,7 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
     implements EmbeddingModelProvider {
 
   @TemplateProperty(ignore = true)
-  public static final String OPEN_AI_MODEL_PROVIDER = "OPEN_AI_MODEL_PROVIDER";
+  public static final String OPEN_AI_MODEL_PROVIDER = "openAiModelProvider";
 
   public record Configuration(
       @NotBlank

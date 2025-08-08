@@ -15,31 +15,31 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "storeType")
 @JsonSubTypes({
   @JsonSubTypes.Type(
-      value = ElasticSearchVectorStore.class,
-      name = ElasticSearchVectorStore.STORE_ELASTICSEARCH),
+      value = ElasticsearchVectorStore.class,
+      name = ElasticsearchVectorStore.ELASTICSEARCH_STORE),
   @JsonSubTypes.Type(
       value = OpenSearchVectorStore.class,
-      name = OpenSearchVectorStore.STORE_OPENSEARCH),
+      name = OpenSearchVectorStore.OPEN_SEARCH_STORE),
   @JsonSubTypes.Type(
       value = AmazonManagedOpenSearchVectorStore.class,
-      name = AmazonManagedOpenSearchVectorStore.STORE_AMAZON_MANAGED_OPENSEARCH),
+      name = AmazonManagedOpenSearchVectorStore.AMAZON_MANAGED_OPENSEARCH_STORE),
   @JsonSubTypes.Type(
       value = AzureCosmosDbNoSqlVectorStore.class,
-      name = AzureCosmosDbNoSqlVectorStore.STORE_AZURE_COSMOS_DB_NO_SQL),
+      name = AzureCosmosDbNoSqlVectorStore.AZURE_COSMOS_DB_NO_SQL_STORE),
   @JsonSubTypes.Type(
       value = AzureAiSearchVectorStore.class,
-      name = AzureAiSearchVectorStore.STORE_AZURE_AI_SEARCH),
+      name = AzureAiSearchVectorStore.AZURE_AI_SEARCH_STORE),
 })
 @TemplateDiscriminatorProperty(
     name = "storeType",
     id = "vectorStore",
     group = "embeddingsStore",
-    defaultValue = ElasticSearchVectorStore.STORE_ELASTICSEARCH,
+    defaultValue = ElasticsearchVectorStore.ELASTICSEARCH_STORE,
     label = "Embeddings store",
     description = "Select embedding store")
 public sealed interface EmbeddingsVectorStore
     permits AmazonManagedOpenSearchVectorStore,
         AzureAiSearchVectorStore,
         AzureCosmosDbNoSqlVectorStore,
-        ElasticSearchVectorStore,
+        ElasticsearchVectorStore,
         OpenSearchVectorStore {}

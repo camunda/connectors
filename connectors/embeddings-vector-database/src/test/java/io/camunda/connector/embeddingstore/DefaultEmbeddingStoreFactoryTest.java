@@ -53,12 +53,12 @@ class DefaultEmbeddingStoreFactoryTest {
   DefaultEmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory();
 
   @Test
-  void createsElasticSearchVectorStore() {
+  void createsElasticsearchVectorStore() {
     final var mockModel = Mockito.mock(EmbeddingModel.class);
 
     final var store =
         factory.initializeVectorStore(
-            EmbeddingsVectorStoreFixture.createElasticSearchVectorStore(), mockModel, null);
+            EmbeddingsVectorStoreFixture.createElasticsearchVectorStore(), mockModel, null);
     assertThat(store).isInstanceOf(ElasticsearchEmbeddingStore.class);
   }
 

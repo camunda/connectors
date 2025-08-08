@@ -12,5 +12,5 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 @TemplateSubType(label = "Do not split", id = NoopDocumentSplitter.DOCUMENT_SPLITTER_NONE)
 public record NoopDocumentSplitter() implements DocumentSplitter {
   @TemplateProperty(ignore = true)
-  public static final String DOCUMENT_SPLITTER_NONE = "DOCUMENT_SPLITTER_NONE";
+  public static final String DOCUMENT_SPLITTER_NONE = "documentSplitterNone";
 }

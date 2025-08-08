@@ -33,5 +33,5 @@ public record DocumentSplitterRecursive(
         Integer maxOverlapSizeInChars)
     implements DocumentSplitter {
   @TemplateProperty(ignore = true)
-  public static final String DOCUMENT_SPLITTER_RECURSIVE = "DOCUMENT_SPLITTER_RECURSIVE";
+  public static final String DOCUMENT_SPLITTER_RECURSIVE = "documentSplitterRecursive";
 }

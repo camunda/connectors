@@ -22,7 +22,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
     implements EmbeddingModelProvider {
 
   @TemplateProperty(ignore = true)
-  public static final String BEDROCK_MODEL_PROVIDER = "BEDROCK_MODEL_PROVIDER";
+  public static final String BEDROCK_MODEL_PROVIDER = "bedrockModelProvider";
 
   public record Configuration(
       @NotBlank
@@ -108,7 +108,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
 
     @Override
     public String toString() {
-      return "BedrockEmbeddingModelProvider.Configuration{accessKey='[REDACTED]', secretKey='[REDACTED]', region='%s', modelName='%s', customModelName='%s', dimensions=%s, normalize=%s, maxRetries=%d}"
+      return "Configuration{accessKey='[REDACTED]', secretKey='[REDACTED]', region='%s', modelName='%s', customModelName='%s', dimensions=%s, normalize=%s, maxRetries=%d}"
           .formatted(region, modelName, customModelName, dimensions, normalize, maxRetries);
     }
   }
