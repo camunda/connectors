@@ -551,11 +551,12 @@ public class ApacheRequestFactoryTest {
 
     @ParameterizedTest
     @EnumSource(HttpMethod.class)
-    public void shouldSetContentType_whenNullProvidedAndPost(HttpMethod method)
+    public void shouldSetContentType_whenNullProvidedAndPostAndBody(HttpMethod method)
         throws ProtocolException {
       // given request without content type
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(method);
+      request.setBody(Map.of("key", "value"));
       Map<String, String> headers = new HashMap<>();
       headers.put(HttpHeaders.CONTENT_TYPE, null);
       headers.put(HttpHeaders.ACCEPT, null);
@@ -576,11 +577,13 @@ public class ApacheRequestFactoryTest {
     }
 
     @Test
-    public void shouldSetJsonContentType_WhenNotProvidedAndSupportsBody() throws Exception {
+    public void shouldSetJsonContentType_WhenNotProvidedAndSupportsBodyAndHasBody()
+        throws Exception {
       // given request without headers
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setUrl("theurl");
+      request.setBody(Map.of("key", "value"));
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -591,13 +594,32 @@ public class ApacheRequestFactoryTest {
       assertThat(headers.getValue()).isEqualTo(ContentType.APPLICATION_JSON.getMimeType());
     }
 
-    @Test
-    public void shouldSetJsonContentType_WhenNotProvidedAndSupportsBodyAndSomeHeadersExist()
+    @ParameterizedTest
+    @EnumSource(HttpMethod.class)
+    public void shouldNotAddContentType_WhenNotProvidedAndDoesNotSupportBody(HttpMethod method)
         throws Exception {
+      // given request without headers
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(method);
+      request.setUrl("theurl");
+
+      // when
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
+      // then
+      Header headers = httpRequest.getHeader(HttpHeaders.CONTENT_TYPE);
+      assertNull(headers);
+    }
+
+    @Test
+    public void
+        shouldSetJsonContentType_WhenNotProvidedAndSupportsBodyAndSomeHeadersExistAndHasBody()
+            throws Exception {
       // given request without headers
       HttpClientRequest request = new HttpClientRequest();
       request.setHeaders(Map.of("Authorization", "Bearer token"));
       request.setMethod(HttpMethod.POST);
+      request.setBody(Map.of("key", "value", "key2", "value2"));
       request.setUrl("theurl");
 
       // when
