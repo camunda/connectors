@@ -128,9 +128,9 @@ public class PollingTextractCaller {
       String currentNextToken = nextToken;
 
       LOGGER.debug(
-          "Document Analysis - Initial status: jobStatus={}, nextToken={}, isAnalysisFinished={}, blocks count={}",
+          "Document Analysis - Initial status: jobStatus={}, nextToken present ={}, isAnalysisFinished={}, blocks count={}",
           jobStatus,
-          nextToken,
+          nextToken != null,
           isAnalysisFinished,
           blocks.size());
 
@@ -151,8 +151,8 @@ public class PollingTextractCaller {
             isAnalysisFinished = newNextToken == null;
             currentNextToken = newNextToken;
             LOGGER.debug(
-                "Document Analysis - Status SUCCEEDED: nextToken={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
-                newNextToken,
+                "Document Analysis - Status SUCCEEDED: nextToken present ={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
+                newNextToken != null,
                 isAnalysisFinished,
                 nextBlocks.size(),
                 allBlocks.size());
@@ -162,9 +162,9 @@ public class PollingTextractCaller {
             allBlocks.addAll(nextBlocks);
             currentNextToken = newNextToken;
             LOGGER.debug(
-                "Document Analysis - Status {}: nextToken={}, new blocks count={}, total blocks count={}",
+                "Document Analysis - Status {}: nextToken present ={}, new blocks count={}, total blocks count={}",
                 newJobStatus,
-                newNextToken,
+                newNextToken != null,
                 nextBlocks.size(),
                 allBlocks.size());
           }
@@ -200,9 +200,9 @@ public class PollingTextractCaller {
       String currentNextToken = nextToken;
 
       LOGGER.debug(
-          "Text Detection - Initial status: jobStatus={}, nextToken={}, isAnalysisFinished={}, blocks count={}",
+          "Text Detection - Initial status: jobStatus={}, nextToken present ={}, isAnalysisFinished={}, blocks count={}",
           jobStatus,
-          nextToken,
+          nextToken != null,
           isAnalysisFinished,
           blocks.size());
 
@@ -223,8 +223,8 @@ public class PollingTextractCaller {
             isAnalysisFinished = newNextToken == null;
             currentNextToken = newNextToken;
             LOGGER.debug(
-                "Text Detection - Status SUCCEEDED: nextToken={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
-                newNextToken,
+                "Text Detection - Status SUCCEEDED: nextToken present ={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
+                newNextToken != null,
                 isAnalysisFinished,
                 nextBlocks.size(),
                 allBlocks.size());
@@ -234,9 +234,9 @@ public class PollingTextractCaller {
             allBlocks.addAll(nextBlocks);
             currentNextToken = newNextToken;
             LOGGER.debug(
-                "Text Detection - Status {}: nextToken={}, new blocks count={}, total blocks count={}",
+                "Text Detection - Status {}: nextToken present ={}, new blocks count={}, total blocks count={}",
                 newJobStatus,
-                newNextToken,
+                newNextToken != null,
                 nextBlocks.size(),
                 allBlocks.size());
           }
