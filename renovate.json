@@ -86,7 +86,9 @@
       "matchPackagePrefixes": [
         "io.camunda.spring"
       ],
-      "matchBranch": "release/8.5",
+      "matchBaseBranches": [
+        "release/8.5"
+      ]
       "enabled": false
     }
   ],
