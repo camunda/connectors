@@ -742,4 +742,488 @@ class PollingTextractCallerTest {
         (Float) response.confidenceScore().get("Date"),
         0.0001f); // Min of 0.85 and 0.80, divided by 100
   }
+
+  @Test
+  void callTextractTextDetectionWithPagination() throws Exception {
+    String jobId = "1";
+    String nextToken = "page2";
+
+    // First request - without nextToken
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest1 =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    // Second request - with nextToken
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest2 =
+        GetDocumentTextDetectionRequest.builder()
+            .jobId(jobId)
+            .maxResults(MAX_RESULT)
+            .nextToken(nextToken)
+            .build();
+
+    // First response - SUCCEEDED with nextToken (more pages)
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse1 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .nextToken(nextToken)
+            .blocks(
+                List.of(
+                    Block.builder().text("Page 1 Line 1").blockType(BlockType.LINE).build(),
+                    Block.builder().text("Page 1 Line 2").blockType(BlockType.LINE).build()))
+            .build();
+
+    // Second response - SUCCEEDED without nextToken (last page)
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse2 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .nextToken(null)
+            .blocks(
+                List.of(
+                    Block.builder().text("Page 2 Line 1").blockType(BlockType.LINE).build(),
+                    Block.builder().text("Page 2 Line 2").blockType(BlockType.LINE).build()))
+            .build();
+
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest1))
+        .thenReturn(getDocumentTextDetectionResponse1);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest2))
+        .thenReturn(getDocumentTextDetectionResponse2);
+
+    String expectedExtractedText = "Page 1 Line 1\nPage 1 Line 2\nPage 2 Line 1\nPage 2 Line 2";
+    String extractedText =
+        new PollingTextractCaller()
+            .call(mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient);
+
+    assertThat(extractedText).isEqualTo(expectedExtractedText);
+
+    // Verify both requests were made in order
+    var inOrder = Mockito.inOrder(textractClient);
+    inOrder.verify(textractClient).getDocumentTextDetection(getDocumentTextDetectionRequest1);
+    inOrder.verify(textractClient).getDocumentTextDetection(getDocumentTextDetectionRequest2);
+  }
+
+  @Test
+  void callTextractTextDetectionWithPaginationFailure() throws Exception {
+    String jobId = "1";
+    String nextToken = "page2";
+
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest1 =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest2 =
+        GetDocumentTextDetectionRequest.builder()
+            .jobId(jobId)
+            .maxResults(MAX_RESULT)
+            .nextToken(nextToken)
+            .build();
+
+    // First response - SUCCEEDED with nextToken
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse1 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .nextToken(nextToken)
+            .blocks(List.of(Block.builder().text("Page 1").blockType(BlockType.LINE).build()))
+            .build();
+
+    // Second response - FAILED
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse2 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.FAILED)
+            .statusMessage("Pagination failed at page 2")
+            .build();
+
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest1))
+        .thenReturn(getDocumentTextDetectionResponse1);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest2))
+        .thenReturn(getDocumentTextDetectionResponse2);
+
+    PollingTextractCaller pollingTextractCaller = new PollingTextractCaller();
+
+    Exception exception =
+        assertThrows(
+            ConnectorException.class,
+            () ->
+                pollingTextractCaller.call(
+                    mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient));
+
+    assertEquals("Pagination failed at page 2", exception.getMessage());
+  }
+
+  @Test
+  void extractKeyValuePairsWithConfidence_WithPagination() throws Exception {
+    String jobId = "1";
+    String nextToken = "page2";
+
+    // First request - without nextToken
+    GetDocumentAnalysisRequest getDocumentAnalysisRequest1 =
+        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    // Second request - with nextToken
+    GetDocumentAnalysisRequest getDocumentAnalysisRequest2 =
+        GetDocumentAnalysisRequest.builder()
+            .jobId(jobId)
+            .maxResults(MAX_RESULT)
+            .nextToken(nextToken)
+            .build();
+
+    // Create blocks for first page
+    Block nameKeyBlock =
+        Block.builder()
+            .id("k1")
+            .text("Name")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.KEY))
+            .confidence(0.95f)
+            .page(1)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.1f).y(0.1f).build(),
+                            Point.builder().x(0.2f).y(0.1f).build(),
+                            Point.builder().x(0.2f).y(0.2f).build(),
+                            Point.builder().x(0.1f).y(0.2f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t1")).build(),
+                    Relationship.builder().type(RelationshipType.VALUE).ids(List.of("v1")).build()))
+            .build();
+
+    Block nameValueBlock =
+        Block.builder()
+            .id("v1")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.VALUE))
+            .confidence(0.90f)
+            .page(1)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.3f).y(0.1f).build(),
+                            Point.builder().x(0.4f).y(0.1f).build(),
+                            Point.builder().x(0.4f).y(0.2f).build(),
+                            Point.builder().x(0.3f).y(0.2f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t2")).build()))
+            .build();
+
+    Block nameKeyText = Block.builder().id("t1").text("Name").blockType(BlockType.WORD).build();
+    Block nameValueText = Block.builder().id("t2").text("John").blockType(BlockType.WORD).build();
+
+    // Create blocks for second page
+    Block ageKeyBlock =
+        Block.builder()
+            .id("k2")
+            .text("Age")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.KEY))
+            .confidence(0.85f)
+            .page(2)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.1f).y(0.8f).build(),
+                            Point.builder().x(0.2f).y(0.8f).build(),
+                            Point.builder().x(0.2f).y(0.9f).build(),
+                            Point.builder().x(0.1f).y(0.9f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t3")).build(),
+                    Relationship.builder().type(RelationshipType.VALUE).ids(List.of("v2")).build()))
+            .build();
+
+    Block ageValueBlock =
+        Block.builder()
+            .id("v2")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.VALUE))
+            .confidence(0.80f)
+            .page(2)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.6f).y(0.8f).build(),
+                            Point.builder().x(0.9f).y(0.8f).build(),
+                            Point.builder().x(0.9f).y(0.9f).build(),
+                            Point.builder().x(0.6f).y(0.9f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t4")).build()))
+            .build();
+
+    Block ageKeyText = Block.builder().id("t3").text("Age").blockType(BlockType.WORD).build();
+    Block ageValueText = Block.builder().id("t4").text("30").blockType(BlockType.WORD).build();
+
+    List<Block> firstPageBlocks = List.of(nameKeyBlock, nameValueBlock, nameKeyText, nameValueText);
+    List<Block> secondPageBlocks = List.of(ageKeyBlock, ageValueBlock, ageKeyText, ageValueText);
+
+    // First response - SUCCEEDED with nextToken
+    GetDocumentAnalysisResponse getDocumentAnalysisResponse1 =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .nextToken(nextToken)
+            .blocks(firstPageBlocks)
+            .build();
+
+    // Second response - SUCCEEDED without nextToken (last page)
+    GetDocumentAnalysisResponse getDocumentAnalysisResponse2 =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .nextToken(null)
+            .blocks(secondPageBlocks)
+            .build();
+
+    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
+        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(startDocumentAnalysisResponse);
+
+    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest1))
+        .thenReturn(getDocumentAnalysisResponse1);
+
+    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest2))
+        .thenReturn(getDocumentAnalysisResponse2);
+
+    // Act
+    StructuredExtractionResponse response =
+        new PollingTextractCaller()
+            .extractKeyValuePairsWithConfidence(
+                mockedDocument, "test-bucket", textractClient, s3AsyncClient);
+
+    // Assert - verify fields from both pages were extracted
+    assertEquals("John", response.extractedFields().get("Name"));
+    assertEquals("30", response.extractedFields().get("Age"));
+
+    // Verify confidence scores for both fields
+    assertEquals(
+        0.009f,
+        (Float) response.confidenceScore().get("Name"),
+        0.0001f); // Min of 0.95 and 0.90, divided by 100
+    assertEquals(
+        0.008f,
+        (Float) response.confidenceScore().get("Age"),
+        0.0001f); // Min of 0.85 and 0.80, divided by 100
+
+    // Verify geometry is present for both fields
+    assertTrue(response.geometry().containsKey("Name"));
+    assertTrue(response.geometry().containsKey("Age"));
+    assertEquals(1, response.geometry().get("Name").getPage());
+    assertEquals(2, response.geometry().get("Age").getPage());
+
+    // Verify both requests were made in order
+    var inOrder = Mockito.inOrder(textractClient);
+    inOrder.verify(textractClient).getDocumentAnalysis(getDocumentAnalysisRequest1);
+    inOrder.verify(textractClient).getDocumentAnalysis(getDocumentAnalysisRequest2);
+  }
+
+  @Test
+  void extractKeyValuePairsWithConfidence_WithPaginationFailure() throws Exception {
+    String jobId = "1";
+    String nextToken = "page2";
+
+    GetDocumentAnalysisRequest getDocumentAnalysisRequest1 =
+        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    GetDocumentAnalysisRequest getDocumentAnalysisRequest2 =
+        GetDocumentAnalysisRequest.builder()
+            .jobId(jobId)
+            .maxResults(MAX_RESULT)
+            .nextToken(nextToken)
+            .build();
+
+    // First response - SUCCEEDED with nextToken
+    GetDocumentAnalysisResponse getDocumentAnalysisResponse1 =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .nextToken(nextToken)
+            .blocks(List.of())
+            .build();
+
+    // Second response - FAILED
+    GetDocumentAnalysisResponse getDocumentAnalysisResponse2 =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.FAILED)
+            .statusMessage("Document analysis pagination failed")
+            .build();
+
+    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
+        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(startDocumentAnalysisResponse);
+
+    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest1))
+        .thenReturn(getDocumentAnalysisResponse1);
+
+    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest2))
+        .thenReturn(getDocumentAnalysisResponse2);
+
+    PollingTextractCaller pollingTextractCaller = new PollingTextractCaller();
+
+    Exception exception =
+        assertThrows(
+            ConnectorException.class,
+            () ->
+                pollingTextractCaller.extractKeyValuePairsWithConfidence(
+                    mockedDocument, "test-bucket", textractClient, s3AsyncClient));
+
+    assertEquals("Document analysis pagination failed", exception.getMessage());
+  }
+
+  @Test
+  void callTextractTextDetectionWithInProgressStatus() throws Exception {
+    String jobId = "1";
+
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    // First response - IN_PROGRESS
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse1 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.IN_PROGRESS)
+            .blocks(List.of())
+            .build();
+
+    // Second response - SUCCEEDED
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse2 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .blocks(List.of(Block.builder().text("Final result").blockType(BlockType.LINE).build()))
+            .build();
+
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest))
+        .thenReturn(getDocumentTextDetectionResponse1)
+        .thenReturn(getDocumentTextDetectionResponse2);
+
+    String expectedExtractedText = "Final result";
+    String extractedText =
+        new PollingTextractCaller()
+            .call(mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient);
+
+    assertThat(extractedText).isEqualTo(expectedExtractedText);
+
+    // Verify getDocumentTextDetection was called twice (once for IN_PROGRESS, once for SUCCEEDED)
+    Mockito.verify(textractClient, Mockito.times(2))
+        .getDocumentTextDetection(getDocumentTextDetectionRequest);
+  }
+
+  @Test
+  void extractKeyValuePairsWithConfidence_WithInProgressStatus() throws Exception {
+    String jobId = "1";
+
+    GetDocumentAnalysisRequest getDocumentAnalysisRequest =
+        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    // First response - IN_PROGRESS
+    GetDocumentAnalysisResponse getDocumentAnalysisResponse1 =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.IN_PROGRESS)
+            .blocks(List.of())
+            .build();
+
+    // Second response - SUCCEEDED with some key-value data
+    Block keyBlock =
+        Block.builder()
+            .id("k1")
+            .text("Status")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.KEY))
+            .confidence(0.95f)
+            .page(1)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.1f).y(0.1f).build(),
+                            Point.builder().x(0.2f).y(0.1f).build(),
+                            Point.builder().x(0.2f).y(0.2f).build(),
+                            Point.builder().x(0.1f).y(0.2f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t1")).build(),
+                    Relationship.builder().type(RelationshipType.VALUE).ids(List.of("v1")).build()))
+            .build();
+
+    Block valueBlock =
+        Block.builder()
+            .id("v1")
+            .blockType(BlockType.KEY_VALUE_SET)
+            .entityTypes(List.of(EntityType.VALUE))
+            .confidence(0.90f)
+            .page(1)
+            .geometry(
+                Geometry.builder()
+                    .polygon(
+                        List.of(
+                            Point.builder().x(0.3f).y(0.1f).build(),
+                            Point.builder().x(0.4f).y(0.1f).build(),
+                            Point.builder().x(0.4f).y(0.2f).build(),
+                            Point.builder().x(0.3f).y(0.2f).build()))
+                    .build())
+            .relationships(
+                List.of(
+                    Relationship.builder().type(RelationshipType.CHILD).ids(List.of("t2")).build()))
+            .build();
+
+    Block keyText = Block.builder().id("t1").text("Status").blockType(BlockType.WORD).build();
+    Block valueText = Block.builder().id("t2").text("Complete").blockType(BlockType.WORD).build();
+
+    GetDocumentAnalysisResponse getDocumentAnalysisResponse2 =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .blocks(List.of(keyBlock, valueBlock, keyText, valueText))
+            .build();
+
+    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
+        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(startDocumentAnalysisResponse);
+
+    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest))
+        .thenReturn(getDocumentAnalysisResponse1)
+        .thenReturn(getDocumentAnalysisResponse2);
+
+    // Act
+    StructuredExtractionResponse response =
+        new PollingTextractCaller()
+            .extractKeyValuePairsWithConfidence(
+                mockedDocument, "test-bucket", textractClient, s3AsyncClient);
+
+    // Assert
+    assertEquals("Complete", response.extractedFields().get("Status"));
+    assertEquals(0.009f, (Float) response.confidenceScore().get("Status"), 0.0001f);
+
+    // Verify getDocumentAnalysis was called twice (once for IN_PROGRESS, once for SUCCEEDED)
+    Mockito.verify(textractClient, Mockito.times(2))
+        .getDocumentAnalysis(getDocumentAnalysisRequest);
+  }
 }
