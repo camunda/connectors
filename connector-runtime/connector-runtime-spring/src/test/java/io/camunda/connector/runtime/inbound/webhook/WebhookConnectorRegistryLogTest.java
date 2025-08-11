@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound;
+package io.camunda.connector.runtime.inbound.webhook;
 
-import static io.camunda.connector.runtime.inbound.WebhookConnectorRegistryTest.buildConnector;
-import static io.camunda.connector.runtime.inbound.WebhookConnectorRegistryTest.webhookDefinition;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
@@ -26,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
-import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -40,7 +37,7 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class WebhookConnectorRegistryLogTest {
+public class WebhookConnectorRegistryLogTest extends WebhookTestsBase {
   @Captor ArgumentCaptor<Activity> activityCaptor;
 
   private static Stream<Arguments> invalidCases() {
@@ -63,7 +60,7 @@ public class WebhookConnectorRegistryLogTest {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
     // given
-    var processA1 = buildConnector(webhookDefinition("processA", 1, webhookPath));
+    var processA1 = buildConnector("processA", 1, webhookPath);
 
     // when
     webhook.register(processA1);
@@ -95,7 +92,7 @@ public class WebhookConnectorRegistryLogTest {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
     // given
-    var processA1 = buildConnector(webhookDefinition("processA", 1, webhookPath));
+    var processA1 = buildConnector("processA", 1, webhookPath);
 
     // when
     webhook.register(processA1);
