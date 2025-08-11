@@ -55,10 +55,8 @@ public class WebhookConnectorRegistry {
       throw new RuntimeException(logMessage);
     }
 
-    executables.deregister(connector);
-    var nextConnector = executables.tryActivateNext();
-
-    if (nextConnector.isEmpty()) {
+    var hasActiveConnector = executables.deregister(connector);
+    if (!hasActiveConnector) {
       executablesByContext.remove(context);
     }
   }

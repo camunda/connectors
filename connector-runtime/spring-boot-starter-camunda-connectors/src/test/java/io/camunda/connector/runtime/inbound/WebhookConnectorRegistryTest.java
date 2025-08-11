@@ -18,10 +18,7 @@
 package io.camunda.connector.runtime.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -221,7 +218,7 @@ public class WebhookConnectorRegistryTest {
   private boolean isRegistered(
       WebhookConnectorRegistry registry, RegisteredExecutable.Activated connector) {
     return registry.getExecutablesByContext().values().stream()
-        .flatMap(executables -> executables.getExecutables().stream())
+        .flatMap(executables -> executables.getAllExecutables().stream())
         .anyMatch(e -> e.equals(connector));
   }
 }
