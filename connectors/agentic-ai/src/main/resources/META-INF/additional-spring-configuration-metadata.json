@@ -7,7 +7,7 @@
       "defaultValue": "true"
     },
     {
-      "name": "camunda.connector.agenticai.aiagent.enabled",
+      "name": "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       "type": "java.lang.Boolean",
       "description": "Whether to enable/register the AI Agent outbound connector.",
       "defaultValue": "true"
