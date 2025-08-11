@@ -128,7 +128,8 @@ public class PollingTextractCaller {
       String currentNextToken = nextToken;
 
       LOGGER.debug(
-          "Document Analysis - Initial status: jobStatus={}, nextToken present ={}, isAnalysisFinished={}, blocks count={}",
+          "Document Analysis - Initial status: document={}, jobStatus={}, nextToken present ={}, isAnalysisFinished={}, blocks count={}",
+          s3Object.name(),
           jobStatus,
           nextToken != null,
           isAnalysisFinished,
@@ -151,7 +152,8 @@ public class PollingTextractCaller {
             isAnalysisFinished = newNextToken == null;
             currentNextToken = newNextToken;
             LOGGER.debug(
-                "Document Analysis - Status SUCCEEDED: nextToken present ={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
+                "Document Analysis - Status SUCCEEDED: document={}, nextToken present ={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
+                s3Object.name(),
                 newNextToken != null,
                 isAnalysisFinished,
                 nextBlocks.size(),
@@ -162,8 +164,9 @@ public class PollingTextractCaller {
             allBlocks.addAll(nextBlocks);
             currentNextToken = newNextToken;
             LOGGER.debug(
-                "Document Analysis - Status {}: nextToken present ={}, new blocks count={}, total blocks count={}",
+                "Document Analysis - Status {}: document={}, nextToken present ={}, new blocks count={}, total blocks count={}",
                 newJobStatus,
+                s3Object.name(),
                 newNextToken != null,
                 nextBlocks.size(),
                 allBlocks.size());
@@ -200,7 +203,8 @@ public class PollingTextractCaller {
       String currentNextToken = nextToken;
 
       LOGGER.debug(
-          "Text Detection - Initial status: jobStatus={}, nextToken present ={}, isAnalysisFinished={}, blocks count={}",
+          "Text Detection - Initial status: document={}, jobStatus={}, nextToken present ={}, isAnalysisFinished={}, blocks count={}",
+          s3Object.name(),
           jobStatus,
           nextToken != null,
           isAnalysisFinished,
@@ -223,7 +227,8 @@ public class PollingTextractCaller {
             isAnalysisFinished = newNextToken == null;
             currentNextToken = newNextToken;
             LOGGER.debug(
-                "Text Detection - Status SUCCEEDED: nextToken present ={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
+                "Text Detection - Status SUCCEEDED: document={}, nextToken present ={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
+                s3Object.name(),
                 newNextToken != null,
                 isAnalysisFinished,
                 nextBlocks.size(),
@@ -234,8 +239,9 @@ public class PollingTextractCaller {
             allBlocks.addAll(nextBlocks);
             currentNextToken = newNextToken;
             LOGGER.debug(
-                "Text Detection - Status {}: nextToken present ={}, new blocks count={}, total blocks count={}",
+                "Text Detection - Status {}: document={}, nextToken present ={}, new blocks count={}, total blocks count={}",
                 newJobStatus,
+                s3Object.name(),
                 newNextToken != null,
                 nextBlocks.size(),
                 allBlocks.size());
