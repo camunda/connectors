@@ -72,8 +72,15 @@ public class IndexWriter {
 
   private void processVersionedFile(File file, Map<String, Set<OutputElementTemplate>> result) {
     JsonNode jsonNode = toJsonNode(file);
-    Integer version = jsonNode.get(VERSION).asInt();
-    String key = jsonNode.get(ID).asText();
+
+    Optional<JsonNode> optionalVersion = Optional.ofNullable(jsonNode.get(VERSION));
+    if (optionalVersion.isEmpty()) return;
+    Integer version = optionalVersion.get().asInt();
+
+    Optional<JsonNode> optionalKey = Optional.ofNullable(jsonNode.get(ID));
+    if (optionalKey.isEmpty()) return;
+    String key = optionalKey.get().asText();
+
     Path path = file.getAbsoluteFile().toPath();
     String link = githubLinkFormat.formatted(this.localRepo.relativize(path));
     String engine =

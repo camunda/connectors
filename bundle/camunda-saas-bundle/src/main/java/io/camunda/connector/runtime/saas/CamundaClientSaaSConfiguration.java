@@ -21,7 +21,7 @@ import io.camunda.client.CredentialsProvider;
 import io.camunda.client.api.JsonMapper;
 import io.camunda.client.impl.oauth.OAuthCredentialsProviderBuilder;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.spring.client.configuration.CamundaClientConfigurationImpl;
+import io.camunda.spring.client.configuration.SpringCamundaClientConfiguration;
 import io.camunda.spring.client.jobhandling.CamundaClientExecutorService;
 import io.camunda.spring.client.properties.CamundaClientProperties;
 import io.grpc.ClientInterceptor;
@@ -69,7 +69,7 @@ public class CamundaClientSaaSConfiguration {
       final List<ClientInterceptor> interceptors,
       final List<AsyncExecChainHandler> chainHandlers,
       final CamundaClientExecutorService zeebeClientExecutorService) {
-    return new CamundaClientConfigurationImpl(
+    return new SpringCamundaClientConfiguration(
         camundaClientProperties,
         jsonMapper,
         interceptors,
