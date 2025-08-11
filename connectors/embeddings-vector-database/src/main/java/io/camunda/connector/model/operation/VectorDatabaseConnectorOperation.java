@@ -16,16 +16,16 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 @JsonSubTypes({
   @JsonSubTypes.Type(
       value = EmbedDocumentOperation.class,
-      name = EmbedDocumentOperation.OPERATION_EMBED_DOCUMENT),
+      name = EmbedDocumentOperation.EMBED_DOCUMENT_OPERATION),
   @JsonSubTypes.Type(
       value = RetrieveDocumentOperation.class,
-      name = RetrieveDocumentOperation.OPERATION_RETRIEVE_DOCUMENT)
+      name = RetrieveDocumentOperation.RETRIEVE_DOCUMENT_OPERATION)
 })
 @TemplateDiscriminatorProperty(
     label = "Operation",
     group = "operation",
     name = "operationType",
-    defaultValue = RetrieveDocumentOperation.OPERATION_RETRIEVE_DOCUMENT,
+    defaultValue = RetrieveDocumentOperation.RETRIEVE_DOCUMENT_OPERATION,
     description = "Select operation")
 public sealed interface VectorDatabaseConnectorOperation
     permits EmbedDocumentOperation, RetrieveDocumentOperation {}

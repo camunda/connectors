@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.model.operation;
 
-import static io.camunda.connector.model.operation.RetrieveDocumentOperation.OPERATION_RETRIEVE_DOCUMENT;
+import static io.camunda.connector.model.operation.RetrieveDocumentOperation.RETRIEVE_DOCUMENT_OPERATION;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
@@ -14,7 +14,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-@TemplateSubType(label = "Retrieve document", id = OPERATION_RETRIEVE_DOCUMENT)
+@TemplateSubType(label = "Retrieve document", id = RETRIEVE_DOCUMENT_OPERATION)
 public record RetrieveDocumentOperation(
     @NotBlank
         @Size(max = 200)
@@ -44,5 +44,5 @@ public record RetrieveDocumentOperation(
         Double minScore)
     implements VectorDatabaseConnectorOperation {
   @TemplateProperty(ignore = true)
-  public static final String OPERATION_RETRIEVE_DOCUMENT = "OPERATION_RETRIEVE_DOCUMENT";
+  public static final String RETRIEVE_DOCUMENT_OPERATION = "retrieveDocumentOperation";
 }

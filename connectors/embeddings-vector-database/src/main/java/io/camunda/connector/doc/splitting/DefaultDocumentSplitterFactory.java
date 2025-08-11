@@ -8,8 +8,8 @@ package io.camunda.connector.doc.splitting;
 
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
-import io.camunda.connector.model.embedding.splitter.DocumentSplitterRecursive;
 import io.camunda.connector.model.embedding.splitter.NoopDocumentSplitter;
+import io.camunda.connector.model.embedding.splitter.RecursiveDocumentSplitter;
 import java.util.List;
 
 public class DefaultDocumentSplitterFactory {
@@ -17,13 +17,13 @@ public class DefaultDocumentSplitterFactory {
   public DocumentSplitter createDocumentSplitter(
       io.camunda.connector.model.embedding.splitter.DocumentSplitter fromTemplate) {
     return switch (fromTemplate) {
-      case DocumentSplitterRecursive documentSplitterRecursive ->
-          documentSplitterRecursive(documentSplitterRecursive);
+      case RecursiveDocumentSplitter recursiveDocumentSplitter ->
+          documentSplitterRecursive(recursiveDocumentSplitter);
       case NoopDocumentSplitter ignored -> noopDocumentSplitter();
     };
   }
 
-  private DocumentSplitter documentSplitterRecursive(DocumentSplitterRecursive fromTemplate) {
+  private DocumentSplitter documentSplitterRecursive(RecursiveDocumentSplitter fromTemplate) {
     // recursive is just chain of command pattern, starting from
     // "by-paragraph" -> "by-line" -> etc
     return DocumentSplitters.recursive(

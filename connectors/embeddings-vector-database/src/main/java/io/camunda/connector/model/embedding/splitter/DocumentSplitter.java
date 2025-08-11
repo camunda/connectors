@@ -16,17 +16,17 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "splitterType")
 @JsonSubTypes({
   @JsonSubTypes.Type(
-      value = DocumentSplitterRecursive.class,
-      name = DocumentSplitterRecursive.DOCUMENT_SPLITTER_RECURSIVE),
+      value = RecursiveDocumentSplitter.class,
+      name = RecursiveDocumentSplitter.RECURSIVE_DOCUMENT_SPLITTER),
   @JsonSubTypes.Type(
       value = NoopDocumentSplitter.class,
-      name = NoopDocumentSplitter.DOCUMENT_SPLITTER_NONE)
+      name = NoopDocumentSplitter.NOOP_DOCUMENT_SPLITTER)
 })
 @TemplateDiscriminatorProperty(
     name = "splitterType",
     id = "documentSplitter",
     group = "document",
-    defaultValue = DocumentSplitterRecursive.DOCUMENT_SPLITTER_RECURSIVE,
+    defaultValue = RecursiveDocumentSplitter.RECURSIVE_DOCUMENT_SPLITTER,
     label = "Document splitting strategy")
 @TemplateSubType(label = "Document splitter", id = "documentSplitter")
-public sealed interface DocumentSplitter permits DocumentSplitterRecursive, NoopDocumentSplitter {}
+public sealed interface DocumentSplitter permits RecursiveDocumentSplitter, NoopDocumentSplitter {}

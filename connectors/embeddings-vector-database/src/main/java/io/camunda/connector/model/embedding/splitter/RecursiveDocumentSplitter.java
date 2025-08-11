@@ -11,8 +11,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultVa
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(label = "Recursive", id = DocumentSplitterRecursive.DOCUMENT_SPLITTER_RECURSIVE)
-public record DocumentSplitterRecursive(
+@TemplateSubType(label = "Recursive", id = RecursiveDocumentSplitter.RECURSIVE_DOCUMENT_SPLITTER)
+public record RecursiveDocumentSplitter(
     @NotBlank
         @TemplateProperty(
             group = "document",
@@ -33,5 +33,5 @@ public record DocumentSplitterRecursive(
         Integer maxOverlapSizeInChars)
     implements DocumentSplitter {
   @TemplateProperty(ignore = true)
-  public static final String DOCUMENT_SPLITTER_RECURSIVE = "documentSplitterRecursive";
+  public static final String RECURSIVE_DOCUMENT_SPLITTER = "recursiveDocumentSplitter";
 }
