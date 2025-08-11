@@ -163,7 +163,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     if (!annotation.group().isBlank()) {
       builder.group(annotation.group());
     }
-    builder.condition(buildCondition(annotation));
+    builder.condition(buildCondition(annotation.condition()));
     builder.constraints(buildConstraints(annotation, builder.build().getConstraints()));
   }
 
@@ -196,8 +196,8 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
         : Property.FeelMode.optional;
   }
 
-  private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {
-    var conditionAnnotation = propertyAnnotation.condition();
+  public static PropertyCondition buildCondition(
+      TemplateProperty.PropertyCondition conditionAnnotation) {
     if (conditionAnnotation.property().isBlank() && conditionAnnotation.allMatch().length == 0) {
       return null;
     }

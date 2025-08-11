@@ -42,8 +42,12 @@ public class CsvConnector implements OutboundConnectorProvider {
   @Operation(id = "readCsv", name = "Read CSV")
   public ReadCsvResult readCsv(
       @Variable ReadCsvRequest request,
-      @Header(name = "mapper", required = false)
-          @TemplateProperty(label = "Record mapping", feel = Property.FeelMode.required)
+      @Header(name = "recordMapper", required = false)
+          @TemplateProperty(
+              label = "Record mapping",
+              tooltip =
+                  "<a href=\"https://docs.camunda.io/docs/components/modeler/feel/what-is-feel/\">FEEL</a> function that allows to map each <code>record</code>. Returning <code>null</code> will exclude a record from the final results.",
+              feel = Property.FeelMode.required)
           Function<Map<String, Object>, Object> mapper) {
     var rowType = Optional.ofNullable(request.rowType()).orElse(RowType.Object);
     return switch (request.data()) {

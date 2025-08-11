@@ -163,17 +163,24 @@
       "value" : "Array"
     } ]
   }, {
-    "id" : "readCsv:mapper",
+    "id" : "readCsv:recordMapper",
     "label" : "Record mapping",
     "description" : "",
     "value" : "",
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "key" : "mapper",
+      "key" : "recordMapper",
       "type" : "zeebe:taskHeader"
     },
-    "tooltip" : "",
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "<a href=\"https://docs.camunda.io/docs/components/modeler/feel/what-is-feel/\">FEEL</a> function that allows to map each <code>record</code>. Returning <code>null</code> will exclude a record from the final results.",
     "type" : "String"
   }, {
     "id" : "writeCsv:data",
