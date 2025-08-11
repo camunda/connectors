@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaRe
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.AiAgentJobWorkerValueCustomizer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
@@ -60,6 +61,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
 
 @Configuration
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
@@ -213,6 +215,15 @@ public class AgenticAiConnectorsAutoConfiguration {
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       OutboundConnectorAgentRequestHandler agentRequestHandler) {
     return new AiAgentFunction(toolElementsResolver, agentRequestHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
+      matchIfMissing = true)
+  public AiAgentJobWorkerValueCustomizer aiAgentJobWorkerValueCustomizer(Environment environment) {
+    return new AiAgentJobWorkerValueCustomizer(environment);
   }
 
   @Bean

@@ -19,7 +19,20 @@ import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.spring.client.annotation.JobWorker;
 
+/**
+ * AI Agent job worker implementation (acting on an ad-hoc sub-process).
+ *
+ * <p>Type and timeout can be overridden by setting the following environment variables:
+ *
+ * <ul>
+ *   <li>CONNECTOR_AI_AGENT_JOB_WORKER_TYPE
+ *   <li>CONNECTOR_AI_AGENT_JOB_WORKER_TIMEOUT
+ * </ul>
+ */
 public class AiAgentJobWorker {
+
+  public static final String JOB_WORKER_NAME = "AI Agent Job Worker";
+  public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent-job-worker:1";
 
   public static final String AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE = "adHocSubProcessElements";
   public static final String AGENT_CONTEXT_VARIABLE = "agentContext";
@@ -49,6 +62,8 @@ public class AiAgentJobWorker {
   }
 
   @JobWorker(
+      name = JOB_WORKER_NAME,
+      type = JOB_WORKER_TYPE,
       fetchVariables = {
         AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE,
         AGENT_CONTEXT_VARIABLE,
@@ -56,10 +71,8 @@ public class AiAgentJobWorker {
         PROVIDER_VARIABLE,
         DATA_VARIABLE
       },
-      type = "io.camunda.agenticai:aiagent-job-worker:1",
       autoComplete = false)
   public void execute(final JobClient jobClient, final ActivatedJob job) {
-    // TODO JW check if we can validate the job kind
     final OutboundConnectorContext context =
         new JobHandlerContext(
             job, secretProvider, validationProvider, documentFactory, objectMapper);

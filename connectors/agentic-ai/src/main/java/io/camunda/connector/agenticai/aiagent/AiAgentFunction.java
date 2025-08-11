@@ -18,6 +18,16 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
+/**
+ * AI Agent outbound connector implementation (acting on a service task).
+ *
+ * <p>Type and timeout can be overriden by setting the following environment variables:
+ *
+ * <ul>
+ *   <li>CONNECTOR_AI_AGENT_TYPE
+ *   <li>CONNECTOR_AI_AGENT_TIMEOUT
+ * </ul>
+ */
 @OutboundConnector(
     name = "AI Agent",
     inputVariables = {"provider", "data"},
