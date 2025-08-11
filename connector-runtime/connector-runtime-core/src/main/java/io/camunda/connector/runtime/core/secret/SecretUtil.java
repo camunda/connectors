@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import io.camunda.connector.api.secret.SecretContext;
 import java.util.List;
 import java.util.Objects;
@@ -26,6 +27,8 @@ import java.util.stream.Stream;
 
 /** Utility class to replace secrets in strings. */
 public class SecretUtil {
+
+  private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
   private static final Pattern SECRET_PATTERN_SECRETS =
       Pattern.compile("secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
@@ -75,7 +78,7 @@ public class SecretUtil {
     if (!secretName.isBlank()) {
       var result = secretReplacer.replaceSecrets(secretName, context);
       if (result != null) {
-        return result;
+        return new String(encoder.quoteAsString(result));
       } else {
         return matcher.group();
       }
