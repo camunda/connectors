@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.configuration;
 
-import io.camunda.connector.agenticai.autoconfigure.AiFramework;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -19,9 +18,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai.mcp.remote-client")
 public record McpRemoteClientConfigurationProperties(
-    @NotNull @DefaultValue("LANGCHAIN4J") AiFramework framework,
-    @NotNull @DefaultValue("true") Boolean enabled,
-    @NotNull @Valid ClientConfiguration client) {
+    @NotNull @DefaultValue("true") Boolean enabled, @NotNull @Valid ClientConfiguration client) {
 
   public McpRemoteClientConfigurationProperties {
     client = Optional.ofNullable(client).orElseGet(ClientConfiguration::defaultConfiguration);

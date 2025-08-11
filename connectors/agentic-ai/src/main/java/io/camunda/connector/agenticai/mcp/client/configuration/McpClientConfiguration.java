@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.mcp.client.configuration;
 import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpClientLangchain4JFrameworkConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -30,13 +28,9 @@ import org.springframework.context.annotation.Import;
 @Import(McpClientLangchain4JFrameworkConfiguration.class)
 public class McpClientConfiguration {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(McpClientConfiguration.class);
-
   @Bean
   @ConditionalOnMissingBean
-  public McpClientFunction mcpClientFunction(
-      McpClientConfigurationProperties config, McpClientHandler mcpClientHandler) {
-    LOGGER.debug("Creating McpClientFunction with framework {}", config.framework());
+  public McpClientFunction mcpClientFunction(McpClientHandler mcpClientHandler) {
     return new McpClientFunction(mcpClientHandler);
   }
 }

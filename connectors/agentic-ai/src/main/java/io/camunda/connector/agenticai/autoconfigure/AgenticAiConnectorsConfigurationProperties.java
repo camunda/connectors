@@ -7,18 +7,15 @@
 package io.camunda.connector.agenticai.autoconfigure;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 import java.util.Optional;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai")
 public record AgenticAiConnectorsConfigurationProperties(
-    @NotNull @DefaultValue("LANGCHAIN4J") AiFramework framework,
     @Valid ToolsSchemaConfiguration tools) {
 
   public AgenticAiConnectorsConfigurationProperties {
