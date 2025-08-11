@@ -19,66 +19,82 @@ import com.azure.cosmos.models.IncludedPath;
 import com.azure.cosmos.models.IndexingMode;
 import com.azure.cosmos.models.IndexingPolicy;
 import com.azure.cosmos.models.PartitionKeyDefinition;
+import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDbNoSqlEmbeddingStore;
+import dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore;
+import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AzureAuthentication;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
+import io.camunda.connector.model.operation.EmbedDocumentOperation;
+import io.camunda.connector.model.operation.VectorDatabaseConnectorOperation;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
-public class AzureCosmosDbNoSqlVectorStoreFactory {
+public class AzureVectorStoreFactory {
 
-  public static final String VECTOR_EMBEDDING_PATH = "/embedding";
-  public static final String PARTITION_KEY_PATH = "/id";
+  public static final String COSMOS_DB_VECTOR_EMBEDDING_PATH = "/embedding";
+  public static final String COSMOS_DB_PARTITION_KEY_PATH = "/id";
 
-  public EmbeddingStore<TextSegment> createEmbeddingStore(
-      AzureCosmosDbNoSqlVectorStore azureCosmosDbNoSqlVectorStore, EmbeddingModel model) {
+  public EmbeddingStore<TextSegment> createAiSearchVectorStore(
+      AzureAiSearchVectorStore azureAiSearchVectorStore,
+      EmbeddingModel model,
+      VectorDatabaseConnectorOperation operation) {
+    final var aiSearch = azureAiSearchVectorStore.aiSearch();
+    final var embeddingStoreBuilder =
+        AzureAiSearchEmbeddingStore.builder()
+            .endpoint(aiSearch.endpoint())
+            .indexName(aiSearch.indexName())
+            .dimensions(model.dimension())
+            .createOrUpdateIndex(operation instanceof EmbedDocumentOperation);
 
-    final var cosmosClientBuilder = new CosmosClientBuilder();
-    cosmosClientBuilder.endpoint(azureCosmosDbNoSqlVectorStore.endpoint());
-    cosmosClientBuilder.consistencyLevel(
-        mapConsistencyLevel(azureCosmosDbNoSqlVectorStore.consistencyLevel()));
-    cosmosClientBuilder.contentResponseOnWriteEnabled(true);
-
-    switch (azureCosmosDbNoSqlVectorStore.authentication()) {
-      case AzureCosmosDbNoSqlVectorStore.AzureAuthentication.AzureApiKeyAuthentication apiKey ->
-          cosmosClientBuilder.key(apiKey.apiKey());
-      case AzureCosmosDbNoSqlVectorStore.AzureAuthentication.AzureClientCredentialsAuthentication
-              auth -> {
-        ClientSecretCredentialBuilder clientSecretCredentialBuilder =
-            new ClientSecretCredentialBuilder()
-                .clientId(auth.clientId())
-                .clientSecret(auth.clientSecret())
-                .tenantId(auth.tenantId());
-        if (StringUtils.isNotBlank(auth.authorityHost())) {
-          clientSecretCredentialBuilder.authorityHost(auth.authorityHost());
-        }
-        cosmosClientBuilder.credential(clientSecretCredentialBuilder.build());
+    switch (aiSearch.authentication()) {
+      case AzureAuthentication.AzureApiKeyAuthentication apiKey ->
+          embeddingStoreBuilder.apiKey(apiKey.apiKey());
+      case AzureAuthentication.AzureClientCredentialsAuthentication auth -> {
+        embeddingStoreBuilder.tokenCredential(buildClientSecretCredential(auth));
       }
     }
 
+    return embeddingStoreBuilder.build();
+  }
+
+  public EmbeddingStore<TextSegment> createCosmosDbNoSqlVectorStore(
+      AzureCosmosDbNoSqlVectorStore azureCosmosDbNoSqlVectorStore, EmbeddingModel model) {
+
+    final var cosmosDbNoSql = azureCosmosDbNoSqlVectorStore.azureCosmosDbNoSql();
+    final var cosmosClientBuilder = new CosmosClientBuilder();
+    cosmosClientBuilder.endpoint(cosmosDbNoSql.endpoint());
+    cosmosClientBuilder.consistencyLevel(mapConsistencyLevel(cosmosDbNoSql.consistencyLevel()));
+    cosmosClientBuilder.contentResponseOnWriteEnabled(true);
+
+    switch (cosmosDbNoSql.authentication()) {
+      case AzureAuthentication.AzureApiKeyAuthentication apiKey ->
+          cosmosClientBuilder.key(apiKey.apiKey());
+      case AzureAuthentication.AzureClientCredentialsAuthentication auth ->
+          cosmosClientBuilder.credential(buildClientSecretCredential(auth));
+    }
+
     final var embedding = new CosmosVectorEmbedding();
-    embedding.setPath(VECTOR_EMBEDDING_PATH);
+    embedding.setPath(COSMOS_DB_VECTOR_EMBEDDING_PATH);
     embedding.setDataType(CosmosVectorDataType.FLOAT32);
     embedding.setEmbeddingDimensions(model.dimension());
-    embedding.setDistanceFunction(
-        mapDistanceFunction(azureCosmosDbNoSqlVectorStore.distanceFunction()));
+    embedding.setDistanceFunction(mapDistanceFunction(cosmosDbNoSql.distanceFunction()));
     final var embeddingPolicy = new CosmosVectorEmbeddingPolicy();
     embeddingPolicy.setCosmosVectorEmbeddings(List.of(embedding));
 
     final var vectorIndexSpec = new CosmosVectorIndexSpec();
-    vectorIndexSpec.setPath(VECTOR_EMBEDDING_PATH);
-    vectorIndexSpec.setType(
-        mapIndexType(azureCosmosDbNoSqlVectorStore.vectorIndexType()).toString());
+    vectorIndexSpec.setPath(COSMOS_DB_VECTOR_EMBEDDING_PATH);
+    vectorIndexSpec.setType(mapIndexType(cosmosDbNoSql.vectorIndexType()).toString());
 
     final var partitionKeyDef = new PartitionKeyDefinition();
-    partitionKeyDef.setPaths(List.of(PARTITION_KEY_PATH));
+    partitionKeyDef.setPaths(List.of(COSMOS_DB_PARTITION_KEY_PATH));
 
     final var containerProperties =
-        new CosmosContainerProperties(
-            azureCosmosDbNoSqlVectorStore.containerName(), partitionKeyDef);
+        new CosmosContainerProperties(cosmosDbNoSql.containerName(), partitionKeyDef);
     final var indexingPolicy = new IndexingPolicy();
     indexingPolicy.setIndexingMode(IndexingMode.CONSISTENT);
     indexingPolicy.setIncludedPaths(List.of(new IncludedPath("/*")));
@@ -86,12 +102,25 @@ public class AzureCosmosDbNoSqlVectorStoreFactory {
 
     return AzureCosmosDbNoSqlEmbeddingStore.builder()
         .cosmosClient(cosmosClientBuilder.buildClient())
-        .databaseName(azureCosmosDbNoSqlVectorStore.databaseName())
-        .containerName(azureCosmosDbNoSqlVectorStore.containerName())
+        .databaseName(cosmosDbNoSql.databaseName())
+        .containerName(cosmosDbNoSql.containerName())
         .cosmosVectorEmbeddingPolicy(embeddingPolicy)
         .cosmosVectorIndexes(List.of(vectorIndexSpec))
         .containerProperties(containerProperties)
         .build();
+  }
+
+  private static ClientSecretCredential buildClientSecretCredential(
+      AzureAuthentication.AzureClientCredentialsAuthentication auth) {
+    ClientSecretCredentialBuilder clientSecretCredentialBuilder =
+        new ClientSecretCredentialBuilder()
+            .clientId(auth.clientId())
+            .clientSecret(auth.clientSecret())
+            .tenantId(auth.tenantId());
+    if (StringUtils.isNotBlank(auth.authorityHost())) {
+      clientSecretCredentialBuilder.authorityHost(auth.authorityHost());
+    }
+    return clientSecretCredentialBuilder.build();
   }
 
   private ConsistencyLevel mapConsistencyLevel(

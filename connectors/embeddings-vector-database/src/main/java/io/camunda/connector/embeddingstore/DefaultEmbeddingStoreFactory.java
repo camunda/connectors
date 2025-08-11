@@ -14,10 +14,12 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
-import io.camunda.connector.model.embedding.vector.store.ElasticSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.ElasticsearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.EmbeddingsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
+import io.camunda.connector.model.operation.VectorDatabaseConnectorOperation;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -31,70 +33,77 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 
 public class DefaultEmbeddingStoreFactory {
 
-  private AzureCosmosDbNoSqlVectorStoreFactory azureCosmosDbNoSqlVectorStoreFactory =
-      new AzureCosmosDbNoSqlVectorStoreFactory();
+  private final AzureVectorStoreFactory azureVectorStoreFactory = new AzureVectorStoreFactory();
 
   public EmbeddingStore<TextSegment> initializeVectorStore(
-      EmbeddingsVectorStore embeddingsVectorStore, EmbeddingModel model) {
+      EmbeddingsVectorStore embeddingsVectorStore,
+      EmbeddingModel model,
+      VectorDatabaseConnectorOperation operation) {
     return switch (embeddingsVectorStore) {
-      case ElasticSearchVectorStore elasticSearchVectorStore ->
-          initializeElasticSearchVectorStore(elasticSearchVectorStore);
+      case ElasticsearchVectorStore elasticsearchVectorStore ->
+          initializeElasticsearchVectorStore(elasticsearchVectorStore);
       case OpenSearchVectorStore openSearchVectorStore ->
           initializeOpenSearchVectorStore(openSearchVectorStore);
       case AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore ->
           initializeAmazonManagedOpenSearchVectorStore(amazonManagedOpenSearchVectorStore);
       case AzureCosmosDbNoSqlVectorStore azureCosmosDbNoSqlVectorStore ->
-          azureCosmosDbNoSqlVectorStoreFactory.createEmbeddingStore(
+          azureVectorStoreFactory.createCosmosDbNoSqlVectorStore(
               azureCosmosDbNoSqlVectorStore, model);
+      case AzureAiSearchVectorStore azureAiSearchVectorStore ->
+          azureVectorStoreFactory.createAiSearchVectorStore(
+              azureAiSearchVectorStore, model, operation);
     };
   }
 
-  private EmbeddingStore<TextSegment> initializeElasticSearchVectorStore(
-      ElasticSearchVectorStore elasticSearchVectorStore) {
+  private EmbeddingStore<TextSegment> initializeElasticsearchVectorStore(
+      ElasticsearchVectorStore elasticsearchVectorStore) {
+    final var elasticsearch = elasticsearchVectorStore.elasticsearch();
     RestClientBuilder restClientBuilder =
-        RestClient.builder(HttpHost.create(elasticSearchVectorStore.baseUrl()));
+        RestClient.builder(HttpHost.create(elasticsearch.baseUrl()));
 
-    if (!isNullOrBlank(elasticSearchVectorStore.userName())) {
+    if (!isNullOrBlank(elasticsearch.userName())) {
       CredentialsProvider provider = new BasicCredentialsProvider();
       provider.setCredentials(
           AuthScope.ANY,
-          new UsernamePasswordCredentials(
-              elasticSearchVectorStore.userName(), elasticSearchVectorStore.password()));
+          new UsernamePasswordCredentials(elasticsearch.userName(), elasticsearch.password()));
       restClientBuilder.setHttpClientConfigCallback(
           httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(provider));
     }
 
     return ElasticsearchEmbeddingStore.builder()
         .restClient(restClientBuilder.build())
-        .indexName(elasticSearchVectorStore.indexName())
+        .indexName(elasticsearch.indexName())
         .build();
   }
 
   private EmbeddingStore<TextSegment> initializeOpenSearchVectorStore(
       OpenSearchVectorStore openSearchVectorStore) {
+    final var openSearch = openSearchVectorStore.openSearch();
     return OpenSearchEmbeddingStore.builder()
-        .serverUrl(openSearchVectorStore.baseUrl())
-        .userName(openSearchVectorStore.userName())
-        .password(openSearchVectorStore.password())
-        .indexName(openSearchVectorStore.indexName())
+        .serverUrl(openSearch.baseUrl())
+        .userName(openSearch.userName())
+        .password(openSearch.password())
+        .indexName(openSearch.indexName())
         .build();
   }
 
   private EmbeddingStore<TextSegment> initializeAmazonManagedOpenSearchVectorStore(
       AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore) {
+    final var amazonManagedOpenSearch =
+        amazonManagedOpenSearchVectorStore.amazonManagedOpensearch();
     return OpenSearchEmbeddingStore.builder()
         .serviceName("es") // for managed AWS OS
-        .serverUrl(amazonManagedOpenSearchVectorStore.serverUrl())
-        .region(amazonManagedOpenSearchVectorStore.region())
+        .serverUrl(amazonManagedOpenSearch.serverUrl())
+        .region(amazonManagedOpenSearch.region())
         .options(
             AwsSdk2TransportOptions.builder()
                 .setCredentials(
                     StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(
-                            amazonManagedOpenSearchVectorStore.accessKey(),
-                            amazonManagedOpenSearchVectorStore.secretKey())))
+                            amazonManagedOpenSearch.accessKey(),
+                            amazonManagedOpenSearch.secretKey())))
                 .build())
-        .indexName(amazonManagedOpenSearchVectorStore.indexName())
+        .indexName(amazonManagedOpenSearch.indexName())
         .build();
   }
 }

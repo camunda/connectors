@@ -42,7 +42,8 @@ public class DefaultEmbeddingActionProcessor implements EmbeddingActionProcessor
     EmbeddingModel model =
         embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider());
     EmbeddingStore<TextSegment> store =
-        embeddingStoreProvider.initializeVectorStore(request.vectorStore(), model);
+        embeddingStoreProvider.initializeVectorStore(
+            request.vectorStore(), model, request.vectorDatabaseConnectorOperation());
 
     // split incoming documents into chunks (segments) so that converting those
     // to vector-normal formal preserves maximum amount of properties.

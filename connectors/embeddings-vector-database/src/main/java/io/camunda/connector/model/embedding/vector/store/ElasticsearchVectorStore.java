@@ -12,39 +12,38 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(label = "OpenSearch", id = OpenSearchVectorStore.OPEN_SEARCH_STORE)
-public record OpenSearchVectorStore(@Valid @NotNull Configuration openSearch)
+@TemplateSubType(label = "Elasticsearch", id = ElasticsearchVectorStore.ELASTICSEARCH_STORE)
+public record ElasticsearchVectorStore(@Valid @NotNull Configuration elasticsearch)
     implements EmbeddingsVectorStore {
 
   @TemplateProperty(ignore = true)
-  public static final String OPEN_SEARCH_STORE = "openSearchStore";
+  public static final String ELASTICSEARCH_STORE = "elasticsearchStore";
 
   public record Configuration(
       @NotBlank
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Base URL",
-              description = "OpenSearch base URL, i.e. http(s)://host:port")
+              description = "Elasticsearch base URL, i.e. http(s)://host:port")
           String baseUrl,
       @NotBlank
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Username",
-              description = "OpenSearch username")
+              description = "Elasticsearch username")
           String userName,
       @NotBlank
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Password",
-              description = "OpenSearch password")
+              description = "Elasticsearch password")
           String password,
       @NotBlank
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Index name",
-              description = "OpenSearch index")
+              description = "Elasticsearch index")
           String indexName) {
-
     @Override
     public String toString() {
       return "Configuration{baseUrl='%s', userName='%s', password='[REDACTED]', indexName='%s'}"

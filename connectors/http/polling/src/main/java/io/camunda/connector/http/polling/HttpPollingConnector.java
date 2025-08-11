@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(
-          appliesTo = BpmnType.INTERMEDIATE_CATCH_EVENT,
+          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
           elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
           templateIdOverride = "io.camunda.connectors.http.Polling",
           templateNameOverride = "HTTP Polling Intermediate Catch Event Connector"),

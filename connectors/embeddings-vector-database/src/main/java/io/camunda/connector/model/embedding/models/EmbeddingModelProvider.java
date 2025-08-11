@@ -22,7 +22,10 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
       name = OpenAiEmbeddingModelProvider.OPEN_AI_MODEL_PROVIDER),
   @JsonSubTypes.Type(
       value = AzureOpenAiEmbeddingModelProvider.class,
-      name = AzureOpenAiEmbeddingModelProvider.AZURE_OPEN_AI_MODEL_PROVIDER)
+      name = AzureOpenAiEmbeddingModelProvider.AZURE_OPEN_AI_MODEL_PROVIDER),
+  @JsonSubTypes.Type(
+      value = GoogleVertexAiEmbeddingModelProvider.class,
+      name = GoogleVertexAiEmbeddingModelProvider.VERTEX_AI_MODEL_PROVIDER)
 })
 @TemplateDiscriminatorProperty(
     name = "modelProvider",
@@ -34,4 +37,5 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 public sealed interface EmbeddingModelProvider
     permits AzureOpenAiEmbeddingModelProvider,
         BedrockEmbeddingModelProvider,
+        GoogleVertexAiEmbeddingModelProvider,
         OpenAiEmbeddingModelProvider {}

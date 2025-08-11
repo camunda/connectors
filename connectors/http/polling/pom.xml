@@ -54,7 +54,7 @@
 
   <build>
     <plugins>
-      <plugin>
+      <!--<plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
@@ -74,8 +74,8 @@
               </files>
               <generateHybridTemplates>false</generateHybridTemplates>
               <features>
-                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
-                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>false</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
+                <INBOUND_DEDUPLICATION>false</INBOUND_DEDUPLICATION>
               </features>
             </connector>
           </connectors>
@@ -84,7 +84,7 @@
             <includeDependency>io.camunda.connector:connector-http-base</includeDependency>
           </includeDependencies>
         </configuration>
-      </plugin>
+      </plugin>-->
     </plugins>
   </build>
 </project>
