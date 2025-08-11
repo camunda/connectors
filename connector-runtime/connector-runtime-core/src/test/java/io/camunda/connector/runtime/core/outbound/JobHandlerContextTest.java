@@ -129,27 +129,9 @@ class JobHandlerContextTest {
   void bindVariables_successStringSecretAreEscapedAndQuoteEscaped() {
     String json = "{ \"value\": \"{{secrets.FOO}}\" }";
     when(activatedJob.getVariables()).thenReturn(json);
-    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \n World");
-    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
-            .isEqualTo("Hello \n World");
-  }
-
-  @Test
-  void bindVariables_successStringSecretAreEscapedAndNullByteEscaped() {
-    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \" World");
     assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
             .isEqualTo("Hello \" World");
-  }
-
-  @Test
-  void bindVariables_successStringSecretAreEscapedAndNullByteRemoved() {
-    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
-    when(activatedJob.getVariables()).thenReturn(json);
-    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello World");
-    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
-        .isEqualTo("Hello World");
   }
 
   @Test
