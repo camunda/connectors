@@ -507,7 +507,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.modelName",
+        "property" : "embeddingModelProvider.bedrock.modelName",
         "equals" : "Custom",
         "type" : "simple"
       }, {
@@ -533,7 +533,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.modelName",
+        "property" : "embeddingModelProvider.bedrock.modelName",
         "equals" : "TitanEmbedTextV2",
         "type" : "simple"
       }, {
@@ -570,7 +570,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.modelName",
+        "property" : "embeddingModelProvider.bedrock.modelName",
         "equals" : "TitanEmbedTextV2",
         "type" : "simple"
       }, {

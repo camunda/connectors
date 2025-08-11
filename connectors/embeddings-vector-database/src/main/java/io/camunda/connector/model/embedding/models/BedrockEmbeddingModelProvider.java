@@ -61,7 +61,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               constraints = @PropertyConstraints(notEmpty = true),
               condition =
                   @PropertyCondition(
-                      property = "embeddingModelProvider.modelName",
+                      property = "embeddingModelProvider.bedrock.modelName",
                       equals = "Custom"))
           String customModelName,
       @NotBlank
@@ -75,7 +75,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               defaultValue = "D1024",
               condition =
                   @PropertyCondition(
-                      property = "embeddingModelProvider.modelName",
+                      property = "embeddingModelProvider.bedrock.modelName",
                       equals = "TitanEmbedTextV2"))
           BedrockDimensions dimensions,
       @NotBlank
@@ -87,7 +87,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               defaultValue = "false",
               condition =
                   @PropertyCondition(
-                      property = "embeddingModelProvider.modelName",
+                      property = "embeddingModelProvider.bedrock.modelName",
                       equals = "TitanEmbedTextV2"))
           Boolean normalize,
       @TemplateProperty(
