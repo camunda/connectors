@@ -131,7 +131,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \" World");
     assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
-            .isEqualTo("Hello \" World");
+        .isEqualTo("Hello \" World");
   }
 
   @Test
