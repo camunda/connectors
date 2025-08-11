@@ -62,13 +62,13 @@ class PollingTextractCallerTest {
   }
 
   @Test
-  void callTextractDocumentAnalysisWithSuccess() throws Exception {
+  void callTextractTextDetectionWithSuccess() throws Exception {
     String jobId = "1";
-    GetDocumentAnalysisRequest getDocumentAnalysisRequest =
-        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
 
-    GetDocumentAnalysisResponse getDocumentAnalysisResponse =
-        GetDocumentAnalysisResponse.builder()
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse =
+        GetDocumentTextDetectionResponse.builder()
             .jobStatus(JobStatus.SUCCEEDED)
             .blocks(
                 List.of(
@@ -76,14 +76,14 @@ class PollingTextractCallerTest {
                     Block.builder().text("BBB").blockType(BlockType.LINE).build()))
             .build();
 
-    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
-        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
 
-    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(startDocumentAnalysisResponse);
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
 
-    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest))
-        .thenReturn(getDocumentAnalysisResponse);
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest))
+        .thenReturn(getDocumentTextDetectionResponse);
 
     String expectedExtractedText = "AAA\nBBB";
     String extractedText =
@@ -94,25 +94,25 @@ class PollingTextractCallerTest {
   }
 
   @Test
-  void callTextractDocumentAnalysisWithEmptyResult() throws Exception {
+  void callTextractTextDetectionWithEmptyResult() throws Exception {
     String jobId = "1";
-    GetDocumentAnalysisRequest getDocumentAnalysisRequest =
-        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
 
-    GetDocumentAnalysisResponse getDocumentAnalysisResponse =
-        GetDocumentAnalysisResponse.builder()
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse =
+        GetDocumentTextDetectionResponse.builder()
             .jobStatus(JobStatus.SUCCEEDED)
             .blocks(List.of())
             .build();
 
-    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
-        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
 
-    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(startDocumentAnalysisResponse);
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
 
-    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest))
-        .thenReturn(getDocumentAnalysisResponse);
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest))
+        .thenReturn(getDocumentTextDetectionResponse);
 
     String expectedExtractedText = "";
     String extractedText =
@@ -123,25 +123,25 @@ class PollingTextractCallerTest {
   }
 
   @Test
-  void callTextractDocumentAnalysisWithFailure() {
+  void callTextractTextDetectionWithFailure() {
     String jobId = "1";
-    GetDocumentAnalysisRequest getDocumentAnalysisRequest =
-        GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
 
-    GetDocumentAnalysisResponse getDocumentAnalysisResponse =
-        GetDocumentAnalysisResponse.builder()
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse =
+        GetDocumentTextDetectionResponse.builder()
             .jobStatus(JobStatus.FAILED)
             .statusMessage("Test exception message")
             .build();
 
-    StartDocumentAnalysisResponse startDocumentAnalysisResponse =
-        StartDocumentAnalysisResponse.builder().jobId(jobId).build();
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
 
-    when(textractClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(startDocumentAnalysisResponse);
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
 
-    when(textractClient.getDocumentAnalysis(getDocumentAnalysisRequest))
-        .thenReturn(getDocumentAnalysisResponse);
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest))
+        .thenReturn(getDocumentTextDetectionResponse);
 
     PollingTextractCaller pollingTextractCaller = new PollingTextractCaller();
 
@@ -153,5 +153,166 @@ class PollingTextractCallerTest {
                     mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient));
 
     assertEquals("Test exception message", exception.getMessage());
+  }
+
+  @Test
+  void callTextractTextDetectionWithPagination() throws Exception {
+    String jobId = "1";
+    String nextToken = "page2";
+
+    // First request - without nextToken
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest1 =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    // Second request - with nextToken
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest2 =
+        GetDocumentTextDetectionRequest.builder()
+            .jobId(jobId)
+            .maxResults(MAX_RESULT)
+            .nextToken(nextToken)
+            .build();
+
+    // First response - SUCCEEDED with nextToken (more pages)
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse1 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .nextToken(nextToken)
+            .blocks(
+                List.of(
+                    Block.builder().text("Page 1 Line 1").blockType(BlockType.LINE).build(),
+                    Block.builder().text("Page 1 Line 2").blockType(BlockType.LINE).build()))
+            .build();
+
+    // Second response - SUCCEEDED without nextToken (last page)
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse2 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .nextToken(null)
+            .blocks(
+                List.of(
+                    Block.builder().text("Page 2 Line 1").blockType(BlockType.LINE).build(),
+                    Block.builder().text("Page 2 Line 2").blockType(BlockType.LINE).build()))
+            .build();
+
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest1))
+        .thenReturn(getDocumentTextDetectionResponse1);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest2))
+        .thenReturn(getDocumentTextDetectionResponse2);
+
+    String expectedExtractedText = "Page 1 Line 1\nPage 1 Line 2\nPage 2 Line 1\nPage 2 Line 2";
+    String extractedText =
+        new PollingTextractCaller()
+            .call(mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient);
+
+    assertThat(extractedText).isEqualTo(expectedExtractedText);
+
+    // Verify both requests were made in order
+    var inOrder = Mockito.inOrder(textractClient);
+    inOrder.verify(textractClient).getDocumentTextDetection(getDocumentTextDetectionRequest1);
+    inOrder.verify(textractClient).getDocumentTextDetection(getDocumentTextDetectionRequest2);
+  }
+
+  @Test
+  void callTextractTextDetectionWithPaginationFailure() throws Exception {
+    String jobId = "1";
+    String nextToken = "page2";
+
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest1 =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest2 =
+        GetDocumentTextDetectionRequest.builder()
+            .jobId(jobId)
+            .maxResults(MAX_RESULT)
+            .nextToken(nextToken)
+            .build();
+
+    // First response - SUCCEEDED with nextToken
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse1 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .nextToken(nextToken)
+            .blocks(List.of(Block.builder().text("Page 1").blockType(BlockType.LINE).build()))
+            .build();
+
+    // Second response - FAILED
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse2 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.FAILED)
+            .statusMessage("Pagination failed at page 2")
+            .build();
+
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest1))
+        .thenReturn(getDocumentTextDetectionResponse1);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest2))
+        .thenReturn(getDocumentTextDetectionResponse2);
+
+    PollingTextractCaller pollingTextractCaller = new PollingTextractCaller();
+
+    Exception exception =
+        assertThrows(
+            ConnectorException.class,
+            () ->
+                pollingTextractCaller.call(
+                    mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient));
+
+    assertEquals("Pagination failed at page 2", exception.getMessage());
+  }
+
+  @Test
+  void callTextractTextDetectionWithInProgressStatus() throws Exception {
+    String jobId = "1";
+
+    GetDocumentTextDetectionRequest getDocumentTextDetectionRequest =
+        GetDocumentTextDetectionRequest.builder().jobId(jobId).maxResults(MAX_RESULT).build();
+
+    // First response - IN_PROGRESS
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse1 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.IN_PROGRESS)
+            .blocks(List.of())
+            .build();
+
+    // Second response - SUCCEEDED
+    GetDocumentTextDetectionResponse getDocumentTextDetectionResponse2 =
+        GetDocumentTextDetectionResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED)
+            .blocks(List.of(Block.builder().text("Final result").blockType(BlockType.LINE).build()))
+            .build();
+
+    StartDocumentTextDetectionResponse startDocumentTextDetectionResponse =
+        StartDocumentTextDetectionResponse.builder().jobId(jobId).build();
+
+    when(textractClient.startDocumentTextDetection(any(StartDocumentTextDetectionRequest.class)))
+        .thenReturn(startDocumentTextDetectionResponse);
+
+    when(textractClient.getDocumentTextDetection(getDocumentTextDetectionRequest))
+        .thenReturn(getDocumentTextDetectionResponse1)
+        .thenReturn(getDocumentTextDetectionResponse2);
+
+    String expectedExtractedText = "Final result";
+    String extractedText =
+        new PollingTextractCaller()
+            .call(mockedDocument, "test-aws-s3-bucket-name", textractClient, s3AsyncClient);
+
+    assertThat(extractedText).isEqualTo(expectedExtractedText);
+
+    // Verify getDocumentTextDetection was called twice (once for IN_PROGRESS, once for SUCCEEDED)
+    Mockito.verify(textractClient, Mockito.times(2))
+        .getDocumentTextDetection(getDocumentTextDetectionRequest);
   }
 }
