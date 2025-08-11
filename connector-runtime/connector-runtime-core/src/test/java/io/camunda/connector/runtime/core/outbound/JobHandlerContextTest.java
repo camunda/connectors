@@ -135,6 +135,15 @@ class JobHandlerContextTest {
   }
 
   @Test
+  void bindVariables_successStringSecretAreEscapedAndNullByteEscaped() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \0 World");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("Hello \0 World");
+  }
+
+  @Test
   void bindVariables_nullValue() {
     String json = "{ \"integer\": null}";
     when(activatedJob.getVariables()).thenReturn(json);
