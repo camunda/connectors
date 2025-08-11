@@ -7,31 +7,21 @@
 package io.camunda.connector.agenticai.autoconfigure;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
-import java.util.Optional;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai")
 public record AgenticAiConnectorsConfigurationProperties(
-    @Valid ToolsSchemaConfiguration tools) {
-
-  public AgenticAiConnectorsConfigurationProperties {
-    tools = Optional.ofNullable(tools).orElseGet(ToolsSchemaConfiguration::defaultConfiguration);
-  }
-
-  public record ToolsSchemaConfiguration(@Valid CacheConfiguration cache) {
-    public static ToolsSchemaConfiguration defaultConfiguration() {
-      return new ToolsSchemaConfiguration(CacheConfiguration.defaultConfiguration());
-    }
-
+    @Valid @NotNull @DefaultValue ToolsSchemaConfiguration tools) {
+  public record ToolsSchemaConfiguration(@Valid @NotNull @DefaultValue CacheConfiguration cache) {
     public record CacheConfiguration(
-        boolean enabled, @PositiveOrZero Long maximumSize, Duration expireAfterWrite) {
-      public static CacheConfiguration defaultConfiguration() {
-        return new CacheConfiguration(true, 100L, Duration.ofMinutes(10));
-      }
-    }
+        @DefaultValue("true") boolean enabled,
+        @DefaultValue("100") @PositiveOrZero Long maximumSize,
+        @DefaultValue("PT10M") Duration expireAfterWrite) {}
   }
 }
