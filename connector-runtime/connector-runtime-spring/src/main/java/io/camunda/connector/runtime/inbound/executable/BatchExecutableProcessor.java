@@ -174,9 +174,13 @@ public class BatchExecutableProcessor {
     try {
       if (executable instanceof WebhookConnectorExecutable) {
         LOG.debug("Registering webhook: {}", data.type());
-        webhookConnectorRegistry.register(new RegisteredExecutable.Activated(executable, context));
+        if (webhookConnectorRegistry.register(
+            new RegisteredExecutable.Activated(executable, context))) {
+          executable.activate(context);
+        }
+      } else {
+        executable.activate(context);
       }
-      executable.activate(context);
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
       return new FailedToActivate(data, e.getMessage());

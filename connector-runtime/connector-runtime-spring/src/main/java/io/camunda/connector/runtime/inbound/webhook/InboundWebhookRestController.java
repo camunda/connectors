@@ -104,7 +104,7 @@ public class InboundWebhookRestController {
       throws IOException {
     LOG.trace("Received inbound hook on {}", context);
     return webhookConnectorRegistry
-        .getWebhookConnectorByContextPath(context)
+        .getActiveWebhook(context)
         .map(
             connector -> {
               WebhookProcessingPayload payload =
