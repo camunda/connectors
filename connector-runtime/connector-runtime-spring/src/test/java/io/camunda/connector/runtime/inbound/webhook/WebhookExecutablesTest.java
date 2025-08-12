@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
@@ -24,12 +25,18 @@ import org.junit.jupiter.api.Test;
 
 public class WebhookExecutablesTest extends WebhookTestsBase {
 
-  @Test
-  void testAddConnectorToQueue() {
-    RegisteredExecutable.Activated activeExecutable = buildConnector("processA", 1, "myPath");
-    WebhookExecutables executables = new WebhookExecutables(activeExecutable, "myPath");
-    executables.markAsDownAndAdd(buildConnector("processB", 1, "myPath"));
+  private static final String MY_PATH = "myPath";
 
+  @Test
+  void shouldAddExecutableToQueue_whenPathIsUsed() {
+    // given
+    RegisteredExecutable.Activated activeExecutable = buildConnector("processA", 1, MY_PATH);
+    WebhookExecutables executables = new WebhookExecutables(activeExecutable, MY_PATH);
+
+    // when
+    executables.markAsDownAndAdd(buildConnector("processB", 1, MY_PATH));
+
+    // then
     assertThat(executables.getActiveWebhook()).isEqualTo(activeExecutable);
     assertThat(executables.getInactiveExecutables()).hasSize(1);
     var downExecutable = executables.getInactiveExecutables().getFirst();
@@ -41,17 +48,76 @@ public class WebhookExecutablesTest extends WebhookTestsBase {
   }
 
   @Test
-  void testTryActivateNextConnector() {}
+  void shouldActivateNextExecutable_whenActiveExecutableIsDeregistered() {
+    // given
+    RegisteredExecutable.Activated activeExecutable = buildConnector("processA", 1, MY_PATH);
+    WebhookExecutables executables = new WebhookExecutables(activeExecutable, MY_PATH);
+    RegisteredExecutable.Activated processB = buildConnector("processB", 1, MY_PATH);
+    executables.markAsDownAndAdd(processB);
+    assertThat(processB.context().getHealth())
+        .isEqualTo(
+            Health.down(
+                new IllegalStateException(
+                    "Context: myPath already in use by: process processA(testElement)")));
+
+    // when
+    var deleted = executables.deregister(activeExecutable);
+
+    // then
+    assertThat(deleted).isTrue();
+    assertThat(executables.getActiveWebhook()).isNotNull();
+    assertThat(executables.getActiveWebhook()).isEqualTo(processB);
+    assertThat(executables.getActiveWebhook().context().getHealth()).isEqualTo(Health.up());
+    assertThat(executables.getInactiveExecutables()).isEmpty();
+  }
 
   @Test
-  void testHealthStatusUpdates() {}
+  void shouldUpdateHealthStatusMessages_whenNewActiveExecutable() {
+    // given
+    RegisteredExecutable.Activated activeExecutable = buildConnector("processA", 1, MY_PATH);
+    WebhookExecutables executables = new WebhookExecutables(activeExecutable, MY_PATH);
+    RegisteredExecutable.Activated processB = buildConnector("processB", 1, MY_PATH);
+    RegisteredExecutable.Activated processC = buildConnector("processC", 1, MY_PATH);
+    executables.markAsDownAndAdd(processB);
+    executables.markAsDownAndAdd(processC);
+    assertThat(processB.context().getHealth())
+        .isEqualTo(
+            Health.down(
+                new IllegalStateException(
+                    "Context: myPath already in use by: process processA(testElement)")));
+    assertThat(processC.context().getHealth())
+        .isEqualTo(
+            Health.down(
+                new IllegalStateException(
+                    "Context: myPath already in use by: process processA(testElement)")));
+
+    // when
+    executables.deregister(activeExecutable);
+
+    // then
+    assertThat(executables.getActiveWebhook()).isEqualTo(processB);
+    assertThat(activeExecutable.context().getHealth()).isEqualTo(Health.up());
+    assertThat(processC.context().getHealth())
+        .isEqualTo(
+            Health.down(
+                new IllegalStateException(
+                    "Context: myPath already in use by: process processB(testElement)")));
+  }
 
   @Test
-  void testTryActivateNextOnEmptyQueue() {}
+  void shouldDoNothing_whenTryActivateNextOnEmptyQueue() {
+    // given
+    RegisteredExecutable.Activated activeExecutable = buildConnector("processA", 1, MY_PATH);
+    WebhookExecutables executables = new WebhookExecutables(activeExecutable, MY_PATH);
 
-  @Test
-  void testQueueCleanupAfterActivation() {}
+    // when
+    boolean activated = executables.deregister(activeExecutable);
 
-  @Test
-  void testMultipleContexts() {}
+    // then
+    assertThat(activated).isFalse();
+    var message = assertThrows(IllegalStateException.class, () -> executables.getActiveWebhook());
+    assertThat(message.getMessage())
+        .isEqualTo("No active (health status = UP) webhooks found for the context: myPath");
+    assertThat(executables.getInactiveExecutables()).isEmpty();
+  }
 }
