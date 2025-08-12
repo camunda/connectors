@@ -49,10 +49,19 @@ public abstract class WebhookTestsBase {
   public static RegisteredExecutable.Activated buildConnector(
       String bpmnProcessId, int version, String path) {
     var connectorData = webhookDefinition(bpmnProcessId, version, path);
-    WebhookConnectorExecutable executable = mock(WebhookConnectorExecutable.class);
+    WebhookConnectorExecutable executable = Mockito.spy(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
           .thenReturn(mock(WebhookResult.class));
+      Mockito.doAnswer(
+              invocation -> {
+                InboundConnectorContextImpl context =
+                    invocation.getArgument(0, InboundConnectorContextImpl.class);
+                context.reportHealth(Health.up());
+                return null;
+              })
+          .when(executable)
+          .activate(any(InboundConnectorContextImpl.class));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

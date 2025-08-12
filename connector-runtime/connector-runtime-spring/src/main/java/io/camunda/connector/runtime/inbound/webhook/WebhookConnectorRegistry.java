@@ -37,12 +37,19 @@ public class WebhookConnectorRegistry {
     return executablesByContext;
   }
 
-  public void register(RegisteredExecutable.Activated connector) {
+  public boolean register(RegisteredExecutable.Activated connector) {
     var context = getContext(connector);
 
     WebhookConnectorValidationUtil.logIfWebhookPathDeprecated(connector, context);
     createExecutablesOrGetExisting(context, connector)
         .ifPresent(existingExecutables -> existingExecutables.markAsDownAndAdd(connector));
+
+    return registeredAsActiveConnector(connector, context);
+  }
+
+  private boolean registeredAsActiveConnector(
+      RegisteredExecutable.Activated connector, String context) {
+    return getActiveWebhook(context).map(c -> c.equals(connector)).orElse(false);
   }
 
   /**

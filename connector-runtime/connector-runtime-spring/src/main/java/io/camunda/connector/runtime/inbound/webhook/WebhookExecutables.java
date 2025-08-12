@@ -102,8 +102,8 @@ public class WebhookExecutables {
     }
 
     activeExecutable = inactiveExecutables.removeFirst();
-    markActiveExecutableAsUp();
-    updateDownExecutablesErrorMessage();
+    markActiveExecutableAsUpAndActivate();
+    updateInactiveExecutablesErrorMessage();
 
     return true;
   }
@@ -140,15 +140,19 @@ public class WebhookExecutables {
     executable.context().reportHealth(Health.down(new IllegalStateException(createErrorMessage())));
   }
 
-  private void markActiveExecutableAsUp() {
-    activeExecutable
-        .context()
-        .log(
-            Activity.level(Severity.INFO)
-                .tag(TAG_ACTIVATION)
-                .message(
-                    "Path \"" + context + "\" is now available. executable has been activated."));
-    activeExecutable.context().reportHealth(Health.up());
+  private void markActiveExecutableAsUpAndActivate() {
+    try {
+      activeExecutable.executable().activate(activeExecutable.context());
+      activeExecutable
+          .context()
+          .log(
+              Activity.level(Severity.INFO)
+                  .tag(TAG_ACTIVATION)
+                  .message(
+                      "Path \"" + context + "\" is now available. executable has been activated."));
+    } catch (Exception e) {
+      throw new RuntimeException("Could not activate connector: " + activeExecutable, e);
+    }
   }
 
   /**
@@ -157,7 +161,7 @@ public class WebhookExecutables {
    *
    * @see #getActiveWebhook()
    */
-  private void updateDownExecutablesErrorMessage() {
+  private void updateInactiveExecutablesErrorMessage() {
     if (inactiveExecutables.isEmpty()) {
       return;
     }
