@@ -55,8 +55,9 @@ public class CsvConnector implements OutboundConnectorProvider {
       case String csv -> readCsvRequest(new StringReader(csv), request.format(), rowType, mapper);
       case Document csv -> {
         try (InputStream csvInputStream = csv.asInputStream()) {
-          yield readCsvRequest(
-              new InputStreamReader(csvInputStream), request.format(), rowType, mapper);
+          try (InputStreamReader reader = new InputStreamReader(csvInputStream)) {
+            yield readCsvRequest(reader, request.format(), rowType, mapper);
+          }
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
