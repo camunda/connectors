@@ -44,7 +44,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               label = "Region",
               description = "AWS Bedrock region")
           String region,
-      @NotBlank
+      @NotNull
           @TemplateProperty(
               group = "embeddingModel",
               label = "Model name",
@@ -64,8 +64,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
                       property = "embeddingModelProvider.bedrock.modelName",
                       equals = "Custom"))
           String customModelName,
-      @NotBlank
-          @TemplateProperty(
+      @TemplateProperty(
               group = "embeddingModel",
               label = "Embedding dimensions",
               description = "The size of the vector used to represent data",
@@ -78,8 +77,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
                       property = "embeddingModelProvider.bedrock.modelName",
                       equals = "TitanEmbedTextV2"))
           BedrockDimensions dimensions,
-      @NotBlank
-          @TemplateProperty(
+      @TemplateProperty(
               group = "embeddingModel",
               label = "Normalize",
               description = "Normalize vector",

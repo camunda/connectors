@@ -47,7 +47,7 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
               description = "Specify the name of the Azure Cosmos DB NoSQL container.",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String containerName,
-      @NotBlank
+      @NotNull
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Consistency level",
@@ -57,7 +57,7 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
               defaultValue = "EVENTUAL",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           ConsistencyLevel consistencyLevel,
-      @NotBlank
+      @NotNull
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Distance function",
@@ -68,7 +68,7 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
               defaultValue = "COSINE",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           DistanceFunction distanceFunction,
-      @NotBlank
+      @NotNull
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Vector index type",

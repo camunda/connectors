@@ -11,6 +11,7 @@ import static io.camunda.connector.model.operation.RetrieveDocumentOperation.RET
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -24,7 +25,7 @@ public record RetrieveDocumentOperation(
             label = "Search query",
             description = "Document lookup query")
         String query,
-    @NotBlank
+    @Min(1)
         @TemplateProperty(
             group = "query",
             id = "query.maxResults",
