@@ -72,6 +72,32 @@ public class WebhookExecutablesTest extends WebhookTestsBase {
   }
 
   @Test
+  void shouldNotUpdateActiveExecutable_whenInactiveExecutableIsDeregistrered() {
+    // given
+    RegisteredExecutable.Activated activeExecutable = buildConnector("processA", 1, MY_PATH);
+    WebhookExecutables executables = new WebhookExecutables(activeExecutable, MY_PATH);
+    RegisteredExecutable.Activated processB = buildConnector("processB", 1, MY_PATH);
+    executables.markAsDownAndAdd(processB);
+    assertThat(processB.context().getHealth())
+        .isEqualTo(
+            Health.down(
+                new IllegalStateException(
+                    "Context: myPath already in use by: process processA(testElement)")));
+    assertThat(executables.getActiveWebhook()).isEqualTo(activeExecutable);
+    assertThat(executables.getInactiveExecutables()).hasSize(1);
+    assertThat(executables.getInactiveExecutables().getFirst()).isEqualTo(processB);
+
+    // when
+    boolean hasActiveExecutable = executables.deregister(processB);
+
+    // then
+    assertThat(hasActiveExecutable).isTrue();
+    assertThat(executables.getActiveWebhook()).isEqualTo(activeExecutable);
+    assertThat(executables.getInactiveExecutables()).isEmpty();
+    assertThat(activeExecutable.context().getHealth()).isEqualTo(Health.up());
+  }
+
+  @Test
   void shouldUpdateHealthStatusMessages_whenNewActiveExecutable() {
     // given
     RegisteredExecutable.Activated activeExecutable = buildConnector("processA", 1, MY_PATH);
@@ -115,9 +141,37 @@ public class WebhookExecutablesTest extends WebhookTestsBase {
 
     // then
     assertThat(activated).isFalse();
-    var message = assertThrows(IllegalStateException.class, () -> executables.getActiveWebhook());
+    var message = assertThrows(IllegalStateException.class, executables::getActiveWebhook);
     assertThat(message.getMessage())
         .isEqualTo("No active (health status = UP) webhooks found for the context: myPath");
     assertThat(executables.getInactiveExecutables()).isEmpty();
+  }
+
+  @Test
+  void shouldThrowException_whenDeregisteringNonExistentExecutable() {
+    // given
+    RegisteredExecutable.Activated activeExecutable = buildConnector("processA", 1, MY_PATH);
+    WebhookExecutables executables = new WebhookExecutables(activeExecutable, MY_PATH);
+    RegisteredExecutable.Activated nonExistentExecutable = buildConnector("processB", 1, MY_PATH);
+    // when
+    var exception =
+        assertThrows(RuntimeException.class, () -> executables.deregister(nonExistentExecutable));
+    // then
+    assertThat(exception.getMessage())
+        .isEqualTo(
+            "Cannot deregister executable with definition: "
+                + nonExistentExecutable.context().getDefinition()
+                + " as it is not registered for context: myPath");
+  }
+
+  @Test
+  void shouldThrowException_whenDeregisteringAndNoActiveNorQueuedExecutables() {
+    // given
+    WebhookExecutables executables = new WebhookExecutables(null, MY_PATH);
+    // when
+    var exception = assertThrows(IllegalStateException.class, executables::getActiveWebhook);
+    // then
+    assertThat(exception.getMessage())
+        .isEqualTo("No active (health status = UP) webhooks found for the context: myPath");
   }
 }
