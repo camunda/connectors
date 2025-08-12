@@ -9,8 +9,8 @@ package io.camunda.connector.model.embedding.splitter;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
-@TemplateSubType(label = "Do not split", id = NoopDocumentSplitter.DOCUMENT_SPLITTER_NONE)
+@TemplateSubType(label = "Do not split", id = NoopDocumentSplitter.NOOP_DOCUMENT_SPLITTER)
 public record NoopDocumentSplitter() implements DocumentSplitter {
   @TemplateProperty(ignore = true)
-  public static final String DOCUMENT_SPLITTER_NONE = "documentSplitterNone";
+  public static final String NOOP_DOCUMENT_SPLITTER = "noopDocumentSplitter";
 }

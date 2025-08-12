@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.fixture;
 
-import io.camunda.connector.model.embedding.splitter.DocumentSplitterRecursive;
 import io.camunda.connector.model.embedding.splitter.NoopDocumentSplitter;
+import io.camunda.connector.model.embedding.splitter.RecursiveDocumentSplitter;
 
 public class DocumentSplitterFixture {
 
@@ -15,7 +15,7 @@ public class DocumentSplitterFixture {
     return new NoopDocumentSplitter();
   }
 
-  public static DocumentSplitterRecursive documentSplitterRecursive() {
-    return new DocumentSplitterRecursive(500, 80);
+  public static RecursiveDocumentSplitter documentSplitterRecursive() {
+    return new RecursiveDocumentSplitter(500, 80);
   }
 }

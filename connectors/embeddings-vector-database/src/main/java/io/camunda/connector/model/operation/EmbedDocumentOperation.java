@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.model.operation;
 
-import static io.camunda.connector.model.operation.EmbedDocumentOperation.OPERATION_EMBED_DOCUMENT;
+import static io.camunda.connector.model.operation.EmbedDocumentOperation.EMBED_DOCUMENT_OPERATION;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
@@ -20,7 +20,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-@TemplateSubType(label = "Embed document", id = OPERATION_EMBED_DOCUMENT)
+@TemplateSubType(label = "Embed document", id = EMBED_DOCUMENT_OPERATION)
 public record EmbedDocumentOperation(
     @NotBlank
         @TemplateProperty(
@@ -61,5 +61,5 @@ public record EmbedDocumentOperation(
     @NotNull DocumentSplitter documentSplitter)
     implements VectorDatabaseConnectorOperation {
   @TemplateProperty(ignore = true)
-  public static final String OPERATION_EMBED_DOCUMENT = "OPERATION_EMBED_DOCUMENT";
+  public static final String EMBED_DOCUMENT_OPERATION = "embedDocumentOperation";
 }

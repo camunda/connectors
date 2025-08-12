@@ -58,7 +58,7 @@
     "id" : "vectorDatabaseConnectorOperation.operationType",
     "label" : "Operation",
     "description" : "Select operation",
-    "value" : "OPERATION_RETRIEVE_DOCUMENT",
+    "value" : "retrieveDocumentOperation",
     "group" : "operation",
     "binding" : {
       "name" : "vectorDatabaseConnectorOperation.operationType",
@@ -67,10 +67,10 @@
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Embed document",
-      "value" : "OPERATION_EMBED_DOCUMENT"
+      "value" : "embedDocumentOperation"
     }, {
       "name" : "Retrieve document",
-      "value" : "OPERATION_RETRIEVE_DOCUMENT"
+      "value" : "retrieveDocumentOperation"
     } ]
   }, {
     "id" : "vectorDatabaseConnectorOperation.query.query",
@@ -90,7 +90,7 @@
     },
     "condition" : {
       "property" : "vectorDatabaseConnectorOperation.operationType",
-      "equals" : "OPERATION_RETRIEVE_DOCUMENT",
+      "equals" : "retrieveDocumentOperation",
       "type" : "simple"
     },
     "type" : "String"
@@ -111,7 +111,7 @@
     },
     "condition" : {
       "property" : "vectorDatabaseConnectorOperation.operationType",
-      "equals" : "OPERATION_RETRIEVE_DOCUMENT",
+      "equals" : "retrieveDocumentOperation",
       "type" : "simple"
     },
     "type" : "Number"
@@ -128,7 +128,7 @@
     },
     "condition" : {
       "property" : "vectorDatabaseConnectorOperation.operationType",
-      "equals" : "OPERATION_RETRIEVE_DOCUMENT",
+      "equals" : "retrieveDocumentOperation",
       "type" : "simple"
     },
     "type" : "Number"
@@ -502,7 +502,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.modelName",
+        "property" : "embeddingModelProvider.bedrock.modelName",
         "equals" : "Custom",
         "type" : "simple"
       }, {
@@ -528,7 +528,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.modelName",
+        "property" : "embeddingModelProvider.bedrock.modelName",
         "equals" : "TitanEmbedTextV2",
         "type" : "simple"
       }, {
@@ -565,7 +565,7 @@
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "embeddingModelProvider.modelName",
+        "property" : "embeddingModelProvider.bedrock.modelName",
         "equals" : "TitanEmbedTextV2",
         "type" : "simple"
       }, {
@@ -1697,7 +1697,7 @@
     },
     "condition" : {
       "property" : "vectorDatabaseConnectorOperation.operationType",
-      "equals" : "OPERATION_EMBED_DOCUMENT",
+      "equals" : "embedDocumentOperation",
       "type" : "simple"
     },
     "type" : "Dropdown",
@@ -1728,7 +1728,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorDatabaseConnectorOperation.operationType",
-        "equals" : "OPERATION_EMBED_DOCUMENT",
+        "equals" : "embedDocumentOperation",
         "type" : "simple"
       } ]
     },
@@ -1753,7 +1753,7 @@
         "type" : "simple"
       }, {
         "property" : "vectorDatabaseConnectorOperation.operationType",
-        "equals" : "OPERATION_EMBED_DOCUMENT",
+        "equals" : "embedDocumentOperation",
         "type" : "simple"
       } ]
     },
@@ -1761,7 +1761,7 @@
   }, {
     "id" : "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
     "label" : "Document splitting strategy",
-    "value" : "documentSplitterRecursive",
+    "value" : "recursiveDocumentSplitter",
     "group" : "document",
     "binding" : {
       "name" : "vectorDatabaseConnectorOperation.documentSplitter.splitterType",
@@ -1769,16 +1769,16 @@
     },
     "condition" : {
       "property" : "vectorDatabaseConnectorOperation.operationType",
-      "equals" : "OPERATION_EMBED_DOCUMENT",
+      "equals" : "embedDocumentOperation",
       "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Recursive",
-      "value" : "documentSplitterRecursive"
+      "value" : "recursiveDocumentSplitter"
     }, {
       "name" : "Do not split",
-      "value" : "documentSplitterNone"
+      "value" : "noopDocumentSplitter"
     } ]
   }, {
     "id" : "vectorDatabaseConnectorOperation.documentSplitter.document.splitter.recursive.maxSegmentSizeInChars",
@@ -1798,11 +1798,11 @@
     "condition" : {
       "allMatch" : [ {
         "property" : "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
-        "equals" : "documentSplitterRecursive",
+        "equals" : "recursiveDocumentSplitter",
         "type" : "simple"
       }, {
         "property" : "vectorDatabaseConnectorOperation.operationType",
-        "equals" : "OPERATION_EMBED_DOCUMENT",
+        "equals" : "embedDocumentOperation",
         "type" : "simple"
       } ]
     },
@@ -1825,11 +1825,11 @@
     "condition" : {
       "allMatch" : [ {
         "property" : "vectorDatabaseConnectorOperation.documentSplitter.documentSplitter",
-        "equals" : "documentSplitterRecursive",
+        "equals" : "recursiveDocumentSplitter",
         "type" : "simple"
       }, {
         "property" : "vectorDatabaseConnectorOperation.operationType",
-        "equals" : "OPERATION_EMBED_DOCUMENT",
+        "equals" : "embedDocumentOperation",
         "type" : "simple"
       } ]
     },
