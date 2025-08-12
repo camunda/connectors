@@ -171,11 +171,11 @@ public class BatchExecutableProcessor {
       return new ConnectorNotRegistered(validData);
     }
     try {
-      executable.activate(context);
       if (executable instanceof WebhookConnectorExecutable) {
         LOG.debug("Registering webhook: {}", data.type());
         webhookConnectorRegistry.register(new RegisteredExecutable.Activated(executable, context));
       }
+      executable.activate(context);
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
       connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());

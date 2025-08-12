@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
-import static io.camunda.connector.runtime.inbound.WebhookConnectorRegistryTest.webhookDefinition;
+import static io.camunda.connector.runtime.inbound.BaseWebhookTest.webhookDefinition;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

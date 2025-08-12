@@ -41,9 +41,18 @@ public class WebhookConnectorRegistry {
     var context = getContext(connector);
 
     WebhookConnectorValidationUtil.logIfWebhookPathDeprecated(connector, context);
-    Optional.ofNullable(
-            executablesByContext.putIfAbsent(context, new WebhookExecutables(connector, context)))
+    createExecutablesOrGetExisting(context, connector)
         .ifPresent(existingExecutables -> existingExecutables.markAsDownAndAdd(connector));
+  }
+
+  /**
+   * Creates a new {@link WebhookExecutables} instance for the given context if it does not already
+   * exist (and returns an empty Optional), or returns the existing one.
+   */
+  private Optional<WebhookExecutables> createExecutablesOrGetExisting(
+      String context, RegisteredExecutable.Activated connector) {
+    return Optional.ofNullable(
+        executablesByContext.putIfAbsent(context, new WebhookExecutables(connector, context)));
   }
 
   public void deregister(RegisteredExecutable.Activated connector) {

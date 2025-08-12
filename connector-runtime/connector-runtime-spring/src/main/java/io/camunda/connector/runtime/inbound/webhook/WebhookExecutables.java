@@ -27,7 +27,7 @@ public class WebhookExecutables {
   private static final String TAG_QUEUEING = "Queueing";
   private static final String TAG_ACTIVATION = "Activation";
 
-  private final List<RegisteredExecutable.Activated> downExecutables = new ArrayList<>();
+  private final List<RegisteredExecutable.Activated> inactiveExecutables = new ArrayList<>();
   private RegisteredExecutable.Activated activeExecutable;
   private final String context;
 
@@ -37,15 +37,15 @@ public class WebhookExecutables {
   }
 
   public List<RegisteredExecutable.Activated> getAllExecutables() {
-    List<RegisteredExecutable.Activated> allExecutables = new ArrayList<>(downExecutables);
+    List<RegisteredExecutable.Activated> allExecutables = new ArrayList<>(inactiveExecutables);
     if (activeExecutable != null) {
       allExecutables.addFirst(activeExecutable);
     }
     return allExecutables;
   }
 
-  public List<RegisteredExecutable.Activated> getDownExecutables() {
-    return downExecutables;
+  public List<RegisteredExecutable.Activated> getInactiveExecutables() {
+    return inactiveExecutables;
   }
 
   /**
@@ -58,19 +58,19 @@ public class WebhookExecutables {
    * @throws RuntimeException if the executable is not registered for the context.
    */
   public boolean deregister(RegisteredExecutable.Activated executable) {
-    if (activeExecutable == null && downExecutables.isEmpty()) {
+    if (activeExecutable == null && inactiveExecutables.isEmpty()) {
       throw new IllegalStateException(
           "No active or queued executables found for the context: " + context);
     }
 
-    if (sameExecutables(activeExecutable, executable)) {
+    if (sameDefinitions(activeExecutable, executable)) {
       activeExecutable = null;
       return tryActivateNext();
     }
 
     var foundExecutable =
-        downExecutables.stream()
-            .filter(e -> sameExecutables(e, executable))
+        inactiveExecutables.stream()
+            .filter(e -> sameDefinitions(e, executable))
             .findFirst()
             .orElseThrow(
                 () ->
@@ -79,11 +79,11 @@ public class WebhookExecutables {
                             + executable.context().getDefinition()
                             + " as it is not registered for context: "
                             + context));
-    downExecutables.remove(foundExecutable);
+    inactiveExecutables.remove(foundExecutable);
     return true;
   }
 
-  private boolean sameExecutables(
+  private boolean sameDefinitions(
       RegisteredExecutable.Activated executableA, RegisteredExecutable.Activated executableB) {
     return executableA != null
         && executableB != null
@@ -97,11 +97,11 @@ public class WebhookExecutables {
    * @return true if an executable was activated, false if there are no executables in the queue
    */
   private boolean tryActivateNext() {
-    if (downExecutables.isEmpty()) {
+    if (inactiveExecutables.isEmpty()) {
       return false;
     }
 
-    activeExecutable = downExecutables.removeFirst();
+    activeExecutable = inactiveExecutables.removeFirst();
     markActiveExecutableAsUp();
     updateDownExecutablesErrorMessage();
 
@@ -118,7 +118,7 @@ public class WebhookExecutables {
 
   public void markAsDownAndAdd(RegisteredExecutable.Activated executable) {
     markAsDownAndLogActivity(context, executable);
-    downExecutables.add(executable);
+    inactiveExecutables.add(executable);
   }
 
   /**
@@ -158,11 +158,11 @@ public class WebhookExecutables {
    * @see #getActiveWebhook()
    */
   private void updateDownExecutablesErrorMessage() {
-    if (downExecutables.isEmpty()) {
+    if (inactiveExecutables.isEmpty()) {
       return;
     }
 
-    downExecutables.forEach(
+    inactiveExecutables.forEach(
         executable ->
             executable
                 .context()

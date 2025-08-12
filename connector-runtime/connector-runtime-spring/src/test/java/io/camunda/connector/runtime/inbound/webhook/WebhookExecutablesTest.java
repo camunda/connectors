@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
@@ -32,8 +31,8 @@ public class WebhookExecutablesTest extends WebhookTestsBase {
     executables.markAsDownAndAdd(buildConnector("processB", 1, "myPath"));
 
     assertThat(executables.getActiveWebhook()).isEqualTo(activeExecutable);
-    assertThat(executables.getDownExecutables()).hasSize(1);
-    var downExecutable = executables.getDownExecutables().getFirst();
+    assertThat(executables.getInactiveExecutables()).hasSize(1);
+    var downExecutable = executables.getInactiveExecutables().getFirst();
     assertThat(downExecutable.context().getHealth())
         .isEqualTo(
             Health.down(
