@@ -7,7 +7,13 @@
       "defaultValue": "true"
     },
     {
-      "name": "camunda.connector.agenticai.aiagent.enabled",
+      "name": "camunda.connector.agenticai.framework",
+      "type": "java.lang.String",
+      "description": "The AI framework implementation to use with the Agentic AI integration.",
+      "defaultValue": "langchain4j"
+    },
+    {
+      "name": "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       "type": "java.lang.Boolean",
       "description": "Whether to enable/register the AI Agent outbound connector.",
       "defaultValue": "true"
@@ -25,10 +31,22 @@
       "defaultValue": "false"
     },
     {
+      "name": "camunda.connector.agenticai.mcp.client.framework",
+      "type": "java.lang.String",
+      "description": "The MCP Client framework to use.",
+      "defaultValue": "langchain4j"
+    },
+    {
       "name": "camunda.connector.agenticai.mcp.remote-client.enabled",
       "type": "java.lang.Boolean",
       "description": "Whether to enable/register the MCP Remote Client outbound connector.",
       "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.mcp.remote-client.framework",
+      "type": "java.lang.String",
+      "description": "The MCP Remote Client framework to use.",
+      "defaultValue": "langchain4j"
     }
   ]
 }

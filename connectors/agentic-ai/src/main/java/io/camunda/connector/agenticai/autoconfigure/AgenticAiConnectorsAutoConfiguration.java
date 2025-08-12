@@ -175,6 +175,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
+      matchIfMissing = true)
   public AgentRequestHandler aiAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
@@ -196,7 +199,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
-      value = "camunda.connector.agenticai.aiagent.enabled",
+      value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
   public AiAgentFunction aiAgentFunction(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,

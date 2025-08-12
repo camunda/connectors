@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
@@ -98,13 +99,16 @@ class AgenticAiConnectorsAutoConfigurationTest {
   @Test
   void whenAiAgentConnectorDisabled_thenNoAiAgentFunctionIsCreated() {
     contextRunner
-        .withPropertyValues("camunda.connector.agenticai.aiagent.enabled=false")
+        .withPropertyValues("camunda.connector.agenticai.aiagent.outbound-connector.enabled=false")
         .run(
             context -> {
               assertHasAllBeansOf(
                   context,
-                  ALL_BEANS.stream().filter(c -> !c.equals(AiAgentFunction.class)).toList());
+                  ALL_BEANS.stream()
+                      .filter(notAnyOf(AiAgentFunction.class, AgentRequestHandler.class))
+                      .toList());
               assertThat(context).doesNotHaveBean(AiAgentFunction.class);
+              assertThat(context).doesNotHaveBean(AgentRequestHandler.class);
             });
   }
 
@@ -117,9 +121,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
             context -> {
               assertHasAllBeansOf(
                   context,
-                  ALL_BEANS.stream()
-                      .filter(c -> !c.equals(AdHocToolsSchemaFunction.class))
-                      .toList());
+                  ALL_BEANS.stream().filter(notAnyOf(AdHocToolsSchemaFunction.class)).toList());
               assertThat(context).doesNotHaveBean(AdHocToolsSchemaFunction.class);
             });
   }
@@ -174,5 +176,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
                                   -10L,
                                   "must be greater than or equal to 0");
                         }));
+  }
+
+  private Predicate<Class<?>> notAnyOf(Class<?>... classes) {
+    return c -> Stream.of(classes).noneMatch(c::equals);
   }
 }
