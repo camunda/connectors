@@ -321,6 +321,10 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     try {
       VersionedElementTemplate latestVersionedElementTemplate =
           objectMapper.readValue(latestBasicElementTemplateFile, VersionedElementTemplate.class);
+
+      if (Files.notExists(Path.of(this.versionedDirectory))) {
+        Files.createDirectories(Path.of(this.versionedDirectory));
+      }
       Files.copy(
           latestBasicElementTemplateFile.toPath(),
           Path.of(

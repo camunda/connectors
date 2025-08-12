@@ -35,6 +35,7 @@ import java.util.function.Function;
 @ElementTemplate(
     name = "CSV Connector",
     id = "io.camunda.connectors.csv",
+    version = 1,
     engineVersion = "^8.8",
     icon = "icon.svg")
 public class CsvConnector implements OutboundConnectorProvider {
