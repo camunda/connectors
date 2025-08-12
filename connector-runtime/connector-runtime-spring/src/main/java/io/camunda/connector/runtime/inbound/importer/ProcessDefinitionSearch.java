@@ -75,7 +75,7 @@ public class ProcessDefinitionSearch {
       }
       List<Object> newPaginationIdx = processDefinitionResult.getSortValues();
 
-      LOG.debug("A page of process definitions has been fetched, continuing...");
+      LOG.trace("A page of process definitions has been fetched, continuing...");
 
       if (!CollectionUtils.isEmpty(newPaginationIdx)) {
         paginationIndex = newPaginationIdx;

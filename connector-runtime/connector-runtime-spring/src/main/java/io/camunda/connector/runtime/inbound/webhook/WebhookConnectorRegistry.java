@@ -18,9 +18,7 @@ package io.camunda.connector.runtime.inbound.webhook;
 
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,20 +26,62 @@ public class WebhookConnectorRegistry {
 
   private final Logger LOG = LoggerFactory.getLogger(WebhookConnectorRegistry.class);
 
-  private final Map<String, RegisteredExecutable.Activated> activeEndpointsByContext =
-      new HashMap<>();
+  private final Map<String, WebhookExecutables> executablesByContext = new HashMap<>();
 
-  public Optional<RegisteredExecutable.Activated> getWebhookConnectorByContextPath(String context) {
-    return Optional.ofNullable(activeEndpointsByContext.get(context));
+  public Optional<RegisteredExecutable.Activated> getActiveWebhook(String context) {
+    return Optional.ofNullable(executablesByContext.get(context))
+        .map(WebhookExecutables::getActiveWebhook);
   }
 
-  public boolean isRegistered(RegisteredExecutable.Activated connector) {
-    var context = connector.context().bindProperties(CommonWebhookProperties.class).getContext();
-    return activeEndpointsByContext.containsKey(context)
-        && activeEndpointsByContext.get(context) == connector;
+  public Map<String, WebhookExecutables> getExecutablesByContext() {
+    return executablesByContext;
   }
 
-  public void register(RegisteredExecutable.Activated connector) {
+  public boolean register(RegisteredExecutable.Activated connector) {
+    var context = getContext(connector);
+
+    WebhookConnectorValidationUtil.logIfWebhookPathDeprecated(connector, context);
+    createExecutablesOrGetExisting(context, connector)
+        .ifPresent(existingExecutables -> existingExecutables.markAsDownAndAdd(connector));
+
+    return registeredAsActiveConnector(connector, context);
+  }
+
+  private boolean registeredAsActiveConnector(
+      RegisteredExecutable.Activated connector, String context) {
+    return getActiveWebhook(context).map(c -> c.equals(connector)).orElse(false);
+  }
+
+  /**
+   * Creates a new {@link WebhookExecutables} instance for the given context if it does not already
+   * exist (and returns an empty Optional), or returns the existing one.
+   */
+  private Optional<WebhookExecutables> createExecutablesOrGetExisting(
+      String context, RegisteredExecutable.Activated connector) {
+    return Optional.ofNullable(
+        executablesByContext.putIfAbsent(context, new WebhookExecutables(connector, context)));
+  }
+
+  public void deregister(RegisteredExecutable.Activated connector) {
+    var context = getContext(connector);
+    var executables = executablesByContext.get(context);
+    if (executables == null) {
+      var logMessage = "Context: " + context + " is not registered. Cannot deregister.";
+      LOG.debug(logMessage);
+      throw new RuntimeException(logMessage);
+    }
+
+    var hasActiveConnector = executables.deregister(connector);
+    if (!hasActiveConnector) {
+      executablesByContext.remove(context);
+    }
+  }
+
+  public void reset() {
+    executablesByContext.clear();
+  }
+
+  private String getContext(RegisteredExecutable.Activated connector) {
     var properties = connector.context().bindProperties(CommonWebhookProperties.class);
     var context = properties.getContext();
     if (context == null) {
@@ -49,60 +89,6 @@ public class WebhookConnectorRegistry {
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
-
-    WebhookConnectorValidationUtil.logIfWebhookPathDeprecated(connector, context);
-
-    var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
-    checkIfEndpointExists(existingEndpoint, context);
-  }
-
-  private void checkIfEndpointExists(
-      RegisteredExecutable.Activated existingEndpoint, String context) {
-    if (existingEndpoint != null) {
-      Map<String, String> elementIdsByProcessId =
-          existingEndpoint.context().getDefinition().elements().stream()
-              .collect(
-                  HashMap::new,
-                  (map, element) -> map.put(element.bpmnProcessId(), element.elementId()),
-                  HashMap::putAll);
-      var logMessage =
-          "Context: "
-              + context
-              + " already in use by: "
-              + elementIdsByProcessId.entrySet().stream()
-                  .map(e -> "process " + e.getKey() + "(" + e.getValue() + ")")
-                  .reduce((a, b) -> a + ", " + b)
-                  .orElse("");
-      LOG.debug(logMessage);
-      throw new RuntimeException(logMessage);
-    }
-  }
-
-  public void deregister(RegisteredExecutable.Activated connector) {
-    var context = connector.context().bindProperties(CommonWebhookProperties.class).getContext();
-    var registeredConnector = activeEndpointsByContext.get(context);
-    if (registeredConnector == null) {
-      var logMessage = "Context: " + context + " is not registered. Cannot deregister.";
-      LOG.debug(logMessage);
-      throw new RuntimeException(logMessage);
-    }
-    var requesterDeduplicationId = connector.context().getDefinition().deduplicationId();
-    var registeredDeduplicationId = registeredConnector.context().getDefinition().deduplicationId();
-
-    if (!registeredDeduplicationId.equals(requesterDeduplicationId)) {
-      var logMessage =
-          "Context: "
-              + context
-              + " is not registered by the connector with deduplication ID: "
-              + requesterDeduplicationId
-              + ". Cannot deregister.";
-      LOG.debug(logMessage);
-      throw new RuntimeException(logMessage);
-    }
-    activeEndpointsByContext.remove(context);
-  }
-
-  public void reset() {
-    activeEndpointsByContext.clear();
+    return context;
   }
 }
