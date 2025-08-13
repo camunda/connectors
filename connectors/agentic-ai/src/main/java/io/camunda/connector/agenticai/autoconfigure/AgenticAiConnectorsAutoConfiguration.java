@@ -239,7 +239,6 @@ public class AgenticAiConnectorsAutoConfiguration {
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       AgentResponseHandler responseHandler,
-      CamundaClient camundaClient,
       CommandExceptionHandlingStrategy exceptionHandlingStrategy,
       MetricsRecorder metricsRecorder) {
     return new JobWorkerAgentRequestHandler(
@@ -250,7 +249,6 @@ public class AgenticAiConnectorsAutoConfiguration {
         gatewayToolHandlers,
         aiFrameworkAdapter,
         responseHandler,
-        camundaClient,
         exceptionHandlingStrategy,
         metricsRecorder);
   }

@@ -40,7 +40,6 @@ public class JobWorkerAgentRequestHandler
 
   private static final int MAX_ZEEBE_COMMAND_RETRIES = 3;
 
-  private final CamundaClient camundaClient;
   private final CommandExceptionHandlingStrategy defaultExceptionHandlingStrategy;
   private final MetricsRecorder metricsRecorder;
 
@@ -52,7 +51,6 @@ public class JobWorkerAgentRequestHandler
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
       AgentResponseHandler responseHandler,
-      CamundaClient camundaClient,
       CommandExceptionHandlingStrategy defaultExceptionHandlingStrategy,
       MetricsRecorder metricsRecorder) {
     super(
@@ -63,8 +61,6 @@ public class JobWorkerAgentRequestHandler
         gatewayToolHandlers,
         framework,
         responseHandler);
-
-    this.camundaClient = camundaClient;
     this.defaultExceptionHandlingStrategy = defaultExceptionHandlingStrategy;
     this.metricsRecorder = metricsRecorder;
   }
@@ -74,27 +70,7 @@ public class JobWorkerAgentRequestHandler
       JobWorkerAgentExecutionContext executionContext,
       AgentContext agentContext,
       List<Message> addedUserMessages) {
-    if (CollectionUtils.isEmpty(addedUserMessages)) {
-      return false;
-    }
-
-    try {
-      final var searchResult =
-          camundaClient
-              .newJobSearchRequest()
-              .filter(
-                  jobFilter ->
-                      jobFilter.jobKey(executionContext.job().getKey()).state(JobState.CREATED))
-              .send()
-              .join();
-
-      return searchResult.items().size() == 1;
-    } catch (ClientException e) {
-      LOGGER.warn(
-          "Unable to determine if AI Agent job worker job is still valid. Continuing with processing. Exception: {}",
-          e.getMessage());
-      return true;
-    }
+    return !CollectionUtils.isEmpty(addedUserMessages);
   }
 
   @Override
