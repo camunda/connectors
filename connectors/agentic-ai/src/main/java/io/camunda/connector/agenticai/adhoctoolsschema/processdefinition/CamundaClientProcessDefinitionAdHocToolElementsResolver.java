@@ -12,8 +12,7 @@ import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperti
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractionException;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.FeelExpressionParameterExtractor;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -45,10 +44,10 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
       "AD_HOC_TOOL_DEFINITION_INVALID";
 
   private final CamundaClient camundaClient;
-  private final FeelExpressionParameterExtractor parameterExtractor;
+  private final AdHocToolElementParameterExtractor parameterExtractor;
 
   public CamundaClientProcessDefinitionAdHocToolElementsResolver(
-      CamundaClient camundaClient, FeelExpressionParameterExtractor parameterExtractor) {
+      CamundaClient camundaClient, AdHocToolElementParameterExtractor parameterExtractor) {
     this.camundaClient = camundaClient;
     this.parameterExtractor = parameterExtractor;
   }
@@ -135,7 +134,7 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
     if (source.startsWith("=")) {
       try {
         return parameterExtractor.extractParameters(source.substring(1));
-      } catch (FeelExpressionParameterExtractionException e) {
+      } catch (Exception e) {
         final var mappingType =
             switch (mapping) {
               case ZeebeInput ignored -> "input";
