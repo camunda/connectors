@@ -65,6 +65,7 @@ public class ProcessDefinitionImporter {
     if (definitions.isEmpty()) {
       return;
     }
+    LOG.trace("Handle of the imported process definitions starts...");
     try {
       meter(definitions.size());
       var result =
@@ -78,6 +79,7 @@ public class ProcessDefinitionImporter {
                           definition ->
                               new ProcessDefinitionVersion(
                                   definition.getKey(), definition.getVersion().intValue()))));
+      LOG.trace("Updating the store with retrieved process definitions");
       stateStore.update(result);
     } catch (Exception e) {
       LOG.error("Failed to handle imported definitions", e);
