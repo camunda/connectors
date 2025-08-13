@@ -30,7 +30,7 @@ public class ActivityLogRegistry implements ActivityLogWriter {
 
   private final Logger LOG = LoggerFactory.getLogger(ActivityLogRegistry.class);
 
-  private final Map<String, EvictingQueue<Activity>> activityLogs = new HashMap<>();
+  private final Map<ExecutableId, EvictingQueue<Activity>> activityLogs = new HashMap<>();
 
   private final int maxLogSize;
 
@@ -43,29 +43,22 @@ public class ActivityLogRegistry implements ActivityLogWriter {
   }
 
   public Queue<Activity> getLogs(ExecutableId executableId) {
-    return activityLogs.get(executableId.getId());
+    return activityLogs.get(executableId);
   }
 
   @Override
   public void log(ActivityLogEntry logEntry) {
     String message = logEntry.activity().toString();
     MDC.put("executableId", logEntry.executableId().getId());
+    MDC.put("source", logEntry.source().name());
     switch (logEntry.activity().severity()) {
       case DEBUG -> LOG.debug(message);
       case INFO -> LOG.info(message);
       case ERROR, WARNING -> LOG.warn(message); // errors would be too noisy
     }
     MDC.clear();
-    activityLogs.compute(
-        logEntry.executableId().getId(),
-        (key, value) -> {
-          if (value == null) {
-            EvictingQueue<Activity> newQueue = EvictingQueue.create(maxLogSize);
-            newQueue.add(logEntry.activity());
-            return newQueue;
-          }
-          value.add(logEntry.activity());
-          return value;
-        });
+    activityLogs
+        .computeIfAbsent(logEntry.executableId(), key -> EvictingQueue.create(maxLogSize))
+        .add(logEntry.activity());
   }
 }
