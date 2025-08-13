@@ -20,7 +20,7 @@ import static io.camunda.connector.runtime.core.ConnectorHelper.instantiateConne
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.runtime.core.common.DefaultConnectorFactory;
+import io.camunda.connector.runtime.core.common.AbstractConnectorFactory;
 import io.camunda.connector.runtime.core.config.ConnectorDirection;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.discovery.DisabledConnectorEnvVarsConfig;
@@ -39,14 +39,13 @@ import org.slf4j.LoggerFactory;
  * is requested.
  */
 public class DefaultInboundConnectorFactory
-    extends DefaultConnectorFactory<
+    extends AbstractConnectorFactory<
         InboundConnectorExecutable<InboundConnectorContext>, InboundConnectorConfiguration>
     implements InboundConnectorFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultInboundConnectorFactory.class);
 
   public DefaultInboundConnectorFactory() {
-    super();
     List<InboundConnectorConfiguration> input;
     if (DisabledConnectorEnvVarsConfig.isDiscoveryDisabled(ConnectorDirection.INBOUND)) {
       return;

@@ -21,7 +21,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.common.DefaultConnectorFactory;
+import io.camunda.connector.runtime.core.common.AbstractConnectorFactory;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.ConnectorDirection;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class DefaultOutboundConnectorFactory
-    extends DefaultConnectorFactory<OutboundConnectorFunction, OutboundConnectorConfiguration>
+    extends AbstractConnectorFactory<OutboundConnectorFunction, OutboundConnectorConfiguration>
     implements OutboundConnectorFactory {
 
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
@@ -52,9 +52,7 @@ public class DefaultOutboundConnectorFactory
       List<OutboundConnectorFunction> constructorFunctions,
       List<OutboundConnectorProvider> constructorProviders,
       Function<String, String> propertyProvider) {
-    super();
     this.propertyProvider = propertyProvider;
-
     List<OutboundConnectorConfiguration> envVarConfigurations = new ArrayList<>();
     Stream<ServiceLoader.Provider<OutboundConnectorFunction>> spiFunctions = Stream.empty();
     Stream<ServiceLoader.Provider<OutboundConnectorProvider>> spiProviders = Stream.empty();

@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  * @param <T> Connector supertype
  * @param <C> Connector configuration type
  */
-public abstract class DefaultConnectorFactory<T, C extends ConnectorConfiguration>
+public abstract class AbstractConnectorFactory<T, C extends ConnectorConfiguration>
     implements ConnectorFactory<T, C> {
 
   private final DisabledConnectorEnvVarsConfig disabledConnectorEnvVarsConfig =
@@ -82,22 +82,11 @@ public abstract class DefaultConnectorFactory<T, C extends ConnectorConfiguratio
    * @param allConfigurations List of configurations to process
    */
   protected void initializeConfigurations(List<C> allConfigurations) {
-    configurations =
-        allConfigurations.stream()
-            .map(
-                config ->
-                    new ConnectorRuntimeConfiguration<>(
-                        config, !disabledConnectorEnvVarsConfig.isConnectorDisabled(config)))
-            .collect(
-                Collectors.toMap(
-                    e -> e.config().type(),
-                    config -> config,
-                    (existing, replacement) ->
-                        throwDuplicateException(existing.config(), replacement.config()),
-                    HashMap::new));
+    configurations = new HashMap<>();
+    allConfigurations.forEach(this::registerConfiguration);
   }
 
-  private ConnectorRuntimeConfiguration<C> throwDuplicateException(C existing, C replacement) {
+  private void throwDuplicateException(C existing, C replacement) {
     throw new RuntimeException(
         MessageFormat.format(
             "Duplicate {0} connector registration for type: {1}. Got {2} and {3}",
