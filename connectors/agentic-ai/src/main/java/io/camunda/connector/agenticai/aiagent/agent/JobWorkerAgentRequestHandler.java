@@ -6,12 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.client.api.command.ClientException;
 import io.camunda.client.api.command.CompleteJobCommandStep1;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.response.CompleteJobResponse;
-import io.camunda.client.api.search.enums.JobState;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -79,8 +76,18 @@ public class JobWorkerAgentRequestHandler
       AgentResponse agentResponse,
       ConversationStore conversationStore) {
     if (agentResponse == null) {
+      LOGGER.debug(
+          "No agent response provided, completing job {} without response",
+          executionContext.job().getKey());
       completeAsyncWithoutResponse(executionContext);
     } else {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "Agent response provided, completing job {} with response and tool calls: {}",
+            executionContext.job().getKey(),
+            agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
+      }
+
       completeAsyncWithResponse(executionContext, agentResponse, conversationStore);
     }
 
@@ -103,15 +110,21 @@ public class JobWorkerAgentRequestHandler
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
     boolean cancelRemainingInstances = false; // TODO JW check events for interruptions
 
+    LOGGER.debug(
+        "completionConditionFulfilled: {}, cancelRemainingInstances: {}",
+        completionConditionFulfilled,
+        cancelRemainingInstances);
+
     final var variables = new LinkedHashMap<String, Object>();
     if (completionConditionFulfilled) {
+      LOGGER.debug("Completion condition fulfilled, creating agent response variable");
       variables.put(
           AiAgentJobWorker.AGENT_RESPONSE_VARIABLE,
           createAgentResponseVariable(executionContext, agentResponse));
     } else {
+      LOGGER.debug(
+          "Completion condition not fulfilled, creating agent context variable and clearing tool call results for next tool call iteration");
       variables.put(AiAgentJobWorker.AGENT_CONTEXT_VARIABLE, agentResponse.context());
-
-      // clear previous tool call results
       variables.put(AiAgentJobWorker.TOOL_CALL_RESULTS_VARIABLE, List.of());
     }
 
@@ -127,6 +140,12 @@ public class JobWorkerAgentRequestHandler
                           .cancelRemainingInstances(cancelRemainingInstances);
 
                   for (ToolCallProcessVariable toolCall : agentResponse.toolCalls()) {
+                    if (LOGGER.isTraceEnabled()) {
+                      LOGGER.trace("Activating tool {}: {}", toolCall.metadata().name(), toolCall);
+                    } else {
+                      LOGGER.debug("Activating tool {}", toolCall.metadata().name());
+                    }
+
                     adHocSubProcess =
                         adHocSubProcess
                             .activateElement(toolCall.metadata().name())
@@ -151,6 +170,7 @@ public class JobWorkerAgentRequestHandler
             .responseMessage(agentResponse.responseMessage());
 
     if (executionContext.response().includeAgentContext() == true) {
+      LOGGER.debug("Including agent context in response variable");
       builder = builder.context(agentResponse.context());
     }
 
@@ -161,6 +181,10 @@ public class JobWorkerAgentRequestHandler
       JobWorkerAgentExecutionContext executionContext,
       FinalCommandStep<CompleteJobResponse> command,
       CommandExceptionHandlingStrategy exceptionHandlingStrategy) {
+    LOGGER.debug(
+        "Asynchronously executing complete command for job: {}, max retries: {}",
+        executionContext.job().getKey(),
+        MAX_ZEEBE_COMMAND_RETRIES);
     new CommandWrapper(
             command,
             executionContext.job(),
@@ -180,6 +204,8 @@ public class JobWorkerAgentRequestHandler
       return defaultExceptionHandlingStrategy;
     } else {
       return (command, throwable) -> {
+        LOGGER.error("Exception occurred during AI Agent job completion", throwable);
+
         // allow storage to compensate for failed job completion
         conversationStore.compensateFailedJobCompletion(
             executionContext, agentResponse.context(), throwable);

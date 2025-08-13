@@ -23,9 +23,14 @@ import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext>
     implements AgentRequestHandler<C> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultAgentRequestHandler.class);
 
   private static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
 
@@ -60,13 +65,21 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
     return switch (agentInitializationResult) {
       // directly return agent response if needed (e.g. tool discovery tool calls before calling the
       // LLM)
-      case AgentResponseInitializationResult(AgentResponse agentResponse) ->
-          completeJob(executionContext, agentResponse, null);
+      case AgentResponseInitializationResult(AgentResponse agentResponse) -> {
+        LOGGER.debug(
+            "AI Agent initialization returned direct response including {} tool calls. Completing job without further processing.",
+            agentResponse.toolCalls().size());
+        yield completeJob(executionContext, agentResponse, null);
+      }
 
       case AgentContextInitializationResult(
-              AgentContext agentContext,
-              List<ToolCallResult> toolCallResults) ->
-          handleRequest(executionContext, agentContext, toolCallResults);
+          AgentContext agentContext,
+          List<ToolCallResult> toolCallResults) -> {
+        LOGGER.debug(
+            "Handling agent request with {} tool call results",
+            toolCallResults != null ? toolCallResults.size() : 0);
+        yield handleRequest(executionContext, agentContext, toolCallResults);
+      }
     };
   }
 
@@ -81,6 +94,10 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
             executionContext,
             agentContext,
             session -> handleRequest(executionContext, agentContext, toolCallResults, session));
+
+    LOGGER.debug(
+        "Request processing completed {} agent response, completing job",
+        agentResponse == null ? "without" : "with");
 
     return completeJob(executionContext, agentResponse, conversationStore);
   }
@@ -97,16 +114,27 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
                 .map(MemoryConfiguration::contextWindowSize)
                 .orElse(DEFAULT_CONTEXT_WINDOW_SIZE));
 
+    LOGGER.trace("Loading previous conversation (if any) into runtime memory");
     session.loadIntoRuntimeMemory(agentContext, runtimeMemory);
 
     // validate configured limits
+    LOGGER.trace("Validating configured limits for agent execution");
     limitsValidator.validateConfiguredLimits(executionContext, agentContext);
 
     // update memory with system message
+    LOGGER.trace("Adding system message (if necessary)");
     messagesHandler.addSystemMessage(
         executionContext, agentContext, runtimeMemory, executionContext.systemPrompt());
 
     // update memory with user messages/tool call responses
+    LOGGER.trace("Adding system message (if necessary)");
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "Adding user messaged including {} tool call results for the following tool call results: {}",
+          toolCallResults.size(),
+          toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
+    }
+
     final var userMessages =
         messagesHandler.addUserMessages(
             executionContext,
@@ -117,15 +145,20 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
 
     // check if we're actually able to call the model, abort early otherwise
     if (!modelCallPrerequisitesFulfilled(executionContext, agentContext, userMessages)) {
+      LOGGER.debug("Model call prerequisites not fulfilled, returning without agent response");
       return null;
     }
 
     // call framework with memory
+    LOGGER.debug("Executing chat request with AI framework");
     final var frameworkChatResponse =
         framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
     agentContext = frameworkChatResponse.agentContext();
 
     final var assistantMessage = frameworkChatResponse.assistantMessage();
+    LOGGER.debug(
+        "Received assistant message containing {} tool call requests",
+        assistantMessage.toolCalls() != null ? assistantMessage.toolCalls().size() : 0);
     runtimeMemory.addMessage(assistantMessage);
 
     // apply potential gateway tool call transformations & map tool call to process
@@ -136,6 +169,7 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
         toolCalls.stream().map(ToolCallProcessVariable::from).toList();
 
     // store memory reference to context
+    LOGGER.debug("Storing runtime memory to conversation session");
     agentContext = session.storeFromRuntimeMemory(agentContext, runtimeMemory);
 
     return responseHandler.createResponse(
