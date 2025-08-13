@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.aws.bedrock.mapper;
 
-import io.camunda.connector.aws.bedrock.util.FileUtil;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.aws.bedrock.util.FileUtil;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MimeTypeException;
 import org.slf4j.Logger;

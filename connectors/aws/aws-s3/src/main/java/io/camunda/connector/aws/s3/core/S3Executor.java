@@ -7,14 +7,14 @@
 package io.camunda.connector.aws.s3.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.s3.model.request.*;
 import io.camunda.connector.aws.s3.model.response.DeleteResponse;
 import io.camunda.connector.aws.s3.model.response.DownloadResponse;
 import io.camunda.connector.aws.s3.model.response.Element;
 import io.camunda.connector.aws.s3.model.response.UploadResponse;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;

@@ -20,12 +20,12 @@ import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
 import com.box.sdk.BoxSearch;
 import com.box.sdk.BoxSearchParameters;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.box.model.BoxRequest;
 import io.camunda.connector.box.model.BoxRequest.Operation.Search.SortDirection;
 import io.camunda.connector.box.model.BoxResult;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import java.util.Optional;
 import java.util.stream.Collectors;
 

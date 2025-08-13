@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
@@ -26,7 +27,6 @@ import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.utils.TestSecretProvider;
 import io.camunda.connector.runtime.utils.TestValidation;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import org.junit.jupiter.api.Test;

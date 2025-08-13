@@ -10,13 +10,13 @@ import static io.camunda.connector.generator.java.annotation.TemplateProperty.Pr
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Text;
 
 import com.sendgrid.helpers.mail.objects.Email;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
-import io.camunda.connector.api.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;

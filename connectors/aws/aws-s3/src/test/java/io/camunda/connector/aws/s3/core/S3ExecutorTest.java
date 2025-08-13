@@ -11,6 +11,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.aws.s3.model.request.DeleteObject;
 import io.camunda.connector.aws.s3.model.request.DownloadObject;
 import io.camunda.connector.aws.s3.model.request.S3Action;
@@ -19,8 +21,6 @@ import io.camunda.connector.aws.s3.model.response.DeleteResponse;
 import io.camunda.connector.aws.s3.model.response.DownloadResponse;
 import io.camunda.connector.aws.s3.model.response.Element;
 import io.camunda.connector.aws.s3.model.response.UploadResponse;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.function.Function;

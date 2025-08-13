@@ -8,7 +8,6 @@ package io.camunda.connector.http.graphql;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -16,6 +15,7 @@ import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

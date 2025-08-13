@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.action.retrieve;
 
-import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 
 public interface RetrievingActionProcessor {
   RetrievingActionProcessorResponse retrieve(

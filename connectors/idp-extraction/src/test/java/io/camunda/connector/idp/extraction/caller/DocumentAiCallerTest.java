@@ -146,8 +146,8 @@ class DocumentAiCallerTest {
 
     // Mock ExtractionRequestData and Document
     ExtractionRequestData requestData = mock(ExtractionRequestData.class);
-    io.camunda.connector.api.document.Document mockInputDocument = mock(
-        io.camunda.connector.api.document.Document.class);
+    io.camunda.connector.api.document.Document mockInputDocument =
+        mock(io.camunda.connector.api.document.Document.class);
     DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
     InputStream mockInputStream = new ByteArrayInputStream("test document content".getBytes());
 
@@ -240,8 +240,8 @@ class DocumentAiCallerTest {
     baseRequest.setAuthentication(authentication);
 
     ExtractionRequestData requestData = mock(ExtractionRequestData.class);
-    io.camunda.connector.api.document.Document mockInputDocument = mock(
-        io.camunda.connector.api.document.Document.class);
+    io.camunda.connector.api.document.Document mockInputDocument =
+        mock(io.camunda.connector.api.document.Document.class);
     DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
     InputStream mockInputStream = new ByteArrayInputStream("test document content".getBytes());
 
@@ -352,8 +352,8 @@ class DocumentAiCallerTest {
     baseRequest.setAuthentication(authentication);
 
     ExtractionRequestData requestData = mock(ExtractionRequestData.class);
-    io.camunda.connector.api.document.Document mockInputDocument = mock(
-        io.camunda.connector.api.document.Document.class);
+    io.camunda.connector.api.document.Document mockInputDocument =
+        mock(io.camunda.connector.api.document.Document.class);
     DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
     InputStream mockInputStream = new ByteArrayInputStream("test document content".getBytes());
 
@@ -506,8 +506,8 @@ class DocumentAiCallerTest {
     baseRequest.setAuthentication(authentication);
 
     ExtractionRequestData requestData = mock(ExtractionRequestData.class);
-    io.camunda.connector.api.document.Document mockInputDocument = mock(
-        io.camunda.connector.api.document.Document.class);
+    io.camunda.connector.api.document.Document mockInputDocument =
+        mock(io.camunda.connector.api.document.Document.class);
     DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
     InputStream mockInputStream = new ByteArrayInputStream("test document content".getBytes());
 
