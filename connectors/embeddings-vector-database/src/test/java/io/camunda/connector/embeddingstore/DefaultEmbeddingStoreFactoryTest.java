@@ -59,7 +59,7 @@ class DefaultEmbeddingStoreFactoryTest {
     final var store =
         factory.initializeVectorStore(
             EmbeddingsVectorStoreFixture.createElasticsearchVectorStore(), mockModel, null);
-    assertThat(store).isInstanceOf(ElasticsearchEmbeddingStore.class);
+    assertThat(store.getEmbeddingStore()).isInstanceOf(ElasticsearchEmbeddingStore.class);
   }
 
   @Test
@@ -69,7 +69,7 @@ class DefaultEmbeddingStoreFactoryTest {
     final var store =
         factory.initializeVectorStore(
             EmbeddingsVectorStoreFixture.createOpenSearchVectorStore(), mockModel, null);
-    assertThat(store).isInstanceOf(OpenSearchEmbeddingStore.class);
+    assertThat(store.getEmbeddingStore()).isInstanceOf(OpenSearchEmbeddingStore.class);
   }
 
   @Test
@@ -79,7 +79,7 @@ class DefaultEmbeddingStoreFactoryTest {
     final var store =
         factory.initializeVectorStore(
             EmbeddingsVectorStoreFixture.createAmazonManagedOpenVectorStore(), mockModel, null);
-    assertThat(store).isInstanceOf(OpenSearchEmbeddingStore.class);
+    assertThat(store.getEmbeddingStore()).isInstanceOf(OpenSearchEmbeddingStore.class);
   }
 
   @Nested
