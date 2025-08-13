@@ -21,9 +21,9 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.util.StreamUtils.copyToByteArray;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ProcessDefinition;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
@@ -32,7 +32,6 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.test.SlowTest;
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaSpringProcessTest;

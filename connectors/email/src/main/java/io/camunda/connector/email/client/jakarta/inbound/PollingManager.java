@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.email.client.jakarta.inbound;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.email.authentication.Authentication;
@@ -14,8 +16,6 @@ import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
 import io.camunda.connector.email.exception.EmailConnectorException;
 import io.camunda.connector.email.inbound.model.*;
 import io.camunda.connector.email.response.ReadEmailResponse;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import jakarta.mail.*;
 import jakarta.mail.search.FlagTerm;
 import java.time.Duration;

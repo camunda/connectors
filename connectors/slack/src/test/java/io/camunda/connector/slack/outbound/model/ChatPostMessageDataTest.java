@@ -28,12 +28,12 @@ import com.slack.api.model.File;
 import com.slack.api.model.Message;
 import com.slack.api.model.User;
 import com.slack.api.util.http.SlackHttpClient;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.document.CamundaDocument;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -287,42 +287,43 @@ class ChatPostMessageDataTest {
     var byteInput = new ByteArrayInputStream(new byte[0]);
     when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
 
-    DocumentMetadata documentMetadata = new DocumentMetadata() {
-      @Override
-      public String getContentType() {
-        return "text/plain";
-      }
+    DocumentMetadata documentMetadata =
+        new DocumentMetadata() {
+          @Override
+          public String getContentType() {
+            return "text/plain";
+          }
 
-      @Override
-      public OffsetDateTime getExpiresAt() {
-        return OffsetDateTime.now().plusDays(1);
-      }
+          @Override
+          public OffsetDateTime getExpiresAt() {
+            return OffsetDateTime.now().plusDays(1);
+          }
 
-      @Override
-      public Long getSize() {
-        return 3000L;
-      }
+          @Override
+          public Long getSize() {
+            return 3000L;
+          }
 
-      @Override
-      public String getFileName() {
-        return "fileName.txt";
-      }
+          @Override
+          public String getFileName() {
+            return "fileName.txt";
+          }
 
-      @Override
-      public String getProcessDefinitionId() {
-        return "processId";
-      }
+          @Override
+          public String getProcessDefinitionId() {
+            return "processId";
+          }
 
-      @Override
-      public Long getProcessInstanceKey() {
-        return 2000L;
-      }
+          @Override
+          public Long getProcessInstanceKey() {
+            return 2000L;
+          }
 
-      @Override
-      public Map<String, Object> getCustomProperties() {
-        return Map.of();
-      }
-    };
+          @Override
+          public Map<String, Object> getCustomProperties() {
+            return Map.of();
+          }
+        };
 
     return new CamundaDocument(documentMetadata, documentReference, documentStore);
   }

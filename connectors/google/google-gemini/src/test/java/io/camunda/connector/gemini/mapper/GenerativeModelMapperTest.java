@@ -11,9 +11,9 @@ import static io.camunda.connector.gemini.TestUtil.readValue;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.cloud.vertexai.api.*;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.gemini.model.GeminiRequest;
 import io.camunda.connector.gemini.supplier.VertexAISupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

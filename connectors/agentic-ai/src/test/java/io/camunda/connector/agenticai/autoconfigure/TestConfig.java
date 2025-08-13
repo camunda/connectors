@@ -10,8 +10,8 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.document.store.CamundaDocumentStore;
 import org.springframework.context.annotation.Bean;
 

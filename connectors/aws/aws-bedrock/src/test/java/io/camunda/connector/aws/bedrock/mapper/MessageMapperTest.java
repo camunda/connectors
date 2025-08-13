@@ -12,12 +12,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.aws.bedrock.model.BedrockContent;
 import io.camunda.connector.aws.bedrock.model.BedrockMessage;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.CamundaDocument;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

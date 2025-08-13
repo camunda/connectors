@@ -8,7 +8,6 @@ package io.camunda.connector.inbound.authorization;
 
 import com.auth0.jwk.JwkProviderBuilder;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler.NoOpAuthorizationHandler;
 import io.camunda.connector.inbound.model.WebhookAuthorization;
@@ -16,6 +15,7 @@ import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.BasicAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.None;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 

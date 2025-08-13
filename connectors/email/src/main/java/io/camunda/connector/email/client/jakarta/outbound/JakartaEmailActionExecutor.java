@@ -8,6 +8,8 @@ package io.camunda.connector.email.client.jakarta.outbound;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.EmailActionExecutor;
@@ -17,8 +19,6 @@ import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.email.response.*;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.mail.*;
