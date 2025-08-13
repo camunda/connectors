@@ -16,10 +16,10 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.Doc
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.document.DocumentFactoryImpl;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;

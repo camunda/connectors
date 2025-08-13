@@ -16,10 +16,9 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import static io.camunda.connector.runtime.core.ConnectorHelper.instantiateConnector;
-
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.core.common.AbstractConnectorFactory;
 import io.camunda.connector.runtime.core.config.ConnectorDirection;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
@@ -81,7 +80,7 @@ public class DefaultInboundConnectorFactory
           configuration.customInstanceSupplier().get();
     } else {
       return (InboundConnectorExecutable<InboundConnectorContext>)
-          instantiateConnector(configuration.connectorClass());
+          ConnectorConfigurationUtil.instantiateConnector(configuration.connectorClass());
     }
   }
 

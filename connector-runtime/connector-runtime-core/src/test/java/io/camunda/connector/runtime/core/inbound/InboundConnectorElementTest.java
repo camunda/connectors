@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.ProcessElement;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
@@ -43,7 +43,7 @@ public class InboundConnectorElementTest {
             new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
 
     // when
-    var result = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(testObj);
+    var result = new ObjectMapper().writeValueAsString(testObj);
 
     // then
     assertThat(result).doesNotContain("auth", "abc");

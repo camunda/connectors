@@ -16,8 +16,9 @@
  */
 package io.camunda.document.store;
 
-import io.camunda.document.DocumentLinkParameters;
-import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentLinkParameters;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import java.io.InputStream;
 
 public interface CamundaDocumentStore {

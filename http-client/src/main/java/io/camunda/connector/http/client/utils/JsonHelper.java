@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonParseException;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.util.Optional;
 

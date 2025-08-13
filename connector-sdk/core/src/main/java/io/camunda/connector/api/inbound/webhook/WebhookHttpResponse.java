@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.api.inbound.webhook;
 
-import io.camunda.document.reference.DocumentReference;
+import io.camunda.connector.api.document.DocumentReference;
 import java.util.List;
 import java.util.Map;
 

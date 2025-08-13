@@ -12,7 +12,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.http.base.HttpService;

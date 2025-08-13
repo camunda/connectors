@@ -59,6 +59,11 @@
       <artifactId>connector-runtime-core</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>org.springframework</groupId>

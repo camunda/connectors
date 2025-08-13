@@ -8,7 +8,7 @@ package io.camunda.connector.aws.bedrock.mapper;
 
 import io.camunda.connector.aws.bedrock.model.BedrockContent;
 import io.camunda.connector.aws.bedrock.model.BedrockMessage;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.List;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;

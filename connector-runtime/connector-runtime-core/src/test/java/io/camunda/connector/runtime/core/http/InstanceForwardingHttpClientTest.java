@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.http;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -42,7 +43,7 @@ public class InstanceForwardingHttpClientTest {
     var mockedHttpClient = mock(HttpClient.class);
     when(mockedHttpClient.send(any(), any())).thenReturn(mock(HttpResponse.class));
     InstanceForwardingHttpClient instanceForwardingHttpClient =
-        new InstanceForwardingHttpClient(mockedHttpClient, urlBuilder);
+        new InstanceForwardingHttpClient(mockedHttpClient, urlBuilder, new ObjectMapper());
 
     // when
     instanceForwardingHttpClient.execute(

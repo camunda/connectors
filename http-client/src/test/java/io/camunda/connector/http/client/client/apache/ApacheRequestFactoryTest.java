@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.Base64Helper;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.model.HttpClientRequest;
@@ -33,6 +32,7 @@ import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -15,7 +15,7 @@ import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.TextractAnalysisTask;
 import io.camunda.connector.idp.extraction.model.TextractTextDetectionTask;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

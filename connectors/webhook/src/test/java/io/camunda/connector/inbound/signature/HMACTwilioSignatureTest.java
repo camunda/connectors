@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.webhook.Part;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;

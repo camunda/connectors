@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.EvictingQueue;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;

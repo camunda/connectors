@@ -31,6 +31,7 @@ import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Arrays;
 
@@ -39,9 +40,9 @@ import java.util.Arrays;
  * outbound and inbound connector configurations, as well as to extract input variables from
  * annotated methods.
  */
-public final class ConnectorUtil {
+public final class ConnectorConfigurationUtil {
 
-  private ConnectorUtil() {}
+  private ConnectorConfigurationUtil() {}
 
   public static OutboundConnectorConfiguration getOutboundConnectorConfiguration(
       Class<? extends OutboundConnectorFunction> cls) {
@@ -58,7 +59,7 @@ public final class ConnectorUtil {
         annotation.name(),
         getInputVariables(cls, annotation),
         configurationOverrides.typeOverride().orElse(annotation.type()),
-        () -> ConnectorHelper.instantiateConnector(cls),
+        () -> instantiateConnector(cls),
         configurationOverrides.timeoutOverride().orElse(null));
   }
 
@@ -131,5 +132,19 @@ public final class ConnectorUtil {
                   });
         });
     return variables;
+  }
+
+  public static <T> T instantiateConnector(Class<? extends T> connectorClass) {
+    try {
+      return connectorClass.getDeclaredConstructor().newInstance();
+
+    } catch (InvocationTargetException
+        | InstantiationException
+        | IllegalAccessException
+        | ClassCastException
+        | NoSuchMethodException e) {
+
+      throw new IllegalStateException("Failed to instantiate connector " + connectorClass, e);
+    }
   }
 }

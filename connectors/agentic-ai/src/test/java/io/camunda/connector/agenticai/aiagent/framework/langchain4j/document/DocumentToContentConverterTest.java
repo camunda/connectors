@@ -15,7 +15,7 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

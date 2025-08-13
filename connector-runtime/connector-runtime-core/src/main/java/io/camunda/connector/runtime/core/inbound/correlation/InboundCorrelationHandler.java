@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound.correlation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.client.api.response.ProcessInstanceEvent;
@@ -31,7 +32,7 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlready
 import io.camunda.connector.api.inbound.ProcessElementContext;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
-import io.camunda.connector.runtime.core.ConnectorHelper;
+import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.grpc.Status;
@@ -54,15 +55,19 @@ public class InboundCorrelationHandler {
 
   private final Duration defaultMessageTtl;
 
+  private final ConnectorResultHandler connectorResultHandler;
+
   public InboundCorrelationHandler(
       CamundaClient camundaClient,
       FeelEngineWrapper feelEngine,
+      ObjectMapper objectMapper,
       ProcessElementContextFactory processElementContextFactory,
       Duration defaultMessageTtl) {
     this.camundaClient = camundaClient;
     this.feelEngine = feelEngine;
     this.processElementContextFactory = processElementContextFactory;
     this.defaultMessageTtl = defaultMessageTtl;
+    this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
   }
 
   public CorrelationResult correlate(List<InboundConnectorElement> elements, Object variables) {
@@ -300,7 +305,7 @@ public class InboundCorrelationHandler {
   }
 
   protected Object extractVariables(Object rawVariables, InboundConnectorElement definition) {
-    return ConnectorHelper.createOutputVariables(
+    return connectorResultHandler.createOutputVariables(
         rawVariables, definition.resultVariable(), definition.resultExpression());
   }
 

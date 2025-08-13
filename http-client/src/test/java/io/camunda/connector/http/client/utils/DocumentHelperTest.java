@@ -19,10 +19,10 @@ package io.camunda.connector.http.client.utils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.http.client.TestDocumentFactory;
 import io.camunda.document.CamundaDocument;
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

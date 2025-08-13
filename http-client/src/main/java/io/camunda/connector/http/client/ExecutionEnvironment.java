@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.client;
 
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.api.document.DocumentFactory;
 
 public sealed interface ExecutionEnvironment
     permits ExecutionEnvironment.SaaSCluster,

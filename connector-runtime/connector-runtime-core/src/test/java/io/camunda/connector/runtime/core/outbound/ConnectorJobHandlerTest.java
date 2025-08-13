@@ -40,9 +40,9 @@ import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -71,7 +71,8 @@ class ConnectorJobHandlerTest {
     class ResultVariableTests {
 
       protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-        return new ConnectorJobHandler(call, new FooBarSecretProvider(), e -> {}, null, null);
+        return new ConnectorJobHandler(
+            call, new FooBarSecretProvider(), e -> {}, null, TestObjectMapperSupplier.INSTANCE);
       }
 
       @ParameterizedTest
@@ -706,7 +707,9 @@ class ConnectorJobHandlerTest {
           JobBuilder.create()
               .withRetries(policyRetries)
               .withVariables(
-                  ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
+                  TestObjectMapperSupplier.INSTANCE
+                      .writer()
+                      .writeValueAsString(result.getVariables()))
               .executeAndCaptureResult(jobHandler, false);
       assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
       // this is still the same value as this is the developer's responsibility to handle the
@@ -755,7 +758,9 @@ class ConnectorJobHandlerTest {
           JobBuilder.create()
               .withRetries(policyRetries)
               .withVariables(
-                  ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
+                  TestObjectMapperSupplier.INSTANCE
+                      .writer()
+                      .writeValueAsString(result.getVariables()))
               .executeAndCaptureResult(jobHandler, false);
       assertThat(result.getErrorMessage()).isEqualTo(basicErrorMessage);
       assertThat(result.getRetries()).isEqualTo(policyRetries - 1);

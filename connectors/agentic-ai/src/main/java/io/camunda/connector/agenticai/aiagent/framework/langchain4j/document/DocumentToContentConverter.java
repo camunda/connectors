@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.document;
 
 import dev.langchain4j.data.message.Content;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 
 public interface DocumentToContentConverter {
   Content convert(Document camundaDocument);

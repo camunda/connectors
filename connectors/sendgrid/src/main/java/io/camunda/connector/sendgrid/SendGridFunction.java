@@ -19,7 +19,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sendgrid.model.SendGridRequest;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;

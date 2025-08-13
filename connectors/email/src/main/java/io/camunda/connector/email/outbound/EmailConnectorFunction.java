@@ -7,7 +7,7 @@
 package io.camunda.connector.email.outbound;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.email.client.EmailActionExecutor;

@@ -23,7 +23,7 @@ import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.caller.FileUploader;
 import io.camunda.connector.slack.outbound.mapper.BlockBuilder;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;

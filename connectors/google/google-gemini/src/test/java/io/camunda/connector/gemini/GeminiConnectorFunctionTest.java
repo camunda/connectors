@@ -20,7 +20,7 @@ import com.google.cloud.vertexai.api.Content;
 import com.google.cloud.vertexai.api.GenerateContentResponse;
 import com.google.cloud.vertexai.api.Part;
 import com.google.cloud.vertexai.generativeai.GenerativeModel;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gemini.caller.GeminiCaller;
 import io.camunda.connector.gemini.mapper.GenerativeModelMapper;

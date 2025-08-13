@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.util.List;
 
 @AgenticAiRecord

@@ -17,15 +17,15 @@
 package io.camunda.connector.http.client.cloudfunction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.utils.DocumentHelper;
-import io.camunda.document.Document;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Collectors;

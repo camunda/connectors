@@ -18,7 +18,7 @@ import com.google.cloud.documentai.v1.DocumentProcessorServiceClient;
 import com.google.cloud.documentai.v1.NormalizedVertex;
 import com.google.cloud.documentai.v1.ProcessRequest;
 import com.google.cloud.documentai.v1.ProcessResponse;
-import io.camunda.client.api.response.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.Polygon;
 import io.camunda.connector.idp.extraction.model.PolygonPoint;
@@ -146,7 +146,8 @@ class DocumentAiCallerTest {
 
     // Mock ExtractionRequestData and Document
     ExtractionRequestData requestData = mock(ExtractionRequestData.class);
-    io.camunda.document.Document mockInputDocument = mock(io.camunda.document.Document.class);
+    io.camunda.connector.api.document.Document mockInputDocument = mock(
+        io.camunda.connector.api.document.Document.class);
     DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
     InputStream mockInputStream = new ByteArrayInputStream("test document content".getBytes());
 
@@ -239,7 +240,8 @@ class DocumentAiCallerTest {
     baseRequest.setAuthentication(authentication);
 
     ExtractionRequestData requestData = mock(ExtractionRequestData.class);
-    io.camunda.document.Document mockInputDocument = mock(io.camunda.document.Document.class);
+    io.camunda.connector.api.document.Document mockInputDocument = mock(
+        io.camunda.connector.api.document.Document.class);
     DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
     InputStream mockInputStream = new ByteArrayInputStream("test document content".getBytes());
 
@@ -350,7 +352,8 @@ class DocumentAiCallerTest {
     baseRequest.setAuthentication(authentication);
 
     ExtractionRequestData requestData = mock(ExtractionRequestData.class);
-    io.camunda.document.Document mockInputDocument = mock(io.camunda.document.Document.class);
+    io.camunda.connector.api.document.Document mockInputDocument = mock(
+        io.camunda.connector.api.document.Document.class);
     DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
     InputStream mockInputStream = new ByteArrayInputStream("test document content".getBytes());
 
@@ -503,7 +506,8 @@ class DocumentAiCallerTest {
     baseRequest.setAuthentication(authentication);
 
     ExtractionRequestData requestData = mock(ExtractionRequestData.class);
-    io.camunda.document.Document mockInputDocument = mock(io.camunda.document.Document.class);
+    io.camunda.connector.api.document.Document mockInputDocument = mock(
+        io.camunda.connector.api.document.Document.class);
     DocumentMetadata mockMetadata = mock(DocumentMetadata.class);
     InputStream mockInputStream = new ByteArrayInputStream("test document content".getBytes());
 

@@ -20,8 +20,7 @@ import static io.camunda.connector.runtime.core.discovery.ConnectorEnvVars.getCo
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.runtime.core.ConnectorHelper;
-import io.camunda.connector.runtime.core.ConnectorUtil;
+import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Arrays;
@@ -81,7 +80,8 @@ public class EnvVarsConnectorDiscovery {
       var cls = (Class<? extends OutboundConnectorFunction>) Class.forName(functionFqdn);
       Optional<OutboundConnectorConfiguration> tmpAnnotationConfig = Optional.empty();
       try {
-        tmpAnnotationConfig = Optional.of(ConnectorUtil.getOutboundConnectorConfiguration(cls));
+        tmpAnnotationConfig =
+            Optional.of(ConnectorConfigurationUtil.getOutboundConnectorConfiguration(cls));
       } catch (RuntimeException e) {
         // For backward compatibility, we allow unannotated classes when constructing
         // from environment variables.
@@ -96,7 +96,7 @@ public class EnvVarsConnectorDiscovery {
           getConnectorEnvironmentVariable(name, "TYPE")
               .or(() -> annotationConfig.map(OutboundConnectorConfiguration::type))
               .orElseThrow(() -> envMissing("Type not specified", name, "TYPE")),
-          () -> ConnectorHelper.instantiateConnector(cls),
+          () -> ConnectorConfigurationUtil.instantiateConnector(cls),
           getConnectorEnvironmentVariable(name, "TIMEOUT")
               .map(Long::parseLong)
               .or(() -> annotationConfig.map(OutboundConnectorConfiguration::timeout))
@@ -118,7 +118,8 @@ public class EnvVarsConnectorDiscovery {
       var cls = (Class<? extends InboundConnectorExecutable>) Class.forName(executableFqdn);
       Optional<InboundConnectorConfiguration> tmpAnnotationConfig = Optional.empty();
       try {
-        tmpAnnotationConfig = Optional.of(ConnectorUtil.getInboundConnectorConfiguration(cls));
+        tmpAnnotationConfig =
+            Optional.of(ConnectorConfigurationUtil.getInboundConnectorConfiguration(cls));
       } catch (RuntimeException e) {
         // For backward compatibility, we allow unannotated classes when constructing
         // from environment variables.

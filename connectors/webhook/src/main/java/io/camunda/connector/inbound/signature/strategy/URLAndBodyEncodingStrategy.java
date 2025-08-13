@@ -9,7 +9,7 @@ package io.camunda.connector.inbound.signature.strategy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.net.MediaType;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import java.io.IOException;
 import java.net.URLDecoder;

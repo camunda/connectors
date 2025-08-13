@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -34,10 +35,11 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   public MeteredInboundCorrelationHandler(
       CamundaClient camundaClient,
       FeelEngineWrapper feelEngine,
+      ObjectMapper objectMapper,
       ProcessElementContextFactory contextFactory,
       Duration messageTtl,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
-    super(camundaClient, feelEngine, contextFactory, messageTtl);
+    super(camundaClient, feelEngine, objectMapper, contextFactory, messageTtl);
     this.connectorsInboundMetrics = connectorsInboundMetrics;
   }
 

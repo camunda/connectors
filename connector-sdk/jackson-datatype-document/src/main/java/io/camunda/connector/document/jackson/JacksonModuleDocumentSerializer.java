@@ -18,8 +18,8 @@ package io.camunda.connector.document.jackson;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.document.jackson.serializer.DocumentSerializer;
-import io.camunda.document.Document;
 
 public class JacksonModuleDocumentSerializer extends SimpleModule {
 

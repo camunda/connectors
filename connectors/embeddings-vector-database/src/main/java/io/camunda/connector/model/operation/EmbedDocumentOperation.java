@@ -15,7 +15,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.embedding.splitter.DocumentSplitter;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;

@@ -30,7 +30,7 @@ import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;

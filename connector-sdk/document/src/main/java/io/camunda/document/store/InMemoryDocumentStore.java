@@ -16,10 +16,11 @@
  */
 package io.camunda.document.store;
 
-import io.camunda.client.api.response.DocumentMetadata;
-import io.camunda.document.DocumentLinkParameters;
-import io.camunda.document.reference.CamundaDocumentReferenceImpl;
-import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentLinkParameters;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.document.CamundaDocumentReferenceImpl;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.OffsetDateTime;

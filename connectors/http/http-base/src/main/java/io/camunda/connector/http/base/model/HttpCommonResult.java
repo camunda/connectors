@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.http.base.model;
 
-import io.camunda.client.api.response.DocumentMetadata;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.generator.java.annotation.DataExample;
 import io.camunda.document.CamundaDocument;
-import io.camunda.document.Document;
-import io.camunda.document.reference.CamundaDocumentReferenceImpl;
-import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.CamundaDocumentReferenceImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.time.OffsetDateTime;
 import java.util.Map;

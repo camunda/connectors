@@ -16,8 +16,8 @@
  */
 package io.camunda.intrinsic.functions;
 
-import io.camunda.document.Document;
-import io.camunda.document.DocumentLinkParameters;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.intrinsic.IntrinsicFunction;
 import io.camunda.intrinsic.IntrinsicFunctionProvider;
 import java.time.Duration;

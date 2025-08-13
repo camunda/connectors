@@ -19,8 +19,7 @@ package io.camunda.connector.runtime.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -28,23 +27,15 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class ConnectorHelperTest {
+class ConnectorResultHandlerTest {
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  private final ConnectorResultHandler connectorResultHandler =
+      new ConnectorResultHandler(objectMapper);
 
   @Test
-  void feelEngineWrapperTest() throws JsonProcessingException {
-    final var jsonDeserialized = Map.of("data", LocalDate.of(2024, 1, 1));
-    assertThat(ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson("{res: data}", jsonDeserialized))
-        .isEqualTo("{\"res\":\"2024-01-01\"}");
-
-    assertThat(ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson("\"test\"", jsonDeserialized))
-        .isEqualTo("\"test\"");
-
-    assertThat(ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson("test", jsonDeserialized))
-        .isEqualTo(null);
-
-    assertThat(ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson("null", jsonDeserialized))
-        .isEqualTo(null);
-
+  void feelEngineWrapperTest() {
     final var jsonDeserialized2 =
         Map.of(
             "data",
@@ -53,20 +44,19 @@ class ConnectorHelperTest {
                 Map.of("date", LocalDate.of(2024, 2, 1), "attr", "value2")));
 
     final var actual =
-        ConnectorHelper.OBJECT_MAPPER.readValue(
-            ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson(
-                """
-                    {
-                    	res1: data[item.attr = "value1"][1].date,
-                                    res2: "hallo" + res1,
-                                    res3: 1 + 2,
-                    	res4: data[item.date = "2024-02-01"][1].attr,
-                    	res5: data[date(item.date) = date("2024-02-01")][1].attr,
-                    	res6: today()
-                    }
-                    """,
-                jsonDeserialized2),
-            new TypeReference<Map<String, Object>>() {});
+        connectorResultHandler.createOutputVariables(
+            jsonDeserialized2,
+            null,
+            """
+                ={
+                	res1: data[item.attr = "value1"][1].date,
+                	res2: "hallo" + res1,
+                	res3: 1 + 2,
+                	res4: data[item.date = "2024-02-01"][1].attr,
+                	res5: data[date(item.date) = date("2024-02-01")][1].attr,
+                	res6: today()
+                }
+                """);
 
     assertThat(actual)
         .contains(
@@ -91,7 +81,7 @@ class ConnectorHelperTest {
     final var exception =
         assertThrows(
             ConnectorInputException.class,
-            () -> ConnectorHelper.createOutputVariables(context, null, resultExpression));
+            () -> connectorResultHandler.createOutputVariables(context, null, resultExpression));
 
     assertThat(exception)
         .hasMessageContaining(

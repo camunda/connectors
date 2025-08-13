@@ -22,6 +22,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
@@ -43,8 +45,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
 import io.grpc.Status;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

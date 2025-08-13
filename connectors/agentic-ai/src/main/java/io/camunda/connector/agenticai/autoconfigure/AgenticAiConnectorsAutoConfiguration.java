@@ -43,7 +43,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImp
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;

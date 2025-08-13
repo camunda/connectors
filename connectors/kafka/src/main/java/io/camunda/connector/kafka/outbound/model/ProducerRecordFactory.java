@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.avro.AvroMapper;
 import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.kafka.converter.GenericRecordConverter;
 import io.camunda.connector.kafka.converter.ObjectNodeConverter;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;

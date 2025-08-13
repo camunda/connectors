@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.json;
+package io.camunda.connector.jackson;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -23,15 +23,15 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
-import io.camunda.document.factory.DocumentFactory;
 import io.camunda.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 
-/** Default ObjectMapper supplier to be used by the connector runtime. */
+/** Default ObjectMapper supplier to be used by OOTB connectors and the Connector runtime. */
 public class ConnectorsObjectMapperSupplier {
 
   private static final ObjectMapper DEFAULT_MAPPER =

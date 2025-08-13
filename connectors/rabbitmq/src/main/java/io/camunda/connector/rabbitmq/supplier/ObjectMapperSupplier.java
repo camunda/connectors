@@ -7,7 +7,7 @@
 package io.camunda.connector.rabbitmq.supplier;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 
 public final class ObjectMapperSupplier {
 
