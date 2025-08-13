@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.fixture;
 
-import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentLinkParameters;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;

@@ -23,6 +23,7 @@ import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
@@ -59,8 +60,8 @@ abstract class BaseMultiInstancesTest {
   final InstanceForwardingHttpClient instanceForwardingHttpClient =
       new InstanceForwardingHttpClient(
           HttpClient.newHttpClient(),
-          (path) ->
-              List.of("http://localhost:" + port1 + path, "http://localhost:" + port2 + path));
+          (path) -> List.of("http://localhost:" + port1 + path, "http://localhost:" + port2 + path),
+          ConnectorsObjectMapperSupplier.getCopy());
 
   static final ExecutableId RANDOM_ID_1 = ExecutableId.fromDeduplicationId("theid1");
   static final ExecutableId ONLY_IN_RUNTIME_1_ID =
