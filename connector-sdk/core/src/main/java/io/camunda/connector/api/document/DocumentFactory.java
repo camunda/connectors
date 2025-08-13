@@ -14,11 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.factory;
-
-import io.camunda.document.Document;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.DocumentCreationRequest;
+package io.camunda.connector.api.document;
 
 public interface DocumentFactory {
 

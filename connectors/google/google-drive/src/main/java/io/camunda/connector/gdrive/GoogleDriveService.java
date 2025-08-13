@@ -21,7 +21,7 @@ import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.gdrive.model.request.Template;
 import io.camunda.connector.gdrive.model.request.Type;
 import io.camunda.connector.gdrive.model.request.Variables;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import io.camunda.google.supplier.GsonComponentSupplier;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

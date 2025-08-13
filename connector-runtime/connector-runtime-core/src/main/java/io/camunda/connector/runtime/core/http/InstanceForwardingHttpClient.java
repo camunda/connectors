@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.core.http;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -30,18 +29,20 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 public class InstanceForwardingHttpClient {
-  private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+  private final ObjectMapper objectMapper;
   public static final String X_CAMUNDA_FORWARDED_FOR = "X-Camunda-Forwarded-For";
   private final HttpClient httpClient;
   private final InstancesUrlBuilder urlBuilder;
 
-  public InstanceForwardingHttpClient(InstancesUrlBuilder urlBuilder) {
-    this(HttpClient.newHttpClient(), urlBuilder);
+  public InstanceForwardingHttpClient(InstancesUrlBuilder urlBuilder, ObjectMapper objectMapper) {
+    this(HttpClient.newHttpClient(), urlBuilder, objectMapper);
   }
 
-  public InstanceForwardingHttpClient(HttpClient httpClient, InstancesUrlBuilder urlBuilder) {
+  public InstanceForwardingHttpClient(
+      HttpClient httpClient, InstancesUrlBuilder urlBuilder, ObjectMapper objectMapper) {
     this.httpClient = httpClient;
     this.urlBuilder = urlBuilder;
+    this.objectMapper = objectMapper;
   }
 
   public <T> List<T> execute(
@@ -59,7 +60,7 @@ public class InstanceForwardingHttpClient {
       var requestBuilder = HttpRequest.newBuilder(URI.create(urlPath));
       if (StringUtils.isNotBlank(body)) {
         requestBuilder.method(
-            method, HttpRequest.BodyPublishers.ofString(OBJECT_MAPPER.writeValueAsString(body)));
+            method, HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)));
       } else {
         requestBuilder.method(method, HttpRequest.BodyPublishers.noBody());
       }
@@ -76,7 +77,7 @@ public class InstanceForwardingHttpClient {
       HttpResponse<String> response =
           httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
       if (response.statusCode() < 400 && response.body() != null) {
-        responses.add(OBJECT_MAPPER.readValue(response.body(), responseType));
+        responses.add(objectMapper.readValue(response.body(), responseType));
       }
     }
     return responses;

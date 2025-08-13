@@ -15,7 +15,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthentication;
 import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

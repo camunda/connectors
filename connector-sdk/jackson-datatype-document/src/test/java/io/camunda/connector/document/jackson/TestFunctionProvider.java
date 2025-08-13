@@ -18,7 +18,7 @@ package io.camunda.connector.document.jackson;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import io.camunda.intrinsic.IntrinsicFunction;
 import io.camunda.intrinsic.IntrinsicFunctionProvider;
 import java.nio.charset.Charset;

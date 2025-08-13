@@ -14,15 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.connector.api.document;
 
-import io.camunda.client.api.response.DocumentReferenceResponse;
+import java.io.InputStream;
 
-public interface DocumentReference {
+/**
+ * Represents a uniform document (file) object that can be passed between connectors and used in the
+ * FEEL engine.
+ */
+public interface Document {
 
-  interface CamundaDocumentReference extends DocumentReference, DocumentReferenceResponse {}
+  /**
+   * Domain-specific metadata that can be attached to the document. When a file is consumed by a
+   * connector as input, the metadata originates from the
+   */
+  DocumentMetadata metadata();
 
-  interface ExternalDocumentReference extends DocumentReference {
-    String url();
-  }
+  String asBase64();
+
+  InputStream asInputStream();
+
+  byte[] asByteArray();
+
+  DocumentReference reference();
+
+  String generateLink(DocumentLinkParameters parameters);
 }

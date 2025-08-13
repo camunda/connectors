@@ -14,21 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.reference;
+package io.camunda.document;
 
-import io.camunda.client.api.response.DocumentMetadata;
 import io.camunda.client.api.response.DocumentReferenceResponse;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 
 public record CamundaDocumentReferenceImpl(
     String storeId, String documentId, String contentHash, DocumentMetadata metadata)
-    implements DocumentReference.CamundaDocumentReference {
+    implements CamundaDocumentReference {
 
   public CamundaDocumentReferenceImpl(DocumentReferenceResponse response) {
     this(
         response.getStoreId(),
         response.getDocumentId(),
         response.getContentHash(),
-        response.getMetadata());
+        new DocumentMetadataImpl(response.getMetadata()));
   }
 
   @Override

@@ -13,7 +13,7 @@ import io.camunda.connector.action.retrieve.RetrievingActionProcessor;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import io.camunda.connector.model.operation.EmbedDocumentOperation;
 import io.camunda.connector.model.operation.RetrieveDocumentOperation;
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.api.document.DocumentFactory;
 
 public class DefaultActionProcessor {
 

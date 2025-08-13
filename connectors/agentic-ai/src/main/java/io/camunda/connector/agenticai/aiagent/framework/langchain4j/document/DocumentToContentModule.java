@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.document;
 
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 
 public class DocumentToContentModule extends SimpleModule {
 

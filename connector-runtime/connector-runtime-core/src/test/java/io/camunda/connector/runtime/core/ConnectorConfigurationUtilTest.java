@@ -34,7 +34,7 @@ import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 @ExtendWith(SystemStubsExtension.class)
-public class ConnectorUtilTest {
+public class ConnectorConfigurationUtilTest {
 
   @Nested
   class GetOutboundConnectorConfiguration {
@@ -44,7 +44,7 @@ public class ConnectorUtilTest {
 
       // when
       OutboundConnectorConfiguration configuration =
-          ConnectorUtil.getOutboundConnectorConfiguration(AnnotatedFunction.class);
+          ConnectorConfigurationUtil.getOutboundConnectorConfiguration(AnnotatedFunction.class);
 
       // then
       assertThat(configuration)
@@ -63,7 +63,9 @@ public class ConnectorUtilTest {
       // when
       Assertions.assertThrows(
           RuntimeException.class,
-          () -> ConnectorUtil.getOutboundConnectorConfiguration(UnannotatedFunction.class));
+          () ->
+              ConnectorConfigurationUtil.getOutboundConnectorConfiguration(
+                  UnannotatedFunction.class));
     }
 
     @Test
@@ -76,7 +78,8 @@ public class ConnectorUtilTest {
       environmentVariables.execute(
           () -> {
             OutboundConnectorConfiguration configuration =
-                ConnectorUtil.getOutboundConnectorConfiguration(AnnotatedFunction.class);
+                ConnectorConfigurationUtil.getOutboundConnectorConfiguration(
+                    AnnotatedFunction.class);
             assertThat(configuration.type()).isEqualTo("io.camunda:connector:XXXXXXX");
             assertThat(configuration.timeout()).isEqualTo(123456L);
           });
@@ -98,7 +101,8 @@ public class ConnectorUtilTest {
 
       // when
       OutboundConnectorConfiguration configuration =
-          ConnectorUtil.getOutboundConnectorConfiguration(NonNormalizedOutboundConnector.class);
+          ConnectorConfigurationUtil.getOutboundConnectorConfiguration(
+              NonNormalizedOutboundConnector.class);
 
       // then
       assertThat(configuration.type()).isEqualTo("io.camunda:connector:1");
@@ -125,7 +129,7 @@ public class ConnectorUtilTest {
       environmentVariables.execute(
           () -> {
             OutboundConnectorConfiguration configuration =
-                ConnectorUtil.getOutboundConnectorConfiguration(
+                ConnectorConfigurationUtil.getOutboundConnectorConfiguration(
                     NonNormalizedOutboundConnector.class);
             // then
             assertThat(configuration.type()).isEqualTo("io.camunda:connector:XXXXXXX");
@@ -148,7 +152,8 @@ public class ConnectorUtilTest {
 
       // when
       OutboundConnectorConfiguration configuration =
-          ConnectorUtil.getOutboundConnectorConfiguration(NonNormalizedOutboundConnector.class);
+          ConnectorConfigurationUtil.getOutboundConnectorConfiguration(
+              NonNormalizedOutboundConnector.class);
 
       // then
       assertThat(configuration.name()).isEqualTo("MY_CONNECTOR");
@@ -175,7 +180,7 @@ public class ConnectorUtilTest {
       environmentVariables.execute(
           () -> {
             OutboundConnectorConfiguration configuration =
-                ConnectorUtil.getOutboundConnectorConfiguration(
+                ConnectorConfigurationUtil.getOutboundConnectorConfiguration(
                     NonNormalizedOutboundConnector.class);
             // then
             assertThat(configuration.name()).isEqualTo("MY_CONNECTOR");
@@ -192,7 +197,7 @@ public class ConnectorUtilTest {
 
       // when
       InboundConnectorConfiguration configuration =
-          ConnectorUtil.getInboundConnectorConfiguration(AnnotatedExecutable.class);
+          ConnectorConfigurationUtil.getInboundConnectorConfiguration(AnnotatedExecutable.class);
 
       // then
       assertThat(configuration)
@@ -208,7 +213,9 @@ public class ConnectorUtilTest {
     public void shouldHandleMissingConnectorConfiguration() {
       Assertions.assertThrows(
           RuntimeException.class,
-          () -> ConnectorUtil.getInboundConnectorConfiguration(UnannotatedExecutable.class));
+          () ->
+              ConnectorConfigurationUtil.getInboundConnectorConfiguration(
+                  UnannotatedExecutable.class));
     }
 
     @Test
@@ -219,7 +226,8 @@ public class ConnectorUtilTest {
       environmentVariables.execute(
           () -> {
             InboundConnectorConfiguration configuration =
-                ConnectorUtil.getInboundConnectorConfiguration(AnnotatedExecutable.class);
+                ConnectorConfigurationUtil.getInboundConnectorConfiguration(
+                    AnnotatedExecutable.class);
             assertThat(configuration.type()).isEqualTo("io.camunda:connector:XXXXXXX");
           });
     }
@@ -238,7 +246,8 @@ public class ConnectorUtilTest {
 
       // when
       InboundConnectorConfiguration configuration =
-          ConnectorUtil.getInboundConnectorConfiguration(NonNormalizedInboundConnector.class);
+          ConnectorConfigurationUtil.getInboundConnectorConfiguration(
+              NonNormalizedInboundConnector.class);
 
       // then
       assertThat(configuration.type()).isEqualTo("io.camunda:connector:1");
@@ -264,7 +273,7 @@ public class ConnectorUtilTest {
       environmentVariables.execute(
           () -> {
             InboundConnectorConfiguration configuration =
-                ConnectorUtil.getInboundConnectorConfiguration(
+                ConnectorConfigurationUtil.getInboundConnectorConfiguration(
                     NonNormalizedOutboundConnector.class);
             // then
             assertThat(configuration.type()).isEqualTo("io.camunda:connector:XXXXXXX");

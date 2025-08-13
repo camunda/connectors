@@ -8,7 +8,7 @@ package io.camunda.connector.csv.model;
 
 public sealed interface WriteCsvResult permits WriteCsvResult.Document, WriteCsvResult.Value {
 
-  record Document(io.camunda.document.Document document) implements WriteCsvResult {}
+  record Document(io.camunda.connector.api.document.Document document) implements WriteCsvResult {}
 
   record Value(String content) implements WriteCsvResult {}
 }

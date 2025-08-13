@@ -12,8 +12,8 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.google.gcs.model.core.ObjectStorageExecutor;
 import io.camunda.connector.google.gcs.model.request.ObjectStorageRequest;
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import java.util.function.Function;
 
 @OutboundConnector(

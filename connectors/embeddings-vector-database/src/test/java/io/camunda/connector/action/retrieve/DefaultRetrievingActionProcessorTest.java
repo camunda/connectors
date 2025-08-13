@@ -18,7 +18,7 @@ import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
 import io.camunda.connector.fixture.CamundaDocumentFixture;
 import io.camunda.connector.fixture.EmbeddingsVectorDBRequestFixture;
 import io.camunda.connector.model.operation.RetrieveDocumentOperation;
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;

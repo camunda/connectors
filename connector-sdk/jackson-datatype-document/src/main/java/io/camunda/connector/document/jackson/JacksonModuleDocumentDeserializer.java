@@ -18,13 +18,13 @@ package io.camunda.connector.document.jackson;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.deserializer.ByteArrayDeserializer;
 import io.camunda.connector.document.jackson.deserializer.DocumentDeserializer;
 import io.camunda.connector.document.jackson.deserializer.InputStreamDeserializer;
 import io.camunda.connector.document.jackson.deserializer.ObjectDeserializer;
 import io.camunda.connector.document.jackson.deserializer.StringDeserializer;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
 import io.camunda.intrinsic.IntrinsicFunctionExecutor;
 import java.io.InputStream;
 

@@ -32,8 +32,8 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDef
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.test.SlowTest;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.instance.Process;
@@ -92,9 +92,6 @@ public class WebhookNotActivatedDocumentTests {
   public static final String TEXT_FILE = "text.txt";
   public static final String PNG_FILE = "camunda1.png";
   @Autowired CamundaClient camundaClient;
-
-  ObjectMapper mapper = new ObjectMapper();
-
   @Autowired MockMvc mockMvc;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;

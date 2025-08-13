@@ -23,7 +23,7 @@ import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
 import io.camunda.connector.gdrive.model.request.*;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;

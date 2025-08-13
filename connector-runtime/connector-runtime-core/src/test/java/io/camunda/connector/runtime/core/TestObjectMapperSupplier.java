@@ -14,8 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.connector.runtime.core;
 
-import java.time.Duration;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 
-public record DocumentLinkParameters(Duration timeToLive) {}
+public class TestObjectMapperSupplier {
+
+  public static final ObjectMapper INSTANCE = ConnectorsObjectMapperSupplier.getCopy();
+}

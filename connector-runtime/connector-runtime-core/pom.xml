@@ -71,6 +71,12 @@
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-validation</artifactId>
       <scope>test</scope>
     </dependency>

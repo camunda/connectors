@@ -23,7 +23,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 import io.camunda.connector.feel.FeelEngineWrapper;
@@ -31,26 +30,29 @@ import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class ConnectorHelper {
+public class ConnectorResultHandler {
 
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
-  public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
-  public static ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
-
   public static List<String> FORBIDDEN_LITERALS = List.of(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
+
+  private FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+  private ObjectMapper objectMapper;
+
+  public ConnectorResultHandler(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
 
   /**
    * @return a map with output process variables for a given response from an {@link
    *     OutboundConnectorFunction} or an {@link InboundConnectorExecutable}. configured with
    *     headers from a Zeebe Job or inbound Connector properties.
    */
-  public static Map<String, Object> createOutputVariables(
+  public Map<String, Object> createOutputVariables(
       final Object responseContent,
       final String resultVariableName,
       final String resultExpression) {
@@ -62,7 +64,7 @@ public class ConnectorHelper {
 
     if (isNotBlank(resultExpression)) {
       var mappedResponseJson =
-          FEEL_ENGINE_WRAPPER.evaluateToJson(
+          feelEngineWrapper.evaluateToJson(
               resultExpression, responseContent, wrapResponse(responseContent));
       if (mappedResponseJson != null) {
         verifyNoForbiddenLiterals(mappedResponseJson);
@@ -76,7 +78,7 @@ public class ConnectorHelper {
     return outputVariables;
   }
 
-  public static Optional<ConnectorError> examineErrorExpression(
+  public Optional<ConnectorError> examineErrorExpression(
       final Object responseContent,
       final Map<String, String> jobHeaders,
       ErrorExpressionJobContext jobContext) {
@@ -85,7 +87,7 @@ public class ConnectorHelper {
         .filter(s -> !s.isBlank())
         .map(
             expression ->
-                FEEL_ENGINE_WRAPPER.evaluateToJson(
+                feelEngineWrapper.evaluateToJson(
                     expression, responseContent, wrapResponse(responseContent), jobContext))
         .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
         .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
@@ -98,24 +100,10 @@ public class ConnectorHelper {
             });
   }
 
-  public static <T> T instantiateConnector(Class<? extends T> connectorClass) {
-    try {
-      return connectorClass.getDeclaredConstructor().newInstance();
-
-    } catch (InvocationTargetException
-        | InstantiationException
-        | IllegalAccessException
-        | ClassCastException
-        | NoSuchMethodException e) {
-
-      throw new IllegalStateException("Failed to instantiate connector " + connectorClass, e);
-    }
-  }
-
-  private static <T> T parseJsonVarsAsTypeOrThrow(
+  private <T> T parseJsonVarsAsTypeOrThrow(
       final String jsonVars, Class<T> type, final String expression) {
     try {
-      return OBJECT_MAPPER.readValue(jsonVars, type);
+      return objectMapper.readValue(jsonVars, type);
     } catch (JsonProcessingException e) {
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
@@ -126,7 +114,7 @@ public class ConnectorHelper {
     }
   }
 
-  private static void verifyNoForbiddenLiterals(String json) {
+  private void verifyNoForbiddenLiterals(String json) {
     FORBIDDEN_LITERALS.forEach(
         literal -> {
           if (json.contains(literal)) {

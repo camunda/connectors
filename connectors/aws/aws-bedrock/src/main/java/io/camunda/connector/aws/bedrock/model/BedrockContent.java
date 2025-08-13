@@ -7,7 +7,7 @@
 package io.camunda.connector.aws.bedrock.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;

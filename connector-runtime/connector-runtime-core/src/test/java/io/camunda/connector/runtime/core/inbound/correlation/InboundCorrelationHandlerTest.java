@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
@@ -34,6 +33,7 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.NoOpSecretProvider;
+import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
@@ -76,8 +76,9 @@ public class InboundCorrelationHandlerTest {
         new InboundCorrelationHandler(
             camundaClient,
             new FeelEngineWrapper(),
+            TestObjectMapperSupplier.INSTANCE,
             new DefaultProcessElementContextFactory(
-                new NoOpSecretProvider(), (e) -> {}, new ObjectMapper()),
+                new NoOpSecretProvider(), (e) -> {}, TestObjectMapperSupplier.INSTANCE),
             DEFAULT_TTL);
   }
 

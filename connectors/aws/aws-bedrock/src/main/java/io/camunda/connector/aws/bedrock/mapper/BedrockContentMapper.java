@@ -7,7 +7,7 @@
 package io.camunda.connector.aws.bedrock.mapper;
 
 import io.camunda.connector.aws.bedrock.model.BedrockContent;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.util.List;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.DocumentBlock;

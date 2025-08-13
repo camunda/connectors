@@ -15,7 +15,7 @@ import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
 import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;

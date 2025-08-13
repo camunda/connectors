@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
@@ -45,7 +46,6 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
-import io.camunda.document.factory.DocumentFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,10 +90,16 @@ public class InboundConnectorRuntimeConfiguration {
   public InboundCorrelationHandler inboundCorrelationHandler(
       final CamundaClient camundaClient,
       final FeelEngineWrapper feelEngine,
+      final ObjectMapper objectMapper,
       final ProcessElementContextFactory elementContextFactory,
       final ConnectorsInboundMetrics connectorsInboundMetrics) {
     return new MeteredInboundCorrelationHandler(
-        camundaClient, feelEngine, elementContextFactory, messageTtl, connectorsInboundMetrics);
+        camundaClient,
+        feelEngine,
+        objectMapper,
+        elementContextFactory,
+        messageTtl,
+        connectorsInboundMetrics);
   }
 
   @Bean

@@ -9,7 +9,7 @@ package io.camunda.connector.action;
 import io.camunda.connector.action.embed.EmbeddingActionProcessor;
 import io.camunda.connector.action.retrieve.RetrievingActionProcessor;
 import io.camunda.connector.fixture.EmbeddingsVectorDBRequestFixture;
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.api.document.DocumentFactory;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

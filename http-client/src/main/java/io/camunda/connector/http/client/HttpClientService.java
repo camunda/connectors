@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.http.client;
 
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.client.blocklist.HttpBlockListManager;
@@ -24,7 +25,6 @@ import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import io.camunda.document.factory.DocumentFactory;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

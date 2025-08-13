@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.client.model;
 
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.util.Map;
 
 public record HttpClientResult(

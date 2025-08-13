@@ -31,6 +31,7 @@
     <module>connectors</module>
     <module>bundle</module>
     <module>http-client</module>
+    <module>connector-object-mapper</module>
   </modules>
 
   <profiles>

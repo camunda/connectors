@@ -16,10 +16,10 @@
  */
 package io.camunda.connector.http.client.document;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

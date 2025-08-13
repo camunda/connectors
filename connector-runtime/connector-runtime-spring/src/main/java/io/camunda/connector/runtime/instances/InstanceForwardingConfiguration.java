@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.instances;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.instances.service.DefaultInstanceForwardingService;
 import io.camunda.connector.runtime.instances.service.InboundInstancesService;
@@ -43,8 +44,9 @@ public class InstanceForwardingConfiguration {
   @Bean
   @ConditionalOnProperty(name = "camunda.connector.headless.serviceurl")
   @ConditionalOnMissingBean
-  public InstanceForwardingService instanceForwardingService() {
-    return new DefaultInstanceForwardingService(appPort, headlessServiceUrl, hostname);
+  public InstanceForwardingService instanceForwardingService(ObjectMapper objectMapper) {
+    return new DefaultInstanceForwardingService(
+        appPort, headlessServiceUrl, hostname, objectMapper);
   }
 
   @Bean

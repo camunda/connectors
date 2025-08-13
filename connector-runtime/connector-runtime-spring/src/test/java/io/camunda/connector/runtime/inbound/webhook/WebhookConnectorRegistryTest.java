@@ -20,9 +20,7 @@ package io.camunda.connector.runtime.inbound.webhook;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,8 +30,6 @@ import org.mockito.quality.Strictness;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class WebhookConnectorRegistryTest extends WebhookTestsBase {
-
-  private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
 
   @Test
   public void multipleWebhooksOnSameContextPathAreQueued() {

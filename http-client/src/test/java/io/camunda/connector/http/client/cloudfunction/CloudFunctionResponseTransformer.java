@@ -26,12 +26,12 @@ import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.client.HttpClientService;
 import io.camunda.connector.http.client.TestDocumentFactory;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 
 public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
 

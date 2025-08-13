@@ -17,7 +17,7 @@ import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
 import io.camunda.connector.textract.model.DocumentLocationType;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.nio.ByteBuffer;
 import java.util.HexFormat;
 import org.junit.jupiter.api.Test;

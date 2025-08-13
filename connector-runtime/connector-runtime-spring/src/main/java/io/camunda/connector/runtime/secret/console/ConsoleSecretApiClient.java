@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.secret.console;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.secret.console.TokenResponseMapper.JacksonTokenResponseMapper;
 import java.io.IOException;
 import java.util.Map;

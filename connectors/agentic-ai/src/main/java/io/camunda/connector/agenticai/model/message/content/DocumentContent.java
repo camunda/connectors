@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.model.message.content;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DocumentContent(Document document) implements Content {

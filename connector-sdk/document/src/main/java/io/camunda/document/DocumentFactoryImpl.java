@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.factory;
+package io.camunda.document;
 
-import io.camunda.document.CamundaDocument;
-import io.camunda.document.Document;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
-import io.camunda.document.reference.DocumentReference.ExternalDocumentReference;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
-import io.camunda.document.store.DocumentCreationRequest;
 
 public class DocumentFactoryImpl implements DocumentFactory {
 

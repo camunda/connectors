@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.helper;
 
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.kafka.inbound.KafkaInboundMessage;
 import io.camunda.connector.kafka.inbound.KafkaPropertyTransformer;
 import java.time.Duration;
