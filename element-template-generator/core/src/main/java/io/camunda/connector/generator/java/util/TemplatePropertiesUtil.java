@@ -345,7 +345,7 @@ public class TemplatePropertiesUtil {
     return builder;
   }
 
-  private static boolean isOutbound(TemplateGenerationContext context) {
+  public static boolean isOutbound(TemplateGenerationContext context) {
     return switch (context) {
       case TemplateGenerationContext.Inbound unused -> false;
       case Outbound unused -> true;

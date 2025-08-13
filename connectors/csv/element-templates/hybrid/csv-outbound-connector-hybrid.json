@@ -171,7 +171,6 @@
     "id" : "readCsv:recordMapper",
     "label" : "Record mapping",
     "description" : "",
-    "value" : "",
     "feel" : "required",
     "group" : "operation",
     "binding" : {

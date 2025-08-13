@@ -18,6 +18,7 @@ package io.camunda.connector.generator.java.util;
 
 import static io.camunda.connector.api.reflection.ReflectionUtil.*;
 import static io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor.buildCondition;
+import static io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor.getValue;
 
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
@@ -127,9 +128,14 @@ public class OperationBasedConnectorUtil {
           .label(templateProperty.label())
           .tooltip(templateProperty.tooltip())
           .description(templateProperty.description())
-          .value(templateProperty.defaultValue())
-          .condition(mapCondition(buildCondition(templateProperty.condition()), operation))
           .feel(templateProperty.feel());
+
+      if (!templateProperty.defaultValue().isBlank()) {
+        builder.value(getValue(templateProperty, parameter.getType(), true));
+      }
+      if (templateProperty.condition() != null) {
+        builder.condition(mapCondition(buildCondition(templateProperty.condition()), operation));
+      }
     }
     return builder;
   }
