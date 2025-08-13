@@ -21,6 +21,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.common.AbstractConnectorFactory;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.ConnectorDirection;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -35,19 +36,13 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory {
+public class DefaultOutboundConnectorFactory
+    extends AbstractConnectorFactory<OutboundConnectorFunction, OutboundConnectorConfiguration>
+    implements OutboundConnectorFactory {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultOutboundConnectorFactory.class);
-
-  private final Map<String, OutboundConnectorConfiguration> configurations;
   private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
       connectorInstanceCache = new ConcurrentHashMap<>();
-
-  private final DisabledConnectorEnvVarsConfig disbabledConnectorEnvVarsConfig =
-      new DisabledConnectorEnvVarsConfig();
 
   private final Function<String, String> propertyProvider;
 
@@ -58,7 +53,6 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
       List<OutboundConnectorProvider> constructorProviders,
       Function<String, String> propertyProvider) {
     this.propertyProvider = propertyProvider;
-
     List<OutboundConnectorConfiguration> envVarConfigurations = new ArrayList<>();
     Stream<ServiceLoader.Provider<OutboundConnectorFunction>> spiFunctions = Stream.empty();
     Stream<ServiceLoader.Provider<OutboundConnectorProvider>> spiProviders = Stream.empty();
@@ -104,21 +98,8 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
     // 5. Env vars discovered configurations
     allConfigs.addAll(envVarConfigurations);
 
-    // Filter out disabled connectors
-    Stream<OutboundConnectorConfiguration> filteredConfigs =
-        allConfigs.stream()
-            .filter(config -> !disbabledConnectorEnvVarsConfig.isConnectorDisabled(config));
-    // Store configurations in map, with type as key (later entries override earlier ones)
-    this.configurations =
-        filteredConfigs.collect(
-            Collectors.toMap(
-                OutboundConnectorConfiguration::type,
-                config -> config,
-                (existing, replacement) -> {
-                  LOG.warn("Overriding connector configuration {} with {}", existing, replacement);
-                  return replacement;
-                },
-                HashMap::new));
+    // Use the base class method to create configurations map
+    initializeConfigurations(allConfigs);
   }
 
   private <T> List<OutboundConnectorConfiguration> toConfigurations(
@@ -155,14 +136,9 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   }
 
   @Override
-  public Collection<OutboundConnectorConfiguration> getConfigurations() {
-    return configurations.values();
-  }
-
-  @Override
   public OutboundConnectorFunction getInstance(String type) {
 
-    return this.getConfiguration(type)
+    return this.getActiveConfiguration(type)
         .map(this::getCachedInstance)
         .orElseThrow(
             () -> new RuntimeException("Outbound connector \"" + type + "\" is not registered"));
@@ -172,15 +148,5 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
       OutboundConnectorConfiguration configuration) {
     return connectorInstanceCache.computeIfAbsent(
         configuration, config -> config.instanceSupplier().get());
-  }
-
-  /**
-   * Get configuration by type
-   *
-   * @param type Connector type
-   * @return Optional configuration
-   */
-  public Optional<OutboundConnectorConfiguration> getConfiguration(String type) {
-    return Optional.ofNullable(configurations.get(type));
   }
 }
