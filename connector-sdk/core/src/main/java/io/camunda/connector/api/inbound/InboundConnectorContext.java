@@ -18,6 +18,7 @@ package io.camunda.connector.api.inbound;
 
 import io.camunda.document.factory.DocumentFactory;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * The context object provided to an inbound connector function. The context allows to fetch
@@ -147,17 +148,31 @@ public interface InboundConnectorContext extends DocumentFactory {
    * <p>This method can be called as often as needed and the internal state of the inbound Connector
    * implementation requires it.
    *
-   * <p>Note: this method will not trigger application ERROR logs no matter what severity is
-   * supplied.
+   * @see InboundConnectorContext#log(Consumer)
+   *     <p>Note: this method also performs logging of the activity using SLF4J. It will not trigger
+   *     application ERROR logs no matter what severity is supplied. ERROR activities will be mapped
+   *     to SLF4J WARNING logs, while INFO and DEBUG will be mapped to SLF4J INFO and DEBUG logs
+   *     respectively.
    */
   void log(Activity activity);
 
-  /**
-   * Shortcut method to create an {@link ActivityBuilder} and log the activity.
-   *
-   * @see InboundConnectorContext#log(Activity)
-   */
   default void log(ActivityBuilder activityBuilder) {
     log(activityBuilder.build());
   }
+
+  /**
+   * Consumer-style variant of the {@link #log(Activity)} method. This allows for more flexible
+   * construction of the activity log entry using an {@link ActivityBuilder} that is passed to the
+   * consumer by the runtime.
+   *
+   * <p>This method can be called as often as needed and the internal state of the inbound Connector
+   * implementation requires it.
+   *
+   * @see InboundConnectorContext#log(Activity)
+   *     <p>Note: this method also performs logging of the activity using SLF4J. It will not trigger
+   *     application ERROR logs no matter what severity is supplied. ERROR activities will be mapped
+   *     to SLF4J WARNING logs, while INFO and DEBUG will be mapped to SLF4J INFO and DEBUG logs
+   *     respectively.
+   */
+  void log(Consumer<ActivityBuilder> activityBuilderConsumer);
 }

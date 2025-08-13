@@ -17,7 +17,6 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.InvalidInput;
@@ -28,6 +27,7 @@ import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitM
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -162,7 +162,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
 
     // Then
     verify(spyContext, times(0)).cancel(cause);
-    verify(spyContext, times(1)).log(any(Activity.class));
+    verify(spyContext, times(1)).log(any(Consumer.class));
   }
 
   @Test

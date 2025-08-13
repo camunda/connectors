@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.http.polling.task;
 
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -38,23 +37,26 @@ public class HttpRequestTask implements Runnable {
         HttpCommonResult httpResponse = httpService.executeConnectorRequest(httpRequest);
         processInstanceContext.correlate(httpResponse);
         this.context.log(
-            Activity.newBuilder()
-                .withSeverity(Severity.INFO)
-                .withCustomTag(httpRequest.getMethod().toString())
-                .withMessage("Polled url: " + httpRequest.getUrl()));
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withCustomTag(httpRequest.getMethod().toString())
+                    .withMessage("Polled url: " + httpRequest.getUrl()));
       } catch (Exception e) {
         this.context.log(
-            Activity.newBuilder()
-                .withSeverity(Severity.ERROR)
-                .withCustomTag(httpRequest.getMethod().toString())
-                .withMessage("Error executing http request: " + httpRequest.getUrl(), e));
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withCustomTag(httpRequest.getMethod().toString())
+                    .withMessage("Error executing http request: " + httpRequest.getUrl()));
       }
     } catch (Exception e) {
       this.context.log(
-          Activity.newBuilder()
-              .withSeverity(Severity.ERROR)
-              .withCustomTag("http-request")
-              .withMessage("Error binding properties for HTTP request", e));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withCustomTag("http-request")
+                  .withMessage("Error binding properties for HTTP request"));
     }
   }
 }

@@ -58,9 +58,11 @@ public class SqsQueueConsumer implements Runnable {
         List<Message> messages = receiveMessageResult.getMessages();
         for (Message message : messages) {
           context.log(
-              Activity.level(Severity.INFO)
-                  .tag("Message")
-                  .message("Received SQS Message with ID " + message.getMessageId()));
+              activity ->
+                  activity
+                      .withSeverity(Severity.INFO)
+                      .withTag(ActivityLogTag.MESSAGE)
+                      .withMessage("Received SQS Message with ID " + message.getMessageId()));
           var result =
               context.correlate(
                   CorrelationRequest.builder()
@@ -72,9 +74,11 @@ public class SqsQueueConsumer implements Runnable {
       } catch (Exception e) {
         LOGGER.debug("NACK - unhandled exception", e);
         context.log(
-            Activity.level(Severity.WARNING)
-                .tag("Message")
-                .message("NACK - failed to correlate event : " + e.getMessage()));
+            activity ->
+                activity
+                    .withSeverity(Severity.WARNING)
+                    .withTag(ActivityLogTag.MESSAGE)
+                    .withMessage("NACK - failed to correlate event : " + e.getMessage()));
       }
     } while (queueConsumerActive.get());
     LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().url());
@@ -89,7 +93,12 @@ public class SqsQueueConsumer implements Runnable {
       }
 
       case Failure failure -> {
-        context.log(Activity.level(Severity.WARNING).tag("Message").message(failure.message()));
+        context.log(
+            activity ->
+                activity
+                    .withSeverity(Severity.WARNING)
+                    .withTag(ActivityLogTag.MESSAGE)
+                    .withMessage(failure.message()));
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream ignored1 -> {
             LOGGER.debug("NACK (requeue) - message not correlated");

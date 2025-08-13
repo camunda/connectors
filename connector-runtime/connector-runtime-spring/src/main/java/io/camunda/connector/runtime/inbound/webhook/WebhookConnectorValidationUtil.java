@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.inbound.webhook;
 
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import java.util.regex.Pattern;
@@ -38,9 +37,14 @@ final class WebhookConnectorValidationUtil {
     if (!CURRENT_WEBHOOK_PATH_PATTERN.matcher(webhook).matches()) {
       String message =
           DEPRECATED_WEBHOOK_MESSAGE_PREFIX + webhook + DEPRECATED_WEBHOOK_MESSAGE_SUFFIX;
-      Activity activity = Activity.level(Severity.WARNING).tag(WARNING_TAG).message(message);
-
-      connector.context().log(activity);
+      connector
+          .context()
+          .log(
+              activity ->
+                  activity
+                      .withSeverity(Severity.WARNING)
+                      .withCustomTag(WARNING_TAG)
+                      .withMessage(message));
     }
   }
 }

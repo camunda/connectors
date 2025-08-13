@@ -22,7 +22,7 @@ package io.camunda.connector.api.inbound;
  */
 public enum ActivityLogTag {
 
-  /** A log tag for entries related to the lifecycle of the event consumer (managed by the */
+  /** A log tag for entries related to the lifecycle of the event consumer */
   CONSUMER("Consumer"),
   /**
    * A log tag for entries related to message/event processing. For example, use this tag to log
@@ -32,7 +32,11 @@ public enum ActivityLogTag {
 
   CORRELATION("Correlation"),
 
-  LIFECYCLE("Lifecycle");
+  LIFECYCLE("Lifecycle"),
+
+  QUEUEING("Queueing"),
+
+  ACTIVATION("Activation");
 
   private final String tag;
 

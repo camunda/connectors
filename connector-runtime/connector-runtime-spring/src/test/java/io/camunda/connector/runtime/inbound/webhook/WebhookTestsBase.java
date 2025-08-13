@@ -22,7 +22,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -31,8 +30,10 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
@@ -65,7 +66,8 @@ public abstract class WebhookTestsBase {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return new RegisteredExecutable.Activated(executable, buildContext(connectorData));
+    return new RegisteredExecutable.Activated(
+        executable, buildContext(connectorData), ExecutableId.fromDeduplicationId("random"));
   }
 
   private static InboundConnectorContextImpl buildContext(
@@ -78,7 +80,7 @@ public abstract class WebhookTestsBase {
             mock(InboundCorrelationHandler.class),
             e -> {},
             mapper,
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
 
     context.reportHealth(Health.up());
     return spy(context);

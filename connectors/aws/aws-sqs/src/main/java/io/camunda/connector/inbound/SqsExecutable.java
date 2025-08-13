@@ -10,7 +10,6 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.QueueAttributeName;
 import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -102,9 +101,11 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
     this.context = context;
     LOGGER.info("Subscription activation requested by the Connector runtime");
     context.log(
-        Activity.level(Severity.INFO)
-            .tag("Subscription activation")
-            .message("Subscription activation requested"));
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withCustomTag("Subscription activation")
+                .withMessage("Subscription activation requested"));
     SqsInboundProperties properties = context.bindProperties(SqsInboundProperties.class);
 
     var region =
@@ -130,9 +131,11 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
     executorService.execute(sqsQueueConsumer);
     LOGGER.debug("SQS queue consumer started successfully");
     context.log(
-        Activity.level(Severity.INFO)
-            .tag("Subscription activation")
-            .message("Activated subscription for queue: " + properties.getQueue().url()));
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withCustomTag("Subscription activation")
+                .withMessage("Activated subscription for queue: " + properties.getQueue().url()));
     context.reportHealth(Health.up());
   }
 

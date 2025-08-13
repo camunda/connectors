@@ -138,17 +138,19 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
           connectorInputException.getMessage(), connectorInputException);
     } catch (FeelEngineWrapperException feelEngineWrapperException) {
       log(
-          Activity.newBuilder()
-              .withSeverity(Severity.ERROR)
-              .withMessage(
-                  "Failed to evaluate FEEL expression: "
-                      + feelEngineWrapperException.getMessage()));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withMessage(
+                      "Failed to evaluate FEEL expression: "
+                          + feelEngineWrapperException.getMessage()));
       return new CorrelationResult.Failure.Other(feelEngineWrapperException);
     } catch (Exception exception) {
       log(
-          Activity.newBuilder()
-              .withSeverity(Severity.ERROR)
-              .withMessage("Failed to correlate inbound event: " + exception.getMessage()));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withMessage("Failed to correlate inbound event: " + exception.getMessage()));
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
     }
@@ -169,27 +171,30 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     switch (success) {
       case ProcessInstanceCreated processInstanceCreated:
         logRuntime(
-            Activity.newBuilder()
-                .withSeverity(Severity.INFO)
-                .withTag(ActivityLogTag.CORRELATION)
-                .withMessage("Process instance created")
-                .withData(
-                    Map.of("processInstanceKey", processInstanceCreated.processInstanceKey())));
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Process instance created")
+                    .withData(
+                        Map.of("processInstanceKey", processInstanceCreated.processInstanceKey())));
         break;
       case MessagePublished messagePublished:
         logRuntime(
-            Activity.newBuilder()
-                .withSeverity(Severity.INFO)
-                .withTag(ActivityLogTag.CORRELATION)
-                .withMessage("Message published")
-                .withData(Map.of("messageKey", messagePublished.messageKey())));
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Message published")
+                    .withData(Map.of("messageKey", messagePublished.messageKey())));
         break;
       case MessageAlreadyCorrelated ignored:
         logRuntime(
-            Activity.newBuilder()
-                .withSeverity(Severity.INFO)
-                .withTag(ActivityLogTag.CORRELATION)
-                .withMessage("Message already correlated"));
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Message already correlated"));
         break;
     }
   }
@@ -198,31 +203,35 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     switch (failure) {
       case ActivationConditionNotMet ignored:
         logRuntime(
-            Activity.newBuilder()
-                .withSeverity(Severity.WARNING)
-                .withTag(ActivityLogTag.CORRELATION)
-                .withMessage("Activation condition not met"));
+            activity ->
+                activity
+                    .withSeverity(Severity.WARNING)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Activation condition not met"));
         break;
       case InvalidInput ignored:
         logRuntime(
-            Activity.newBuilder()
-                .withSeverity(Severity.ERROR)
-                .withTag(ActivityLogTag.CORRELATION)
-                .withMessage("Invalid input: " + failure.message()));
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Invalid input: " + failure.message()));
         break;
       case ZeebeClientStatus ignored:
         logRuntime(
-            Activity.newBuilder()
-                .withSeverity(Severity.ERROR)
-                .withTag(ActivityLogTag.CORRELATION)
-                .withMessage("Zeebe client status error: " + failure.message()));
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Zeebe client status error: " + failure.message()));
         break;
       case Other ignored:
         logRuntime(
-            Activity.newBuilder()
-                .withSeverity(Severity.ERROR)
-                .withTag(ActivityLogTag.CORRELATION)
-                .withMessage("Other error: " + failure.message()));
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Other error: " + failure.message()));
         break;
     }
   }
@@ -288,12 +297,23 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             log));
   }
 
-  private void logRuntime(ActivityBuilder log) {
+  public void log(Consumer<ActivityBuilder> activityBuilderConsumer) {
+    if (activityBuilderConsumer == null) {
+      throw new IllegalArgumentException("Activity builder consumer cannot be null");
+    }
+    var builder = Activity.newBuilder();
+    activityBuilderConsumer.accept(builder);
+    log(builder.build());
+  }
+
+  private void logRuntime(Consumer<ActivityBuilder> activityBuilderConsumer) {
+    var builder = Activity.newBuilder();
+    activityBuilderConsumer.accept(builder);
     activityLogWriter.log(
         new ActivityLogEntry(
             ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
             ActivitySource.RUNTIME,
-            log.build()));
+            builder.build()));
   }
 
   @Override

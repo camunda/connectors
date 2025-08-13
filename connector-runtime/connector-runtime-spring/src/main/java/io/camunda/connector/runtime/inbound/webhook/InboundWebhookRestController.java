@@ -24,7 +24,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 import io.camunda.connector.api.inbound.CorrelationRequest;
@@ -156,10 +155,11 @@ public class InboundWebhookRestController {
         connector
             .context()
             .log(
-                Activity.newBuilder()
-                    .withSeverity(Severity.INFO)
-                    .withCustomTag(payload.method())
-                    .withMessage("URL: " + payload.requestURL()));
+                activity ->
+                    activity
+                        .withSeverity(Severity.INFO)
+                        .withCustomTag(payload.method())
+                        .withMessage("URL: " + payload.requestURL()));
 
         var webhookResult = connectorHook.triggerWebhook(payload);
         // create documents if the connector is activable
@@ -174,10 +174,11 @@ public class InboundWebhookRestController {
       connector
           .context()
           .log(
-              Activity.newBuilder()
-                  .withSeverity(Severity.ERROR)
-                  .withCustomTag(payload.method())
-                  .withMessage("Webhook processing failed", e));
+              activity ->
+                  activity
+                      .withSeverity(Severity.ERROR)
+                      .withCustomTag(payload.method())
+                      .withMessage("Webhook processing failed"));
       response = buildErrorResponse(e);
     }
     return response;
@@ -211,10 +212,11 @@ public class InboundWebhookRestController {
     if (verificationResponse != null) {
       response = toResponseEntity(verificationResponse);
       context.log(
-          Activity.newBuilder()
-              .withSeverity(Severity.INFO)
-              .withCustomTag(payload.method())
-              .withMessage("Successfully handled a verification request"));
+          activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withCustomTag(payload.method())
+                  .withMessage("Successfully handled a verification request"));
     }
     return response;
   }

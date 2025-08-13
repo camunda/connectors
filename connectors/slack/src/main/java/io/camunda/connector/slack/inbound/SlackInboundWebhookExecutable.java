@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -92,14 +91,16 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
 
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload) {
-    LOGGER.trace(
+    LOGGER.debug(
         "Triggered Slack webhook with method: {} and URL: {}",
         webhookProcessingPayload.method(),
         webhookProcessingPayload.requestURL());
     context.log(
-        Activity.level(Severity.INFO)
-            .tag(webhookProcessingPayload.method())
-            .message("URL: " + webhookProcessingPayload.requestURL()));
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withCustomTag(webhookProcessingPayload.method())
+                .withMessage("URL: " + webhookProcessingPayload.requestURL()));
     verifySlackRequestAuthentic(webhookProcessingPayload);
 
     Map bodyAsMap =
@@ -121,9 +122,11 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
         bodyAsMap = objectMapper.readValue((String) bodyAsMap.get(FORM_VALUE_PAYLOAD), Map.class);
       } catch (Exception e) {
         context.log(
-            Activity.level(Severity.ERROR)
-                .tag("JSON Parsing")
-                .message("Failed to parse 'payload' as JSON: " + e.getMessage()));
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withCustomTag("JSON Parsing")
+                    .withMessage("Failed to parse 'payload' as JSON: " + e.getMessage()));
       }
       return new SlackWebhookProcessingResult(
           new MappedHttpRequest(
@@ -180,10 +183,13 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
         return objectMapper.readValue(rawBody, Map.class);
       } catch (IOException e) {
         context.log(
-            Activity.level(Severity.ERROR)
-                .tag("JSON Parsing")
-                .message(
-                    "Failed to parse JSON from raw body due to an IOException: " + e.getMessage()));
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withCustomTag("JSON Parsing")
+                    .withMessage(
+                        "Failed to parse JSON from raw body due to an IOException: "
+                            + e.getMessage()));
         throw new RuntimeException(e);
       }
     }
@@ -198,9 +204,11 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
             webhookProcessingPayload.headers().get(HEADER_SLACK_SIGNATURE),
             ZonedDateTime.now().toInstant().toEpochMilli())) {
       context.log(
-          Activity.level(Severity.ERROR)
-              .tag(webhookProcessingPayload.method())
-              .message("HMAC signature did not match"));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withCustomTag(webhookProcessingPayload.method())
+                  .withMessage("HMAC signature did not match"));
       throw new RuntimeException("HMAC signature did not match");
     }
   }

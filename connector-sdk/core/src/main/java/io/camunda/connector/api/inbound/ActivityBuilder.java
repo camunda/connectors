@@ -29,7 +29,7 @@ public class ActivityBuilder {
   private Severity severity = Severity.INFO;
   private String tag;
   private String message;
-  private Map<String, Object> data;
+  private final Map<String, Object> data = new HashMap<>();
 
   private Health health;
 
@@ -60,21 +60,12 @@ public class ActivityBuilder {
   }
 
   public ActivityBuilder withData(Map<String, Object> data) {
-    if (this.data == null) {
-      this.data = data;
-    } else {
-      this.data.putAll(data);
-    }
+    this.data.putAll(data);
     return this;
   }
 
   public ActivityBuilder withData(String key, Object value) {
-    if (this.data == null) {
-      this.data = new HashMap<>();
-      data.put(key, value);
-    } else {
-      this.data.put(key, value);
-    }
+    this.data.put(key, value);
     return this;
   }
 
@@ -108,10 +99,7 @@ public class ActivityBuilder {
    * @return a new {@link Activity} instance
    */
   public Activity build() {
-    if (TextUtils.isEmpty(tag)
-        && TextUtils.isEmpty(message)
-        && (data == null || data.isEmpty())
-        && health == null) {
+    if (TextUtils.isEmpty(tag) && TextUtils.isEmpty(message) && data.isEmpty() && health == null) {
       throw new IllegalArgumentException(
           "Activity contains no data. At least one of tag, message, data, or health must be set.");
     }

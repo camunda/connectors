@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.api.inbound;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.time.OffsetDateTime;
 import java.util.Map;
 
@@ -97,7 +95,13 @@ public record Activity(
     }
 
     public Activity messageWithException(String message, Throwable exception) {
-      return new Activity(severity, tag, timestamp, buildMessage(message, exception), data, null);
+      return new Activity(
+          severity,
+          tag,
+          timestamp,
+          ActivityBuilder.buildMessageWithException(message, exception),
+          data,
+          null);
     }
 
     public Activity messageWithData(String message, Map<String, Object> data) {
@@ -106,20 +110,13 @@ public record Activity(
 
     public Activity messageWithExceptionAndData(
         String message, Throwable exception, Map<String, Object> data) {
-      return new Activity(severity, tag, timestamp, buildMessage(message, exception), data, null);
-    }
-
-    private String buildMessage(String message, Throwable exception) {
-      if (exception == null) {
-        return message;
-      }
-      StringWriter sw = new StringWriter();
-      PrintWriter pw = new PrintWriter(sw);
-      exception.printStackTrace(pw);
-      if (message == null) {
-        return sw.toString();
-      }
-      return message + "\n" + sw;
+      return new Activity(
+          severity,
+          tag,
+          timestamp,
+          ActivityBuilder.buildMessageWithException(message, exception),
+          data,
+          null);
     }
   }
 }

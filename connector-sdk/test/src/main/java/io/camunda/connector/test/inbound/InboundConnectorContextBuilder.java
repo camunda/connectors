@@ -43,10 +43,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Test helper class for creating an {@link InboundConnectorContext} with a fluent API. */
 public class InboundConnectorContextBuilder {
+
+  private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextBuilder.class);
 
   protected final Map<String, String> secrets = new HashMap<>();
   protected SecretProvider secretProvider = new MapSecretProvider(secrets);
@@ -349,7 +354,15 @@ public class InboundConnectorContextBuilder {
     }
 
     @Override
-    public void log(Activity activity) {}
+    public void log(Activity activity) {
+      LOG.info("Activity logged: {}", activity);
+    }
+
+    public void log(Consumer<ActivityBuilder> activityBuilderConsumer) {
+      ActivityBuilder activityBuilder = Activity.newBuilder();
+      activityBuilderConsumer.accept(activityBuilder);
+      log(activityBuilder.build());
+    }
 
     @Override
     public List<InboundConnectorElement> connectorElements() {

@@ -120,9 +120,11 @@ public class KafkaConnectorConsumer {
       return consumer;
     } catch (Exception ex) {
       context.log(
-          Activity.level(Severity.ERROR)
-              .tag(LogTag.CONSUMER)
-              .messageWithException("Failed to initialize connector: " + ex.getMessage(), ex));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Failed to initialize connector: " + ex.getMessage()));
       context.reportHealth(Health.down(ex));
       throw ex;
     }
@@ -155,9 +157,11 @@ public class KafkaConnectorConsumer {
   private void handleMessage(ConsumerRecord<Object, Object> record) {
     LOG.trace("Kafka message received: key = {}, value = {}", record.key(), record.value());
     context.log(
-        Activity.level(Severity.INFO)
-            .tag(LogTag.MESSAGE)
-            .message("Received message with key : " + record.key()));
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.MESSAGE)
+                .withMessage("Received message with key : " + record.key()));
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
     String messageId = record.topic() + "-" + record.partition() + "-" + record.offset();
@@ -180,10 +184,12 @@ public class KafkaConnectorConsumer {
           }
           case Ignore ignored ->
               context.log(
-                  Activity.level(Severity.INFO)
-                      .tag(LogTag.MESSAGE)
-                      .message(
-                          "Message not correlated, but the error is ignored. Offset will be committed"));
+                  activity ->
+                      activity
+                          .withSeverity(Severity.INFO)
+                          .withTag(ActivityLogTag.MESSAGE)
+                          .withMessage(
+                              "Message not correlated, but the error is ignored. Offset will be committed"));
         }
       }
     }
@@ -221,9 +227,11 @@ public class KafkaConnectorConsumer {
   private void reportDown(Throwable error) {
     var newStatus = Health.down(error);
     context.log(
-        Activity.level(Severity.ERROR)
-            .tag(LogTag.CONSUMER)
-            .messageWithException("Kafka Consumer status changed to DOWN: " + newStatus, error));
+        activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CONSUMER)
+                .withMessage("Kafka Consumer status changed to DOWN: " + newStatus));
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
       context.reportHealth(Health.down(error));

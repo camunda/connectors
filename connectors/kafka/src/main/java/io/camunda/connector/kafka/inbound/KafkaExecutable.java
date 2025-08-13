@@ -8,7 +8,7 @@ package io.camunda.connector.kafka.inbound;
 
 import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.ActivityLogTag;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -85,13 +85,15 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
   public void activate(InboundConnectorContext context) {
     try {
       context.log(
-          Activity.level(Severity.INFO)
-              .tag(LogTag.CONSUMER)
-              .message(
-                  "Subscription activation for process "
-                      + context.getDefinition().elements().stream()
-                          .map(ProcessElement::bpmnProcessId)
-                          .toList()));
+          activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage(
+                      "Subscription activation for process "
+                          + context.getDefinition().elements().stream()
+                              .map(ProcessElement::bpmnProcessId)
+                              .toList()));
 
       KafkaConnectorProperties elementProps =
           context.bindProperties(KafkaConnectorProperties.class);
@@ -99,14 +101,18 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
           new KafkaConnectorConsumer(consumerCreatorFunction, context, elementProps, retryPolicy);
       this.kafkaConnectorConsumer.startConsumer();
       context.log(
-          Activity.level(Severity.INFO)
-              .tag(LogTag.CONSUMER)
-              .message("Subscription activated successfully"));
+          activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Subscription activated successfully"));
     } catch (Exception ex) {
       context.log(
-          Activity.level(Severity.ERROR)
-              .tag(LogTag.CONSUMER)
-              .messageWithException("Subscription activation failed: " + ex.getMessage(), ex));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Subscription activation failed: " + ex.getMessage()));
       context.reportHealth(Health.down(ex));
       throw ex;
     }
