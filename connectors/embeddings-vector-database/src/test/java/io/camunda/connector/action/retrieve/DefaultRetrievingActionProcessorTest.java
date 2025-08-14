@@ -12,8 +12,8 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
+import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
 import io.camunda.connector.fixture.CamundaDocumentFixture;
 import io.camunda.connector.fixture.EmbeddingsVectorDBRequestFixture;
@@ -44,7 +44,7 @@ class DefaultRetrievingActionProcessorTest {
         .thenReturn(Response.from(Embedding.from(List.of(0.1f, 0.2f, 0.3f))));
 
     final var embeddingStoreProvider = Mockito.mock(DefaultEmbeddingStoreFactory.class);
-    final var store = Mockito.mock(EmbeddingStore.class);
+    final var store = Mockito.mock(ClosableEmbeddingStore.class);
     Mockito.when(
             embeddingStoreProvider.initializeVectorStore(
                 request.vectorStore(), model, request.vectorDatabaseConnectorOperation()))

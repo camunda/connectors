@@ -7,6 +7,7 @@
 package io.camunda.connector.embeddingstore;
 
 import com.azure.cosmos.ConsistencyLevel;
+import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosVectorDataType;
@@ -23,7 +24,6 @@ import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDbNoSqlEmbeddingStore;
 import dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
@@ -39,7 +39,7 @@ public class AzureVectorStoreFactory {
   public static final String COSMOS_DB_VECTOR_EMBEDDING_PATH = "/embedding";
   public static final String COSMOS_DB_PARTITION_KEY_PATH = "/id";
 
-  public EmbeddingStore<TextSegment> createAiSearchVectorStore(
+  public ClosableEmbeddingStore<TextSegment> createAiSearchVectorStore(
       AzureAiSearchVectorStore azureAiSearchVectorStore,
       EmbeddingModel model,
       VectorDatabaseConnectorOperation operation) {
@@ -54,15 +54,14 @@ public class AzureVectorStoreFactory {
     switch (aiSearch.authentication()) {
       case AzureAuthentication.AzureApiKeyAuthentication apiKey ->
           embeddingStoreBuilder.apiKey(apiKey.apiKey());
-      case AzureAuthentication.AzureClientCredentialsAuthentication auth -> {
-        embeddingStoreBuilder.tokenCredential(buildClientSecretCredential(auth));
-      }
+      case AzureAuthentication.AzureClientCredentialsAuthentication auth ->
+          embeddingStoreBuilder.tokenCredential(buildClientSecretCredential(auth));
     }
 
-    return embeddingStoreBuilder.build();
+    return ClosableEmbeddingStore.wrap(embeddingStoreBuilder.build());
   }
 
-  public EmbeddingStore<TextSegment> createCosmosDbNoSqlVectorStore(
+  public ClosableEmbeddingStore<TextSegment> createCosmosDbNoSqlVectorStore(
       AzureCosmosDbNoSqlVectorStore azureCosmosDbNoSqlVectorStore, EmbeddingModel model) {
 
     final var cosmosDbNoSql = azureCosmosDbNoSqlVectorStore.azureCosmosDbNoSql();
@@ -100,14 +99,18 @@ public class AzureVectorStoreFactory {
     indexingPolicy.setIncludedPaths(List.of(new IncludedPath("/*")));
     containerProperties.setIndexingPolicy(indexingPolicy);
 
-    return AzureCosmosDbNoSqlEmbeddingStore.builder()
-        .cosmosClient(cosmosClientBuilder.buildClient())
-        .databaseName(cosmosDbNoSql.databaseName())
-        .containerName(cosmosDbNoSql.containerName())
-        .cosmosVectorEmbeddingPolicy(embeddingPolicy)
-        .cosmosVectorIndexes(List.of(vectorIndexSpec))
-        .containerProperties(containerProperties)
-        .build();
+    CosmosClient cosmosClient = cosmosClientBuilder.buildClient();
+    AzureCosmosDbNoSqlEmbeddingStore store =
+        AzureCosmosDbNoSqlEmbeddingStore.builder()
+            .cosmosClient(cosmosClient)
+            .databaseName(cosmosDbNoSql.databaseName())
+            .containerName(cosmosDbNoSql.containerName())
+            .cosmosVectorEmbeddingPolicy(embeddingPolicy)
+            .cosmosVectorIndexes(List.of(vectorIndexSpec))
+            .containerProperties(containerProperties)
+            .build();
+    //noinspection Convert2MethodRef
+    return ClosableEmbeddingStore.wrap(store, () -> cosmosClient.close());
   }
 
   private static ClientSecretCredential buildClientSecretCredential(

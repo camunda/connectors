@@ -8,9 +8,9 @@ package io.camunda.connector.action.embed;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.camunda.connector.doc.parsing.DefaultTextSegmentExtractor;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
+import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import java.util.List;
@@ -41,18 +41,19 @@ public class DefaultEmbeddingActionProcessor implements EmbeddingActionProcessor
   public List<String> embed(EmbeddingsVectorDBRequest request) {
     EmbeddingModel model =
         embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider());
-    EmbeddingStore<TextSegment> store =
+    try (ClosableEmbeddingStore<TextSegment> store =
         embeddingStoreProvider.initializeVectorStore(
-            request.vectorStore(), model, request.vectorDatabaseConnectorOperation());
+            request.vectorStore(), model, request.vectorDatabaseConnectorOperation())) {
 
-    // split incoming documents into chunks (segments) so that converting those
-    // to vector-normal formal preserves maximum amount of properties.
-    final var segments = textSegmentExtractor.fromRequest(request);
+      // split incoming documents into chunks (segments) so that converting those
+      // to vector-normal formal preserves maximum amount of properties.
+      final var segments = textSegmentExtractor.fromRequest(request);
 
-    // convert chunks (segments) into vector form, persist
-    // in a vector DB and return chunks identifiers
-    return segments.stream()
-        .map(segment -> store.add(model.embed(segment).content(), segment))
-        .toList();
+      // convert chunks (segments) into vector form, persist
+      // in a vector DB and return chunks identifiers
+      return segments.stream()
+          .map(segment -> store.add(model.embed(segment).content(), segment))
+          .toList();
+    }
   }
 }

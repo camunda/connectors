@@ -10,7 +10,6 @@ import static dev.langchain4j.internal.Utils.isNullOrBlank;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
@@ -20,6 +19,7 @@ import io.camunda.connector.model.embedding.vector.store.ElasticsearchVectorStor
 import io.camunda.connector.model.embedding.vector.store.EmbeddingsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
 import io.camunda.connector.model.operation.VectorDatabaseConnectorOperation;
+import java.io.IOException;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -35,7 +35,7 @@ public class DefaultEmbeddingStoreFactory {
 
   private final AzureVectorStoreFactory azureVectorStoreFactory = new AzureVectorStoreFactory();
 
-  public EmbeddingStore<TextSegment> initializeVectorStore(
+  public ClosableEmbeddingStore<TextSegment> initializeVectorStore(
       EmbeddingsVectorStore embeddingsVectorStore,
       EmbeddingModel model,
       VectorDatabaseConnectorOperation operation) {
@@ -55,7 +55,7 @@ public class DefaultEmbeddingStoreFactory {
     };
   }
 
-  private EmbeddingStore<TextSegment> initializeElasticsearchVectorStore(
+  private ClosableEmbeddingStore<TextSegment> initializeElasticsearchVectorStore(
       ElasticsearchVectorStore elasticsearchVectorStore) {
     final var elasticsearch = elasticsearchVectorStore.elasticsearch();
     RestClientBuilder restClientBuilder =
@@ -70,40 +70,55 @@ public class DefaultEmbeddingStoreFactory {
           httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(provider));
     }
 
-    return ElasticsearchEmbeddingStore.builder()
-        .restClient(restClientBuilder.build())
-        .indexName(elasticsearch.indexName())
-        .build();
+    RestClient restClient = restClientBuilder.build();
+    ElasticsearchEmbeddingStore embeddingStore =
+        ElasticsearchEmbeddingStore.builder()
+            .restClient(restClient)
+            .indexName(elasticsearch.indexName())
+            .build();
+    return ClosableEmbeddingStore.wrap(
+        embeddingStore,
+        () -> {
+          try {
+            restClient.close();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
-  private EmbeddingStore<TextSegment> initializeOpenSearchVectorStore(
+  private ClosableEmbeddingStore<TextSegment> initializeOpenSearchVectorStore(
       OpenSearchVectorStore openSearchVectorStore) {
     final var openSearch = openSearchVectorStore.openSearch();
-    return OpenSearchEmbeddingStore.builder()
-        .serverUrl(openSearch.baseUrl())
-        .userName(openSearch.userName())
-        .password(openSearch.password())
-        .indexName(openSearch.indexName())
-        .build();
+    OpenSearchEmbeddingStore openSearchEmbeddingStore =
+        OpenSearchEmbeddingStore.builder()
+            .serverUrl(openSearch.baseUrl())
+            .userName(openSearch.userName())
+            .password(openSearch.password())
+            .indexName(openSearch.indexName())
+            .build();
+    return ClosableEmbeddingStore.wrap(openSearchEmbeddingStore);
   }
 
-  private EmbeddingStore<TextSegment> initializeAmazonManagedOpenSearchVectorStore(
+  private ClosableEmbeddingStore<TextSegment> initializeAmazonManagedOpenSearchVectorStore(
       AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore) {
     final var amazonManagedOpenSearch =
         amazonManagedOpenSearchVectorStore.amazonManagedOpensearch();
-    return OpenSearchEmbeddingStore.builder()
-        .serviceName("es") // for managed AWS OS
-        .serverUrl(amazonManagedOpenSearch.serverUrl())
-        .region(amazonManagedOpenSearch.region())
-        .options(
-            AwsSdk2TransportOptions.builder()
-                .setCredentials(
-                    StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(
-                            amazonManagedOpenSearch.accessKey(),
-                            amazonManagedOpenSearch.secretKey())))
-                .build())
-        .indexName(amazonManagedOpenSearch.indexName())
-        .build();
+    OpenSearchEmbeddingStore openSearchEmbeddingStore =
+        OpenSearchEmbeddingStore.builder()
+            .serviceName("es") // for managed AWS OS
+            .serverUrl(amazonManagedOpenSearch.serverUrl())
+            .region(amazonManagedOpenSearch.region())
+            .options(
+                AwsSdk2TransportOptions.builder()
+                    .setCredentials(
+                        StaticCredentialsProvider.create(
+                            AwsBasicCredentials.create(
+                                amazonManagedOpenSearch.accessKey(),
+                                amazonManagedOpenSearch.secretKey())))
+                    .build())
+            .indexName(amazonManagedOpenSearch.indexName())
+            .build();
+    return ClosableEmbeddingStore.wrap(openSearchEmbeddingStore);
   }
 }

@@ -11,8 +11,8 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
+import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import io.camunda.connector.model.operation.RetrieveDocumentOperation;
@@ -46,8 +46,6 @@ public class DefaultRetrievingActionProcessor implements RetrievingActionProcess
         (RetrieveDocumentOperation) request.vectorDatabaseConnectorOperation();
     EmbeddingModel model =
         embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider());
-    EmbeddingStore<TextSegment> store =
-        embeddingStoreProvider.initializeVectorStore(request.vectorStore(), model, retrieveRequest);
 
     Embedding queryEmbedding = model.embed(retrieveRequest.query()).content();
     EmbeddingSearchRequest embeddingSearchRequest =
@@ -58,29 +56,33 @@ public class DefaultRetrievingActionProcessor implements RetrievingActionProcess
             .minScore(retrieveRequest.minScore() == null ? 0d : retrieveRequest.minScore())
             .build();
 
-    List<EmbeddingMatch<TextSegment>> relevant = store.search(embeddingSearchRequest).matches();
+    try (ClosableEmbeddingStore store =
+        embeddingStoreProvider.initializeVectorStore(
+            request.vectorStore(), model, retrieveRequest)) {
+      List<EmbeddingMatch<TextSegment>> relevant = store.search(embeddingSearchRequest).matches();
 
-    // original document was split into chunks,
-    // thus we return most applicable chunks and,
-    // store them into document storage;
-    // then they can be used by other connectors
-    final var chunks = new ArrayList<RetrievedChunk>();
-    for (EmbeddingMatch<TextSegment> matched : relevant) {
-      final var persistedDoc =
-          documentFactory.create(
-              DocumentCreationRequest.from(
-                      matched.embedded().text().getBytes(StandardCharsets.UTF_8))
-                  .contentType(
-                      Mimetype.MIMETYPE_TEXT_PLAIN) // TODO: for v1 we support only plain text
-                  .build());
-      chunks.add(
-          new RetrievedChunk(
-              matched.embeddingId(),
-              persistedDoc.reference(),
-              matched.score(),
-              matched.embedded().text()));
+      // original document was split into chunks,
+      // thus we return most applicable chunks and,
+      // store them into document storage;
+      // then they can be used by other connectors
+      final var chunks = new ArrayList<RetrievedChunk>();
+      for (EmbeddingMatch<TextSegment> matched : relevant) {
+        final var persistedDoc =
+            documentFactory.create(
+                DocumentCreationRequest.from(
+                        matched.embedded().text().getBytes(StandardCharsets.UTF_8))
+                    .contentType(
+                        Mimetype.MIMETYPE_TEXT_PLAIN) // TODO: for v1 we support only plain text
+                    .build());
+        chunks.add(
+            new RetrievedChunk(
+                matched.embeddingId(),
+                persistedDoc.reference(),
+                matched.score(),
+                matched.embedded().text()));
+      }
+
+      return new RetrievingActionProcessorResponse(chunks);
     }
-
-    return new RetrievingActionProcessorResponse(chunks);
   }
 }
