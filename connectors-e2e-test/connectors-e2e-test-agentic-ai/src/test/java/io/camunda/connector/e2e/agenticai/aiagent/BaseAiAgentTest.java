@@ -16,25 +16,36 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AGENT_RESPONSE_VARIABLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.camunda.client.api.worker.JobWorker;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
+import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
@@ -45,6 +56,55 @@ import org.springframework.core.io.ResourceLoader;
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   @Autowired protected ResourceLoader resourceLoader;
+
+  private JobWorker jobWorker;
+  protected final AtomicInteger jobWorkerCounter = new AtomicInteger(0);
+  protected final AtomicReference<Map<String, Object>> userFeedbackVariables =
+      new AtomicReference<>(Collections.emptyMap());
+
+  @BeforeEach
+  void clearDocumentationStore() {
+    InMemoryDocumentStore.INSTANCE.clear();
+  }
+
+  @BeforeEach
+  void setupWireMock() {
+    // WireMock returns the content type for the YAML file as application/json, so
+    // we need to override the stub manually
+    stubFor(
+        get(urlPathEqualTo("/test.yaml"))
+            .willReturn(
+                aResponse()
+                    .withBodyFile("test.yaml")
+                    .withHeader("Content-Type", "application/yaml")));
+  }
+
+  @BeforeEach
+  void openUserFeedbackJobWorker() {
+    userFeedbackVariables.set(Collections.emptyMap());
+    jobWorkerCounter.set(0);
+    jobWorker =
+        camundaClient
+            .newWorker()
+            .jobType("user_feedback")
+            .handler(
+                (client, job) -> {
+                  jobWorkerCounter.incrementAndGet();
+                  client
+                      .newCompleteCommand(job.getKey())
+                      .variables(userFeedbackVariables.get())
+                      .send()
+                      .join();
+                })
+            .open();
+  }
+
+  @AfterEach
+  void closeUserFeedbackJobWorker() {
+    if (jobWorker != null) {
+      jobWorker.close();
+    }
+  }
 
   protected abstract Resource testProcess();
 

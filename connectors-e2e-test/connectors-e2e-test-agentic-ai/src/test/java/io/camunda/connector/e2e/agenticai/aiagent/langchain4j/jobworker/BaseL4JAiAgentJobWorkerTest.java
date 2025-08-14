@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,7 +41,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentConnectorTest;
+import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentJobWorkerTest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
 import io.camunda.connector.test.SlowTest;
@@ -62,7 +62,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
-abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
+abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
   @MockitoBean private ChatModelFactory chatModelFactory;
   @Mock protected ChatModel chatModel;
   @Captor protected ArgumentCaptor<ChatRequest> chatRequestCaptor;
