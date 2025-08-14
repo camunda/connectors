@@ -27,10 +27,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext>
+public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
     implements AgentRequestHandler<C> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultAgentRequestHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BaseAgentRequestHandler.class);
 
   private static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
 
@@ -42,7 +42,7 @@ public abstract class DefaultAgentRequestHandler<C extends AgentExecutionContext
   private final AiFrameworkAdapter<?> framework;
   private final AgentResponseHandler responseHandler;
 
-  public DefaultAgentRequestHandler(
+  public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
       ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,

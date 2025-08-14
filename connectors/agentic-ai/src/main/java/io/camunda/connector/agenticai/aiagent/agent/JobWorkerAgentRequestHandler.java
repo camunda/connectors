@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class JobWorkerAgentRequestHandler
-    extends DefaultAgentRequestHandler<JobWorkerAgentExecutionContext> {
+    extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JobWorkerAgentRequestHandler.class);
 

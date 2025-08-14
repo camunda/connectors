@@ -21,7 +21,7 @@ import java.util.List;
 import org.springframework.util.CollectionUtils;
 
 public class OutboundConnectorAgentRequestHandler
-    extends DefaultAgentRequestHandler<OutboundConnectorAgentExecutionContext> {
+    extends BaseAgentRequestHandler<OutboundConnectorAgentExecutionContext> {
 
   public OutboundConnectorAgentRequestHandler(
       AgentInitializer agentInitializer,
