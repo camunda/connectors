@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.api.reflection;
 
+import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.Variable;
 import java.lang.annotation.Annotation;
@@ -131,5 +132,11 @@ public class ReflectionUtil {
     if (!variable.name().isBlank()) {
       return variable.name();
     } else return variable.value();
+  }
+
+  public static String getHeaderName(Header header) {
+    if (!header.name().isBlank()) {
+      return header.name();
+    } else return header.value();
   }
 }

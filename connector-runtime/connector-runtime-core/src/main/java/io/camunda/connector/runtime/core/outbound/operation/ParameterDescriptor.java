@@ -56,4 +56,6 @@ public sealed interface ParameterDescriptor {
       return required;
     }
   }
+
+  record Header<T>(String name, Class<T> type, boolean required) implements ParameterDescriptor {}
 }

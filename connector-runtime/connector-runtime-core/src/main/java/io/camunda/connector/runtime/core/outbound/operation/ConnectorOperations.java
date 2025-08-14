@@ -16,16 +16,16 @@
  */
 package io.camunda.connector.runtime.core.outbound.operation;
 
-import static io.camunda.connector.api.reflection.ReflectionUtil.getMethodsAnnotatedWith;
-import static io.camunda.connector.api.reflection.ReflectionUtil.getVariableName;
+import static io.camunda.connector.api.reflection.ReflectionUtil.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
+import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.reflection.ReflectionUtil.MethodWithAnnotation;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.Context;
-import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.Variable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
@@ -66,13 +66,16 @@ public record ConnectorOperations(Object connector, Map<String, OperationInvoker
   }
 
   private static ParameterDescriptor map(Parameter parameter) {
-    if (parameter.isAnnotationPresent(io.camunda.connector.api.annotation.Variable.class)) {
-      io.camunda.connector.api.annotation.Variable variableAnnotation =
-          parameter.getAnnotation(io.camunda.connector.api.annotation.Variable.class);
-      return new Variable<>(
+    if (parameter.isAnnotationPresent(Variable.class)) {
+      Variable variableAnnotation = parameter.getAnnotation(Variable.class);
+      return new ParameterDescriptor.Variable<>(
           getVariableName(variableAnnotation), parameter.getType(), variableAnnotation.required());
     } else if (parameter.getType().equals(OutboundConnectorContext.class)) {
       return new Context();
+    } else if (parameter.isAnnotationPresent(Header.class)) {
+      Header headerAnnotation = parameter.getAnnotation(Header.class);
+      return new ParameterDescriptor.Header<>(
+          getHeaderName(headerAnnotation), parameter.getType(), headerAnnotation.required());
     } else {
       throw new IllegalArgumentException("Unsupported parameter type: " + parameter.getType());
     }

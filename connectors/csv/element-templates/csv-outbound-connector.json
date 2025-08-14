@@ -5,7 +5,7 @@
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 0,
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -163,6 +163,25 @@
       "value" : "Array"
     } ]
   }, {
+    "id" : "readCsv:recordMapper",
+    "label" : "Record mapping",
+    "description" : "",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "key" : "recordMapper",
+      "type" : "zeebe:taskHeader"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "<a href=\"https://docs.camunda.io/docs/components/modeler/feel/what-is-feel/\">FEEL</a> function that allows to map each <code>record</code>. Returning <code>null</code> will exclude a record from the final results.",
+    "type" : "String"
+  }, {
     "id" : "writeCsv:data",
     "label" : "Data",
     "feel" : "required",
@@ -258,7 +277,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "0",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.java.processor;
 
+import static io.camunda.connector.generator.java.util.TemplatePropertiesUtil.isOutbound;
+
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
@@ -144,27 +146,30 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       builder.description(annotation.description());
     }
     if (!annotation.defaultValue().isBlank()) {
-      var value = annotation.defaultValue();
-      switch (annotation.defaultValueType()) {
-        case Boolean -> builder.value(Boolean.parseBoolean(value));
-        case String -> builder.value(value);
-        case Number -> {
-          // TODO: To be removed
-          if (context instanceof TemplateGenerationContext.Outbound) {
-            builder.value(parseNumber(value, field.getType()));
-          } else {
-            builder.value(value);
-          }
-        }
-        default ->
-            throw new IllegalStateException("Unexpected value: " + annotation.defaultValueType());
-      }
+      builder.value(getValue(annotation, field.getType(), isOutbound(context)));
     }
     if (!annotation.group().isBlank()) {
       builder.group(annotation.group());
     }
-    builder.condition(buildCondition(annotation));
+    builder.condition(buildCondition(annotation.condition()));
     builder.constraints(buildConstraints(annotation, builder.build().getConstraints()));
+  }
+
+  public static Object getValue(TemplateProperty annotation, Class<?> type, boolean isOutbound) {
+    var defaultValue = annotation.defaultValue();
+    return switch (annotation.defaultValueType()) {
+      case Boolean -> Boolean.parseBoolean(defaultValue);
+      case String -> defaultValue;
+      case Number -> {
+        if (isOutbound) {
+          yield parseNumber(defaultValue, type);
+        } else {
+          yield defaultValue;
+        }
+      }
+      default ->
+          throw new IllegalStateException("Unexpected value: " + annotation.defaultValueType());
+    };
   }
 
   private void manageFeelMode(TemplateProperty annotation, PropertyBuilder builder) {
@@ -178,7 +183,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     }
   }
 
-  private Number parseNumber(String value, Class<?> type) {
+  private static Number parseNumber(String value, Class<?> type) {
     try {
       return (Number) type.getDeclaredConstructor(String.class).newInstance(value);
     } catch (InstantiationException
@@ -196,8 +201,8 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
         : Property.FeelMode.optional;
   }
 
-  private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {
-    var conditionAnnotation = propertyAnnotation.condition();
+  public static PropertyCondition buildCondition(
+      TemplateProperty.PropertyCondition conditionAnnotation) {
     if (conditionAnnotation.property().isBlank() && conditionAnnotation.allMatch().length == 0) {
       return null;
     }

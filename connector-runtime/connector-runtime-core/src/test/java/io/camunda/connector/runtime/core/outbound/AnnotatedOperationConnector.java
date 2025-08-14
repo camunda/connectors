@@ -16,12 +16,15 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
+import java.util.function.Function;
 
 @OutboundConnector(name = "Annotation Connector", type = "io.camunda:annotated-operation")
 public class AnnotatedOperationConnector implements OutboundConnectorProvider {
@@ -54,5 +57,17 @@ public class AnnotatedOperationConnector implements OutboundConnectorProvider {
   @Operation(id = "myOperation3")
   public Object myThirdOperation(@Variable MyValidatingObject object) {
     return object;
+  }
+
+  @Operation(id = "myOperation4")
+  public Object headerAnnotatedMethod(@Header("myHeader") String headerParam) {
+    return headerParam;
+  }
+
+  @Operation(id = "myOperation5")
+  public Object handleAnnotatedMethodWithFEELParameter(
+      @Variable Map<String, Integer> vars,
+      @Header("myFeelFunction") Function<Map<String, Integer>, Integer> feelFunctionFromHeader) {
+    return feelFunctionFromHeader.apply(vars);
   }
 }

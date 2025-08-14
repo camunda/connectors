@@ -1,11 +1,11 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid CSV Connector",
-  "id" : "io.camunda.connectors.csv-hybrid",
+  "name" : "CSV Connector",
+  "id" : "io.camunda.connectors.csv",
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 1,
+  "version" : 0,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,9 +18,6 @@
     "camunda" : "^8.8"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "operation",
     "label" : "Operation"
   }, {
@@ -37,14 +34,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:csv-connector",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "operation",
     "label" : "Operation",
@@ -168,25 +163,6 @@
       "value" : "Array"
     } ]
   }, {
-    "id" : "readCsv:recordMapper",
-    "label" : "Record mapping",
-    "description" : "",
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "key" : "recordMapper",
-      "type" : "zeebe:taskHeader"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "operation",
-        "equals" : "readCsv",
-        "type" : "simple"
-      } ]
-    },
-    "tooltip" : "<a href=\"https://docs.camunda.io/docs/components/modeler/feel/what-is-feel/\">FEEL</a> function that allows to map each <code>record</code>. Returning <code>null</code> will exclude a record from the final results.",
-    "type" : "String"
-  }, {
     "id" : "writeCsv:data",
     "label" : "Data",
     "feel" : "required",
@@ -282,7 +258,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "0",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
