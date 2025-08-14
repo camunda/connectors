@@ -4,7 +4,7 @@
   "name": "ServiceNow Outbound Connector",
   "id": "io.camunda.connectors.ServiceNow.v1",
   "version": 1,
-  "description": "Interact with ServiceNow instance",
+  "description": "Interact with a ServiceNow instance",
   "metadata": {
     "keywords": []
   },
@@ -67,13 +67,13 @@
       "type": "Hidden"
     },
     {
-      "id": "instance",
+      "id": "snInstance",
       "label": "Instance name",
       "optional": false,
       "feel": "optional",
       "group": "sn",
       "binding": {
-        "name": "instance",
+        "name": "snInstance",
         "type": "zeebe:input"
       },
       "constraints": {
@@ -100,9 +100,9 @@
       }
     },
     {
-      "id": "updateOperationType",
+      "id": "targetTable",
       "label": "Target table",
-      "description": "table to update a record in",
+      "description": "table to work with",
       "group": "sn",
       "type": "Dropdown",
       "value": "incident",
@@ -115,59 +115,6 @@
         { "name": "Incident [incident]", "value": "incident" },
         { "name": "Other - type a table name", "value": "__custom" }
       ],
-      "condition": {
-        "property": "operationGroup",
-        "equals": "update"
-      },
-      "binding": {
-        "type": "zeebe:input",
-        "name": "targetTable"
-      }
-    },
-    {
-      "id": "createOperationType",
-      "label": "target table",
-      "description": "table to create a record in",
-      "group": "sn",
-      "type": "Dropdown",
-      "value": "incident",
-      "choices": [
-        { "name": "Request Item [sc_req_item]", "value": "sc_req_item" },
-        { "name": "Change Request [change_request]", "value": "change_request" },
-        { "name": "Change Task [change_task]", "value": "change_task" },
-        { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
-        { "name": "Service Catalog Task [sc_task]", "value": "sc_task" },
-        { "name": "Incident [incident]", "value": "incident" },
-        { "name": "Other - type a table name", "value": "__custom" }
-      ],
-      "condition": {
-        "property": "operationGroup",
-        "equals": "create"
-      },
-      "binding": {
-        "type": "zeebe:input",
-        "name": "targetTable"
-      }
-    },
-    {
-      "id": "readOperationType",
-      "label": "target table",
-      "description": "table to read from",
-      "group": "sn",
-      "type": "Dropdown",
-      "value": "sc_req_item",
-      "choices": [
-        { "name": "Requested Item [sc_req_item]", "value": "sc_req_item" },
-        { "name": "Change Request [change_request]", "value": "change_request" },
-        { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
-        { "name": "Service Catalog Task [sc_task]", "value": "sc_task" },
-        { "name": "Incident [incident]", "value": "incident" },
-        { "name": "Other - type a table name", "value": "__custom" }
-      ],
-      "condition": {
-        "property": "operationGroup",
-        "equals": "read"
-      },
       "binding": {
         "type": "zeebe:input",
         "name": "targetTable"
@@ -185,7 +132,7 @@
         "type": "zeebe:input"
       },
       "condition": {
-        "property": "readOperationType",
+        "property": "targetTable",
         "equals": "__custom"
       }
     },
@@ -248,100 +195,219 @@
       }
     },
 
+
+
+
+
     {
-      "id": "urgency",
-      "label": "Urgency",
-      "description": "how time-sensitive is this?",
-      "value": "2",
+      "//": "create or update sc_req_item",
+      "id": "payload_sc_req_item",
       "group": "input",
-      "binding": {
-        "name": "urgency",
-        "type": "zeebe:input"
-      },
-      "type": "Dropdown",
-      "choices": [
-        {
-          "name": "High",
-          "value": "1"
-        },
-        {
-          "name": "Medium",
-          "value": "2"
-        },
-        {
-          "name": "Low",
-          "value": "3"
-        }
-      ],
-      "condition": {
-        "property": "operationGroup",
-        "oneOf": ["create", "update"]
-      }
-    },
-    {
-      "id": "impact",
-      "label": "Impact",
-      "description": "impact on business and/or organization",
-      "value": "2",
-      "group": "input",
-      "binding": {
-        "name": "impact",
-        "type": "zeebe:input"
-      },
-      "type": "Dropdown",
-      "choices": [
-        {
-          "name": "High",
-          "value": "1"
-        },
-        {
-          "name": "Medium",
-          "value": "2"
-        },
-        {
-          "name": "Low",
-          "value": "3"
-        }
-      ],
-      "condition": {
-        "property": "operationGroup",
-        "oneOf": ["create", "update"]
-      }
-    },
-    {
-      "id": "short_description",
-      "label": "Short description",
-      "group": "input",
+      "label": "Payload",
       "type": "Text",
-      "feel": "optional",
+      "feel": "required",
+      "value": "{\n\"active\": true,\n\"activity_due\": \"1970-04-02 18:26:17\",\n\"additional_assignee_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"approval\": \"40 chars\",\n\"approval_history\": null,\n\"approval_set\": \"2014-11-12 04:51:19\",\n\"assigned_to\": \"9666e0c3c611227c017f673bcebef646\",\n\"assignment_group\": \"9666e0c3c611227c017f673bcebef646\",\n\"backordered\": true,\n\"billable\": true,\n\"business_duration\": \"1970-04-02 18:26:17\",\n\"business_service\": \"9666e0c3c611227c017f673bcebef646\",\n\"calendar_duration\": \"1970-04-02 18:26:17\",\n\"cat_item\": \"9666e0c3c611227c017f673bcebef646\",\n\"close_notes\": \"4000 chars\",\n\"closed_at\": \"2014-11-12 04:51:19\",\n\"closed_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"cmdb_ci\": \"9666e0c3c611227c017f673bcebef646\",\n\"comments\": null,\n\"comments_and_work_notes\": null,\n\"company\": \"9666e0c3c611227c017f673bcebef646\",\n\"configuration_item\": \"9666e0c3c611227c017f673bcebef646\",\n\"contact_type\": \"40 chars\",\n\"context\": \"9666e0c3c611227c017f673bcebef646\",\n\"contract\": \"9666e0c3c611227c017f673bcebef646\",\n\"correlation_display\": \"100 chars\",\n\"correlation_id\": \"100 chars\",\n\"delivery_plan\": \"9666e0c3c611227c017f673bcebef646\",\n\"delivery_task\": \"9666e0c3c611227c017f673bcebef646\",\n\"description\": \"4000 chars\",\n\"due_date\": \"2014-11-12 04:51:19\",\n\"escalation\": 9999999999999999999999999999999999999999,\n\"estimated_delivery\": \"2014-11-12 04:51:19\",\n\"expected_start\": \"2014-11-12 04:51:19\",\n\"flow_context\": \"9666e0c3c611227c017f673bcebef646\",\n\"follow_up\": \"2014-11-12 04:51:19\",\n\"group_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"impact\": 9999999999999999999999999999999999999999,\n\"knowledge\": true,\n\"location\": \"9666e0c3c611227c017f673bcebef646\",\n\"made_sla\": true,\n\"number\": \"40 chars\",\n\"opened_at\": \"2014-11-12 04:51:19\",\n\"opened_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"order\": 9999999999999999999999999999999999999999,\n\"order_guide\": \"9666e0c3c611227c017f673bcebef646\",\n\"parent\": \"9666e0c3c611227c017f673bcebef646\",\n\"price\": 0.00,\n\"priority\": 9999999999999999999999999999999999999999,\n\"quantity\": 9999999999999999999999999999999999999999,\n\"reassignment_count\": 9999999999999999999999999999999999999999,\n\"recurring_frequency\": null,\n\"recurring_price\": 0.00,\n\"rejection_goto\": \"ref_id\",\n\"request\": \"9666e0c3c611227c017f673bcebef646\",\n\"requested_for\": \"9666e0c3c611227c017f673bcebef646\",\n\"route_reason\": 9999999999999999999999999999999999999999,\n\"sc_catalog\": \"9666e0c3c611227c017f673bcebef646\",\n\"service_offering\": \"9666e0c3c611227c017f673bcebef646\",\n\"short_description\": \"160 chars\",\n\"sla_due\": \"1970-04-02 18:26:17\",\n\"stage\": null,\n\"state\": 9999999999999999999999999999999999999999,\n\"sys_class_name\": null,\n\"sys_created_by\": \"40 chars\",\n\"sys_created_on\": \"2014-11-12 04:51:19\",\n\"sys_domain\": \"global\",\n\"sys_domain_path\": null,\n\"sys_id\": null,\n\"sys_mod_count\": 9999999999999999999999999999999999999999,\n\"sys_updated_by\": \"40 chars\",\n\"sys_updated_on\": \"2014-11-12 04:51:19\",\n\"task_effective_number\": \"40 chars\",\n\"time_worked\": null,\n\"universal_request\": \"9666e0c3c611227c017f673bcebef646\",\n\"upon_approval\": \"40 chars\",\n\"upon_reject\": \"40 chars\",\n\"urgency\": 9999999999999999999999999999999999999999,\n\"user_input\": null,\n\"variables\": null,\n\"watch_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"wf_activity\": \"ref_id\",\n\"work_end\": \"2014-11-12 04:51:19\",\n\"work_notes\": null,\n\"work_notes_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"work_start\": \"2014-11-12 04:51:19\"\n}",
       "binding": {
-        "name": "short_description",
-        "type": "zeebe:input"
-      },
-      "constraints": {
-        "notEmpty": true
+        "type": "zeebe:input",
+        "name": "body_sc_req_item"
       },
       "condition": {
-        "property": "operationGroup",
-        "oneOf": ["create", "update"]
-      }
+        "allMatch": [
+          {
+            "property": "operationGroup",
+            "oneOf": ["create", "update"]
+          },
+          {
+            "property": "targetTable",
+            "equals": "sc_req_item"
+          }
+        ]
+      },
+      "optional": true
     },
+
     {
-      "id": "description",
-      "label": "Description",
+      "//": "create or update change_request",
+      "id": "payload_change_request",
       "group": "input",
+      "label": "Payload",
       "type": "Text",
-      "feel": "optional",
-      "optional": true,
+      "feel": "required",
+      "value": "{\n\"active\": true,\n\"activity_due\": \"1970-04-02 18:26:17\",\n\"additional_assignee_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"approval\": \"40 chars\",\n\"approval_history\": null,\n\"approval_set\": \"2014-11-12 04:51:19\",\n\"assigned_to\": \"9666e0c3c611227c017f673bcebef646\",\n\"assignment_group\": \"9666e0c3c611227c017f673bcebef646\",\n\"backout_plan\": \"4000 chars\",\n\"business_duration\": \"1970-04-02 18:26:17\",\n\"business_service\": \"9666e0c3c611227c017f673bcebef646\",\n\"cab_date\": null,\n\"cab_date_time\": \"2014-11-12 04:51:19\",\n\"cab_delegate\": \"9666e0c3c611227c017f673bcebef646\",\n\"cab_recommendation\": \"4000 chars\",\n\"cab_required\": true,\n\"calendar_duration\": \"1970-04-02 18:26:17\",\n\"category\": \"40 chars\",\n\"change_plan\": \"4000 chars\",\n\"chg_model\": \"9666e0c3c611227c017f673bcebef646\",\n\"close_code\": \"40 chars\",\n\"close_notes\": \"4000 chars\",\n\"closed_at\": \"2014-11-12 04:51:19\",\n\"closed_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"cmdb_ci\": \"9666e0c3c611227c017f673bcebef646\",\n\"comments\": null,\n\"comments_and_work_notes\": null,\n\"company\": \"9666e0c3c611227c017f673bcebef646\",\n\"conflict_last_run\": \"2014-11-12 04:51:19\",\n\"conflict_status\": \"40 chars\",\n\"contact_type\": \"40 chars\",\n\"contract\": \"9666e0c3c611227c017f673bcebef646\",\n\"copied_from\": \"9666e0c3c611227c017f673bcebef646\",\n\"correlation_display\": \"100 chars\",\n\"correlation_id\": \"100 chars\",\n\"delivery_plan\": \"9666e0c3c611227c017f673bcebef646\",\n\"delivery_task\": \"9666e0c3c611227c017f673bcebef646\",\n\"description\": \"4000 chars\",\n\"due_date\": \"2014-11-12 04:51:19\",\n\"end_date\": \"2014-11-12 04:51:19\",\n\"escalation\": 9999999999999999999999999999999999999999,\n\"expected_start\": \"2014-11-12 04:51:19\",\n\"follow_up\": \"2014-11-12 04:51:19\",\n\"group_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"impact\": 9999999999999999999999999999999999999999,\n\"implementation_plan\": \"4000 chars\",\n\"justification\": \"4000 chars\",\n\"knowledge\": true,\n\"location\": \"9666e0c3c611227c017f673bcebef646\",\n\"made_sla\": true,\n\"number\": \"40 chars\",\n\"on_hold\": true,\n\"on_hold_reason\": \"4000 chars\",\n\"on_hold_task\": \"6816f79cc0a8016401c5a33be04be441\",\n\"opened_at\": \"2014-11-12 04:51:19\",\n\"opened_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"order\": 9999999999999999999999999999999999999999,\n\"outside_maintenance_schedule\": true,\n\"parent\": \"9666e0c3c611227c017f673bcebef646\",\n\"phase\": \"40 chars\",\n\"phase_state\": \"40 chars\",\n\"priority\": 9999999999999999999999999999999999999999,\n\"production_system\": true,\n\"reason\": \"40 chars\",\n\"reassignment_count\": 9999999999999999999999999999999999999999,\n\"rejection_goto\": \"ref_id\",\n\"requested_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"requested_by_date\": \"2014-11-12 04:51:19\",\n\"review_comments\": \"4000 chars\",\n\"review_date\": null,\n\"review_status\": 9999999999999999999999999999999999999999,\n\"risk\": 9999999999999999999999999999999999999999,\n\"risk_impact_analysis\": \"4000 chars\",\n\"route_reason\": 9999999999999999999999999999999999999999,\n\"scope\": 9999999999999999999999999999999999999999,\n\"service_offering\": \"9666e0c3c611227c017f673bcebef646\",\n\"short_description\": \"160 chars\",\n\"sla_due\": \"1970-04-02 18:26:17\",\n\"start_date\": \"2014-11-12 04:51:19\",\n\"state\": 9999999999999999999999999999999999999999,\n\"std_change_producer_version\": \"9666e0c3c611227c017f673bcebef646\",\n\"sys_class_name\": null,\n\"sys_created_by\": \"40 chars\",\n\"sys_created_on\": \"2014-11-12 04:51:19\",\n\"sys_domain\": \"global\",\n\"sys_domain_path\": null,\n\"sys_id\": null,\n\"sys_mod_count\": 9999999999999999999999999999999999999999,\n\"sys_updated_by\": \"40 chars\",\n\"sys_updated_on\": \"2014-11-12 04:51:19\",\n\"task_effective_number\": \"40 chars\",\n\"test_plan\": \"4000 chars\",\n\"time_worked\": null,\n\"type\": \"40 chars\",\n\"unauthorized\": true,\n\"universal_request\": \"9666e0c3c611227c017f673bcebef646\",\n\"upon_approval\": \"40 chars\",\n\"upon_reject\": \"40 chars\",\n\"urgency\": 9999999999999999999999999999999999999999,\n\"user_input\": null,\n\"variables\": null,\n\"watch_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"wf_activity\": \"ref_id\",\n\"work_end\": \"2014-11-12 04:51:19\",\n\"work_notes\": null,\n\"work_notes_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"work_start\": \"2014-11-12 04:51:19\"\n}",
       "binding": {
-        "name": "description",
-        "type": "zeebe:input"
+        "type": "zeebe:input",
+        "name": "body_change_request"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationGroup",
+            "oneOf": ["create", "update"]
+          },
+          {
+            "property": "targetTable",
+            "equals": "change_request"
+          }
+        ]
+      },
+      "optional": true
+    },
+
+    {
+      "//": "create or update change_task",
+      "id": "payload_change_task",
+      "group": "input",
+      "label": "Payload",
+      "type": "Text",
+      "feel": "required",
+      "value": "{\n\"active\": true,\n\"activity_due\": \"1970-04-02 18:26:17\",\n\"additional_assignee_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"approval\": \"40 chars\",\n\"approval_history\": null,\n\"approval_set\": \"2014-11-12 04:51:19\",\n\"assigned_to\": \"9666e0c3c611227c017f673bcebef646\",\n\"assignment_group\": \"9666e0c3c611227c017f673bcebef646\",\n\"business_duration\": \"1970-04-02 18:26:17\",\n\"business_service\": \"9666e0c3c611227c017f673bcebef646\",\n\"calendar_duration\": \"1970-04-02 18:26:17\",\n\"change_request\": \"9666e0c3c611227c017f673bcebef646\",\n\"change_task_type\": \"40 chars\",\n\"close_code\": \"40 chars\",\n\"close_notes\": \"4000 chars\",\n\"closed_at\": \"2014-11-12 04:51:19\",\n\"closed_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"cmdb_ci\": \"9666e0c3c611227c017f673bcebef646\",\n\"comments\": null,\n\"comments_and_work_notes\": null,\n\"company\": \"9666e0c3c611227c017f673bcebef646\",\n\"contact_type\": \"40 chars\",\n\"contract\": \"9666e0c3c611227c017f673bcebef646\",\n\"correlation_display\": \"100 chars\",\n\"correlation_id\": \"100 chars\",\n\"created_from\": \"40 chars\",\n\"delivery_plan\": \"9666e0c3c611227c017f673bcebef646\",\n\"delivery_task\": \"9666e0c3c611227c017f673bcebef646\",\n\"description\": \"4000 chars\",\n\"due_date\": \"2014-11-12 04:51:19\",\n\"escalation\": 9999999999999999999999999999999999999999,\n\"expected_start\": \"2014-11-12 04:51:19\",\n\"follow_up\": \"2014-11-12 04:51:19\",\n\"group_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"impact\": 9999999999999999999999999999999999999999,\n\"knowledge\": true,\n\"location\": \"9666e0c3c611227c017f673bcebef646\",\n\"made_sla\": true,\n\"number\": \"40 chars\",\n\"on_hold\": true,\n\"on_hold_reason\": \"4000 chars\",\n\"opened_at\": \"2014-11-12 04:51:19\",\n\"opened_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"order\": 9999999999999999999999999999999999999999,\n\"parent\": \"9666e0c3c611227c017f673bcebef646\",\n\"planned_end_date\": \"2014-11-12 04:51:19\",\n\"planned_start_date\": \"2014-11-12 04:51:19\",\n\"priority\": 9999999999999999999999999999999999999999,\n\"reassignment_count\": 9999999999999999999999999999999999999999,\n\"rejection_goto\": \"ref_id\",\n\"route_reason\": 9999999999999999999999999999999999999999,\n\"service_offering\": \"9666e0c3c611227c017f673bcebef646\",\n\"short_description\": \"160 chars\",\n\"sla_due\": \"1970-04-02 18:26:17\",\n\"state\": 9999999999999999999999999999999999999999,\n\"sys_class_name\": null,\n\"sys_created_by\": \"40 chars\",\n\"sys_created_on\": \"2014-11-12 04:51:19\",\n\"sys_domain\": \"global\",\n\"sys_domain_path\": null,\n\"sys_id\": null,\n\"sys_mod_count\": 9999999999999999999999999999999999999999,\n\"sys_updated_by\": \"40 chars\",\n\"sys_updated_on\": \"2014-11-12 04:51:19\",\n\"task_effective_number\": \"40 chars\",\n\"time_worked\": null,\n\"universal_request\": \"9666e0c3c611227c017f673bcebef646\",\n\"upon_approval\": \"40 chars\",\n\"upon_reject\": \"40 chars\",\n\"urgency\": 9999999999999999999999999999999999999999,\n\"user_input\": null,\n\"variables\": null,\n\"watch_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"wf_activity\": \"ref_id\",\n\"work_end\": \"2014-11-12 04:51:19\",\n\"work_notes\": null,\n\"work_notes_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"work_start\": \"2014-11-12 04:51:19\"\n}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body_change_task"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationGroup",
+            "oneOf": ["create", "update"]
+          },
+          {
+            "property": "targetTable",
+            "equals": "change_task"
+          }
+        ]
+      },
+      "optional": true
+    },
+
+    {
+      "//": "create or update sc_request",
+      "id": "payload_sc_request",
+      "group": "input",
+      "label": "Payload",
+      "type": "Text",
+      "feel": "required",
+      "value": "{\n\"active\": true,\n\"activity_due\": \"1970-04-02 18:26:17\",\n\"additional_assignee_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"approval\": \"40 chars\",\n\"approval_history\": null,\n\"approval_set\": \"2014-11-12 04:51:19\",\n\"assigned_to\": \"9666e0c3c611227c017f673bcebef646\",\n\"assignment_group\": \"9666e0c3c611227c017f673bcebef646\",\n\"business_duration\": \"1970-04-02 18:26:17\",\n\"business_service\": \"9666e0c3c611227c017f673bcebef646\",\n\"calendar_duration\": \"1970-04-02 18:26:17\",\n\"calendar_stc\": 9999999999999999999999999999999999999999,\n\"close_notes\": \"4000 chars\",\n\"closed_at\": \"2014-11-12 04:51:19\",\n\"closed_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"cmdb_ci\": \"9666e0c3c611227c017f673bcebef646\",\n\"comments\": null,\n\"comments_and_work_notes\": null,\n\"company\": \"9666e0c3c611227c017f673bcebef646\",\n\"contact_type\": \"40 chars\",\n\"contract\": \"9666e0c3c611227c017f673bcebef646\",\n\"correlation_display\": \"100 chars\",\n\"correlation_id\": \"100 chars\",\n\"delivery_address\": \"4000 chars\",\n\"delivery_plan\": \"9666e0c3c611227c017f673bcebef646\",\n\"delivery_task\": \"9666e0c3c611227c017f673bcebef646\",\n\"description\": \"4000 chars\",\n\"due_date\": \"2014-11-12 04:51:19\",\n\"escalation\": 9999999999999999999999999999999999999999,\n\"expected_start\": \"2014-11-12 04:51:19\",\n\"follow_up\": \"2014-11-12 04:51:19\",\n\"group_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"impact\": 9999999999999999999999999999999999999999,\n\"knowledge\": true,\n\"location\": \"9666e0c3c611227c017f673bcebef646\",\n\"made_sla\": true,\n\"number\": \"40 chars\",\n\"opened_at\": \"2014-11-12 04:51:19\",\n\"opened_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"order\": 9999999999999999999999999999999999999999,\n\"parent\": \"9666e0c3c611227c017f673bcebef646\",\n\"parent_interaction\": \"9666e0c3c611227c017f673bcebef646\",\n\"price\": 0.00,\n\"priority\": 9999999999999999999999999999999999999999,\n\"reassignment_count\": 9999999999999999999999999999999999999999,\n\"rejection_goto\": \"ref_id\",\n\"request_state\": \"40 chars\",\n\"requested_date\": null,\n\"requested_for\": \"9666e0c3c611227c017f673bcebef646\",\n\"route_reason\": 9999999999999999999999999999999999999999,\n\"service_offering\": \"9666e0c3c611227c017f673bcebef646\",\n\"short_description\": \"160 chars\",\n\"sla_due\": \"1970-04-02 18:26:17\",\n\"special_instructions\": \"4000 chars\",\n\"stage\": null,\n\"state\": 9999999999999999999999999999999999999999,\n\"sys_class_name\": null,\n\"sys_created_by\": \"40 chars\",\n\"sys_created_on\": \"2014-11-12 04:51:19\",\n\"sys_domain\": \"global\",\n\"sys_domain_path\": null,\n\"sys_id\": null,\n\"sys_mod_count\": 9999999999999999999999999999999999999999,\n\"sys_updated_by\": \"40 chars\",\n\"sys_updated_on\": \"2014-11-12 04:51:19\",\n\"task_effective_number\": \"40 chars\",\n\"time_worked\": null,\n\"universal_request\": \"9666e0c3c611227c017f673bcebef646\",\n\"upon_approval\": \"40 chars\",\n\"upon_reject\": \"40 chars\",\n\"urgency\": 9999999999999999999999999999999999999999,\n\"user_input\": null,\n\"variables\": null,\n\"watch_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"wf_activity\": \"ref_id\",\n\"work_end\": \"2014-11-12 04:51:19\",\n\"work_notes\": null,\n\"work_notes_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"work_start\": \"2014-11-12 04:51:19\"\n}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body_sc_request"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationGroup",
+            "oneOf": ["create", "update"]
+          },
+          {
+            "property": "targetTable",
+            "equals": "sc_request"
+          }
+        ]
+      },
+      "optional": true
+    },
+
+    {
+      "//": "create or update sc_task",
+      "id": "payload_sc_task",
+      "group": "input",
+      "label": "Payload",
+      "type": "Text",
+      "feel": "required",
+      "value": "{\n\"active\": true,\n\"activity_due\": \"1970-04-02 18:26:17\",\n\"additional_assignee_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"approval\": \"40 chars\",\n\"approval_history\": null,\n\"approval_set\": \"2014-11-12 04:51:19\",\n\"assigned_to\": \"9666e0c3c611227c017f673bcebef646\",\n\"assignment_group\": \"9666e0c3c611227c017f673bcebef646\",\n\"business_duration\": \"1970-04-02 18:26:17\",\n\"business_service\": \"9666e0c3c611227c017f673bcebef646\",\n\"calendar_duration\": \"1970-04-02 18:26:17\",\n\"calendar_stc\": 9999999999999999999999999999999999999999,\n\"cat_item\": \"9666e0c3c611227c017f673bcebef646\",\n\"close_notes\": \"4000 chars\",\n\"closed_at\": \"2014-11-12 04:51:19\",\n\"closed_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"cmdb_ci\": \"9666e0c3c611227c017f673bcebef646\",\n\"comments\": null,\n\"comments_and_work_notes\": null,\n\"company\": \"9666e0c3c611227c017f673bcebef646\",\n\"contact_type\": \"40 chars\",\n\"contract\": \"9666e0c3c611227c017f673bcebef646\",\n\"correlation_display\": \"100 chars\",\n\"correlation_id\": \"100 chars\",\n\"delivery_plan\": \"9666e0c3c611227c017f673bcebef646\",\n\"delivery_task\": \"9666e0c3c611227c017f673bcebef646\",\n\"description\": \"4000 chars\",\n\"due_date\": \"2014-11-12 04:51:19\",\n\"escalation\": 9999999999999999999999999999999999999999,\n\"expected_start\": \"2014-11-12 04:51:19\",\n\"follow_up\": \"2014-11-12 04:51:19\",\n\"group_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"impact\": 9999999999999999999999999999999999999999,\n\"knowledge\": true,\n\"location\": \"9666e0c3c611227c017f673bcebef646\",\n\"made_sla\": true,\n\"number\": \"40 chars\",\n\"opened_at\": \"2014-11-12 04:51:19\",\n\"opened_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"order\": 9999999999999999999999999999999999999999,\n\"parent\": \"9666e0c3c611227c017f673bcebef646\",\n\"priority\": 9999999999999999999999999999999999999999,\n\"reassignment_count\": 9999999999999999999999999999999999999999,\n\"rejection_goto\": \"ref_id\",\n\"request\": \"9666e0c3c611227c017f673bcebef646\",\n\"request_item\": \"9666e0c3c611227c017f673bcebef646\",\n\"route_reason\": 9999999999999999999999999999999999999999,\n\"sc_catalog\": \"9666e0c3c611227c017f673bcebef646\",\n\"service_offering\": \"9666e0c3c611227c017f673bcebef646\",\n\"short_description\": \"160 chars\",\n\"sla_due\": \"1970-04-02 18:26:17\",\n\"state\": 9999999999999999999999999999999999999999,\n\"sys_class_name\": null,\n\"sys_created_by\": \"40 chars\",\n\"sys_created_on\": \"2014-11-12 04:51:19\",\n\"sys_domain\": \"global\",\n\"sys_domain_path\": null,\n\"sys_id\": null,\n\"sys_mod_count\": 9999999999999999999999999999999999999999,\n\"sys_updated_by\": \"40 chars\",\n\"sys_updated_on\": \"2014-11-12 04:51:19\",\n\"task_effective_number\": \"40 chars\",\n\"time_worked\": null,\n\"universal_request\": \"9666e0c3c611227c017f673bcebef646\",\n\"upon_approval\": \"40 chars\",\n\"upon_reject\": \"40 chars\",\n\"urgency\": 9999999999999999999999999999999999999999,\n\"user_input\": null,\n\"variables\": null,\n\"watch_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"wf_activity\": \"ref_id\",\n\"work_end\": \"2014-11-12 04:51:19\",\n\"work_notes\": null,\n\"work_notes_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"work_start\": \"2014-11-12 04:51:19\"\n}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body_sc_task"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationGroup",
+            "oneOf": ["create", "update"]
+          },
+          {
+            "property": "targetTable",
+            "equals": "sc_task"
+          }
+        ]
+      },
+      "optional": true
+    },
+
+    {
+      "//": "create or update incident",
+      "id": "payload_incident",
+      "group": "input",
+      "label": "Payload",
+      "type": "Text",
+      "feel": "required",
+      "value": "{\n\"active\": true,\n\"activity_due\": \"1970-04-02 18:26:17\",\n\"additional_assignee_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"approval\": \"40 chars\",\n\"approval_history\": null,\n\"approval_set\": \"2014-11-12 04:51:19\",\n\"assigned_to\": \"9666e0c3c611227c017f673bcebef646\",\n\"assignment_group\": \"9666e0c3c611227c017f673bcebef646\",\n\"business_duration\": \"1970-04-02 18:26:17\",\n\"business_impact\": \"4000 chars\",\n\"business_service\": \"9666e0c3c611227c017f673bcebef646\",\n\"business_stc\": 9999999999999999999999999999999999999999,\n\"calendar_duration\": \"1970-04-02 18:26:17\",\n\"calendar_stc\": 9999999999999999999999999999999999999999,\n\"caller_id\": \"9666e0c3c611227c017f673bcebef646\",\n\"category\": \"40 chars\",\n\"cause\": \"4000 chars\",\n\"caused_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"child_incidents\": 9999999999999999999999999999999999999999,\n\"close_code\": \"40 chars\",\n\"close_notes\": \"4000 chars\",\n\"closed_at\": \"2014-11-12 04:51:19\",\n\"closed_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"cmdb_ci\": \"9666e0c3c611227c017f673bcebef646\",\n\"comments\": null,\n\"comments_and_work_notes\": null,\n\"company\": \"9666e0c3c611227c017f673bcebef646\",\n\"contact_type\": \"40 chars\",\n\"contract\": \"9666e0c3c611227c017f673bcebef646\",\n\"correlation_display\": \"100 chars\",\n\"correlation_id\": \"100 chars\",\n\"delivery_plan\": \"9666e0c3c611227c017f673bcebef646\",\n\"delivery_task\": \"9666e0c3c611227c017f673bcebef646\",\n\"description\": \"4000 chars\",\n\"due_date\": \"2014-11-12 04:51:19\",\n\"escalation\": 9999999999999999999999999999999999999999,\n\"expected_start\": \"2014-11-12 04:51:19\",\n\"follow_up\": \"2014-11-12 04:51:19\",\n\"group_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"hold_reason\": 9999999999999999999999999999999999999999,\n\"impact\": 9999999999999999999999999999999999999999,\n\"incident_state\": 9999999999999999999999999999999999999999,\n\"knowledge\": true,\n\"location\": \"9666e0c3c611227c017f673bcebef646\",\n\"made_sla\": true,\n\"notify\": 9999999999999999999999999999999999999999,\n\"number\": \"40 chars\",\n\"opened_at\": \"2014-11-12 04:51:19\",\n\"opened_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"order\": 9999999999999999999999999999999999999999,\n\"origin_id\": \"9666e0c3c611227c017f673bcebef646\",\n\"origin_table\": \"incident\",\n\"parent\": \"9666e0c3c611227c017f673bcebef646\",\n\"parent_incident\": \"9666e0c3c611227c017f673bcebef646\",\n\"priority\": 9999999999999999999999999999999999999999,\n\"problem_id\": \"9666e0c3c611227c017f673bcebef646\",\n\"reassignment_count\": 9999999999999999999999999999999999999999,\n\"rejection_goto\": \"ref_id\",\n\"reopen_count\": 9999999999999999999999999999999999999999,\n\"reopened_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"reopened_time\": \"2014-11-12 04:51:19\",\n\"resolved_at\": \"2014-11-12 04:51:19\",\n\"resolved_by\": \"9666e0c3c611227c017f673bcebef646\",\n\"rfc\": \"9666e0c3c611227c017f673bcebef646\",\n\"route_reason\": 9999999999999999999999999999999999999999,\n\"service_offering\": \"9666e0c3c611227c017f673bcebef646\",\n\"severity\": 9999999999999999999999999999999999999999,\n\"short_description\": \"160 chars\",\n\"sla_due\": \"1970-04-02 18:26:17\",\n\"state\": 9999999999999999999999999999999999999999,\n\"subcategory\": \"40 chars\",\n\"sys_class_name\": null,\n\"sys_created_by\": \"40 chars\",\n\"sys_created_on\": \"2014-11-12 04:51:19\",\n\"sys_domain\": \"global\",\n\"sys_domain_path\": null,\n\"sys_id\": null,\n\"sys_mod_count\": 9999999999999999999999999999999999999999,\n\"sys_updated_by\": \"40 chars\",\n\"sys_updated_on\": \"2014-11-12 04:51:19\",\n\"task_effective_number\": \"40 chars\",\n\"time_worked\": null,\n\"universal_request\": \"9666e0c3c611227c017f673bcebef646\",\n\"upon_approval\": \"40 chars\",\n\"upon_reject\": \"40 chars\",\n\"urgency\": 9999999999999999999999999999999999999999,\n\"user_input\": null,\n\"variables\": null,\n\"watch_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"wf_activity\": \"ref_id\",\n\"work_end\": \"2014-11-12 04:51:19\",\n\"work_notes\": null,\n\"work_notes_list\": \"6816f79cc0a8016401c5a33be04be441\",\n\"work_start\": \"2014-11-12 04:51:19\"\n}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body_incident"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationGroup",
+            "oneOf": ["create", "update"]
+          },
+          {
+            "property": "targetTable",
+            "equals": "incident"
+          }
+        ]
+      },
+      "optional": true
+    },
+
+    {
+      "//": "create or update __custom",
+      "id": "payload___custom",
+      "group": "input",
+      "label": "Payload",
+      "type": "Text",
+      "feel": "required",
+      "value": "={ }",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body__custom"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationGroup",
+            "oneOf": ["create", "update"]
+          },
+          {
+            "property": "targetTable",
+            "equals": "__custom"
+          }
+        ]
+      },
+      "optional": true
+    },
+
+    {
+      "//": "this sets the actual request body for a write request to the ServiceNow API",
+      "group": "input",
+      "type": "Hidden",
+      "value": "={\n \"variables\": [body_sc_request_item, body_change_request, body_change_task, body_sc_request, body_sc_task, body_incident, body__custom],\n  \"result\": variables[item != null][1]\n}.result",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
       },
       "condition": {
         "property": "operationGroup",
-        "oneOf": ["create", "update"]
-      }
+        "oneOf": [
+          "create",
+          "update"
+        ]
+      },
+      "optional": true
     },
+
+
 
     {
       "id": "authentication.type",
@@ -641,11 +707,17 @@
       },
       "type": "String"
     },
+
+
+
+
+
+
     {
       "id": "method",
       "label": "Method",
       "optional": false,
-      "value": "GET",
+      "value": "={\"operationMap\": {\n    \"read\": \"GET\",\n    \"update\": \"PATCH\",\n    \"create\": \"POST\",\n    \"delete\": \"DELETE\"\n  },\n  \"result\": operationMap[operationGroup]\n}.result",
       "constraints": {
         "notEmpty": true
       },
@@ -654,29 +726,7 @@
         "name": "method",
         "type": "zeebe:input"
       },
-      "type": "Hidden",
-      "choices": [
-        {
-          "name": "POST",
-          "value": "POST"
-        },
-        {
-          "name": "GET",
-          "value": "GET"
-        },
-        {
-          "name": "DELETE",
-          "value": "DELETE"
-        },
-        {
-          "name": "PATCH",
-          "value": "PATCH"
-        },
-        {
-          "name": "PUT",
-          "value": "PUT"
-        }
-      ]
+      "type": "Hidden"
     },
     {
       "id": "url",
@@ -694,9 +744,16 @@
         "name": "url",
         "type": "zeebe:input"
       },
-      "type": "Hidden",
-      "value": "=\"https://\" + instance + \".service-now.com/api/now/table/\" + (if requestTarget = \"__custom\" then customRequestTarget else requestTarget)"
+      "feel": "required",
+      "type": "String",
+      "value": "=\"https://\" + snInstance + \".service-now.com/api/now/table/\" + (if targetTable = \"__custom\" then customRequestTarget else targetTable)"
     },
+
+
+
+
+
+
     {
       "id": "headers",
       "label": "Headers",
@@ -720,8 +777,16 @@
         "type": "zeebe:input"
       },
       "type": "Hidden",
-      "value": "={ \"sysparm_query\": if sysparm_query != null then replace(sysparm_query, \" \", \"\") else null , \"sysparm_fields\": if sysparm_fields != null then replace(sysparm_fields, \" \", \"\") else null , \"sysparm_limit\": if sysparm_limit != null then sysparm_limit else null }"
+      "value": "={ \"sysparm_query\": if sysparm_query != null then replace(sysparm_query, \" \", \"\") else null , \"sysparm_fields\": if sysparm_fields != null then replace(sysparm_fields, \" \", \"\") else null , \"sysparm_limit\": if sysparm_limit != null then sysparm_limit else null }",
+      "condition": {
+        "property": "operationGroup",
+        "equals": "read"
+      }
     },
+
+
+
+
     {
       "id": "storeResponse",
       "label": "Store response",
@@ -740,7 +805,7 @@
       "label": "Skip URL encoding",
       "description": "Skip the default URL decoding and encoding behavior",
       "optional": true,
-      "value": true,
+      "value": "=true",
       "group": "endpoint",
       "binding": {
         "name": "skipEncoding",
@@ -790,41 +855,7 @@
       },
       "type": "Number"
     },
-    {
-      "id": "body",
-      "label": "Request body",
-      "description": "Payload to send with the request",
-      "optional": true,
-      "feel": "optional",
-      "group": "payload",
-      "binding": {
-        "name": "body",
-        "type": "zeebe:input"
-      },
-      "condition": {
-        "property": "method",
-        "oneOf": [
-          "POST",
-          "PUT",
-          "PATCH"
-        ],
-        "type": "simple"
-      },
-      "type": "Text"
-    },
-    {
-      "id": "ignoreNullValues",
-      "label": "Ignore null values",
-      "optional": false,
-      "value": "=false",
-      "group": "payload",
-      "binding": {
-        "name": "ignoreNullValues",
-        "type": "zeebe:input"
-      },
-      "tooltip": "Null values will not be sent",
-      "type": "Hidden"
-    },
+
     {
       "id": "resultVariable",
       "label": "Result variable",
