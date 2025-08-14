@@ -196,6 +196,37 @@
     },
 
 
+    {
+      "id": "updateTarget",
+      "label": "Sys ID of the record to update",
+      "description": "provide the unique identifier of the record to update",
+      "type": "String",
+      "group": "sn",
+      "binding": {
+        "name": "updateTarget",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationGroup",
+        "equals": "update"
+      }
+    },
+
+    {
+      "id": "deleteTarget",
+      "label": "Sys ID of the record to delete",
+      "description": "provide the unique identifier of the record to delete",
+      "type": "String",
+      "group": "sn",
+      "binding": {
+        "name": "deleteTarget",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationGroup",
+        "equals": "delete"
+      }
+    },
 
 
 
@@ -744,9 +775,8 @@
         "name": "url",
         "type": "zeebe:input"
       },
-      "feel": "required",
-      "type": "String",
-      "value": "=\"https://\" + snInstance + \".service-now.com/api/now/table/\" + (if targetTable = \"__custom\" then customRequestTarget else targetTable)"
+      "type": "Hidden",
+      "value": "={\n  \"baseUrl\": \"https://\" + snInstance + \".service-now.com/api/now/table/\",\n  \"table\": if targetTable = \"__custom\" then customRequestTarget else targetTable ,\n  \"updateOrDeleteSysId\": if updateTarget != null then updateTarget else (if deleteTarget != null then deleteTarget else null) ,\n  \"fullUrl\": baseUrl + table + (if updateOrDeleteSysId != null then \"/\" + updateOrDeleteSysId else \"\")\n}.fullUrl"
     },
 
 
