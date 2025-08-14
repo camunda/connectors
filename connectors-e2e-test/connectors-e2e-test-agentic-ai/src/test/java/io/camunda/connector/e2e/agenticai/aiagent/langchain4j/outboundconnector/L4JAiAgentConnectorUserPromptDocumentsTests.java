@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,7 +43,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @SlowTest
-public class Langchain4JAiAgentUserPromptDocumentsTests extends BaseLangchain4JAiAgentTests {
+public class L4JAiAgentConnectorUserPromptDocumentsTests extends BaseL4JAiAgentConnectorTest {
 
   @ParameterizedTest
   @ValueSource(

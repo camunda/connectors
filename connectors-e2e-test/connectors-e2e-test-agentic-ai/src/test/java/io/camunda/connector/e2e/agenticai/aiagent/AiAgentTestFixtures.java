@@ -24,7 +24,7 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ThrowingConsumer;
 
 public interface AiAgentTestFixtures {
-  String AI_AGENT_ELEMENT_TEMPLATE_PATH =
+  String AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/element-templates/agenticai-aiagent-outbound-connector.json";
 
   String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
@@ -32,7 +32,8 @@ public interface AiAgentTestFixtures {
 
   String AGENT_RESPONSE_VARIABLE = "agent";
   String AI_AGENT_TASK_ID = "AI_Agent";
-  Map<String, String> AI_AGENT_ELEMENT_TEMPLATE_PROPERTIES =
+
+  Map<String, String> AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PROPERTIES =
       Map.ofEntries(
           Map.entry("provider.type", "openai"),
           Map.entry("provider.openai.authentication.apiKey", "DUMMY_API_KEY"),

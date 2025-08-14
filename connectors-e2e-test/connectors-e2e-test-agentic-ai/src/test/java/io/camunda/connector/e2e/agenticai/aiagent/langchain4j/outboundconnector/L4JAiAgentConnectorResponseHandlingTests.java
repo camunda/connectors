@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_JSON;
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
-public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAgentTests {
+public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConnectorTest {
 
   @Nested
   class ResponseText {

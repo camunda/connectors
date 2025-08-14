@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -47,11 +46,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentTest;
+import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentConnectorTest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
 import io.camunda.connector.test.SlowTest;
-import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,18 +67,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
-@WireMockTest
-@Import(BaseLangchain4JAiAgentTests.CamundaDocumentTestConfiguration.class)
-abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
+abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
   @MockitoBean private ChatModelFactory chatModelFactory;
   @Mock protected ChatModel chatModel;
   @Captor protected ArgumentCaptor<ChatRequest> chatRequestCaptor;
@@ -90,16 +82,6 @@ abstract class BaseLangchain4JAiAgentTests extends BaseAiAgentTest {
   protected final AtomicInteger jobWorkerCounter = new AtomicInteger(0);
   protected final AtomicReference<Map<String, Object>> userFeedbackVariables =
       new AtomicReference<>(Collections.emptyMap());
-
-  @TestConfiguration
-  static class CamundaDocumentTestConfiguration {
-
-    @Bean
-    @Primary
-    public CamundaDocumentStore camundaDocumentStore() {
-      return InMemoryDocumentStore.INSTANCE;
-    }
-  }
 
   @BeforeEach
   void setUp() {

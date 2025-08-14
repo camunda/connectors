@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.McpTestFixtures.MCP_TOOL_SPECIFICATIONS;
@@ -60,7 +60,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SlowTest
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
-public class Langchain4JAiAgentMcpIntegrationTests extends BaseLangchain4JAiAgentTests {
+public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnectorTest {
 
   @Value("classpath:agentic-ai-connectors-mcp.bpmn")
   protected Resource testProcessWithMcp;

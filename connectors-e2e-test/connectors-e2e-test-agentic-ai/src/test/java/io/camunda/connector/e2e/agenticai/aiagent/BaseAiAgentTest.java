@@ -17,15 +17,15 @@
 package io.camunda.connector.e2e.agenticai.aiagent;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AGENT_RESPONSE_VARIABLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_ELEMENT_TEMPLATE_PATH;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_ELEMENT_TEMPLATE_PROPERTIES;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
+import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.process.test.api.CamundaAssert;
 import java.io.File;
 import java.io.IOException;
@@ -36,15 +36,21 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
+@WireMockTest
+@Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
+
   @Autowired protected ResourceLoader resourceLoader;
 
-  @Value("classpath:agentic-ai-connectors.bpmn")
-  protected Resource testProcess;
+  protected abstract Resource testProcess();
+
+  protected abstract String elementTemplatePath();
+
+  protected abstract Map<String, String> elementTemplateProperties();
 
   protected ZeebeTest createProcessInstance(Map<String, Object> variables) throws IOException {
     return createProcessInstance(e -> e, variables);
@@ -54,7 +60,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       Map<String, Object> variables)
       throws IOException {
-    return createProcessInstance(testProcess, elementTemplateModifier, variables);
+    return createProcessInstance(testProcess(), elementTemplateModifier, variables);
   }
 
   protected ZeebeTest createProcessInstance(
@@ -62,8 +68,8 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       Map<String, Object> variables)
       throws IOException {
-    var elementTemplate = ElementTemplate.from(AI_AGENT_ELEMENT_TEMPLATE_PATH);
-    AI_AGENT_ELEMENT_TEMPLATE_PROPERTIES.forEach(elementTemplate::property);
+    var elementTemplate = ElementTemplate.from(elementTemplatePath());
+    elementTemplateProperties().forEach(elementTemplate::property);
     elementTemplate = elementTemplateModifier.apply(elementTemplate);
 
     final var elementTemplateFile = elementTemplate.writeTo(new File(tempDir, "template.json"));
