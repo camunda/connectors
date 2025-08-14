@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerErrorHandler;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;

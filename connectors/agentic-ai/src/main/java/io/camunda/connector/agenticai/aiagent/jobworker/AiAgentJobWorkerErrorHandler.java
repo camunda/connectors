@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent;
+package io.camunda.connector.agenticai.aiagent.jobworker;
 
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.response.ActivatedJob;

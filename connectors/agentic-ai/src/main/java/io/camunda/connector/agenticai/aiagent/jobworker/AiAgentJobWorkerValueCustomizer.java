@@ -4,8 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent;
+package io.camunda.connector.agenticai.aiagent.jobworker;
 
+import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.spring.client.annotation.customizer.JobWorkerValueCustomizer;
 import io.camunda.spring.client.annotation.value.JobWorkerValue;

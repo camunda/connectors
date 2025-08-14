@@ -21,8 +21,6 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaRe
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
-import io.camunda.connector.agenticai.aiagent.AiAgentJobWorkerErrorHandler;
-import io.camunda.connector.agenticai.aiagent.AiAgentJobWorkerValueCustomizer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
@@ -35,6 +33,8 @@ import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerErrorHandler;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerValueCustomizer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
