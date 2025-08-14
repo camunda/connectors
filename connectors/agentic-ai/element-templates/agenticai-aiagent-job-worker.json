@@ -1447,7 +1447,7 @@
       "id": "id",
       "label": "ID",
       "description": "ID of the element template",
-      "value": "io.camunda.connectors.agenticai.aiagent.v1",
+      "value": "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
       "group": "connector",
       "binding": {
         "key": "elementTemplateId",

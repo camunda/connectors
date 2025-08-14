@@ -32,6 +32,8 @@ jq -r '
     map(
       if .binding.property == "type" then
         .value = "io.camunda.agenticai:aiagent-job-worker:1"
+      elif .id == "id" then
+        .value = "io.camunda.connectors.agenticai.aiagent.jobworker.v1"
       elif .id == "resultVariable" then
         .binding = {source: "=agent", type: "zeebe:output"} |
         .value = "agent"
