@@ -26,6 +26,7 @@ import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.Nullable;
 
 public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
     implements AgentRequestHandler<C> {
@@ -182,6 +183,6 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
   /** Handles job completion if needed. Agent response and conversation store may be null. */
   protected abstract AgentResponse completeJob(
       final C executionContext,
-      final AgentResponse agentResponse,
-      final ConversationStore conversationStore);
+      @Nullable final AgentResponse agentResponse,
+      @Nullable final ConversationStore conversationStore);
 }
