@@ -515,9 +515,6 @@
     "description" : "The size of the vector used to represent data",
     "optional" : false,
     "value" : "D1024",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "group" : "embeddingModel",
     "binding" : {
       "name" : "embeddingModelProvider.bedrock.dimensions",

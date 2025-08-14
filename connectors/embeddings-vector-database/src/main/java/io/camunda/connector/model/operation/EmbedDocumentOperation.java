@@ -29,7 +29,6 @@ public record EmbedDocumentOperation(
             label = "Document source",
             feel = Property.FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description = "Whether you want to embed a Camunda document file or plain text",
             defaultValue = "CamundaDocument")
         EmbedDocumentSource documentSource,

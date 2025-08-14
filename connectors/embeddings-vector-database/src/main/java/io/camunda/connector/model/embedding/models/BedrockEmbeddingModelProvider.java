@@ -50,7 +50,6 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               label = "Model name",
               feel = Property.FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
               description = "Bedrock model name or identifier",
               defaultValue = "TitanEmbedTextV2")
           BedrockModels modelName,
@@ -70,7 +69,6 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               description = "The size of the vector used to represent data",
               feel = Property.FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
               defaultValue = "D1024",
               condition =
                   @PropertyCondition(
