@@ -31,6 +31,7 @@ import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
@@ -41,6 +42,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.camunda.document.Document;
@@ -146,10 +148,19 @@ public class InboundWebhookRestController {
       // This is required for cases, when we need to get a message from an external source
       // but at the same time, not triggering correlation
       // Such use-case can be echoing webhook verification challenge
-      response = verify(connectorHook, payload);
+      response = verify(connectorHook, payload, connector.context());
       if (response == null) {
         // when verification was skipped
         // Step 2: trigger and correlate
+        connector
+            .context()
+            .log(
+                activity ->
+                    activity
+                        .withSeverity(Severity.INFO)
+                        .withTag(payload.method())
+                        .withMessage("URL: " + payload.requestURL()));
+
         var webhookResult = connectorHook.triggerWebhook(payload);
         // create documents if the connector is activable
         var documents = createDocuments(connector.context(), webhookResult, payload.parts());
@@ -160,7 +171,14 @@ public class InboundWebhookRestController {
         response = buildResponse(webhookResult, documents, correlationResult);
       }
     } catch (Exception e) {
-      LOG.info("Webhook: {} failed with exception", connector.context().getDefinition(), e);
+      connector
+          .context()
+          .log(
+              activity ->
+                  activity
+                      .withSeverity(Severity.ERROR)
+                      .withTag(payload.method())
+                      .withMessage("Webhook processing failed"));
       response = buildErrorResponse(e);
     }
     return response;
@@ -186,11 +204,19 @@ public class InboundWebhookRestController {
   }
 
   protected ResponseEntity<?> verify(
-      WebhookConnectorExecutable connectorHook, WebhookProcessingPayload payload) {
+      WebhookConnectorExecutable connectorHook,
+      WebhookProcessingPayload payload,
+      InboundConnectorReportingContext context) {
     WebhookHttpResponse verificationResponse = connectorHook.verify(payload);
     ResponseEntity<?> response = null;
     if (verificationResponse != null) {
       response = toResponseEntity(verificationResponse);
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(payload.method())
+                  .withMessage("Successfully handled a verification request"));
     }
     return response;
   }

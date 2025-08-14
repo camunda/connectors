@@ -15,8 +15,6 @@ import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.polling.model.PollingIntervalInput;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
     engineVersion = "^8.3",
@@ -48,7 +46,6 @@ import org.slf4j.LoggerFactory;
 @InboundConnector(name = "HTTP_POLLING", type = "io.camunda:http-polling:1")
 public class HttpPollingConnector
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpPollingConnector.class);
 
   private final HttpService httpService;
   private final SharedExecutorService executorService;
@@ -74,7 +71,6 @@ public class HttpPollingConnector
 
   @Override
   public void deactivate() {
-    LOGGER.debug("Deactivating the HttpPolling connector");
     processInstancesFetcherTask.stop();
   }
 }

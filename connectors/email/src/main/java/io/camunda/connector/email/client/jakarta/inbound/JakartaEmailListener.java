@@ -8,7 +8,6 @@ package io.camunda.connector.email.client.jakarta.inbound;
 
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -24,7 +23,6 @@ public class JakartaEmailListener implements EmailListener {
   private static final int INFINITE_RETRIES = -1;
   private final ScheduledExecutorService scheduledExecutorService =
       Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Jakarta Email Listener"));
-  ;
   private CompletableFuture<PollingManager> pollingManagerFuture;
   private CompletableFuture<ScheduledFuture<?>> scheduledPollingManagerFuture;
 
@@ -44,11 +42,13 @@ public class JakartaEmailListener implements EmailListener {
             .onRetry(
                 event ->
                     context.log(
-                        Activity.level(Severity.WARNING)
-                            .tag("Context creation")
-                            .message(
-                                "Retrying after attempt %s failed ..."
-                                    .formatted(event.getAttemptCount()))))
+                        activity ->
+                            activity
+                                .withSeverity(Severity.WARNING)
+                                .withTag("Context creation")
+                                .withMessage(
+                                    "Retrying after attempt %s failed ..."
+                                        .formatted(event.getAttemptCount()))))
             .build();
     this.pollingManagerFuture =
         Failsafe.with(retryPolicy)
@@ -64,9 +64,11 @@ public class JakartaEmailListener implements EmailListener {
           if (throwable != null) {
             context.reportHealth(Health.down(Health.Error.from(throwable)));
             context.log(
-                Activity.level(Severity.ERROR)
-                    .tag("Context creation")
-                    .messageWithException(throwable.getMessage(), throwable));
+                activity ->
+                    activity
+                        .withSeverity(Severity.ERROR)
+                        .withTag("Context creation")
+                        .withMessage(throwable.getMessage()));
           } else context.reportHealth(Health.up());
         });
   }

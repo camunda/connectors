@@ -28,6 +28,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.inbound.*;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Activated;
@@ -59,8 +60,11 @@ public class InboundExecutableRegistryTest {
     factory = mock(InboundConnectorFactory.class);
     contextFactory = mock(DefaultInboundConnectorContextFactory.class);
     var inboundMetrics = mock(ConnectorsInboundMetrics.class);
-    batchProcessor = new BatchExecutableProcessor(factory, contextFactory, inboundMetrics, null);
-    registry = new InboundExecutableRegistryImpl(factory, batchProcessor);
+    batchProcessor =
+        new BatchExecutableProcessor(
+            factory, contextFactory, inboundMetrics, null, new ActivityLogRegistry());
+    registry =
+        new InboundExecutableRegistryImpl(factory, batchProcessor, new ActivityLogRegistry());
   }
 
   @Test

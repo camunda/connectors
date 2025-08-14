@@ -14,15 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound;
+package io.camunda.connector.runtime.core.inbound.activitylog;
 
-/**
- * Severity levels for inbound connector activity logs. Note: This does not translate 1:1 to SLF4J
- * levels.
- */
-public enum Severity {
-  DEBUG,
-  INFO,
-  WARNING,
-  ERROR
+public enum ActivitySource {
+  RUNTIME,
+  CONNECTOR
 }

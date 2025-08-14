@@ -9,11 +9,11 @@ package io.camunda.connector.http.polling.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,7 +49,7 @@ public class PollingIntervalConfigurationTest {
             null,
             (e) -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
-            EvictingQueue.create(10));
+            new ActivityLogRegistry());
   }
 
   @ParameterizedTest

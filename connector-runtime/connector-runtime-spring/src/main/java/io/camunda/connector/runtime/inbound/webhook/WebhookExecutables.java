@@ -16,16 +16,13 @@
  */
 package io.camunda.connector.runtime.inbound.webhook;
 
-import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.ActivityLogTag;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import java.util.*;
 
 public class WebhookExecutables {
-
-  private static final String TAG_QUEUEING = "Queueing";
-  private static final String TAG_ACTIVATION = "Activation";
 
   private final List<RegisteredExecutable.Activated> inactiveExecutables = new ArrayList<>();
   private RegisteredExecutable.Activated activeExecutable;
@@ -131,12 +128,14 @@ public class WebhookExecutables {
     executable
         .context()
         .log(
-            Activity.level(Severity.INFO)
-                .tag(TAG_QUEUEING)
-                .message(
-                    "Webhook path \""
-                        + context
-                        + "\" is already in use. Executable registered in standby and will be activated when the path becomes available."));
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.QUEUEING)
+                    .withMessage(
+                        "Webhook path \""
+                            + context
+                            + "\" is already in use. Executable registered in standby and will be activated when the path becomes available."));
     executable.context().reportHealth(Health.down(new IllegalStateException(createErrorMessage())));
   }
 
@@ -146,10 +145,14 @@ public class WebhookExecutables {
       activeExecutable
           .context()
           .log(
-              Activity.level(Severity.INFO)
-                  .tag(TAG_ACTIVATION)
-                  .message(
-                      "Path \"" + context + "\" is now available. executable has been activated."));
+              activity ->
+                  activity
+                      .withSeverity(Severity.INFO)
+                      .withTag(ActivityLogTag.ACTIVATION)
+                      .withMessage(
+                          "Path \""
+                              + context
+                              + "\" is now available. executable has been activated."));
     } catch (Exception e) {
       throw new RuntimeException("Could not activate connector: " + activeExecutable, e);
     }

@@ -20,13 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Test;
 class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
   private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
+  private final ActivityLogRegistry activityLogRegistry = new ActivityLogRegistry();
 
   @Test
   void bindProperties_shouldThrowExceptionWhenWrongFormat() {
@@ -46,13 +47,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("stringMap", "={{\"key\":\"value\"}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
     // when and then
     RuntimeException exception =
         assertThrows(
@@ -67,13 +62,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("stringMap", "={\"keyString\":null}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -92,13 +81,7 @@ class InboundConnectorContextImplTest {
                 "={key:[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -149,13 +132,7 @@ class InboundConnectorContextImplTest {
                 "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":true}}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -170,13 +147,7 @@ class InboundConnectorContextImplTest {
 
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider,
-            (e) -> {},
-            definition,
-            null,
-            (e) -> {},
-            mapper,
-            EvictingQueue.create(10));
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
 
     // when
     Map<String, Object> properties = inboundConnectorContext.getProperties();

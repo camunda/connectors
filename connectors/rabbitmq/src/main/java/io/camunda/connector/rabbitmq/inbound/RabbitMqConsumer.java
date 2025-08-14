@@ -45,9 +45,12 @@ public class RabbitMqConsumer extends DefaultConsumer {
       throws IOException {
 
     context.log(
-        Activity.level(Severity.INFO)
-            .tag(LogTag.MESSAGE)
-            .message("Received AMQP message with delivery tag " + envelope.getDeliveryTag()));
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.MESSAGE)
+                .withMessage(
+                    "Received AMQP message with delivery tag " + envelope.getDeliveryTag()));
 
     try {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
@@ -60,9 +63,11 @@ public class RabbitMqConsumer extends DefaultConsumer {
       handleCorrelationResult(envelope, result);
     } catch (Exception e) {
       context.log(
-          Activity.level(Severity.ERROR)
-              .tag(LogTag.MESSAGE)
-              .message("NACK (requeue) - failed to correlate event"));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(ActivityLogTag.MESSAGE)
+                  .withMessage("NACK (requeue) - failed to correlate event"));
       getChannel().basicReject(envelope.getDeliveryTag(), true);
     }
   }
@@ -73,9 +78,11 @@ public class RabbitMqConsumer extends DefaultConsumer {
     switch (result) {
       case Success ignored -> {
         context.log(
-            Activity.level(Severity.INFO)
-                .tag(LogTag.MESSAGE)
-                .message("Message correlated successfully"));
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.MESSAGE)
+                    .withMessage("Message correlated successfully"));
         getChannel().basicAck(envelope.getDeliveryTag(), false);
       }
 
@@ -90,23 +97,29 @@ public class RabbitMqConsumer extends DefaultConsumer {
           case ForwardErrorToUpstream fwdStrategy -> {
             if (fwdStrategy.isRetryable()) {
               context.log(
-                  Activity.level(Severity.WARNING)
-                      .tag(LogTag.MESSAGE)
-                      .message(errorLogMessage + ". Message will be requeued."));
+                  activity ->
+                      activity
+                          .withSeverity(Severity.WARNING)
+                          .withTag(ActivityLogTag.MESSAGE)
+                          .withMessage(errorLogMessage + ". Message will be requeued."));
               getChannel().basicReject(envelope.getDeliveryTag(), true);
             } else {
               context.log(
-                  Activity.level(Severity.WARNING)
-                      .tag(LogTag.MESSAGE)
-                      .message(errorLogMessage + ". Message will be dropped."));
+                  activity ->
+                      activity
+                          .withSeverity(Severity.WARNING)
+                          .withTag(ActivityLogTag.MESSAGE)
+                          .withMessage(errorLogMessage + ". Message will be dropped."));
               getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
           }
           case Ignore ignored -> {
             context.log(
-                Activity.level(Severity.WARNING)
-                    .tag(LogTag.MESSAGE)
-                    .message(errorLogMessage + ". Message will be acknowledged."));
+                activity ->
+                    activity
+                        .withSeverity(Severity.WARNING)
+                        .withTag(ActivityLogTag.MESSAGE)
+                        .withMessage(errorLogMessage + ". Message will be acknowledged."));
             getChannel().basicAck(envelope.getDeliveryTag(), false);
           }
         }
@@ -118,9 +131,11 @@ public class RabbitMqConsumer extends DefaultConsumer {
   public void handleCancel(String consumerTag) {
     try {
       context.log(
-          Activity.level(Severity.WARNING)
-              .tag(LogTag.CONSUMER)
-              .message("Consumer cancelled: " + consumerTag));
+          activity ->
+              activity
+                  .withSeverity(Severity.WARNING)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Consumer cancelled: " + consumerTag));
       context.cancel(null);
     } catch (Exception e) {
       context.reportHealth(Health.down(e));
@@ -132,9 +147,11 @@ public class RabbitMqConsumer extends DefaultConsumer {
   public void handleShutdownSignal(String consumerTag, ShutdownSignalException sig) {
     LOGGER.error("Consumer shutdown: {}", consumerTag, sig);
     context.log(
-        Activity.level(Severity.ERROR)
-            .tag(LogTag.CONSUMER)
-            .message("Consumer shutdown: " + consumerTag + sig));
+        activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CONSUMER)
+                .withMessage("Consumer shutdown: " + consumerTag + sig));
   }
 
   private RabbitMqInboundResult prepareVariables(

@@ -10,7 +10,6 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.QueueAttributeName;
 import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -74,7 +73,7 @@ import org.slf4j.LoggerFactory;
           templateIdOverride = "io.camunda.connectors.AWSSQS.boundary.v1",
           templateNameOverride = "Amazon SQS Boundary Event Connector")
     })
-public class SqsExecutable implements InboundConnectorExecutable {
+public class SqsExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
   private final AmazonSQSClientSupplier sqsClientSupplier;
@@ -102,9 +101,11 @@ public class SqsExecutable implements InboundConnectorExecutable {
     this.context = context;
     LOGGER.info("Subscription activation requested by the Connector runtime");
     context.log(
-        Activity.level(Severity.INFO)
-            .tag("Subscription activation")
-            .message("Subscription activation requested"));
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag("Subscription activation")
+                .withMessage("Subscription activation requested"));
     SqsInboundProperties properties = context.bindProperties(SqsInboundProperties.class);
 
     var region =
@@ -130,20 +131,17 @@ public class SqsExecutable implements InboundConnectorExecutable {
     executorService.execute(sqsQueueConsumer);
     LOGGER.debug("SQS queue consumer started successfully");
     context.log(
-        Activity.level(Severity.INFO)
-            .tag("Subscription activation")
-            .message("Activated subscription for queue: " + properties.getQueue().url()));
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag("Subscription activation")
+                .withMessage("Activated subscription for queue: " + properties.getQueue().url()));
     context.reportHealth(Health.up());
   }
 
   @Override
   public void deactivate() {
     sqsQueueConsumer.setQueueConsumerActive(false);
-    LOGGER.debug("Deactivating subscription");
-    context.log(
-        Activity.level(Severity.INFO)
-            .tag("Subscription activation")
-            .message("Deactivating subscription"));
     context.reportHealth(Health.down());
     if (executorService != null) {
       LOGGER.debug("Shutting down executor service");
