@@ -22,6 +22,7 @@ import com.azure.cosmos.models.IndexingPolicy;
 import com.azure.cosmos.models.PartitionKeyDefinition;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDbNoSqlEmbeddingStore;
 import dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore;
@@ -38,7 +39,7 @@ public class AzureVectorStoreFactory {
   public static final String COSMOS_DB_VECTOR_EMBEDDING_PATH = "/embedding";
   public static final String COSMOS_DB_PARTITION_KEY_PATH = "/id";
 
-  public ClosableEmbeddingStore createAiSearchVectorStore(
+  public ClosableEmbeddingStore<TextSegment> createAiSearchVectorStore(
       AzureAiSearchVectorStore azureAiSearchVectorStore,
       EmbeddingModel model,
       VectorDatabaseConnectorOperation operation) {
@@ -60,7 +61,7 @@ public class AzureVectorStoreFactory {
     return ClosableEmbeddingStore.wrap(embeddingStoreBuilder.build());
   }
 
-  public ClosableEmbeddingStore createCosmosDbNoSqlVectorStore(
+  public ClosableEmbeddingStore<TextSegment> createCosmosDbNoSqlVectorStore(
       AzureCosmosDbNoSqlVectorStore azureCosmosDbNoSqlVectorStore, EmbeddingModel model) {
 
     final var cosmosDbNoSql = azureCosmosDbNoSqlVectorStore.azureCosmosDbNoSql();

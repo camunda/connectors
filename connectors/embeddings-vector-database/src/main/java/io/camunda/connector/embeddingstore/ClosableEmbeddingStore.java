@@ -7,7 +7,6 @@
 package io.camunda.connector.embeddingstore;
 
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -24,30 +23,30 @@ import org.slf4j.LoggerFactory;
  * <p>Usage example:
  *
  * <pre>{@code
- * try (ClosableEmbeddingStore store = ClosableEmbeddingStore.from(embeddingStore)) {
+ * try (ClosableEmbeddingStore<TextSegment> store = ClosableEmbeddingStore.wrap(embeddingStore)) {
  *     store.add(embedding, textSegment);
  *     // store will be automatically closed
  * }
  * }</pre>
  */
-public class ClosableEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCloseable {
+public class ClosableEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>, AutoCloseable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClosableEmbeddingStore.class);
 
-  private final EmbeddingStore<TextSegment> delegate;
+  private final EmbeddingStore<Embedded> delegate;
   private final Runnable closeAction;
 
-  public static ClosableEmbeddingStore wrap(EmbeddingStore<TextSegment> embeddingStore) {
-    return new ClosableEmbeddingStore(embeddingStore, null);
+  public static <Embedded> ClosableEmbeddingStore<Embedded> wrap(
+      EmbeddingStore<Embedded> embeddingStore) {
+    return new ClosableEmbeddingStore<>(embeddingStore, null);
   }
 
-  public static ClosableEmbeddingStore wrap(
-      EmbeddingStore<TextSegment> embeddingStore, Runnable closeAction) {
-    return new ClosableEmbeddingStore(embeddingStore, closeAction);
+  public static <Embedded> ClosableEmbeddingStore<Embedded> wrap(
+      EmbeddingStore<Embedded> embeddingStore, Runnable closeAction) {
+    return new ClosableEmbeddingStore<>(embeddingStore, closeAction);
   }
 
-  protected ClosableEmbeddingStore(
-      EmbeddingStore<TextSegment> embeddingStore, Runnable closeAction) {
+  protected ClosableEmbeddingStore(EmbeddingStore<Embedded> embeddingStore, Runnable closeAction) {
     this.delegate = embeddingStore;
     this.closeAction = closeAction;
   }
@@ -57,7 +56,7 @@ public class ClosableEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
    *
    * @return the wrapped embedding store
    */
-  public EmbeddingStore<TextSegment> getEmbeddingStore() {
+  public EmbeddingStore<Embedded> getEmbeddingStore() {
     return delegate;
   }
 
@@ -72,7 +71,7 @@ public class ClosableEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
   }
 
   @Override
-  public String add(Embedding embedding, TextSegment embedded) {
+  public String add(Embedding embedding, Embedded embedded) {
     return delegate.add(embedding, embedded);
   }
 
@@ -82,17 +81,17 @@ public class ClosableEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
   }
 
   @Override
-  public List<String> addAll(List<Embedding> embeddings, List<TextSegment> embedded) {
+  public List<String> addAll(List<Embedding> embeddings, List<Embedded> embedded) {
     return delegate.addAll(embeddings, embedded);
   }
 
   @Override
-  public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+  public EmbeddingSearchResult<Embedded> search(EmbeddingSearchRequest request) {
     return delegate.search(request);
   }
 
   @Override
-  public void addAll(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
+  public void addAll(List<String> ids, List<Embedding> embeddings, List<Embedded> embedded) {
     delegate.addAll(ids, embeddings, embedded);
   }
 

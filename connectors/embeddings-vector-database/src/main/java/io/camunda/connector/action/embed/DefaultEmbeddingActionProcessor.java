@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.action.embed;
 
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import io.camunda.connector.doc.parsing.DefaultTextSegmentExtractor;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
@@ -40,7 +41,7 @@ public class DefaultEmbeddingActionProcessor implements EmbeddingActionProcessor
   public List<String> embed(EmbeddingsVectorDBRequest request) {
     EmbeddingModel model =
         embeddingModelProvider.createEmbeddingModel(request.embeddingModelProvider());
-    try (ClosableEmbeddingStore store =
+    try (ClosableEmbeddingStore<TextSegment> store =
         embeddingStoreProvider.initializeVectorStore(
             request.vectorStore(), model, request.vectorDatabaseConnectorOperation())) {
 

@@ -8,6 +8,7 @@ package io.camunda.connector.embeddingstore;
 
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
@@ -34,7 +35,7 @@ public class DefaultEmbeddingStoreFactory {
 
   private final AzureVectorStoreFactory azureVectorStoreFactory = new AzureVectorStoreFactory();
 
-  public ClosableEmbeddingStore initializeVectorStore(
+  public ClosableEmbeddingStore<TextSegment> initializeVectorStore(
       EmbeddingsVectorStore embeddingsVectorStore,
       EmbeddingModel model,
       VectorDatabaseConnectorOperation operation) {
@@ -54,7 +55,7 @@ public class DefaultEmbeddingStoreFactory {
     };
   }
 
-  private ClosableEmbeddingStore initializeElasticsearchVectorStore(
+  private ClosableEmbeddingStore<TextSegment> initializeElasticsearchVectorStore(
       ElasticsearchVectorStore elasticsearchVectorStore) {
     final var elasticsearch = elasticsearchVectorStore.elasticsearch();
     RestClientBuilder restClientBuilder =
@@ -86,7 +87,7 @@ public class DefaultEmbeddingStoreFactory {
         });
   }
 
-  private ClosableEmbeddingStore initializeOpenSearchVectorStore(
+  private ClosableEmbeddingStore<TextSegment> initializeOpenSearchVectorStore(
       OpenSearchVectorStore openSearchVectorStore) {
     final var openSearch = openSearchVectorStore.openSearch();
     OpenSearchEmbeddingStore openSearchEmbeddingStore =
@@ -99,7 +100,7 @@ public class DefaultEmbeddingStoreFactory {
     return ClosableEmbeddingStore.wrap(openSearchEmbeddingStore);
   }
 
-  private ClosableEmbeddingStore initializeAmazonManagedOpenSearchVectorStore(
+  private ClosableEmbeddingStore<TextSegment> initializeAmazonManagedOpenSearchVectorStore(
       AmazonManagedOpenSearchVectorStore amazonManagedOpenSearchVectorStore) {
     final var amazonManagedOpenSearch =
         amazonManagedOpenSearchVectorStore.amazonManagedOpensearch();
