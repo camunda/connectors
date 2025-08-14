@@ -88,6 +88,8 @@ class WebhookControllerTestZeebeTest {
 
   @Autowired @InjectMocks private InboundWebhookRestController controller;
 
+  @Autowired private ActivityLogRegistry activityLogRegistry;
+
   @BeforeEach
   public void beforeEach() {
     System.out.println("System property 'quickly': " + System.getProperty("quickly"));
@@ -111,7 +113,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -155,7 +157,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -205,7 +207,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -249,7 +251,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -301,7 +303,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -342,7 +344,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -383,7 +385,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -419,7 +421,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -457,7 +459,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -507,7 +509,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -568,7 +570,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -625,7 +627,7 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(

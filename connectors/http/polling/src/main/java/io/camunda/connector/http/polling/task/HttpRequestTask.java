@@ -40,14 +40,14 @@ public class HttpRequestTask implements Runnable {
             activity ->
                 activity
                     .withSeverity(Severity.INFO)
-                    .withCustomTag(httpRequest.getMethod().toString())
+                    .withTag(httpRequest.getMethod().toString())
                     .withMessage("Polled url: " + httpRequest.getUrl()));
       } catch (Exception e) {
         this.context.log(
             activity ->
                 activity
                     .withSeverity(Severity.ERROR)
-                    .withCustomTag(httpRequest.getMethod().toString())
+                    .withTag(httpRequest.getMethod().toString())
                     .withMessage("Error executing http request: " + httpRequest.getUrl()));
       }
     } catch (Exception e) {
@@ -55,7 +55,7 @@ public class HttpRequestTask implements Runnable {
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
-                  .withCustomTag("http-request")
+                  .withTag("http-request")
                   .withMessage("Error binding properties for HTTP request"));
     }
   }

@@ -43,7 +43,7 @@ final class WebhookConnectorValidationUtil {
               activity ->
                   activity
                       .withSeverity(Severity.WARNING)
-                      .withCustomTag(WARNING_TAG)
+                      .withTag(WARNING_TAG)
                       .withMessage(message));
     }
   }

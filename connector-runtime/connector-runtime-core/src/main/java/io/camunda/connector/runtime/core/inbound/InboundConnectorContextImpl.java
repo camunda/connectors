@@ -297,6 +297,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             log));
   }
 
+  @Override
   public void log(Consumer<ActivityBuilder> activityBuilderConsumer) {
     if (activityBuilderConsumer == null) {
       throw new IllegalArgumentException("Activity builder consumer cannot be null");

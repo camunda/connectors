@@ -17,39 +17,17 @@
 package io.camunda.connector.api.inbound;
 
 /**
- * Common tags that can be used in activity logs when logging activities inside an inbound
- * connector.
+ * Tags for activities in the inbound connector context.
+ *
+ * <p>These tags are used to categorize and identify different types of activities in the activity
+ * log. They help in understanding the context of the logged activities.
  */
-public enum ActivityLogTag {
+public class ActivityLogTag {
 
-  /** A log tag for entries related to the lifecycle of the event consumer */
-  CONSUMER("Consumer"),
-  /**
-   * A log tag for entries related to message/event processing. For example, use this tag to log
-   * that an incoming event was processed by the connector.
-   */
-  MESSAGE("Message"),
-
-  CORRELATION("Correlation"),
-
-  LIFECYCLE("Lifecycle"),
-
-  QUEUEING("Queueing"),
-
-  ACTIVATION("Activation");
-
-  private final String tag;
-
-  ActivityLogTag(String tag) {
-    this.tag = tag;
-  }
-
-  /**
-   * Returns the string representation of the tag.
-   *
-   * @return the tag as a string
-   */
-  public String getTag() {
-    return tag;
-  }
+  public static final String MESSAGE = "Message";
+  public static final String CONSUMER = "Consumer";
+  public static final String CORRELATION = "Correlation";
+  public static final String LIFECYCLE = "Lifecycle";
+  public static final String QUEUEING = "Queueing";
+  public static final String ACTIVATION = "Activation";
 }

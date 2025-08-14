@@ -45,7 +45,7 @@ public class JakartaEmailListener implements EmailListener {
                         activity ->
                             activity
                                 .withSeverity(Severity.WARNING)
-                                .withCustomTag("Context creation")
+                                .withTag("Context creation")
                                 .withMessage(
                                     "Retrying after attempt %s failed ..."
                                         .formatted(event.getAttemptCount()))))
@@ -67,7 +67,7 @@ public class JakartaEmailListener implements EmailListener {
                 activity ->
                     activity
                         .withSeverity(Severity.ERROR)
-                        .withCustomTag("Context creation")
+                        .withTag("Context creation")
                         .withMessage(throwable.getMessage()));
           } else context.reportHealth(Health.up());
         });

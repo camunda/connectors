@@ -358,6 +358,7 @@ public class InboundConnectorContextBuilder {
       LOG.info("Activity logged: {}", activity);
     }
 
+    @Override
     public void log(Consumer<ActivityBuilder> activityBuilderConsumer) {
       ActivityBuilder activityBuilder = Activity.newBuilder();
       activityBuilderConsumer.accept(activityBuilder);

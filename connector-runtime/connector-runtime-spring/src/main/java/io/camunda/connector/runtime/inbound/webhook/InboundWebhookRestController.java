@@ -158,7 +158,7 @@ public class InboundWebhookRestController {
                 activity ->
                     activity
                         .withSeverity(Severity.INFO)
-                        .withCustomTag(payload.method())
+                        .withTag(payload.method())
                         .withMessage("URL: " + payload.requestURL()));
 
         var webhookResult = connectorHook.triggerWebhook(payload);
@@ -177,7 +177,7 @@ public class InboundWebhookRestController {
               activity ->
                   activity
                       .withSeverity(Severity.ERROR)
-                      .withCustomTag(payload.method())
+                      .withTag(payload.method())
                       .withMessage("Webhook processing failed"));
       response = buildErrorResponse(e);
     }
@@ -215,7 +215,7 @@ public class InboundWebhookRestController {
           activity ->
               activity
                   .withSeverity(Severity.INFO)
-                  .withCustomTag(payload.method())
+                  .withTag(payload.method())
                   .withMessage("Successfully handled a verification request"));
     }
     return response;

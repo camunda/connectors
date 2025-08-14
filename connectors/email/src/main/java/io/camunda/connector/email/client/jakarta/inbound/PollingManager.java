@@ -93,7 +93,7 @@ public class PollingManager {
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
-                  .withCustomTag("Authentication error")
+                  .withTag("Authentication error")
                   .withMessage("Authentication failed"));
       throw new RuntimeException(exception);
     } catch (MailConnectException exception) {
@@ -101,7 +101,7 @@ public class PollingManager {
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
-                  .withCustomTag("Connection error")
+                  .withTag("Connection error")
                   .withMessage(exception.getMessage()));
       throw new EmailConnectorException(exception);
     } catch (MessagingException e) {
@@ -204,7 +204,7 @@ public class PollingManager {
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
-                  .withCustomTag("mail-polling")
+                  .withTag("mail-polling")
                   .withMessage(e.getMessage()));
       this.connectorContext.cancel(
           ConnectorRetryException.builder()
@@ -227,7 +227,7 @@ public class PollingManager {
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
-                  .withCustomTag("mail-polling")
+                  .withTag("mail-polling")
                   .withMessage(e.getMessage()));
       this.connectorContext.cancel(
           ConnectorRetryException.builder()
@@ -263,7 +263,7 @@ public class PollingManager {
         activity ->
             activity
                 .withSeverity(Severity.INFO)
-                .withCustomTag("new-email")
+                .withTag("new-email")
                 .withMessage("Processing email: %s".formatted(email.messageId())));
     ActivationCheckResult activationCheckResult =
         this.connectorContext.canActivate(createResponse(email, List.of()));
@@ -276,7 +276,7 @@ public class PollingManager {
                     activity ->
                         activity
                             .withSeverity(Severity.INFO)
-                            .withCustomTag("NoMatchingElement")
+                            .withTag("NoMatchingElement")
                             .withMessage(
                                 "No matching activation condition. Discarding unmatched email: %s"
                                     .formatted(email.messageId())));
@@ -286,7 +286,7 @@ public class PollingManager {
                     activity ->
                         activity
                             .withSeverity(Severity.INFO)
-                            .withCustomTag("NoMatchingElement")
+                            .withTag("NoMatchingElement")
                             .withMessage(
                                 "No matching activation condition. Not discarding unmatched email: %s"
                                     .formatted(email.messageId())));
@@ -298,7 +298,7 @@ public class PollingManager {
                   activity ->
                       activity
                           .withSeverity(Severity.ERROR)
-                          .withCustomTag("TooManyMatchingElements")
+                          .withTag("TooManyMatchingElements")
                           .withMessage(
                               "Too many matching activation conditions. Email: %s"
                                   .formatted(email.messageId())));

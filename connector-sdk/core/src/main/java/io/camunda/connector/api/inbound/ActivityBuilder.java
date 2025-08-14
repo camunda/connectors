@@ -45,16 +45,7 @@ public class ActivityBuilder {
    * Sets a tag for the activity. Tags are not mandatory, but strongly recommended to provide a
    * better user experience in the UI. If not set, the activity will not have a tag.
    */
-  public ActivityBuilder withTag(ActivityLogTag tag) {
-    this.tag = tag.getTag();
-    return this;
-  }
-
-  /**
-   * Sets a custom tag value for the activity. Before using this method, consider whether the
-   * predefined tags in {@link ActivityLogTag} are sufficient.
-   */
-  public ActivityBuilder withCustomTag(String tag) {
+  public ActivityBuilder withTag(String tag) {
     this.tag = tag;
     return this;
   }

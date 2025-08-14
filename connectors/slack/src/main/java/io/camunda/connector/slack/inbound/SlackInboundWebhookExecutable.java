@@ -99,7 +99,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
         activity ->
             activity
                 .withSeverity(Severity.INFO)
-                .withCustomTag(webhookProcessingPayload.method())
+                .withTag(webhookProcessingPayload.method())
                 .withMessage("URL: " + webhookProcessingPayload.requestURL()));
     verifySlackRequestAuthentic(webhookProcessingPayload);
 
@@ -125,7 +125,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
             activity ->
                 activity
                     .withSeverity(Severity.ERROR)
-                    .withCustomTag("JSON Parsing")
+                    .withTag("JSON Parsing")
                     .withMessage("Failed to parse 'payload' as JSON: " + e.getMessage()));
       }
       return new SlackWebhookProcessingResult(
@@ -186,7 +186,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
             activity ->
                 activity
                     .withSeverity(Severity.ERROR)
-                    .withCustomTag("JSON Parsing")
+                    .withTag("JSON Parsing")
                     .withMessage(
                         "Failed to parse JSON from raw body due to an IOException: "
                             + e.getMessage()));
@@ -207,7 +207,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
-                  .withCustomTag(webhookProcessingPayload.method())
+                  .withTag(webhookProcessingPayload.method())
                   .withMessage("HMAC signature did not match"));
       throw new RuntimeException("HMAC signature did not match");
     }

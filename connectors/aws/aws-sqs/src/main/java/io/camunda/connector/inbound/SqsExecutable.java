@@ -104,7 +104,7 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
         activity ->
             activity
                 .withSeverity(Severity.INFO)
-                .withCustomTag("Subscription activation")
+                .withTag("Subscription activation")
                 .withMessage("Subscription activation requested"));
     SqsInboundProperties properties = context.bindProperties(SqsInboundProperties.class);
 
@@ -134,7 +134,7 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
         activity ->
             activity
                 .withSeverity(Severity.INFO)
-                .withCustomTag("Subscription activation")
+                .withTag("Subscription activation")
                 .withMessage("Activated subscription for queue: " + properties.getQueue().url()));
     context.reportHealth(Health.up());
   }

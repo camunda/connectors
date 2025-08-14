@@ -47,6 +47,7 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private ValidInboundConnectorDetails newConnector;
   @Mock private DocumentFactory documentFactory;
   private DefaultInboundConnectorContextFactory factory;
+  private final ActivityLogRegistry activityLogRegistry = new ActivityLogRegistry();
 
   @BeforeEach
   void setUp() {
@@ -67,7 +68,7 @@ class DefaultInboundConnectorContextFactoryTest {
             newConnector,
             cancellationCallback,
             ExecutableWithInboundContext.class,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -79,7 +80,7 @@ class DefaultInboundConnectorContextFactoryTest {
             newConnector,
             cancellationCallback,
             ExecutableWithEmptyParameterizedType.class,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -92,7 +93,7 @@ class DefaultInboundConnectorContextFactoryTest {
             newConnector,
             cancellationCallback,
             ExecutableWithIntermediate.class,
-            new ActivityLogRegistry());
+            activityLogRegistry);
 
     assertThat(result).isExactlyInstanceOf(InboundIntermediateConnectorContextImpl.class);
   }
