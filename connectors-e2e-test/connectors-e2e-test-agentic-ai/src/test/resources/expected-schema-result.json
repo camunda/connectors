@@ -103,10 +103,6 @@
                 "baz"
               ]
             }
-          },
-          "outputValue": {
-            "type": "string",
-            "description": "An output value"
           }
         },
         "required": [
@@ -116,8 +112,7 @@
           "urlPath",
           "firstValue",
           "secondValue",
-          "thirdValue",
-          "outputValue"
+          "thirdValue"
         ]
       }
     },

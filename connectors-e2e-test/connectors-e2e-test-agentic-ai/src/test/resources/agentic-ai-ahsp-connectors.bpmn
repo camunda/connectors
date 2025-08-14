@@ -64,7 +64,6 @@
             <zeebe:input source="=fromAi(toolCall.anArrayValue, &#34;An array value&#34;, &#34;array&#34;, {&#10;  items: {&#10;    type: &#34;string&#34;,&#10;    enum: [&#34;foo&#34;, &#34;bar&#34;, &#34;baz&#34;]&#10;  }&#10;})" target="anArrayValue" />
             <zeebe:input source="=&#34;https://example.com/&#34; + fromAi(toolCall.urlPath, &#34;The URL path to use&#34;, &#34;string&#34;)" target="aCombinedValue" />
             <zeebe:input source="={&#10;  comment: &#34;Multiple params, positional &#38; named, simple &#38; complex&#34;,&#10;  foo: [fromAi(toolCall.firstValue), fromAi(toolCall.secondValue, &#34;The second value&#34;,  &#34;integer&#34;)],&#10;  bar: {&#10;    baz: fromAi(description: &#34;The third value to add&#34;, value: toolCall.thirdValue),&#10;    qux: fromAi(toolCall.fourthValue, &#34;The fourth value to add&#34;, &#34;array&#34;, {&#10;      &#34;items&#34;: {&#10;        &#34;type&#34;: &#34;string&#34;,&#10;        &#34;enum&#34;: [&#34;foo&#34;, &#34;bar&#34;, &#34;baz&#34;]&#10;      }&#10;    }, { required: false })&#10;  }&#10;}" target="multipleParametersInDifferentFormats" />
-            <zeebe:output source="=fromAi(toolCall.outputValue, &#34;An output value&#34;)" target="anOutputVariable" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
       </bpmn:scriptTask>

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -304,16 +305,13 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
             expectedConversation.subList(0, expectedConversation.size() - 1));
   }
 
+  protected List<ToolSpecification> expectedToolSpecifications() {
+    return EXPECTED_TOOL_SPECIFICATIONS;
+  }
+
   protected void assertToolSpecifications(ChatRequest chatRequest) {
     assertThat(chatRequest.toolSpecifications())
-        .extracting(ToolSpecification::name)
-        .containsExactlyInAnyOrder(
-            "GetDateAndTime",
-            "SuperfluxProduct",
-            "Search_The_Web",
-            "A_Complex_Tool",
-            "Download_A_File",
-            "An_Event");
+        .containsExactlyInAnyOrderElementsOf(expectedToolSpecifications());
   }
 
   protected record ChatInteraction(ChatResponse chatResponse, Map<String, Object> userFeedback) {

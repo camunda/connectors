@@ -17,7 +17,8 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
-import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.McpTestFixtures.MCP_TOOL_SPECIFICATIONS;
+import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
+import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.Mockito.doAnswer;
@@ -32,7 +33,6 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.mcp.client.McpClient;
-import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
@@ -105,6 +105,11 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                   assertThat(connection.sseUrl()).isEqualTo("http://localhost:1234/sse");
                   assertThat(connection.timeout()).isNull();
                 }));
+  }
+
+  @Override
+  protected List<ToolSpecification> expectedToolSpecifications() {
+    return EXPECTED_MCP_TOOL_SPECIFICATIONS;
   }
 
   @Test
@@ -251,48 +256,5 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                   JSONAssert.assertEquals(
                       "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
                 }));
-  }
-
-  @Override
-  protected void assertToolSpecifications(ChatRequest chatRequest) {
-    assertThat(chatRequest.toolSpecifications())
-        .extracting(ToolSpecification::name)
-        .containsExactlyInAnyOrder(
-            "GetDateAndTime",
-            "SuperfluxProduct",
-            "Search_The_Web",
-            "Download_A_File",
-            "MCP_A_MCP_Client___toolA",
-            "MCP_A_MCP_Client___toolC",
-            "MCP_A_Remote_MCP_Client___toolA",
-            "MCP_A_Remote_MCP_Client___toolC",
-            "MCP_Filesystem_MCP_Flow___toolA",
-            "MCP_Filesystem_MCP_Flow___toolB",
-            "MCP_Filesystem_MCP_Flow___toolC");
-
-    assertThat(chatRequest.toolSpecifications())
-        .filteredOn(
-            toolSpecification -> toolSpecification.name().equals("MCP_A_MCP_Client___toolA"))
-        .hasSize(1)
-        .first()
-        .usingRecursiveComparison()
-        .ignoringFields("name")
-        .isEqualTo(MCP_TOOL_SPECIFICATIONS.get(0));
-    assertThat(chatRequest.toolSpecifications())
-        .filteredOn(
-            toolSpecification -> toolSpecification.name().equals("MCP_Filesystem_MCP_Flow___toolB"))
-        .hasSize(1)
-        .first()
-        .usingRecursiveComparison()
-        .ignoringFields("name")
-        .isEqualTo(MCP_TOOL_SPECIFICATIONS.get(1));
-    assertThat(chatRequest.toolSpecifications())
-        .filteredOn(
-            toolSpecification -> toolSpecification.name().equals("MCP_A_Remote_MCP_Client___toolC"))
-        .hasSize(1)
-        .first()
-        .usingRecursiveComparison()
-        .ignoringFields("name")
-        .isEqualTo(MCP_TOOL_SPECIFICATIONS.get(2));
   }
 }
