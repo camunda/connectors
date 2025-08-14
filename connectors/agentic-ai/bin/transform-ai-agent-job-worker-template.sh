@@ -60,6 +60,7 @@ jq -r '
           "type": "Hidden"
         },
         {
+          "id": "outputCollection",
           "binding": {
             "property": "outputCollection",
             "type": "zeebe:adHoc"
@@ -68,6 +69,7 @@ jq -r '
           "type": "Hidden"
         },
         {
+          "id": "outputElement",
           "binding": {
             "property": "outputElement",
             "type": "zeebe:adHoc"

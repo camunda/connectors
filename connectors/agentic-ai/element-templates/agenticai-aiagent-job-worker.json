@@ -94,6 +94,7 @@
       "type": "Hidden"
     },
     {
+      "id": "outputCollection",
       "binding": {
         "property": "outputCollection",
         "type": "zeebe:adHoc"
@@ -102,6 +103,7 @@
       "type": "Hidden"
     },
     {
+      "id": "outputElement",
       "binding": {
         "property": "outputElement",
         "type": "zeebe:adHoc"

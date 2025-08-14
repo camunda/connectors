@@ -16,10 +16,15 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AGENT_RESPONSE_VARIABLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PROPERTIES;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.process.test.api.CamundaAssert;
 import java.util.Map;
+import org.assertj.core.api.ThrowingConsumer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
@@ -40,5 +45,19 @@ public abstract class BaseAiAgentConnectorTest extends BaseAiAgentTest {
   @Override
   protected Map<String, String> elementTemplateProperties() {
     return AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PROPERTIES;
+  }
+
+  protected void assertAgentResponse(
+      ZeebeTest zeebeTest, ThrowingConsumer<AgentResponse> assertions) {
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasVariableSatisfies(
+            AGENT_RESPONSE_VARIABLE,
+            Map.class,
+            agentResponseMap -> {
+              // read with the connectors OM to include document deserialization support
+              final var agentResponse =
+                  objectMapper.convertValue(agentResponseMap, AgentResponse.class);
+              assertions.accept(agentResponse);
+            });
   }
 }

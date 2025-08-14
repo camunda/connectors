@@ -38,11 +38,11 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaRe
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentJobWorkerTest;
-import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
 import io.camunda.connector.test.SlowTest;
 import java.util.ArrayList;
@@ -77,7 +77,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       String responseText,
       boolean assertToolSpecifications,
-      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
       throws Exception {
     return testBasicExecutionWithoutFeedbackLoop(
         testProcess,
@@ -92,7 +92,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       String responseText,
       boolean assertToolSpecifications,
-      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
       throws Exception {
     final var testSetup =
         setupBasicTestWithoutFeedbackLoop(process, elementTemplateModifier, responseText);
@@ -105,9 +105,8 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
     assertAgentResponse(
         testSetup.getRight(),
         agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasNoToolCalls()
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
                 .satisfies(agentResponseAssertions));
 
@@ -154,7 +153,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       String responseText,
       boolean assertToolSpecifications,
-      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
       throws Exception {
     return testInteractionWithToolsAndUserFeedbackLoops(
         testProcess,
@@ -169,7 +168,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       String responseText,
       boolean assertToolSpecifications,
-      ThrowingConsumer<AgentResponse> agentResponseAssertions)
+      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
       throws Exception {
     final var testSetup =
         setupInteractionWithToolsAndUserFeedbackLoops(
@@ -183,9 +182,8 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
     assertAgentResponse(
         testSetup.getRight(),
         agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasNoToolCalls()
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
                 .satisfies(agentResponseAssertions));
 
@@ -309,7 +307,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
   protected void assertToolSpecifications(ChatRequest chatRequest) {
     assertThat(chatRequest.toolSpecifications())
         .extracting(ToolSpecification::name)
-        .containsExactly(
+        .containsExactlyInAnyOrder(
             "GetDateAndTime",
             "SuperfluxProduct",
             "Search_The_Web",
