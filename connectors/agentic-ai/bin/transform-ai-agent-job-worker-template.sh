@@ -26,8 +26,6 @@ jq -r '
     map(select(.id != "data.tools.containerElementId" and
                .id != "data.tools.toolCallResults" and
                .id != "errorExpression" and
-               .id != "retryCount" and
-               .id != "retryBackoff" and
                .id != "resultExpression")) |
 
     # Update specific property values and bindings

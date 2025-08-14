@@ -47,18 +47,21 @@ public class AiAgentJobWorker {
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
   private final JobWorkerAgentRequestHandler agentRequestHandler;
+  private final AiAgentJobWorkerErrorHandler errorHandler;
 
   public AiAgentJobWorker(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      JobWorkerAgentRequestHandler agentRequestHandler) {
+      JobWorkerAgentRequestHandler agentRequestHandler,
+      AiAgentJobWorkerErrorHandler errorHandler) {
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.agentRequestHandler = agentRequestHandler;
+    this.errorHandler = errorHandler;
   }
 
   @JobWorker(
@@ -73,12 +76,17 @@ public class AiAgentJobWorker {
       },
       autoComplete = false)
   public void execute(final JobClient jobClient, final ActivatedJob job) {
-    final OutboundConnectorContext context =
-        new JobHandlerContext(
-            job, secretProvider, validationProvider, documentFactory, objectMapper);
-    final var request = context.bindVariables(JobWorkerAgentRequest.class);
-    final var executionContext = new JobWorkerAgentExecutionContext(jobClient, job, request);
+    errorHandler.executeWithErrorHandling(
+        jobClient,
+        job,
+        () -> {
+          final OutboundConnectorContext context =
+              new JobHandlerContext(
+                  job, secretProvider, validationProvider, documentFactory, objectMapper);
+          final var request = context.bindVariables(JobWorkerAgentRequest.class);
+          final var executionContext = new JobWorkerAgentExecutionContext(jobClient, job, request);
 
-    agentRequestHandler.handleRequest(executionContext);
+          return agentRequestHandler.handleRequest(executionContext);
+        });
   }
 }

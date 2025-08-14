@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaRe
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.AiAgentJobWorkerErrorHandler;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorkerValueCustomizer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
@@ -46,6 +47,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorExceptionHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.document.factory.DocumentFactory;
@@ -263,12 +265,25 @@ public class AgenticAiConnectorsAutoConfiguration {
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      JobWorkerAgentRequestHandler agentRequestHandler) {
+      JobWorkerAgentRequestHandler agentRequestHandler,
+      CommandExceptionHandlingStrategy exceptionHandlingStrategy,
+      MetricsRecorder metricsRecorder) {
     if (validationProvider == null) {
       validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
     }
 
+    final var errorHandler =
+        new AiAgentJobWorkerErrorHandler(
+            new OutboundConnectorExceptionHandler(secretProvider),
+            exceptionHandlingStrategy,
+            metricsRecorder);
+
     return new AiAgentJobWorker(
-        secretProvider, validationProvider, documentFactory, objectMapper, agentRequestHandler);
+        secretProvider,
+        validationProvider,
+        documentFactory,
+        objectMapper,
+        agentRequestHandler,
+        errorHandler);
   }
 }
