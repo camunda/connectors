@@ -105,9 +105,6 @@
     "description" : "Limit number of returned results",
     "optional" : false,
     "value" : 5,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "static",
     "group" : "query",
     "binding" : {
@@ -523,9 +520,6 @@
     "description" : "The size of the vector used to represent data",
     "optional" : false,
     "value" : "D1024",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "group" : "embeddingModel",
     "binding" : {
       "name" : "embeddingModelProvider.bedrock.dimensions",
@@ -559,9 +553,6 @@
     "description" : "Normalize vector",
     "optional" : false,
     "value" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "static",
     "group" : "embeddingModel",
     "binding" : {
@@ -1791,9 +1782,6 @@
     "description" : "Max splitting segment size in chars",
     "optional" : false,
     "value" : 500,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "static",
     "group" : "document",
     "binding" : {
@@ -1818,9 +1806,6 @@
     "description" : "Max segment splitting overlap size in chars",
     "optional" : false,
     "value" : 80,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "static",
     "group" : "document",
     "binding" : {

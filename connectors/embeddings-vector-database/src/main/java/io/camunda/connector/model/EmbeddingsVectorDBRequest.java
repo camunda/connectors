@@ -9,8 +9,10 @@ package io.camunda.connector.model;
 import io.camunda.connector.model.embedding.models.EmbeddingModelProvider;
 import io.camunda.connector.model.embedding.vector.store.EmbeddingsVectorStore;
 import io.camunda.connector.model.operation.VectorDatabaseConnectorOperation;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 public record EmbeddingsVectorDBRequest(
-    VectorDatabaseConnectorOperation vectorDatabaseConnectorOperation,
-    EmbeddingModelProvider embeddingModelProvider,
-    EmbeddingsVectorStore vectorStore) {}
+    @Valid @NotNull VectorDatabaseConnectorOperation vectorDatabaseConnectorOperation,
+    @Valid @NotNull EmbeddingModelProvider embeddingModelProvider,
+    @Valid @NotNull EmbeddingsVectorStore vectorStore) {}

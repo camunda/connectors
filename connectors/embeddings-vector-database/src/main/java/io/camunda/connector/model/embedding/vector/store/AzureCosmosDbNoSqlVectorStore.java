@@ -47,17 +47,16 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
               description = "Specify the name of the Azure Cosmos DB NoSQL container.",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String containerName,
-      @NotBlank
+      @NotNull
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Consistency level",
               description = "Specify the consistency level for the Azure Cosmos DB NoSQL store.",
               feel = Property.FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
-              defaultValue = "EVENTUAL",
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              defaultValue = "EVENTUAL")
           ConsistencyLevel consistencyLevel,
-      @NotBlank
+      @NotNull
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Distance function",
@@ -65,10 +64,9 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
                   "The metric used to compute distance/similarity. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
               feel = Property.FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
-              defaultValue = "COSINE",
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              defaultValue = "COSINE")
           DistanceFunction distanceFunction,
-      @NotBlank
+      @NotNull
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Vector index type",
@@ -76,8 +74,7 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
                   "The type of vector index type to use. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
               feel = Property.FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
-              defaultValue = "FLAT",
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              defaultValue = "FLAT")
           IndexType vectorIndexType) {}
 
   public enum ConsistencyLevel {

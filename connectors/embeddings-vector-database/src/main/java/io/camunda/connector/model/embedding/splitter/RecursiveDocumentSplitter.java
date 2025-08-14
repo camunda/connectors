@@ -9,11 +9,11 @@ package io.camunda.connector.model.embedding.splitter;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Min;
 
 @TemplateSubType(label = "Recursive", id = RecursiveDocumentSplitter.RECURSIVE_DOCUMENT_SPLITTER)
 public record RecursiveDocumentSplitter(
-    @NotBlank
+    @Min(1)
         @TemplateProperty(
             group = "document",
             id = "document.splitter.recursive.maxSegmentSizeInChars",
@@ -22,7 +22,7 @@ public record RecursiveDocumentSplitter(
             defaultValueType = DefaultValueType.Number,
             defaultValue = "500")
         Integer maxSegmentSizeInChars,
-    @NotBlank
+    @Min(1)
         @TemplateProperty(
             group = "document",
             id = "document.splitter.recursive.maxOverlapSizeInChars",
