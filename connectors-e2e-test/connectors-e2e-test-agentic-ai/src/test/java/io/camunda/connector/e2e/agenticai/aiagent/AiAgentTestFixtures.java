@@ -27,6 +27,9 @@ public interface AiAgentTestFixtures {
   String AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/element-templates/agenticai-aiagent-outbound-connector.json";
 
+  String AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH =
+      "../../connectors/agentic-ai/element-templates/agenticai-aiagent-job-worker.json";
+
   String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
       "../../connectors/agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
 
@@ -54,6 +57,26 @@ public interface AiAgentTestFixtures {
           Map.entry("data.response.includeAssistantMessage", "=true"),
           Map.entry("retryCount", "3"),
           Map.entry("retryBackoff", "PT2S"));
+
+  Map<String, String> AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PROPERTIES =
+      Map.ofEntries(
+          Map.entry("agentContext", "=agent.context"),
+          Map.entry("provider.type", "openai"),
+          Map.entry("provider.openai.authentication.apiKey", "DUMMY_API_KEY"),
+          Map.entry("provider.openai.model.model", "gpt-4o"),
+          Map.entry(
+              "data.systemPrompt.prompt",
+              "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
+          Map.entry(
+              "data.userPrompt.prompt",
+              "=if (is defined(followUpUserPrompt)) then followUpUserPrompt else userPrompt"),
+          Map.entry(
+              "data.userPrompt.documents",
+              "=if (is defined(followUpUserPrompt)) then [] else downloadedFiles"),
+          Map.entry("data.memory.storage.type", "in-process"),
+          Map.entry("data.memory.contextWindowSize", "=50"),
+          Map.entry("data.response.includeAssistantMessage", "=true"),
+          Map.entry("data.response.includeAgentContext", "=true"));
 
   String HAIKU_TEXT = "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
   String HAIKU_JSON =
