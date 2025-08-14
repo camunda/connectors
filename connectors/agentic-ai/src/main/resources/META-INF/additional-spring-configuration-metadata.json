@@ -19,6 +19,12 @@
       "defaultValue": "true"
     },
     {
+      "name": "camunda.connector.agenticai.aiagent.job-worker.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the AI Agent Ad-Hoc Sub-Process job worker.",
+      "defaultValue": "false"
+    },
+    {
       "name": "camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled",
       "type": "java.lang.Boolean",
       "description": "Whether to enable/register the Ad-hoc tools schema outbound connector.",

@@ -45,6 +45,14 @@
     </dependency>
 
     <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>spring-boot-starter-camunda-sdk</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-spring</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-core</artifactId>
     </dependency>
@@ -120,6 +128,11 @@
     <dependency>
       <groupId>uk.org.webcompere</groupId>
       <artifactId>system-stubs-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

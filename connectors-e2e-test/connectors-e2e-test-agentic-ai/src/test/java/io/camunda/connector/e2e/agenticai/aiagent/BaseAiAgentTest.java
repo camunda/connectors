@@ -16,35 +16,98 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AGENT_RESPONSE_VARIABLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_ELEMENT_TEMPLATE_PATH;
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_ELEMENT_TEMPLATE_PROPERTIES;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.camunda.client.api.worker.JobWorker;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
-import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
+import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.assertj.core.api.ThrowingConsumer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
+@WireMockTest
+@Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
+
   @Autowired protected ResourceLoader resourceLoader;
 
-  @Value("classpath:agentic-ai-connectors.bpmn")
-  protected Resource testProcess;
+  private JobWorker jobWorker;
+  protected final AtomicInteger jobWorkerCounter = new AtomicInteger(0);
+  protected final AtomicReference<Map<String, Object>> userFeedbackVariables =
+      new AtomicReference<>(Collections.emptyMap());
+
+  @BeforeEach
+  void clearDocumentationStore() {
+    InMemoryDocumentStore.INSTANCE.clear();
+  }
+
+  @BeforeEach
+  void setupWireMock() {
+    // WireMock returns the content type for the YAML file as application/json, so
+    // we need to override the stub manually
+    stubFor(
+        get(urlPathEqualTo("/test.yaml"))
+            .willReturn(
+                aResponse()
+                    .withBodyFile("test.yaml")
+                    .withHeader("Content-Type", "application/yaml")));
+  }
+
+  @BeforeEach
+  void openUserFeedbackJobWorker() {
+    userFeedbackVariables.set(Collections.emptyMap());
+    jobWorkerCounter.set(0);
+    jobWorker =
+        camundaClient
+            .newWorker()
+            .jobType("user_feedback")
+            .handler(
+                (client, job) -> {
+                  jobWorkerCounter.incrementAndGet();
+                  client
+                      .newCompleteCommand(job.getKey())
+                      .variables(userFeedbackVariables.get())
+                      .send()
+                      .join();
+                })
+            .open();
+  }
+
+  @AfterEach
+  void closeUserFeedbackJobWorker() {
+    if (jobWorker != null) {
+      jobWorker.close();
+    }
+  }
+
+  protected abstract Resource testProcess();
+
+  protected abstract String elementTemplatePath();
+
+  protected abstract Map<String, String> elementTemplateProperties();
 
   protected ZeebeTest createProcessInstance(Map<String, Object> variables) throws IOException {
     return createProcessInstance(e -> e, variables);
@@ -54,7 +117,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       Map<String, Object> variables)
       throws IOException {
-    return createProcessInstance(testProcess, elementTemplateModifier, variables);
+    return createProcessInstance(testProcess(), elementTemplateModifier, variables);
   }
 
   protected ZeebeTest createProcessInstance(
@@ -62,30 +125,26 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       Map<String, Object> variables)
       throws IOException {
-    var elementTemplate = ElementTemplate.from(AI_AGENT_ELEMENT_TEMPLATE_PATH);
-    AI_AGENT_ELEMENT_TEMPLATE_PROPERTIES.forEach(elementTemplate::property);
-    elementTemplate = elementTemplateModifier.apply(elementTemplate);
-
-    final var elementTemplateFile = elementTemplate.writeTo(new File(tempDir, "template.json"));
-    final var updatedModel =
-        new BpmnFile(process.getFile())
-            .apply(elementTemplateFile, AI_AGENT_TASK_ID, new File(tempDir, "updated.bpmn"));
+    final var updatedElementTemplate =
+        elementTemplateWithModifications(elementTemplatePath(), elementTemplateModifier);
+    final var updatedElementTemplateFile =
+        updatedElementTemplate.writeTo(new File(tempDir, "template.json"));
+    final var updatedModel = modelWithModifications(process.getFile(), updatedElementTemplateFile);
 
     return deployModel(updatedModel).createInstance(variables);
   }
 
-  protected void assertAgentResponse(
-      ZeebeTest zeebeTest, ThrowingConsumer<AgentResponse> assertions) {
-    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasVariableSatisfies(
-            AGENT_RESPONSE_VARIABLE,
-            Map.class,
-            agentResponseMap -> {
-              // read with the connectors OM to include document deserialization support
-              final var agentResponse =
-                  objectMapper.convertValue(agentResponseMap, AgentResponse.class);
-              assertions.accept(agentResponse);
-            });
+  protected ElementTemplate elementTemplateWithModifications(
+      String elementTemplatePath,
+      Function<ElementTemplate, ElementTemplate> elementTemplateModifier) {
+    final var elementTemplate = ElementTemplate.from(elementTemplatePath);
+    elementTemplateProperties().forEach(elementTemplate::property);
+    return elementTemplateModifier.apply(elementTemplate);
+  }
+
+  protected BpmnModelInstance modelWithModifications(File model, File elementTemplate) {
+    return new BpmnFile(model)
+        .apply(elementTemplate, AI_AGENT_TASK_ID, new File(tempDir, "updated.bpmn"));
   }
 
   protected Resource testFileResource(String filename) {

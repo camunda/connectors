@@ -14,13 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -30,14 +27,14 @@ import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.SlowTest;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
-public class Langchain4JAiAgentFeedbackLoopTests extends BaseLangchain4JAiAgentTests {
+public class L4JAiAgentJobWorkerFeedbackLoopTests extends BaseL4JAiAgentJobWorkerTest {
 
   @Test
   void executesAgentWithoutUserFeedback() throws Exception {
@@ -46,7 +43,7 @@ public class Langchain4JAiAgentFeedbackLoopTests extends BaseLangchain4JAiAgentT
         HAIKU_TEXT,
         true,
         (agentResponse) ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .hasResponseMessageText(HAIKU_TEXT)
                 .hasResponseText(HAIKU_TEXT)
                 .hasNoResponseJson());
@@ -57,7 +54,11 @@ public class Langchain4JAiAgentFeedbackLoopTests extends BaseLangchain4JAiAgentT
     testBasicExecutionWithoutFeedbackLoop(
         elementTemplate -> {
           for (String prefix :
-              List.of("data.tools.", "data.memory.", "data.limits.", "data.response.")) {
+              List.of(
+                  "data.memory.",
+                  "data.limits.",
+                  "data.response.includeAssistantMessage",
+                  "data.response.format.")) {
             elementTemplate = elementTemplate.withoutPropertyValueStartingWith(prefix);
           }
           return elementTemplate;
@@ -66,12 +67,10 @@ public class Langchain4JAiAgentFeedbackLoopTests extends BaseLangchain4JAiAgentT
         false,
         (agentResponse) ->
             // defaults to text
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .hasNoResponseMessage()
                 .hasResponseText(HAIKU_TEXT)
                 .hasNoResponseJson());
-
-    verify(toolsSchemaResolver, never()).resolveAdHocToolsSchema(any());
   }
 
   @Test
@@ -121,9 +120,8 @@ public class Langchain4JAiAgentFeedbackLoopTests extends BaseLangchain4JAiAgentT
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasNoToolCalls()
                 .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42)))
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,7 +31,7 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.SlowTest;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 @SlowTest
-public class Langchain4JAiAgentToolCallingTests extends BaseLangchain4JAiAgentTests {
+public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorkerTest {
 
   @Test
   void executesAgentWithToolCallingAndUserFeedback() throws Exception {
@@ -49,7 +49,7 @@ public class Langchain4JAiAgentToolCallingTests extends BaseLangchain4JAiAgentTe
         FEEDBACK_LOOP_RESPONSE_TEXT,
         true,
         (agentResponse) ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
                 .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)
                 .hasNoResponseJson());
@@ -154,9 +154,8 @@ public class Langchain4JAiAgentToolCallingTests extends BaseLangchain4JAiAgentTe
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasNoToolCalls()
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));

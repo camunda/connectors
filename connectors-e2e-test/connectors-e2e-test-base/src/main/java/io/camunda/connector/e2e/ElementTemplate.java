@@ -77,6 +77,16 @@ public class ElementTemplate {
         documentContext.delete("%s.value".formatted(jsonPath)).put(jsonPath, "optional", true);
   }
 
+  public ElementTemplate withoutProperty(String propertyId) {
+    try {
+      documentContext = documentContext.delete("$..properties[?(@.id=='" + propertyId + "')]");
+    } catch (com.jayway.jsonpath.PathNotFoundException e) {
+      throw new RuntimeException(
+          "Property path not found for property ID: %s".formatted(propertyId), e);
+    }
+    return this;
+  }
+
   public File writeTo(File output) {
     var updatedElementTemplate = documentContext.jsonString();
     try {

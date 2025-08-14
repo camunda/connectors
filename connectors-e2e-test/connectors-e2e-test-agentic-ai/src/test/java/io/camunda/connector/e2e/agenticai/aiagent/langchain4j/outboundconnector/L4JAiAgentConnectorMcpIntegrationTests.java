@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
-import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.McpTestFixtures.MCP_TOOL_SPECIFICATIONS;
+import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
+import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.Mockito.doAnswer;
@@ -60,7 +61,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SlowTest
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
-public class Langchain4JAiAgentMcpIntegrationTests extends BaseLangchain4JAiAgentTests {
+public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnectorTest {
 
   @Value("classpath:agentic-ai-connectors-mcp.bpmn")
   protected Resource testProcessWithMcp;
@@ -105,6 +106,11 @@ public class Langchain4JAiAgentMcpIntegrationTests extends BaseLangchain4JAiAgen
                   assertThat(connection.sseUrl()).isEqualTo("http://localhost:1234/sse");
                   assertThat(connection.timeout()).isNull();
                 }));
+  }
+
+  @Override
+  protected List<ToolSpecification> expectedToolSpecifications() {
+    return EXPECTED_MCP_TOOL_SPECIFICATIONS;
   }
 
   @Test

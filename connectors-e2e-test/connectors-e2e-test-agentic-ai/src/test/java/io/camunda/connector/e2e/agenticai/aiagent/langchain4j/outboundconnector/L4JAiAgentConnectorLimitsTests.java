@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
@@ -37,7 +37,7 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
-public class Langchain4JAiAgentLimitsTests extends BaseLangchain4JAiAgentTests {
+public class L4JAiAgentConnectorLimitsTests extends BaseL4JAiAgentConnectorTest {
 
   @Test
   void raisesIncidentWhenMaximumModelCallsAreReached() throws Throwable {
