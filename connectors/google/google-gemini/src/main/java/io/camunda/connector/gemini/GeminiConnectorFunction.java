@@ -10,12 +10,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.vertexai.api.Content;
 import com.google.protobuf.util.JsonFormat;
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.gemini.caller.GeminiCaller;
 import io.camunda.connector.gemini.model.GeminiRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.HashMap;
 
 @OutboundConnector(

@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,12 +35,12 @@ public class InboundConnectorDetailsTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "type1", "deduplicationMode", "AUTO", "property1", "value1"),
             null,
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>")));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>")));
     elements.add(
         new InboundConnectorElement(
             Map.of("inbound.type", "type1", "deduplicationMode", "AUTO", "property1", "value1"),
             null,
-            new ProcessElement("myProcess", 0, 0, "element2", "<default>")));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element2", "<default>")));
 
     // when & then
     assertDoesNotThrow(
@@ -56,13 +55,13 @@ public class InboundConnectorDetailsTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "type1"),
             null,
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>")));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>")));
 
     elements.add(
         new InboundConnectorElement(
             Map.of("inbound.type", "type2"),
             null,
-            new ProcessElement("myProcess", 0, 0, "element2", "<default>")));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element2", "<default>")));
 
     // when & then
     var result =
@@ -85,7 +84,7 @@ public class InboundConnectorDetailsTest {
                 "deduplicationMode", "MANUAL",
                 "deduplicationId", "deduplicationId"),
             null,
-            new ProcessElement("myProcess", 0, 0, "element1", "tenant1")));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "tenant1")));
     elements.add(
         new InboundConnectorElement(
             Map.of(
@@ -93,7 +92,7 @@ public class InboundConnectorDetailsTest {
                 "deduplicationMode", "MANUAL",
                 "deduplicationId", "deduplicationId"),
             null,
-            new ProcessElement("myProcess", 0, 0, "element2", "tenant2")));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element2", "tenant2")));
 
     // when & then
     var result =
@@ -117,7 +116,7 @@ public class InboundConnectorDetailsTest {
                 "deduplicationId", "deduplicationId",
                 "property1", "property1"),
             null,
-            new ProcessElement("myProcess", 0, 0, "element1", "tenant")));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "tenant")));
 
     elements.add(
         new InboundConnectorElement(
@@ -127,7 +126,7 @@ public class InboundConnectorDetailsTest {
                 "deduplicationId", "deduplicationId",
                 "property2", "property2"),
             null,
-            new ProcessElement("myProcess", 0, 0, "element2", "tenant")));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element2", "tenant")));
 
     // when & then
     var result =

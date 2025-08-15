@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.zeebe.model.bpmn.instance.BaseElement;
-
 /**
  * Provides details about the element template applied to the element.
  *
@@ -26,17 +24,4 @@ import io.camunda.zeebe.model.bpmn.instance.BaseElement;
  * @param version The version of the element template
  * @param icon The icon of the element template (might be SVG or PNG)
  */
-public record ElementTemplateDetails(String id, String version, String icon) {
-  private static final String NAMESPACE = "http://camunda.org/schema/zeebe/1.0";
-
-  private static final String TEMPLATE_ID = "modelerTemplate";
-  private static final String TEMPLATE_VERSION = "modelerTemplateVersion";
-  private static final String TEMPLATE_ICON = "modelerTemplateIcon";
-
-  public ElementTemplateDetails(BaseElement element) {
-    this(
-        element.getAttributeValueNs(NAMESPACE, TEMPLATE_ID),
-        element.getAttributeValueNs(NAMESPACE, TEMPLATE_VERSION),
-        element.getAttributeValueNs(NAMESPACE, TEMPLATE_ICON));
-  }
-}
+public record ElementTemplateDetails(String id, String version, String icon) {}

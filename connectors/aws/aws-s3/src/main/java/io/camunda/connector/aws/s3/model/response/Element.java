@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.aws.s3.model.response;
 
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 
 public interface Element {
   record DocumentContent(Document document) implements Element {}

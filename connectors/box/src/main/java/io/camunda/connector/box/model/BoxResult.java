@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.box.model;
 
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.util.List;
 
 public sealed interface BoxResult

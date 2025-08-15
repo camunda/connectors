@@ -29,6 +29,7 @@ import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
@@ -173,7 +174,7 @@ class SqsExecutableTest {
   }
 
   private InboundConnectorDefinition createDefinition() {
-    var element = new ProcessElement("proc-id", 1, 2, "element-id", "<default>");
+    var element = new ProcessElementWithRuntimeData("proc-id", 1, 2, "element-id", "<default>");
     return InboundConnectorDefinitionBuilder.create().elements(element).type("type").build();
   }
 

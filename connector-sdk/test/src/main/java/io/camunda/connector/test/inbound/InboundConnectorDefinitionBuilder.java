@@ -17,7 +17,7 @@
 package io.camunda.connector.test.inbound;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import java.util.List;
 
 /** Test helper class for creating an {@link InboundConnectorDefinition} with a fluent API. */
@@ -29,8 +29,9 @@ public class InboundConnectorDefinitionBuilder {
 
   private String deduplicationId = "test-deduplication-id";
 
-  private List<ProcessElement> elements =
-      List.of(new ProcessElement("test-process", 1, 1L, "test-element", "<default>"));
+  private List<ProcessElementWithRuntimeData> elements =
+      List.of(
+          new ProcessElementWithRuntimeData("test-process", 1, 1L, "test-element", "<default>"));
 
   public static InboundConnectorDefinitionBuilder create() {
     return new InboundConnectorDefinitionBuilder();
@@ -51,12 +52,12 @@ public class InboundConnectorDefinitionBuilder {
     return this;
   }
 
-  public InboundConnectorDefinitionBuilder elements(List<ProcessElement> elements) {
+  public InboundConnectorDefinitionBuilder elements(List<ProcessElementWithRuntimeData> elements) {
     this.elements = elements;
     return this;
   }
 
-  public InboundConnectorDefinitionBuilder elements(ProcessElement... elements) {
+  public InboundConnectorDefinitionBuilder elements(ProcessElementWithRuntimeData... elements) {
     this.elements = List.of(elements);
     return this;
   }

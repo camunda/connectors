@@ -18,7 +18,7 @@ package io.camunda.intrinsic.functions;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import io.camunda.intrinsic.IntrinsicFunction;
 import io.camunda.intrinsic.IntrinsicFunctionProvider;
 import java.io.IOException;

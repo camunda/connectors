@@ -19,10 +19,10 @@ package io.camunda.connector.document.jackson.serializer;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.document.Document;
-import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
 import java.io.IOException;
 
 public class DocumentSerializer extends JsonSerializer<Document> {

@@ -16,6 +16,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-client-java</artifactId>
       <version>${version.camunda}</version>

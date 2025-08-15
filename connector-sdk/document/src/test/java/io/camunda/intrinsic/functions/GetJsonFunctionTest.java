@@ -18,10 +18,10 @@ package io.camunda.intrinsic.functions;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

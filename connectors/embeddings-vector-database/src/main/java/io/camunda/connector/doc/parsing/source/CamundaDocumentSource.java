@@ -8,7 +8,7 @@ package io.camunda.connector.doc.parsing.source;
 
 import dev.langchain4j.data.document.DocumentSource;
 import dev.langchain4j.data.document.Metadata;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.io.InputStream;
 
 public class CamundaDocumentSource implements DocumentSource {

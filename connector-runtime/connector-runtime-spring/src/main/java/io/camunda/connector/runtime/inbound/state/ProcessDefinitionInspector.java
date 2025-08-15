@@ -22,9 +22,9 @@ import static io.camunda.connector.runtime.core.Keywords.MESSAGE_ID_EXPRESSION;
 import static io.camunda.connector.runtime.core.Keywords.MESSAGE_TTL;
 
 import io.camunda.connector.api.inbound.ElementTemplateDetails;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCorrelationPoint;
@@ -121,7 +121,7 @@ public class ProcessDefinitionInspector {
       }
 
       var processElement =
-          new ProcessElement(
+          new ProcessElementWithRuntimeData(
               process.getId(),
               version.version(),
               version.processDefinitionKey(),
@@ -129,7 +129,7 @@ public class ProcessDefinitionInspector {
               element.getAttributeValue(NAME_ATTRIBUTE),
               element.getElementType().getTypeName(),
               identifier.tenantId(),
-              new ElementTemplateDetails(element),
+              getElementTemplateDetails(element),
               rawProperties);
       InboundConnectorElement def =
           new InboundConnectorElement(rawProperties, target, processElement);
@@ -349,5 +349,18 @@ public class ProcessDefinitionInspector {
                     .filter(property -> property.getName().equals(name))
                     .findAny()
                     .map(ZeebeProperty::getValue));
+  }
+
+  private static ElementTemplateDetails getElementTemplateDetails(BaseElement element) {
+    final String NAMESPACE = "http://camunda.org/schema/zeebe/1.0";
+
+    final String TEMPLATE_ID = "modelerTemplate";
+    final String TEMPLATE_VERSION = "modelerTemplateVersion";
+    final String TEMPLATE_ICON = "modelerTemplateIcon";
+
+    return new ElementTemplateDetails(
+        element.getAttributeValueNs(NAMESPACE, TEMPLATE_ID),
+        element.getAttributeValueNs(NAMESPACE, TEMPLATE_VERSION),
+        element.getAttributeValueNs(NAMESPACE, TEMPLATE_ICON));
   }
 }

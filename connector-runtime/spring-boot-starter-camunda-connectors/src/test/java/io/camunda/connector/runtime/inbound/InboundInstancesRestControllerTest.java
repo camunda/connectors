@@ -30,10 +30,11 @@ import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
@@ -101,7 +102,8 @@ class InboundInstancesRestControllerTest {
                                         Map.of("inbound.context", "myPath", "inbound.type", TYPE_1),
                                         new StandaloneMessageCorrelationPoint(
                                             "myPath", "=expression", "=myPath", null),
-                                        new ProcessElement("ProcessA", 1, 1, "", ""))),
+                                        new ProcessElementWithRuntimeData(
+                                            "ProcessA", 1, 1, "", ""))),
                                 Health.up(),
                                 Collections.emptyList(),
                                 System.currentTimeMillis()),
@@ -117,7 +119,8 @@ class InboundInstancesRestControllerTest {
                                             TYPE_2),
                                         new StandaloneMessageCorrelationPoint(
                                             "myPath", "=expression", "=myPath", null),
-                                        new ProcessElement("ProcessB", 2, 1, "", ""))),
+                                        new ProcessElementWithRuntimeData(
+                                            "ProcessB", 2, 1, "", ""))),
                                 Health.up(),
                                 Collections.emptyList(),
                                 System.currentTimeMillis()),
@@ -133,7 +136,8 @@ class InboundInstancesRestControllerTest {
                                             TYPE_2),
                                         new StandaloneMessageCorrelationPoint(
                                             "myPath", "=expression", "=myPath", null),
-                                        new ProcessElement("ProcessC", 2, 1, "id1", "")),
+                                        new ProcessElementWithRuntimeData(
+                                            "ProcessC", 2, 1, "id1", "")),
                                     new InboundConnectorElement(
                                         Map.of(
                                             "inbound.other.prop",
@@ -142,7 +146,8 @@ class InboundInstancesRestControllerTest {
                                             TYPE_2),
                                         new StandaloneMessageCorrelationPoint(
                                             "myPath", "=expression2", "=myPath2", null),
-                                        new ProcessElement("ProcessC", 2, 1, "id2", ""))),
+                                        new ProcessElementWithRuntimeData(
+                                            "ProcessC", 2, 1, "id2", ""))),
                                 Health.up(),
                                 List.of(
                                     Activity.level(Severity.INFO).tag("myTag").message("myMessage"),

@@ -7,13 +7,13 @@
 package io.camunda.connector.azure.blobstorage;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.azure.blobstorage.model.core.BlobStorageExecutor;
 import io.camunda.connector.azure.blobstorage.model.request.BlobStorageRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
 import java.util.function.Function;
 
 @OutboundConnector(

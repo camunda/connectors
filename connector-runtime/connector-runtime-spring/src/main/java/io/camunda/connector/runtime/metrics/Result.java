@@ -18,8 +18,8 @@ package io.camunda.connector.runtime.metrics;
 
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.inbound.ElementTemplateDetails;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import java.util.Optional;
 
 public record Result(String type, String id, String version, String key) {
@@ -37,13 +37,13 @@ public record Result(String type, String id, String version, String key) {
     String id =
         Optional.of(connectorElement)
             .map(InboundConnectorElement::element)
-            .map(ProcessElement::elementTemplateDetails)
+            .map(ProcessElementWithRuntimeData::elementTemplateDetails)
             .map(ElementTemplateDetails::id)
             .orElse("unknown");
     String version =
         Optional.of(connectorElement)
             .map(InboundConnectorElement::element)
-            .map(ProcessElement::elementTemplateDetails)
+            .map(ProcessElementWithRuntimeData::elementTemplateDetails)
             .map(ElementTemplateDetails::version)
             .orElse("unknown");
     String key = type + "_" + id + "_" + version;

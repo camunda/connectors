@@ -49,6 +49,10 @@ except in compliance with the proprietary license.</license.inlineheader>
 
   <dependencies>
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
       <version>4.31.1</version>

@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.api.inbound;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 
@@ -25,25 +23,20 @@ public sealed interface CorrelationResult {
 
   sealed interface Success extends CorrelationResult {
 
-    ProcessElementContext activatedElement();
+    ProcessElement activatedElement();
 
     record ProcessInstanceCreated(
-        @JsonIgnore ProcessElementContext activatedElement,
-        Long processInstanceKey,
-        String tenantId)
+        ProcessElement activatedElement, Long processInstanceKey, String tenantId)
         implements Success {}
 
-    record MessagePublished(
-        @JsonIgnore ProcessElementContext activatedElement, Long messageKey, String tenantId)
+    record MessagePublished(ProcessElement activatedElement, Long messageKey, String tenantId)
         implements Success {}
 
-    record MessageAlreadyCorrelated(@JsonIgnore ProcessElementContext activatedElement)
-        implements Success {}
+    record MessageAlreadyCorrelated(ProcessElement activatedElement) implements Success {}
   }
 
   sealed interface Failure extends CorrelationResult {
 
-    @JsonProperty
     String message();
 
     default CorrelationFailureHandlingStrategy handlingStrategy() {
@@ -58,7 +51,7 @@ public sealed interface CorrelationResult {
       }
     }
 
-    record ActivationConditionNotMet(@JsonIgnore boolean consumeUnmatched) implements Failure {
+    record ActivationConditionNotMet(boolean consumeUnmatched) implements Failure {
 
       @Override
       public String message() {
