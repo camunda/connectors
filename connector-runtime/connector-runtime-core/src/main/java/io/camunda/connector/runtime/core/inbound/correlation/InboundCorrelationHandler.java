@@ -29,12 +29,11 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
-import io.camunda.connector.api.inbound.ProcessElementContext;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.grpc.Status;
 import java.time.Duration;
 import java.util.List;
@@ -51,8 +50,6 @@ public class InboundCorrelationHandler {
   private final CamundaClient camundaClient;
   private final FeelEngineWrapper feelEngine;
 
-  private final ProcessElementContextFactory processElementContextFactory;
-
   private final Duration defaultMessageTtl;
 
   private final ConnectorResultHandler connectorResultHandler;
@@ -61,11 +58,9 @@ public class InboundCorrelationHandler {
       CamundaClient camundaClient,
       FeelEngineWrapper feelEngine,
       ObjectMapper objectMapper,
-      ProcessElementContextFactory processElementContextFactory,
       Duration defaultMessageTtl) {
     this.camundaClient = camundaClient;
     this.feelEngine = feelEngine;
-    this.processElementContextFactory = processElementContextFactory;
     this.defaultMessageTtl = defaultMessageTtl;
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
   }
@@ -141,9 +136,7 @@ public class InboundCorrelationHandler {
 
       LOG.info("Created a process instance with key {}", result.getProcessInstanceKey());
       return new CorrelationResult.Success.ProcessInstanceCreated(
-          getElementContext(activatedElement),
-          result.getProcessInstanceKey(),
-          result.getTenantId());
+          activatedElement.element(), result.getProcessInstanceKey(), result.getTenantId());
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
@@ -221,12 +214,10 @@ public class InboundCorrelationHandler {
       LOG.info("Published message with key: {}", response.getMessageKey());
       result =
           new CorrelationResult.Success.MessagePublished(
-              getElementContext(activatedElement),
-              response.getMessageKey(),
-              response.getTenantId());
+              activatedElement.element(), response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException ex) {
       if (Status.ALREADY_EXISTS.getCode().equals(ex.getStatus().getCode())) {
-        result = new MessageAlreadyCorrelated(getElementContext(activatedElement));
+        result = new MessageAlreadyCorrelated(activatedElement.element());
         LOG.debug("Message already correlated: {}", ex.getMessage());
       } else {
         LOG.info("Failed to publish message: ", ex);
@@ -246,9 +237,9 @@ public class InboundCorrelationHandler {
   }
 
   private InboundConnectorElement findMatchingElement(
-      List<InboundConnectorElement> elements, ProcessElementContext contentElement) {
+      List<InboundConnectorElement> elements, ProcessElement contentElement) {
     return elements.stream()
-        .filter(e -> e.element().elementId().equals(contentElement.getElement().elementId()))
+        .filter(e -> e.element().elementId().equals(contentElement.elementId()))
         .findFirst()
         .get();
   }
@@ -266,8 +257,7 @@ public class InboundCorrelationHandler {
     if (matchingElements.size() > 1) {
       return new ActivationCheckResult.Failure.TooManyMatchingElements();
     }
-    return new ActivationCheckResult.Success.CanActivate(
-        processElementContextFactory.createContext(matchingElements.getFirst()));
+    return new ActivationCheckResult.Success.CanActivate(matchingElements.getFirst().element());
   }
 
   protected boolean isActivationConditionMet(InboundConnectorElement definition, Object context) {
@@ -322,9 +312,5 @@ public class InboundCorrelationHandler {
     } else {
       return "";
     }
-  }
-
-  private ProcessElementContext getElementContext(InboundConnectorElement element) {
-    return processElementContextFactory.createContext(element);
   }
 }

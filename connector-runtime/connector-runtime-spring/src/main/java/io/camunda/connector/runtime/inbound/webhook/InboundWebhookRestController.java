@@ -331,7 +331,7 @@ public class InboundWebhookRestController {
       CorrelationResult.Success correlationResult) {
     WebhookResultContext ctx = new WebhookResultContext(null, null, null);
     if (processedResult != null) {
-      Object correlation = null;
+      CorrelationResult.Success correlation = null;
       if (correlationResult instanceof ProcessInstanceCreated
           || correlationResult instanceof MessagePublished) {
         correlation = correlationResult;
@@ -343,7 +343,7 @@ public class InboundWebhookRestController {
                   Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
                   Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
               Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
-              Optional.ofNullable(correlation).orElse(emptyMap()),
+              correlation,
               documents);
     }
     return ctx;

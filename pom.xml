@@ -30,8 +30,7 @@
     <module>connector-runtime</module>
     <module>connectors</module>
     <module>bundle</module>
-    <module>http-client</module>
-    <module>connector-object-mapper</module>
+    <module>connector-commons</module>
   </modules>
 
   <profiles>

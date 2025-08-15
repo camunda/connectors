@@ -30,12 +30,10 @@ import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.core.NoOpSecretProvider;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
-import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.testutil.command.CreateCommandDummy;
@@ -74,12 +72,7 @@ public class InboundCorrelationHandlerTest {
     camundaClient = mock(CamundaClient.class);
     handler =
         new InboundCorrelationHandler(
-            camundaClient,
-            new FeelEngineWrapper(),
-            TestObjectMapperSupplier.INSTANCE,
-            new DefaultProcessElementContextFactory(
-                new NoOpSecretProvider(), (e) -> {}, TestObjectMapperSupplier.INSTANCE),
-            DEFAULT_TTL);
+            camundaClient, new FeelEngineWrapper(), TestObjectMapperSupplier.INSTANCE, DEFAULT_TTL);
   }
 
   @ParameterizedTest
@@ -95,7 +88,8 @@ public class InboundCorrelationHandlerTest {
             new BoundaryEventCorrelationPoint.Activity("123", "test"));
     var element = mock(InboundConnectorElement.class);
     when(element.correlationPoint()).thenReturn(point);
-    when(element.element()).thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+    when(element.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
     var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
     when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -127,7 +121,8 @@ public class InboundCorrelationHandlerTest {
             new BoundaryEventCorrelationPoint.Activity("123", "test"));
     var element = mock(InboundConnectorElement.class);
     when(element.correlationPoint()).thenReturn(point);
-    when(element.element()).thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+    when(element.element())
+        .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
     when(camundaClient.newPublishMessageCommand())
         .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
@@ -146,7 +141,8 @@ public class InboundCorrelationHandlerTest {
     var startEventElement = mock(InboundConnectorElement.class);
     when(startEventElement.correlationPoint()).thenReturn(startEventPoint);
     when(startEventElement.element())
-        .thenReturn(new ProcessElement("process1", 0, 0, "startEventElementId", "default"));
+        .thenReturn(
+            new ProcessElementWithRuntimeData("process1", 0, 0, "startEventElementId", "default"));
     when(startEventElement.activationCondition()).thenReturn("=testKey=\"testValue1\"");
     var messageElement = mock(InboundConnectorElement.class);
     when(messageElement.activationCondition()).thenReturn("=testKey=\"testValue2\"");
@@ -169,7 +165,7 @@ public class InboundCorrelationHandlerTest {
 
     assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
     var success = (Success.ProcessInstanceCreated) result;
-    assertThat(success.activatedElement().getElement()).isEqualTo(startEventElement.element());
+    assertThat(success.activatedElement()).isEqualTo(startEventElement.element());
   }
 
   @Test
@@ -201,7 +197,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new CreateCommandDummy());
       when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
@@ -219,7 +215,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
       var success = (Success.ProcessInstanceCreated) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement()).isEqualTo(element.element());
     }
 
     @ParameterizedTest
@@ -232,7 +228,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("correlationKey", correlationKeyValue);
 
@@ -253,7 +249,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
       var success = (Success.MessagePublished) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement()).isEqualTo(element.element());
     }
 
     @ParameterizedTest
@@ -265,7 +261,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -284,7 +280,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
       var success = (Success.MessagePublished) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement()).isEqualTo(element.element());
     }
 
     @ParameterizedTest
@@ -296,7 +292,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -321,7 +317,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
       var success = (Success.MessagePublished) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement()).isEqualTo(element.element());
     }
 
     @ParameterizedTest
@@ -332,7 +328,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(dummyCommand.send())
@@ -354,7 +350,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.MessageAlreadyCorrelated.class);
       var success = (Success.MessageAlreadyCorrelated) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement()).isEqualTo(element.element());
     }
   }
 
@@ -406,7 +402,7 @@ public class InboundCorrelationHandlerTest {
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn("=testKey=\"testValue\"");
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -429,7 +425,7 @@ public class InboundCorrelationHandlerTest {
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn(null);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -452,7 +448,7 @@ public class InboundCorrelationHandlerTest {
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn("  ");
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -475,7 +471,7 @@ public class InboundCorrelationHandlerTest {
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn("=myOtherMap.myOtherKey=\"myOtherValue\"");
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables =
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
@@ -499,7 +495,7 @@ public class InboundCorrelationHandlerTest {
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn(null);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables =
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
@@ -523,7 +519,7 @@ public class InboundCorrelationHandlerTest {
       when(element.correlationPoint()).thenReturn(point);
       when(element.activationCondition()).thenReturn("  ");
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables =
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
@@ -548,7 +544,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -573,7 +569,7 @@ public class InboundCorrelationHandlerTest {
       when(element.correlationPoint()).thenReturn(point);
       when(element.resultVariable()).thenReturn("resultVar");
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -599,7 +595,7 @@ public class InboundCorrelationHandlerTest {
       when(element.correlationPoint()).thenReturn(point);
       when(element.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
@@ -626,7 +622,7 @@ public class InboundCorrelationHandlerTest {
       when(element.resultVariable()).thenReturn("resultVar");
       when(element.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
@@ -662,7 +658,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -684,7 +680,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -702,7 +698,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -724,7 +720,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -746,7 +742,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -764,7 +760,7 @@ public class InboundCorrelationHandlerTest {
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
       when(element.element())
-          .thenReturn(new ProcessElement("process1", 0, 0, "element", "default"));
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);

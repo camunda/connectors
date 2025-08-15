@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connectors-bundle-parent</artifactId>
+    <artifactId>connector-commons</artifactId>
     <version>8.8.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>

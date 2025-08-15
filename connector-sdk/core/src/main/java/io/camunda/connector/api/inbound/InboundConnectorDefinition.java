@@ -19,4 +19,7 @@ package io.camunda.connector.api.inbound;
 import java.util.List;
 
 public record InboundConnectorDefinition(
-    String type, String tenantId, String deduplicationId, List<ProcessElement> elements) {}
+    String type,
+    String tenantId,
+    String deduplicationId,
+    List<? extends ProcessElement> elements) {}
