@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.instances.service;
 
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
@@ -51,7 +51,10 @@ public class InboundInstancesService {
       String type, String executableId, String hostname) {
     var executable = findExecutable(type, executableId);
     var processIds =
-        executable.elements().stream().map(ProcessElement::bpmnProcessId).distinct().toList();
+        executable.elements().stream()
+            .map(ProcessElementWithRuntimeData::bpmnProcessId)
+            .distinct()
+            .toList();
     if (processIds.size() > 1) {
       throw new RuntimeException(
           "Multiple process ids found for the id: "

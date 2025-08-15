@@ -18,8 +18,8 @@ package io.camunda.connector.runtime.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import java.util.List;
@@ -44,7 +44,7 @@ public class BaseWebhookTest {
     return new InboundConnectorElement(
         Map.of("inbound.type", "io.camunda:webhook:1", "inbound.context", path),
         new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey),
-        new ProcessElement(
+        new ProcessElementWithRuntimeData(
             bpmnProcessId, version, processDefinitionKey, "testElement", "<default>"));
   }
 }

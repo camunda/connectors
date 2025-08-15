@@ -19,11 +19,11 @@ package io.camunda.connector.runtime.inbound.executable;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Health.Error;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Deactivated;
@@ -46,7 +46,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final BlockingQueue<InboundExecutableEvent> eventQueue;
   private final ExecutorService executorService;
   private final BatchExecutableProcessor batchExecutableProcessor;
-  private final Map<ProcessElement, ExecutableId> executablesByElement = new ConcurrentHashMap<>();
+  private final Map<ProcessElementWithRuntimeData, ExecutableId> executablesByElement =
+      new ConcurrentHashMap<>();
   private final Map<String, List<String>> deduplicationScopesByType;
   private final Map<String, String> connectorsNamesByType;
 
@@ -234,7 +235,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   private boolean matchesQuery(RegisteredExecutable executable, ActiveExecutableQuery query) {
-    List<ProcessElement> elements =
+    List<ProcessElementWithRuntimeData> elements =
         switch (executable) {
           case Activated activated ->
               activated.context().connectorElements().stream()
@@ -275,11 +276,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                     && elementIdMatches(element.elementId(), query));
   }
 
-  private boolean processIdMatches(ProcessElement element, ActiveExecutableQuery query) {
+  private boolean processIdMatches(
+      ProcessElementWithRuntimeData element, ActiveExecutableQuery query) {
     return query.bpmnProcessId() == null || query.bpmnProcessId().equals(element.bpmnProcessId());
   }
 
-  private boolean tenantIdMatches(ProcessElement element, ActiveExecutableQuery query) {
+  private boolean tenantIdMatches(
+      ProcessElementWithRuntimeData element, ActiveExecutableQuery query) {
     return query.tenantId() == null || query.tenantId().equals(element.tenantId());
   }
 

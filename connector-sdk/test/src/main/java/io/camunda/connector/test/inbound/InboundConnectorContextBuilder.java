@@ -32,6 +32,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
@@ -246,23 +247,7 @@ public class InboundConnectorContextBuilder {
     @Override
     public ActivationCheckResult canActivate(Object variables) {
       return new ActivationCheckResult.Success.CanActivate(
-          new ProcessElementContext() {
-
-            @Override
-            public ProcessElement getElement() {
-              return new ProcessElement("test", 0, 0, "test", "<default>");
-            }
-
-            @Override
-            public <T> T bindProperties(Class<T> cls) {
-              return TestInboundConnectorContext.this.bindProperties(cls);
-            }
-
-            @Override
-            public Map<String, Object> getProperties() {
-              return TestInboundConnectorContext.this.getProperties();
-            }
-          });
+          new ProcessElementWithRuntimeData("test", 0, 0, "test", "<default>"));
     }
 
     @Override
@@ -281,25 +266,7 @@ public class InboundConnectorContextBuilder {
       return Objects.requireNonNullElse(
           result,
           new Success.ProcessInstanceCreated(
-              new ProcessElementContext() {
-
-                @Override
-                public ProcessElement getElement() {
-                  return new ProcessElement("test", 0, 0, "test", "<default>");
-                }
-
-                @Override
-                public <T> T bindProperties(Class<T> cls) {
-                  return TestInboundConnectorContext.this.bindProperties(cls);
-                }
-
-                @Override
-                public Map<String, Object> getProperties() {
-                  return TestInboundConnectorContext.this.getProperties();
-                }
-              },
-              0L,
-              "test"));
+              new ProcessElementWithRuntimeData("test", 0, 0, "test", "<default>"), 0L, "test"));
     }
 
     @Override

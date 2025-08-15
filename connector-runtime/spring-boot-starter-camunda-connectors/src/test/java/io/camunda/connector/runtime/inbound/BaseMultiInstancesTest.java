@@ -28,6 +28,7 @@ import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
@@ -182,7 +183,7 @@ abstract class BaseMultiInstancesTest {
                                 Map.of("inbound.context", "myPath", "inbound.type", TYPE_1),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression", "=myPath", null),
-                                new ProcessElement(
+                                new ProcessElementWithRuntimeData(
                                     "ProcessA", 1, 1, "elementIdProcessA", "tenantId"))),
                         Health.up(),
                         List.of(),
@@ -195,7 +196,7 @@ abstract class BaseMultiInstancesTest {
                                 Map.of("inbound.context", "myPath", "inbound.type", TYPE_1),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression", "=myPath", null),
-                                new ProcessElement(
+                                new ProcessElementWithRuntimeData(
                                     "ProcessA", 1, 1, "elementId2ProcessA", "tenantId"))),
                         Health.up(),
                         List.of(),
@@ -209,7 +210,8 @@ abstract class BaseMultiInstancesTest {
                                     "inbound.other.prop", "myOtherValue", "inbound.type", TYPE_2),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression", "=myPath", null),
-                                new ProcessElement("ProcessB", 2, 1, "", "tenantId"))),
+                                new ProcessElementWithRuntimeData(
+                                    "ProcessB", 2, 1, "", "tenantId"))),
                         Health.up(),
                         Collections.emptyList(),
                         System.currentTimeMillis()),
@@ -222,7 +224,8 @@ abstract class BaseMultiInstancesTest {
                                     "inbound.other.prop", "myOtherValue2", "inbound.type", TYPE_2),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression", "=myPath", null),
-                                new ProcessElement("ProcessC", 2, 1, "id1", "tenantId")),
+                                new ProcessElementWithRuntimeData(
+                                    "ProcessC", 2, 1, "id1", "tenantId")),
                             new InboundConnectorElement(
                                 Map.of(
                                     "inbound.other.prop",
@@ -231,7 +234,8 @@ abstract class BaseMultiInstancesTest {
                                     TYPE_2),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression2", "=myPath2", null),
-                                new ProcessElement("ProcessC", 2, 1, "id2", "tenantId"))),
+                                new ProcessElementWithRuntimeData(
+                                    "ProcessC", 2, 1, "id2", "tenantId"))),
                         Health.unknown("Test unknown key", "Test unknown value"),
                         List.of(RUNTIME1_ACTIVITY1, RUNTIME1_ACTIVITY2),
                         System.currentTimeMillis()))
@@ -278,7 +282,7 @@ abstract class BaseMultiInstancesTest {
                                 Map.of("inbound.context", "myPath", "inbound.type", TYPE_1),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression", "=myPath", null),
-                                new ProcessElement(
+                                new ProcessElementWithRuntimeData(
                                     "ProcessA", 1, 1, "elementIdProcessA", "tenantId"))),
                         Health.up(),
                         List.of(),
@@ -291,7 +295,7 @@ abstract class BaseMultiInstancesTest {
                                 Map.of("inbound.context", "myPath", "inbound.type", TYPE_1),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression", "=myPath", null),
-                                new ProcessElement(
+                                new ProcessElementWithRuntimeData(
                                     "ProcessA", 1, 1, "elementId2ProcessA", "tenantId"))),
                         Health.down(new IllegalArgumentException("Test error message")),
                         List.of(),
@@ -305,7 +309,8 @@ abstract class BaseMultiInstancesTest {
                                     "inbound.other.prop", "myOtherValue", "inbound.type", TYPE_2),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression", "=myPath", null),
-                                new ProcessElement("ProcessB", 2, 1, "", "tenantId"))),
+                                new ProcessElementWithRuntimeData(
+                                    "ProcessB", 2, 1, "", "tenantId"))),
                         Health.unknown("Test unknown key", "Test unknown value"),
                         List.of(
                             Activity.level(Severity.INFO).tag("runtime2").message("myMessage1")),
@@ -319,7 +324,8 @@ abstract class BaseMultiInstancesTest {
                                     "inbound.other.prop", "myOtherValue2", "inbound.type", TYPE_2),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression", "=myPath", null),
-                                new ProcessElement("ProcessC", 2, 1, "id1", "tenantId")),
+                                new ProcessElementWithRuntimeData(
+                                    "ProcessC", 2, 1, "id1", "tenantId")),
                             new InboundConnectorElement(
                                 Map.of(
                                     "inbound.other.prop",
@@ -328,7 +334,8 @@ abstract class BaseMultiInstancesTest {
                                     TYPE_2),
                                 new MessageCorrelationPoint.StandaloneMessageCorrelationPoint(
                                     "myPath", "=expression2", "=myPath2", null),
-                                new ProcessElement("ProcessC", 2, 1, "id2", "tenantId"))),
+                                new ProcessElementWithRuntimeData(
+                                    "ProcessC", 2, 1, "id2", "tenantId"))),
                         Health.up(),
                         List.of(RUNTIME2_ACTIVITY1, RUNTIME2_ACTIVITY2),
                         System.currentTimeMillis()))

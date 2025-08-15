@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
@@ -98,7 +99,7 @@ class InboundConnectorContextImplTest {
         new InboundConnectorElement(
             properties,
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("bool", 0, 0, "id", "<default>"));
+            new ProcessElementWithRuntimeData("bool", 0, 0, "id", "<default>"));
     var details = InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
     assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
     return (ValidInboundConnectorDetails) details;

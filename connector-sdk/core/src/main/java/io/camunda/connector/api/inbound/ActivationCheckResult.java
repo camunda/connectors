@@ -19,9 +19,9 @@ package io.camunda.connector.api.inbound;
 public sealed interface ActivationCheckResult {
 
   sealed interface Success extends ActivationCheckResult {
-    ProcessElementContext activatedElement();
+    ProcessElement activatedElement();
 
-    record CanActivate(ProcessElementContext activatedElement) implements Success {}
+    record CanActivate(ProcessElement activatedElement) implements Success {}
   }
 
   sealed interface Failure extends ActivationCheckResult {

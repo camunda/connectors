@@ -12,7 +12,6 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
 import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
