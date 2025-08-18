@@ -131,7 +131,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
     LOGGER.trace("Adding system message (if necessary)");
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "Adding user messaged including {} tool call results for the following tool call results: {}",
+          "Adding user messages including {} tool call results for the following tool call results: {}",
           toolCallResults.size(),
           toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
     }
