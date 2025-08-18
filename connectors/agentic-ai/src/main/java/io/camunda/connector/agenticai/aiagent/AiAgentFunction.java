@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.aiagent.agent.AgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentJobContext;
@@ -18,6 +18,16 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
+/**
+ * AI Agent outbound connector implementation (acting on a service task).
+ *
+ * <p>Type and timeout can be overriden by setting the following environment variables:
+ *
+ * <ul>
+ *   <li>CONNECTOR_AI_AGENT_TYPE
+ *   <li>CONNECTOR_AI_AGENT_TIMEOUT
+ * </ul>
+ */
 @OutboundConnector(
     name = "AI Agent",
     inputVariables = {"provider", "data"},
@@ -76,11 +86,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     icon = "aiagent.svg")
 public class AiAgentFunction implements OutboundConnectorFunction {
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
-  private final AgentRequestHandler agentRequestHandler;
+  private final OutboundConnectorAgentRequestHandler agentRequestHandler;
 
   public AiAgentFunction(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AgentRequestHandler agentRequestHandler) {
+      OutboundConnectorAgentRequestHandler agentRequestHandler) {
     this.toolElementsResolver = toolElementsResolver;
     this.agentRequestHandler = agentRequestHandler;
   }

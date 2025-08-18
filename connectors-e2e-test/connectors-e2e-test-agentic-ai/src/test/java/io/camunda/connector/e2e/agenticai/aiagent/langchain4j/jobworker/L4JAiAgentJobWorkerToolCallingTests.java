@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -27,49 +29,86 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.SlowTest;
-import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 @SlowTest
-public class Langchain4JAiAgentElementTemplateRegressionTests extends BaseLangchain4JAiAgentTests {
+public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorkerTest {
+
+  @Test
+  void executesAgentWithToolCallingAndUserFeedback() throws Exception {
+    testInteractionWithToolsAndUserFeedbackLoops(
+        e -> e,
+        FEEDBACK_LOOP_RESPONSE_TEXT,
+        true,
+        (agentResponse) ->
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
+                .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
+                .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)
+                .hasNoResponseJson());
+  }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {"ai-agent.bpmn", "ai-agent-8.8.0-alpha5.bpmn", "ai-agent-8.8.0-alpha6.bpmn"})
-  void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
-    final var initialUserPrompt = "Explore some of your tools!";
+  @CsvSource({
+    "test.csv,text,text/csv",
+    "test.gif,base64,image/gif",
+    "test.jpg,base64,image/jpeg",
+    "test.json,text,application/json",
+    "test.pdf,base64,application/pdf",
+    "test.png,base64,image/png",
+    "test.txt,text,text/plain",
+    "test.webp,base64,image/webp",
+    "test.xml,text,application/xml",
+    "test.yaml,text,application/yaml"
+  })
+  void supportsDocumentResponsesFromToolCalls(
+      String filename, String type, String mimeType, WireMockRuntimeInfo wireMock)
+      throws Exception {
+    DownloadFileToolResult expectedDownloadFileResult;
+    if (type.equals("text")) {
+      expectedDownloadFileResult =
+          new DownloadFileToolResult(
+              200,
+              new DocumentToContentResponseModel(type, mimeType, testFileContent(filename).get()));
+    } else {
+      expectedDownloadFileResult =
+          new DownloadFileToolResult(
+              200,
+              new DocumentToContentResponseModel(
+                  type, mimeType, testFileContentBase64(filename).get()));
+    }
+
+    final var initialUserPrompt = "Go and download a document!";
     final var expectedConversation =
         List.of(
             new SystemMessage(
                 "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
             new UserMessage(initialUserPrompt),
             new AiMessage(
-                "The user asked me to call some of my tools. I will call the superflux calculation and the task with a text input schema as they look interesting to me.",
+                "The user asked me to download a document. I will call the Download_A_File tool to do so.",
                 List.of(
                     ToolExecutionRequest.builder()
                         .id("aaa111")
-                        .name("SuperfluxProduct")
-                        .arguments("{\"a\": 5, \"b\": 3}")
-                        .build(),
-                    ToolExecutionRequest.builder()
-                        .id("bbb222")
-                        .name("Search_The_Web")
-                        .arguments("{\"searchQuery\": \"Where does this data come from?\"}")
+                        .name("Download_A_File")
+                        .arguments(
+                            "{\"url\": \"%s\"}"
+                                .formatted(wireMock.getHttpBaseUrl() + "/" + filename))
                         .build())),
-            new ToolExecutionResultMessage("aaa111", "SuperfluxProduct", "24"),
             new ToolExecutionResultMessage(
-                "bbb222", "Search_The_Web", "No results for 'Where does this data come from?'"),
+                "aaa111",
+                "Download_A_File",
+                objectMapper.writeValueAsString(expectedDownloadFileResult)),
             new AiMessage(
-                "I played with the tools and learned that the data comes from the follow-up task and that a superflux calculation of 5 and 3 results in 24."),
-            new UserMessage("So what is a superflux calculation anyway?"),
-            new AiMessage(
-                "A very complex calculation only the superflux calculation tool can do."));
+                "I loaded a document and learned that it contains interesting data. Anything specific you want to know?"),
+            new UserMessage("What is the content type?"),
+            new AiMessage("The content type is '%s'".formatted(mimeType)));
 
     mockChatInteractions(
         ChatInteraction.of(
@@ -88,9 +127,9 @@ public class Langchain4JAiAgentElementTemplateRegressionTests extends BaseLangch
                         .finishReason(FinishReason.STOP)
                         .tokenUsage(new TokenUsage(100, 200))
                         .build())
-                .aiMessage((AiMessage) expectedConversation.get(5))
+                .aiMessage((AiMessage) expectedConversation.get(4))
                 .build(),
-            userFollowUpFeedback("So what is a superflux calculation anyway?")),
+            userFollowUpFeedback("What is the content type?")),
         ChatInteraction.of(
             ChatResponse.builder()
                 .metadata(
@@ -98,29 +137,28 @@ public class Langchain4JAiAgentElementTemplateRegressionTests extends BaseLangch
                         .finishReason(FinishReason.STOP)
                         .tokenUsage(new TokenUsage(11, 22))
                         .build())
-                .aiMessage((AiMessage) expectedConversation.get(7))
+                .aiMessage((AiMessage) expectedConversation.get(6))
                 .build(),
             userSatisfiedFeedback()));
 
-    final var processResource = resourceLoader.getResource("classpath:regression/" + processFile);
     final var zeebeTest =
-        deployModel(Bpmn.readModelFromStream(processResource.getInputStream()))
-            .createInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+        createProcessInstance(
+                elementTemplate ->
+                    elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
+                Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(3, expectedConversation, false);
+    assertLastChatRequest(expectedConversation);
 
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasNoToolCalls()
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
-                .hasResponseText(expectedResponseText)
-                .hasNoResponseMessage()
-                .hasNoResponseJson());
+                .hasResponseMessageText(expectedResponseText)
+                .hasResponseText(expectedResponseText));
 
     assertThat(jobWorkerCounter.get()).isEqualTo(2);
   }

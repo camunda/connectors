@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_JSON;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
-import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.SlowTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @SlowTest
-public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAgentTests {
+public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobWorkerTest {
 
   @Nested
   class ResponseText {
@@ -53,11 +53,14 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
     @Test
     void fallsBackToResponseTextWhenNoResponsePropertiesAreConfigured() throws Exception {
       testBasicExecutionWithoutFeedbackLoop(
-          elementTemplate -> elementTemplate.withoutPropertyValueStartingWith("data.response."),
+          elementTemplate ->
+              elementTemplate
+                  .withoutPropertyValueStartingWith("data.response.includeAssistantMessage")
+                  .withoutPropertyValueStartingWith("data.response.format."),
           HAIKU_TEXT,
           true,
           (agentResponse) ->
-              AgentResponseAssert.assertThat(agentResponse)
+              JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasNoResponseMessage()
                   .hasResponseText(HAIKU_TEXT)
                   .hasNoResponseJson());
@@ -73,7 +76,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           HAIKU_TEXT,
           true,
           (agentResponse) ->
-              AgentResponseAssert.assertThat(agentResponse)
+              JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasNoResponseMessage()
                   .hasResponseText(HAIKU_TEXT)
                   .hasNoResponseJson());
@@ -89,7 +92,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           HAIKU_TEXT,
           true,
           (agentResponse) ->
-              AgentResponseAssert.assertThat(agentResponse)
+              JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_TEXT)
                   .hasResponseText(HAIKU_TEXT)
                   .hasNoResponseJson());
@@ -105,7 +108,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           HAIKU_JSON,
           true,
           (agentResponse) ->
-              AgentResponseAssert.assertThat(agentResponse)
+              JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseText(HAIKU_JSON)
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
     }
@@ -120,7 +123,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           HAIKU_TEXT,
           true,
           (agentResponse) ->
-              AgentResponseAssert.assertThat(agentResponse)
+              JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseText(HAIKU_TEXT)
                   .hasNoResponseJson());
     }
@@ -162,7 +165,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           HAIKU_JSON,
           true,
           (agentResponse) ->
-              AgentResponseAssert.assertThat(agentResponse)
+              JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasNoResponseText()
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
     }
@@ -177,7 +180,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           HAIKU_JSON,
           true,
           (agentResponse) ->
-              AgentResponseAssert.assertThat(agentResponse)
+              JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_JSON)
                   .hasNoResponseText()
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
@@ -212,7 +215,7 @@ public class Langchain4JAiAgentResponseHandlingTests extends BaseLangchain4JAiAg
           HAIKU_JSON,
           true,
           (agentResponse) ->
-              AgentResponseAssert.assertThat(agentResponse)
+              JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_JSON)
                   .hasNoResponseText()
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
