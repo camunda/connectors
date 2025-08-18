@@ -401,12 +401,12 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "endpoint",
+      "group": "sn",
       "binding": {
         "name": "method",
         "type": "zeebe:input"
       },
-      "type": "Hidden",
+      "type": "Dropdown",
       "choices": [
         {
           "name": "POST",
@@ -544,17 +544,22 @@
       "type": "Number"
     },
     {
-      "id": "body",
-      "label": "Request body",
-      "description": "Payload to send with the request",
-      "optional": true,
-      "group": "payload",
-      "binding": {
-        "name": "body",
-        "type": "zeebe:input"
+      "id" : "body",
+      "label" : "Request body",
+      "description" : "Payload to send with the request",
+      "optional" : true,
+      "feel" : "optional",
+      "group" : "sn",
+      "binding" : {
+        "name" : "body",
+        "type" : "zeebe:input"
       },
-      "type": "Hidden",
-      "value": "= { \"flowId\": flowId , \"correlationKey\": correlationKey , \"name\": messageReference , \"ritmId\": snSysId , \"sys_id\": snSysId }"
+      "condition" : {
+        "property" : "method",
+        "oneOf" : [ "POST", "PUT", "PATCH" ],
+        "type" : "simple"
+      },
+      "type" : "Text"
     },
     {
       "id": "ignoreNullValues",
