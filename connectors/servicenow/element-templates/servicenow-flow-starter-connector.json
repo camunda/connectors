@@ -62,13 +62,13 @@
       "type": "Hidden"
     },
     {
-      "id": "tenant",
-      "label": "Tenant name",
+      "id": "snInstance",
+      "label": "Instance name",
       "optional": false,
       "feel": "optional",
       "group": "sn",
       "binding": {
-        "name": "tenant",
+        "name": "snInstance",
         "type": "zeebe:input"
       },
       "constraints": {
@@ -77,61 +77,21 @@
       "type": "String"
     },
     {
-      "id": "flowId",
-      "label": "Identifier for the flow",
-      "description": "any string that is used in SN as a trigger condition",
+      "id": "restApiTriggerPath",
+      "label": "REST API trigger path",
       "optional": false,
       "feel": "optional",
       "group": "sn",
       "binding": {
-        "name": "flowId",
+        "name": "restApiTriggerPath",
         "type": "zeebe:input"
       },
-      "type": "String",
-      "constraints": {
-        "notEmpty": true
-      }
-    },
-    {
-      "id": "correlationKey",
-      "label": "Subscription correaltion key",
-      "optional": false,
-      "feel": "optional",
-      "group": "sn",
-      "binding": {
-        "name": "correlationKey",
-        "type": "zeebe:input"
-      },
-      "type": "String",
-      "constraints": {
-        "notEmpty": true
-      }
-    },
-    {
-      "id": "snSysId",
-      "label": "ServiceNow system id (sys_id)",
-      "optional": false,
-      "feel": "optional",
-      "group": "sn",
-      "binding": {
-        "name": "snSysId",
-        "type": "zeebe:input"
-      },
-      "type": "String",
-      "constraints": {
-        "notEmpty": true
-      }
-    },
-    {
-      "id": "messageReference",
-      "label": "Global message reference",
-      "optional": true,
-      "default": "fromSN",
-      "feel": "optional",
-      "group": "sn",
-      "binding": {
-        "name": "messageReference",
-        "type": "zeebe:input"
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^([/=]).*",
+          "message" : "must start with a '/'"
+        }
       },
       "type": "String"
     },
@@ -437,7 +397,7 @@
       "id": "method",
       "label": "Method",
       "optional": false,
-      "value": "POST",
+      "value": "GET",
       "constraints": {
         "notEmpty": true
       },
@@ -487,31 +447,33 @@
         "type": "zeebe:input"
       },
       "type": "Hidden",
-      "value": "=\"https://\" + tenant + \".service-now.com/api/x_camun_camunda_sp/camunda/trigger_flow\""
+      "value": "=\"https://\" + snInstance + \".service-now.com\" + restApiTriggerPath"
     },
     {
       "id": "headers",
       "label": "Headers",
       "description": "Map of HTTP headers to add to the request",
       "optional": true,
-      "group": "endpoint",
+      "feel" : "required",
+      "group": "sn",
       "binding": {
         "name": "headers",
         "type": "zeebe:input"
       },
-      "type": "Hidden"
+      "type" : "String"
     },
     {
       "id": "queryParameters",
       "label": "Query parameters",
       "description": "Map of query parameters to add to the request URL",
       "optional": true,
-      "group": "endpoint",
+      "feel" : "required",
+      "group": "sn",
       "binding": {
         "name": "queryParameters",
         "type": "zeebe:input"
       },
-      "type": "Hidden"
+      "type" : "String"
     },
     {
       "id": "storeResponse",
