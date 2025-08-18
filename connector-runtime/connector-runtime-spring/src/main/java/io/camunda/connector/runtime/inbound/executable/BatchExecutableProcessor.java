@@ -16,18 +16,24 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-import com.google.common.collect.EvictingQueue;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.ActivityBuilder;
+import io.camunda.connector.api.inbound.ActivityLogTag;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogEntry;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.InvalidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -43,7 +49,6 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 
 public class BatchExecutableProcessor {
 
@@ -53,18 +58,19 @@ public class BatchExecutableProcessor {
   private final ConnectorsInboundMetrics connectorsInboundMetrics;
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
-  @Value("${camunda.connector.inbound.log.size:10}")
-  private int inboundLogsSize;
+  private final ActivityLogWriter activityLogWriter;
 
   public BatchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
       InboundConnectorContextFactory connectorContextFactory,
       ConnectorsInboundMetrics connectorsInboundMetrics,
-      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry,
+      ActivityLogWriter activityLogWriter) {
     this.connectorFactory = connectorFactory;
     this.connectorContextFactory = connectorContextFactory;
     this.connectorsInboundMetrics = connectorsInboundMetrics;
     this.webhookConnectorRegistry = webhookConnectorRegistry;
+    this.activityLogWriter = activityLogWriter;
   }
 
   /**
@@ -85,7 +91,8 @@ public class BatchExecutableProcessor {
 
       if (maybeValidData instanceof InvalidInboundConnectorDetails invalid) {
         alreadyActivated.put(
-            id, new RegisteredExecutable.InvalidDefinition(invalid, invalid.error().getMessage()));
+            id,
+            new RegisteredExecutable.InvalidDefinition(invalid, invalid.error().getMessage(), id));
         continue;
       } else {
         data = (ValidInboundConnectorDetails) maybeValidData;
@@ -126,7 +133,7 @@ public class BatchExecutableProcessor {
             if (!failedEntry.getKey().equals(id)) {
               notActivated.put(
                   failedEntry.getKey(),
-                  new FailedToActivate(failedEntry.getValue(), failureReasonForOthers));
+                  new FailedToActivate(failedEntry.getValue(), failureReasonForOthers, id));
             }
           }
           notActivated.put(id, failed);
@@ -140,8 +147,9 @@ public class BatchExecutableProcessor {
   private RegisteredExecutable activateSingle(
       InboundConnectorDetails data, Consumer<Throwable> cancellationCallback) {
 
+    final ExecutableId id = ExecutableId.fromDeduplicationId(data.deduplicationId());
     if (data instanceof InvalidInboundConnectorDetails invalid) {
-      return new InvalidDefinition(invalid, invalid.error().getMessage());
+      return new InvalidDefinition(invalid, invalid.error().getMessage(), id);
     }
     var validData = (ValidInboundConnectorDetails) data;
 
@@ -153,13 +161,10 @@ public class BatchExecutableProcessor {
       context =
           (InboundConnectorReportingContext)
               connectorContextFactory.createContext(
-                  validData,
-                  cancellationCallback,
-                  executable.getClass(),
-                  EvictingQueue.create(inboundLogsSize));
+                  validData, cancellationCallback, executable.getClass(), activityLogWriter);
     } catch (NoSuchElementException e) {
       LOG.warn("Failed to create executable", e);
-      return new ConnectorNotRegistered(validData);
+      return new ConnectorNotRegistered(validData, id);
     }
 
     if (webhookConnectorRegistry == null && executable instanceof WebhookConnectorExecutable) {
@@ -168,13 +173,13 @@ public class BatchExecutableProcessor {
           Health.down(
               new UnsupportedOperationException(
                   "Webhook connectors are not supported in this environment")));
-      return new ConnectorNotRegistered(validData);
+      return new ConnectorNotRegistered(validData, id);
     }
     try {
       if (executable instanceof WebhookConnectorExecutable) {
         LOG.debug("Registering webhook: {}", data.type());
         if (webhookConnectorRegistry.register(
-            new RegisteredExecutable.Activated(executable, context))) {
+            new RegisteredExecutable.Activated(executable, context, id))) {
           executable.activate(context);
         }
       } else {
@@ -183,14 +188,19 @@ public class BatchExecutableProcessor {
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
       connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
-      return new FailedToActivate(data, e.getMessage());
+      return new FailedToActivate(data, e.getMessage(), id);
     }
-    LOG.info(
-        "Inbound connector {} activated with deduplication ID '{}'",
-        data.type(),
-        data.deduplicationId());
+    log(
+        id,
+        Activity.newBuilder()
+            .withSeverity(Severity.INFO)
+            .withTag(ActivityLogTag.LIFECYCLE)
+            .withMessage(
+                String.format(
+                    "Activated inbound connector %s with deduplication ID '%s'",
+                    data.type(), data.deduplicationId())));
     connectorsInboundMetrics.increaseActivation(data.connectorElements().getFirst());
-    return new Activated(executable, context);
+    return new Activated(executable, context, id);
   }
 
   /** Deactivates a batch of inbound connectors. */
@@ -198,12 +208,21 @@ public class BatchExecutableProcessor {
     for (var activeExecutable : executables) {
       if (activeExecutable instanceof Activated activated) {
         try {
-          LOG.info("Deactivating executable: {}", activated.context().getDefinition().type());
           if (activated.executable() instanceof WebhookConnectorExecutable) {
             LOG.debug("Unregistering webhook: {}", activated.context().getDefinition().type());
             webhookConnectorRegistry.deregister(activated);
           }
           activated.executable().deactivate();
+          log(
+              activeExecutable.id(),
+              Activity.newBuilder()
+                  .withSeverity(Severity.INFO)
+                  .withTag(ActivityLogTag.LIFECYCLE)
+                  .withMessage(
+                      "Deactivated executable: "
+                          + activated.context().getDefinition().type()
+                          + " with executable ID "
+                          + activated.id()));
         } catch (Exception e) {
           LOG.error("Failed to deactivate executable", e);
         }
@@ -250,7 +269,10 @@ public class BatchExecutableProcessor {
     try {
       executable.activate(context);
       LOG.info("Activation successful for {}", context.getDefinition().type());
-      return new Activated(executable, context);
+      return new Activated(
+          executable,
+          context,
+          ExecutableId.fromDeduplicationId(context.getDefinition().deduplicationId()));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -260,10 +282,16 @@ public class BatchExecutableProcessor {
     try {
       activated.executable().deactivate();
       return new RegisteredExecutable.Cancelled(
-          activated.executable(), activated.context(), throwable);
+          activated.executable(), activated.context(), throwable, activated.id());
     } catch (Exception e) {
       LOG.error("Failed to deactivate connector", e);
       throw new RuntimeException("Failed to deactivate connector", e);
     }
+  }
+
+  private void log(ExecutableId id, ActivityBuilder activityBuilder) {
+    final var activityLogEntry =
+        new ActivityLogEntry(id, ActivitySource.RUNTIME, activityBuilder.build());
+    activityLogWriter.log(activityLogEntry);
   }
 }

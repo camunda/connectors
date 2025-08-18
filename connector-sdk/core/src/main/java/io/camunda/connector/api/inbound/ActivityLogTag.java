@@ -17,12 +17,17 @@
 package io.camunda.connector.api.inbound;
 
 /**
- * Severity levels for inbound connector activity logs. Note: This does not translate 1:1 to SLF4J
- * levels.
+ * Tags for activities in the inbound connector context.
+ *
+ * <p>These tags are used to categorize and identify different types of activities in the activity
+ * log. They help in understanding the context of the logged activities.
  */
-public enum Severity {
-  DEBUG,
-  INFO,
-  WARNING,
-  ERROR
+public class ActivityLogTag {
+
+  public static final String MESSAGE = "Message";
+  public static final String CONSUMER = "Consumer";
+  public static final String CORRELATION = "Correlation";
+  public static final String LIFECYCLE = "Lifecycle";
+  public static final String QUEUEING = "Queueing";
+  public static final String ACTIVATION = "Activation";
 }

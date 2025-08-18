@@ -26,7 +26,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.ProcessElement;
@@ -38,8 +37,10 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
@@ -87,6 +88,8 @@ class WebhookControllerTestZeebeTest {
 
   @Autowired @InjectMocks private InboundWebhookRestController controller;
 
+  @Autowired private ActivityLogRegistry activityLogRegistry;
+
   @BeforeEach
   public void beforeEach() {
     System.out.println("System property 'quickly': " + System.getProperty("quickly"));
@@ -110,11 +113,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     deployProcess("processA");
 
@@ -151,11 +157,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     deployProcess("processA");
 
@@ -198,11 +207,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     ResponseEntity<?> responseEntity =
         controller.inbound(
@@ -239,11 +251,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     ResponseEntity<?> responseEntity =
         controller.inbound(
@@ -288,11 +303,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     ResponseEntity<?> responseEntity =
         controller.inbound(
@@ -326,11 +344,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     deployProcess("processA");
 
@@ -364,11 +385,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     deployProcess("processB");
 
@@ -397,11 +421,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     deployProcess("processA");
 
@@ -432,11 +459,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     deployProcess("processA");
 
@@ -479,11 +509,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandler,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     deployProcess("processA");
 
@@ -537,11 +570,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     deployProcess("processA");
 
@@ -591,11 +627,14 @@ class WebhookControllerTestZeebeTest {
             correlationHandlerMock,
             (e) -> {},
             mapper,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
 
     deployProcess("processA");
 

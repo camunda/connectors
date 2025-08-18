@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound.executable;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.InvalidInboundConnectorDetails;
@@ -25,23 +26,27 @@ import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails
 
 public sealed interface RegisteredExecutable {
 
+  ExecutableId id();
+
   record Activated(
       InboundConnectorExecutable<InboundConnectorContext> executable,
-      InboundConnectorReportingContext context)
+      InboundConnectorReportingContext context,
+      ExecutableId id)
       implements RegisteredExecutable {}
 
   record Cancelled(
       InboundConnectorExecutable<InboundConnectorContext> executable,
       InboundConnectorReportingContext context,
-      Throwable exceptionThrown)
+      Throwable exceptionThrown,
+      ExecutableId id)
       implements RegisteredExecutable {}
 
-  record ConnectorNotRegistered(ValidInboundConnectorDetails data)
+  record ConnectorNotRegistered(ValidInboundConnectorDetails data, ExecutableId id)
       implements RegisteredExecutable {}
 
-  record FailedToActivate(InboundConnectorDetails data, String reason)
+  record FailedToActivate(InboundConnectorDetails data, String reason, ExecutableId id)
       implements RegisteredExecutable {}
 
-  record InvalidDefinition(InvalidInboundConnectorDetails data, String reason)
+  record InvalidDefinition(InvalidInboundConnectorDetails data, String reason, ExecutableId id)
       implements RegisteredExecutable {}
 }

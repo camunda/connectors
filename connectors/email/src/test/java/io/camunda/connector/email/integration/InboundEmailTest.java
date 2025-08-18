@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -91,7 +92,13 @@ public class InboundEmailTest extends BaseEmailTest {
                 emailInboundConnectorProperties.data().pollingWaitTime(),
                 emailInboundConnectorProperties.data().pollingConfig()));
 
-    doNothing().when(inboundConnectorContext).log(any());
+    doNothing().when(inboundConnectorContext).log(any(Consumer.class));
+    when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
+        .thenReturn(emailInboundConnectorProperties1);
+    when(inboundConnectorContext.correlate(any()))
+        .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null));
+    when(inboundConnectorContext.canActivate(any()))
+        .thenReturn(new ActivationCheckResult.Success.CanActivate(null));
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties1);
     when(inboundConnectorContext.correlate(any()))
@@ -129,7 +136,7 @@ public class InboundEmailTest extends BaseEmailTest {
                 Duration.of(2, ChronoUnit.SECONDS),
                 new PollUnseen(HandlingStrategy.READ, "")));
 
-    doNothing().when(inboundConnectorContext).log(any());
+    doNothing().when(inboundConnectorContext).log(any(Consumer.class));
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties);
     when(inboundConnectorContext.correlate(any()))
@@ -171,7 +178,7 @@ public class InboundEmailTest extends BaseEmailTest {
                 Duration.of(2, ChronoUnit.SECONDS),
                 new PollUnseen(HandlingStrategy.READ, "")));
 
-    doNothing().when(inboundConnectorContext).log(any());
+    doNothing().when(inboundConnectorContext).log(any(Consumer.class));
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties);
     when(inboundConnectorContext.correlate(any()))
@@ -213,7 +220,7 @@ public class InboundEmailTest extends BaseEmailTest {
                 Duration.of(2, ChronoUnit.SECONDS),
                 new PollUnseen(HandlingStrategy.READ, "")));
 
-    doNothing().when(inboundConnectorContext).log(any());
+    doNothing().when(inboundConnectorContext).log(any(Consumer.class));
     when(inboundConnectorContext.bindProperties(EmailInboundConnectorProperties.class))
         .thenReturn(emailInboundConnectorProperties);
     when(inboundConnectorContext.correlate(any()))

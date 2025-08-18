@@ -24,6 +24,7 @@ import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Deactivated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
@@ -49,9 +50,14 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final Map<String, List<String>> deduplicationScopesByType;
   private final Map<String, String> connectorsNamesByType;
 
+  private final ActivityLogRegistry activityLogRegistry;
+
   public InboundExecutableRegistryImpl(
-      InboundConnectorFactory connectorFactory, BatchExecutableProcessor batchExecutableProcessor) {
+      InboundConnectorFactory connectorFactory,
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
     this.batchExecutableProcessor = batchExecutableProcessor;
+    this.activityLogRegistry = activityLogRegistry;
     this.executorService = Executors.newSingleThreadExecutor();
     eventQueue = new LinkedBlockingQueue<>();
     connectorsNamesByType =
@@ -294,7 +300,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               activated.executable().getClass(),
               activated.context().connectorElements(),
               activated.context().getHealth(),
-              activated.context().getLogs(),
+              activityLogRegistry.getLogs(id),
               activated.context().getActivationTimestamp());
       case FailedToActivate failed ->
           new ActiveExecutableResponse(
@@ -331,7 +337,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               cancelled.executable().getClass(),
               cancelled.context().connectorElements(),
               Health.down(cancelled.exceptionThrown()),
-              cancelled.context().getLogs(),
+              activityLogRegistry.getLogs(id),
               null);
     };
   }

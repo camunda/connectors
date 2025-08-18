@@ -17,14 +17,25 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.*;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.InvalidInput;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ZeebeClientStatus;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogEntry;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -37,7 +48,6 @@ import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -54,7 +64,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
 
   private final Consumer<Throwable> cancellationCallback;
-  private final EvictingQueue<Activity> logs;
+  private final ActivityLogWriter activityLogWriter;
   private final DocumentFactory documentFactory;
   private final Long activationTimestamp;
   private Health health = Health.unknown();
@@ -68,7 +78,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      EvictingQueue<Activity> logs) {
+      ActivityLogWriter activityLogWriter) {
     super(secretProvider, validationProvider);
     this.documentFactory = documentFactory;
     this.correlationHandler = correlationHandler;
@@ -78,7 +88,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             connectorDetails.rawPropertiesWithoutKeywords());
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
-    this.logs = logs;
+    this.activityLogWriter = activityLogWriter;
     this.activationTimestamp = System.currentTimeMillis();
   }
 
@@ -89,7 +99,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      EvictingQueue<Activity> logs) {
+      ActivityLogWriter logs) {
     this(
         secretProvider,
         validationProvider,
@@ -119,23 +129,110 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private CorrelationResult correlateWithResultInternal(CorrelationRequest correlationRequest) {
     try {
-      return correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
+      var result =
+          correlationHandler.correlate(connectorDetails.connectorElements(), correlationRequest);
+      logCorrelationResult(result);
+      return result;
     } catch (ConnectorInputException connectorInputException) {
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
     } catch (FeelEngineWrapperException feelEngineWrapperException) {
       log(
-          Activity.level(Severity.ERROR)
-              .tag("error")
-              .message(feelEngineWrapperException.getMessage()));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withMessage(
+                      "Failed to evaluate FEEL expression: "
+                          + feelEngineWrapperException.getMessage()));
       return new CorrelationResult.Failure.Other(feelEngineWrapperException);
     } catch (Exception exception) {
       log(
-          Activity.level(Severity.ERROR)
-              .tag("error")
-              .message("Failed to correlate inbound event " + exception.getMessage()));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withMessage("Failed to correlate inbound event: " + exception.getMessage()));
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
+    }
+  }
+
+  private void logCorrelationResult(CorrelationResult correlationResult) {
+    switch (correlationResult) {
+      case Success success:
+        logCorrelationSuccess(success);
+        break;
+      case Failure failure:
+        logCorrelationFailure(failure);
+        break;
+    }
+  }
+
+  private void logCorrelationSuccess(Success success) {
+    switch (success) {
+      case ProcessInstanceCreated processInstanceCreated:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Process instance created")
+                    .withData(
+                        Map.of("processInstanceKey", processInstanceCreated.processInstanceKey())));
+        break;
+      case MessagePublished messagePublished:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Message published")
+                    .withData(Map.of("messageKey", messagePublished.messageKey())));
+        break;
+      case MessageAlreadyCorrelated ignored:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Message already correlated"));
+        break;
+    }
+  }
+
+  private void logCorrelationFailure(Failure failure) {
+    switch (failure) {
+      case ActivationConditionNotMet ignored:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.WARNING)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Activation condition not met"));
+        break;
+      case InvalidInput ignored:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Invalid input: " + failure.message()));
+        break;
+      case ZeebeClientStatus ignored:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Zeebe client status error: " + failure.message()));
+        break;
+      case Other ignored:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Other error: " + failure.message()));
+        break;
     }
   }
 
@@ -174,6 +271,13 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public void reportHealth(Health health) {
     this.health = health;
+    var activityLog = Activity.newBuilder().andReportHealth(health).build();
+    // append the activity log to store the health status change history
+    activityLogWriter.log(
+        new ActivityLogEntry(
+            ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
+            ActivitySource.CONNECTOR,
+            activityLog));
   }
 
   @Override
@@ -183,18 +287,34 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void log(Activity log) {
-    switch (log.severity()) {
-      case DEBUG -> LOG.debug(log.toString());
-      case ERROR -> LOG.error(log.toString());
-      case INFO -> LOG.info(log.toString());
-      case WARNING -> LOG.warn(log.toString());
+    if (log.healthChange() != null) {
+      this.health = log.healthChange();
     }
-    this.logs.add(log);
+    activityLogWriter.log(
+        new ActivityLogEntry(
+            ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
+            ActivitySource.CONNECTOR,
+            log));
   }
 
   @Override
-  public Queue<Activity> getLogs() {
-    return this.logs;
+  public void log(Consumer<ActivityBuilder> activityBuilderConsumer) {
+    if (activityBuilderConsumer == null) {
+      throw new IllegalArgumentException("Activity builder consumer cannot be null");
+    }
+    var builder = Activity.newBuilder();
+    activityBuilderConsumer.accept(builder);
+    log(builder.build());
+  }
+
+  private void logRuntime(Consumer<ActivityBuilder> activityBuilderConsumer) {
+    var builder = Activity.newBuilder();
+    activityBuilderConsumer.accept(builder);
+    activityLogWriter.log(
+        new ActivityLogEntry(
+            ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
+            ActivitySource.RUNTIME,
+            builder.build()));
   }
 
   @Override

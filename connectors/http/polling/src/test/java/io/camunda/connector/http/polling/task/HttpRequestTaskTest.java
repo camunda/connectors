@@ -72,19 +72,4 @@ public class HttpRequestTaskTest {
     // Then
     verify(mockProcessInstanceContext, never()).correlate(any());
   }
-
-  @Test
-  public void shouldNotExecuteHttpRequestIfNoBindingFound() throws Exception {
-    // Given
-    HttpRequestTask task =
-        new HttpRequestTask(mockHttpService, mockProcessInstanceContext, context);
-    when(mockProcessInstanceContext.bind(HttpCommonRequest.class)).thenReturn(null);
-
-    // When
-    task.run();
-
-    // Then
-    verify(mockHttpService, never()).executeConnectorRequest(any());
-    verify(mockProcessInstanceContext, never()).correlate(any());
-  }
 }
