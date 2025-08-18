@@ -25,6 +25,7 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   private final JobClient jobClient;
   private final JobWorkerAgentJobContext jobContext;
   private final JobWorkerAgentRequest request;
+  private boolean cancelRemainingInstances;
 
   public JobWorkerAgentExecutionContext(
       final JobClient jobClient, final ActivatedJob job, final JobWorkerAgentRequest request) {
@@ -95,5 +96,13 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
 
   public ActivatedJob job() {
     return job;
+  }
+
+  public boolean cancelRemainingInstances() {
+    return cancelRemainingInstances;
+  }
+
+  public void setCancelRemainingInstances(boolean cancelRemainingInstances) {
+    this.cancelRemainingInstances = cancelRemainingInstances;
   }
 }
