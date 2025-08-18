@@ -15,6 +15,7 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DE
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.util.WireMockUtils.assertJobCompletionRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
@@ -24,26 +25,25 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ActivatedJob;
-import io.camunda.client.protocol.rest.JobCompletionRequest;
 import io.camunda.client.protocol.rest.JobResultActivateElement;
 import io.camunda.client.protocol.rest.JobResultAdHocSubProcess;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -66,6 +66,8 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.spring.client.metrics.MetricsRecorder;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -117,6 +119,10 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private AgentResponseHandler responseHandler;
+  @Mock CommandExceptionHandlingStrategy defaultExceptionHandlingStrategy;
+  @Mock MetricsRecorder metricsRecorder;
+
+  private ConversationStore conversationStore;
 
   @Mock private ActivatedJob job;
 
@@ -143,7 +149,8 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentExecutionContext.job()).thenReturn(job);
     when(agentExecutionContext.jobClient()).thenReturn(camundaClient);
 
-    doReturn(new InProcessConversationStore())
+    conversationStore = spy(new InProcessConversationStore());
+    doReturn(conversationStore)
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
 
@@ -179,24 +186,26 @@ class JobWorkerAgentRequestHandlerTest {
     verifyNoInteractions(
         limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
 
-    final var request = getLastCompletionRequest();
-    assertThat(request.getVariables()).containsOnlyKeys("agentContext", "toolCallResults");
-    assertThat(request.getResult())
-        .isNotNull()
-        .isInstanceOfSatisfying(
-            JobResultAdHocSubProcess.class,
-            adHoc -> {
-              assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
-              assertThat(adHoc.getIsCancelRemainingInstances()).isFalse();
-              assertThat(adHoc.getActivateElements())
-                  .extracting(
-                      JobResultActivateElement::getElementId,
-                      JobResultActivateElement::getVariables)
-                  .containsExactly(
-                      tuple(
-                          agentResponse.toolCalls().getFirst().metadata().name(),
-                          Map.of("toolCall", asMap(agentResponse.toolCalls().getFirst()))));
-            });
+    assertJobCompletionRequest(
+        request -> {
+          assertThat(request.getVariables()).containsOnlyKeys("agentContext", "toolCallResults");
+          assertThat(request.getResult())
+              .isNotNull()
+              .isInstanceOfSatisfying(
+                  JobResultAdHocSubProcess.class,
+                  adHoc -> {
+                    assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
+                    assertThat(adHoc.getIsCancelRemainingInstances()).isFalse();
+                    assertThat(adHoc.getActivateElements())
+                        .extracting(
+                            JobResultActivateElement::getElementId,
+                            JobResultActivateElement::getVariables)
+                        .containsExactly(
+                            tuple(
+                                agentResponse.toolCalls().getFirst().metadata().name(),
+                                Map.of("toolCall", asMap(agentResponse.toolCalls().getFirst()))));
+                  });
+        });
   }
 
   @Test
@@ -251,17 +260,19 @@ class JobWorkerAgentRequestHandlerTest {
 
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
 
-    final var request = getLastCompletionRequest();
-    assertThat(request.getVariables()).containsOnlyKeys("agent");
-    assertThat(request.getResult())
-        .isNotNull()
-        .isInstanceOfSatisfying(
-            JobResultAdHocSubProcess.class,
-            adHoc -> {
-              assertThat(adHoc.getIsCompletionConditionFulfilled()).isTrue();
-              assertThat(adHoc.getIsCancelRemainingInstances()).isFalse();
-              assertThat(adHoc.getActivateElements()).isEmpty();
-            });
+    assertJobCompletionRequest(
+        request -> {
+          assertThat(request.getVariables()).containsOnlyKeys("agent");
+          assertThat(request.getResult())
+              .isNotNull()
+              .isInstanceOfSatisfying(
+                  JobResultAdHocSubProcess.class,
+                  adHoc -> {
+                    assertThat(adHoc.getIsCompletionConditionFulfilled()).isTrue();
+                    assertThat(adHoc.getIsCancelRemainingInstances()).isFalse();
+                    assertThat(adHoc.getActivateElements()).isEmpty();
+                  });
+        });
   }
 
   @Test
@@ -328,23 +339,29 @@ class JobWorkerAgentRequestHandlerTest {
 
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
 
-    final var request = getLastCompletionRequest();
-    assertThat(request.getVariables()).containsOnlyKeys("agentContext", "toolCallResults");
-    assertThat(request.getResult())
-        .isNotNull()
-        .isInstanceOfSatisfying(
-            JobResultAdHocSubProcess.class,
-            adHoc -> {
-              assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
-              assertThat(adHoc.getIsCancelRemainingInstances()).isFalse();
-              assertThat(adHoc.getActivateElements())
-                  .extracting(
-                      JobResultActivateElement::getElementId,
-                      JobResultActivateElement::getVariables)
-                  .containsExactly(
-                      tuple("getWeather", Map.of("toolCall", asMap(response.toolCalls().get(0)))),
-                      tuple("getDateTime", Map.of("toolCall", asMap(response.toolCalls().get(1)))));
-            });
+    assertJobCompletionRequest(
+        request -> {
+          assertThat(request.getVariables()).containsOnlyKeys("agentContext", "toolCallResults");
+          assertThat(request.getResult())
+              .isNotNull()
+              .isInstanceOfSatisfying(
+                  JobResultAdHocSubProcess.class,
+                  adHoc -> {
+                    assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
+                    assertThat(adHoc.getIsCancelRemainingInstances()).isFalse();
+                    assertThat(adHoc.getActivateElements())
+                        .extracting(
+                            JobResultActivateElement::getElementId,
+                            JobResultActivateElement::getVariables)
+                        .containsExactly(
+                            tuple(
+                                "getWeather",
+                                Map.of("toolCall", asMap(response.toolCalls().get(0)))),
+                            tuple(
+                                "getDateTime",
+                                Map.of("toolCall", asMap(response.toolCalls().get(1)))));
+                  });
+        });
   }
 
   @Test
@@ -405,23 +422,61 @@ class JobWorkerAgentRequestHandlerTest {
 
     verifyNoInteractions(framework);
 
-    final var request = getLastCompletionRequest();
-    assertThat(request.getVariables()).isNull();
-    assertThat(request.getResult()).isNull();
+    assertJobCompletionRequest(
+        request -> {
+          assertThat(request.getVariables()).isNull();
+          assertThat(request.getResult()).isNull();
+        });
   }
 
-  private JobCompletionRequest getLastCompletionRequest() {
+  @Test
+  void triesToCompensateStorageOnCompletionError() {
+    stubFor(
+        post(urlPathEqualTo("/v2/jobs/123456/completion"))
+            .willReturn(
+                jsonResponse(
+                    """
+                    {
+                      "type": "about:blank",
+                      "title": "NOT_FOUND",
+                      "status": 404,
+                      "detail": "Job was not found",
+                      "instance": "/v2/jobs/123456/completion"
+                    }
+                    """,
+                    404)));
+
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var assistantMessageText =
+        "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
+    final var assistantMessage = assistantMessage(assistantMessageText);
+
+    mockFrameworkExecution(assistantMessage);
+
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(i -> i.getArgument(1));
+    when(responseHandler.createResponse(
+            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .responseMessage(i.getArgument(2, AssistantMessage.class))
+                    .responseText(assistantMessageText)
+                    .toolCalls(i.getArgument(3))
+                    .build());
+
+    requestHandler.handleRequest(agentExecutionContext);
     await().until(() -> !WireMock.getAllServeEvents().isEmpty());
-    return getLastRequest(JobCompletionRequest.class);
-  }
 
-  private <T> T getLastRequest(final Class<T> requestType) {
-    ServeEvent lastServeEvent = WireMock.getAllServeEvents().getLast();
-    try {
-      return OBJECT_MAPPER.readValue(lastServeEvent.getRequest().getBodyAsString(), requestType);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+    verify(conversationStore)
+        .compensateFailedJobCompletion(
+            eq(agentExecutionContext), any(AgentContext.class), any(Throwable.class));
   }
 
   private Map<String, Object> asMap(final ToolCallProcessVariable toolCallProcessVariable) {
