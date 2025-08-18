@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
@@ -101,7 +102,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
     final var zeebeTest = testSetup.getRight();
     zeebeTest.waitForProcessCompletion();
 
-    assertLastChatRequest(1, testSetup.getLeft(), assertToolSpecifications);
+    assertLastChatRequest(testSetup.getLeft(), assertToolSpecifications);
 
     assertAgentResponse(
         testSetup.getRight(),
@@ -178,7 +179,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
     final var zeebeTest = testSetup.getRight();
     zeebeTest.waitForProcessCompletion();
 
-    assertLastChatRequest(3, testSetup.getLeft(), assertToolSpecifications);
+    assertLastChatRequest(testSetup.getLeft(), assertToolSpecifications);
 
     assertAgentResponse(
         testSetup.getRight(),
@@ -277,16 +278,19 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
         .chat(chatRequestCaptor.capture());
   }
 
-  protected void assertLastChatRequest(
-      int expectedChatRequestCount, List<ChatMessage> expectedConversation) {
-    assertLastChatRequest(expectedChatRequestCount, expectedConversation, true);
+  protected void assertLastChatRequest(List<ChatMessage> expectedConversation) {
+    assertLastChatRequest(expectedConversation, true);
   }
 
   protected void assertLastChatRequest(
-      int expectedChatRequestCount,
-      List<ChatMessage> expectedConversation,
-      boolean assertToolSpecifications) {
-    assertThat(chatRequestCaptor.getAllValues()).hasSize(expectedChatRequestCount);
+      List<ChatMessage> expectedConversation, boolean assertToolSpecifications) {
+    await()
+        .alias("Chat request with expected conversation")
+        .untilAsserted(
+            () -> {
+              assertThat(chatRequestCaptor.getValue().messages())
+                  .hasSize(expectedConversation.size() - 1);
+            });
 
     final var lastChatRequest = chatRequestCaptor.getValue();
 

@@ -220,7 +220,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                 Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(3, expectedConversation);
+    assertLastChatRequest(expectedConversation);
 
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
     assertAgentResponse(

@@ -148,7 +148,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                 Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(3, expectedConversation);
+    assertLastChatRequest(expectedConversation);
 
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
     assertAgentResponse(

@@ -114,7 +114,7 @@ public class L4JAiAgentJobWorkerFeedbackLoopTests extends BaseL4JAiAgentJobWorke
         createProcessInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(2, expectedConversation);
+    assertLastChatRequest(expectedConversation);
 
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
     assertAgentResponse(

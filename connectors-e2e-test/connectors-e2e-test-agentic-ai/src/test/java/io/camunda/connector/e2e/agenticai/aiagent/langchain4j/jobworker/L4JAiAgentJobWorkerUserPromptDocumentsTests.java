@@ -96,7 +96,7 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename)))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(1, expectedConversation);
+    assertLastChatRequest(expectedConversation);
 
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
     assertAgentResponse(
@@ -152,7 +152,7 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
                         wireMock.getHttpBaseUrl() + "/test.jpg")))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(1, expectedConversation);
+    assertLastChatRequest(expectedConversation);
 
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
     assertAgentResponse(
