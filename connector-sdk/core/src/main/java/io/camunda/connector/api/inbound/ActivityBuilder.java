@@ -21,7 +21,6 @@ import java.io.StringWriter;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.hc.core5.util.TextUtils;
 
 /** Builder for creating {@link Activity} instances. */
 public class ActivityBuilder {
@@ -90,7 +89,10 @@ public class ActivityBuilder {
    * @return a new {@link Activity} instance
    */
   public Activity build() {
-    if (TextUtils.isEmpty(tag) && TextUtils.isEmpty(message) && data.isEmpty() && health == null) {
+    if ((tag == null || tag.isEmpty())
+        && (message == null || message.isEmpty())
+        && data.isEmpty()
+        && health == null) {
       throw new IllegalArgumentException(
           "Activity contains no data. At least one of tag, message, data, or health must be set.");
     }

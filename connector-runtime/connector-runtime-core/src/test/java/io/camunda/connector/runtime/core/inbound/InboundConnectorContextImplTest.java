@@ -20,8 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
