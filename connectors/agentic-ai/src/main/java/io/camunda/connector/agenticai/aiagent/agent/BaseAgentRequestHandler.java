@@ -150,6 +150,8 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
       return null;
     }
 
+    handleAddedUserMessages(executionContext, agentContext, userMessages);
+
     // call framework with memory
     LOGGER.debug("Executing chat request with AI framework");
     final var frameworkChatResponse =
@@ -179,6 +181,11 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
 
   protected abstract boolean modelCallPrerequisitesFulfilled(
       C executionContext, AgentContext agentContext, List<Message> addedUserMessages);
+
+  protected void handleAddedUserMessages(
+      C executionContext, AgentContext agentContext, List<Message> addedUserMessages) {
+    // no-op by default
+  }
 
   /** Handles job completion if needed. Agent response and conversation store may be null. */
   protected abstract AgentResponse completeJob(
