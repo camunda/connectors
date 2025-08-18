@@ -13,11 +13,11 @@ import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler
 import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerErrorHandler;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
-import io.camunda.document.factory.DocumentFactory;
 import io.camunda.spring.client.annotation.JobWorker;
 
 /**
