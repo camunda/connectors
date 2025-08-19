@@ -101,16 +101,14 @@ class JobWorkerAgentRequestHandlerTest {
       AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
 
   private static final PromptConfiguration.SystemPromptConfiguration SYSTEM_PROMPT_CONFIGURATION =
-      new PromptConfiguration.SystemPromptConfiguration(
-          "You are a helpful assistant. Be nice.", Map.of());
+      new PromptConfiguration.SystemPromptConfiguration("You are a helpful assistant. Be nice.");
   private static final PromptConfiguration.UserPromptConfiguration
       USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS =
-          new PromptConfiguration.UserPromptConfiguration(
-              "Write a haiku about the sea", Map.of(), List.of());
+          new PromptConfiguration.UserPromptConfiguration("Write a haiku about the sea", List.of());
   private static final PromptConfiguration.UserPromptConfiguration
       USER_PROMPT_CONFIGURATION_WITH_TOOLS =
           new PromptConfiguration.UserPromptConfiguration(
-              "What is the weather in Munich?", Map.of(), List.of());
+              "What is the weather in Munich?", List.of());
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -580,7 +578,7 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
-    mockUserPrompt(new UserPromptConfiguration("User message 30", Map.of(), List.of()), List.of());
+    mockUserPrompt(new UserPromptConfiguration("User message 30", List.of()), List.of());
 
     when(agentExecutionContext.memory()).thenReturn(memoryConfiguration);
 

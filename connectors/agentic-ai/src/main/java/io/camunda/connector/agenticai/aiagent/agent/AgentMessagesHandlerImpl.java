@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
-import static io.camunda.connector.agenticai.util.PromptUtils.resolveParameterizedPrompt;
 
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -58,8 +57,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       AgentContext agentContext,
       RuntimeMemory memory,
       SystemPromptConfiguration systemPrompt) {
-    final var systemPromptText =
-        resolveParameterizedPrompt(systemPrompt.prompt(), systemPrompt.parameters());
+    final var systemPromptText = systemPrompt.prompt();
     if (StringUtils.isNotBlank(systemPromptText)) {
       // memory will take care of replacing any existing system message if already present
       memory.addMessage(
@@ -129,8 +127,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     final var content = new ArrayList<Content>();
 
     // add user prompt text
-    final var userPromptText =
-        resolveParameterizedPrompt(userPrompt.prompt(), userPrompt.parameters());
+    final var userPromptText = userPrompt.prompt();
     if (StringUtils.isNotBlank(userPromptText)) {
       content.add(textContent(userPromptText));
     }
