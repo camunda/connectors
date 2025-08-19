@@ -7,6 +7,7 @@
     "keywords" : [ ]
   },
   "version" : 0,
+  "deprecated": true,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
