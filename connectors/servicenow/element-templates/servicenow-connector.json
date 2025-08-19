@@ -748,7 +748,7 @@
       "id": "method",
       "label": "Method",
       "optional": false,
-      "value": "={\"operationMap\": {\n    \"read\": \"GET\",\n    \"update\": \"PATCH\",\n    \"create\": \"POST\",\n    \"delete\": \"DELETE\"\n  },\n  \"result\": operationMap[operationGroup]\n}.result",
+      "value": "={\n \"operationMap\": [\n   {\n     \"value\":\"read\",\n     \"mapsTo\": \"GET\"\n   },\n   {\n     \"value\":\"update\",\n     \"mapsTo\": \"PATCH\"\n   },\n   {\n     \"value\":\"create\",\n     \"mapsTo\": \"POST\"\n   },\n   {\n     \"value\":\"delete\",\n     \"mapsTo\": \"DELETE\"\n   }\n ],\n \"result\": operationMap[value = operationGroup].mapsTo[1]\n}.result",
       "constraints": {
         "notEmpty": true
       },
