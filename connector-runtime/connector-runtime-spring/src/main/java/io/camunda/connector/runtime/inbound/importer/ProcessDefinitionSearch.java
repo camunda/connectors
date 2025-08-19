@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.CollectionUtils;
 
 /**
@@ -37,8 +38,8 @@ import org.springframework.util.CollectionUtils;
  * index.
  */
 public class ProcessDefinitionSearch {
-
-  private static final int PAGE_SIZE = 50;
+  @Value("${camunda.connector.process-definition-search.page-size:50}")
+  private int pageSize;
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionImporter.class);
   private final CamundaOperateClient camundaOperateClient;
@@ -66,7 +67,7 @@ public class ProcessDefinitionSearch {
             new SearchQuery.Builder()
                 .searchAfter(paginationIndex)
                 .sort(new Sort("key", SortOrder.DESC))
-                .size(PAGE_SIZE)
+                .size(pageSize)
                 .build();
         processDefinitionResult =
             camundaOperateClient.searchProcessDefinitionResults(processDefinitionQuery);
