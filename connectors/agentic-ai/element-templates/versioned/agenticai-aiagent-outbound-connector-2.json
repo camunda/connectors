@@ -1,13 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AI Agent",
-  "id" : "io.camunda.connectors.agenticai.aiagent.v1-hybrid",
-  "description" : "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha8 or later.",
+  "name" : "AI Agent",
+  "id" : "io.camunda.connectors.agenticai.aiagent.v1",
+  "description" : "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha7 or later.",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
-  "version" : 3,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -20,9 +20,6 @@
     "camunda" : "^8.8"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "provider",
     "label" : "Model provider",
     "openByDefault" : false
@@ -73,14 +70,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda.agenticai:aiagent:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "provider.type",
     "label" : "Provider",
@@ -102,7 +97,7 @@
       "name" : "Azure OpenAI",
       "value" : "azureOpenAi"
     }, {
-      "name" : "Google Vertex AI",
+      "name" : "Google Vertex AI (Hybrid/Self-Managed only)",
       "value" : "google-vertex-ai"
     }, {
       "name" : "OpenAI",
@@ -446,8 +441,8 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.googleVertexAi.region",
-    "label" : "Region",
+    "id" : "provider.googleVertexAi.location",
+    "label" : "Location",
     "description" : "Specify the region where AI inference should take place",
     "optional" : false,
     "constraints" : {
@@ -456,62 +451,13 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.googleVertexAi.region",
+      "name" : "provider.googleVertexAi.location",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
       "equals" : "google-vertex-ai",
       "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "provider.googleVertexAi.authentication.type",
-    "label" : "Authentication",
-    "description" : "Specify the Google Vertex AI authentication strategy.",
-    "value" : "serviceAccountCredentials",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.googleVertexAi.authentication.type",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "google-vertex-ai",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Service account credentials",
-      "value" : "serviceAccountCredentials"
-    }, {
-      "name" : "Application default credentials (Hybrid/Self-Managed only)",
-      "value" : "applicationDefaultCredentials"
-    } ]
-  }, {
-    "id" : "provider.googleVertexAi.authentication.jsonKey",
-    "label" : "JSON key of the service account",
-    "description" : "This is the key of the service account in JSON format.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.googleVertexAi.authentication.jsonKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "provider.googleVertexAi.authentication.type",
-        "equals" : "serviceAccountCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "provider.type",
-        "equals" : "google-vertex-ai",
-        "type" : "simple"
-      } ]
     },
     "type" : "String"
   }, {
@@ -998,7 +944,7 @@
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
     "optional" : false,
-    "value" : "You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\n",
+    "value" : "You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n  <context>…briefly state the customer’s need and current state…</context>\n  <reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\n",
     "constraints" : {
       "notEmpty" : true
     },
@@ -1311,7 +1257,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
