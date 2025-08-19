@@ -10,18 +10,10 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import java.util.List;
-import java.util.Map;
 
 public interface PromptConfiguration {
-  String PROMPT_PARAMETERS_DESCRIPTION =
-      "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.";
-
   String prompt();
-
-  Map<String, Object> parameters();
 
   record SystemPromptConfiguration(
       @FEEL
@@ -32,23 +24,7 @@ public interface PromptConfiguration {
               feel = Property.FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
               defaultValue = DEFAULT_SYSTEM_PROMPT)
-          String prompt,
-      @FEEL
-          @TemplateProperty(
-              group = "systemPrompt",
-              label = "System prompt parameters",
-              description = PROMPT_PARAMETERS_DESCRIPTION,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Map<
-                  @NotBlank(message = "System prompt parameter key must not be blank")
-                  @Pattern(
-                      regexp = "^[a-zA-Z0-9_]+$",
-                      message =
-                          "System prompt parameter key can only contain letters, digits, or underscores")
-                  String,
-                  Object>
-              parameters)
+          String prompt)
       implements PromptConfiguration {
 
     @TemplateProperty(ignore = true)
@@ -78,22 +54,6 @@ Reveal **no** additional private reasoning outside these tags.
               feel = Property.FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String prompt,
-      @FEEL
-          @TemplateProperty(
-              group = "userPrompt",
-              label = "User prompt parameters",
-              description = PROMPT_PARAMETERS_DESCRIPTION,
-              feel = Property.FeelMode.required,
-              optional = true)
-          Map<
-                  @NotBlank(message = "User prompt parameter key must not be blank")
-                  @Pattern(
-                      regexp = "^[a-zA-Z0-9_]+$",
-                      message =
-                          "User prompt parameter key can only contain letters, digits, or underscores")
-                  String,
-                  Object>
-              parameters,
       @FEEL
           @TemplateProperty(
               group = "userPrompt",

@@ -72,11 +72,11 @@ class OutboundConnectorAgentRequestHandlerTest {
       AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
 
   private static final SystemPromptConfiguration SYSTEM_PROMPT_CONFIGURATION =
-      new SystemPromptConfiguration("You are a helpful assistant. Be nice.", Map.of());
+      new SystemPromptConfiguration("You are a helpful assistant. Be nice.");
   private static final UserPromptConfiguration USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS =
-      new UserPromptConfiguration("Write a haiku about the sea", Map.of(), List.of());
+      new UserPromptConfiguration("Write a haiku about the sea", List.of());
   private static final UserPromptConfiguration USER_PROMPT_CONFIGURATION_WITH_TOOLS =
-      new UserPromptConfiguration("What is the weather in Munich?", Map.of(), List.of());
+      new UserPromptConfiguration("What is the weather in Munich?", List.of());
 
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
@@ -305,7 +305,7 @@ class OutboundConnectorAgentRequestHandlerTest {
   }
 
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
-    mockUserPrompt(new UserPromptConfiguration("User message 30", Map.of(), List.of()), List.of());
+    mockUserPrompt(new UserPromptConfiguration("User message 30", List.of()), List.of());
 
     when(agentExecutionContext.memory()).thenReturn(memoryConfiguration);
 

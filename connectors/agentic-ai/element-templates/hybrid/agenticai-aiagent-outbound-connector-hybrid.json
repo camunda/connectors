@@ -1010,18 +1010,6 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.systemPrompt.parameters",
-    "label" : "System prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "systemPrompt",
-    "binding" : {
-      "name" : "data.systemPrompt.parameters",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
     "id" : "data.userPrompt.prompt",
     "label" : "User prompt",
     "optional" : false,
@@ -1035,18 +1023,6 @@
       "type" : "zeebe:input"
     },
     "type" : "Text"
-  }, {
-    "id" : "data.userPrompt.parameters",
-    "label" : "User prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "userPrompt",
-    "binding" : {
-      "name" : "data.userPrompt.parameters",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
   }, {
     "id" : "data.userPrompt.documents",
     "label" : "Documents",
