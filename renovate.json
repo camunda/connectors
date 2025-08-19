@@ -14,7 +14,8 @@
   "packageRules": [
     {
       "matchManagers": [
-        "maven"
+        "maven",
+        "dockerfile"
       ],
       "matchUpdateTypes": [
         "minor",
@@ -88,7 +89,7 @@
       ],
       "matchBaseBranches": [
         "release/8.5"
-      ]
+      ],
       "enabled": false
     }
   ],
