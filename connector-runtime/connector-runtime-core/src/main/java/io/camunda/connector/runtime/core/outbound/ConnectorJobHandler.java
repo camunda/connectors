@@ -24,10 +24,11 @@ import io.camunda.client.api.response.CompleteJobResponse;
 import io.camunda.client.api.response.FailJobResponse;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.ConnectorHelper;
+import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
@@ -38,7 +39,6 @@ import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
-import io.camunda.document.factory.DocumentFactory;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
@@ -63,6 +63,8 @@ public class ConnectorJobHandler implements JobHandler {
 
   private OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
 
+  private final ConnectorResultHandler connectorResultHandler;
+
   /**
    * Create a handler wrapper for the specified connector function.
    *
@@ -81,6 +83,7 @@ public class ConnectorJobHandler implements JobHandler {
     this.objectMapper = objectMapper;
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
+    this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
   }
 
   protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
@@ -139,7 +142,7 @@ public class ConnectorJobHandler implements JobHandler {
               job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
       var response = call.execute(context);
       var responseVariables =
-          ConnectorHelper.createOutputVariables(
+          connectorResultHandler.createOutputVariables(
               response,
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
@@ -169,7 +172,7 @@ public class ConnectorJobHandler implements JobHandler {
   private void processFinalResult(JobClient client, ActivatedJob job, ConnectorResult finalResult) {
     try {
       Optional<ConnectorError> optionalConnectorError =
-          ConnectorHelper.examineErrorExpression(
+          connectorResultHandler.examineErrorExpression(
               finalResult.responseValue(),
               job.getCustomHeaders(),
               new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())));

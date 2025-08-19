@@ -19,7 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.time.Duration;
 import java.util.List;

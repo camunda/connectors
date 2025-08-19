@@ -28,13 +28,13 @@ import com.slack.api.model.File;
 import com.slack.api.model.Message;
 import com.slack.api.model.User;
 import com.slack.api.util.http.SlackHttpClient;
-import io.camunda.client.api.response.DocumentMetadata;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.document.jackson.DocumentReferenceModel;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.document.CamundaDocument;
-import io.camunda.document.Document;
-import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.DocumentMetadataImpl;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -289,8 +289,14 @@ class ChatPostMessageDataTest {
     when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
 
     DocumentMetadata documentMetadata =
-        new DocumentReferenceModel.CamundaDocumentMetadataModel(
-            "txt", OffsetDateTime.now(), 3000L, "fileName", "processId", 2000L, Map.of());
+        new DocumentMetadataImpl(
+            "text/plain",
+            OffsetDateTime.now().plusDays(1),
+            3000L,
+            "fileName.txt",
+            "processId",
+            2000L,
+            Map.of());
 
     return new CamundaDocument(documentMetadata, documentReference, documentStore);
   }

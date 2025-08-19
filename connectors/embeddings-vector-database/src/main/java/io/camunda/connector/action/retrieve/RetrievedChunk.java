@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.action.retrieve;
 
-import io.camunda.document.reference.DocumentReference;
+import io.camunda.connector.api.document.DocumentReference;
 
 public record RetrievedChunk(
     String chunkId, DocumentReference documentReference, Double score, String content) {}

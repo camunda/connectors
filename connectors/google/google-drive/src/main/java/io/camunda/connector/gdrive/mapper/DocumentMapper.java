@@ -7,9 +7,9 @@
 package io.camunda.connector.gdrive.mapper;
 
 import com.google.api.services.drive.model.File;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
 
 public class DocumentMapper {
 

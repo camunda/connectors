@@ -17,6 +17,10 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
@@ -39,11 +43,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;

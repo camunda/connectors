@@ -24,12 +24,12 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
@@ -77,7 +77,7 @@ public class InboundEndpointTest {
                             Map.of("inbound.context", "myPath", "inbound.type", "webhook"),
                             new StandaloneMessageCorrelationPoint(
                                 "myPath", "=expression", "=myPath", null),
-                            new ProcessElement("", 1, 1, "", ""))),
+                            new ProcessElementWithRuntimeData("", 1, 1, "", ""))),
                     Health.up(),
                     Collections.emptyList(),
                     System.currentTimeMillis())));
@@ -104,7 +104,7 @@ public class InboundEndpointTest {
                             Map.of("inbound.context", "myPath", "inbound.type", "webhook"),
                             new StandaloneMessageCorrelationPoint(
                                 "myPath", "=expression", "=myPath", null),
-                            new ProcessElement("", 1, 1, "", ""))),
+                            new ProcessElementWithRuntimeData("", 1, 1, "", ""))),
                     Health.down(),
                     Collections.emptyList(),
                     System.currentTimeMillis())));

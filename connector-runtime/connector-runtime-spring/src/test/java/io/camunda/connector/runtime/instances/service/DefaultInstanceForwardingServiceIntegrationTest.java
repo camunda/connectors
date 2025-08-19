@@ -29,7 +29,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Severity;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
@@ -56,7 +56,8 @@ public class DefaultInstanceForwardingServiceIntegrationTest {
   private static final InstanceForwardingHttpClient instanceForwardingHttpClient =
       new InstanceForwardingHttpClient(
           HttpClient.newHttpClient(),
-          (path) -> List.of(runtime1.baseUrl() + path, runtime2.baseUrl() + path));
+          (path) -> List.of(runtime1.baseUrl() + path, runtime2.baseUrl() + path),
+          ConnectorsObjectMapperSupplier.getCopy());
 
   @BeforeAll
   static void setup() {

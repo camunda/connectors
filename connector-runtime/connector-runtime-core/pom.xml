@@ -30,22 +30,19 @@
       <artifactId>connector-document</artifactId>
     </dependency>
 
-    <!-- Jackson dependencies defined as provided in the Connector SDK Core -->
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
     </dependency>
+
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-feel</artifactId>
     </dependency>
+
     <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jdk8</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-feel-wrapper</artifactId>
     </dependency>
 
     <dependency>
@@ -67,6 +64,12 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-collections4</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

@@ -18,11 +18,11 @@ package io.camunda.connector.document.jackson;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.document.Document;
-import io.camunda.intrinsic.IntrinsicFunction;
-import io.camunda.intrinsic.IntrinsicFunctionProvider;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.intrinsic.IntrinsicFunction;
+import io.camunda.connector.intrinsic.IntrinsicFunctionProvider;
+import jakarta.annotation.Nullable;
 import java.nio.charset.Charset;
-import javax.annotation.Nullable;
 
 /** Some test operations that show possible serialization and deserialization use cases. */
 public class TestFunctionProvider implements IntrinsicFunctionProvider {

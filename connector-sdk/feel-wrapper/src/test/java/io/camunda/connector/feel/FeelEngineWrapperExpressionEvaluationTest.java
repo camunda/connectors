@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
@@ -210,6 +211,19 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = Map.of("callStatus", "done");
     Assertions.assertThatNoException()
         .isThrownBy(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
+  }
+
+  @Test
+  void evaluateToJson_ShouldHandleDates() {
+    final var jsonDeserialized = Map.of("data", LocalDate.of(2024, 1, 1));
+    assertThat(objectUnderTest.evaluateToJson("{res: data}", jsonDeserialized))
+        .isEqualTo("{\"res\":\"2024-01-01\"}");
+
+    assertThat(objectUnderTest.evaluateToJson("\"test\"", jsonDeserialized)).isEqualTo("\"test\"");
+
+    assertThat(objectUnderTest.evaluateToJson("test", jsonDeserialized)).isEqualTo(null);
+
+    assertThat(objectUnderTest.evaluateToJson("null", jsonDeserialized)).isEqualTo(null);
   }
 
   @Test

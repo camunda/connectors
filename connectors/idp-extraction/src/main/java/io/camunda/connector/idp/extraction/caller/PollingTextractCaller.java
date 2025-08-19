@@ -8,6 +8,7 @@ package io.camunda.connector.idp.extraction.caller;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.model.Polygon;
 import io.camunda.connector.idp.extraction.model.PolygonPoint;
@@ -15,7 +16,6 @@ import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.TextractAnalysisTask;
 import io.camunda.connector.idp.extraction.model.TextractTextDetectionTask;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
-import io.camunda.document.Document;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

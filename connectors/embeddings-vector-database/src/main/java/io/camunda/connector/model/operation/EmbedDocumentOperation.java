@@ -8,6 +8,7 @@ package io.camunda.connector.model.operation;
 
 import static io.camunda.connector.model.operation.EmbedDocumentOperation.EMBED_DOCUMENT_OPERATION;
 
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -15,7 +16,6 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.embedding.splitter.DocumentSplitter;
-import io.camunda.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;

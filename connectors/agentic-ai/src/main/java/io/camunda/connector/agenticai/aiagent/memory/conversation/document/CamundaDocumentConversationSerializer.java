@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 
 public class CamundaDocumentConversationSerializer {

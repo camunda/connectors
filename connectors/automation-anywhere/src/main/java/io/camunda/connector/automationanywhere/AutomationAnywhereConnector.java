@@ -8,7 +8,6 @@ package io.camunda.connector.automationanywhere;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.automationanywhere.auth.AuthenticationFactory;
@@ -16,6 +15,7 @@ import io.camunda.connector.automationanywhere.model.request.AutomationAnywhereR
 import io.camunda.connector.automationanywhere.operations.OperationFactory;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.http.base.HttpService;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.Map;
 
 @OutboundConnector(

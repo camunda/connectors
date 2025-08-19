@@ -26,7 +26,7 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;

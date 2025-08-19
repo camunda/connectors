@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.util.Map;
 import java.util.function.Consumer;
 

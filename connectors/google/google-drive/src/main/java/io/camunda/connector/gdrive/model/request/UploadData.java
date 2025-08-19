@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.document.Document;
 
 public record UploadData(
     @TemplateProperty(

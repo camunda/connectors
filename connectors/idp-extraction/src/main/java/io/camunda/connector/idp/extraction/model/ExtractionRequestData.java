@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
-import io.camunda.document.Document;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;

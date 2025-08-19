@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.e2e.app;
 
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;

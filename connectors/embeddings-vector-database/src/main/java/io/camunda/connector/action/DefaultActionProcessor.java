@@ -10,10 +10,10 @@ import io.camunda.connector.action.embed.DefaultEmbeddingActionProcessor;
 import io.camunda.connector.action.embed.EmbeddingActionProcessor;
 import io.camunda.connector.action.retrieve.DefaultRetrievingActionProcessor;
 import io.camunda.connector.action.retrieve.RetrievingActionProcessor;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import io.camunda.connector.model.operation.EmbedDocumentOperation;
 import io.camunda.connector.model.operation.RetrieveDocumentOperation;
-import io.camunda.document.factory.DocumentFactory;
 
 public class DefaultActionProcessor {
 

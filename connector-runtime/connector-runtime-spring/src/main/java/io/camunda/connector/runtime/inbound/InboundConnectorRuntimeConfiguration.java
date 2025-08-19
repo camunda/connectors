@@ -18,14 +18,13 @@ package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
-import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
-import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -45,7 +44,6 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
-import io.camunda.document.factory.DocumentFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,22 +76,13 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public ProcessElementContextFactory processElementContextFactory(
-      ObjectMapper objectMapper,
-      @Autowired(required = false) ValidationProvider validationProvider,
-      SecretProviderAggregator secretProviderAggregator) {
-    return new DefaultProcessElementContextFactory(
-        secretProviderAggregator, validationProvider, objectMapper);
-  }
-
-  @Bean
   public InboundCorrelationHandler inboundCorrelationHandler(
       final CamundaClient camundaClient,
       final FeelEngineWrapper feelEngine,
-      final ProcessElementContextFactory elementContextFactory,
+      final ObjectMapper objectMapper,
       final ConnectorsInboundMetrics connectorsInboundMetrics) {
     return new MeteredInboundCorrelationHandler(
-        camundaClient, feelEngine, elementContextFactory, messageTtl, connectorsInboundMetrics);
+        camundaClient, feelEngine, objectMapper, messageTtl, connectorsInboundMetrics);
   }
 
   @Bean

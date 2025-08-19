@@ -75,12 +75,12 @@ public class InboundExecutableRegistryTest {
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
             new StartEventCorrelationPoint("processId", 0, 0),
-            new ProcessElement("id", 0, 0, elementId, "tenant"));
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
     var element2 =
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type2"),
             new StartEventCorrelationPoint("processId", 0, 0),
-            new ProcessElement("id", 0, 0, elementId, "tenant"));
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
     var executable = mock(InboundConnectorExecutable.class);
     when(factory.getInstance(any())).thenReturn(executable);
 
@@ -104,12 +104,12 @@ public class InboundExecutableRegistryTest {
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
             new StartEventCorrelationPoint("processId", 0, 0),
-            new ProcessElement("id", 0, 0, elementId, "tenant"));
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
     var element2 =
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT1S"),
             new StartEventCorrelationPoint("processId", 0, 0),
-            new ProcessElement("id", 0, 0, elementId, "tenant"));
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
     var executable = mock(InboundConnectorExecutable.class);
     when(factory.getInstance(any())).thenReturn(executable);
 
@@ -128,7 +128,7 @@ public class InboundExecutableRegistryTest {
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
             new StartEventCorrelationPoint("processId", 0, 0),
-            new ProcessElement("id", 0, 0, elementId, "tenant"));
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
     var executable = mock(InboundConnectorExecutable.class);
     var context = mock(InboundConnectorContextImpl.class);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
@@ -150,7 +150,7 @@ public class InboundExecutableRegistryTest {
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1"),
             new StartEventCorrelationPoint("processId", 0, 0),
-            new ProcessElement("id", 0, 0, elementId, "tenant"));
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
     var executable = mock(InboundConnectorExecutable.class);
     when(factory.getInstance(any())).thenReturn(executable);
     doThrow(new RuntimeException("failed")).when(executable).activate(any());
@@ -177,12 +177,12 @@ public class InboundExecutableRegistryTest {
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type"),
             new StartEventCorrelationPoint(processId, 0, 0),
-            new ProcessElement(processId, 0, 0, "element1", "tenant"));
+            new ProcessElementWithRuntimeData(processId, 0, 0, "element1", "tenant"));
     var element2 =
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type"),
             new StartEventCorrelationPoint(processId, 0, 0),
-            new ProcessElement(processId, 0, 0, "element2", "tenant"));
+            new ProcessElementWithRuntimeData(processId, 0, 0, "element2", "tenant"));
 
     var executable1 = mock(InboundConnectorExecutable.class);
     var executable2 = mock(InboundConnectorExecutable.class);
@@ -223,12 +223,12 @@ public class InboundExecutableRegistryTest {
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type"),
             new StartEventCorrelationPoint(processId, 0, 0),
-            new ProcessElement(processId, 0, 0, "element1", "tenant"));
+            new ProcessElementWithRuntimeData(processId, 0, 0, "element1", "tenant"));
     var element2 =
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type"),
             new StartEventCorrelationPoint(processId, 0, 0),
-            new ProcessElement(processId, 0, 0, "element2", "tenant"));
+            new ProcessElementWithRuntimeData(processId, 0, 0, "element2", "tenant"));
 
     var executable1 = mock(InboundConnectorExecutable.class);
 
@@ -268,7 +268,7 @@ public class InboundExecutableRegistryTest {
         new InboundConnectorElement(
             Map.of(Keywords.INBOUND_TYPE_KEYWORD, "unknown-type"),
             new StartEventCorrelationPoint("processId", 0, 0),
-            new ProcessElement("id", 0, 0, elementId, "tenant"));
+            new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant"));
     when(factory.getInstance(any()))
         .thenThrow(new NoSuchElementException("Connector unknown-type not registered"));
 
@@ -291,7 +291,7 @@ public class InboundExecutableRegistryTest {
             new InboundConnectorElement(
                 Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
                 new StartEventCorrelationPoint("processId", 0, 0),
-                new ProcessElement("id", 0, 0, elementId, "tenant")));
+                new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);
@@ -325,7 +325,7 @@ public class InboundExecutableRegistryTest {
             new InboundConnectorElement(
                 Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
                 new StartEventCorrelationPoint("processId", 0, 0),
-                new ProcessElement("id", 0, 0, elementId, "tenant")));
+                new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
 
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
@@ -369,7 +369,7 @@ public class InboundExecutableRegistryTest {
             new InboundConnectorElement(
                 Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
                 new StartEventCorrelationPoint("processId", 0, 0),
-                new ProcessElement("id", 0, 0, elementId, "tenant")));
+                new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);
@@ -423,7 +423,7 @@ public class InboundExecutableRegistryTest {
             new InboundConnectorElement(
                 Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
                 new StartEventCorrelationPoint("processId", 0, 0),
-                new ProcessElement("id", 0, 0, elementId, "tenant")));
+                new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);
@@ -461,7 +461,7 @@ public class InboundExecutableRegistryTest {
             new InboundConnectorElement(
                 Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
                 new StartEventCorrelationPoint("processId", 0, 0),
-                new ProcessElement("id", 0, 0, elementId, "tenant")));
+                new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);
@@ -501,7 +501,7 @@ public class InboundExecutableRegistryTest {
             new InboundConnectorElement(
                 Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
                 new StartEventCorrelationPoint("processId", 0, 0),
-                new ProcessElement("id", 0, 0, elementId, "tenant")));
+                new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);
@@ -540,7 +540,7 @@ public class InboundExecutableRegistryTest {
             new InboundConnectorElement(
                 Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
                 new StartEventCorrelationPoint("processId", 0, 0),
-                new ProcessElement("id", 0, 0, elementId, "tenant")));
+                new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);

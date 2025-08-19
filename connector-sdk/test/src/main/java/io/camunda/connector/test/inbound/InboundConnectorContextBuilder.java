@@ -19,23 +19,24 @@ package io.camunda.connector.test.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -246,23 +247,7 @@ public class InboundConnectorContextBuilder {
     @Override
     public ActivationCheckResult canActivate(Object variables) {
       return new ActivationCheckResult.Success.CanActivate(
-          new ProcessElementContext() {
-
-            @Override
-            public ProcessElement getElement() {
-              return new ProcessElement("test", 0, 0, "test", "<default>");
-            }
-
-            @Override
-            public <T> T bindProperties(Class<T> cls) {
-              return TestInboundConnectorContext.this.bindProperties(cls);
-            }
-
-            @Override
-            public Map<String, Object> getProperties() {
-              return TestInboundConnectorContext.this.getProperties();
-            }
-          });
+          new ProcessElementWithRuntimeData("test", 0, 0, "test", "<default>"));
     }
 
     @Override
@@ -281,25 +266,7 @@ public class InboundConnectorContextBuilder {
       return Objects.requireNonNullElse(
           result,
           new Success.ProcessInstanceCreated(
-              new ProcessElementContext() {
-
-                @Override
-                public ProcessElement getElement() {
-                  return new ProcessElement("test", 0, 0, "test", "<default>");
-                }
-
-                @Override
-                public <T> T bindProperties(Class<T> cls) {
-                  return TestInboundConnectorContext.this.bindProperties(cls);
-                }
-
-                @Override
-                public Map<String, Object> getProperties() {
-                  return TestInboundConnectorContext.this.getProperties();
-                }
-              },
-              0L,
-              "test"));
+              new ProcessElementWithRuntimeData("test", 0, 0, "test", "<default>"), 0L, "test"));
     }
 
     @Override

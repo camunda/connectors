@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.core.discovery;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
-import io.camunda.connector.runtime.core.ConnectorUtil;
+import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -42,7 +42,7 @@ public class SPIConnectorDiscovery {
         .map(
             functionProvider -> {
               Class<? extends InboundConnectorExecutable> cls = functionProvider.type();
-              return ConnectorUtil.getInboundConnectorConfiguration(cls);
+              return ConnectorConfigurationUtil.getInboundConnectorConfiguration(cls);
             })
         .collect(Collectors.toList());
   }

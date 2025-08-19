@@ -20,8 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.camunda.connector.api.inbound.ProcessElement;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
@@ -40,10 +39,10 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("auth", "abc"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
-    var result = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(testObj);
+    var result = new ObjectMapper().writeValueAsString(testObj);
 
     // then
     assertThat(result).doesNotContain("auth", "abc");
@@ -56,7 +55,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("auth", "abc"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
     var result = testObj.toString();
@@ -72,7 +71,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
     var result = testObj.type();
@@ -88,7 +87,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of(),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("", 0, 0, "", "<default>"));
+            new ProcessElementWithRuntimeData("", 0, 0, "", "<default>"));
 
     // when && then
     assertThatThrownBy(testObj::type)
@@ -103,19 +102,19 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test", "deduplicationMode", "AUTO", "property", "value"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     var testObjWithDifferentProperties =
         new InboundConnectorElement(
             Map.of("inbound.type", "test", "deduplicationMode", "AUTO", "property", "value2"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     var testObjWithSameProperties =
         new InboundConnectorElement(
             Map.of("inbound.type", "test1", "deduplicationMode", "AUTO", "property", "value"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
     var result = testObj.deduplicationId(List.of());
@@ -143,7 +142,7 @@ public class InboundConnectorElementTest {
                 "property2",
                 "value2"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     var testObjWithSameProperties =
         new InboundConnectorElement(
@@ -157,7 +156,7 @@ public class InboundConnectorElementTest {
                 "property2",
                 "value2"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
     var result = testObj.deduplicationId(List.of("property1"));
@@ -177,7 +176,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test", "deduplicationMode", "MANUAL", "deduplicationId", "id"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 12345, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 12345, "element1", "<default>"));
 
     // when
     var result = testObj.deduplicationId(List.of());
@@ -193,7 +192,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test", "deduplicationMode", "MANUAL"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when && then
     assertThatThrownBy(() -> testObj.deduplicationId(List.of()))
@@ -209,7 +208,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 42L, "myElement", "tenant"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 42L, "myElement", "tenant"));
 
     // when
     var result = testObj.deduplicationId(List.of());
@@ -225,7 +224,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test", "resultExpression", "expression"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
     var result = testObj.resultExpression();
@@ -241,7 +240,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test", "resultVariable", "variable"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
     var result = testObj.resultVariable();
@@ -257,7 +256,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test", "activationCondition", "condition"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
     var result = testObj.activationCondition();
@@ -273,7 +272,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             Map.of("inbound.type", "test", "inbound.activationCondition", "condition"),
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
     var result = testObj.activationCondition();
@@ -295,7 +294,7 @@ public class InboundConnectorElementTest {
         new InboundConnectorElement(
             withCustomProps,
             new StandaloneMessageCorrelationPoint("", "", null, null),
-            new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
+            new ProcessElementWithRuntimeData("myProcess", 0, 0, "element1", "<default>"));
 
     // when
     var result = testObj.connectorLevelProperties();

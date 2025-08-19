@@ -24,10 +24,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.ConnectorUtil;
+import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.core.NoOpSecretProvider;
+import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.core.outbound.operation.ConnectorOperations;
 import io.camunda.connector.runtime.core.outbound.operation.OutboundConnectorOperationFunction;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 public class AnnotatedOperationTests {
 
   ValidationProvider validationProvider = new DefaultValidationProvider();
-  ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+  ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
   AnnotatedOperationConnector connector = new AnnotatedOperationConnector();
   ConnectorOperations connectorOperations =
       ConnectorOperations.from(connector, objectMapper, validationProvider);
@@ -111,7 +111,7 @@ public class AnnotatedOperationTests {
   public void testJobActivationVariable() {
     var variables =
         Arrays.stream(
-                ConnectorUtil.getInputVariables(
+                ConnectorConfigurationUtil.getInputVariables(
                     AnnotatedOperationConnector.class,
                     AnnotatedOperationConnector.class.getAnnotation(OutboundConnector.class)))
             .toList();
@@ -137,10 +137,6 @@ public class AnnotatedOperationTests {
     when(activatedJob.getCustomHeaders()).thenReturn(customHeaders);
     when(activatedJob.getVariables()).thenReturn(json);
     return new JobHandlerContext(
-        activatedJob,
-        new NoOpSecretProvider(),
-        validationProvider,
-        null,
-        ConnectorsObjectMapperSupplier.getCopy());
+        activatedJob, new NoOpSecretProvider(), validationProvider, null, objectMapper);
   }
 }

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.azure.blobstorage.model.response;
 
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 
 public sealed interface DownloadResponse
     permits DownloadResponse.DocumentContent, DownloadResponse.StringContent {
