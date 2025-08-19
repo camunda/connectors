@@ -2,8 +2,7 @@
   "extends": [
     "config:recommended",
     "group:allNonMajor",
-    "schedule:earlyMondays",
-    "schedule:automergeNonOfficeHours"
+    "schedule:daily"
   ],
   "timezone": "Europe/Berlin",
   "labels": [
