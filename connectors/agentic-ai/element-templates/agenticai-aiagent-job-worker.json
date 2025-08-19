@@ -52,6 +52,10 @@
     "label" : "Limits",
     "openByDefault" : false
   }, {
+    "id" : "events",
+    "label" : "Event handling",
+    "openByDefault" : false
+  }, {
     "id" : "response",
     "label" : "Response",
     "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/#response\">documentation</a> for details.",
@@ -1207,6 +1211,28 @@
       "type" : "zeebe:input"
     },
     "type" : "Number"
+  }, {
+    "id" : "data.events.behavior",
+    "label" : "Event handling behavior",
+    "description" : "Behavior in combination with an event sub-process.",
+    "optional" : false,
+    "value" : "WAIT_FOR_TOOL_CALL_RESULTS",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "events",
+    "binding" : {
+      "name" : "data.events.behavior",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Wait for tool call results",
+      "value" : "WAIT_FOR_TOOL_CALL_RESULTS"
+    }, {
+      "name" : "Interrupt tool calls",
+      "value" : "INTERRUPT_TOOL_CALLS"
+    } ]
   }, {
     "id" : "data.response.format.type",
     "label" : "Response format",
