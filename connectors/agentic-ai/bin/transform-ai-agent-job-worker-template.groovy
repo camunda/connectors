@@ -68,6 +68,14 @@ json.groups.each { group ->
     }
 
     updatedGroups.add(group)
+
+    if (group.id == "limits") {
+        updatedGroups.add([
+            id: "events",
+            label: "Event handling",
+            openByDefault: false
+        ])
+    }
 }
 
 json.groups = updatedGroups
@@ -155,6 +163,36 @@ json.properties.each { property ->
                 ],
                 tooltip: "Use this option if you need to re-inject the previous agent context into a future agent execution, for example when modeling a user feedback loop between an agent and a user task.",
                 type: "Boolean"
+            ])
+        }
+
+        // Add events behavior property after limits
+        if (property.id == "data.limits.maxModelCalls") {
+            updatedProperties.add([
+                id: "data.events.behavior",
+                label: "Event handling behavior",
+                description: "Behavior in combination with an event sub-process.",
+                optional: false,
+                value: "WAIT_FOR_TOOL_CALL_RESULTS",
+                constraints: [
+                    notEmpty: true
+                ],
+                group: "events",
+                binding: [
+                    name: "data.events.behavior",
+                    type: "zeebe:input"
+                ],
+                type: "Dropdown",
+                choices: [
+                    [
+                        name: "Wait for tool call results",
+                        value: "WAIT_FOR_TOOL_CALL_RESULTS"
+                    ],
+                    [
+                        name: "Interrupt tool calls",
+                        value: "INTERRUPT_TOOL_CALLS"
+                    ]
+                ]
             ])
         }
     }
