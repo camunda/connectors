@@ -22,11 +22,11 @@ import io.camunda.client.api.search.response.*;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayInputStream;
+import org.springframework.beans.factory.annotation.Value;
 
 public class SearchQueryClientImpl implements SearchQueryClient {
-
-  private static final int DEFAULT_PAGE_LIMIT = 200;
-  private int limit = DEFAULT_PAGE_LIMIT;
+  @Value("${camunda.connector.process-definition-search.page-size:200}")
+  private int limit;
 
   private final CamundaClient camundaClient;
 
