@@ -14,13 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.intrinsic;
+package io.camunda.connector.intrinsic.functions;
 
-import java.util.List;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.intrinsic.IntrinsicFunction;
+import io.camunda.connector.intrinsic.IntrinsicFunctionProvider;
+import java.util.Base64;
 
-public sealed interface IntrinsicFunctionParams {
+public class Base64Function implements IntrinsicFunctionProvider {
 
-  record Positional(List<Object> params) implements IntrinsicFunctionParams {}
-
-  // TODO: named parameters: https://github.com/camunda/connectors/issues/4263
+  @IntrinsicFunction(name = "base64")
+  public String execute(Object input) {
+    if (input instanceof Document) {
+      return ((Document) input).asBase64();
+    }
+    if (input instanceof String) {
+      return Base64.getEncoder().encodeToString(((String) input).getBytes());
+    }
+    throw new IllegalArgumentException(
+        "Unsupported input type: " + input.getClass() + ". Expected Document or String.");
+  }
 }

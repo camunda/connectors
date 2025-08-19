@@ -241,6 +241,12 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
+        <artifactId>intrinsic-functions</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
         <artifactId>connector-test</artifactId>
         <version>${project.version}</version>
       </dependency>

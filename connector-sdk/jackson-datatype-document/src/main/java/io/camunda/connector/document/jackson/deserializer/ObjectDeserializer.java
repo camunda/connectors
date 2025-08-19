@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.intrinsic.IntrinsicFunctionExecutor;
+import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

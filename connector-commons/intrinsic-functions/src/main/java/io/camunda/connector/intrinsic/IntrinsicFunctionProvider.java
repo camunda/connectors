@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.intrinsic;
+package io.camunda.connector.intrinsic;
 
 /**
  * Marker interface for intrinsic function providers. Used to discover intrinsic functions at

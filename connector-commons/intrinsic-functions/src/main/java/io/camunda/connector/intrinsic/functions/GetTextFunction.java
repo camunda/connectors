@@ -14,14 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.intrinsic;
+package io.camunda.connector.intrinsic.functions;
 
-import java.lang.reflect.Method;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.intrinsic.IntrinsicFunction;
+import io.camunda.connector.intrinsic.IntrinsicFunctionProvider;
+import jakarta.annotation.Nullable;
+import java.nio.charset.Charset;
 
-public interface IntrinsicFunctionRegistry {
+public class GetTextFunction implements IntrinsicFunctionProvider {
 
-  record IntrinsicFunctionSource(IntrinsicFunctionProvider provider, Method method) {}
-
-  /** Get an intrinsic function by name. */
-  IntrinsicFunctionSource getIntrinsicFunction(String name);
+  @IntrinsicFunction(name = "getText")
+  public String execute(Document document, @Nullable String charset) {
+    final var bytes = document.asByteArray();
+    final var charsetInstance =
+        charset != null ? Charset.forName(charset) : Charset.defaultCharset();
+    return new String(bytes, charsetInstance);
+  }
 }

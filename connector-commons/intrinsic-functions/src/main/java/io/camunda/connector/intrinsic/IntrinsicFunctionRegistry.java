@@ -14,24 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.intrinsic;
+package io.camunda.connector.intrinsic;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.reflect.Method;
 
-/**
- * Marks a method as an intrinsic operation. Positional parameters from the operation payload are
- * passed to the method as arguments. The parameters are resolved by position, so the order of
- * parameters in the method signature must match the order of parameters in the operation payload.
- *
- * <p>By default, all arguments are required. If an argument is nullable, it must be annotated with
- * {@link javax.annotation.Nullable}.
- */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface IntrinsicFunction {
+public interface IntrinsicFunctionRegistry {
 
-  String name();
+  record IntrinsicFunctionSource(IntrinsicFunctionProvider provider, Method method) {}
+
+  /** Get an intrinsic function by name. */
+  IntrinsicFunctionSource getIntrinsicFunction(String name);
 }

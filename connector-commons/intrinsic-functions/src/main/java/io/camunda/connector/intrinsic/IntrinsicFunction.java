@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.intrinsic.functions;
+package io.camunda.connector.intrinsic;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.intrinsic.IntrinsicFunction;
-import io.camunda.intrinsic.IntrinsicFunctionProvider;
-import java.util.Base64;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class Base64Function implements IntrinsicFunctionProvider {
+/**
+ * Marks a method as an intrinsic operation. Positional parameters from the operation payload are
+ * passed to the method as arguments. The parameters are resolved by position, so the order of
+ * parameters in the method signature must match the order of parameters in the operation payload.
+ *
+ * <p>By default, all arguments are required. If an argument is nullable, it must be annotated with
+ * {@link jakarta.annotation.Nullable}.
+ */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface IntrinsicFunction {
 
-  @IntrinsicFunction(name = "base64")
-  public String execute(Object input) {
-    if (input instanceof Document) {
-      return ((Document) input).asBase64();
-    }
-    if (input instanceof String) {
-      return Base64.getEncoder().encodeToString(((String) input).getBytes());
-    }
-    throw new IllegalArgumentException(
-        "Unsupported input type: " + input.getClass() + ". Expected Document or String.");
-  }
+  String name();
 }

@@ -26,7 +26,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.intrinsic.IntrinsicFunctionExecutor;
+import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
 import java.util.List;
 

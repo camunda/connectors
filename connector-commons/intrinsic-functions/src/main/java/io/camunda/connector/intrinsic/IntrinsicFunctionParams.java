@@ -14,21 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.intrinsic.functions;
+package io.camunda.connector.intrinsic;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.intrinsic.IntrinsicFunction;
-import io.camunda.intrinsic.IntrinsicFunctionProvider;
-import java.nio.charset.Charset;
-import javax.annotation.Nullable;
+import java.util.List;
 
-public class GetTextFunction implements IntrinsicFunctionProvider {
+public sealed interface IntrinsicFunctionParams {
 
-  @IntrinsicFunction(name = "getText")
-  public String execute(Document document, @Nullable String charset) {
-    final var bytes = document.asByteArray();
-    final var charsetInstance =
-        charset != null ? Charset.forName(charset) : Charset.defaultCharset();
-    return new String(bytes, charsetInstance);
-  }
+  record Positional(List<Object> params) implements IntrinsicFunctionParams {}
+
+  // TODO: named parameters: https://github.com/camunda/connectors/issues/4263
 }

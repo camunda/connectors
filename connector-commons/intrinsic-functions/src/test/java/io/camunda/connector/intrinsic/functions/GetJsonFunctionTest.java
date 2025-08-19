@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.intrinsic.functions;
+package io.camunda.connector.intrinsic.functions;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -39,8 +39,8 @@ public class GetJsonFunctionTest {
     var request = DocumentCreationRequest.from(json.getBytes()).build();
     Document doc = factory.create(request);
     Object result = function.execute(doc, null);
-    assertEquals(123, ((java.util.Map<?, ?>) result).get("foo"));
-    assertEquals("baz", ((java.util.Map<?, ?>) result).get("bar"));
+    assertThat(((java.util.Map<?, ?>) result).get("foo")).isEqualTo(123);
+    assertThat(((java.util.Map<?, ?>) result).get("bar")).isEqualTo("baz");
   }
 
   @Test
@@ -49,7 +49,7 @@ public class GetJsonFunctionTest {
     var request = DocumentCreationRequest.from(json.getBytes()).build();
     Document doc = factory.create(request);
     Object result = function.execute(doc, "foo");
-    assertEquals(123L, result);
+    assertThat(result).isEqualTo(123L);
   }
 
   @Test
@@ -67,6 +67,6 @@ public class GetJsonFunctionTest {
     Document doc = factory.create(request);
     Object result = function.execute(doc, "bar");
 
-    assertEquals(Map.of("baz", "baz"), result);
+    assertThat(result).isEqualTo(Map.of("baz", "baz"));
   }
 }

@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.intrinsic.functions;
+package io.camunda.connector.intrinsic.functions;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
-import io.camunda.intrinsic.IntrinsicFunction;
-import io.camunda.intrinsic.IntrinsicFunctionProvider;
+import io.camunda.connector.intrinsic.IntrinsicFunction;
+import io.camunda.connector.intrinsic.IntrinsicFunctionProvider;
+import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.util.Map;
-import javax.annotation.Nullable;
 import org.camunda.feel.FeelEngine;
 import org.camunda.feel.FeelEngine.Failure;
 import org.camunda.feel.impl.JavaValueMapper;

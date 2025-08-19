@@ -28,8 +28,8 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
-import io.camunda.intrinsic.DefaultIntrinsicFunctionExecutor;
-import io.camunda.intrinsic.IntrinsicFunctionExecutor;
+import io.camunda.connector.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
 
 /** Default ObjectMapper supplier to be used by OOTB connectors and the Connector runtime. */
 public class ConnectorsObjectMapperSupplier {

@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.intrinsic.IntrinsicFunctionExecutor;
-import io.camunda.intrinsic.IntrinsicFunctionParams;
+import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
+import io.camunda.connector.intrinsic.IntrinsicFunctionParams;
 import java.io.IOException;
 
 public class IntrinsicFunctionObjectResultDeserializer extends AbstractDeserializer<Object> {

@@ -14,19 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.intrinsic.functions;
+package io.camunda.connector.intrinsic;
 
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentLinkParameters;
-import io.camunda.intrinsic.IntrinsicFunction;
-import io.camunda.intrinsic.IntrinsicFunctionProvider;
-import java.time.Duration;
-import javax.annotation.Nullable;
+public interface IntrinsicFunctionExecutor {
 
-public class CreateLinkFunction implements IntrinsicFunctionProvider {
-
-  @IntrinsicFunction(name = "createLink")
-  public String execute(Document document, @Nullable Duration timeToLive) {
-    return document.generateLink(new DocumentLinkParameters(timeToLive));
-  }
+  Object execute(String operationName, IntrinsicFunctionParams params);
 }
