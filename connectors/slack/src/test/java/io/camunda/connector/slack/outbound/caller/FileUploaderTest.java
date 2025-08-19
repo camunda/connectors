@@ -25,6 +25,7 @@ import com.slack.api.util.http.SlackHttpClient;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
@@ -195,42 +196,8 @@ class FileUploaderTest {
     when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
 
     DocumentMetadata documentMetadata =
-        new DocumentMetadata() {
-          @Override
-          public String getContentType() {
-            return "text/plain";
-          }
-
-          @Override
-          public OffsetDateTime getExpiresAt() {
-            return OffsetDateTime.now().plusDays(1);
-          }
-
-          @Override
-          public Long getSize() {
-            return 1000L;
-          }
-
-          @Override
-          public String getFileName() {
-            return "fileName.txt";
-          }
-
-          @Override
-          public String getProcessDefinitionId() {
-            return "processId";
-          }
-
-          @Override
-          public Long getProcessInstanceKey() {
-            return 2000L;
-          }
-
-          @Override
-          public Map<String, Object> getCustomProperties() {
-            return Map.of();
-          }
-        };
+        new DocumentReferenceModel.CamundaDocumentMetadataModel(
+            "txt", OffsetDateTime.now(), 3000L, "fileName", "processId", 2000L, Map.of());
 
     return new CamundaDocument(documentMetadata, documentReference, documentStore);
   }

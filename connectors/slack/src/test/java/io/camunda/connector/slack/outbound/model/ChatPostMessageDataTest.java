@@ -34,6 +34,7 @@ import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.document.CamundaDocument;
+import io.camunda.document.DocumentMetadataImpl;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -288,42 +289,14 @@ class ChatPostMessageDataTest {
     when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
 
     DocumentMetadata documentMetadata =
-        new DocumentMetadata() {
-          @Override
-          public String getContentType() {
-            return "text/plain";
-          }
-
-          @Override
-          public OffsetDateTime getExpiresAt() {
-            return OffsetDateTime.now().plusDays(1);
-          }
-
-          @Override
-          public Long getSize() {
-            return 3000L;
-          }
-
-          @Override
-          public String getFileName() {
-            return "fileName.txt";
-          }
-
-          @Override
-          public String getProcessDefinitionId() {
-            return "processId";
-          }
-
-          @Override
-          public Long getProcessInstanceKey() {
-            return 2000L;
-          }
-
-          @Override
-          public Map<String, Object> getCustomProperties() {
-            return Map.of();
-          }
-        };
+        new DocumentMetadataImpl(
+            "text/plain",
+            OffsetDateTime.now().plusDays(1),
+            3000L,
+            "fileName.txt",
+            "processId",
+            2000L,
+            Map.of());
 
     return new CamundaDocument(documentMetadata, documentReference, documentStore);
   }

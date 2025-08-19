@@ -21,6 +21,7 @@ import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.document.CamundaDocumentReferenceImpl;
+import io.camunda.document.DocumentMetadataImpl;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
@@ -48,46 +49,14 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
         request.documentId() != null ? request.documentId() : UUID.randomUUID().toString();
 
     final DocumentMetadata metadata =
-        new DocumentMetadata() {
-          @Override
-          public String getContentType() {
-            return request.contentType();
-          }
-
-          @Override
-          public OffsetDateTime getExpiresAt() {
-            if (request.timeToLive() != null) {
-              return OffsetDateTime.now().plus(request.timeToLive());
-            }
-
-            return null;
-          }
-
-          @Override
-          public Long getSize() {
-            return (long) documents.get(id).length;
-          }
-
-          @Override
-          public String getFileName() {
-            return request.fileName();
-          }
-
-          @Override
-          public String getProcessDefinitionId() {
-            return request.processDefinitionId();
-          }
-
-          @Override
-          public Long getProcessInstanceKey() {
-            return request.processInstanceKey();
-          }
-
-          @Override
-          public Map<String, Object> getCustomProperties() {
-            return request.customProperties();
-          }
-        };
+        new DocumentMetadataImpl(
+            request.contentType(),
+            request.timeToLive() != null ? OffsetDateTime.now().plus(request.timeToLive()) : null,
+            null, // size is unknown until content is read, we ignore it in this implementation
+            request.fileName(),
+            request.processDefinitionId(),
+            request.processInstanceKey(),
+            request.customProperties());
 
     final byte[] content;
     try (InputStream contentStream = request.content()) {

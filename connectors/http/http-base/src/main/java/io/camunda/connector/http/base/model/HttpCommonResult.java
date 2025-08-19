@@ -7,13 +7,12 @@
 package io.camunda.connector.http.base.model;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.generator.java.annotation.DataExample;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.CamundaDocumentReferenceImpl;
+import io.camunda.document.DocumentMetadataImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
-import java.time.OffsetDateTime;
 import java.util.Map;
 
 public record HttpCommonResult(
@@ -40,42 +39,14 @@ public record HttpCommonResult(
             "theStoreId",
             "977c5cbf-0f19-4a76-a8e1-60902216a07b",
             "hash",
-            new DocumentMetadata() {
-              @Override
-              public String getContentType() {
-                return "application/pdf";
-              }
-
-              @Override
-              public OffsetDateTime getExpiresAt() {
-                return null;
-              }
-
-              @Override
-              public Long getSize() {
-                return 516554L;
-              }
-
-              @Override
-              public String getFileName() {
-                return "theFileName.pdf";
-              }
-
-              @Override
-              public String getProcessDefinitionId() {
-                return "";
-              }
-
-              @Override
-              public Long getProcessInstanceKey() {
-                return 0L;
-              }
-
-              @Override
-              public Map<String, Object> getCustomProperties() {
-                return Map.of("key", "value");
-              }
-            });
+            new DocumentMetadataImpl(
+                "application/pdf",
+                null,
+                516554L,
+                "theFileName.pdf",
+                "",
+                0L,
+                Map.of("key", "value")));
     CamundaDocument doc =
         new CamundaDocument(
             documentReference.getMetadata(), documentReference, InMemoryDocumentStore.INSTANCE);
