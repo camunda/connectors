@@ -41,7 +41,12 @@ public class L4JAiAgentConnectorElementTemplateRegressionTests extends BaseL4JAi
 
   @ParameterizedTest
   @ValueSource(
-      strings = {"ai-agent.bpmn", "ai-agent-8.8.0-alpha5.bpmn", "ai-agent-8.8.0-alpha6.bpmn"})
+      strings = {
+        "ai-agent.bpmn",
+        "ai-agent-8.8.0-alpha5.bpmn",
+        "ai-agent-8.8.0-alpha6.bpmn",
+        "ai-agent-8.8.0-alpha7.bpmn"
+      })
   void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
     final var initialUserPrompt = "Explore some of your tools!";
     final var expectedConversation =
