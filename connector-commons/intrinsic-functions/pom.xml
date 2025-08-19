@@ -35,6 +35,10 @@
       <artifactId>connector-document</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>http-client</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.camunda.feel</groupId>
       <artifactId>feel-engine</artifactId>
     </dependency>

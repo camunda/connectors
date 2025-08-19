@@ -36,7 +36,6 @@ import io.camunda.connector.http.client.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
@@ -64,7 +63,7 @@ public class HttpClientServiceTest {
   private final HttpClientService httpClientService = new HttpClientService(cloudFunctionService);
   private final HttpClientService httpClientServiceWithoutCloudFunction =
       new HttpClientService(disabledCloudFunctionService);
-  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+  private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
   private final TestDocumentFactory documentFactory = new TestDocumentFactory();
 
   @BeforeAll

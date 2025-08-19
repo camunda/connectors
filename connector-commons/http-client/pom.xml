@@ -35,8 +35,12 @@ limitations under the License.</license.inlineheader>
 
   <dependencies>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-object-mapper</artifactId>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.http-client</groupId>
@@ -100,11 +104,6 @@ limitations under the License.</license.inlineheader>
       <artifactId>connector-core</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-test</artifactId>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

@@ -33,6 +33,7 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.ExecutionEnvironment;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.TestDocumentFactory;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.model.HttpClientRequest;
@@ -43,7 +44,6 @@ import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.document.CamundaDocument;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.io.IOException;
@@ -71,7 +71,7 @@ import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 public class CustomApacheHttpClientTest {
 
   private final CustomApacheHttpClient customApacheHttpClient = new CustomApacheHttpClient();
-  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+  private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
   private final InMemoryDocumentStore store = InMemoryDocumentStore.INSTANCE;
 
   @BeforeEach

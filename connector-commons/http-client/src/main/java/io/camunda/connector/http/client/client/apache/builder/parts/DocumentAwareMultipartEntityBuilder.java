@@ -18,9 +18,9 @@ package io.camunda.connector.http.client.client.apache.builder.parts;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.cloudfunction.CloudFunctionFilePart;
 import io.camunda.connector.http.client.cloudfunction.CloudFunctionService;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Map;
@@ -103,7 +103,7 @@ public class DocumentAwareMultipartEntityBuilder {
   private void handleFilePartContent(Map map) {
     try {
       var part =
-          ConnectorsObjectMapperSupplier.getCopy().convertValue(map, CloudFunctionFilePart.class);
+          HttpClientObjectMapperSupplier.getCopy().convertValue(map, CloudFunctionFilePart.class);
       builder.addBinaryBody(
           part.name(),
           new ByteArrayInputStream(part.content()),

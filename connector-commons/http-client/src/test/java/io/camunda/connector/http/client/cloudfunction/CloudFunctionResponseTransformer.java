@@ -26,12 +26,12 @@ import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.HttpClientService;
 import io.camunda.connector.http.client.TestDocumentFactory;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 
 public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
 
@@ -48,14 +48,14 @@ public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
     String body = serveEvent.getRequest().getBodyAsString();
     try {
       HttpClientRequest request =
-          ConnectorsObjectMapperSupplier.getCopy().readValue(body, HttpClientRequest.class);
+          HttpClientObjectMapperSupplier.getCopy().readValue(body, HttpClientRequest.class);
       HttpClientResult value =
           httpClientService.executeConnectorRequest(request, new TestDocumentFactory());
       return Response.Builder.like(response)
           .but()
           .status(200)
           .body(
-              ConnectorsObjectMapperSupplier.getCopy()
+              HttpClientObjectMapperSupplier.getCopy()
                   .writeValueAsString(
                       new HttpClientResult(
                           value.status(), value.headers(), value.body(), value.reason(), null)))
@@ -66,7 +66,7 @@ public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
             .status(500)
             .headers(new HttpHeaders(new HttpHeader("Content-Type", "application/json")))
             .body(
-                ConnectorsObjectMapperSupplier.getCopy()
+                HttpClientObjectMapperSupplier.getCopy()
                     .writeValueAsString(
                         new ErrorResponse(e.getErrorCode(), e.getMessage(), e.getErrorVariables())))
             .build();

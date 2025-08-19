@@ -25,13 +25,13 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.TestDocumentFactory;
 import io.camunda.connector.http.client.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -84,7 +84,7 @@ public class CloudFunctionServiceTest {
     assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of()))
         .containsEntry("Content-Type", "application/json");
     Map<String, Object> body =
-        ConnectorsObjectMapperSupplier.getCopy()
+        HttpClientObjectMapperSupplier.getCopy()
             .readValue((String) cloudFunctionRequest.getBody(), Map.class);
     assertThat(body).containsEntry("url", "theUrl");
     assertThat(body).containsEntry("method", "POST");
@@ -135,7 +135,7 @@ public class CloudFunctionServiceTest {
     assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of()))
         .containsEntry("Content-Type", "application/json");
     Map<String, Object> body =
-        ConnectorsObjectMapperSupplier.getCopy()
+        HttpClientObjectMapperSupplier.getCopy()
             .readValue((String) cloudFunctionRequest.getBody(), Map.class);
     assertThat(body).containsEntry("url", "theUrl");
     assertThat(body).containsEntry("method", "POST");
@@ -195,7 +195,7 @@ public class CloudFunctionServiceTest {
     assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of()))
         .containsEntry("Content-Type", "application/json");
     Map<String, Object> body =
-        ConnectorsObjectMapperSupplier.getCopy()
+        HttpClientObjectMapperSupplier.getCopy()
             .readValue((String) cloudFunctionRequest.getBody(), Map.class);
     assertThat(body).containsEntry("url", "theUrl");
     assertThat(body).containsEntry("method", "POST");
@@ -244,7 +244,7 @@ public class CloudFunctionServiceTest {
     assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of()))
         .containsEntry("Content-Type", "application/json");
     Map<String, Object> body =
-        ConnectorsObjectMapperSupplier.getCopy()
+        HttpClientObjectMapperSupplier.getCopy()
             .readValue((String) cloudFunctionRequest.getBody(), Map.class);
     assertThat(body).containsEntry("url", "theUrl");
     assertThat(body).containsEntry("method", "POST");

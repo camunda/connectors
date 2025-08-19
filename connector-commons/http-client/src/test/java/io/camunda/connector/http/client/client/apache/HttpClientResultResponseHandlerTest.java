@@ -19,9 +19,9 @@ package io.camunda.connector.http.client.client.apache;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.http.client.ExecutionEnvironment;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.Map;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
@@ -84,7 +84,7 @@ public class HttpClientResultResponseHandlerTest {
         new HttpClientResult(200, Map.of("X-Header", "value"), Map.of("key", "value"));
     response.setEntity(
         new StringEntity(
-            ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
+            HttpClientObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
 
     // when
     HttpClientResult result = handler.handleResponse(response);
@@ -110,7 +110,7 @@ public class HttpClientResultResponseHandlerTest {
     response.setHeaders(headers);
     response.setEntity(
         new StringEntity(
-            ConnectorsObjectMapperSupplier.getCopy()
+            HttpClientObjectMapperSupplier.getCopy()
                 .writeValueAsString(new ErrorResponse("500", "Custom message", null))));
 
     // when
@@ -138,7 +138,7 @@ public class HttpClientResultResponseHandlerTest {
         new HttpClientResult(200, Map.of("X-Header", "value"), "{\"key\":\"value\"}");
     response.setEntity(
         new StringEntity(
-            ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
+            HttpClientObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
 
     // when
     HttpClientResult result = handler.handleResponse(response);

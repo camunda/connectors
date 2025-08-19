@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.Base64Helper;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.model.HttpClientRequest;
@@ -32,7 +33,6 @@ import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -345,7 +345,7 @@ public class ApacheRequestFactoryTest {
       assertThat(httpRequest.getEntity().getContentType())
           .isEqualTo(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8).toString());
       var jsonNode =
-          ConnectorsObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
+          HttpClientObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
     }
 
@@ -370,7 +370,7 @@ public class ApacheRequestFactoryTest {
       assertThat(httpRequest.getEntity().getContentType())
           .isEqualTo(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8).toString());
       var jsonNode =
-          ConnectorsObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
+          HttpClientObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
     }
 
@@ -395,7 +395,7 @@ public class ApacheRequestFactoryTest {
       assertThat(httpRequest.getEntity().getContentType())
           .isEqualTo(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8).toString());
       var jsonNode =
-          ConnectorsObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
+          HttpClientObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
     }
 
@@ -421,7 +421,7 @@ public class ApacheRequestFactoryTest {
       assertThat(httpRequest.getEntity().getContentType())
           .isEqualTo(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8).toString());
       var jsonNode =
-          ConnectorsObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
+          HttpClientObjectMapperSupplier.getCopy().readTree(httpRequest.getEntity().getContent());
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
     }
 

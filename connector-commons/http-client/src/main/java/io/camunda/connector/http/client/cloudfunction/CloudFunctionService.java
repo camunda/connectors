@@ -20,12 +20,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.utils.DocumentHelper;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -123,7 +123,7 @@ public class CloudFunctionService {
       throws JsonProcessingException {
     Object parsedBody = prepareBodyForCloudFunction(request);
     request.setBody(parsedBody);
-    String contentAsJson = ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(request);
+    String contentAsJson = HttpClientObjectMapperSupplier.getCopy().writeValueAsString(request);
     HttpClientRequest cloudFunctionRequest = new HttpClientRequest();
     cloudFunctionRequest.setMethod(HttpMethod.POST);
     cloudFunctionRequest.setUrl(getProxyFunctionUrl());

@@ -20,11 +20,11 @@ import static io.camunda.connector.http.client.utils.JsonHelper.isJsonStringVali
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.http.client.ExecutionEnvironment;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.client.HttpStatusHelper;
 import io.camunda.connector.http.client.document.FileResponseHandler;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -114,12 +114,12 @@ public class HttpCommonResultResponseHandler
     if (HttpStatusHelper.isError(code)) {
       // unwrap as ErrorResponse
       var errorResponse =
-          ConnectorsObjectMapperSupplier.getCopy().readValue(content, ErrorResponse.class);
+          HttpClientObjectMapperSupplier.getCopy().readValue(content, ErrorResponse.class);
       return new HttpClientResult(code, headers, errorResponse, reason);
     }
     // Unwrap the response as a HttpCommonResult directly
     var result =
-        ConnectorsObjectMapperSupplier.getCopy().readValue(content, HttpClientResult.class);
+        HttpClientObjectMapperSupplier.getCopy().readValue(content, HttpClientResult.class);
     Document document = fileResponseHandler.handleCloudFunctionResult(result);
     return new HttpClientResult(
         result.status(),
@@ -148,7 +148,7 @@ public class HttpCommonResultResponseHandler
 
     if (StringUtils.isNotBlank(bodyString)) {
       return isJsonStringValid(bodyString)
-          ? ConnectorsObjectMapperSupplier.getCopy().readValue(bodyString, Object.class)
+          ? HttpClientObjectMapperSupplier.getCopy().readValue(bodyString, Object.class)
           : bodyString;
     }
     return null;

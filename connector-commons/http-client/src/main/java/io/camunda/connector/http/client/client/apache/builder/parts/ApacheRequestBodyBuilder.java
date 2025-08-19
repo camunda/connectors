@@ -24,9 +24,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.utils.DocumentHelper;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -49,9 +49,9 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
 
   public static final String EMPTY_BODY = "";
   public static final ObjectMapper mapperIgnoreNull =
-      ConnectorsObjectMapperSupplier.getCopy()
+      HttpClientObjectMapperSupplier.getCopy()
           .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-  public static final ObjectMapper mapperSendNull = ConnectorsObjectMapperSupplier.getCopy();
+  public static final ObjectMapper mapperSendNull = HttpClientObjectMapperSupplier.getCopy();
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpClientRequest request) {
