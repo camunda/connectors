@@ -169,7 +169,8 @@ public class JobWorkerAgentRequestHandler
             .responseJson(agentResponse.responseJson())
             .responseMessage(agentResponse.responseMessage());
 
-    if (executionContext.response().includeAgentContext() == true) {
+    if (executionContext.response() != null
+        && Boolean.TRUE.equals(executionContext.response().includeAgentContext())) {
       LOGGER.debug("Including agent context in response variable");
       builder = builder.context(agentResponse.context());
     }
