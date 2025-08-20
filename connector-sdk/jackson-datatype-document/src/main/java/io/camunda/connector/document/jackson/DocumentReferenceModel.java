@@ -29,6 +29,7 @@ import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocum
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -132,7 +133,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     }
   }
 
-  record ExternalDocumentReferenceModel(String url)
+  record ExternalDocumentReferenceModel(String url, @Nullable String name)
       implements DocumentReferenceModel, ExternalDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)
