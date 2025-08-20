@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
@@ -280,6 +281,12 @@ class WebhookControllerTestZeebeTest {
         .thenReturn(webhookResult);
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    when(correlationHandlerMock.correlate(
+        any(),
+        any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                mock(ProcessElement.class), 1L, "test"));
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
@@ -530,6 +537,13 @@ class WebhookControllerTestZeebeTest {
     var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
 
+    when(correlationHandlerMock.correlate(
+        any(),
+        any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                mock(ProcessElement.class), 1L, "test"));
+
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response()).thenReturn((c) -> WebhookHttpResponse.ok(c.correlation()));
@@ -575,6 +589,12 @@ class WebhookControllerTestZeebeTest {
     var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    when(correlationHandlerMock.correlate(
+        any(),
+        any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                mock(ProcessElement.class), 1L, "test"));
 
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
