@@ -281,9 +281,7 @@ class WebhookControllerTestZeebeTest {
         .thenReturn(webhookResult);
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
-    when(correlationHandlerMock.correlate(
-        any(),
-        any()))
+    when(correlationHandlerMock.correlate(any(), any()))
         .thenReturn(
             new CorrelationResult.Success.ProcessInstanceCreated(
                 mock(ProcessElement.class), 1L, "test"));
@@ -537,9 +535,7 @@ class WebhookControllerTestZeebeTest {
     var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
 
-    when(correlationHandlerMock.correlate(
-        any(),
-        any()))
+    when(correlationHandlerMock.correlate(any(), any()))
         .thenReturn(
             new CorrelationResult.Success.ProcessInstanceCreated(
                 mock(ProcessElement.class), 1L, "test"));
@@ -589,9 +585,7 @@ class WebhookControllerTestZeebeTest {
     var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
-    when(correlationHandlerMock.correlate(
-        any(),
-        any()))
+    when(correlationHandlerMock.correlate(any(), any()))
         .thenReturn(
             new CorrelationResult.Success.ProcessInstanceCreated(
                 mock(ProcessElement.class), 1L, "test"));
