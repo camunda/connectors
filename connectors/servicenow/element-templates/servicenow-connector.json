@@ -69,6 +69,7 @@
     {
       "id": "snInstance",
       "label": "Instance name",
+      "description": "Enter only the instance name from your ServiceNow URL",
       "optional": false,
       "feel": "optional",
       "group": "sn",
@@ -102,12 +103,12 @@
     {
       "id": "targetTable",
       "label": "Target table",
-      "description": "table to work with",
+      "description": "Choose a table for the record operation",
       "group": "sn",
       "type": "Dropdown",
       "value": "incident",
       "choices": [
-        { "name": "Request Item [sc_req_item]", "value": "sc_req_item" },
+        { "name": "Requested Item [sc_req_item]", "value": "sc_req_item" },
         { "name": "Change Request [change_request]", "value": "change_request" },
         { "name": "Change Task [change_task]", "value": "change_task" },
         { "name": "Service Catalog Request [sc_request]", "value": "sc_request" },
