@@ -64,6 +64,7 @@
     {
       "id": "snInstance",
       "label": "Instance name",
+      "description": "Enter only the instance name from your ServiceNow URL",
       "optional": false,
       "feel": "optional",
       "group": "sn",
