@@ -22,19 +22,13 @@ import io.camunda.client.api.search.response.*;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayInputStream;
-import org.springframework.beans.factory.annotation.Value;
 
 public class SearchQueryClientImpl implements SearchQueryClient {
-  @Value("${camunda.connector.process-definition-search.page-size:200}")
-  private int limit;
+  private final int limit;
 
   private final CamundaClient camundaClient;
 
-  public SearchQueryClientImpl(CamundaClient camundaClient) {
-    this.camundaClient = camundaClient;
-  }
-
-  SearchQueryClientImpl(CamundaClient camundaClient, int limit) {
+  public SearchQueryClientImpl(CamundaClient camundaClient, int limit) {
     this.camundaClient = camundaClient;
     if (limit <= 0) {
       throw new IllegalArgumentException("Page limit must be greater than zero");

@@ -143,8 +143,10 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  SearchQueryClient searchQueryClient(CamundaClient camundaClient) {
-    return new SearchQueryClientImpl(camundaClient);
+  SearchQueryClient searchQueryClient(
+      CamundaClient camundaClient,
+      @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
+    return new SearchQueryClientImpl(camundaClient, limit);
   }
 
   @Bean
