@@ -46,7 +46,6 @@ public class SearchQueryClientTest {
     waitForIndexing(2);
 
     // When
-    // must pass the limit as it is not injected by spring when created manually
     SearchQueryClientImpl processDefinitionSearch = new SearchQueryClientImpl(camundaClient, 200);
     var result = processDefinitionSearch.queryProcessDefinitions(null);
 
