@@ -15,8 +15,10 @@ import com.azure.ai.documentintelligence.models.DocumentLine;
 import com.azure.ai.documentintelligence.models.DocumentPage;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.util.polling.SyncPoller;
+import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,10 +39,23 @@ public class AzureDocumentIntelligenceCaller {
             .buildClient();
 
     try {
-      // Use the prebuilt-read model for general text extraction
-      SyncPoller<AnalyzeOperationDetails, AnalyzeResult> analyzePoller =
-          documentIntelligenceClient.beginAnalyzeDocument(
-              "prebuilt-read", new AnalyzeDocumentOptions(input.document().asByteArray()));
+      SyncPoller<AnalyzeOperationDetails, AnalyzeResult> analyzePoller;
+
+      try {
+        DocumentLinkParameters linkParams = new DocumentLinkParameters(Duration.ofMinutes(2));
+        String documentLink = input.document().generateLink(linkParams);
+        // Use the document link for analysis
+        analyzePoller =
+            documentIntelligenceClient.beginAnalyzeDocument(
+                "prebuilt-read", new AnalyzeDocumentOptions(documentLink));
+      } catch (Exception e) {
+        LOGGER.error(
+            "Document link generation for AnalyzeDocumentOptions input not supported, falling back to byte array input");
+        // Fall back to using byte array
+        analyzePoller =
+            documentIntelligenceClient.beginAnalyzeDocument(
+                "prebuilt-read", new AnalyzeDocumentOptions(input.document().asByteArray()));
+      }
 
       // Wait for analysis to complete and get results
       AnalyzeResult result = analyzePoller.getFinalResult();
