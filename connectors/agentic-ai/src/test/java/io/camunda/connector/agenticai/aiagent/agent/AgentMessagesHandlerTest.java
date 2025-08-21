@@ -94,168 +94,67 @@ class AgentMessagesHandlerTest {
           .hasSize(1)
           .containsExactly(systemMessage("You are a helpful assistant."));
     }
+  }
+
+  @Nested
+  class UserMessagesTest {
+
+    private List<Document> documents;
+    private UserPromptConfiguration userPromptWithDocuments;
+
+    @BeforeEach
+    void setUp() {
+      documents = List.of(mock(Document.class), mock(Document.class));
+      userPromptWithDocuments = new UserPromptConfiguration("Tell me a story", documents);
+    }
+
+    @Test
+    void throwsExceptionWhenReceivingToolCallResultsOnEmptyConversation() {
+      assertThatThrownBy(
+              () ->
+                  messagesHandler.addUserMessages(
+                      executionContext,
+                      AgentContext.empty(),
+                      runtimeMemory,
+                      userPromptWithDocuments,
+                      TOOL_CALL_RESULTS))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo("TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT"));
+    }
 
     @Nested
-    class UserMessagesTest {
+    class UserMessageTest {
+      private final AgentContext AGENT_CONTEXT =
+          AgentContext.empty()
+              .withState(AgentState.READY)
+              .withConversation(new TestConversationContext("dummy"));
 
-      private List<Document> documents;
-      private UserPromptConfiguration userPromptWithDocuments;
-
-      @BeforeEach
-      void setUp() {
-        documents = List.of(mock(Document.class), mock(Document.class));
-        userPromptWithDocuments = new UserPromptConfiguration("Tell me a story", documents);
+      @Test
+      void addsUserMessageWhenNoPreviousMessage() {
+        final var addedUserMessage = assertUserMessageAdded();
+        assertThat(runtimeMemory.allMessages()).containsExactly(addedUserMessage);
       }
 
       @Test
-      void throwsExceptionWhenReceivingToolCallResultsOnEmptyConversation() {
-        assertThatThrownBy(
-                () ->
-                    messagesHandler.addUserMessages(
-                        executionContext,
-                        AgentContext.empty(),
-                        runtimeMemory,
-                        userPromptWithDocuments,
-                        TOOL_CALL_RESULTS))
-            .isInstanceOfSatisfying(
-                ConnectorException.class,
-                e -> assertThat(e.getErrorCode()).isEqualTo("TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT"));
+      void addsUserMessageWhenPreviousMessageWasSystemMessage() {
+        final var systemMessage = systemMessage("You are a helpful assistant.");
+        runtimeMemory.addMessage(systemMessage);
+
+        final var addedUserMessage = assertUserMessageAdded();
+
+        assertThat(runtimeMemory.allMessages()).containsExactly(systemMessage, addedUserMessage);
       }
 
-      @Nested
-      class UserMessageTest {
-        private final AgentContext AGENT_CONTEXT =
-            AgentContext.empty()
-                .withState(AgentState.READY)
-                .withConversation(new TestConversationContext("dummy"));
+      @Test
+      void addsUserMessageWhenPreviousMessageWasAssistantMessageWithoutToolCallRequests() {
+        final var assistantMessage =
+            assistantMessage("Previous assistant message without tool calls", List.of());
+        runtimeMemory.addMessage(assistantMessage);
 
-        @Test
-        void addsUserMessageWhenNoPreviousMessage() {
-          final var addedUserMessage = assertUserMessageAdded();
-          assertThat(runtimeMemory.allMessages()).containsExactly(addedUserMessage);
-        }
+        final var addedUserMessage = assertUserMessageAdded();
 
-        @Test
-        void addsUserMessageWhenPreviousMessageWasSystemMessage() {
-          final var systemMessage = systemMessage("You are a helpful assistant.");
-          runtimeMemory.addMessage(systemMessage);
-
-          final var addedUserMessage = assertUserMessageAdded();
-
-          assertThat(runtimeMemory.allMessages()).containsExactly(systemMessage, addedUserMessage);
-        }
-
-        @Test
-        void addsUserMessageWhenPreviousMessageWasAssistantMessageWithoutToolCallRequests() {
-          final var assistantMessage =
-              assistantMessage("Previous assistant message without tool calls", List.of());
-          runtimeMemory.addMessage(assistantMessage);
-
-          final var addedUserMessage = assertUserMessageAdded();
-
-          assertThat(runtimeMemory.allMessages())
-              .containsExactly(assistantMessage, addedUserMessage);
-        }
-
-        @Test
-        void addsUserMessageWhenPreviousMessageWasUserMessage() {
-          final var userMessage = userMessage("Previous user message");
-          runtimeMemory.addMessage(userMessage);
-
-          final var addedUserMessage = assertUserMessageAdded();
-
-          assertThat(runtimeMemory.allMessages()).containsExactly(userMessage, addedUserMessage);
-        }
-
-        private UserMessage assertUserMessageAdded() {
-          final var addedMessages =
-              messagesHandler.addUserMessages(
-                  executionContext,
-                  AGENT_CONTEXT,
-                  runtimeMemory,
-                  new UserPromptConfiguration("Tell me a story", List.of()),
-                  TOOL_CALL_RESULTS);
-
-          assertThat(addedMessages)
-              .hasSize(1)
-              .first(InstanceOfAssertFactories.type(UserMessage.class))
-              .satisfies(
-                  userMessage -> {
-                    assertThat(userMessage.content())
-                        .hasSize(1)
-                        .first()
-                        .isEqualTo(textContent("Tell me a story"));
-                    assertThat(userMessage.metadata()).containsOnlyKeys("timestamp");
-                    assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
-                        .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                  });
-
-          return (UserMessage) addedMessages.getFirst();
-        }
-
-        @Test
-        void addsDocumentsToUserMessage() {
-          final var addedMessages =
-              messagesHandler.addUserMessages(
-                  executionContext,
-                  AGENT_CONTEXT,
-                  runtimeMemory,
-                  new UserPromptConfiguration(null, documents),
-                  TOOL_CALL_RESULTS);
-
-          assertThat(addedMessages)
-              .hasSize(1)
-              .first(InstanceOfAssertFactories.type(UserMessage.class))
-              .satisfies(
-                  userMessage -> {
-                    assertThat(userMessage.content())
-                        .hasSize(2)
-                        .satisfiesExactly(
-                            c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(0))),
-                            c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(1))));
-                  });
-
-          assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
-        }
-
-        @Test
-        void addsBothUserPromptAndDocuments() {
-          final var addedMessages =
-              messagesHandler.addUserMessages(
-                  executionContext,
-                  AGENT_CONTEXT,
-                  runtimeMemory,
-                  new UserPromptConfiguration("Tell me a story", documents),
-                  TOOL_CALL_RESULTS);
-
-          assertThat(addedMessages)
-              .hasSize(1)
-              .first(InstanceOfAssertFactories.type(UserMessage.class))
-              .satisfies(
-                  userMessage -> {
-                    assertThat(userMessage.content())
-                        .hasSize(3)
-                        .satisfiesExactly(
-                            c -> assertThat(c).isEqualTo(textContent("Tell me a story")),
-                            c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(0))),
-                            c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(1))));
-                  });
-
-          assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
-        }
-
-        @ParameterizedTest
-        @NullAndEmptySource
-        @ValueSource(strings = {" "})
-        void returnsNoMessageWhenNoUserMessageContentToAdd(String prompt) {
-          final var userPrompt = new UserPromptConfiguration(prompt, List.of());
-          final var addedUserMessages =
-              messagesHandler.addUserMessages(
-                  executionContext, AGENT_CONTEXT, runtimeMemory, userPrompt, List.of());
-
-          assertThat(addedUserMessages).isEmpty();
-          assertThat(runtimeMemory.allMessages()).isEmpty();
-        }
+        assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage, addedUserMessage);
       }
         assertThat(addedUserMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).isEmpty();
@@ -305,171 +204,271 @@ class AgentMessagesHandlerTest {
       }
     }
 
-      @Nested
-      class ToolCallResultsTest {
+      @Test
+      void addsUserMessageWhenPreviousMessageWasUserMessage() {
+        final var userMessage = userMessage("Previous user message");
+        runtimeMemory.addMessage(userMessage);
 
-        private final AgentContext AGENT_CONTEXT =
-            AgentContext.empty()
-                .withState(AgentState.READY)
-                .withConversation(new TestConversationContext("dummy"));
+        final var addedUserMessage = assertUserMessageAdded();
 
-        @Test
-        void addsToolCallResultsWhenPreviousMessageWasAssistantMessageWithToolCallRequests() {
-          final var assistantMessage =
-              assistantMessage("Assistant message with tool calls", TOOL_CALLS);
-          runtimeMemory.addMessage(assistantMessage);
+        assertThat(runtimeMemory.allMessages()).containsExactly(userMessage, addedUserMessage);
+      }
 
-          when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, TOOL_CALL_RESULTS))
-              .thenReturn(TOOL_CALL_RESULTS.stream().toList());
+      private UserMessage assertUserMessageAdded() {
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                new UserPromptConfiguration("Tell me a story", List.of()),
+                TOOL_CALL_RESULTS);
 
-          final var addedMessages =
-              messagesHandler.addUserMessages(
-                  executionContext,
-                  AGENT_CONTEXT,
-                  runtimeMemory,
-                  userPromptWithDocuments,
-                  TOOL_CALL_RESULTS);
+        assertThat(addedMessages)
+            .hasSize(1)
+            .first(InstanceOfAssertFactories.type(UserMessage.class))
+            .satisfies(
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(1)
+                      .first()
+                      .isEqualTo(textContent("Tell me a story"));
+                  assertThat(userMessage.metadata()).containsOnlyKeys("timestamp");
+                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                });
 
-          assertThat(addedMessages)
-              .hasSize(1)
-              .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
-              .satisfies(
-                  toolCallResultMessage -> {
-                    assertThat(toolCallResultMessage.results())
-                        .containsExactlyElementsOf(TOOL_CALL_RESULTS);
-                    assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
-                    assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
-                        .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                  });
+        return (UserMessage) addedMessages.getFirst();
+      }
 
-          assertThat(runtimeMemory.allMessages())
-              .containsExactly(assistantMessage, addedMessages.getFirst());
-        }
+      @Test
+      void addsDocumentsToUserMessage() {
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                new UserPromptConfiguration(null, documents),
+                TOOL_CALL_RESULTS);
 
-        @Test
-        void ordersToolCallResultsByRequestOrder() {
-          final var reversedToolCallResults = TOOL_CALL_RESULTS.reversed();
+        assertThat(addedMessages)
+            .hasSize(1)
+            .first(InstanceOfAssertFactories.type(UserMessage.class))
+            .satisfies(
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(2)
+                      .satisfiesExactly(
+                          c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(0))),
+                          c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(1))));
+                });
 
-          final var assistantMessage =
-              assistantMessage("Assistant message with tool calls", TOOL_CALLS);
-          runtimeMemory.addMessage(assistantMessage);
+        assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
+      }
 
-          when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, reversedToolCallResults))
-              .thenReturn(reversedToolCallResults.stream().toList());
+      @Test
+      void addsBothUserPromptAndDocuments() {
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                new UserPromptConfiguration("Tell me a story", documents),
+                TOOL_CALL_RESULTS);
 
-          final var addedMessages =
-              messagesHandler.addUserMessages(
-                  executionContext,
-                  AGENT_CONTEXT,
-                  runtimeMemory,
-                  userPromptWithDocuments,
-                  reversedToolCallResults);
+        assertThat(addedMessages)
+            .hasSize(1)
+            .first(InstanceOfAssertFactories.type(UserMessage.class))
+            .satisfies(
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(3)
+                      .satisfiesExactly(
+                          c -> assertThat(c).isEqualTo(textContent("Tell me a story")),
+                          c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(0))),
+                          c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(1))));
+                });
 
-          assertThat(addedMessages)
-              .hasSize(1)
-              .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
-              .satisfies(
-                  toolCallResultMessage -> {
-                    assertThat(toolCallResultMessage.results())
-                        .containsExactlyElementsOf(TOOL_CALL_RESULTS); // ordered by request order
-                    assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
-                    assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
-                        .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                  });
+        assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
+      }
 
-          assertThat(runtimeMemory.allMessages())
-              .containsExactly(assistantMessage, addedMessages.getFirst());
-        }
+      @ParameterizedTest
+      @NullAndEmptySource
+      @ValueSource(strings = {" "})
+      void returnsNoMessageWhenNoUserMessageContentToAdd(String prompt) {
+        final var userPrompt = new UserPromptConfiguration(prompt, List.of());
+        final var addedUserMessages =
+            messagesHandler.addUserMessages(
+                executionContext, AGENT_CONTEXT, runtimeMemory, userPrompt, List.of());
 
-        @Test
-        void transformsToolCallResultsViaGatewayToolHandlerRegistry() {
-          final var assistantMessage =
-              assistantMessage("Assistant message with tool calls", TOOL_CALLS);
-          runtimeMemory.addMessage(assistantMessage);
+        assertThat(addedUserMessages).isEmpty();
+        assertThat(runtimeMemory.allMessages()).isEmpty();
+      }
+    }
 
-          final var transformedToolCallResults =
-              TOOL_CALL_RESULTS.stream()
-                  .map(
-                      toolCallResult -> {
-                        if ("getWeather".equals(toolCallResult.name())) {
-                          return toolCallResult.withContent(
-                              "Transformed Weather Result: " + toolCallResult.content());
-                        } else {
-                          return toolCallResult;
-                        }
-                      })
-                  .toList();
+    @Nested
+    class ToolCallResultsTest {
 
-          when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, TOOL_CALL_RESULTS))
-              .thenReturn(transformedToolCallResults);
+      private final AgentContext AGENT_CONTEXT =
+          AgentContext.empty()
+              .withState(AgentState.READY)
+              .withConversation(new TestConversationContext("dummy"));
 
-          final var addedMessages =
-              messagesHandler.addUserMessages(
-                  executionContext,
-                  AGENT_CONTEXT,
-                  runtimeMemory,
-                  userPromptWithDocuments,
-                  TOOL_CALL_RESULTS);
+      @Test
+      void addsToolCallResultsWhenPreviousMessageWasAssistantMessageWithToolCallRequests() {
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
 
-          assertThat(addedMessages)
-              .hasSize(1)
-              .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
-              .satisfies(
-                  toolCallResultMessage -> {
-                    assertThat(toolCallResultMessage.results())
-                        .containsExactlyElementsOf(transformedToolCallResults);
-                    assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
-                    assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
-                        .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                  });
+        when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .thenReturn(TOOL_CALL_RESULTS.stream().toList());
 
-          assertThat(runtimeMemory.allMessages())
-              .containsExactly(assistantMessage, addedMessages.getFirst());
-        }
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                TOOL_CALL_RESULTS);
 
-        @Test
-        void doesNotReturnMessageWhenToolCallResultsAreEmpty() {
-          final List<ToolCallResult> toolCallResults = Collections.emptyList();
+        assertThat(addedMessages)
+            .hasSize(1)
+            .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
+            .satisfies(
+                toolCallResultMessage -> {
+                  assertThat(toolCallResultMessage.results())
+                      .containsExactlyElementsOf(TOOL_CALL_RESULTS);
+                  assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
+                  assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                });
 
-          final var assistantMessage =
-              assistantMessage("Assistant message with tool calls", TOOL_CALLS);
-          runtimeMemory.addMessage(assistantMessage);
+        assertThat(runtimeMemory.allMessages())
+            .containsExactly(assistantMessage, addedMessages.getFirst());
+      }
 
-          when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, toolCallResults))
-              .thenReturn(toolCallResults.stream().toList());
+      @Test
+      void ordersToolCallResultsByRequestOrder() {
+        final var reversedToolCallResults = TOOL_CALL_RESULTS.reversed();
 
-          final var addedMessages =
-              messagesHandler.addUserMessages(
-                  executionContext,
-                  AGENT_CONTEXT,
-                  runtimeMemory,
-                  userPromptWithDocuments,
-                  toolCallResults);
-          assertThat(addedMessages).isEmpty();
-          assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
-        }
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
 
-        @Test
-        void doesNotReturnMessageWhenToolCallResultsArePartiallyMissing() {
-          final var toolCallResults = TOOL_CALL_RESULTS.subList(0, 1);
+        when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, reversedToolCallResults))
+            .thenReturn(reversedToolCallResults.stream().toList());
 
-          final var assistantMessage =
-              assistantMessage("Assistant message with tool calls", TOOL_CALLS);
-          runtimeMemory.addMessage(assistantMessage);
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                reversedToolCallResults);
 
-          when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, toolCallResults))
-              .thenReturn(toolCallResults.stream().toList());
+        assertThat(addedMessages)
+            .hasSize(1)
+            .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
+            .satisfies(
+                toolCallResultMessage -> {
+                  assertThat(toolCallResultMessage.results())
+                      .containsExactlyElementsOf(TOOL_CALL_RESULTS); // ordered by request order
+                  assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
+                  assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                });
 
-          final var addedMessages =
-              messagesHandler.addUserMessages(
-                  executionContext,
-                  AGENT_CONTEXT,
-                  runtimeMemory,
-                  userPromptWithDocuments,
-                  toolCallResults);
-          assertThat(addedMessages).isEmpty();
-          assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
-        }
+        assertThat(runtimeMemory.allMessages())
+            .containsExactly(assistantMessage, addedMessages.getFirst());
+      }
+
+      @Test
+      void transformsToolCallResultsViaGatewayToolHandlerRegistry() {
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
+
+        final var transformedToolCallResults =
+            TOOL_CALL_RESULTS.stream()
+                .map(
+                    toolCallResult -> {
+                      if ("getWeather".equals(toolCallResult.name())) {
+                        return toolCallResult.withContent(
+                            "Transformed Weather Result: " + toolCallResult.content());
+                      } else {
+                        return toolCallResult;
+                      }
+                    })
+                .toList();
+
+        when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .thenReturn(transformedToolCallResults);
+
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                TOOL_CALL_RESULTS);
+
+        assertThat(addedMessages)
+            .hasSize(1)
+            .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
+            .satisfies(
+                toolCallResultMessage -> {
+                  assertThat(toolCallResultMessage.results())
+                      .containsExactlyElementsOf(transformedToolCallResults);
+                  assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
+                  assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                });
+
+        assertThat(runtimeMemory.allMessages())
+            .containsExactly(assistantMessage, addedMessages.getFirst());
+      }
+
+      @Test
+      void doesNotReturnMessageWhenToolCallResultsAreEmpty() {
+        final List<ToolCallResult> toolCallResults = Collections.emptyList();
+
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
+
+        when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, toolCallResults))
+            .thenReturn(toolCallResults.stream().toList());
+
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                toolCallResults);
+        assertThat(addedMessages).isEmpty();
+        assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
+      }
+
+      @Test
+      void doesNotReturnMessageWhenToolCallResultsArePartiallyMissing() {
+        final var toolCallResults = TOOL_CALL_RESULTS.subList(0, 1);
+
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
+
+        when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, toolCallResults))
+            .thenReturn(toolCallResults.stream().toList());
+
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                toolCallResults);
+        assertThat(addedMessages).isEmpty();
+        assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
       }
 
       @ParameterizedTest
