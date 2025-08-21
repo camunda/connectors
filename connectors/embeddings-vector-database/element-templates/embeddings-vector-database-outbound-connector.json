@@ -1055,12 +1055,37 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Client credentials",
-      "value" : "clientCredentials"
-    }, {
       "name" : "API key",
       "value" : "apiKey"
+    }, {
+      "name" : "Client credentials",
+      "value" : "clientCredentials"
     } ]
+  }, {
+    "id" : "vectorStore.aiSearch.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.aiSearch.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorStore.aiSearch.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "azureAiSearchStore",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "vectorStore.aiSearch.authentication.clientId",
     "label" : "Client ID",
@@ -1163,31 +1188,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "vectorStore.aiSearch.authentication.apiKey",
-    "label" : "API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingsStore",
-    "binding" : {
-      "name" : "vectorStore.aiSearch.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "vectorStore.aiSearch.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "vectorStore.vectorStore",
-        "equals" : "azureAiSearchStore",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
     "id" : "vectorStore.aiSearch.indexName",
     "label" : "Index name",
     "description" : "The name of the search index. When storing embeddings this index is created or updated automatically.",
@@ -1244,12 +1244,37 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Client credentials",
-      "value" : "clientCredentials"
-    }, {
       "name" : "API key",
       "value" : "apiKey"
+    }, {
+      "name" : "Client credentials",
+      "value" : "clientCredentials"
     } ]
+  }, {
+    "id" : "vectorStore.azureCosmosDbNoSql.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.azureCosmosDbNoSql.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "azureCosmosDbNoSqlStore",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "vectorStore.azureCosmosDbNoSql.authentication.clientId",
     "label" : "Client ID",
@@ -1343,31 +1368,6 @@
       "allMatch" : [ {
         "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
         "equals" : "clientCredentials",
-        "type" : "simple"
-      }, {
-        "property" : "vectorStore.vectorStore",
-        "equals" : "azureCosmosDbNoSqlStore",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "vectorStore.azureCosmosDbNoSql.authentication.apiKey",
-    "label" : "API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "embeddingsStore",
-    "binding" : {
-      "name" : "vectorStore.azureCosmosDbNoSql.authentication.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
-        "equals" : "apiKey",
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
