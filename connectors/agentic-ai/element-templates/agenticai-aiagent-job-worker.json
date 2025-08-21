@@ -1021,7 +1021,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "systemPrompt",
     "binding" : {
       "name" : "data.systemPrompt.prompt",
@@ -1035,7 +1035,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "userPrompt",
     "binding" : {
       "name" : "data.userPrompt.prompt",

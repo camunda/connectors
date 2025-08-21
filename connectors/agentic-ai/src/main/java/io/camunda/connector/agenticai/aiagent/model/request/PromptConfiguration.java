@@ -21,7 +21,7 @@ public interface PromptConfiguration {
               group = "systemPrompt",
               label = "System prompt",
               type = TemplateProperty.PropertyType.Text,
-              feel = Property.FeelMode.optional,
+              feel = Property.FeelMode.required,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
               defaultValue = DEFAULT_SYSTEM_PROMPT)
           String prompt)
@@ -51,7 +51,7 @@ Reveal **no** additional private reasoning outside these tags.
               group = "userPrompt",
               label = "User prompt",
               type = TemplateProperty.PropertyType.Text,
-              feel = Property.FeelMode.optional,
+              feel = Property.FeelMode.required,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String prompt,
       @FEEL
