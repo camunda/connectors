@@ -24,11 +24,15 @@ import com.azure.ai.documentintelligence.models.DocumentLine;
 import com.azure.ai.documentintelligence.models.DocumentPage;
 import com.azure.core.credential.KeyCredential;
 import com.azure.core.util.polling.SyncPoller;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
+import io.camunda.connector.idp.extraction.model.ExtractionType;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.azure.DocumentIntelligenceConfiguration;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -280,6 +284,124 @@ class AzureDocumentIntelligenceCallerTest {
 
     // Then
     assertEquals("", result);
+  }
+
+  @Test
+  void call_DocumentLinkGenerationSuccessful() {
+    // Given
+    String expectedText = "Document via link";
+    String documentLink = "https://example.com/document.pdf";
+
+    DocumentLine line1 = mock(DocumentLine.class);
+    when(line1.getContent()).thenReturn(expectedText);
+
+    DocumentPage page = mock(DocumentPage.class);
+    when(page.getLines()).thenReturn(List.of(line1));
+
+    when(analyzeResult.getPages()).thenReturn(List.of(page));
+    when(syncPoller.getFinalResult()).thenReturn(analyzeResult);
+    when(documentIntelligenceClient.beginAnalyzeDocument(
+            eq("prebuilt-read"), any(AnalyzeDocumentOptions.class)))
+        .thenReturn(syncPoller);
+
+    // Mock document that supports link generation
+    Document mockDocument = mock(Document.class);
+    when(mockDocument.generateLink(any(DocumentLinkParameters.class))).thenReturn(documentLink);
+
+    ExtractionRequestData requestData =
+        new ExtractionRequestData(
+            mockDocument, ExtractionType.UNSTRUCTURED, List.of(), List.of(), Map.of(), null, null);
+
+    AzureProvider azureProvider = createAzureProvider();
+
+    // When
+    String result = azureCaller.call(requestData, azureProvider);
+
+    // Then
+    assertEquals(expectedText, result);
+    verify(documentIntelligenceClient)
+        .beginAnalyzeDocument(eq("prebuilt-read"), any(AnalyzeDocumentOptions.class));
+    verify(mockDocument).generateLink(any(DocumentLinkParameters.class));
+  }
+
+  @Test
+  void call_DocumentLinkGenerationFailsFallbackToByteArray() {
+    // Given
+    String expectedText = "Document via byte array";
+
+    DocumentLine line1 = mock(DocumentLine.class);
+    when(line1.getContent()).thenReturn(expectedText);
+
+    DocumentPage page = mock(DocumentPage.class);
+    when(page.getLines()).thenReturn(List.of(line1));
+
+    when(analyzeResult.getPages()).thenReturn(List.of(page));
+    when(syncPoller.getFinalResult()).thenReturn(analyzeResult);
+    when(documentIntelligenceClient.beginAnalyzeDocument(
+            eq("prebuilt-read"), any(AnalyzeDocumentOptions.class)))
+        .thenReturn(syncPoller);
+
+    // Mock document that throws UnsupportedOperationException for link generation
+    Document mockDocument = mock(Document.class);
+    when(mockDocument.generateLink(any(DocumentLinkParameters.class)))
+        .thenThrow(new UnsupportedOperationException("Link generation not supported"));
+    when(mockDocument.asByteArray()).thenReturn(new byte[] {1, 2, 3});
+
+    ExtractionRequestData requestData =
+        new ExtractionRequestData(
+            mockDocument, ExtractionType.UNSTRUCTURED, List.of(), List.of(), Map.of(), null, null);
+
+    AzureProvider azureProvider = createAzureProvider();
+
+    // When
+    String result = azureCaller.call(requestData, azureProvider);
+
+    // Then
+    assertEquals(expectedText, result);
+    verify(documentIntelligenceClient)
+        .beginAnalyzeDocument(eq("prebuilt-read"), any(AnalyzeDocumentOptions.class));
+    verify(mockDocument).generateLink(any(DocumentLinkParameters.class));
+    verify(mockDocument).asByteArray();
+  }
+
+  @Test
+  void call_DocumentLinkGenerationThrowsGenericException() {
+    // Given
+    String expectedText = "Document via byte array fallback";
+
+    DocumentLine line1 = mock(DocumentLine.class);
+    when(line1.getContent()).thenReturn(expectedText);
+
+    DocumentPage page = mock(DocumentPage.class);
+    when(page.getLines()).thenReturn(List.of(line1));
+
+    when(analyzeResult.getPages()).thenReturn(List.of(page));
+    when(syncPoller.getFinalResult()).thenReturn(analyzeResult);
+    when(documentIntelligenceClient.beginAnalyzeDocument(
+            eq("prebuilt-read"), any(AnalyzeDocumentOptions.class)))
+        .thenReturn(syncPoller);
+
+    // Mock document that throws generic exception for link generation
+    Document mockDocument = mock(Document.class);
+    when(mockDocument.generateLink(any(DocumentLinkParameters.class)))
+        .thenThrow(new RuntimeException("Generic error during link generation"));
+    when(mockDocument.asByteArray()).thenReturn(new byte[] {1, 2, 3});
+
+    ExtractionRequestData requestData =
+        new ExtractionRequestData(
+            mockDocument, ExtractionType.UNSTRUCTURED, List.of(), List.of(), Map.of(), null, null);
+
+    AzureProvider azureProvider = createAzureProvider();
+
+    // When
+    String result = azureCaller.call(requestData, azureProvider);
+
+    // Then
+    assertEquals(expectedText, result);
+    verify(documentIntelligenceClient)
+        .beginAnalyzeDocument(eq("prebuilt-read"), any(AnalyzeDocumentOptions.class));
+    verify(mockDocument).generateLink(any(DocumentLinkParameters.class));
+    verify(mockDocument).asByteArray();
   }
 
   private AzureProvider createAzureProvider() {
