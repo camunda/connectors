@@ -16,9 +16,9 @@
  */
 package io.camunda.connector.intrinsic.functions;
 
-import io.camunda.connector.api.document.ExternalDocument;
 import io.camunda.connector.intrinsic.IntrinsicFunction;
 import io.camunda.connector.intrinsic.IntrinsicFunctionProvider;
+import io.camunda.document.ExternalDocument;
 import javax.annotation.Nullable;
 
 public class DownloadDocumentFunction implements IntrinsicFunctionProvider {
