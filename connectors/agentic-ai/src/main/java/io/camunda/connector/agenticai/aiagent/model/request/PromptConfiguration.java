@@ -30,7 +30,7 @@ public interface PromptConfiguration {
     @TemplateProperty(ignore = true)
     public static final String DEFAULT_SYSTEM_PROMPT =
         """
-You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.
+"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.
 
 If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.
 
@@ -41,8 +41,7 @@ Wrap minimal, inspectable reasoning in *exactly* this XML template:
 <reflection>…list candidate tools, justify which you will call next and why…</reflection>
 </thinking>
 
-Reveal **no** additional private reasoning outside these tags.
-""";
+Reveal **no** additional private reasoning outside these tags.\"""";
   }
 
   record UserPromptConfiguration(
