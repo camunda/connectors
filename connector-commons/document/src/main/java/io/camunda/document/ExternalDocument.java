@@ -20,13 +20,15 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.HttpClientService;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.Map;
@@ -37,24 +39,26 @@ public class ExternalDocument implements Document {
   private final String url;
   private final String name;
   private transient DocumentMetadata metadata;
-  // private HttpClientService httpClientService;
   private final HttpClientRequest request;
   private final HttpClientService httpClientService;
+  private HttpClientResult result = null;
 
-  public ExternalDocument(String url, String name, HttpURLConnection connection) {
+  public ExternalDocument(String url, String name) {
     this.url = url;
     this.name = name;
-    HttpClientService httpClientService = new HttpClientService();
-    HttpClientRequest request = new HttpClientRequest();
-    request.setMethod(HttpMethod.GET);
-    request.setUrl(url);
-    request.setStoreResponse(true);
-    this.request = request;
+    HttpClientRequest req = new HttpClientRequest();
+    req.setMethod(HttpMethod.GET);
+    req.setUrl(url);
+    req.setStoreResponse(false);
+    this.request = req;
     this.httpClientService = new HttpClientService();
   }
 
-  public ExternalDocument(String url, String name) {
-    this(url, name, null);
+  private HttpClientResult getResult() {
+    if (result == null) {
+      this.result = this.httpClientService.executeConnectorRequest(request);
+    }
+    return result;
   }
 
   public DocumentMetadata metadata() {
@@ -65,7 +69,8 @@ public class ExternalDocument implements Document {
         new DocumentMetadata() {
           @Override
           public String getContentType() {
-            return "connection().getContentType()";
+            Object contentType = getResult().headers().get("content-type");
+            return contentType != null ? contentType.toString() : null;
           }
 
           @Override
@@ -75,7 +80,9 @@ public class ExternalDocument implements Document {
 
           @Override
           public Long getSize() {
-            return 0L;
+            return getResult().headers().get("content-length") instanceof String sizeStr
+                ? Long.parseLong(sizeStr)
+                : -1L;
           }
 
           @Override
@@ -110,8 +117,14 @@ public class ExternalDocument implements Document {
   @Override
   public InputStream asInputStream() {
     try {
-      HttpClientResult result = httpClientService.executeConnectorRequest(request);
-      return result.document().asInputStream();
+      HttpClientResult result = getResult();
+      return new ByteArrayInputStream(
+          (result.body() instanceof String str
+              ? str
+              : HttpClientObjectMapperSupplier.getCopy()
+                  .writeValueAsString(result.body()) // result is json
+          ).getBytes(StandardCharsets.UTF_8)
+      );
     } catch (Exception e) {
       throw new RuntimeException("Failed to download external document from " + url, e);
     }
@@ -128,7 +141,17 @@ public class ExternalDocument implements Document {
 
   @Override
   public DocumentReference reference() {
-    return null;
+    return new DocumentReference.ExternalDocumentReference() {
+      @Override
+      public String url() {
+        return url;
+      }
+
+      @Override
+      public String name() {
+        return name;
+      }
+    };
   }
 
   @Override
