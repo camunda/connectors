@@ -51,5 +51,7 @@ public interface DocumentReference {
 
   interface ExternalDocumentReference extends DocumentReference {
     String url();
+
+    String name();
   }
 }

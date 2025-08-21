@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>connector-commons</artifactId>
+  <name>Connector Commons</name>
 
   <packaging>pom</packaging>
 
