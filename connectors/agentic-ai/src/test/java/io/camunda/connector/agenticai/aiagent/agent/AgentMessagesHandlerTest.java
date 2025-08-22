@@ -391,7 +391,7 @@ class AgentMessagesHandlerTest {
             TOOL_CALL_RESULTS.stream()
                 .map(
                     toolCallResult -> {
-                      if ("getWeather".equals(toolCallResult.name())) {
+                      if (toolCallResult.name().equals("getWeather")) {
                         return toolCallResult.withContent(
                             "Transformed Weather Result: " + toolCallResult.content());
                       } else {
