@@ -14,7 +14,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.google-libraries-bom>26.64.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.66.0</version.google-libraries-bom>
   </properties>
 
   <dependencyManagement>
