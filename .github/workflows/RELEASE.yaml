@@ -15,7 +15,7 @@ jobs:
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.prev_version.outputs.previous_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
@@ -35,7 +35,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.PROTECTED_BRANCH_PAT }}
           ref: ${{ github.event.release.target_commitish }}
@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -158,7 +158,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download repository
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: repository
 
@@ -244,7 +244,7 @@ jobs:
     name: Perform the docker release
     steps:
       - name: Download repository
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: repository
 
@@ -367,7 +367,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download repository
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: repository
 
