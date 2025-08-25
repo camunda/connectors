@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>intrinsic-functions</artifactId>
+  <name>Connector Intrinsic Functions</name>
   <packaging>jar</packaging>
 
   <dependencies>

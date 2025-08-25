@@ -22,7 +22,6 @@ import static org.mockito.Mockito.*;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.http.client.TestDocumentFactory;
-import io.camunda.document.CamundaDocument;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -135,7 +134,7 @@ public class DocumentHelperTest {
     // given
     DocumentHelper documentHelper = new DocumentHelper();
     Map<String, Object> input = Map.of("body", Map.of("content", "no document"));
-    Function<CamundaDocument, Object> transformer = mock(Function.class);
+    Function<Document, Object> transformer = mock(Function.class);
 
     // when
     Object res = documentHelper.parseDocumentsInBody(input, transformer);
