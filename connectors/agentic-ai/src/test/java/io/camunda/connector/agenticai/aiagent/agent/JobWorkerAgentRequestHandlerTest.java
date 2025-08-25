@@ -203,7 +203,10 @@ class JobWorkerAgentRequestHandlerTest {
                         .containsExactly(
                             tuple(
                                 agentResponse.toolCalls().getFirst().metadata().name(),
-                                Map.of("toolCall", asMap(agentResponse.toolCalls().getFirst()))));
+                                Map.ofEntries(
+                                    Map.entry(
+                                        "toolCall", asMap(agentResponse.toolCalls().getFirst())),
+                                    Map.entry("toolCallResult", ""))));
                   });
         });
   }
@@ -356,10 +359,14 @@ class JobWorkerAgentRequestHandlerTest {
                         .containsExactly(
                             tuple(
                                 "getWeather",
-                                Map.of("toolCall", asMap(response.toolCalls().get(0)))),
+                                Map.ofEntries(
+                                    Map.entry("toolCall", asMap(response.toolCalls().getFirst())),
+                                    Map.entry("toolCallResult", ""))),
                             tuple(
                                 "getDateTime",
-                                Map.of("toolCall", asMap(response.toolCalls().get(1)))));
+                                Map.ofEntries(
+                                    Map.entry("toolCall", asMap(response.toolCalls().get(1))),
+                                    Map.entry("toolCallResult", ""))));
                   });
         });
   }

@@ -149,7 +149,13 @@ public class JobWorkerAgentRequestHandler
                     adHocSubProcess =
                         adHocSubProcess
                             .activateElement(toolCall.metadata().name())
-                            .variables(Map.of(AiAgentJobWorker.TOOL_CALL_VARIABLE, toolCall));
+                            .variables(
+                                Map.ofEntries(
+                                    Map.entry(AiAgentJobWorker.TOOL_CALL_VARIABLE, toolCall),
+                                    // Creating empty toolCall result variable to avoid variable
+                                    // to bubble up in the upper scopes while merging variables on
+                                    // ad-hoc sub-process inner instance completion.
+                                    Map.entry(AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE, "")));
                   }
 
                   return adHocSubProcess;
