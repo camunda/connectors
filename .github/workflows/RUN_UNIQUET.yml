@@ -13,7 +13,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch_name }}
