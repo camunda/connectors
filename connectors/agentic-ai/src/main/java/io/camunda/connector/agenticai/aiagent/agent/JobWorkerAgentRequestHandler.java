@@ -19,7 +19,9 @@ import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionConte
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.CommandWrapper;
 import io.camunda.spring.client.metrics.MetricsRecorder;
@@ -71,6 +73,29 @@ public class JobWorkerAgentRequestHandler
   }
 
   @Override
+  protected void handleAddedUserMessages(
+      JobWorkerAgentExecutionContext executionContext,
+      AgentContext agentContext,
+      List<Message> addedUserMessages) {
+    final boolean hasInterruptedToolCalls =
+        addedUserMessages.stream()
+            .filter(ToolCallResultMessage.class::isInstance)
+            .map(ToolCallResultMessage.class::cast)
+            .flatMap(msg -> msg.results().stream())
+            .anyMatch(
+                result ->
+                    Boolean.TRUE.equals(
+                        result
+                            .properties()
+                            .getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
+
+    // cancel remaining instances if any tool call was interrupted
+    if (hasInterruptedToolCalls) {
+      executionContext.setCancelRemainingInstances(true);
+    }
+  }
+
+  @Override
   public AgentResponse completeJob(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
@@ -108,7 +133,7 @@ public class JobWorkerAgentRequestHandler
       AgentResponse agentResponse,
       ConversationStore conversationStore) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
-    boolean cancelRemainingInstances = false; // TODO JW check events for interruptions
+    boolean cancelRemainingInstances = executionContext.cancelRemainingInstances();
 
     LOGGER.debug(
         "completionConditionFulfilled: {}, cancelRemainingInstances: {}",

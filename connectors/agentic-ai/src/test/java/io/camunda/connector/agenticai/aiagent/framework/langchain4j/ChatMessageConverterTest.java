@@ -10,9 +10,11 @@ import static io.camunda.connector.agenticai.model.message.content.TextContent.t
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
@@ -23,7 +25,6 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -31,6 +32,7 @@ import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
@@ -51,7 +53,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ChatMessageConverterTest {
 
   @Mock private ToolCallConverter toolCallConverter;
-  @Mock private DocumentToContentConverter documentToContentConverter;
+  @Mock private ContentConverter contentConverter;
   @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
   @InjectMocks private ChatMessageConverterImpl chatMessageConverter;
@@ -80,54 +82,48 @@ class ChatMessageConverterTest {
   }
 
   @Test
-  void fromUserMessage_withTextContent_returnsUserMessage() {
+  void fromUserMessage_withTextContent_returnsUserMessage() throws JsonProcessingException {
+    TextContent textContent = textContent("Test user message");
+    Content convertedTextContent =
+        new dev.langchain4j.data.message.TextContent("Test user message");
+    doReturn(convertedTextContent).when(contentConverter).convertToContent(textContent);
+
     UserMessage userMessage =
-        UserMessage.builder()
-            .name("User")
-            .content(List.of(textContent("Test user message")))
-            .build();
+        UserMessage.builder().name("User").content(List.of(textContent)).build();
 
     dev.langchain4j.data.message.UserMessage result =
         chatMessageConverter.fromUserMessage(userMessage);
 
     assertThat(result.name()).isEqualTo("User");
-    assertThat(result.contents())
-        .hasSize(1)
-        .satisfiesExactly(
-            content -> {
-              assertThat(content).isInstanceOf(dev.langchain4j.data.message.TextContent.class);
-              assertThat(((dev.langchain4j.data.message.TextContent) content).text())
-                  .isEqualTo("Test user message");
-            });
+    assertThat(result.contents()).hasSize(1).containsExactly(convertedTextContent);
   }
 
   @Test
-  void fromUserMessage_withDocumentContent_convertsDocument() {
+  void fromUserMessage_withDocumentContent_convertsDocument() throws JsonProcessingException {
     Document document = mock(Document.class);
+    DocumentContent documentContent = new DocumentContent(document);
+
     UserMessage userMessage =
         UserMessage.builder()
-            .content(
-                List.of(textContent("Tell me about this document"), new DocumentContent(document)))
+            .content(List.of(textContent("Tell me about this document"), documentContent))
             .build();
 
-    Content convertedContent =
+    Content convertedTextContent =
+        new dev.langchain4j.data.message.TextContent("Tell me about this document");
+    doReturn(convertedTextContent)
+        .when(contentConverter)
+        .convertToContent(textContent("Tell me about this document"));
+
+    Content convertedDocumentContent =
         new dev.langchain4j.data.message.PdfFileContent("<base64-encoded-pdf>", "application/pdf");
-    when(documentToContentConverter.convert(document)).thenReturn(convertedContent);
+    when(contentConverter.convertToContent(documentContent)).thenReturn(convertedDocumentContent);
 
     dev.langchain4j.data.message.UserMessage result =
         chatMessageConverter.fromUserMessage(userMessage);
 
     assertThat(result.contents())
         .hasSize(2)
-        .satisfiesExactly(
-            content -> {
-              assertThat(content).isInstanceOf(dev.langchain4j.data.message.TextContent.class);
-              assertThat(((dev.langchain4j.data.message.TextContent) content).text())
-                  .isEqualTo("Tell me about this document");
-            },
-            content -> {
-              assertThat(content).isSameAs(convertedContent);
-            });
+        .containsExactly(convertedTextContent, convertedDocumentContent);
   }
 
   @Test

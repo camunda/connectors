@@ -15,7 +15,6 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.internal.Json;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.AssistantMessageBuilder;
@@ -23,10 +22,9 @@ import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
-import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
-import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -35,16 +33,16 @@ import org.springframework.util.CollectionUtils;
 
 public class ChatMessageConverterImpl implements ChatMessageConverter {
 
+  private final ContentConverter contentConverter;
   private final ToolCallConverter toolCallConverter;
-  private final DocumentToContentConverter documentToContentConverter;
   private final ObjectMapper objectMapper;
 
   public ChatMessageConverterImpl(
+      ContentConverter contentConverter,
       ToolCallConverter toolCallConverter,
-      DocumentToContentConverter documentToContentConverter,
       ObjectMapper objectMapper) {
+    this.contentConverter = contentConverter;
     this.toolCallConverter = toolCallConverter;
-    this.documentToContentConverter = documentToContentConverter;
     this.objectMapper = objectMapper;
   }
 
@@ -74,11 +72,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     Optional.ofNullable(userMessage.name()).ifPresent(builder::name);
 
     for (Content content : userMessage.content()) {
-      switch (content) {
-        case TextContent(String text) ->
-            builder.addContent(new dev.langchain4j.data.message.TextContent(text));
-        case DocumentContent(Document document) ->
-            builder.addContent(documentToContentConverter.convert(document));
+      try {
+        builder.addContent(contentConverter.convertToContent(content));
+      } catch (JsonProcessingException e) {
+        throw new ConnectorException(
+            "Failed to convert user message content to string: %s"
+                .formatted(humanReadableJsonProcessingExceptionMessage(e)));
       }
     }
 

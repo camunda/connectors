@@ -11,6 +11,8 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageC
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryImpl;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
@@ -45,9 +47,16 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallConverter langchain4JToolCallConverter(
+  public ContentConverter langchain4JContentConverter(
       ObjectMapper objectMapper, DocumentToContentConverter documentToContentConverter) {
-    return new ToolCallConverterImpl(objectMapper, documentToContentConverter);
+    return new ContentConverterImpl(objectMapper, documentToContentConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ToolCallConverter langchain4JToolCallConverter(
+      ObjectMapper objectMapper, ContentConverter contentConverter) {
+    return new ToolCallConverterImpl(objectMapper, contentConverter);
   }
 
   @Bean
@@ -66,11 +75,10 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ChatMessageConverter langchain4JChatMessageConverter(
+      ContentConverter contentConverter,
       ToolCallConverter toolCallConverter,
-      DocumentToContentConverter documentToContentConverter,
       ObjectMapper objectMapper) {
-    return new ChatMessageConverterImpl(
-        toolCallConverter, documentToContentConverter, objectMapper);
+    return new ChatMessageConverterImpl(contentConverter, toolCallConverter, objectMapper);
   }
 
   @Bean

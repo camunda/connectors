@@ -13,5 +13,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = TextContent.class, name = "text"),
   @JsonSubTypes.Type(value = DocumentContent.class, name = "document"),
+  @JsonSubTypes.Type(value = ObjectContent.class, name = "object")
 })
-public sealed interface Content permits TextContent, DocumentContent {}
+public sealed interface Content permits TextContent, DocumentContent, ObjectContent {}

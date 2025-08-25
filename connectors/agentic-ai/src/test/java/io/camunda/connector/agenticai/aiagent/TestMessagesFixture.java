@@ -81,6 +81,11 @@ public abstract class TestMessagesFixture {
                   Map.of("date", "2025-04-14", "time", "15:56:50", "iso", "2025-04-14T15:56:50"))
               .build());
 
+  public static final List<ToolCallResult> EVENT_TOOL_CALL_RESULTS =
+      List.of(
+          ToolCallResult.builder().content("Event data").build(),
+          ToolCallResult.builder().content(Map.of("another", "event data")).build());
+
   public static List<Message> testMessages() {
     return List.of(
         systemMessage("You are a helpful assistant. Be nice."),
