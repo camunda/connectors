@@ -25,6 +25,7 @@ import io.camunda.connector.runtime.core.testutil.response.ProcessInstanceEventD
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Set;
 
 public class CreateCommandDummy
     implements CreateProcessInstanceCommandStep1,
@@ -75,6 +76,21 @@ public class CreateCommandDummy
   public CreateProcessInstanceWithResultCommandStep1 withResult() {
     throw new UnsupportedOperationException(
         "This method is not supported in the dummy implementation.");
+  }
+
+  @Override
+  public CreateProcessInstanceCommandStep3 tags(String... tags) {
+    return this;
+  }
+
+  @Override
+  public CreateProcessInstanceCommandStep3 tags(Iterable<String> tags) {
+    return this;
+  }
+
+  @Override
+  public CreateProcessInstanceCommandStep3 tags(Set<String> tags) {
+    return this;
   }
 
   public FinalCommandStep<ProcessInstanceEvent> requestTimeout(Duration requestTimeout) {
