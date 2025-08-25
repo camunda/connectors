@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.FinalCommandStep;
+import io.camunda.client.api.command.ThrowErrorCommandStep1.ThrowErrorCommandStep2;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.response.CompleteJobResponse;
 import io.camunda.client.api.response.FailJobResponse;
@@ -107,7 +108,7 @@ public class ConnectorJobHandler implements JobHandler {
     return command;
   }
 
-  protected static FinalCommandStep<Void> prepareThrowBpmnErrorCommand(
+  protected static ThrowErrorCommandStep2 prepareThrowBpmnErrorCommand(
       JobClient client, ActivatedJob job, BpmnError error) {
     return client
         .newThrowErrorCommand(job)
