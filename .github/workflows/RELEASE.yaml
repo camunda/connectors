@@ -42,7 +42,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -163,7 +163,7 @@ jobs:
           name: repository
 
       - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
