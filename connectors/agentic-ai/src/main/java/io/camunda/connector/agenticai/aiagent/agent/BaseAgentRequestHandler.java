@@ -131,7 +131,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
     LOGGER.trace("Adding system message (if necessary)");
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "Adding user messaged including {} tool call results for the following tool call results: {}",
+          "Adding user messages including {} tool call results for the following tool call results: {}",
           toolCallResults.size(),
           toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
     }
@@ -149,6 +149,8 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
       LOGGER.debug("Model call prerequisites not fulfilled, returning without agent response");
       return null;
     }
+
+    handleAddedUserMessages(executionContext, agentContext, userMessages);
 
     // call framework with memory
     LOGGER.debug("Executing chat request with AI framework");
@@ -179,6 +181,11 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
 
   protected abstract boolean modelCallPrerequisitesFulfilled(
       C executionContext, AgentContext agentContext, List<Message> addedUserMessages);
+
+  protected void handleAddedUserMessages(
+      C executionContext, AgentContext agentContext, List<Message> addedUserMessages) {
+    // no-op by default
+  }
 
   /** Handles job completion if needed. Agent response and conversation store may be null. */
   protected abstract AgentResponse completeJob(

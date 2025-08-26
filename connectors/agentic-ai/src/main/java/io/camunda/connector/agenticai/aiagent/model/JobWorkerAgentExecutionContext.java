@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -24,6 +25,7 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   private final JobClient jobClient;
   private final JobWorkerAgentJobContext jobContext;
   private final JobWorkerAgentRequest request;
+  private boolean cancelRemainingInstances;
 
   public JobWorkerAgentExecutionContext(
       final JobClient jobClient, final ActivatedJob job, final JobWorkerAgentRequest request) {
@@ -79,6 +81,11 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   }
 
   @Override
+  public EventHandlingConfiguration events() {
+    return request.data().events();
+  }
+
+  @Override
   public JobWorkerResponseConfiguration response() {
     return request.data().response();
   }
@@ -89,5 +96,13 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
 
   public ActivatedJob job() {
     return job;
+  }
+
+  public boolean cancelRemainingInstances() {
+    return cancelRemainingInstances;
+  }
+
+  public void setCancelRemainingInstances(boolean cancelRemainingInstances) {
+    this.cancelRemainingInstances = cancelRemainingInstances;
   }
 }
