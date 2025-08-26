@@ -17,7 +17,9 @@
 package io.camunda.connector.runtime.saas;
 
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.runtime.cloud.GcpSecretManagerSecretProvider;
+import io.camunda.connector.secret.provider.AwsSecretProvider;
+import io.camunda.connector.secret.provider.GcpSecretProvider;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,13 +42,24 @@ public class SaaSSecretConfiguration {
   @Value("${camunda.client.cloud.clusterId}")
   private String clusterId;
 
+  @Value("${camunda.saas.cluster.provider:gcp}")
+  private String clusterProvider;
+
+  @Value("${camunda.saas.secrets.useAwsSecretProvider:false}")
+  private boolean useAwsSecretProvider;
+
   @Bean
   public SecretProvider getSecretProvider() {
-    return new GcpSecretManagerSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
+    if (useAwsSecretProvider && Objects.equals(clusterProvider, "aws")) {
+      return new AwsSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
+    }
+    return new GcpSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
   }
 
   public SecretProvider getInternalSecretProvider() {
-    return new GcpSecretManagerSecretProvider(
-        clusterId, secretsProjectId, secretsInternalNamePrefix);
+    if (useAwsSecretProvider && Objects.equals(clusterProvider, "aws")) {
+      return new AwsSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
+    }
+    return new GcpSecretProvider(clusterId, secretsProjectId, secretsInternalNamePrefix);
   }
 }
