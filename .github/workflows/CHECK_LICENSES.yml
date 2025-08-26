@@ -16,7 +16,7 @@ jobs:
   analyze:
     name: Analyze dependencies
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
     - uses: actions/checkout@v5
     # Import FOSSA_API_KEY and other secrets from Vault
